@@ -11,7 +11,7 @@ mod invocation;
 mod tests;
 
 pub(in crate::cleanup_plan::replay) use diagnostic::{
-    ReplayFailure, raw_error_funded, raw_error_metered, replay_error_funded,
+    raw_error_funded, raw_error_metered, replay_error_funded, ReplayFailure,
 };
 pub(in crate::cleanup_plan::replay) use invocation::{
     authority, authority_for_function, enter, opt_in, opted, InvocationRefusal,

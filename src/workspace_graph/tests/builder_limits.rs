@@ -307,28 +307,31 @@ fn core_retry_fixture() -> Vec<WorkspaceSource> {
         candidate.sort_by(|left, right| left.path.cmp(&right.path));
         let programs = parsed_sources(&candidate);
         let authored = index_authored(&programs).unwrap();
-        let Ok(legacy) = expected_projection::retention_prebound_mode(
-            &programs, &authored, false, 0,
-        ) else { return false };
+        let Ok(legacy) =
+            expected_projection::retention_prebound_mode(&programs, &authored, false, 0)
+        else {
+            return false;
+        };
         // The fixed fixture has only ordinary modules, no frontend or native
         // law branch. Run their actual pre-core formatter and registry owners:
         // the enclosing ledger keeps these debits before entering core.
-        let (actual, refused, pre_core) = crate::bounded_output::with_limit_usage(
-            MAX_BUILDER_BYTES,
-            || {
+        let (actual, refused, pre_core) =
+            crate::bounded_output::with_limit_usage(MAX_BUILDER_BYTES, || {
                 let mut programs = Vec::with_capacity(candidate.len());
                 let mut canonical_bytes = 0usize;
                 for source in &candidate {
-                    let (program, comments) = crate::parse_with_comments(
-                        &source.source, Path::new(&source.path),
-                    ).unwrap();
+                    let (program, comments) =
+                        crate::parse_with_comments(&source.source, Path::new(&source.path))
+                            .unwrap();
                     crate::static_protocol::validate(&program).unwrap();
                     let remaining = MAX_BUILDER_BYTES.saturating_sub(canonical_bytes);
-                    let (canonical, overflowed) = crate::bounded_output::with_limit(
-                        remaining,
-                        || format::comments::canonical_with_comments(&program, &comments),
-                    );
-                    if overflowed { return None; }
+                    let (canonical, overflowed) =
+                        crate::bounded_output::with_limit(remaining, || {
+                            format::comments::canonical_with_comments(&program, &comments)
+                        });
+                    if overflowed {
+                        return None;
+                    }
                     assert_eq!(canonical, source.source);
                     canonical_bytes = canonical_bytes.checked_add(canonical.len()).unwrap();
                     programs.push(program);
@@ -342,19 +345,31 @@ fn core_retry_fixture() -> Vec<WorkspaceSource> {
                     &programs, &authored,
                 );
                 import_validation::validate_uses_with_registry(
-                    &programs, &modules, &authored, Some(&registry),
-                ).unwrap();
+                    &programs,
+                    &modules,
+                    &authored,
+                    Some(&registry),
+                )
+                .unwrap();
                 let _depths = validate_dependency_dag(&programs).unwrap();
                 let initial = expected_projection::cached_exact::initial_with_registry(
-                    &programs, &authored, true,
-                    expected_projection::cached_exact::Retention::Parsed, Some(&registry),
-                ).ok()?;
+                    &programs,
+                    &authored,
+                    true,
+                    expected_projection::cached_exact::Retention::Parsed,
+                    Some(&registry),
+                )
+                .ok()?;
                 Some((initial, registry.receipt()))
-            },
-        );
-        let Some((initial, registry)) = actual else { return false };
-        !refused && initial.0 == legacy.0 && initial.3 == 1
-            && pre_core.checked_add(registry)
+            });
+        let Some((initial, registry)) = actual else {
+            return false;
+        };
+        !refused
+            && initial.0 == legacy.0
+            && initial.3 == 1
+            && pre_core
+                .checked_add(registry)
                 .and_then(|paid| paid.checked_add(initial.0))
                 .is_some_and(|paid| paid <= MAX_BUILDER_BYTES)
     };
@@ -376,12 +391,19 @@ fn core_retry_fixture() -> Vec<WorkspaceSource> {
 fn identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal() {
     // Preserve the complete earlier fixture before changing only admissibility.
     let current = include_str!("builder_limits.rs");
-    let start = current.find("/// Tune only the fixture size, never the production bound.").unwrap();
-    let end = start + current[start..].find("\n#[test]\nfn identity_prebound_production_core_retry").unwrap();
+    let start = current
+        .find("/// Tune only the fixture size, never the production bound.")
+        .unwrap();
+    let end = start
+        + current[start..]
+            .find("\n#[test]\nfn identity_prebound_production_core_retry")
+            .unwrap();
     let mut restored = current[start..end].to_owned();
     let inverse: serde_json::Value = serde_json::from_str(include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"), "/docs/evidence/canonical-preparation-stage-829/retry-precharge-fixture/exact-inverse.json"
-    ))).unwrap();
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/canonical-preparation-stage-829/retry-precharge-fixture/exact-inverse.json"
+    )))
+    .unwrap();
     for splice in inverse["splices"].as_array().unwrap().iter().rev() {
         let at = splice["start"].as_u64().unwrap() as usize;
         let after = splice["after"].as_str().unwrap();
@@ -390,7 +412,13 @@ fn identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refu
     }
     let original = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/canonical-preparation-stage-829/retry-precharge-fixture/complete-fixture.before.txt"));
     use sha2::{Digest, Sha256};
-    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))), "4c8f8a2cac574013d6acb485d7af2c86699fb3b5b09be532c90786c6ec7add24");
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))
+        ),
+        "4c8f8a2cac574013d6acb485d7af2c86699fb3b5b09be532c90786c6ec7add24"
+    );
     assert_eq!(restored, original);
     let sources = core_retry_fixture();
     let programs = parsed_sources(&sources);
@@ -409,15 +437,24 @@ fn identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refu
     let ordered_authored = index_authored(&ordered_programs).unwrap();
     let ordered_modules = index_modules(&ordered_programs).unwrap();
     let registry = expected_projection::private_layout::registry::LayoutRegistry::new(
-        &ordered_programs, &ordered_authored,
+        &ordered_programs,
+        &ordered_authored,
     );
     import_validation::validate_uses_with_registry(
-        &ordered_programs, &ordered_modules, &ordered_authored, Some(&registry),
-    ).unwrap();
+        &ordered_programs,
+        &ordered_modules,
+        &ordered_authored,
+        Some(&registry),
+    )
+    .unwrap();
     let actual_initial = expected_projection::cached_exact::initial_with_registry(
-        &ordered_programs, &ordered_authored, true,
-        expected_projection::cached_exact::Retention::Parsed, Some(&registry),
-    ).unwrap();
+        &ordered_programs,
+        &ordered_authored,
+        true,
+        expected_projection::cached_exact::Retention::Parsed,
+        Some(&registry),
+    )
+    .unwrap();
     let registry_receipt = registry.receipt();
     crate::bounded_output::stage_debits::take_completed();
     CORE_BUILD_ATTEMPTS.with(|attempts| attempts.set(0));
@@ -425,7 +462,10 @@ fn identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refu
         crate::bounded_output::with_limit_usage_refusal(MAX_BUILDER_BYTES, || {
             let before = crate::bounded_output::active_remaining();
             let result = build_owned_with_builder_limit(sources.clone(), MAX_BUILDER_BYTES);
-            eprintln!("identity-retry-parent before={before:?} after={:?}", crate::bounded_output::active_remaining());
+            eprintln!(
+                "identity-retry-parent before={before:?} after={:?}",
+                crate::bounded_output::active_remaining()
+            );
             result
         });
     let trace = crate::bounded_output::stage_debits::take_completed();

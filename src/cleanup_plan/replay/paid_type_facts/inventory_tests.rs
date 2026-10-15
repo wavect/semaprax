@@ -60,11 +60,7 @@ fn raw_missing_cleanup_facts_refusal_keeps_message_without_replay_prefix() {
 fn full_current_classifier_source_equals_complete_saved_receiver_plus_raw_adapter() {
     let current = include_str!("../paid_type_facts.rs");
     assert_eq!(current.matches("pub(super) struct Payer<'a> {").count(), 1);
-    let current = current.replacen(
-        "pub(super) struct Payer<'a> {",
-        "struct Payer<'a> {",
-        1,
-    );
+    let current = current.replacen("pub(super) struct Payer<'a> {", "struct Payer<'a> {", 1);
     let current = current
         .strip_suffix("\n#[cfg(test)]\npub(super) mod oracle_inventory;\n")
         .unwrap();

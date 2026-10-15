@@ -411,6 +411,11 @@ fn local_capacity_refusal_keeps_exact_diagnostic_without_global_poisoning() {
         assert!(enumerating_result(Err(semantic), &ReplayBudget::new())
             .unwrap()
             .is_none());
+        // The same enclosing payer remains usable after both local outcomes.
+        assert!(crate::bounded_output::reserve_active_required(1));
     });
-    assert!(!refused && used > 0);
+    // Layout overflow and zero-size authentication construct no backing; only
+    // the final successful reservation consumes the enclosing account.
+    assert!(!refused);
+    assert_eq!(used, 1);
 }

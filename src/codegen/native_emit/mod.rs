@@ -365,6 +365,9 @@ fn emit_native_prelude_inner(
         } else {
             native_byte_data::emit_runtime(output);
         }
+        if program_uses_bounded_byte_allocation(program) {
+            native_byte_data::emit_bounded_allocation_check(output);
+        }
         if program_uses_additive_byte_operations(program) {
             if strings.stream_epochs {
                 native_byte_data::emit_stream_epoch_additive_operations(output);
@@ -427,6 +430,20 @@ fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
     }
     crate::box_ops::resolved_program_uses_owned_payload(program)
         || crate::vec_ops::resolved_program_uses_owned_payload(program)
+}
+fn program_uses_bounded_byte_allocation(program: &ResolvedProgram) -> bool {
+    let mut found = false;
+    for function in program
+        .functions
+        .iter()
+        .chain(program.function_instances.iter().map(|i| &i.function))
+    {
+        hir::function_value::walk(function, |expression| {
+            found |= matches!(&expression.kind, ResolvedExprKind::Call { callee, .. }
+                if crate::byte_ops::by_id(callee.as_str()) == Some(crate::byte_ops::ByteOp::ZeroedBounded));
+        });
+    }
+    found
 }
 /// Store helpers added after the frozen byte runtime are emitted only for a
 /// resolved call that can reach them. This keeps legacy native projections and

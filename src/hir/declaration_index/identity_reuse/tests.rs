@@ -93,7 +93,12 @@ fn inserted_identity_reuse_preserves_full_index_inheritance_and_current_text_gua
 fn inserted_identity_reuse_removes_literal_reconstruction_payloads_through_index_drop() {
     let program = crate::check(SOURCE, "identity-reuse.spx").unwrap();
     let (_, old) = measure(|| {
-        drop(DeclarationIndex::saved_from_verified_with_prelude(&program, &[]).unwrap());
+        let mut index = DeclarationIndex::saved_from_verified_with_prelude(&program, &[]).unwrap();
+        // Isolate identity reuse under the same current unfunded payload
+        // storage policy. The saved constructor above remains complete, and
+        // `compare` separately checks its unmodified result against current.
+        index.share_legacy_nominal_payloads_unfunded();
+        drop(index);
     });
     let (_, new) = measure(|| {
         drop(DeclarationIndex::from_verified_with_prelude(&program, &[]).unwrap());

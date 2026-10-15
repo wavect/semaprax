@@ -1,5 +1,9 @@
 # Agent authoring repair guidance v1
 
+Status: draft specification; qualification remains as recorded below.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 This tranche adds optional help to existing source verifier diagnostics and indexed language help. It changes no admitted syntax, profile, authority, binding metadata, primary code/message/span/path or backend behavior. Unknown and duplicate payload-field diagnostics remain separate from invalid/duplicate local binders. Scalar patterns use a fresh local; record and variant payloads can retain a field name while binding it with `field: fresh_alias`. The example name is not guaranteed available. Existing independent ownership and type diagnostics remain authoritative.
 
 Transcript guidance selects fixed compiler-authored repeated-write, loop-condition, loop-body and cyclic-closure reasons. It recommends construction within existing bounds and one publication from an admitted location. It carries no invented site, loop or cycle witness. Complete real flow witnesses remain follow-up #821.

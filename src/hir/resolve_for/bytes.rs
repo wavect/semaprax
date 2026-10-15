@@ -37,6 +37,80 @@ pub(in crate::hir) fn admits(source: &Binding) -> bool {
     source.ty == ResolvedType::SliceU8 && !source.mutable && source.traversal_row.is_none()
 }
 
+/// Locate this exact authored body without inheriting a mixed traversal or
+/// closure's context. The source nesting bound is narrower than this existing
+/// HIR/cache bound; no owning frontier or new admission allowance is acquired.
+pub(in crate::hir) fn source_byte_ancestry(
+    root: &crate::ast::Expr,
+    target: &crate::ast::Expr,
+    scope: &BTreeMap<String, Binding>,
+) -> bool {
+    use crate::ast::{Expr, ExprKind, Statement};
+    #[inline(never)]
+    fn walk(
+        root: &Expr,
+        target: &Expr,
+        scope: &BTreeMap<String, Binding>,
+        ancestry: Option<bool>,
+        depth: usize,
+    ) -> Option<bool> {
+        if depth > crate::cache_codec::MAX_DEPTH {
+            return None;
+        }
+        if std::ptr::eq(root, target) {
+            return Some(ancestry == Some(true));
+        }
+        if let ExprKind::Block { statements, tail } = &root.kind {
+            for statement in statements {
+                if let Statement::For { values, body, .. } = statement {
+                    let bytes = matches!(&values.kind, ExprKind::Var(name)
+                        if scope.get(name).is_some_and(admits));
+                    if let Some(found) = walk(
+                        body,
+                        target,
+                        scope,
+                        Some(ancestry.unwrap_or(true) && bytes),
+                        depth + 1,
+                    ) {
+                        return Some(found);
+                    }
+                } else {
+                    let ancestry = if matches!(
+                        statement,
+                        Statement::ForBorrow { .. } | Statement::ForOwn { .. }
+                    ) {
+                        Some(false)
+                    } else {
+                        ancestry
+                    };
+                    for index in 0..statement.child_count() {
+                        if let Some(child) = statement.child(index) {
+                            if let Some(found) = walk(child, target, scope, ancestry, depth + 1) {
+                                return Some(found);
+                            }
+                        }
+                    }
+                }
+            }
+            return walk(tail, target, scope, ancestry, depth + 1);
+        }
+        let ancestry = if matches!(root.kind, ExprKind::Closure { .. }) {
+            None
+        } else {
+            ancestry
+        };
+        let mut index = 0;
+        while let Some(child) = root.child(index) {
+            if let Some(found) = walk(child, target, scope, ancestry, depth + 1) {
+                return Some(found);
+            }
+            index += 1;
+        }
+        None
+    }
+    walk(root, target, scope, None, 0).unwrap_or(false)
+}
+
 /// `None` is an unaddressable receiver spelling or a builder-ledger refusal;
 /// a refusal is sticky on the active budget. Either way nothing of the
 /// traversal was constructed.

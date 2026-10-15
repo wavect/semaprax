@@ -315,8 +315,9 @@ fn complete_exit_work_exact_short_and_sticky_use_the_same_original_budget() {
 #[test]
 fn complete_root_receivers_and_only_named_paid_caller_projections_keep_original_bytes() {
     use sha2::{Digest, Sha256};
-    let selected = include_str!("selected.rs");
-    let adapter = "pub(in crate::cleanup_plan::replay::expression_facts::receiving) fn unique_status";
+    let selected = ci_str!("selected.rs");
+    let adapter =
+        "pub(in crate::cleanup_plan::replay::expression_facts::receiving) fn unique_status";
     assert_eq!(selected.matches(adapter).count(), 1);
     let selected = selected.replacen(adapter, "pub(super) fn unique_status", 1);
     assert_eq!(
@@ -326,12 +327,12 @@ fn complete_root_receivers_and_only_named_paid_caller_projections_keep_original_
         ),
         "446459444ef20047d571618c4c85c4cb1d8151f52bb1b587221c795bff0b52b9"
     );
-    let inverse: serde_json::Value = serde_json::from_str(include_str!(concat!(
+    let inverse: serde_json::Value = serde_json::from_str(ci_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/borrowed-selected-status-816/inverse.json"
     )))
     .unwrap();
-    let mut current = include_str!("../remaining.rs").to_owned();
+    let mut current = ci_str!("../remaining.rs").to_owned();
     for edit in inverse["edits"].as_array().unwrap().iter().rev() {
         let after = edit["after"].as_str().unwrap();
         assert_eq!(current.matches(after).count(), 1);
@@ -339,7 +340,7 @@ fn complete_root_receivers_and_only_named_paid_caller_projections_keep_original_
     }
     assert_eq!(
         current,
-        include_str!(concat!(
+        ci_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/borrowed-selected-status-816/remaining.before.txt"
         ))
@@ -351,15 +352,15 @@ fn complete_root_receivers_and_only_named_paid_caller_projections_keep_original_
         ),
         "78f39b761c68fc9145736540359659eb7edd7a80253fcaec1716f7ce55fcc85e"
     );
-    let records: serde_json::Value = serde_json::from_str(include_str!(concat!(
+    let records: serde_json::Value = serde_json::from_str(ci_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/remaining-receiving-exits-816/exact-source-inverses.json"
     )))
     .unwrap();
     let sources = [
-        (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/remaining-receiving-exits-816/src__cleanup_plan__replay.rs.before.txt"))),
-        (include_str!("../../receiving.rs"), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/remaining-receiving-exits-816/src__cleanup_plan__replay__expression_facts__receiving.rs.before.txt"))),
-        (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/lexical_replay.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/remaining-receiving-exits-816/src__cleanup_plan__replay__lexical_replay.rs.before.txt"))),
+        (ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay.rs")), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/remaining-receiving-exits-816/src__cleanup_plan__replay.rs.before.txt"))),
+        (ci_str!("../../receiving.rs"), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/remaining-receiving-exits-816/src__cleanup_plan__replay__expression_facts__receiving.rs.before.txt"))),
+        (ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/lexical_replay.rs")), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/remaining-receiving-exits-816/src__cleanup_plan__replay__lexical_replay.rs.before.txt"))),
     ];
     assert_eq!(records.as_array().unwrap().len(), sources.len());
     for (record, (current, original)) in records.as_array().unwrap().iter().zip(sources) {
@@ -378,17 +379,17 @@ fn complete_root_receivers_and_only_named_paid_caller_projections_keep_original_
         }
         assert_eq!(current, original);
     }
-    let projections: serde_json::Value = serde_json::from_str(include_str!(concat!(
+    let projections: serde_json::Value = serde_json::from_str(ci_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/remaining-receiving-exits-816/receiver-projections.json"
     )))
     .unwrap();
     let originals = [
-        include_str!(concat!(
+        ci_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/remaining-receiving-exits-816/exit.before.txt"
         )),
-        include_str!(concat!(
+        ci_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/remaining-receiving-exits-816/finalizers.before.txt"
         )),
@@ -406,7 +407,7 @@ fn complete_root_receivers_and_only_named_paid_caller_projections_keep_original_
         assert_eq!(current.matches(after).count(), 1);
         assert_eq!(record["before"].as_str().unwrap(), original);
         assert_eq!(
-            include_str!(concat!(
+            ci_str!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
                 "/src/cleanup_plan/replay.rs"
             ))

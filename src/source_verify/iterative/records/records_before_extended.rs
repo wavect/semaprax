@@ -5,13 +5,13 @@ use crate::ast::{
     Expr, FieldDeclaration, ParamMode, Type, TypeDeclaration, VariantCaseDeclaration,
 };
 use crate::diagnostic::Diagnostic;
-use crate::source_verify::IterativeVerifier;
 use crate::source_verify::binding::CheckedValue;
 use crate::source_verify::diagnostics::{error, reject_native_unit_value};
 use crate::source_verify::loans::mark_value_sources_moved;
 use crate::source_verify::place::source_place;
 use crate::source_verify::scope::VerifierFrame;
-use crate::source_verify::type_table::{TypeTable, effective_record_fields};
+use crate::source_verify::type_table::{effective_record_fields, TypeTable};
+use crate::source_verify::IterativeVerifier;
 use std::collections::HashSet;
 
 impl<'a, 'p> IterativeVerifier<'a, 'p> {

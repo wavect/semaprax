@@ -17,6 +17,10 @@ pub(crate) use module_index::ModuleIndex;
 mod source;
 mod source_index;
 #[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete historical receiver retained for independent test comparisons"
+)]
 pub(crate) mod source_index_original;
 #[cfg(test)]
 pub(crate) use resolved::checked_absent_with_work_reservation;

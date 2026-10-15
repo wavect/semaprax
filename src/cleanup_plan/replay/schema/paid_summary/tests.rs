@@ -1,18 +1,37 @@
 use super::*;
 #[test]
 fn complete_schema_original_and_receiving_body_remain_byte_exact() {
-    let root = include_str!("../../schema.rs");
+    let root = ci_str!("../../schema.rs");
     assert_eq!(
         root.strip_suffix("\npub(super) mod paid_summary;\n")
             .unwrap(),
-        include_str!("../../../../../docs/evidence/schema-summary/schema.rs.before")
+        ci_str!("../../../../../docs/evidence/schema-summary/schema.rs.before")
     );
-    let restored = crate::cleanup_plan::replay::expression_facts::receiving::before_status_retention("src/cleanup_plan/replay.rs", include_str!("../../../replay.rs"));
+    let restored =
+        crate::cleanup_plan::replay::expression_facts::receiving::before_status_retention(
+            "src/cleanup_plan/replay.rs",
+            ci_str!("../../../replay.rs"),
+        );
     let mut restored = restored;
     assert_eq!(restored.matches("    expression_facts::receiving::validate_entry(function, &storage, &leaves, budget)?;").count(), 1);
-    restored = restored.replacen("    expression_facts::receiving::validate_entry(function, &storage, &leaves, budget)?;", "    validate_entry(function, &storage, &leaves)?;", 1);
-    assert_eq!(restored.matches("    expression_facts::receiving::validate_regions(function, &storage, budget)?;").count(), 1);
-    restored = restored.replacen("    expression_facts::receiving::validate_regions(function, &storage, budget)?;", "    validate_regions(function, &storage)?;", 1);
+    restored = restored.replacen(
+        "    expression_facts::receiving::validate_entry(function, &storage, &leaves, budget)?;",
+        "    validate_entry(function, &storage, &leaves)?;",
+        1,
+    );
+    assert_eq!(
+        restored
+            .matches(
+                "    expression_facts::receiving::validate_regions(function, &storage, budget)?;"
+            )
+            .count(),
+        1
+    );
+    restored = restored.replacen(
+        "    expression_facts::receiving::validate_regions(function, &storage, budget)?;",
+        "    validate_regions(function, &storage)?;",
+        1,
+    );
     assert_eq!(restored.matches("    expression_facts::receiving::validate_exits(\n        program,\n        function,\n        &storage,\n        &leaves,\n        &BTreeSet::new(),\n        budget,\n    )?;").count(), 1);
     restored = restored.replacen("    expression_facts::receiving::validate_exits(\n        program,\n        function,\n        &storage,\n        &leaves,\n        &BTreeSet::new(),\n        budget,\n    )?;", "    validate_exits(program, function, &storage, &leaves, &BTreeSet::new())?;", 1);
     let current = restored.as_str();
@@ -24,8 +43,8 @@ fn complete_schema_original_and_receiving_body_remain_byte_exact() {
     let new_call = "let ordinary_schema =\n        schema::paid_summary::selected_with_budget(program, function, helpers, budget)?;";
     assert_eq!(current.matches(new_call).count(), 1);
     assert_eq!(current.replace(new_call, "let ordinary_schema = schema::selected_schema_with_index(program, function, helpers)?;"),
-        include_str!("../../../../../docs/evidence/schema-summary/validation-receiver.rs.before"));
-    let old=include_str!("original_receiver.rs").strip_prefix("//! Complete pre-adoption receiving function, independently compiled for controls.\nuse super::*;\n").unwrap();
+        ci_str!("../../../../../docs/evidence/schema-summary/validation-receiver.rs.before"));
+    let old=ci_str!("original_receiver.rs").strip_prefix("//! Complete pre-adoption receiving function, independently compiled for controls.\nuse super::*;\n").unwrap();
     // Relocation changes only the exact namespace of the same V20 constant.
     let qualified = "crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V20";
     assert_eq!(old.matches(qualified).count(), 1);
@@ -36,7 +55,7 @@ fn complete_schema_original_and_receiving_body_remain_byte_exact() {
             "fn validate_structure_with_budget_storage<'hir>(",
             1
         ),
-        include_str!("../../../../../docs/evidence/schema-summary/validation-receiver.rs.before")
+        ci_str!("../../../../../docs/evidence/schema-summary/validation-receiver.rs.before")
     );
 }
 fn original(program: &ResolvedProgram, function: &ResolvedFunction) -> Result<(), Diagnostic> {

@@ -299,39 +299,39 @@ fn live_core_constructor_chain_preserves_complete_old_overlay_and_full_drop() {
 #[test]
 fn complete_inline_sources_and_original_owners_have_exact_whole_file_inverses() {
     use sha2::{Digest, Sha256};
-    let proof: serde_json::Value = serde_json::from_str(include_str!(concat!(
+    let proof: serde_json::Value = serde_json::from_str(ci_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/constructor-inline-failure-825/exact-source-inverses.json"
     )))
     .unwrap();
     let owners = [
-        include_str!("../../../workspace_graph.rs"),
-        include_str!("../defaults.rs"),
-        include_str!("../import_stub.rs"),
-        include_str!("../borrowed_imports.rs"),
-        include_str!(concat!(
+        ci_str!("../../../workspace_graph.rs"),
+        ci_str!("../defaults.rs"),
+        ci_str!("../import_stub.rs"),
+        ci_str!("../borrowed_imports.rs"),
+        ci_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/tests/workspace/semantic_graph/source_inventory.rs"
         )),
     ];
     let originals = [
-        include_str!(concat!(
+        ci_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/constructor-inline-failure-825/0.before.txt"
         )),
-        include_str!(concat!(
+        ci_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/constructor-inline-failure-825/1.before.txt"
         )),
-        include_str!(concat!(
+        ci_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/constructor-inline-failure-825/2.before.txt"
         )),
-        include_str!(concat!(
+        ci_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/constructor-inline-failure-825/3.before.txt"
         )),
-        include_str!(concat!(
+        ci_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/constructor-inline-failure-825/4.before.txt"
         )),
@@ -355,11 +355,11 @@ fn complete_inline_sources_and_original_owners_have_exact_whole_file_inverses() 
         );
     }
     let children = [
-        include_str!("../../constructor_failure.rs"),
-        include_str!("inline.rs"),
-        include_str!("inline_fields.rs"),
-        include_str!("../borrowed_imports/inline.rs"),
-        include_str!("inline_tests.rs"),
+        ci_str!("../../constructor_failure.rs"),
+        ci_str!("inline.rs"),
+        ci_str!("inline_fields.rs"),
+        ci_str!("../borrowed_imports/inline.rs"),
+        ci_str!("inline_tests.rs"),
     ];
     for (record, source) in proof["children"].as_array().unwrap().iter().zip(children) {
         assert_eq!(

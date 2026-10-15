@@ -1,10 +1,10 @@
 use std::{fmt, mem};
 
-#[path = "ast/drop_method_roots.rs"]
-mod drop_method_roots;
 #[cfg(test)]
 #[path = "ast/drop_method_original.rs"]
 mod drop_method_original;
+#[path = "ast/drop_method_roots.rs"]
+mod drop_method_roots;
 
 pub(crate) mod program_source;
 

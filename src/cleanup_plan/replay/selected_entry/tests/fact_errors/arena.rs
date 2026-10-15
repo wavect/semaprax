@@ -26,7 +26,17 @@ fn paid_arena_actual_session_exact_short_zero_work_and_drop_keep_first_receipt()
         let ((), metrics) = measure(|| {
             let mut selected = session(&context, function, limit);
             let pointer = selected.budget.refusal_text.as_ref().unwrap().as_ptr();
-            match expression_facts::paid_arena(function, &mut selected.budget) {
+            // Match the complete measured success path, including paid lookup
+            // receiving carriers, at both the exact and one-byte-short limit.
+            let result = (|| {
+                let facts = expression_facts::paid_arena(function, &mut selected.budget)?;
+                assert_eq!(facts.len(), 2);
+                for (key, _) in facts.entries_paid(function, &mut selected.budget)? {
+                    assert!(facts.fact(function, key, &mut selected.budget)?.is_some());
+                }
+                Ok(facts)
+            })();
+            match result {
                 Ok(facts) => {
                     assert_eq!(limit, full);
                     assert_eq!(selected.usage().1, full);

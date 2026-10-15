@@ -1,5 +1,9 @@
 # Status fact borrow reuse v1
 
+Status: draft specification; qualification remains as recorded below.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The ordinary retained status receiver inserts the full status identity first, then performs the same existence lookup, then validates the unchanged lane/producer and call callee. A propagated call uses the actual borrowed payload returned by that first lookup. The immutable concrete Facts arena and source remain borrowed through the immediate producer match. No reference escapes, no verdict is cached, no source identity is inferred from an ID, and no authority is inferred from a diagnostic.
 
 Previously the call branch immediately repeated the same paid lookup without intervening mutation. Removing that second traversal removes only its actual comparison, proof-control, and return-control operations. All lookup, AVL, and replay unit prices and caps remain unchanged. The new receiving reference to Option<CallFact> is paid in full before initialization, together with one assignment unit per source. The call arm separately prepays its simultaneously live CallFact reference and one assignment unit. No removed result/header is credited against either layout. Non-call sources honestly incur the first receiving control even though they have no repeated lookup to remove.

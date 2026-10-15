@@ -21,6 +21,12 @@ syntax cannot mint a target. Parsing rejects statements after an unconditional
 exit instead of deleting their effects. A conditional with one exit alternative
 joins its other normal type; two exit alternatives have no normal completion.
 No bottom value may become a parameter, field, ABI slot, local or published result.
+Presence scans retain ordinary expression-depth admission for functions without
+an exit. The narrower lexical contour bound applies only when an actual exit
+selects this profile; it does not narrow legacy scalar expression admission.
+Typed replay independently scans all roots before skipping unused contour
+scratch. A forged `Never` completion or typed lexical-loop marker still selects
+the complete contour validator; an attachment cannot assert its own absence.
 An owned record-match arm whose entire result flow exits abruptly retains its
 arm region in the abrupt-only certificate. It creates neither a second normal
 scope exit nor a normal match-result transfer; independent replay still rejects

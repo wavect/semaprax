@@ -100,4 +100,3 @@ pub(crate) fn admitted(root: &ResolvedType, index: &DeclarationIndex) -> bool {
     }
     has_vector
 }
-

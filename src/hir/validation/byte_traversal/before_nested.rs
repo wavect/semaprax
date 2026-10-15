@@ -414,7 +414,6 @@ pub(crate) fn program_uses(program: &ResolvedProgram) -> bool {
         }))
 }
 
-
 // Like the saved Vec frontier, closures expose their evaluated captures only;
 // their separately checked bodies cannot borrow authorization from the caller.
 #[derive(Clone, Copy)]
@@ -491,4 +490,3 @@ fn roots_use<'a>(roots: impl DoubleEndedIterator<Item = &'a ResolvedExpr>) -> bo
     }
     false
 }
-

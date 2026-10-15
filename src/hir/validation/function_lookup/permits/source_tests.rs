@@ -107,12 +107,15 @@ fn current_source_permits_preserve_full_saved_function_diagnostics_and_effect_or
 
 #[test]
 fn complete_lookup_and_permit_sources_have_only_named_borrowed_membership_hooks() {
-    let projected = super::super::paid_custody::project_current("src/hir/validation/function_lookup.rs", include_str!("../../function_lookup.rs"));
+    let projected = super::super::paid_custody::project_current(
+        "src/hir/validation/function_lookup.rs",
+        ci_str!("../../function_lookup.rs"),
+    );
     let current = projected.as_str();
     let addition = "    pub(super) fn permits_borrowed(&self, program: &'a ResolvedProgram) -> Permits<'a> {\n        match self {\n            Self::Borrowed { directory, .. } => Permits::Borrowed((*directory).permits()),\n            Self::Legacy(_) => Permits::Source(&program.permits),\n        }\n    }\n    // Complete original BTree receiver for independently compiled saved validators.\n    #[cfg(test)]\n";
     assert_eq!(current.matches(addition).count(), 1);
-    assert_eq!(current.replacen(addition, "", 1), include_str!("../../../../../docs/evidence/function-scope-backing-isolation/function_lookup.rs.before.txt"));
-    let current = include_str!("../permits.rs");
+    assert_eq!(current.replacen(addition, "", 1), ci_str!("../../../../../docs/evidence/function-scope-backing-isolation/function_lookup.rs.before.txt"));
+    let current = ci_str!("../permits.rs");
     let variant = "    Source(&'a [String]),\n    #[cfg(test)]\n";
     let arm = "            Self::Source(permits) => permits.iter().any(|permit| permit == effect),\n            #[cfg(test)]\n";
     assert_eq!(current.matches(variant).count(), 1);
@@ -126,7 +129,7 @@ fn complete_lookup_and_permit_sources_have_only_named_borrowed_membership_hooks(
         .replacen("#[cfg(test)]\nuse super::*;", "use super::*;", 1);
     assert_eq!(
         original,
-        include_str!(
+        ci_str!(
             "../../../../../docs/evidence/function-scope-backing-isolation/permits.rs.before.txt"
         )
     );

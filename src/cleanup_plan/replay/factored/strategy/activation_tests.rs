@@ -262,7 +262,7 @@ fn immutable_original_shiftsim_forced_enumerated_retains_frozen_refusal() {
     let example = repository.join("examples/shiftsim-typed-record-successor");
     let wrappers = repository
         .join("tests/project/standard_library/application_json/owned/string_slot_adoption");
-    let original = include_str!(concat!(
+    let original = ci_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/project/standard_library/application_json/owned/shiftsim_schedule_unfactored.txt"
     ));

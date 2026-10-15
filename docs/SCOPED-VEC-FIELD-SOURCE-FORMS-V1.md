@@ -1,5 +1,7 @@
 # Scoped Vec Field Source Forms v1
 
+Audience: compiler contributors, tool authors, and reviewers.
+
 Status: source-only successor for the newly reached Catalog traversal refusal;
 all qualification is pending. This extends representation and independent
 replay of [Scoped Vec Field Reads v1](SCOPED-VEC-FIELD-READS-V1.md) and

@@ -250,7 +250,11 @@ pub(super) fn resolve_reference(
         ));
     }
     let element = element(resolver, source_binding, values)?;
-    resolver.reject_while_disallowed(body)?;
+    resolver.reject_while_disallowed_in_scope(
+        body,
+        None,
+        bytes::admits(source_binding).then_some(&scope),
+    )?;
     let source = ResolvedBinding {
         id: source_binding.id.clone(),
         name: source_name.clone(),

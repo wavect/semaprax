@@ -323,4 +323,3 @@ impl<'a> Canonicalizer<'a> {
         Ok(self.states.get(&root).copied())
     }
 }
-

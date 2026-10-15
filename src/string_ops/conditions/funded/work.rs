@@ -116,6 +116,10 @@ pub(crate) fn function_reads_funded_with_work<E>(
     }
 }
 
+#[allow(
+    dead_code,
+    reason = "retained original receiver or refusal payload; not every legacy entry is selected by current tests"
+)]
 pub(crate) fn needs_cleanup_funded_with_work<E>(
     condition: &ResolvedExpr,
     work: Work<'_, E>,

@@ -1,10 +1,10 @@
-use semaprax::assurance_manifest::project::{ProjectAssuranceOptions, generate_from_snapshot};
+use semaprax::assurance_manifest::project::{generate_from_snapshot, ProjectAssuranceOptions};
 use semaprax::project::{
+    derive_project_scaffold_v1, derive_project_scaffold_v1_with_layout, replay_project_scaffold_v1,
+    with_authenticated_project, ScaffoldLayout, PROJECT_SCAFFOLD_TEMPLATES,
     PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT,
     PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_COLLECTION_RECORD,
-    PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA, PROJECT_SCAFFOLD_TEMPLATES, ScaffoldLayout,
-    derive_project_scaffold_v1, derive_project_scaffold_v1_with_layout, replay_project_scaffold_v1,
-    with_authenticated_project,
+    PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA,
 };
 use sha2::{Digest, Sha256};
 
@@ -220,11 +220,9 @@ fn expected_files() -> [Vec<u8>; 5] {
 fn assert_digest(value: &str) {
     assert!(value.starts_with("sha256:"), "{value}");
     assert_eq!(value.len(), "sha256:".len() + 64, "{value}");
-    assert!(
-        value["sha256:".len()..]
-            .bytes()
-            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
-    );
+    assert!(value["sha256:".len()..]
+        .bytes()
+        .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)));
 }
 
 fn sha256(bytes: &[u8]) -> String {
@@ -428,11 +426,9 @@ fn library_template_derives_the_package_shape_and_replays_only_as_itself() {
         assert_eq!(file.sha256(), sha256(file.bytes()));
     }
     let canonical = derived.canonical_bytes();
-    assert!(
-        canonical
-            .windows(b"\"template\":\"library\"".len())
-            .any(|window| window == b"\"template\":\"library\"")
-    );
+    assert!(canonical
+        .windows(b"\"template\":\"library\"".len())
+        .any(|window| window == b"\"template\":\"library\""));
     let replayed =
         replay_project_scaffold_v1(NAME, "library", &canonical, derived.digest()).unwrap();
     assert_eq!(replayed.canonical_bytes(), canonical);
@@ -562,7 +558,8 @@ fn tables_layout_derives_a_v3_capsule_and_replays_only_as_itself() {
     assert_eq!(tables.template(), "calculator");
     assert_eq!(tables.project_name(), NAME);
     assert_eq!(
-        serde_json::from_slice::<serde_json::Value>(&tables.canonical_bytes()).unwrap()["limits"]["files"],
+        serde_json::from_slice::<serde_json::Value>(&tables.canonical_bytes()).unwrap()["limits"]
+            ["files"],
         6
     );
     assert_digest(tables.digest());
@@ -589,21 +586,15 @@ fn tables_layout_derives_a_v3_capsule_and_replays_only_as_itself() {
         ]
     );
     assert_eq!(tables.files()[2].bytes(), CALCULATOR_TABLES_MANIFEST);
-    assert!(
-        tables.files()[1]
-            .utf8()
-            .contains("Project v1 function boundaries")
-    );
-    assert!(
-        tables.files()[3]
-            .utf8()
-            .contains("use function @id(\"demo-project.add\") from demo_project.core as add;")
-    );
-    assert!(
-        tables.files()[4]
-            .utf8()
-            .starts_with("module demo_project.core;\n")
-    );
+    assert!(tables.files()[1]
+        .utf8()
+        .contains("Project v1 function boundaries"));
+    assert!(tables.files()[3]
+        .utf8()
+        .contains("use function @id(\"demo-project.add\") from demo_project.core as add;"));
+    assert!(tables.files()[4]
+        .utf8()
+        .starts_with("module demo_project.core;\n"));
     for file in tables.files() {
         assert_eq!(file.sha256(), sha256(file.bytes()));
     }
@@ -623,24 +614,20 @@ fn tables_layout_derives_a_v3_capsule_and_replays_only_as_itself() {
     assert_eq!(replayed.canonical_bytes(), tables.canonical_bytes());
 
     // The frozen digest cannot validate the table bytes, and vice versa.
-    assert!(
-        replay_project_scaffold_v1(
-            NAME,
-            "calculator",
-            &tables.canonical_bytes(),
-            frozen.digest()
-        )
-        .is_err()
-    );
-    assert!(
-        replay_project_scaffold_v1(
-            NAME,
-            "calculator",
-            &frozen.canonical_bytes(),
-            tables.digest()
-        )
-        .is_err()
-    );
+    assert!(replay_project_scaffold_v1(
+        NAME,
+        "calculator",
+        &tables.canonical_bytes(),
+        frozen.digest()
+    )
+    .is_err());
+    assert!(replay_project_scaffold_v1(
+        NAME,
+        "calculator",
+        &frozen.canonical_bytes(),
+        tables.digest()
+    )
+    .is_err());
 
     // The library template also lowers to a v3 table capsule.
     let library =
@@ -1010,9 +997,7 @@ fn service_template_composes_bundled_dependencies_and_only_derives_under_tables_
     assert!(manifest.contains("schema = \"semaprax.manifest.v1\"\n"));
     assert!(manifest.contains("profile = \"useful-data.v1\"\n"));
     assert!(manifest.contains("entry = \"demo_project.app\"\n"));
-    assert!(
-        manifest.contains("sources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]\n")
-    );
+    assert!(manifest.contains("sources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]\n"));
     assert!(manifest.contains("tests = [\"demo_project.tests\"]\n"));
     assert!(manifest.contains(
         "web = [\"demo_project.core.identifier_is_valid\", \"demo_project.core.method_is_rejected\"]\n"
@@ -1214,7 +1199,8 @@ fn service_scaffold_configuration_is_closed_and_credential_free() {
         "host configuration selects the named snapshot profile"
     );
     assert_eq!(
-        schema["allOf"][1]["then"]["properties"]["database"]["properties"]["dsn_secret_ref"]["const"],
+        schema["allOf"][1]["then"]["properties"]["database"]["properties"]["dsn_secret_ref"]
+            ["const"],
         serde_json::Value::Null,
         "host configuration never interprets a DSN as snapshot storage"
     );

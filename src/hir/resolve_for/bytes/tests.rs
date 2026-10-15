@@ -278,3 +278,22 @@ fn byte_lowering_constructs_its_own_snapshot_and_receiver_in_place() {
     assert!(crate::hir::is_partial_byte_receiver(read));
     assert!(crate::hir::byte_traversal_region(&value).unwrap().is_some());
 }
+
+#[test]
+fn a_manual_while_cannot_create_byte_traversal_ancestry() {
+    let source = r#"module byte.ancestry;
+@id("count") fn count(view:borrow Slice<u8>)->i64 {
+ let mut once=true;
+ while once {for byte in view {0} once=false;0}
+ 0
+}
+@id("app.main") fn main()->i64 {0}
+"#;
+    let source_errors = crate::check(source, "byte-ancestry.spx").unwrap_err();
+    assert!(source_errors.iter().any(|e| e.code == "SPX-T284"));
+    // Resolution must enforce the same boundary even without source checking.
+    let parsed = crate::parse(source, "byte-ancestry.spx").unwrap();
+    let hir_errors = crate::hir::resolve(&parsed).unwrap_err();
+    assert!(hir_errors.iter().any(|e| e.code == "SPX-H006"
+        && e.message == "nested for traversal reached bounded-loop HIR admission"));
+}

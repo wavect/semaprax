@@ -40,7 +40,8 @@ pub(super) struct Expected<'a> {
     pub(super) loans: Vec<row_loan::Lend<'a>>,
     explicit: Vec<field_origin::Site<'a>>,
 }
-mod row_loan; mod field_origin;
+mod field_origin;
+mod row_loan;
 #[derive(Clone)]
 struct Binding<'a> {
     name: &'a str,
@@ -251,7 +252,8 @@ pub(super) fn collect<'a>(program: &'a Program, programs: &'a [Program]) -> Resu
     let mut expected = Expected {
         reads: Vec::new(),
         loops: Vec::new(),
-        loans: Vec::new(), explicit: Vec::new(),
+        loans: Vec::new(),
+        explicit: Vec::new(),
     };
     for function in &program.functions {
         if !has_traversal(&function.body) {
@@ -299,10 +301,31 @@ fn walk<'a>(
     out: &mut Expected<'a>,
 ) -> Result<()> {
     if let Some((arguments, inner)) = field_origin::explicit(expression) {
-        field_origin::push(&mut out.explicit, function, path, program, programs, expression, inner)?;
+        field_origin::push(
+            &mut out.explicit,
+            function,
+            path,
+            program,
+            programs,
+            expression,
+            inner,
+        )?;
         for (index, argument) in arguments.iter().take(2).enumerate() {
-            let child_path = if inner { budgeted_format(format_args!("{path}.arg.0.arg.{index}")) } else { budgeted_format(format_args!("{path}.arg.{index}")) };
-            walk(program, programs, function, argument, &child_path, bindings, row, out)?;
+            let child_path = if inner {
+                budgeted_format(format_args!("{path}.arg.0.arg.{index}"))
+            } else {
+                budgeted_format(format_args!("{path}.arg.{index}"))
+            };
+            walk(
+                program,
+                programs,
+                function,
+                argument,
+                &child_path,
+                bindings,
+                row,
+                out,
+            )?;
         }
         return Ok(());
     }
@@ -612,7 +635,8 @@ pub(super) fn validate(programs: &[Program], modules: &[WorkspaceResolvedModule]
             let mut pending = vec![&resolved.body];
             let mut matched_loops = 0;
             let mut actual_loops = 0;
-            let mut matched_reads = 0; let mut matched_explicit = 0;
+            let mut matched_reads = 0;
+            let mut matched_explicit = 0;
             let mut matched_loans = 0;
             while let Some(expression) = pending.pop() {
                 hir::vec_constructor::authenticate(expression).map_err(|_| refusal())?;
@@ -725,7 +749,15 @@ pub(super) fn validate(programs: &[Program], modules: &[WorkspaceResolvedModule]
                 }
                 hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
             }
-            if matched_explicit != expected.explicit.iter().filter(|site| site.function.stable_id == function.stable_id).count() { return Err(refusal()); }
+            if matched_explicit
+                != expected
+                    .explicit
+                    .iter()
+                    .filter(|site| site.function.stable_id == function.stable_id)
+                    .count()
+            {
+                return Err(refusal());
+            }
             if actual_loops != loop_count
                 || matched_loops != loop_count
                 || matched_loans != row_loan::count(&expected.loans, function)

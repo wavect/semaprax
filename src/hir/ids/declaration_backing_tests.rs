@@ -487,18 +487,53 @@ fn qualified_identity_domains_have_no_legacy_constructor_or_refusal_carrier() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     let mut sites = Vec::new();
     constructor_sites(&root, &root, "DeclarationId::paid_borrowed(", &mut sites);
+    // Exact constructor census includes the later nominal/agent/prelude and
+    // lifecycle payers, plus their complete independent historical twins.
+    // Filesystem enumeration order grants no semantic meaning.
+    sites.sort_by(|a, b| a.0.cmp(&b.0));
     assert_eq!(
         sites
             .iter()
             .map(|(path, ..)| path.as_str())
             .collect::<Vec<_>>(),
-        ["hir/cache_codec.rs"]
+        [
+            "cleanup_plan/replay/nested_shape/paid.rs",
+            "cleanup_plan/replay/nested_shape/paid.rs",
+            "cleanup_plan/replay/nested_shape/paid.rs",
+            "cleanup_plan/replay/nested_shape/paid.rs",
+            "cleanup_plan/replay/nested_shape/paid/oracle.rs",
+            "cleanup_plan/replay/nested_shape/paid/oracle.rs",
+            "cleanup_plan/replay/nested_shape/paid/oracle.rs",
+            "cleanup_plan/replay/nested_shape/paid/oracle.rs",
+            "cleanup_plan/replay/nested_shape/paid_before.rs",
+            "cleanup_plan/replay/nested_shape/paid_before.rs",
+            "cleanup_plan/replay/nested_shape/paid_before.rs",
+            "cleanup_plan/replay/nested_shape/paid_before.rs",
+            "hir/cache_codec.rs",
+            "hir/declaration_index/identity_payer.rs",
+            "hir/declaration_index/nominal_construction.rs",
+            "hir/identity_resolution.rs",
+            "hir/identity_resolution.rs",
+            "hir/identity_resolution/nominal.rs",
+            "hir/identity_resolution/nominal.rs",
+            "hir/ordinary_identity.rs",
+            "hir/prelude_bundle/paid.rs",
+        ]
     );
     for path in [
         "byte_ops.rs",
         "hir/cache_codec.rs",
         "hir/resolve_for/bytes.rs",
         "hir/row_loan/producer.rs",
+        "cleanup_plan/replay/nested_shape/paid.rs",
+        "cleanup_plan/replay/nested_shape/paid/oracle.rs",
+        "cleanup_plan/replay/nested_shape/paid_before.rs",
+        "hir/declaration_index/identity_payer.rs",
+        "hir/declaration_index/nominal_construction.rs",
+        "hir/identity_resolution.rs",
+        "hir/identity_resolution/nominal.rs",
+        "hir/ordinary_identity.rs",
+        "hir/prelude_bundle/paid.rs",
         "cleanup/inventory_builder/selected.rs",
         "cleanup_plan/replay/flat_records.rs",
         "hir/declaration_index/primitive_replay/option_u8.rs",

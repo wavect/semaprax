@@ -10,7 +10,13 @@ impl HirValidator<'_> {
     ) -> Result<(), Diagnostic> {
         #[cfg(test)]
         if self.expression_ids.is_legacy() {
-            return self.validate_closure_owned_reference(function, expression, scope, path, allow_moves);
+            return self.validate_closure_owned_reference(
+                function,
+                expression,
+                scope,
+                path,
+                allow_moves,
+            );
         }
         super::super::closure::validate_shape(self.program, expression)?;
         let ResolvedExprKind::Closure { captures, .. } = &expression.kind else {
@@ -63,7 +69,12 @@ impl HirValidator<'_> {
         let body = super::super::closure::paid::function(self.program, expression)?;
         let execution = FunctionExecutionId::Monomorphic(body.id.clone());
         let mut checked = if let Some(functions) = self.functions.shared_directory() {
-            HirValidator::with_shared_profiles(self.program, functions, self.canonical_loans.share(), self.executable_profiles.clone())?
+            HirValidator::with_shared_profiles(
+                self.program,
+                functions,
+                self.canonical_loans.share(),
+                self.executable_profiles.clone(),
+            )?
         } else {
             HirValidator::with_profiles(
                 self.program,
@@ -104,7 +115,9 @@ impl HirValidator<'_> {
     ) -> Result<(), Diagnostic> {
         #[cfg(test)]
         if self.expression_ids.is_legacy() {
-            return self.validate_template_closure_owned_reference(template, execution, expression, values, path);
+            return self.validate_template_closure_owned_reference(
+                template, execution, expression, values, path,
+            );
         }
         if !super::super::generic_collection::profile(template) {
             return Err(hir_error(

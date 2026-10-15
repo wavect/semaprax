@@ -1,5 +1,7 @@
 # Cleanup status prefix insertion v1
 
+Audience: compiler contributors, tool authors, and reviewers.
+
 Status: authored private compiler optimization; qualification pending.
 
 The ordinary metered status-source receiver may use prefix-certified insertion

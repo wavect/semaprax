@@ -17,8 +17,8 @@ pub(crate) mod items;
 mod nominal_payload;
 #[path = "hir/prelude_bundle.rs"]
 pub(crate) mod prelude_bundle;
-pub use nominal_payload::{NominalPayload, NominalMutationError};
 use crate::ast::program_source::ProgramSource;
+pub use nominal_payload::{NominalMutationError, NominalPayload};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 
@@ -337,17 +337,17 @@ mod cache_codec;
 mod declaration_index;
 pub(crate) mod identity_resolution;
 mod ordinary_identity;
-pub use declaration_index::{DeclarationIndex, dispose_declaration_index_for_private_contract};
+pub use declaration_index::{dispose_declaration_index_for_private_contract, DeclarationIndex};
 pub(crate) use declaration_index::{inventory_identity, inventory_substitute, InventoryPayer};
 pub(crate) use declaration_index::{TypeFactsPayer, TypeFlags};
 
 // Resolved data model and shared probes, re-exported so this module and its
 // submodules keep reaching every HIR item through `hir::` as before.
+#[cfg(test)]
+pub(crate) use byte_capacity::byte_data_capacity_inputs;
 pub(crate) use byte_capacity::{
     analyze_byte_data_capacity, push_resolved_expression_children_in_authored_order,
 };
-#[cfg(test)]
-pub(crate) use byte_capacity::byte_data_capacity_inputs;
 use byte_slice_provenance::derive_byte_slice_provenance;
 #[cfg(test)]
 pub(crate) use capacity_probe::{
@@ -360,7 +360,7 @@ use capacity_probe::{
     resolved_variant_case_owned_capacity, type_facts_outer_baseline,
     validation_scope_owned_capacity,
 };
-mod vec_field_origin; pub use vec_field_origin::VecFieldReadOrigin;
+mod vec_field_origin;
 pub use expr_nodes::{
     PatternValue, ResolvedClosureCapture, ResolvedExpr, ResolvedExprKind, ResolvedFieldInitializer,
     ResolvedMatchArm, ResolvedMatchPattern, ResolvedMatchPatternField,
@@ -368,6 +368,7 @@ pub use expr_nodes::{
 };
 pub(crate) use ids::CompilerDeclaration;
 pub use ids::{DeclarationId, ExpressionId, FunctionExecutionId, FunctionInstanceId, ValueId};
+pub use vec_field_origin::VecFieldReadOrigin;
 pub(crate) mod row_loan;
 pub(crate) use monomorphize::substitute_type;
 use monomorphize::{

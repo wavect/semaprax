@@ -6,24 +6,24 @@ use super::recovery::Recovery;
 use super::type_table::TypeTable;
 #[path = "recovery_tests/boundaries.rs"]
 mod boundaries;
-#[path = "recovery_tests/fixture_controls.rs"]
-mod fixture_controls;
-#[path = "recovery_tests/funding_boundary.rs"]
-mod funding_boundary;
-#[path = "recovery_tests/intentional_wrong_field.rs"]
-pub(super) mod intentional_wrong_field;
-#[path = "recovery_tests/proposal_corpus.rs"]
-mod proposal_corpus;
-#[path = "recovery_tests/refusal_dependency.rs"]
-mod refusal_dependency;
-#[path = "recovery_tests/operators_799.rs"]
-mod operators_799;
-#[path = "recovery_tests/flow_799.rs"]
-mod flow_799;
 #[path = "recovery_tests/callee_components.rs"]
 mod callee_components;
 #[path = "recovery_tests/extended_components.rs"]
 mod extended_components;
+#[path = "recovery_tests/fixture_controls.rs"]
+mod fixture_controls;
+#[path = "recovery_tests/flow_799.rs"]
+mod flow_799;
+#[path = "recovery_tests/funding_boundary.rs"]
+mod funding_boundary;
+#[path = "recovery_tests/intentional_wrong_field.rs"]
+pub(super) mod intentional_wrong_field;
+#[path = "recovery_tests/operators_799.rs"]
+mod operators_799;
+#[path = "recovery_tests/proposal_corpus.rs"]
+mod proposal_corpus;
+#[path = "recovery_tests/refusal_dependency.rs"]
+mod refusal_dependency;
 use crate::ast::{ParamMode, Span, Type};
 use crate::diagnostic::Diagnostic;
 use crate::test_allocation_observer::measure;
@@ -87,7 +87,14 @@ fn receive_route(source: &str, receiver: u8) -> (Option<(Type, ParamMode, bool)>
         )
     } else if receiver == 3 {
         let mut verifier = super::IterativeVerifier::new(
-            &program, current, variables, &functions, &types, None, true, &mut diagnostics,
+            &program,
+            current,
+            variables,
+            &functions,
+            &types,
+            None,
+            true,
+            &mut diagnostics,
         );
         verifier.operators_before_799 = true;
         verifier.run(&current.body).unwrap()

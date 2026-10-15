@@ -70,17 +70,18 @@ mod facts_object;
 mod string_slots;
 mod vec_constructor;
 use facts_object::facts_object;
-mod copy_discard; mod vec_field_origin;
+mod copy_discard;
 mod finite_byte_scratch;
 pub(crate) mod row_loan;
 mod static_text;
+mod vec_field_origin;
 mod view_render;
-use vec_field_origin::graph_json;
-pub(crate) use vec_field_origin::{graph_schema, legacy_graph_schema};
-#[cfg(test)]
-pub(crate) use vec_field_origin::SCHEMA as VEC_FIELD_GRAPH_SCHEMA;
 #[cfg(test)]
 pub(crate) use static_text::SCHEMA as STATIC_TEXT_GRAPH_SCHEMA;
+use vec_field_origin::graph_json;
+#[cfg(test)]
+pub(crate) use vec_field_origin::SCHEMA as VEC_FIELD_GRAPH_SCHEMA;
+pub(crate) use vec_field_origin::{graph_schema, legacy_graph_schema};
 use view_render::view_json;
 #[path = "graph/native_import.rs"]
 mod native_import;

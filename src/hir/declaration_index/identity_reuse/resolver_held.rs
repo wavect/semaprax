@@ -799,19 +799,24 @@ fn repeated_generic_owner_queries_share_one_carrier_and_remove_exact_reconstruct
     }
     // Warm thread-local policy state, then count literal reconstructions: one
     // per `T`; `Vec<T>` reconstructs for its argument and for itself; the
-    // callable reconstructs for its one parameter and its result.
+    // callable reconstructs for its one parameter, its result and the generic
+    // callback-signature owner check.
     query(&resolver, template, &parameter, 1);
     for (resolver, template, ty, per_query, text) in [
         (&resolver, template, &parameter, 1usize, "identity"),
         (&callable_resolver, map, &wrapped, 2, "adapter.map"),
-        (&callable_resolver, map, &callback, 2, "adapter.map"),
+        (&callable_resolver, map, &callback, 3, "adapter.map"),
     ] {
         query(resolver, template, ty, 1);
         let (_, old) = measure(|| saved(false, || query(resolver, template, ty, 8)));
         assert_eq!(requests(), 8 * per_query);
         let (_, new) = measure(|| query(resolver, template, ty, 8));
         let reconstructions = 8 * per_query;
-        assert_eq!(old.allocations, new.allocations + 2 * reconstructions);
+        assert_eq!(
+            old.allocations,
+            new.allocations + 2 * reconstructions,
+            "owner {text}, {per_query} reconstructions per query: old={old:?}, current={new:?}"
+        );
         assert_eq!(old.reallocations, new.reallocations);
         assert_eq!(
             old.allocated,

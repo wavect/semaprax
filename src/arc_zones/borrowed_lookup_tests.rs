@@ -1,6 +1,10 @@
 //! Actual borrowed queries and complete independently saved model receivers.
 use super::*;
 use crate::test_allocation_observer::measure;
+#[allow(
+    dead_code,
+    reason = "complete historical receiver retained for independent test comparisons"
+)]
 mod old;
 
 fn current_model() -> ArcZonesModel {

@@ -99,7 +99,11 @@ impl ClassifierString {
                     Ok(true) => Ok(()),
                     Ok(false) => {
                         self.declined = true;
-                        if self.strict { Err(fmt::Error) } else { Ok(()) }
+                        if self.strict {
+                            Err(fmt::Error)
+                        } else {
+                            Ok(())
+                        }
                     }
                     Err(error) => {
                         self.first = Some(error);

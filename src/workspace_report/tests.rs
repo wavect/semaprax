@@ -302,8 +302,10 @@ fn actual_source_drift_keeps_full_prior_literal_and_whole_receiving_debit_drop()
     );
     // Independent owned hostile proposal; the actual retained metadata
     // already passed both original receiving comparisons above.
-    let mut sources: Vec<crate::workspace_graph::WorkspaceSource> =
-        sources.iter().map(|source| source.input().clone()).collect();
+    let mut sources: Vec<crate::workspace_graph::WorkspaceSource> = sources
+        .iter()
+        .map(|source| source.input().clone())
+        .collect();
     let before = sources[0].source.clone();
     let drift = "module calculator.app; @id(\"calculator.app.main\") fn main()->i64 { let mut i=0; let mut total=0; while i<3 { i=i+1; if i==2 {continue;} else {0}; total=total+i+1; 0 } total }";
     sources[0].source = crate::format::canonical(

@@ -344,7 +344,10 @@ fn complete_original_frame_and_state_declarations_remain_byte_exact() {
         .0
         .replace("OriginalVerifierFrame", "VerifierFrame")
         .replace("OriginalVariantMatchState", "VariantMatchState")
-        .replace("crate::source_verify::recovery::Checkpoint", "super::recovery::Checkpoint");
+        .replace(
+            "crate::source_verify::recovery::Checkpoint",
+            "super::recovery::Checkpoint",
+        );
     let original = include_str!("../../../docs/evidence/conditional-refusal-799/scope.rs.before");
     let frame = &original[original.find("pub(super) enum VerifierFrame").unwrap()
         ..original

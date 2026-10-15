@@ -29,9 +29,16 @@ fn empty(storage: &Storage<'_>) {
 }
 #[test]
 fn checked_nested_guards_keep_full_old_observations_work_and_result_failures() {
+    // The pooled backing still replaces the old lease flag in the same space.
+    // Invocation authentication additionally retains its owner and first error.
     assert_eq!(
         std::mem::size_of::<Storage<'_>>(),
-        std::mem::size_of::<OldStorage<'_>>()
+        (std::mem::size_of::<OldStorage<'_>>()
+            + std::mem::size_of::<
+                Option<crate::bounded_output::classifier_string::ClassifierLedger>,
+            >()
+            + std::mem::size_of::<Option<paid_receiving::Failure>>())
+        .next_multiple_of(std::mem::align_of::<Storage<'_>>())
     );
     for nested in [false, true] {
         let program = checked(nested);
@@ -240,7 +247,7 @@ fn exact_directory_frame_boundaries_and_reused_slot_refusal_restore_depth() {
         with_limit_usage_refusal(limit, || {
             measure(|| {
                 let mut budget = ReplayBudget::new();
-                budget.reserve_bytes(function, 0, "setup").unwrap();
+                budget.prepare_builder(function).unwrap();
                 let mut storage = Storage::new(&program);
                 let mut failure = None;
                 if levels > 0 {

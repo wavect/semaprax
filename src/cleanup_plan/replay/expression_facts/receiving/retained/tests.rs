@@ -4,50 +4,91 @@ use crate::test_allocation_observer::measure;
 
 fn program() -> ResolvedProgram {
     let source = include_str!("../../../expression_facts.rs")
-        .split_once("r#\"module replay.fact_owner;").unwrap().1
-        .split_once("\"#,").unwrap().0;
+        .split_once("r#\"module replay.fact_owner;")
+        .unwrap()
+        .1
+        .split_once("\"#,")
+        .unwrap()
+        .0;
     let source = format!("module replay.fact_owner;{source}");
     crate::hir::resolve(&crate::check(&source, "retained-status.spx").unwrap()).unwrap()
 }
 
 // Inputs/facts are outside this phase observer. Both full receivers, their paid
 // directories, result diagnostics, budget and every retained allocation drop inside.
-fn run(program: &ResolvedProgram, function: &ResolvedFunction, retained: bool)
-    -> (Result<(), Diagnostic>, usize)
-{
+fn run(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    retained: bool,
+) -> (Result<(), Diagnostic>, usize) {
     let mut preparation = ReplayBudget::unobserved();
-    let facts = Facts::Arena(super::super::super::arena::build::<errors::Legacy>(
-        function, capacity::Payer::Selected(
-            &mut physical_storage::PhysicalReservation::new(usize::MAX)),
-        &mut preparation,
-    ).unwrap());
+    let facts = Facts::Arena(
+        super::super::super::arena::build::<errors::Legacy>(
+            function,
+            capacity::Payer::Selected(&mut physical_storage::PhysicalReservation::new(usize::MAX)),
+            &mut preparation,
+        )
+        .unwrap(),
+    );
     let storage = validate_slots(function).unwrap();
     let leaves = collect_leaves(function).unwrap();
     let mut reference_budget = ReplayBudget::unobserved();
     let expected = super::super::validate_status_sources(function, &facts, &mut reference_budget)
-        .and_then(|()| super::super::validate_blocks_and_edges(program, function, &facts,
-            &storage, &leaves, None, &mut reference_budget));
-    let ((output, allocation), refused, _, _) = with_limit_usage_refusal(1 << 26, || measure(|| {
-        let mut budget = ReplayBudget::new();
-        let result = if retained {
-            validate_status_sources_retained(function, &facts, &mut budget).and_then(|statuses| {
-                validate_blocks_and_edges_retained(program, function, &facts, &storage,
-                    &leaves, None, &mut budget, &statuses)
-            })
-        } else {
-            super::super::validate_status_sources(function, &facts, &mut budget).and_then(|()| {
-                super::super::validate_blocks_and_edges(program, function, &facts, &storage,
-                    &leaves, None, &mut budget)
-            })
-        };
-        let work = MAX_REPLAY_WORK_UNITS - budget.remaining;
-        assert_eq!(result, expected);
-        drop(result);
-        drop(budget);
-        work
-    }));
+        .and_then(|()| {
+            super::super::validate_blocks_and_edges(
+                program,
+                function,
+                &facts,
+                &storage,
+                &leaves,
+                None,
+                &mut reference_budget,
+            )
+        });
+    let ((output, allocation), refused, _, _) = with_limit_usage_refusal(1 << 26, || {
+        measure(|| {
+            let mut budget = ReplayBudget::new();
+            let result = if retained {
+                validate_status_sources_retained(function, &facts, &mut budget).and_then(
+                    |statuses| {
+                        validate_blocks_and_edges_retained(
+                            program,
+                            function,
+                            &facts,
+                            &storage,
+                            &leaves,
+                            None,
+                            &mut budget,
+                            &statuses,
+                        )
+                    },
+                )
+            } else {
+                super::super::validate_status_sources(function, &facts, &mut budget).and_then(
+                    |()| {
+                        super::super::validate_blocks_and_edges(
+                            program,
+                            function,
+                            &facts,
+                            &storage,
+                            &leaves,
+                            None,
+                            &mut budget,
+                        )
+                    },
+                )
+            };
+            let work = MAX_REPLAY_WORK_UNITS - budget.remaining;
+            assert_eq!(result, expected);
+            drop(result);
+            drop(budget);
+            work
+        })
+    });
     assert!(!refused);
-    assert!(!allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed);
+    assert!(
+        !allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed
+    );
     (expected, output)
 }
 
@@ -99,25 +140,44 @@ fn retained_statuses_reject_foreign_function_budget_and_sticky_work_refusal() {
     let storage = validate_slots(function).unwrap();
     let leaves = collect_leaves(function).unwrap();
     let mut preparation = ReplayBudget::unobserved();
-    let facts = Facts::Arena(super::super::super::arena::build::<errors::Legacy>(
-        function, capacity::Payer::Selected(
-            &mut physical_storage::PhysicalReservation::new(usize::MAX)),
-        &mut preparation,
-    ).unwrap());
+    let facts = Facts::Arena(
+        super::super::super::arena::build::<errors::Legacy>(
+            function,
+            capacity::Payer::Selected(&mut physical_storage::PhysicalReservation::new(usize::MAX)),
+            &mut preparation,
+        )
+        .unwrap(),
+    );
     let mut budget = ReplayBudget::unobserved();
     let statuses = validate_status_sources_retained(function, &facts, &mut budget).unwrap();
     let mut other = ReplayBudget::unobserved();
     for (subject, payer) in [(&foreign, &mut budget), (function, &mut other)] {
-        let actual = validate_blocks_and_edges_retained(&program, subject, &facts,
-            &storage, &leaves, None, payer, &statuses);
-        assert_eq!(actual, Err(replay_error(subject,
-            "status directory belongs to another function or budget")));
+        let actual = validate_blocks_and_edges_retained(
+            &program, subject, &facts, &storage, &leaves, None, payer, &statuses,
+        );
+        assert_eq!(
+            actual,
+            Err(replay_error(
+                subject,
+                "status directory belongs to another function or budget"
+            ))
+        );
     }
     budget.remaining = 0;
-    let first = budget.charge(function, 1, "retained status refusal control").unwrap_err();
+    let first = budget
+        .charge(function, 1, "retained status refusal control")
+        .unwrap_err();
     assert!(first.message.contains("work budget exhausted"));
-    let result = validate_blocks_and_edges_retained(&program, function, &facts,
-        &storage, &leaves, None, &mut budget, &statuses);
+    let result = validate_blocks_and_edges_retained(
+        &program,
+        function,
+        &facts,
+        &storage,
+        &leaves,
+        None,
+        &mut budget,
+        &statuses,
+    );
     assert!(result.is_err());
     assert_eq!(budget.remaining, 0);
 }
@@ -125,19 +185,19 @@ fn retained_statuses_reject_foreign_function_budget_and_sticky_work_refusal() {
 #[test]
 fn complete_pre_retention_sources_and_all_inverse_hooks_remain_exact() {
     use sha2::{Digest, Sha256};
-    let records: serde_json::Value = serde_json::from_str(include_str!(concat!(
+    let records: serde_json::Value = serde_json::from_str(ci_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/cleanup-status-directory-retention/exact-source-inverses.json"
     )))
     .unwrap();
     let complete_sources = [
-        ("src/cleanup_plan/replay/expression_facts/receiving.rs", "src__cleanup_plan__replay__expression_facts__receiving.rs.before.txt", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/cleanup-status-directory-retention/src__cleanup_plan__replay__expression_facts__receiving.rs.before.txt"))),
-        ("src/cleanup_plan/replay.rs", "src__cleanup_plan__replay.rs.before.txt", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/cleanup-status-directory-retention/src__cleanup_plan__replay.rs.before.txt"))),
-        ("src/graph.rs", "src__graph.rs.before.txt", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/graph.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/cleanup-status-directory-retention/src__graph.rs.before.txt"))),
-        ("src/workspace_graph/source_schema/static_text/tests/retained_lexical_composition.rs", "src__workspace_graph__source_schema__static_text__tests__retained_lexical_composition.rs.before.txt", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/source_schema/static_text/tests/retained_lexical_composition.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/cleanup-status-directory-retention/src__workspace_graph__source_schema__static_text__tests__retained_lexical_composition.rs.before.txt"))),
-        ("src/cleanup_plan/replay/schema/paid_summary/tests.rs", "src__cleanup_plan__replay__schema__paid_summary__tests.rs.before.txt", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/schema/paid_summary/tests.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/cleanup-status-directory-retention/src__cleanup_plan__replay__schema__paid_summary__tests.rs.before.txt"))),
-        ("src/cleanup_plan/replay/allocation/tests/accounting_scope.rs", "src__cleanup_plan__replay__allocation__tests__accounting_scope.rs.before.txt", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/allocation/tests/accounting_scope.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/cleanup-status-directory-retention/src__cleanup_plan__replay__allocation__tests__accounting_scope.rs.before.txt"))),
-        ("src/cleanup_plan/replay/live_oracle/source_custody/a.rs", "src__cleanup_plan__replay__live_oracle__source_custody__a.rs.before.txt", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/live_oracle/source_custody/a.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/cleanup-status-directory-retention/src__cleanup_plan__replay__live_oracle__source_custody__a.rs.before.txt"))),
+        ("src/cleanup_plan/replay/expression_facts/receiving.rs", "src__cleanup_plan__replay__expression_facts__receiving.rs.before.txt", ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving.rs")), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/cleanup-status-directory-retention/src__cleanup_plan__replay__expression_facts__receiving.rs.before.txt"))),
+        ("src/cleanup_plan/replay.rs", "src__cleanup_plan__replay.rs.before.txt", ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay.rs")), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/cleanup-status-directory-retention/src__cleanup_plan__replay.rs.before.txt"))),
+        ("src/graph.rs", "src__graph.rs.before.txt", ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/graph.rs")), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/cleanup-status-directory-retention/src__graph.rs.before.txt"))),
+        ("src/workspace_graph/source_schema/static_text/tests/retained_lexical_composition.rs", "src__workspace_graph__source_schema__static_text__tests__retained_lexical_composition.rs.before.txt", ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/source_schema/static_text/tests/retained_lexical_composition.rs")), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/cleanup-status-directory-retention/src__workspace_graph__source_schema__static_text__tests__retained_lexical_composition.rs.before.txt"))),
+        ("src/cleanup_plan/replay/schema/paid_summary/tests.rs", "src__cleanup_plan__replay__schema__paid_summary__tests.rs.before.txt", ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/schema/paid_summary/tests.rs")), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/cleanup-status-directory-retention/src__cleanup_plan__replay__schema__paid_summary__tests.rs.before.txt"))),
+        ("src/cleanup_plan/replay/allocation/tests/accounting_scope.rs", "src__cleanup_plan__replay__allocation__tests__accounting_scope.rs.before.txt", ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/allocation/tests/accounting_scope.rs")), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/cleanup-status-directory-retention/src__cleanup_plan__replay__allocation__tests__accounting_scope.rs.before.txt"))),
+        ("src/cleanup_plan/replay/live_oracle/source_custody/a.rs", "src__cleanup_plan__replay__live_oracle__source_custody__a.rs.before.txt", ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/live_oracle/source_custody/a.rs")), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/cleanup-status-directory-retention/src__cleanup_plan__replay__live_oracle__source_custody__a.rs.before.txt"))),
     ];
     assert_eq!(records.as_array().unwrap().len(), complete_sources.len());
     for record in records.as_array().unwrap() {
@@ -165,29 +225,42 @@ fn retained_status_control_funding_exact_short_zero_and_foreign_active_are_stick
     let storage = validate_slots(function).unwrap();
     let leaves = collect_leaves(function).unwrap();
     let mut preparation = ReplayBudget::unobserved();
-    let facts = Facts::Arena(super::super::super::arena::build::<errors::Legacy>(
-        function, capacity::Payer::Selected(
-            &mut physical_storage::PhysicalReservation::new(usize::MAX)),
-        &mut preparation,
-    ).unwrap());
+    let facts = Facts::Arena(
+        super::super::super::arena::build::<errors::Legacy>(
+            function,
+            capacity::Payer::Selected(&mut physical_storage::PhysicalReservation::new(usize::MAX)),
+            &mut preparation,
+        )
+        .unwrap(),
+    );
     let probe = |limit, retain| {
-        let ((success, allocation), refused, debit, first) = with_limit_usage_refusal(limit, || measure(|| {
-            let mut budget = ReplayBudget::new();
-            let success = if retain {
-                let result = super::status_before::validate_status_sources_retained(function, &facts, &mut budget);
-                let success = result.is_ok();
-                drop(result);
-                success
-            } else {
-                let result = super::super::validate_status_sources(function, &facts, &mut budget);
-                let success = result.is_ok();
-                drop(result);
-                success
-            };
-            drop(budget);
-            success
-        }));
-        assert!(!allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed);
+        let ((success, allocation), refused, debit, first) =
+            with_limit_usage_refusal(limit, || {
+                measure(|| {
+                    let mut budget = ReplayBudget::new();
+                    let success = if retain {
+                        let result = super::status_before::validate_status_sources_retained(
+                            function,
+                            &facts,
+                            &mut budget,
+                        );
+                        let success = result.is_ok();
+                        drop(result);
+                        success
+                    } else {
+                        let result =
+                            super::super::validate_status_sources(function, &facts, &mut budget);
+                        let success = result.is_ok();
+                        drop(result);
+                        success
+                    };
+                    drop(budget);
+                    success
+                })
+            });
+        assert!(
+            !allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed
+        );
         (success, refused, debit, first)
     };
     let old = probe(1 << 26, false);
@@ -200,27 +273,52 @@ fn retained_status_control_funding_exact_short_zero_and_foreign_active_are_stick
         let refused = probe(limit, true);
         assert!(!refused.0 && refused.1 && refused.3.is_some());
     }
-    let (((), allocation), refused, _, first) = with_limit_usage_refusal(1 << 26, || measure(|| {
-        let mut budget = ReplayBudget::new();
-        let statuses = validate_status_sources_retained(function, &facts, &mut budget).unwrap();
-        let (_, foreign_refused, foreign_debit, foreign_first) = with_limit_usage_refusal(1 << 26, || {
-            let result = validate_blocks_and_edges_retained(&program, function, &facts,
-                &storage, &leaves, None, &mut budget, &statuses);
-            assert_eq!(result.as_ref().unwrap_err().code, "SPX-H006");
-            assert!(result.as_ref().unwrap_err().message.contains("invocation owner changed"));
-            drop(result);
-        });
-        assert!(!foreign_refused && foreign_first.is_none());
-        assert_eq!(foreign_debit, 0);
-        let restored = validate_blocks_and_edges_retained(&program, function, &facts,
-            &storage, &leaves, None, &mut budget, &statuses);
-        assert!(restored.is_err());
-        assert_eq!(budget.remaining, 0);
-        drop(restored);
-        drop(statuses);
-        drop(budget);
-    }));
+    let (((), allocation), refused, _, first) = with_limit_usage_refusal(1 << 26, || {
+        measure(|| {
+            let mut budget = ReplayBudget::new();
+            let statuses = validate_status_sources_retained(function, &facts, &mut budget).unwrap();
+            let (_, foreign_refused, foreign_debit, foreign_first) =
+                with_limit_usage_refusal(1 << 26, || {
+                    let result = validate_blocks_and_edges_retained(
+                        &program,
+                        function,
+                        &facts,
+                        &storage,
+                        &leaves,
+                        None,
+                        &mut budget,
+                        &statuses,
+                    );
+                    assert_eq!(result.as_ref().unwrap_err().code, "SPX-H006");
+                    assert!(result
+                        .as_ref()
+                        .unwrap_err()
+                        .message
+                        .contains("invocation owner changed"));
+                    drop(result);
+                });
+            assert!(!foreign_refused && foreign_first.is_none());
+            assert_eq!(foreign_debit, 0);
+            let restored = validate_blocks_and_edges_retained(
+                &program,
+                function,
+                &facts,
+                &storage,
+                &leaves,
+                None,
+                &mut budget,
+                &statuses,
+            );
+            assert!(restored.is_err());
+            assert_eq!(budget.remaining, 0);
+            drop(restored);
+            drop(statuses);
+            drop(budget);
+        })
+    });
     assert!(refused && first.is_some());
     assert_eq!(first.unwrap().requested, 0);
-    assert!(!allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed);
+    assert!(
+        !allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed
+    );
 }

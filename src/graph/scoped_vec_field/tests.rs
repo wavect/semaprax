@@ -14,7 +14,8 @@ fn graph_binds_stable_field_and_dynamic_vector_view_without_selector_expression(
     let parsed = crate::check(SOURCE, "scoped-graph.spx").unwrap();
     let graph = crate::graph::to_json(&parsed).unwrap();
     let document: serde_json::Value = serde_json::from_str(&graph).unwrap();
-    assert_eq!(document["schema"], SCHEMA);
+    // Current documents also carry the later explicit/source-row origin tag.
+    assert_eq!(document["schema"], crate::graph::vec_field_origin::SCHEMA);
     assert_eq!(document["scoped_vec_field_reads"]["authority"], false);
     assert!(graph.contains("\"kind\":\"vec_field_read\""));
     assert!(graph.contains("\"field\":\"row.title\",\"bytes\":true"));

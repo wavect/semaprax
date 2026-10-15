@@ -86,6 +86,10 @@ impl<'a> ConstructorSeed<'a> {
 }
 
 #[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete historical receiver retained for independent test comparisons"
+)]
 pub(super) mod original;
 
 #[cfg(test)]
@@ -95,6 +99,8 @@ mod original_intrinsics;
 
 /// Test bridge to the complete independently compiled original constructor.
 #[cfg(test)]
-pub(in crate::hir) fn original_authentication_error(program: &ResolvedProgram) -> Option<Diagnostic> {
+pub(in crate::hir) fn original_authentication_error(
+    program: &ResolvedProgram,
+) -> Option<Diagnostic> {
     original::ConstructorSeed::authenticate(program, None).err()
 }

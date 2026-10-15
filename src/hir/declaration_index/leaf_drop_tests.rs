@@ -71,7 +71,16 @@ fn whole_lifetime_control(nominal: bool) {
 }
 fn old_drop(mut index: DeclarationIndex) {
     let mut pending = Vec::new();
-    index.drain_recursive_types_for_private_contract(|ty| pending.push(ty));
+    // These fixtures own ordinary record vectors. Reproduce the original
+    // complete leaf queue directly; the current disposer intentionally omits
+    // leaf roots and cannot serve as the independent old control.
+    assert!(index.variant_cases.is_empty() && index.case_fields.is_empty());
+    for (_, mut fields) in std::mem::take(&mut index.record_fields) {
+        assert!(!fields.has_shared_owner());
+        for field in fields.iter_mut() {
+            pending.push(std::mem::replace(&mut field.ty, ResolvedType::I64));
+        }
+    }
     while let Some(ty) = pending.pop() {
         if let ResolvedType::Nominal { arguments, .. } = ty {
             pending.extend(arguments);

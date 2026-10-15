@@ -197,11 +197,11 @@ fn compound_optimization_decline_remains_distinct_from_work_refusal_and_keeps_sa
         None
     );
     assert_eq!(
-        include_str!("../../flags/nominal_key.rs"),
-        include_str!("../../../../../docs/evidence/schema-summary/nominal-key.rs.before")
+        ci_str!("../../flags/nominal_key.rs"),
+        ci_str!("../../../../../docs/evidence/schema-summary/nominal-key.rs.before")
     );
     assert_eq!(
-        include_str!("../../flags/nominal_key/compound.rs"),
-        include_str!("../../../../../docs/evidence/schema-summary/nominal-compound.rs.before")
+        ci_str!("../../flags/nominal_key/compound.rs"),
+        ci_str!("../../../../../docs/evidence/schema-summary/nominal-compound.rs.before")
     );
 }

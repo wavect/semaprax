@@ -297,7 +297,10 @@ fn complete_old_candidate_and_funded_receivers_are_exact_and_current_hooks_are_s
         "2171767962fc58bd699165f3023910712146871fadc6b2bc6077a02d7374bbbe"
     );
     assert_eq!(include_str!("../paid_candidate_before.rs"), old);
-    let mut projected = paid_candidate::before_inventory_source("src/loan_plan/paid_candidate.rs", include_str!("../paid_candidate.rs"));
+    let mut projected = paid_candidate::before_inventory_source(
+        "src/loan_plan/paid_candidate.rs",
+        include_str!("../paid_candidate.rs"),
+    );
     for (current, original) in [
         ("    work: &mut WorkCounter<'_>,\n", ""),
         ("    // Complete discovery still precedes every alias/ownership diagnostic.\n    // Retain its actual paid spill and replay the immutable borrowed traversal.\n    let mut discovery = paid_cursor::Cursor::new(function, payer);\n    while discovery.next(work)?.is_some() {}\n    discovery.reset()?;\n\n", "    let mut roots = Vec::new();\n    storage::extend(\n        &mut roots,\n        function\n            .requires\n            .iter()\n            .chain(std::iter::once(&function.body))\n            .chain(function.ensures.iter()),\n        Some(payer),\n    )?;\n    let mut expressions = Vec::new();\n    let mut pending = Vec::new();\n    storage::extend(&mut pending, roots.iter().rev().copied(), Some(payer))?;\n    while let Some(expression) = pending.pop() {\n        storage::push(&mut expressions, expression, Some(payer))?;\n        paid_children::push_children(expression, &mut pending, Some(payer))?;\n    }\n\n"),
@@ -315,7 +318,10 @@ fn complete_old_candidate_and_funded_receivers_are_exact_and_current_hooks_are_s
     );
     let current_hook = "        let mut work = WorkCounter::new(MAX_LOAN_PLAN_WORK_V1);\n        work.allocation = Some(payer);\n        if paid_candidate::inspect(program, function, payer, &mut work)? {\n";
     let original_hook = "        if paid_candidate::inspect(program, function, payer)? {\n            let mut work = WorkCounter::new(MAX_LOAN_PLAN_WORK_V1);\n            work.allocation = Some(payer);\n";
-    let mut current = paid_candidate::before_inventory_source("src/loan_plan/funded_flat.rs", include_str!("../funded_flat.rs"));
+    let mut current = paid_candidate::before_inventory_source(
+        "src/loan_plan/funded_flat.rs",
+        include_str!("../funded_flat.rs"),
+    );
     for test_hook in [
         "        #[cfg(test)]\n        work_boundary::apply(&mut work);\n",
         "\n#[cfg(test)]\nmod work_boundary;\n",

@@ -72,7 +72,15 @@ fn full_tree_and_policy_facades_keep_source_bound_nominal_signature_and_field_ho
             for route in ROUTES {
                 let mut selected = session(context, function, usize::MAX);
                 let error = run(route, &mut selected, &forged).unwrap_err();
-                let expression_facts::errors::EngineError::Owned(error) = error else { panic!("full nominal signature diagnostic") };
+                let error = match (route, error) {
+                    (Route::SelectedArena, expression_facts::errors::EngineError::Structural(receipt)) => {
+                        assert_eq!(receipt.source(), &forged.body.id);
+                        assert_eq!(receipt.stage(), "selected session");
+                        receipt.legacy(&forged)
+                    }
+                    (Route::Tree | Route::LegacyArena, expression_facts::errors::EngineError::Owned(error)) => error,
+                    _ => panic!("full nominal signature diagnostic or source-bound selected receipt"),
+                };
                 assert!(selected.failed);
                 assert_eq!(error, replay_error_old(&forged, "selected lexical function is not held by its current context"));
                 if let Some(first) = &first { assert_eq!(first, &error); } else { first = Some(error.clone()); }

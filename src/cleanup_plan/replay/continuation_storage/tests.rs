@@ -261,8 +261,9 @@ fn lazy_first_and_nested_layouts_use_the_same_sticky_payer_through_drop() {
         with_limit_usage_refusal(limit, || {
             measure(|| {
                 let mut budget = ReplayBudget::new();
-                // Baseline obtains only the existing prepaid first-report String.
-                budget.reserve_bytes(function, 0, "setup").unwrap();
+                // Authentication is allocation-free; acquire the report backing
+                // explicitly before measuring the continuation-only frontier.
+                budget.prepare_builder(function).unwrap();
                 let mut outer = None;
                 let mut inner = None;
                 let mut error = None;

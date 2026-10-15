@@ -186,4 +186,3 @@ pub(super) fn substitute_source_function_type(
     }
     (resolved.len() == 1).then(|| resolved.pop().expect("type count checked above"))
 }
-

@@ -106,6 +106,11 @@ pub(crate) fn validate_function_with<'a>(
             "lexical completion has no public signature or storage type",
         ));
     }
+    // Independently scan every root before declining the selective contour.
+    // Forged bottom types and typed loop markers still select full replay.
+    if !super::walk::requires_validation(function)? {
+        return Ok(());
+    }
     crate::hir::validation::byte_traversal::nested::slot::controls(
         std::mem::size_of::<Proofs<'_, '_>>()
             + std::mem::size_of::<Result<Proofs<'_, '_>, Diagnostic>>(),

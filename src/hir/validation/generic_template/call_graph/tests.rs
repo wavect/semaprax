@@ -340,20 +340,20 @@ fn checked_generic_constructor_uses_independent_old_dispatch_and_complete_error_
 #[test]
 fn full_generic_graph_sources_and_independent_constructor_dispatch_preserve_original_bytes() {
     use sha2::{Digest, Sha256};
-    let records: serde_json::Value = serde_json::from_str(include_str!(concat!(
+    let records: serde_json::Value = serde_json::from_str(ci_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/paid-generic-constructor-graph-824/exact-source-inverses.json"
     )))
     .unwrap();
     let currents = [
-        include_str!("../../generic_template.rs"),
-        include_str!("../../constructor_seed/original.rs"),
-        include_str!("../../function_lookup/paid_custody.rs"),
+        ci_str!("../../generic_template.rs"),
+        ci_str!("../../constructor_seed/original.rs"),
+        ci_str!("../../function_lookup/paid_custody.rs"),
     ];
     let originals = [
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-generic-constructor-graph-824/src__hir__validation__generic_template.rs.before.txt")),
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-generic-constructor-graph-824/src__hir__validation__constructor_seed__original.rs.before.txt")),
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-generic-constructor-graph-824/src__hir__validation__function_lookup__paid_custody.rs.before.txt")),
+        ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-generic-constructor-graph-824/src__hir__validation__generic_template.rs.before.txt")),
+        ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-generic-constructor-graph-824/src__hir__validation__constructor_seed__original.rs.before.txt")),
+        ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-generic-constructor-graph-824/src__hir__validation__function_lookup__paid_custody.rs.before.txt")),
     ];
     let hashes = [
         "e10f391d931b3b9b9142618b54589eccb7317fabc1c08fda827f5564e9dffeeb",
@@ -384,7 +384,7 @@ fn full_generic_graph_sources_and_independent_constructor_dispatch_preserve_orig
         }
         assert_eq!(current, original);
     }
-    let old = include_str!(concat!(
+    let old = ci_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/paid-generic-constructor-graph-824/complete-original-call-graph.before.txt"
     ));
@@ -404,11 +404,11 @@ fn full_generic_graph_sources_and_independent_constructor_dispatch_preserve_orig
         .unwrap()
         + start;
     assert_eq!(&complete_archive[start..end], old);
-    let current = include_str!("original.rs").strip_prefix("//! Complete original constructor graph receiver, independently compiled.\nuse super::super::*;\n\n").unwrap();
+    let current = ci_str!("original.rs").strip_prefix("//! Complete original constructor graph receiver, independently compiled.\nuse super::super::*;\n\n").unwrap();
     let header = "pub(in crate::hir::validation) fn validate_call_graph(\n    program: &ResolvedProgram,\n) -> Result<(), Diagnostic> {";
     assert_eq!(current.matches(header).count(), 1);
     assert_eq!(current.replacen(header, "pub(super) fn validate_call_graph(program: &ResolvedProgram) -> Result<(), Diagnostic> {",1), old);
-    let trace = include_str!("tests.rs")
+    let trace = ci_str!("tests.rs")
         .split_once("// ORIGINAL_TRACE_START\n")
         .unwrap()
         .1

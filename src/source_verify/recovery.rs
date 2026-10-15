@@ -355,11 +355,22 @@ impl<'p> Recovery<'p> {
     }
 
     /// Resolve one refused child before any later continuation can append errors.
-    pub(super) fn refusal_origin(&self, checkpoint: Checkpoint, diagnostics: &[Diagnostic]) -> Option<usize> {
-        diagnostics.iter().enumerate().skip(checkpoint.diagnostics)
+    pub(super) fn refusal_origin(
+        &self,
+        checkpoint: Checkpoint,
+        diagnostics: &[Diagnostic],
+    ) -> Option<usize> {
+        diagnostics
+            .iter()
+            .enumerate()
+            .skip(checkpoint.diagnostics)
             .find(|(_, diagnostic)| diagnostic.severity.is_error())
             .map(|(index, _)| index)
-            .or_else(|| (self.reads > checkpoint.reads).then_some(self.last_read).flatten())
+            .or_else(|| {
+                (self.reads > checkpoint.reads)
+                    .then_some(self.last_read)
+                    .flatten()
+            })
     }
 
     pub(super) fn refused_origin(&mut self, scope: usize, name: &'p str, origin: usize) {

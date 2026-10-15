@@ -2,7 +2,7 @@
 use super::*;
 use crate::bounded_output::cfg_reservation::CfgReservation;
 use crate::bounded_output::{with_limit_usage, with_limit_usage_refusal};
-use crate::test_allocation_observer::{Metrics, current_metrics, measure};
+use crate::test_allocation_observer::{current_metrics, measure, Metrics};
 
 fn same_plan(actual: &LoanPlan, expected: &LoanPlan) {
     let LoanPlan {
@@ -40,7 +40,12 @@ fn observe_plan_route(
     expected: &LoanPlan,
     route: u8,
     limit: usize,
-) -> ((bool, Metrics), bool, usize, Option<crate::bounded_output::ReservationRefusal>) {
+) -> (
+    (bool, Metrics),
+    bool,
+    usize,
+    Option<crate::bounded_output::ReservationRefusal>,
+) {
     with_limit_usage_refusal(limit, || {
         measure(|| {
             let payer = match CfgReservation::acquire() {
@@ -128,7 +133,9 @@ fn complete_original_and_reused_liveness_planners_keep_all_fields_actual_payment
         assert!(current.allocated < old.allocated && current.allocations < old.allocations);
         // The original strict pending-vector reuse contract stays independent
         // of the later dense receiving/carrier costs, including sparse inputs.
-        assert!(before_dense.allocated < old.allocated && before_dense.allocations < old.allocations);
+        assert!(
+            before_dense.allocated < old.allocated && before_dense.allocations < old.allocations
+        );
         assert!(before_dense_paid < old_paid);
         // Dense setup may move the debit frontier on small inputs. Require a
         // gain on the existing larger corpus; actual runtime must qualify it.
@@ -363,8 +370,8 @@ fn all_liveness_semantic_work_frontiers_keep_first_diagnostic_and_full_original_
 }
 
 #[test]
-fn complete_reborrow_and_owned_nested_fixture_plans_keep_original_fields_and_current_member_refusal()
- {
+fn complete_reborrow_and_owned_nested_fixture_plans_keep_original_fields_and_current_member_refusal(
+) {
     for source in [
         include_str!("../../../tests/language/while_loops/record_borrow_renewal.spx"),
         include_str!("../../../tests/fixtures/nested-collection-records.spx"),
@@ -519,10 +526,8 @@ fn complete_original_helpers_planner_facade_and_all_source_inventory_hooks_remai
     assert!(originals.contains(
         "paid_seed_live_and_edge_receivers_equal_old_full_rows_and_checked_work_frontiers"
     ));
-    assert!(
-        originals
-            .contains("complete_projected_and_lexical_planner_uses_one_paid_owner_through_drop")
-    );
+    assert!(originals
+        .contains("complete_projected_and_lexical_planner_uses_one_paid_owner_through_drop"));
     assert!(originals.contains(
         "complete_old_btree_receiver_constructor_drop_exact_short_and_original_applications"
     ));

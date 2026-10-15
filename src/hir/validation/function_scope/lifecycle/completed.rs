@@ -107,6 +107,6 @@ impl<'a> Collector<'a> {
 #[cfg(test)]
 mod tests;
 
-mod inline_path;
 #[cfg(test)]
 mod before_inline;
+mod inline_path;

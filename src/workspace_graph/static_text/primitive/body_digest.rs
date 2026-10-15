@@ -417,7 +417,8 @@ impl Encoder<'_> {
                 if !admitted_vec_element(element) || args.len() != 2 {
                     return None;
                 }
-                self.text("vec-field-read")?; self.text(origin.as_str())?;
+                self.text("vec-field-read")?;
+                self.text(origin.as_str())?;
                 self.ty(element)?;
                 self.text(field.as_str())?;
                 self.bytes(&[u8::from(*bytes)])?;

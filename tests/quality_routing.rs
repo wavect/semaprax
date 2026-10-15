@@ -16,9 +16,7 @@ fn profiles_are_deterministic_and_broad_dispatch_files_force_full() {
     repository.write("src/graph.rs", "pub fn graph() { /* changed */ }\n");
     let plan = repository.changed_plan(&[]).unwrap();
     assert!(plan.contains("effective\tfull\n"));
-    assert!(
-        plan.contains("path\tsrc/graph.rs\tbroad-compiler-or-graph-dispatch\tfull-workspace\n")
-    );
+    assert!(plan.contains("path\tsrc/graph.rs\tbroad-compiler-or-graph-dispatch\tfull-workspace\n"));
     assert!(plan.contains("gate\ttest-workspace\n"));
     assert!(!plan.contains("gate\ttest-cli\n"));
 
@@ -99,11 +97,8 @@ fn profiles_are_deterministic_and_broad_dispatch_files_force_full() {
     assert!(plan.contains(
         "path\tsrc/graph/prelude_binding.rs\tbroad-compiler-or-graph-dispatch\tfull-workspace\n"
     ));
-    assert!(
-        plan.contains(
-            "path\tsrc/graph/affine.rs\tbroad-compiler-or-graph-dispatch\tfull-workspace\n"
-        )
-    );
+    assert!(plan
+        .contains("path\tsrc/graph/affine.rs\tbroad-compiler-or-graph-dispatch\tfull-workspace\n"));
     assert!(plan.contains(
         "path\tsrc/graph/vec_loop_renewal.rs\tbroad-compiler-or-graph-dispatch\tfull-workspace\n"
     ));

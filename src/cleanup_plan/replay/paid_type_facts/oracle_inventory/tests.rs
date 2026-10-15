@@ -1,5 +1,5 @@
 use super::*;
-use crate::cleanup_plan::replay::allocation::{OracleReceipt, OracleRefusal, OracleScope, enter};
+use crate::cleanup_plan::replay::allocation::{enter, OracleReceipt, OracleRefusal, OracleScope};
 use crate::test_allocation_observer::measure;
 
 fn control(program: &ResolvedProgram, ty: &ResolvedType) {

@@ -263,12 +263,20 @@ macro_rules! staged {
 pub(crate) use staged;
 
 fn reserve(budget: Option<&Budget>, length: usize) -> bool {
+    if budget.is_some_and(|budget| budget.overflowed.get()) {
+        return false;
+    }
+    reserve_optional(budget, length)
+}
+
+fn reserve_optional(budget: Option<&Budget>, length: usize) -> bool {
     let Some(budget) = budget else {
         return true;
     };
-    // A selected refusal remains authoritative even when a later request is
-    // zero or fits the unspent balance. No retry may restore admission.
-    if budget.overflowed.get() {
+    // A zero-sized retry cannot authenticate an already refused account.
+    // Positive optional writes can still consume a reserved error trailer;
+    // they never clear the selected refusal or restore required admission.
+    if length == 0 && budget.overflowed.get() {
         return false;
     }
     let remaining = budget.remaining.get();
@@ -291,13 +299,19 @@ fn reserve(budget: Option<&Budget>, length: usize) -> bool {
 
 pub(crate) fn reserve_active(length: usize) -> bool {
     let budget = active();
-    reserve(budget.as_deref(), length)
+    reserve_optional(budget.as_deref(), length)
 }
 
 /// Required work cannot turn a reserved-floor refusal into successful output.
 /// Preserve the ordinary reservation debit while making every refusal sticky.
 pub(crate) fn reserve_active_required(length: usize) -> bool {
     let budget = active();
+    if budget
+        .as_ref()
+        .is_some_and(|budget| budget.overflowed.get())
+    {
+        return false;
+    }
     let admitted = reserve(budget.as_deref(), length);
     if !admitted {
         if let Some(budget) = budget {
@@ -329,7 +343,7 @@ pub(crate) fn reserve_active_preserving(length: usize, floor: usize) -> bool {
     if required > budget.remaining.get() {
         return false;
     }
-    reserve(Some(budget), length)
+    reserve_optional(Some(budget), length)
 }
 
 pub(crate) fn set_active_floor(floor: usize) -> bool {
@@ -366,7 +380,13 @@ pub(crate) fn active_limit() -> Option<usize> {
 
 fn reserve_sink(captured: Option<&Rc<Budget>>, length: usize) -> bool {
     let current = active();
-    reserve(
+    let budget = current.as_deref().or_else(|| captured.map(Rc::as_ref));
+    reserve(budget, length)
+}
+
+fn reserve_optional_sink(captured: Option<&Rc<Budget>>, length: usize) -> bool {
+    let current = active();
+    reserve_optional(
         current.as_deref().or_else(|| captured.map(Rc::as_ref)),
         length,
     )
@@ -560,7 +580,7 @@ impl CappedVec {
     }
 
     pub(crate) fn push(&mut self, value: u8) {
-        if reserve_sink(self.budget.as_ref(), 1) {
+        if reserve_optional_sink(self.budget.as_ref(), 1) {
             self.bytes.push(value);
         }
     }
@@ -570,7 +590,7 @@ impl CappedVec {
     }
 
     pub(crate) fn extend_from_slice(&mut self, values: &[u8]) {
-        if reserve_sink(self.budget.as_ref(), values.len()) {
+        if reserve_optional_sink(self.budget.as_ref(), values.len()) {
             self.bytes.extend_from_slice(values);
         }
     }

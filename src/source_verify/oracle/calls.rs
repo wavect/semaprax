@@ -74,7 +74,7 @@ pub(super) fn oracle_call(
                 expr.span,
             ));
         }
-        if op.is_view()
+        if (op.is_view() || op == crate::byte_ops::ByteOp::Range)
             && args.first().is_none_or(|argument| {
                 !crate::source_verify::arguments::source_byte_view_place_is_admitted(
                     op, argument, variables, types,

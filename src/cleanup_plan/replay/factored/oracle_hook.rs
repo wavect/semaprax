@@ -301,10 +301,7 @@ mod tests {
 }
 
 // Classification of an undecided result carries no comparison authority.
-fn require_decided(
-    function: &ResolvedFunction,
-    factored: &Result<Option<bool>, Diagnostic>,
-) {
+fn require_decided(function: &ResolvedFunction, factored: &Result<Option<bool>, Diagnostic>) {
     assert!(
         !matches!(factored, Ok(None)),
         "funded factored skeleton comparison is undecided for `{}`",

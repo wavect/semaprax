@@ -270,3 +270,8 @@ directory when the work is done.
 - Keep local Markdown links resolvable and catalog every document in
   `SUMMARY.md`; `tests/documentation.rs` enforces links, metadata, and catalog
   coverage.
+- Byte-locked Markdown source snapshots are registered by exact path, logical
+  original path, and SHA-256 in `tests/documentation/archived-sources.tsv`.
+  The documentation gate authenticates those bytes and resolves their links
+  from the original location; their live originals own metadata and catalog
+  entries. Unregistered evidence Markdown follows the ordinary document rules.

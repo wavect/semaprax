@@ -46,11 +46,17 @@ fn selected_static_text_and_bytes_replay_covers_observed_layouts_at_exact_limit(
     let ((wide, charged), refused, outer) =
         crate::bounded_output::with_limit_usage(64 * 1024 * 1024, || {
             let (result, metrics) = test_allocation_observer::measure(|| {
-                validate_retained_lexical_with_limit(&context, function, 64 * 1024 * 1024)
+                selected_entry::validate_retained_lexical_with_reservation(
+                    &context,
+                    function,
+                    PhysicalReservation::new(64 * 1024 * 1024),
+                )
+                .map(|reservation| reservation.charged())
             });
             (result, metrics)
         });
-    wide.unwrap();
+    let physical = wide.unwrap();
+    assert!(physical > 0 && physical <= outer);
     assert!(!refused);
     assert!(!charged.invalid);
     assert!(charged.allocations > 0 && outer > 0);
@@ -68,7 +74,7 @@ fn selected_static_text_and_bytes_replay_covers_observed_layouts_at_exact_limit(
     );
     let ((exact, observed), refused, used) = crate::bounded_output::with_limit_usage(outer, || {
         test_allocation_observer::measure(|| {
-            validate_retained_lexical_with_limit(&context, function, outer)
+            validate_retained_lexical_with_limit(&context, function, physical)
         })
     });
     exact.unwrap();
@@ -81,7 +87,7 @@ fn selected_static_text_and_bytes_replay_covers_observed_layouts_at_exact_limit(
     // below, not silently subtracted or represented as successful-path backing.
     let ((short, report), _, _) = crate::bounded_output::with_limit_usage(64 * 1024 * 1024, || {
         test_allocation_observer::measure(|| {
-            validate_retained_lexical_with_limit(&context, function, outer - 1)
+            validate_retained_lexical_with_limit(&context, function, physical - 1)
         })
     });
     assert_eq!(short.unwrap_err().code, "SPX-H006");

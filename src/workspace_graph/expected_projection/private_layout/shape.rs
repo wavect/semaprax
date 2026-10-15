@@ -38,9 +38,22 @@ pub(super) fn explicit_only<'x, A: Lookup<'x>>(
         if !matches!(import.kind, ModuleUseKind::Type | ModuleUseKind::Function) {
             continue;
         }
-        let target = authored
-            .get(import.persistent_id.as_str())
-            .ok_or_else(refusal)?;
+        let target = authored.get(import.persistent_id.as_str()).ok_or_else(|| {
+            // Signature validation may request a closure before the ordinary
+            // import loop reaches a later missing module. Keep its diagnostic
+            // and source span instead of reporting a private-layout limit.
+            if import.target_module == caller.module
+                || !programs.iter().any(|p| p.module == import.target_module)
+            {
+                vec![crate::workspace_graph::use_error(
+                    caller,
+                    import,
+                    "target module is missing or equals the caller module",
+                )]
+            } else {
+                refusal()
+            }
+        })?;
         if !target.explicit || target.module != import.target_module {
             return Err(refusal());
         }

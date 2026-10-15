@@ -16,6 +16,32 @@
 
 - Qualify the closed named String-transfer v1 scope with all 15 exact a417 owning controls and the five 27ae regenerated-pin/source controls; retain unrelated application-budget failures and frozen public profiles.
 
+- Keep borrowed byte replay context identity stable across compiler codegen
+  units while retaining exact function, expression and foreign-context checks.
+
+- Keep nested immutable byte traversal tied to an actual enclosing authored
+  byte traversal, including through while bridges, when resolving unchecked AST.
+
+- Explicitly release harness journal writer locks before closing their file
+  descriptors, so concurrent process launches cannot delay same-lineage reopen.
+  Cover retained duplicate descriptors for plain and indexed journals. Restore
+  workspace Rust formatting and update the isolated Component runner to the
+  security-patched Wasmtime 48.0.6 family.
+- Factor Base64 conformance verdicts and decoder checks into small helpers,
+  preserving all vectors, assertion order and failure bits while avoiding the
+  cross-product of independent cleanup paths under the unchanged graph budget.
+- Compare candidate-report diagnostic messages as strings after diagnostic
+  message storage changed to `Cow<str>`.
+- Keep required allocation retries sticky while allowing reserved optional
+  error-trailer writes, and outline lifecycle resource handling to reduce the
+  recursive frame used by deep nominal chains. Preserve historical source
+  assertions through exact, authenticated CI repair inverses. Complete missing
+  documentation metadata/catalog entries and authenticate archived Markdown
+  sources at their original logical paths.
+- Update the root and standalone TLS dependency locks to rustls 0.23.46.
+
+- Qualify the closed named String-transfer v1 scope with all15 exact a417 owning controls and the five27ae regenerated-pin/source controls; retain unrelated application-budget failures and frozen public profiles.
+
 - Add bounded authoring-card keyword/identity discovery from the existing route and card inventory, preserving library-only search. Executable qualification and live efficiency measurement remain pending.
 - Author authenticated numeric cleanup-closure memo chunks and reuse immutable
   single-epsilon child backing (#830), retaining every logical work charge and

@@ -2,6 +2,10 @@
 use super::super::function_reuse_source::environment_is_exact as function_reuse_environment_is_exact;
 use super::*;
 
+#[allow(
+    dead_code,
+    reason = "retained original receiver or refusal payload; not every legacy entry is selected by current tests"
+)]
 pub(crate) fn resolve_source_checked_previous<'p, E>(
     program: &'p dyn ProgramSource,
     previous_program: Option<&dyn ProgramSource>,

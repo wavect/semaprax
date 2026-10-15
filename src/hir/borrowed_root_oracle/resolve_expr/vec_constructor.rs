@@ -1,12 +1,10 @@
 //! The source marker reuses one ordinary Block expression/result identity.
+use super::super::Resolver;
 use crate::ast::Expr;
 use crate::diagnostic::Diagnostic;
 use crate::hir::borrowed_root_oracle::resolve_expr_frame::Frame;
-use crate::hir::{
-    Binding, FunctionExecutionId, ResolvedExpr, ResolvedExprKind, ResolvedType,
-};
+use crate::hir::{Binding, FunctionExecutionId, ResolvedExpr, ResolvedExprKind, ResolvedType};
 use std::{collections::BTreeMap, rc::Rc};
-use super::super::Resolver;
 
 pub(super) fn schedule<'a>(
     resolver: &Resolver<'_, '_>,

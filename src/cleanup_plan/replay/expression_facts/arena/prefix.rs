@@ -6,8 +6,18 @@ use super::*;
 // units cover four bracket reads/updates, four comparator fields and the
 // two scalar return fields. Byte-loop work retains the old byte-pair rate.
 const BOUND_UNITS: usize = 10;
-struct LookupControl { lower: usize, upper: usize, at: usize, last: usize }
-struct Comparison<'a> { left: &'a [u8], right: &'a [u8], end: usize, common: usize }
+struct LookupControl {
+    lower: usize,
+    upper: usize,
+    at: usize,
+    last: usize,
+}
+struct Comparison<'a> {
+    left: &'a [u8],
+    right: &'a [u8],
+    end: usize,
+    common: usize,
+}
 const COMPARISON_BYTES: usize = std::mem::size_of::<Comparison<'static>>()
     + std::mem::size_of::<Result<(Ordering, usize), Diagnostic>>()
     + std::mem::size_of::<(Ordering, usize)>();
@@ -23,15 +33,32 @@ fn compare(
     prefix: usize,
     budget: &mut ReplayBudget,
 ) -> Result<(Ordering, usize), Diagnostic> {
-    budget.reserve_bytes(function, COMPARISON_BYTES, "expression-fact comparison controls")?;
-    budget.charge(function, BOUND_UNITS, "expression-fact prefix control bookkeeping")?;
+    budget.reserve_bytes(
+        function,
+        COMPARISON_BYTES,
+        "expression-fact comparison controls",
+    )?;
+    budget.charge(
+        function,
+        BOUND_UNITS,
+        "expression-fact prefix control bookkeeping",
+    )?;
     let mut comparison = Comparison {
-        left: query.as_str().as_bytes(), right: candidate.as_str().as_bytes(),
-        end: query.as_str().len().min(candidate.as_str().len()), common: prefix,
+        left: query.as_str().as_bytes(),
+        right: candidate.as_str().as_bytes(),
+        end: query.as_str().len().min(candidate.as_str().len()),
+        common: prefix,
     };
-    let units = comparison.end.checked_sub(prefix).and_then(|n| n.checked_add(1))
+    let units = comparison
+        .end
+        .checked_sub(prefix)
+        .and_then(|n| n.checked_add(1))
         .ok_or_else(|| {
-            budget.budget_refusal(function, "expression-fact prefix comparison work overflow", "")
+            budget.budget_refusal(
+                function,
+                "expression-fact prefix comparison work overflow",
+                "",
+            )
         })?;
     // Same one-unit-per-byte-pair comparison rate as the complete old lookup,
     // including its end comparison. Only certified bytes are no longer read.
@@ -39,10 +66,15 @@ fn compare(
     while comparison.common < comparison.end {
         let a = comparison.left[comparison.common];
         let b = comparison.right[comparison.common];
-        if a != b { return Ok((a.cmp(&b), comparison.common)); }
+        if a != b {
+            return Ok((a.cmp(&b), comparison.common));
+        }
         comparison.common += 1;
     }
-    Ok((comparison.left.len().cmp(&comparison.right.len()), comparison.common))
+    Ok((
+        comparison.left.len().cmp(&comparison.right.len()),
+        comparison.common,
+    ))
 }
 
 pub(super) fn find<'a, 'hir>(
@@ -53,9 +85,18 @@ pub(super) fn find<'a, 'hir>(
 ) -> Result<Option<&'a Option<CallFact<'hir>>>, Diagnostic> {
     budget.reserve_bytes(function, 0, "expression-fact arena lookup authentication")?;
     budget.charge(function, 0, "expression-fact arena lookup authentication")?;
-    budget.reserve_bytes(function, LOOKUP_BYTES, "expression-fact full lookup controls")?;
+    budget.reserve_bytes(
+        function,
+        LOOKUP_BYTES,
+        "expression-fact full lookup controls",
+    )?;
     budget.charge(function, 4, "expression-fact lookup control initialization")?;
-    let mut control = LookupControl { lower: 0, upper: 0, at: arena.root, last: arena.root };
+    let mut control = LookupControl {
+        lower: 0,
+        upper: 0,
+        at: arena.root,
+        last: arena.root,
+    };
     // Two paid full comparisons seed useful bounds even for endpoint-heavy
     // queries. The first key is already the producer's minimum; finding the
     // maximum follows only actual right children and pays before each read.

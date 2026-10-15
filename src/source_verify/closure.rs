@@ -1,9 +1,9 @@
 //! Closed scalar snapshot capture analysis shared with HIR source lowering.
-use super::IterativeVerifier;
 use super::binding::{Availability, Binding, CheckedValue};
 use super::declared_type::{function_value_scalar_type, function_value_signature};
 use super::diagnostics::{error, source_identifier};
 use super::scope::{VerifierFrame, VerifierScope};
+use super::IterativeVerifier;
 use crate::ast::program_source::ProgramSource;
 use crate::ast::{ClosureParam, Expr, ExprKind, ParamMode, Statement, Type};
 use crate::diagnostic::Diagnostic;

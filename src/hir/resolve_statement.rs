@@ -236,6 +236,23 @@ impl Resolver<'_> {
                         if byte_scope.is_some_and(|scope| {
                             matches!(&values.kind, ExprKind::Var(name)
                                 if scope.get(name).is_some_and(super::resolve_for::bytes::admits))
+                                && execution.is_none_or(|owner| {
+                                    owner
+                                        .monomorphic_declaration()
+                                        .and_then(|id| {
+                                            self.program
+                                                .functions()
+                                                .iter()
+                                                .find(|f| f.stable_id == id.as_str())
+                                        })
+                                        .is_some_and(|function| {
+                                            super::resolve_for::bytes::source_byte_ancestry(
+                                                &function.body,
+                                                expression,
+                                                scope,
+                                            )
+                                        })
+                                })
                         }) =>
                     {
                         // Same left-to-right pre-scan order as While. Never

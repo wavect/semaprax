@@ -12,7 +12,7 @@ use super::{CompilerDeclaration, DeclarationId};
 use crate::bounded_output::{
     active_remaining, reserve_active_required, with_limit_usage, with_limit_usage_refusal,
 };
-use crate::test_allocation_observer::{Metrics, current_metrics, measure};
+use crate::test_allocation_observer::{current_metrics, measure, Metrics};
 use std::cell::Cell;
 
 /// (text, extra scratch capacity, extra output capacity).

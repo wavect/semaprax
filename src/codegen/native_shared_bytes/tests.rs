@@ -197,6 +197,7 @@ fn unsupported_consumers_name_the_exact_blocker_before_admission() {
         (Consumer::VecOwnedLeafOnly, "owned-leaf Vec operation"),
         (Consumer::SelectedFusedRow, "separate private domain"),
         (Consumer::ReservedArena, "distinct private profile"),
+        (Consumer::CheckedAllocation, "own release provenance"),
         (Consumer::ImportedCall, "imported and foreign"),
         (Consumer::HostIo, "malloc-backed"),
     ] {

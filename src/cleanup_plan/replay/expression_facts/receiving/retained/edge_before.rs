@@ -13,13 +13,18 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges_retained(
     budget: &mut ReplayBudget,
     validated: &StatusSources<'_>,
 ) -> Result<(), Diagnostic> {
-    if !std::ptr::eq(function, validated.function)
-        || !std::ptr::eq(budget, validated.budget)
-    {
-        return Err(replay_error(function, "status directory belongs to another function or budget"));
+    if !std::ptr::eq(function, validated.function) || !std::ptr::eq(budget, validated.budget) {
+        return Err(replay_error(
+            function,
+            "status directory belongs to another function or budget",
+        ));
     }
     if !validated.ledger.current() {
-        return Err(budget.budget_refusal(function, "retained status invocation owner changed", ""));
+        return Err(budget.budget_refusal(
+            function,
+            "retained status invocation owner changed",
+            "",
+        ));
     }
     // Authenticate the unchanged payer even though retaining the directory allocates nothing.
     budget.reserve_bytes(function, 0, "retained cleanup status directory")?;
@@ -31,9 +36,10 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges_retained(
     }
     let expressions: &dyn Lookup = facts;
     let plan = &function.cleanup_plan;
-    let statuses = validated.ids.as_ref().ok_or_else(|| {
-        replay_error(function, "retained status directory has no metered keys")
-    })?;
+    let statuses = validated
+        .ids
+        .as_ref()
+        .ok_or_else(|| replay_error(function, "retained status directory has no metered keys"))?;
     for (index, edge) in plan.edges.iter().enumerate() {
         if edge.id.0 != u32_index(function, index, "cleanup edge")?
             || !block_exists(function, edge.from)
@@ -442,4 +448,3 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges_retained(
     }
     Ok(())
 }
-

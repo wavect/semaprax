@@ -9,7 +9,12 @@ pub(in crate::cleanup_plan::replay) fn validate_status_sources_retained<'hir>(
     if let Facts::Tree(tree) = facts {
         super::super::super::validate_status_sources(function, tree)?;
         budget.reserve_bytes(function, CONTROL_BYTES, "retained status full controls")?;
-        return Ok(StatusSources { function, budget, ledger: ClassifierLedger::capture(), ids: None });
+        return Ok(StatusSources {
+            function,
+            budget,
+            ledger: ClassifierLedger::capture(),
+            ids: None,
+        });
     }
     let expressions: &dyn Lookup = facts;
     let mut ids = Directory::new(function, budget, "cleanup status identity directory")?;
@@ -90,6 +95,10 @@ pub(in crate::cleanup_plan::replay) fn validate_status_sources_retained<'hir>(
         }
     }
     budget.reserve_bytes(function, CONTROL_BYTES, "retained status full controls")?;
-    Ok(StatusSources { function, budget, ledger: ClassifierLedger::capture(), ids: Some(ids) })
+    Ok(StatusSources {
+        function,
+        budget,
+        ledger: ClassifierLedger::capture(),
+        ids: Some(ids),
+    })
 }
-

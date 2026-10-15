@@ -23,7 +23,12 @@ pub(in crate::cleanup_plan::replay) fn validate_status_sources_retained<'hir>(
     if let Facts::Tree(tree) = facts {
         super::super::super::validate_status_sources(function, tree)?;
         budget.reserve_bytes(function, CONTROL_BYTES, "retained status full controls")?;
-        return Ok(StatusSources { function, budget, ledger: ClassifierLedger::capture(), ids: None });
+        return Ok(StatusSources {
+            function,
+            budget,
+            ledger: ClassifierLedger::capture(),
+            ids: None,
+        });
     }
     let expressions: &dyn Lookup = facts;
     let mut ids = Directory::new(function, budget, "cleanup status identity directory")?;
@@ -38,9 +43,11 @@ pub(in crate::cleanup_plan::replay) fn validate_status_sources_retained<'hir>(
         // Retain the actual first lookup's borrowed payload, only through this
         // immutable source's producer match. Pay its complete receiving pointer
         // and one assignment step; no previous result/header credit is used.
-        budget.reserve_bytes(function,
+        budget.reserve_bytes(
+            function,
             std::mem::size_of::<&Option<CallFact<'_>>>(),
-            "retained status fact receiving control")?;
+            "retained status fact receiving control",
+        )?;
         budget.charge(function, 1, "retained status fact receiving assignment")?;
         let Some(fact) = expressions.fact(function, &source.id.expression, budget)? else {
             return Err(<Diagnostic as semantic_refusal::Error>::structural(
@@ -55,11 +62,13 @@ pub(in crate::cleanup_plan::replay) fn validate_status_sources_retained<'hir>(
             ) => {
                 // The payload reference is a second simultaneous receiving
                 // control; the eliminated lookup's result is not a credit.
-                budget.reserve_bytes(function, std::mem::size_of::<&CallFact<'_>>(),
-                    "retained status call receiving control")?;
+                budget.reserve_bytes(
+                    function,
+                    std::mem::size_of::<&CallFact<'_>>(),
+                    "retained status call receiving control",
+                )?;
                 budget.charge(function, 1, "retained status call receiving assignment")?;
-                let Some(call) = fact
-                else {
+                let Some(call) = fact else {
                     return Err(replay_error(
                         function,
                         "propagated-call status source does not name a call expression",
@@ -115,7 +124,12 @@ pub(in crate::cleanup_plan::replay) fn validate_status_sources_retained<'hir>(
     }
     drop(prefix_owner);
     budget.reserve_bytes(function, CONTROL_BYTES, "retained status full controls")?;
-    Ok(StatusSources { function, budget, ledger: ClassifierLedger::capture(), ids: Some(ids) })
+    Ok(StatusSources {
+        function,
+        budget,
+        ledger: ClassifierLedger::capture(),
+        ids: Some(ids),
+    })
 }
 
 // The retained key proof is the sole additional borrowed argument to the complete receiver.
@@ -130,13 +144,18 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges_retained(
     budget: &mut ReplayBudget,
     validated: &StatusSources<'_>,
 ) -> Result<(), Diagnostic> {
-    if !std::ptr::eq(function, validated.function)
-        || !std::ptr::eq(budget, validated.budget)
-    {
-        return Err(replay_error(function, "status directory belongs to another function or budget"));
+    if !std::ptr::eq(function, validated.function) || !std::ptr::eq(budget, validated.budget) {
+        return Err(replay_error(
+            function,
+            "status directory belongs to another function or budget",
+        ));
     }
     if !validated.ledger.current() {
-        return Err(budget.budget_refusal(function, "retained status invocation owner changed", ""));
+        return Err(budget.budget_refusal(
+            function,
+            "retained status invocation owner changed",
+            "",
+        ));
     }
     // Authenticate the unchanged payer even though retaining the directory allocates nothing.
     budget.reserve_bytes(function, 0, "retained cleanup status directory")?;
@@ -148,9 +167,10 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges_retained(
     }
     let expressions: &dyn Lookup = facts;
     let plan = &function.cleanup_plan;
-    let statuses = validated.ids.as_ref().ok_or_else(|| {
-        replay_error(function, "retained status directory has no metered keys")
-    })?;
+    let statuses = validated
+        .ids
+        .as_ref()
+        .ok_or_else(|| replay_error(function, "retained status directory has no metered keys"))?;
     for (index, edge) in plan.edges.iter().enumerate() {
         if edge.id.0 != u32_index(function, index, "cleanup edge")?
             || !block_exists(function, edge.from)
@@ -207,8 +227,10 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges_retained(
                     destination,
                 } => {
                     require_expression(function, expressions, at, budget)?;
-                    let source_flags = helpers::validate_place(function, source, storage, leaves, budget)?;
-                    let destination_flags = helpers::validate_place(function, destination, storage, leaves, budget)?;
+                    let source_flags =
+                        helpers::validate_place(function, source, storage, leaves, budget)?;
+                    let destination_flags =
+                        helpers::validate_place(function, destination, storage, leaves, budget)?;
                     let mut source_directory =
                         Directory::new(function, budget, "cleanup transfer source flag directory")?;
                     for flag in source_flags {
@@ -278,8 +300,10 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges_retained(
                     variant,
                 } => {
                     require_expression(function, expressions, at, budget)?;
-                    let source_flags = helpers::validate_place(function, source, storage, leaves, budget)?;
-                    let destination_flags = helpers::validate_place(function, destination, storage, leaves, budget)?;
+                    let source_flags =
+                        helpers::validate_place(function, source, storage, leaves, budget)?;
+                    let destination_flags =
+                        helpers::validate_place(function, destination, storage, leaves, budget)?;
                     if source_flags.len() != destination_flags.len()
                         || function
                             .cleanup_plan
@@ -423,7 +447,13 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges_retained(
                                 ));
                             }
                         }
-                        for flag in helpers::validate_place(function, &argument.source, storage, leaves, budget)? {
+                        for flag in helpers::validate_place(
+                            function,
+                            &argument.source,
+                            storage,
+                            leaves,
+                            budget,
+                        )? {
                             if !consumed.insert(function, flag, budget)? {
                                 return Err(replay_error(
                                     function,
@@ -531,10 +561,16 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges_retained(
                 if plan.exits[exit.0 as usize].from != block.id {
                     // Only a malformed owner needs a bounded previous-block
                     // proof. Pay every control and step before these new reads.
-                    budget.reserve_bytes(function, exit_prefix::CONTROL_BYTES,
-                        "cleanup prior exit reference controls")?;
-                    budget.charge(function, exit_prefix::PROBE_UNITS,
-                        "cleanup prior exit reference proof")?;
+                    budget.reserve_bytes(
+                        function,
+                        exit_prefix::CONTROL_BYTES,
+                        "cleanup prior exit reference controls",
+                    )?;
+                    budget.charge(
+                        function,
+                        exit_prefix::PROBE_UNITS,
+                        "cleanup prior exit reference proof",
+                    )?;
                     let mut probe = exit_prefix::Probe {
                         owner: plan.exits[exit.0 as usize].from,
                         current: block.id,
@@ -551,8 +587,10 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges_retained(
                         }
                     }
                     if probe.repeated {
-                        return Err(replay_error(function,
-                            "cleanup block references an unknown or repeated exit"));
+                        return Err(replay_error(
+                            function,
+                            "cleanup block references an unknown or repeated exit",
+                        ));
                     }
                     return Err(replay_error(
                         function,
@@ -587,9 +625,16 @@ mod tests;
 #[cfg(test)]
 pub(in crate::cleanup_plan::replay) fn before_status_retention(path: &str, source: &str) -> String {
     let records: serde_json::Value = serde_json::from_str(include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"), "/docs/evidence/cleanup-status-directory-retention/exact-source-inverses.json"
-    ))).unwrap();
-    let record = records.as_array().unwrap().iter().find(|entry| entry["source"] == path).unwrap();
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/cleanup-status-directory-retention/exact-source-inverses.json"
+    )))
+    .unwrap();
+    let record = records
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|entry| entry["source"] == path)
+        .unwrap();
     let mut restored = source.to_owned();
     for edit in record["edits"].as_array().unwrap().iter().rev() {
         let after = edit["after"].as_str().unwrap();
@@ -609,11 +654,16 @@ fn validate_owned_edge_unique(
     edge: EdgeId,
 ) -> Result<(), Diagnostic> {
     let Some(item) = function.cleanup_plan.edges.get(edge.0 as usize) else {
-        return Err(replay_error(function, "cleanup terminator references unknown edge"));
+        return Err(replay_error(
+            function,
+            "cleanup terminator references unknown edge",
+        ));
     };
     if item.id != edge || item.from != owner {
-        return Err(replay_error(function,
-            "cleanup edge has the wrong owner or is referenced repeatedly"));
+        return Err(replay_error(
+            function,
+            "cleanup edge has the wrong owner or is referenced repeatedly",
+        ));
     }
     Ok(())
 }
@@ -628,9 +678,9 @@ mod status_before;
 #[cfg(test)]
 mod status_tests;
 
-mod exit_prefix;
 #[cfg(test)]
 mod exit_before;
+mod exit_prefix;
 #[cfg(test)]
 mod exit_tests;
 

@@ -169,20 +169,29 @@ fn attached_loan_drift_is_not_new_constructor_authority_and_whole_saved_receiver
 
 #[test]
 fn complete_old_constructor_inventory_caller_and_closure_source_projections_remain_exact() {
-    let current = include_str!("../canonical_loans.rs");
-    let original=include_str!("../../../../docs/evidence/compatibility-loan-custody/src__hir__validation__canonical_loans.rs.before");
+    let current = ci_str!("../canonical_loans.rs");
+    let original=ci_str!("../../../../docs/evidence/compatibility-loan-custody/src__hir__validation__canonical_loans.rs.before");
     let marker = "// The ordinary compatibility constructor retains the saved owned directories.";
     assert_eq!(
         current.split_once(marker).unwrap().0,
         original.split_once(marker).unwrap().0
     );
-    let mut current = super::super::function_lookup::paid_custody::project_current("src/hir/validation.rs", include_str!("../../validation.rs"));
+    let mut current = super::super::function_lookup::paid_custody::project_current(
+        "src/hir/validation.rs",
+        ci_str!("../../validation.rs"),
+    );
     // The later held-call receipt is inverted before the complete saved custody comparison.
     fn undo(source: &mut String, new: &str, old: &str) {
-        assert_eq!(source.matches(new).count(), 1, "exact unique held-call edit");
+        assert_eq!(
+            source.matches(new).count(),
+            1,
+            "exact unique held-call edit"
+        );
         *source = source.replacen(new, old, 1);
     }
-    undo(&mut current, r###"                                (params, return_type)
+    undo(
+        &mut current,
+        r###"                                (params, return_type)
                             };
                             let params = if let Some(parameters) = borrowed_parameters {
                                 held_parameters.map_or(
@@ -192,15 +201,19 @@ fn complete_old_constructor_inventory_caller_and_closure_source_projections_rema
                             } else {
                                 intrinsic_parameters.unwrap_or(CallParameters::Owned(params))
                             };
-"###, r###"                                (params, return_type)
+"###,
+        r###"                                (params, return_type)
                             };
                             let params = if let Some(parameters) = borrowed_parameters {
                                 CallParameters::Borrowed(parameters)
                             } else {
                                 intrinsic_parameters.unwrap_or(CallParameters::Owned(params))
                             };
-"###);
-    undo(&mut current, r###"                                    call_signature::ResultType::Owned(op.return_type()),
+"###,
+    );
+    undo(
+        &mut current,
+        r###"                                    call_signature::ResultType::Owned(op.return_type()),
                                 )
                             } else {
                                 let retained_target = if self.executable_profiles.is_bound() {
@@ -215,7 +228,8 @@ fn complete_old_constructor_inventory_caller_and_closure_source_projections_rema
                                 {
                                     borrowed_parameters = Some(target.params.as_slice());
                                     (
-"###, r###"                                    call_signature::ResultType::Owned(op.return_type()),
+"###,
+        r###"                                    call_signature::ResultType::Owned(op.return_type()),
                                 )
                             } else {
                                 let (params, return_type, target_effects) = if let Some(target) =
@@ -223,37 +237,48 @@ fn complete_old_constructor_inventory_caller_and_closure_source_projections_rema
                                 {
                                     borrowed_parameters = Some(target.params.as_slice());
                                     (
-"###);
-    undo(&mut current, r###"                            }
+"###,
+    );
+    undo(
+        &mut current,
+        r###"                            }
                             let mut intrinsic_parameters = None;
                             let mut borrowed_parameters = None;
                             let mut held_parameters = None;
                             let retained_program = self.program;
                             let (params, return_type) = if let Some(signature) =
                                 self.intrinsic_signature(callee, type_arguments, instance, args)?
-"###, r###"                            }
+"###,
+        r###"                            }
                             let mut intrinsic_parameters = None;
                             let mut borrowed_parameters = None;
                             let retained_program = self.program;
                             let (params, return_type) = if let Some(signature) =
                                 self.intrinsic_signature(callee, type_arguments, instance, args)?
-"###);
-    undo(&mut current, r###"                Some(_) => return Err(hir_error_static(
+"###,
+    );
+    undo(
+        &mut current,
+        r###"                Some(_) => return Err(hir_error_static(
                     "executable profile observations do not belong to the current declaration index",
                 )),
                 None => executable_profiles::Lookup::for_program(seed.program)?,
             },
             functions: seed.functions,
             expression_ids: identity_directory::Set::new(),
-"###, r###"                Some(_) => return Err(hir_error_static(
+"###,
+        r###"                Some(_) => return Err(hir_error_static(
                     "executable profile observations do not belong to the current declaration index",
                 )),
                 None => executable_profiles::Lookup::new(&seed.program.declarations)?,
             },
             functions: seed.functions,
             expression_ids: identity_directory::Set::new(),
-"###);
-    undo(&mut current, r###"mod executable_profiles;
+"###,
+    );
+    undo(
+        &mut current,
+        r###"mod executable_profiles;
 mod generic_record_composition;
 mod generic_template;
 mod held_profiles;
@@ -268,7 +293,8 @@ mod ownership_flags;
 mod proof_return;
 mod record_pattern;
 mod record_traversal;
-"###, r###"mod executable_profiles;
+"###,
+        r###"mod executable_profiles;
 mod generic_record_composition;
 mod generic_template;
 mod host_command;
@@ -282,19 +308,20 @@ pub(super) mod owner_renewal;
 mod proof_return;
 mod record_pattern;
 mod record_traversal;
-"###);
+"###,
+    );
     let projected=current.replacen("let canonical_loans = canonical_loans::Lookup::current(&seed)?;\n        Self::from_constructor(seed, canonical_loans, None)","let canonical_loans = canonical_loans::Inventory::rebuild(program)?;\n        Self::from_constructor(seed, canonical_loans::Lookup::Legacy(canonical_loans), None)",1)
         .replacen("storage: Option<canonical_loans::Lookup<'a>>", "storage: Option<&'a super::canonical_loan_storage::Storage<'a>>",1)
         .replacen("            storage\n        } else {\n            canonical_loans::Lookup::current(&seed)?", "            canonical_loans::Lookup::Borrowed(storage)\n        } else {\n            canonical_loans::Lookup::Legacy(canonical_loans::Inventory::rebuild(program)?)",1);
     assert_eq!(
         projected,
-        include_str!(
+        ci_str!(
             "../../../../docs/evidence/compatibility-loan-custody/src__hir__validation.rs.before"
         )
     );
-    assert_eq!(super::super::function_lookup::paid_custody::project_current("src/hir/validation/closure.rs", include_str!("../closure.rs")).replacen("self.canonical_loans.share()", "self.canonical_loans.shared()",1),
-        include_str!("../../../../docs/evidence/compatibility-loan-custody/src__hir__validation__closure.rs.before"));
-    let old = include_str!("constructors_before.rs");
+    assert_eq!(super::super::function_lookup::paid_custody::project_current("src/hir/validation/closure.rs", ci_str!("../closure.rs")).replacen("self.canonical_loans.share()", "self.canonical_loans.shared()",1),
+        ci_str!("../../../../docs/evidence/compatibility-loan-custody/src__hir__validation__closure.rs.before"));
+    let old = ci_str!("constructors_before.rs");
     let directory = old
         .split_once("    #[cfg(test)]\n")
         .unwrap()
@@ -304,7 +331,7 @@ mod record_traversal;
         .0;
     let directory = "    #[cfg(test)]\n".to_owned() + directory;
     let directory = directory.replacen("original_with_directory(", "with_directory(", 1);
-    let archive = include_str!(
+    let archive = ci_str!(
         "../../../../docs/evidence/compatibility-loan-custody/src__hir__validation.rs.before"
     );
     let start = archive
@@ -315,7 +342,7 @@ mod record_traversal;
         .unwrap()
         + start;
     assert_eq!(directory, &archive[start..end]);
-    let saved = include_str!("constructors_before.rs");
+    let saved = ci_str!("constructors_before.rs");
     let (_, tail) = saved
         .split_once("    pub(super) fn original_with_profiles(")
         .unwrap();
@@ -323,8 +350,8 @@ mod record_traversal;
     let start = archive.find("    fn with_profiles(").unwrap();
     let end = archive[start..].find("    fn from_constructor(").unwrap() + start;
     assert_eq!(profiles, &archive[start..end]);
-    let old=include_str!("../../canonical_loan_storage/caller/owned_before.rs").strip_prefix("//! Complete original paid preparation receiver, independently compiled.\nuse super::*;\n").unwrap().replacen("pub(super) fn prepare_original<'a>(","fn prepare_with_comparison<'a>(",1);
-    let archive=include_str!("../../../../docs/evidence/compatibility-loan-custody/src__hir__canonical_loan_storage__caller.rs.before");
+    let old=ci_str!("../../canonical_loan_storage/caller/owned_before.rs").strip_prefix("//! Complete original paid preparation receiver, independently compiled.\nuse super::*;\n").unwrap().replacen("pub(super) fn prepare_original<'a>(","fn prepare_with_comparison<'a>(",1);
+    let archive=ci_str!("../../../../docs/evidence/compatibility-loan-custody/src__hir__canonical_loan_storage__caller.rs.before");
     let start = archive.find("fn prepare_with_comparison<'a>(").unwrap();
     let end = archive[start..].find("\nfn append(").unwrap() + start;
     assert_eq!(old, &archive[start..end]);
@@ -333,23 +360,29 @@ mod record_traversal;
 // PUBLIC_BOUNDARY_SOURCE_INVERSE_GUARD
 #[test]
 fn complete_public_boundary_composition_preserves_original_owner_and_kat_source_bytes() {
-    let records: serde_json::Value = serde_json::from_str(include_str!(
+    let records: serde_json::Value = serde_json::from_str(ci_str!(
         "../../../../docs/evidence/public-boundary-fixture-repair/exact-source-inverses.json"
     ))
     .unwrap();
     let sources = [
-        (include_str!("ownership_tests.rs"), include_str!("../../../../docs/evidence/public-boundary-fixture-repair/ownership-tests.before.txt")),
-        (include_str!("../../../../tests/workspace/semantic_change.rs"), include_str!("../../../../docs/evidence/public-boundary-fixture-repair/tests__workspace__semantic_change.rs.before.txt")),
-        (include_str!("../../../../tests/workspace/semantic_structural_change.rs"), include_str!("../../../../docs/evidence/public-boundary-fixture-repair/tests__workspace__semantic_structural_change.rs.before.txt")),
-        (include_str!("../../../../tests/workspace/semantic_change/reporting.rs"), include_str!("../../../../docs/evidence/public-boundary-fixture-repair/tests__workspace__semantic_change__reporting.rs.before.txt")),
-        (include_str!("../../../../tests/workspace/semantic_structural_change/reporting.rs"), include_str!("../../../../docs/evidence/public-boundary-fixture-repair/tests__workspace__semantic_structural_change__reporting.rs.before.txt")),
+        (ci_str!("ownership_tests.rs"), ci_str!("../../../../docs/evidence/public-boundary-fixture-repair/ownership-tests.before.txt")),
+        (ci_str!("../../../../tests/workspace/semantic_change.rs"), ci_str!("../../../../docs/evidence/public-boundary-fixture-repair/tests__workspace__semantic_change.rs.before.txt")),
+        (ci_str!("../../../../tests/workspace/semantic_structural_change.rs"), ci_str!("../../../../docs/evidence/public-boundary-fixture-repair/tests__workspace__semantic_structural_change.rs.before.txt")),
+        (ci_str!("../../../../tests/workspace/semantic_change/reporting.rs"), ci_str!("../../../../docs/evidence/public-boundary-fixture-repair/tests__workspace__semantic_change__reporting.rs.before.txt")),
+        (ci_str!("../../../../tests/workspace/semantic_structural_change/reporting.rs"), ci_str!("../../../../docs/evidence/public-boundary-fixture-repair/tests__workspace__semantic_structural_change__reporting.rs.before.txt")),
     ];
     assert_eq!(records.as_array().unwrap().len(), sources.len());
     for (ordinal, (current, original)) in sources.into_iter().enumerate() {
         let projected;
         let current = if ordinal == 0 {
-            projected = super::super::function_lookup::paid_custody::project_current("src/hir/validation/canonical_loans/ownership_tests.rs", current);
-            projected.split_once("\n// PUBLIC_BOUNDARY_SOURCE_INVERSE_GUARD\n").unwrap().0
+            projected = super::super::function_lookup::paid_custody::project_current(
+                "src/hir/validation/canonical_loans/ownership_tests.rs",
+                current,
+            );
+            projected
+                .split_once("\n// PUBLIC_BOUNDARY_SOURCE_INVERSE_GUARD\n")
+                .unwrap()
+                .0
         } else {
             current
         };

@@ -146,24 +146,24 @@ fn actual_small_class_method_drop_avoids_function_accumulator_growth_and_wide_dr
 
 #[test]
 fn complete_prior_program_drop_and_new_method_root_source_projection_remain_exact() {
-    let restored = super::restore_source(include_str!("../../ast.rs").to_owned());
+    let restored = super::restore_source(ci_str!("../../ast.rs").to_owned());
     assert_eq!(
         restored,
-        include_str!("../../../docs/evidence/class-method-drop-48e487/ast.rs.before.txt")
+        ci_str!("../../../docs/evidence/class-method-drop-48e487/ast.rs.before.txt")
     );
-    let original = include_str!("../drop_method_original.rs");
+    let original = ci_str!("../drop_method_original.rs");
     let start = original.find("impl Drop for Original {").unwrap();
     let end = original[start..].find("\n// This lexical adapter").unwrap() + start;
     assert_eq!(
         original[start..end]
             .trim_end()
             .replace("impl Drop for Original {", "impl Drop for Program {"),
-        include_str!("../../../docs/evidence/class-method-drop-48e487/program-drop.before.txt")
+        ci_str!("../../../docs/evidence/class-method-drop-48e487/program-drop.before.txt")
             .trim_end()
     );
     assert_eq!(
-        include_str!("../drop_original_tests.rs"),
-        include_str!(
+        ci_str!("../drop_original_tests.rs"),
+        ci_str!(
             "../../../docs/evidence/custody-ast-drop-frontier/iterative-program-drop-tests.before.txt"
         )
     );

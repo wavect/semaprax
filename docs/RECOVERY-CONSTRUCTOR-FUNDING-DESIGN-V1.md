@@ -1,5 +1,7 @@
 # Recovery constructor funding design v1
 
+Audience: compiler contributors, tool authors, and reviewers.
+
 Status: design and source-authored executable boundary controls; not a funded route.
 
 Subject: source diagnostic recovery at `182482621259ce5ad6ed1538b641850956754ee5`.

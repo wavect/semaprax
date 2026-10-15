@@ -58,7 +58,7 @@ pub(super) fn while_loop(
     nearest: Option<&crate::hir::ControlTarget>,
 ) -> Result<ResolvedStatement, Diagnostic> {
     resolver.reject_while_disallowed_scoped(condition, Some(function))?;
-    resolver.reject_while_disallowed_scoped(body, Some(function))?;
+    resolver.reject_while_disallowed_in_scope(body, Some(function), Some(scope))?;
     let resolved_condition = resolver.resolve_expr_recursive_reference_inner(
         function,
         condition,

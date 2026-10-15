@@ -5,7 +5,6 @@
 use super::super::*;
 use super::{memo, tests};
 
-
 type SharedWeighted = Rc<Weighted>;
 
 enum CanonicalFrame {
@@ -145,7 +144,8 @@ impl<'a> Canonicalizer<'a> {
                 physical_clone::rc_backing_bytes::<BTreeMap<usize, u64>>(),
                 "factored closure shared header",
             )?;
-            self.closures.insert(function, node, budget, || Rc::new(closure))?;
+            self.closures
+                .insert(function, node, budget, || Rc::new(closure))?;
         }
         Ok(self.closures.get(&root).cloned())
     }
@@ -326,11 +326,13 @@ impl<'a> Canonicalizer<'a> {
     }
 }
 
-
 // Test-only adapter; the complete a33 producer above remains byte-verbatim.
 impl Canonicalizer<'_> {
     pub(super) fn closure_for_alias_test(
-        &mut self, function: &ResolvedFunction, root: usize, budget: &mut ReplayBudget,
+        &mut self,
+        function: &ResolvedFunction,
+        root: usize,
+        budget: &mut ReplayBudget,
     ) -> Result<Option<Rc<BTreeMap<usize, u64>>>, Diagnostic> {
         self.closure(function, root, budget)
     }
@@ -341,7 +343,11 @@ impl Canonicalizer<'_> {
 
 impl Canonicalizer<'_> {
     pub(super) fn same_closure_state(&self, current: &super::Canonicalizer<'_>) -> bool {
-        self.ids == current.ids && self.states.len() == current.states.len()
-            && self.states.iter().all(|(state,id)| current.states.get(state)==Some(id))
+        self.ids == current.ids
+            && self.states.len() == current.states.len()
+            && self
+                .states
+                .iter()
+                .all(|(state, id)| current.states.get(state) == Some(id))
     }
 }

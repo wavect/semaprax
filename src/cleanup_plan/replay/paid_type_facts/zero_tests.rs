@@ -3,8 +3,8 @@
 use super::tests::{fixtures, payer};
 use super::*;
 use crate::bounded_output::{
-    CappedString, active_refused, reserve_active_required, set_active_floor, with_limit,
-    with_limit_usage_refusal,
+    active_refused, reserve_active_required, set_active_floor, with_limit,
+    with_limit_usage_refusal, CappedString,
 };
 use crate::test_allocation_observer::{current_metrics, measure};
 

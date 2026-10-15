@@ -172,11 +172,11 @@ fn no_result_carrier_success_still_authenticates_a_sticky_payer() {
 #[test]
 fn whole_current_function_is_exact_prior_source_plus_named_empty_guard() {
     use sha2::{Digest, Sha256};
-    let binding: serde_json::Value = serde_json::from_str(include_str!(
+    let binding: serde_json::Value = serde_json::from_str(ci_str!(
         "../../../../../docs/evidence/empty-postcondition-scope/source-binding.json"
     ))
     .unwrap();
-    let original = include_str!(
+    let original = ci_str!(
         "../../../../../docs/evidence/empty-postcondition-scope/function_scope.rs.before.txt"
     );
     assert_eq!(
@@ -186,14 +186,14 @@ fn whole_current_function_is_exact_prior_source_plus_named_empty_guard() {
         ),
         binding["original"]["sha256"].as_str().unwrap()
     );
-    let mut current = include_str!("../../function_scope.rs").to_owned();
+    let mut current = ci_str!("../../function_scope.rs").to_owned();
     for field in ["additive_guard", "registration"] {
         let addition = binding[field].as_str().unwrap();
         assert_eq!(current.matches(addition).count(), 1, "{field}");
         current = current.replacen(addition, "", 1);
     }
     assert_eq!(current, original);
-    let saved = include_str!("before.rs");
+    let saved = ci_str!("before.rs");
     let start = original.find("impl HirValidator").unwrap();
     let end = original.find("    fn validate_expr_persistent(").unwrap();
     let expected = format!("use super::*;\n{}}}\n", &original[start..end]);

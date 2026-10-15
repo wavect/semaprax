@@ -10,15 +10,15 @@ struct Projection {
 }
 #[test]
 fn complete_current_call_owners_are_exact_original_with_only_declared_held_profile_hooks() {
-    let projections: Vec<Projection> = serde_json::from_str(include_str!(
+    let projections: Vec<Projection> = serde_json::from_str(ci_str!(
         "../../../../docs/evidence/held-generic-call-profiles-812/exact-current-projections.json"
     ))
     .unwrap();
     assert_eq!(projections.len(), 3);
     for (projection, (path, current, original)) in projections.iter().zip([
-        ("src/hir/validation.rs", include_str!("../../validation.rs"), include_str!("../../../../docs/evidence/held-generic-call-profiles-812/src__hir__validation.rs.before.txt")),
-        ("src/hir/validation/call_parameters.rs", include_str!("../call_parameters.rs"), include_str!("../../../../docs/evidence/held-generic-call-profiles-812/src__hir__validation__call_parameters.rs.before.txt")),
-        ("src/hir/validation/executable_profiles.rs", include_str!("../executable_profiles.rs"), include_str!("../../../../docs/evidence/held-generic-call-profiles-812/src__hir__validation__executable_profiles.rs.before.txt")),
+        ("src/hir/validation.rs", ci_str!("../../validation.rs"), ci_str!("../../../../docs/evidence/held-generic-call-profiles-812/src__hir__validation.rs.before.txt")),
+        ("src/hir/validation/call_parameters.rs", ci_str!("../call_parameters.rs"), ci_str!("../../../../docs/evidence/held-generic-call-profiles-812/src__hir__validation__call_parameters.rs.before.txt")),
+        ("src/hir/validation/executable_profiles.rs", ci_str!("../executable_profiles.rs"), ci_str!("../../../../docs/evidence/held-generic-call-profiles-812/src__hir__validation__executable_profiles.rs.before.txt")),
     ]) {
         assert_eq!(projection.source, path);
         let mut projected = current.to_owned();
@@ -31,12 +31,12 @@ fn complete_current_call_owners_are_exact_original_with_only_declared_held_profi
 }
 #[test]
 fn complete_saved_lookup_and_argument_receivers_and_shared_type_prefix_remain_byte_exact() {
-    let original = include_str!("../../../../docs/evidence/held-generic-call-profiles-812/src__hir__validation__executable_profiles.rs.before.txt");
+    let original = ci_str!("../../../../docs/evidence/held-generic-call-profiles-812/src__hir__validation__executable_profiles.rs.before.txt");
     assert_eq!(
-        include_str!("../executable_profiles/before_812.rs"),
+        ci_str!("../executable_profiles/before_812.rs"),
         original.replacen("#[cfg(test)]\nmod tests;\n", "", 1)
     );
-    let original = include_str!("../../../../docs/evidence/held-generic-call-profiles-812/src__hir__validation__call_parameters.rs.before.txt");
+    let original = ci_str!("../../../../docs/evidence/held-generic-call-profiles-812/src__hir__validation__call_parameters.rs.before.txt");
     let start = original
         .find("    pub(super) fn validate_argument_ownership_view(")
         .unwrap();
@@ -49,13 +49,13 @@ fn complete_saved_lookup_and_argument_receivers_and_shared_type_prefix_remain_by
         &original[start..end]
     );
     assert_eq!(
-        include_str!("../call_parameters/before_812.rs").replace(
+        ci_str!("../call_parameters/before_812.rs").replace(
             "fn validate_argument_ownership_view_saved_812(",
             "fn validate_argument_ownership_view("
         ),
         saved
     );
-    assert_eq!(include_str!("../type_profiles.rs"), include_str!("../../../../docs/evidence/held-generic-call-profiles-812/src__hir__validation__type_profiles.rs.before.txt"));
-    assert_eq!(include_str!("../../byte_capacity.rs"), include_str!("../../../../docs/evidence/held-generic-call-profiles-812/src__hir__byte_capacity.rs.before.txt"));
-    assert_eq!(include_str!("../type_requirement.rs"), include_str!("../../../../docs/evidence/held-generic-call-profiles-812/src__hir__validation__type_requirement.rs.before.txt"));
+    assert_eq!(ci_str!("../type_profiles.rs"), ci_str!("../../../../docs/evidence/held-generic-call-profiles-812/src__hir__validation__type_profiles.rs.before.txt"));
+    assert_eq!(ci_str!("../../byte_capacity.rs"), ci_str!("../../../../docs/evidence/held-generic-call-profiles-812/src__hir__byte_capacity.rs.before.txt"));
+    assert_eq!(ci_str!("../type_requirement.rs"), ci_str!("../../../../docs/evidence/held-generic-call-profiles-812/src__hir__validation__type_requirement.rs.before.txt"));
 }

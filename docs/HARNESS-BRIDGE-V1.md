@@ -143,6 +143,10 @@ is held only for the claim-and-`begin` critical section, never across the provid
 sessions and processes on one project serialise: exactly one claims a given `step`, the others get `SPX-HPN015` (or
 `SPX-HPD070` busy if the lock stays held for 10 s). The lock is released by drop or process exit; the lock file is never
 deleted, and durable `begin`/`uncertain` records are untouched. Projects and lineages lock independently.
+Drop returns indexed state before explicitly unlocking the owned file
+description and closing its descriptor. A descriptor briefly inherited by a
+concurrent process launch therefore cannot delay the next writer after drop;
+while the journal is live, a second writer still receives `SPX-HPD070`.
 
 *Step identity.* `step` is the caller's durable idempotency key and keeps replay protection across restarts. When omitted,
 the host assigns `auto-<session>-<n>` (session token from pid, clock and a process sequence; `n` the invocation counter),

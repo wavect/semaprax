@@ -115,12 +115,21 @@ fn exact_pending_operands_are_borrowed_and_default_registry_remains_closed() {
         proof.prepare(8),
         Err(Preparation::Authority(super::Refusal::Identity))
     );
-    assert!(crate::byte_ops::by_name(NAME).is_none());
-    assert!(crate::byte_ops::by_id(ID).is_none());
+    // The private source factory registers the operation's shape, while the
+    // ordinary source and HIR boundaries still refuse its execution.
+    assert_eq!(
+        crate::byte_ops::by_name(NAME),
+        Some(crate::byte_ops::ByteOp::Partition)
+    );
+    assert_eq!(
+        crate::byte_ops::by_id(ID),
+        Some(crate::byte_ops::ByteOp::Partition)
+    );
     assert!(crate::check(&proposed(), "partition.spx")
         .unwrap_err()
         .iter()
-        .any(|diagnostic| diagnostic.code == "SPX-T203"));
+        .any(|diagnostic| diagnostic.code == "SPX-T263"
+            && diagnostic.message == "byte partition requires the private checked source profile"));
     assert!(hir::validate(&program).is_err());
 }
 #[test]

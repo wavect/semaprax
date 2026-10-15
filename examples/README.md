@@ -238,3 +238,18 @@ cargo test --locked -p semaprax --test examples
 ```
 
 Add a row here in the same change that adds an example.
+
+## Source successors awaiting qualification
+
+These entries retain authored sources and regression corpora. Their individual
+setup guides describe required generation and installation steps; this index
+makes no new execution claim.
+
+| Example | Subject | Setup and status |
+| --- | --- | --- |
+| `examples/catalog-scoped-record-successor` | Typed Catalog records, stable owned sorting, and scoped field reads | [Guide](catalog-scoped-record-successor/README.md); application qualification pending |
+| `examples/collection-record-order` | Stable ordering and consuming traversal of owned record rows | [Guide](collection-record-order/README.md) |
+| `examples/nested-order-json-project` | Finite nested owned-data request decoder | [Guide](nested-order-json-project/README.md); current-head execution pending |
+| `examples/shiftsim-typed-record-successor` | Named scheduler records and borrowed vector reads | [Guide](shiftsim-typed-record-successor/README.md); source successor |
+| `examples/stream-nested-order-json-project` | Streamed finite nested requests | [Guide](stream-nested-order-json-project/README.md); current-head execution pending |
+| `examples/stream-utf8-owned-json-project` | Streamed UTF-8 owned request decoding and encoding | [Guide](stream-utf8-owned-json-project/README.md) |

@@ -103,12 +103,11 @@ fn last_alias_and_synthetic_main_refusal_never_publish_partial_generated_roots()
 #[test]
 fn full_original_constructor_and_only_sticky_publication_changes_stay_source_bound() {
     use sha2::{Digest, Sha256};
-    let original = include_str!(
-        "../../../../../../docs/evidence/transient-publication/original-construct.rs.txt"
-    );
+    let original =
+        ci_str!("../../../../../../docs/evidence/transient-publication/original-construct.rs.txt");
     let saved = crate::workspace_graph::expected_projection::defaults::project_original_receiver(
         "src/workspace_graph/expected_projection/borrowed_imports/tests/full/original_construct.rs",
-        include_str!("original_construct.rs"),
+        ci_str!("original_construct.rs"),
     );
     let saved = saved
         .strip_prefix("use crate::workspace_graph::expected_projection::borrowed_imports::*;\n\n")
@@ -117,7 +116,7 @@ fn full_original_constructor_and_only_sticky_publication_changes_stay_source_bou
         saved.replace("crate::workspace_graph::", "super::super::"),
         original
     );
-    let current = include_str!("../../../borrowed_imports.rs");
+    let current = ci_str!("../../../borrowed_imports.rs");
     let start = current
         .find("pub(in crate::workspace_graph) fn construct<'a>(")
         .unwrap();

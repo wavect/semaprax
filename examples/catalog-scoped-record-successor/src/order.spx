@@ -7,9 +7,9 @@ fn identifier(value: borrow str) -> bool
 {
     let bytes = str_as_bytes(value);
     let length = byte_len(bytes);
-    if length == 0usize || length > 16usize { return false; };
+    if length == 0usize || length > 16usize { return false; }
     for byte in bytes {
-        if !(byte >= 65u8 && byte <= 90u8 || byte >= 97u8 && byte <= 122u8 || byte >= 48u8 && byte <= 57u8 || byte == 95u8 || byte == 45u8) { return false; };
+        if !(byte >= 65u8 && byte <= 90u8 || byte >= 97u8 && byte <= 122u8 || byte >= 48u8 && byte <= 57u8 || byte == 95u8 || byte == 45u8) { return false; }
         0
     }
     true

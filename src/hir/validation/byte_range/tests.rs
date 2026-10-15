@@ -124,10 +124,21 @@ fn inline_range_keeps_temporary_and_other_view_sources_closed() {
 
 #[test]
 fn named_inline_range_keeps_source_owner_frozen_until_scope_end() {
-    let changed = SOURCE.replace(
+    let invalid_write = SOURCE.replace(
         "let short=byte_range(view,0usize,1usize);",
         "let moved=bytes_set(bytes,0usize,1u8);let short=byte_range(view,0usize,1usize);",
     );
+    assert!(
+        crate::check(&invalid_write, "inline-range-invalid-write.spx")
+            .unwrap_err()
+            .iter()
+            .any(|error| error.code == "SPX-T271")
+    );
+    // A real, otherwise admitted ownership transfer must reach the loan check.
+    let changed = SOURCE.replace(
+        "let short=byte_range(view,0usize,1usize);",
+        "let moved=consume(bytes);let short=byte_range(view,0usize,1usize);",
+    ) + "\n@id(\"consume\") fn consume(value:own Bytes)->usize {byte_len(bytes_as_slice(value))}\n";
     assert_ne!(changed, SOURCE);
     let errors = crate::check(&changed, "inline-range-owner-move.spx").unwrap_err();
     assert!(

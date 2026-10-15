@@ -276,22 +276,22 @@ fn borrowed_execution_text_has_exact_serialized_nul_verdict_without_key_acquisit
 #[test]
 fn complete_nul_receiving_and_saved_constructor_sources_preserve_every_original_byte() {
     use sha2::{Digest, Sha256};
-    let records: serde_json::Value = serde_json::from_str(include_str!(concat!(
+    let records: serde_json::Value = serde_json::from_str(ci_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/paid-nul-audit-824/exact-source-inverses.json"
     )))
     .unwrap();
     let currents = [
-        include_str!("../../inspection.rs"),
-        include_str!("../../validation/constructor_seed/original.rs"),
-        include_str!("../../validation/function_lookup/paid_custody.rs"),
-        include_str!("../paid_nul.rs"),
+        ci_str!("../../inspection.rs"),
+        ci_str!("../../validation/constructor_seed/original.rs"),
+        ci_str!("../../validation/function_lookup/paid_custody.rs"),
+        ci_str!("../paid_nul.rs"),
     ];
     let originals = [
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-nul-audit-824/src__hir__inspection.rs.before.txt")),
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-nul-audit-824/src__hir__validation__constructor_seed__original.rs.before.txt")),
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-nul-audit-824/src__hir__validation__function_lookup__paid_custody.rs.before.txt")),
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-nul-audit-824/complete-audit-body.before.txt")),
+        ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-nul-audit-824/src__hir__inspection.rs.before.txt")),
+        ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-nul-audit-824/src__hir__validation__constructor_seed__original.rs.before.txt")),
+        ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-nul-audit-824/src__hir__validation__function_lookup__paid_custody.rs.before.txt")),
+        ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-nul-audit-824/complete-audit-body.before.txt")),
     ];
     let hashes = [
         "6af9ee1f630c86ce48a7e8f8020883f82780be36edfe2c14cbadb3ced3fc5870",
@@ -335,9 +335,7 @@ fn complete_nul_receiving_and_saved_constructor_sources_preserve_every_original_
     assert_eq!(
         format!(
             "{:x}",
-            crate::digest_hex::LowerHex(Sha256::digest(
-                include_str!("../audit_pending.rs").as_bytes()
-            ))
+            crate::digest_hex::LowerHex(Sha256::digest(ci_str!("../audit_pending.rs").as_bytes()))
         ),
         "746c98ae21a2fc52029d943b65c237608ae6923bb80968ab282c16e2268ad770"
     );

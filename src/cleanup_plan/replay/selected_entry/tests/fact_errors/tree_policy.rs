@@ -355,18 +355,61 @@ fn complete_original_tree_receiver_child_and_existing_usage_assertions_stay_byte
     let original = include_str!(
         "../../../../../../docs/evidence/scalar-fact-policy-tree/original-scalar-replay.txt"
     );
-    let original_records = include_str!(
+    let original_records = ci_str!(
         "../../../../../../docs/evidence/scalar-fact-policy-tree/original-scalar-records.txt"
     );
-    assert_eq!(include_str!("../../../scalar_replay_tree.rs"), original);
+    assert_eq!(ci_str!("../../../scalar_replay_tree.rs"), original);
     assert_eq!(
-        include_str!("../../../scalar_replay_tree/records.rs"),
+        ci_str!("../../../scalar_replay_tree/records.rs"),
         original_records
     );
     assert_eq!(
-        include_str!("../../../scalar_replay/records.rs"),
+        ci_str!("../../../scalar_replay/records.rs"),
         original_records
     );
+    // The later paid receiving route retains both complete original methods
+    // under explicit names. Remove only the exact added route and restore those
+    // names before comparing every original byte; no original body is ignored.
+    let added = r###"    pub(crate) fn validate_paid(
+        &mut self,
+        function: &ResolvedFunction,
+    ) -> Result<(), expression_facts::errors::EngineError> {
+        if self.failed {
+            return Err(expression_facts::errors::EngineError::Failed);
+        }
+        self.failed = true;
+        let context =
+            selected_context::Context::new_paid(&self.indexed, function, &mut self.budget, true)?;
+        lexical_replay::validate_paid(&context, function, &mut self.budget)?;
+        self.failed = false;
+        Ok(())
+    }
+
+    pub(crate) fn validate_scalar_paid(
+        &mut self,
+        function: &ResolvedFunction,
+    ) -> Result<(), expression_facts::errors::EngineError> {
+        if self.failed {
+            return Err(expression_facts::errors::EngineError::Failed);
+        }
+        self.failed = true;
+        let context =
+            selected_context::Context::new_paid(&self.indexed, function, &mut self.budget, false)?;
+        scalar_replay::validate_paid(&context, function, &mut self.budget)?;
+        self.failed = false;
+        Ok(())
+    }
+
+    #[cfg(test)]
+"###;
+    let current = ci_str!("../../../selected_entry.rs");
+    assert_eq!(current.matches(added).count(), 1);
+    let current = current.replacen(added, "", 1);
+    assert_eq!(current.matches("fn validate_paid_original(").count(), 1);
+    let current = current.replacen("fn validate_paid_original(", "fn validate_paid(", 1);
+    let scalar = "    #[cfg(test)]\n    pub(crate) fn validate_scalar_paid_original(";
+    assert_eq!(current.matches(scalar).count(), 1);
+    let current = current.replacen(scalar, "    pub(crate) fn validate_scalar_paid(", 1);
     assert_eq!(
         view(
             &projections,
@@ -430,7 +473,7 @@ fn complete_original_tree_receiver_child_and_existing_usage_assertions_stay_byte
             .count(),
         2
     );
-    let registration = include_str!("../../../../replay.rs");
+    let registration = ci_str!("../../../../replay.rs");
     assert!(registration.contains(
         r#"#[cfg(test)]
 #[allow(

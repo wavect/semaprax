@@ -1,5 +1,7 @@
 # Loan candidate inventory reuse v1
 
+Audience: compiler contributors, tool authors, and reviewers.
+
 Status: source checkpoint; executable qualification pending.
 
 The authenticated funded loan producer already checks the exact current

@@ -3,7 +3,14 @@ use super::*;
 pub(crate) const SCHEMA: &str = "semaprax.graph.v77";
 
 pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic> {
-    graph_schema_validated(program, hir::validate_with_static_text(program)?)
+    // Frozen composition guards retain their diagnostic priority. Static-text
+    // validation still precedes publication of either selected schema.
+    let previous = super::byte_helper_renewal::graph_schema(program)?;
+    if hir::validate_with_static_text(program)? {
+        Ok(SCHEMA)
+    } else {
+        Ok(previous)
+    }
 }
 
 pub(crate) fn graph_schema_validated(

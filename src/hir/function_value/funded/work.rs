@@ -45,6 +45,10 @@ pub(crate) fn walk_funded_paying_with_work<'a, E>(
     }
 }
 
+#[allow(
+    dead_code,
+    reason = "retained original receiver or refusal payload; not every legacy entry is selected by current tests"
+)]
 pub(crate) fn walk_funded_with_work<'a, E>(
     function: &'a ResolvedFunction,
     mut visit: impl FnMut(&'a ResolvedExpr) -> Result<(), E>,

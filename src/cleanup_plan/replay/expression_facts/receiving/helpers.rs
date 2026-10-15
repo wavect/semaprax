@@ -16,17 +16,26 @@ pub(super) fn validate_place(
     budget.reserve_bytes(function, 0, "cleanup place receiving")?;
     budget.charge(function, 0, "cleanup place receiving")?;
     if !storage.contains(&place.storage) {
-        return Err(replay_error(function, "cleanup place references unknown storage"));
+        return Err(replay_error(
+            function,
+            "cleanup place references unknown storage",
+        ));
     }
     // Nested helper return and this helper's initialized/receiving result overlap.
-    budget.reserve_bytes(function,
+    budget.reserve_bytes(
+        function,
         2 * std::mem::size_of::<&mut ReplayBudget>()
             + std::mem::size_of::<Result<Vec<LivenessFlagId>, Diagnostic>>()
-            + std::mem::size_of::<Vec<LivenessFlagId>>(), "cleanup place receiving")?;
+            + std::mem::size_of::<Vec<LivenessFlagId>>(),
+        "cleanup place receiving",
+    )?;
     budget.charge(function, 4, "cleanup place receiving")?;
     let under = leaves.under_with_budget(function, place, budget)?;
     if under.is_empty() {
-        return Err(replay_error(function, "cleanup place has no droppable leaf"));
+        return Err(replay_error(
+            function,
+            "cleanup place has no droppable leaf",
+        ));
     }
     Ok(under)
 }

@@ -11,6 +11,44 @@ fn function(source: &str) -> ResolvedFunction {
 fn scalar_function() -> ResolvedFunction {
     function("module cursor.scalar; @id(\"main\") fn main()->i64 {let mut n=1;n=n+1;n}")
 }
+
+#[test]
+fn unused_contours_acquire_no_backing_and_forged_bottom_still_replays() {
+    let mut program = crate::hir::resolve(
+        &crate::check(
+            "module cursor.scalar; @id(\"main\") fn main()->i64 {0}",
+            "contour-selection.spx",
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let function = &program.functions[0];
+    let owner = crate::hir::FunctionExecutionId::Monomorphic(function.id.clone());
+    let ((result, metrics), refused, used) = crate::bounded_output::with_limit_usage(0, || {
+        crate::test_allocation_observer::measure(|| {
+            crate::hir::lexical_exit::validate_function(&program, function, &owner)
+        })
+    });
+    result.unwrap();
+    assert!(!refused && used == 0 && !metrics.invalid);
+    assert_eq!(
+        (metrics.allocations, metrics.allocated, metrics.live),
+        (0, 0, 0)
+    );
+
+    // A type marker cannot authenticate itself as an absent lexical profile.
+    program.functions[0].body.ty = crate::hir::ResolvedType::Never;
+    let function = &program.functions[0];
+    assert!(!requires(function).unwrap());
+    assert!(requires_validation(function).unwrap());
+    let error =
+        crate::hir::lexical_exit::validate_function(&program, function, &owner).unwrap_err();
+    assert_eq!(error.code, "SPX-H006");
+    assert_eq!(
+        error.message,
+        "lexical completion type differs from independently replayed reachability"
+    );
+}
 fn assert_order(expression: &ResolvedExpr) {
     let mut cursor = ChildCursor::new(expression);
     assert!(std::ptr::eq(cursor.expression(), expression));
@@ -146,6 +184,30 @@ fn cursor_scans_preserve_depth_refusal_and_fail_closed_contains() {
     let seed = tail.as_ref().clone();
     let mut nested = seed.clone();
     for _ in 0..crate::cache_codec::MAX_DEPTH + 2 {
+        let mut parent = seed.clone();
+        parent.kind = K::Unary {
+            op: crate::ast::UnaryOp::Neg,
+            value: Box::new(nested),
+        };
+        nested = parent;
+    }
+    function.body = nested;
+    assert!(!requires(&function).unwrap());
+    assert!(!contains(&function.body));
+    // Keep the original forged 258-node subject: allowing a presence scan to
+    // finish grants no HIR authority to its duplicated expression identities.
+    let mut forged = crate::hir::resolve(
+        &crate::check(
+            "module cursor.scalar; @id(\"main\") fn main()->i64 {let mut n=1;n=n+1;n}",
+            "child-cursor.spx",
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    forged.functions[0].body = std::mem::replace(&mut function.body, seed.clone());
+    assert_eq!(crate::hir::validate(&forged).unwrap_err().code, "SPX-H006");
+    let mut nested = seed.clone();
+    for _ in 0..PRESENCE_DEPTH + 2 {
         let mut parent = seed.clone();
         parent.kind = K::Unary {
             op: crate::ast::UnaryOp::Neg,

@@ -1,16 +1,16 @@
 //! Deterministic declaration lookup, type facts, and inheritance materialization.
-use super::*;
 use super::nominal_payload::map::{CaseFields, IndexMap};
+use super::*;
 
 mod flags;
 mod nominal;
 mod nominal_base;
 mod nominal_construction;
-mod nominal_paid_values;
-mod nominal_paid_inheritance;
-mod nominal_rollback;
 #[cfg(test)]
 pub(crate) mod nominal_original;
+mod nominal_paid_inheritance;
+mod nominal_paid_values;
+mod nominal_rollback;
 pub(crate) use flags::{inventory_identity, inventory_substitute, InventoryPayer};
 pub(crate) use flags::{TypeFactsPayer, TypeFlags};
 pub(super) mod identity_payer;
@@ -126,8 +126,9 @@ impl DeclarationIndex {
             .sum::<usize>();
         let field_bytes = self
             .record_fields
-            .values().map(|values|values.as_slice())
-            .chain(self.case_fields.values().map(|values|values.as_slice()))
+            .values()
+            .map(|values| values.as_slice())
+            .chain(self.case_fields.values().map(|values| values.as_slice()))
             .flatten()
             .map(field_capacity)
             .sum::<usize>();
@@ -151,8 +152,13 @@ impl DeclarationIndex {
             self.declarations.len() * std::mem::size_of::<(DeclarationId, Declaration)>();
         let record_field_maps = self
             .record_fields
-            .iter().map(|(owner,fields)|(owner,fields.capacity()))
-            .chain(self.case_fields.iter().map(|(owner,fields)|(owner,fields.capacity())))
+            .iter()
+            .map(|(owner, fields)| (owner, fields.capacity()))
+            .chain(
+                self.case_fields
+                    .iter()
+                    .map(|(owner, fields)| (owner, fields.capacity())),
+            )
             .map(|(owner, capacity)| {
                 std::mem::size_of::<(DeclarationId, NominalPayload<ResolvedFieldDeclaration>)>()
                     + owner.as_str().len()
@@ -163,8 +169,10 @@ impl DeclarationIndex {
             .variant_cases
             .iter()
             .map(|(owner, cases)| {
-                std::mem::size_of::<(DeclarationId, NominalPayload<ResolvedVariantCaseDeclaration>)>()
-                    + owner.as_str().len()
+                std::mem::size_of::<(
+                    DeclarationId,
+                    NominalPayload<ResolvedVariantCaseDeclaration>,
+                )>() + owner.as_str().len()
                     + cases.capacity() * std::mem::size_of::<ResolvedVariantCaseDeclaration>()
             })
             .sum::<usize>();
@@ -172,8 +180,10 @@ impl DeclarationIndex {
             .type_parameters
             .iter()
             .map(|(owner, parameters)| {
-                std::mem::size_of::<(DeclarationId, NominalPayload<ResolvedTypeParameterDeclaration>)>()
-                    + owner.as_str().len()
+                std::mem::size_of::<(
+                    DeclarationId,
+                    NominalPayload<ResolvedTypeParameterDeclaration>,
+                )>() + owner.as_str().len()
                     + parameters.capacity()
                         * std::mem::size_of::<ResolvedTypeParameterDeclaration>()
                     + parameters
@@ -249,7 +259,9 @@ impl DeclarationIndex {
     }
 
     pub fn record_fields(&self, owner: &DeclarationId) -> Option<&[ResolvedFieldDeclaration]> {
-        self.record_fields.get(owner).map(|values| values.as_slice())
+        self.record_fields
+            .get(owner)
+            .map(|values| values.as_slice())
     }
 
     /// Class Inheritance v1: the declared parent of `class`, if any.
@@ -288,27 +300,39 @@ impl DeclarationIndex {
         &self,
         owner: &DeclarationId,
     ) -> Option<&[ResolvedVariantCaseDeclaration]> {
-        self.variant_cases.get(owner).map(|values| values.as_slice())
+        self.variant_cases
+            .get(owner)
+            .map(|values| values.as_slice())
     }
 
     pub fn case_fields(&self, case: &DeclarationId) -> Option<&[ResolvedFieldDeclaration]> {
         if let Some(fields) = self.case_fields.get(case) {
             return Some(fields.as_slice());
         }
-        if !self.nominal_drop_workspace.building { return None; }
+        if !self.nominal_drop_workspace.building {
+            return None;
+        }
         // During canonical construction the same complete semantic metadata
         // is available before any shared allocation is attempted.
         let declaration = self.declarations.get(case)?;
-        if declaration.kind != DeclarationKind::VariantCase { return None; }
+        if declaration.kind != DeclarationKind::VariantCase {
+            return None;
+        }
         let owner = declaration.owner.as_ref()?;
-        self.variant_cases.get(owner)?.iter().find(|row| row.id == *case).map(|row| row.fields.as_slice())
+        self.variant_cases
+            .get(owner)?
+            .iter()
+            .find(|row| row.id == *case)
+            .map(|row| row.fields.as_slice())
     }
 
     pub fn type_parameters(
         &self,
         declaration: &DeclarationId,
     ) -> Option<&[ResolvedTypeParameterDeclaration]> {
-        self.type_parameters.get(declaration).map(|values| values.as_slice())
+        self.type_parameters
+            .get(declaration)
+            .map(|values| values.as_slice())
     }
 
     pub fn import_id(&self, key: &str) -> Option<&DeclarationId> {
@@ -1166,8 +1190,10 @@ mod legacy_drop;
 impl Drop for DeclarationIndex {
     fn drop(&mut self) {
         if let Some(scratch) = self.nominal_drop_workspace.scratch.take() {
-            let mut scratch=scratch.lock().expect("construction disposal lock");
-            self.drain_recursive_types_for_private_contract(|ty| nominal_payload::dispose(ty, &mut scratch));
+            let mut scratch = scratch.lock().expect("construction disposal lock");
+            self.drain_recursive_types_for_private_contract(|ty| {
+                nominal_payload::dispose(ty, &mut scratch)
+            });
             return;
         }
         self.drain_legacy_type_roots(legacy_drop::dispose);

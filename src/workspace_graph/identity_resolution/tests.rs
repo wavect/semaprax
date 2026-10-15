@@ -413,13 +413,11 @@ fn actual_selective_import_receiver_matches_fresh_owned_for_vec_and_box() {
             assert_eq!(result.3, oracle.1.static_text());
             assert!(result.2 > 0);
             assert_eq!(super::acquisitions(), before + 1);
-            assert!(
-                crate::hir::resolve_source(
-                    input.source(),
-                    layout.presentation(&current[0], input.source()).unwrap()
-                )
-                .is_err()
-            );
+            assert!(crate::hir::resolve_source(
+                input.source(),
+                layout.presentation(&current[0], input.source()).unwrap()
+            )
+            .is_err());
         }
         // A retained generic wrapper with the wrong persistent identity must
         // still undergo ordinary source verification, even with a warm cache.

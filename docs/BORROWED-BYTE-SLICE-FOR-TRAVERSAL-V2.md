@@ -1,5 +1,7 @@
 # Borrowed Byte Slice For Traversal v2
 
+Audience: compiler contributors, tool authors, and reviewers.
+
 Status: private source implementation for #780, executable qualification pending. No build, runtime, application-fit or backend-support claim is made by this authored contract. V1 remains the complete independent prior receiver.
 
 ## Narrow additive profile
@@ -10,9 +12,19 @@ Every enclosing source-for must itself be an admitted immutable byte traversal. 
 
 These source admission limits do not impose a blanket Vec/Iter-operation or manual-While ban on a byte body. Existing independent collection, ownership, row, owned-iterator and lexical-exit validators keep their full restrictions. HIR proves actual lowered semantics and does not infer surface syntax from a marker or cached Boolean.
 
+The resolver independently locates the exact authored while body under its
+enclosing byte-only traversal ancestry before allowing a while bridge. An
+ordinary while outside that ancestry cannot create it, including when the
+caller passes parsed AST directly without running source verification first.
+Closure bodies start a separate ancestry, and mixed traversals stay closed.
+
 ## Independent contextual replay
 
 A private non-Clone, non-serialized census borrows one immutable function and its exact current replay context. It indexes exact expression references and complete IDs; a same-ID clone, foreign function/context or stale decoded graph is not a current member. Current HIR must be freshly replayed after decode.
+
+Context identity compares the held object's data address, independently of
+trait-object vtable duplication across compiler codegen units. Function and
+expression membership still require their exact held references.
 
 Local shape replay authenticates every region's snapshot, view, receiver, counter, item, discarded authored body and optional BorrowBytes latch. This is structural evidence only. Before an early loan-plan receiver borrows a region, a complete function census independently proves outer-entry definition availability, exact receiver association and every enclosing freeze over the ENTIRE inner subtree. It never skips an inner body or exempts its lowered statements from an outer freeze. Hidden receiver payloads cannot escape into any authored body. Duplicate expression/binding identities fail closed.
 

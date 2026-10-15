@@ -69,6 +69,7 @@ pub(crate) enum Consumer {
     Resource,
     StreamEpoch,
     ReservedArena,
+    CheckedAllocation,
     SelectedFusedRow,
     AggregateLayout,
     AgentLifecycleExecutor,
@@ -144,6 +145,9 @@ impl Consumer {
             Self::Resource => Refused("resource ABI names the two-word carrier"),
             Self::StreamEpoch => Refused("stdin stream epoch is a separate carrier profile"),
             Self::ReservedArena => Refused("reserved arena is a distinct private profile"),
+            Self::CheckedAllocation => {
+                Refused("checked allocation retains its own release provenance")
+            }
             Self::SelectedFusedRow => Refused("selected fused rows own a separate private domain"),
             Self::AggregateLayout => Refused("Native64 aggregate layout pins the 16-byte carrier"),
             Self::AgentLifecycleExecutor => {
@@ -209,6 +213,14 @@ pub(crate) const CARRIER_SITES: &[(&str, &[Consumer])] = &[
     (
         "src/codegen/native_box/owned_payload.rs",
         &[Consumer::BoxPayload],
+    ),
+    (
+        "src/codegen/native_emit/checked_allocation.rs",
+        &[Consumer::CheckedAllocation],
+    ),
+    (
+        "src/codegen/native_emit/checked_allocation/bytes.c",
+        &[Consumer::CheckedAllocation],
     ),
     (
         "src/codegen/native_byte_data.rs",

@@ -226,7 +226,7 @@ fn typed_reopen_admitted_with_work<E>(
     work: Work<'_, E>,
 ) -> Result<bool, FundedError<E>> {
     use crate::hir::ResolvedType as T;
-    use crate::map_ops::{MapOp, ast_key, ast_value, resolved_scalar_ast};
+    use crate::map_ops::{ast_key, ast_value, resolved_scalar_ast, MapOp};
     paid::tick(work, 1)?;
     if !op.reopens() {
         return Ok(false);

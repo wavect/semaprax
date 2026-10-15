@@ -26,7 +26,7 @@ pub(crate) mod work;
         );
     }
     {
-        let mut current = include_str!("../../../../hir/funded.rs").to_owned();
+        let mut current = super::current_view::project("src/hir/funded.rs", include_str!("../../../../hir/funded.rs"));
         undo(
             &mut current,
             r#"        assert!(fresh.is_empty(), "a refused charge publishes nothing");
@@ -132,7 +132,7 @@ pub(crate) use owner_funded::{owner_funded_with_work, requires_funded_with_work}
         );
     }
     {
-        let mut current = include_str!("../../../../hir/lexical_exit/owner_funded.rs").to_owned();
+        let mut current = super::current_view::project("src/hir/lexical_exit/owner_funded.rs", include_str!("../../../../hir/lexical_exit/owner_funded.rs"));
         // Exact #766 test-only extension: retain the whole original plain
         // receiver and all previous source inverses; no production bytes change.
         undo(&mut current, r#####"
@@ -271,7 +271,7 @@ pub(crate) use work::{owner_funded_with_work, requires_funded_with_work};
         );
     }
     {
-        let mut current = include_str!("../../../../hir/lexical_exit/walk.rs").to_owned();
+        let mut current = super::current_view::project("src/hir/lexical_exit/walk.rs", include_str!("../../../../hir/lexical_exit/walk.rs"));
         undo(
             &mut current,
             r#"
@@ -1036,8 +1036,7 @@ mod tests;
         );
     }
     {
-        let mut current =
-            include_str!("../../../../workspace_graph/identity_resolution/tests.rs").to_owned();
+        let mut current = super::current_view::project("src/workspace_graph/identity_resolution/tests.rs", include_str!("../../../../workspace_graph/identity_resolution/tests.rs"));
         undo(
             &mut current,
             r#"        assert_eq!(actual.1.costs(), expected_costs);

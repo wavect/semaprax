@@ -204,6 +204,11 @@ compiler-owned internal stage may identify the enclosing prebound, synthetic
 module construction, cached HIR validation, fresh HIR resolution, or resolved
 module retention operation. An unlabelled reservation reports stage `unknown`;
 the stage never comes from source and does not identify the exact inner call.
+Once required work has selected a refusal, later required requests, including
+zero-sized authentication, remain refused without spending the balance.
+Positive optional writes may still consume already reserved error-trailer
+space; neither those writes nor clearing a trailer floor clears the refusal or
+restores required-work admission.
 Resolved-core construction provides an enclosing fallback label; compact
 validation inventory, uncached synthetic AST peak reservations, authored module
 signature validation, frontend lookup/resolution/retention and imported Vec

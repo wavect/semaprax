@@ -1,5 +1,7 @@
 # Finite Prelude Extension Work v1
 
+Audience: compiler contributors, tool authors, and reviewers.
+
 Status: private source implementation, not compiled or executed. The actual
 ordinary core-module receiver retains the complete selected extension suffix.
 All prior no-owner APIs and complete old constructors remain independent.

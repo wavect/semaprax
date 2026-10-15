@@ -14,7 +14,7 @@
 
 use crate::cleanup::FieldLivenessShape;
 use crate::cleanup_plan::CleanupTransition;
-use crate::hir::ResolvedProgram;
+use crate::hir::{DeclarationId, ResolvedProgram, ResolvedType};
 
 /// `quantity: i64`, the exact catalog-normalizer shape.
 const DECLARATION: &str = r#"
@@ -384,9 +384,9 @@ fn get_set_and_reserve_exact_stay_refused_with_a_stable_diagnostic() {
     }
 }
 
-/// AC-1 stays closed under the new operation surface: a structurally similar
-/// record with a fourth field is not admitted as an element, so its `Vec` is
-/// not the profile's carrier and its calls are refused.
+/// The exact three-field v1 classifier stays closed; the later owned-leaf
+/// profile independently admits this four-field record. A third owned leaf
+/// remains outside both profiles at source and HIR boundaries.
 #[test]
 fn a_structurally_similar_record_is_still_refused_by_the_operation_surface() {
     let source = r#"
@@ -403,13 +403,28 @@ module owned_record_collection.foreign;
 }
 @id("owned_record_collection.foreign.main") fn main()->i64 { 0 }
 "#;
-    let verified = crate::check(source, "owned-record-collection-foreign.spx")
-        .expect_err("a foreign record shape must be refused");
+    let checked = crate::check(source, "owned-record-collection-four-fields.spx").unwrap();
+    let resolved = crate::hir::resolve(&checked).unwrap();
+    let element = ResolvedType::Nominal {
+        declaration: DeclarationId::new("owned_record_collection.foreign.item"),
+        arguments: Vec::new(),
+    };
+    assert!(!super::is_admitted_owned_record_collection_element(
+        &resolved.declarations,
+        &element
+    ));
+    let layout =
+        crate::hir::owned_leaf_collection::layout(&resolved.declarations, &element).unwrap();
+    assert_eq!((layout.scalar_count, layout.owned_count), (2, 2));
+    crate::hir::validate(&resolved).unwrap();
+    let source = source.replace("extra: i64", "extra: Bytes");
+    let verified = crate::check(&source, "owned-record-collection-foreign.spx")
+        .expect_err("a third owned leaf must be refused by both profiles");
     assert!(verified
         .iter()
         .any(|diagnostic| diagnostic.code == "SPX-T281"));
     let parsed = crate::parse(
-        source,
+        &source,
         std::path::Path::new("owned-record-collection-foreign.spx"),
     )
     .unwrap();

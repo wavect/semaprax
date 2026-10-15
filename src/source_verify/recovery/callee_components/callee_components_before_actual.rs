@@ -57,6 +57,10 @@ impl<'p> Recovery<'p> {
 
     /// A refused return is an actual child dependency even when its original
     /// declaration receipt predates this initializer's diagnostic checkpoint.
+    #[allow(
+        dead_code,
+        reason = "retained original receiver or refusal payload; not every legacy entry is selected by current tests"
+    )]
     pub(in crate::source_verify) fn before_actual_read_callee_refusal(&mut self, origin: usize) {
         self.last_read = Some(origin);
         self.reads += 1;

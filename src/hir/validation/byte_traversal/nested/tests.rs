@@ -128,6 +128,36 @@ fn nested_byte_full_source_hir_graph_and_cache_replay_preserves_v1_receiver_inde
     assert!(Census::acquire(&program, foreign_function).is_err());
 }
 #[test]
+fn byte_slot_preserves_context_identity_across_trait_object_coercions() {
+    // Keep construction behind a separate function boundary, as the ordinary
+    // loan builder and traversal receiver do in the backend integration gate.
+    #[inline(never)]
+    fn acquire<'a>(program: &'a ResolvedProgram, function: &'a ResolvedFunction) -> Slot<'a> {
+        Slot::new(program, function).unwrap()
+    }
+    let program = resolved(SOURCE);
+    let foreign = program.clone();
+    let sum = function(&program, "sum");
+    let census = Census::acquire(&program, sum).unwrap();
+    let root = census.rows[0].shape.root;
+    let mut slot = acquire(&program, sum);
+    assert!(slot.region(&program, sum, root).unwrap().is_some());
+    assert!(slot
+        .region(&foreign, sum, root)
+        .err()
+        .unwrap()
+        .message
+        .contains("function differs"));
+    assert!(census.region(&program, sum, root).unwrap().is_some());
+    assert!(census
+        .region(&foreign, sum, root)
+        .err()
+        .unwrap()
+        .message
+        .contains("function differs"));
+}
+
+#[test]
 fn nested_byte_ancestor_freezes_cover_every_inner_subtree_and_same_root_after_inner_exit() {
     let source = SOURCE.replace("for inner in right { total", "for inner in left { total");
     let program = resolved(&source);

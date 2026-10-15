@@ -1,17 +1,17 @@
 //! Complete prior plan builder after moving its actual first paid inventories.
 use super::*;
 
-pub(in crate::loan_plan) fn build(
-    program: &ResolvedProgram,
-    function: &ResolvedFunction,
+pub(in crate::loan_plan) fn build<'a>(
+    program: &'a ResolvedProgram,
+    function: &'a ResolvedFunction,
     work: &mut WorkCounter,
-    inventory: paid_candidate::Inventory<'_, '_>,
+    inventory: paid_candidate::Inventory<'a, '_>,
 ) -> Result<LoanPlan, Diagnostic> {
     let payer = work.allocation;
-    let (aliases, bound, ownership) = inventory.into_parts(program, function, payer)?;
+    let (aliases, bound, ownership, mut byte_census) =
+        inventory.into_parts(program, function, payer)?;
     let cfg = build_cfg(function, work)?;
 
-    let mut byte_census = crate::hir::ByteTraversalSlot::new(program, function)?;
     let mut drafts = Vec::<PaidDraft>::new();
     for expression in &cfg.expressions {
         charge(work)?;

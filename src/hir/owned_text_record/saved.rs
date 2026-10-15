@@ -193,4 +193,3 @@ pub(crate) fn program_uses_strings(program: &super::ResolvedProgram) -> bool {
         )
     })
 }
-

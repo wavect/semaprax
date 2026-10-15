@@ -1,5 +1,7 @@
 # Scoped replay oracle account v1
 
+Audience: compiler contributors, tool authors, and reviewers.
+
 Status: source foundation only. No build, test or allocation measurement was run in this lane. OPT810 remains open.
 
 The test-only affine account separates allocation payment from admission. It has finite byte and work allowances, cumulative calls, balanced receiver counters, sticky first byte/work/physical refusal, epoch-bound leases and RAII scope cleanup. Missing, expired, nested and stale invocation authority fail closed. Oracle budgets retain Ordinary ceilings; they do not select retained admission, modify ACTIVE, refund work, normalize observations or cache verdicts.

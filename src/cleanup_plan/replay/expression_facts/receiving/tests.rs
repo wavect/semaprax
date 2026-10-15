@@ -445,7 +445,7 @@ fn complete_current_and_archived_receiving_boundaries_retain_all_raw_costs_throu
 #[test]
 fn full_original_receiving_and_helpers_are_byte_exact_and_all_current_hooks_bound() {
     use sha2::{Digest, Sha256};
-    let proof: serde_json::Value = serde_json::from_str(include_str!(concat!(
+    let proof: serde_json::Value = serde_json::from_str(ci_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/paid-receiving-directories/source-provenance.json"
     )))
@@ -453,8 +453,8 @@ fn full_original_receiving_and_helpers_are_byte_exact_and_all_current_hooks_boun
     let sources = [
         (
             "src/cleanup_plan/replay/expression_facts/receiving.rs",
-            include_str!("../receiving.rs"),
-            include_str!(concat!(
+            ci_str!("../receiving.rs"),
+            ci_str!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
                 "/docs/evidence/paid-receiving-directories/src__cleanup_plan__replay__expression_facts__receiving.rs.before.txt"
             )),
@@ -462,8 +462,8 @@ fn full_original_receiving_and_helpers_are_byte_exact_and_all_current_hooks_boun
         ),
         (
             "src/cleanup_plan/replay/expression_facts.rs",
-            include_str!("../../expression_facts.rs"),
-            include_str!(concat!(
+            ci_str!("../../expression_facts.rs"),
+            ci_str!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
                 "/docs/evidence/paid-receiving-directories/src__cleanup_plan__replay__expression_facts.rs.before.txt"
             )),
@@ -492,8 +492,8 @@ fn full_original_receiving_and_helpers_are_byte_exact_and_all_current_hooks_boun
         assert_eq!(projected, archived);
     }
     assert_eq!(
-        include_str!("../receiving_before.rs"),
-        include_str!(concat!(
+        ci_str!("../receiving_before.rs"),
+        ci_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/paid-receiving-directories/src__cleanup_plan__replay__expression_facts__receiving.rs.before.txt"
         ))
@@ -503,8 +503,8 @@ fn full_original_receiving_and_helpers_are_byte_exact_and_all_current_hooks_boun
         let tail = &source[start..];
         &tail[..tail.find("\n}\n").unwrap() + 3]
     }
-    let current = include_str!("../receiving.rs");
-    let original_replay = include_str!("../../../replay.rs");
+    let current = ci_str!("../receiving.rs");
+    let original_replay = ci_str!("../../../replay.rs");
     let edge = item(current, "fn validate_owned_edge_paid(")
         .replace("fn validate_owned_edge_paid(", "fn validate_owned_edge(")
         .replace(

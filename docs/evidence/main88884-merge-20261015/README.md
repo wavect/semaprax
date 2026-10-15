@@ -1,0 +1,7 @@
+# Merge current main CI fixes with the optimization batch
+
+Parents: optimization6e549d1ae and main88884d148d9c148eed61bc3265eed955edf19346. All69 complete stage inputs for23 conflict paths are retained as deterministic gzip with Git blob IDs and raw/compressed SHA256. The separate resolved binding covers every conflict path; per-lane rationales record the semantic choices. No source history or independent comparison receiver is discarded.
+
+The merge retains the authored byte-ancestry and exact context-identity fixes, held-function region lookup, journal unlock/dependency pins, parser and graph admission repairs, as well as the optimization branch's paid certified status, retained scratch, ordered storage, record-field updates and starter route. The independent old_drop fixture remains independent; both recursive legacy cases and record-only parse refusal remain. Both report Vec owners live through their original pointer assertions.
+
+Separate authenticated source successors preserve all36 original source comparisons, main's immutable71 reflow inverses and both512-depth presence chains. Applied-source Python checks passed against the actual merged tree; git diff --cached --check passed. a.rs stays1500 lines. This is source-only evidence: no new Cargo/build/test/Clippy/pin/benchmark execution. Full global packet composition and focused final qualification remain pending. The earlier RAM interruption is preserved separately, not treated as a compiler failure or a pass.

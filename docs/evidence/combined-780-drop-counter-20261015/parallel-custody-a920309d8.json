@@ -1,0 +1,42 @@
+{
+  "incoming": "a920309d8a37feb3fe021d36deb62881884f5aeb",
+  "conflict_parallel_bridges": [
+    {
+      "packet": "docs/evidence/selected-session-static-refusal-781/exact-source-inverses.json",
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "ours_basis": "331b382c689b8498ec02f140b713dfaf698001c2",
+      "incoming_basis": "a920309d8a37feb3fe021d36deb62881884f5aeb",
+      "ours_prefix_hooks": 2,
+      "incoming_prefix_hooks": 1,
+      "both_exact_original_hook_prefixes_preserved": true
+    },
+    {
+      "packet": "docs/evidence/selected-session-static-refusal-781/exact-source-inverses.json",
+      "source": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "ours_basis": "331b382c689b8498ec02f140b713dfaf698001c2",
+      "incoming_basis": "a920309d8a37feb3fe021d36deb62881884f5aeb",
+      "ours_prefix_hooks": 1,
+      "incoming_prefix_hooks": 1,
+      "both_exact_original_hook_prefixes_preserved": true
+    },
+    {
+      "packet": "docs/evidence/selected-session-static-refusal-781/exact-source-inverses.json",
+      "source": "tests/hir_module_boundaries.rs",
+      "ours_basis": "331b382c689b8498ec02f140b713dfaf698001c2",
+      "incoming_basis": "a920309d8a37feb3fe021d36deb62881884f5aeb",
+      "ours_prefix_hooks": 1,
+      "incoming_prefix_hooks": 1,
+      "both_exact_original_hook_prefixes_preserved": true
+    },
+    {
+      "packet": "docs/evidence/selected-session-static-refusal-781/exact-source-inverses.json",
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "ours_basis": "331b382c689b8498ec02f140b713dfaf698001c2",
+      "incoming_basis": "a920309d8a37feb3fe021d36deb62881884f5aeb",
+      "ours_prefix_hooks": 1,
+      "incoming_prefix_hooks": 1,
+      "both_exact_original_hook_prefixes_preserved": true
+    }
+  ],
+  "status": "SOURCE_ONLY_FULL_ORIGINALS_PROVEN"
+}

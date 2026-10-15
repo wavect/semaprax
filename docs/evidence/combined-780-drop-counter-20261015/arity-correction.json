@@ -1,0 +1,34 @@
+{
+  "source": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+  "before_sha256": "a95f8eaef5d05f0fd39edae228836d7ef33271540189b4ef8487ef822e5554ee",
+  "after_sha256": "70784febb364edeed7b64e43052fe0d322e26a95e4fc888d711b060b5fab4f35",
+  "calls": [
+    {
+      "label": "781 complete finite profile registration",
+      "arguments_after": 3,
+      "new_and_old_string_arguments_unchanged": true
+    },
+    {
+      "label": "781 complete finite profile registration",
+      "arguments_after": 3,
+      "new_and_old_string_arguments_unchanged": true
+    },
+    {
+      "label": "781 finite child lexical registration",
+      "arguments_after": 3,
+      "new_and_old_string_arguments_unchanged": true
+    },
+    {
+      "label": "781 complete finite profile source join",
+      "arguments_after": 3,
+      "new_and_old_string_arguments_unchanged": true
+    },
+    {
+      "label": "781 complete finite-child source join",
+      "arguments_after": 3,
+      "new_and_old_string_arguments_unchanged": true
+    }
+  ],
+  "actual_helper": "src/cleanup_plan/replay/live_oracle/source_custody.rs::undo(&mut String,&str,&str)",
+  "compiler_run": false
+}

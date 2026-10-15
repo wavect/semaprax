@@ -1,0 +1,15 @@
+{
+  "status": "SOURCE_ONLY_NO_COMPILER_OR_RUNTIME",
+  "private_layout_sources": 91,
+  "all_forbidden_literals_preserved_without_new_exemption": true,
+  "module_size_scope": "exact roots of tests/module_size.rs::tracked_sources",
+  "measured_rust_sources": 6239,
+  "module_size_violations": [],
+  "all_three_session_mirror_source_assertions_equal": true,
+  "initial_public_pin_owner_and_completion_matrix_unchanged": [
+    "tests/workspace/semantic_graph.rs",
+    "docs/COMPLETION-MATRIX.md"
+  ],
+  "new_guard_exemptions": 0,
+  "initial_root": "4f8f598c7935d0a5cdd4a5d5ba5b49d164ae2cfc"
+}

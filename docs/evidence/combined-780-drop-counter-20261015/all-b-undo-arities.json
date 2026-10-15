@@ -1,0 +1,9 @@
+{
+  "source": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+  "calls": 85,
+  "argument_counts": [
+    3
+  ],
+  "scope": "skip every cooked/raw string/comment lexically; count only actual b.rs undo calls",
+  "rust_execution": false
+}

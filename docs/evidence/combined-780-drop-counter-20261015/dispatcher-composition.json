@@ -1,0 +1,12 @@
+{
+  "status": "SOURCE_ONLY",
+  "additive_exact_source_bridges": [
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/bounded_output/classifier_string.rs",
+      "basis": "590391b0dcca6b1dc3e6b817c2feb38ab6fc25a9",
+      "before_sha256": "c301a761a04ef7036c7eed8375e0ee77c34266eeb89b6e1c3ae38eaad5a86193",
+      "current_sha256": "ee3073593ac4c8ab657dc5daa7500108b60c4c64bc898e877208f60a10d56a34"
+    }
+  ]
+}

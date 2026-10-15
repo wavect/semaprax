@@ -68,7 +68,7 @@
     },
     {
       "source": "src/hir/declaration_index.rs",
-      "sha256": "5f03b320fef7a328db35d24b8a12c891111155ac975336755dc88f36e8f41539",
+      "sha256": "9cb1c0667e83e5f72aab03411cb50fb7a74062428bb420e9e1ad2341d4b8e374",
       "original": "docs/evidence/nominal-payload-827/original/src/hir/declaration_index.rs",
       "original_sha256": "586684b48f58eea49ca017a4f1b8ab54fee3a874366d9ef0e10c2e31b8cd46c3",
       "new_file": false
@@ -376,7 +376,7 @@
     },
     {
       "source": "src/workspace_graph.rs",
-      "sha256": "c82d3bb6176c847fd9ff171f02d9c5aedd113e72b1eb9b1739ffee062319c11b",
+      "sha256": "0014cda6a016f64d13ccc85f8950837dffe973c043d498e2c56eafdc1413b073",
       "original": "docs/evidence/nominal-payload-827/original/src/workspace_graph.rs",
       "original_sha256": "fe644b87c264e23b9afa0660d4bcd8149583f19438146734d258025c27087771",
       "new_file": false
@@ -562,5 +562,5 @@
   "repair_basis": "actual a33c16996b4f095ffa2cf631bc39db4589e28302 composed with corrected nested-byte source; source-only no runtime claim",
   "combined_final_source_basis": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
   "explicit_import_source_basis": "a41774c0b",
-  "ordered_integrated_source_basis": "828f258503ec98c6cc9b1b59d307ad604bcf681d"
+  "ordered_integrated_source_basis": "8ad285b2d26a6adc017984bf1c75206665dab6c6"
 }

@@ -1,0 +1,32 @@
+
+running 1 test
+test byte_slice_for_runtime::byte_for_matches_manual_loop_and_oracle_on_every_engine ... 
+thread 'byte_slice_for_runtime::byte_for_matches_manual_loop_and_oracle_on_every_engine' (27029609) panicked at tests/useful_data/byte_slice_for_runtime.rs:404:5:
+success: stdout= stderr=node:internal/modules/run_main:105
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+264 !== 263
+
+    at file:///Volumes/Semaprax/lane-prompts/funded-transfer-final-pins-20261012/runtime-tmp/semaprax-byte-slice-for-32316/raw-byte-for.mjs:75:10 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 264,
+  expected: 263,
+  operator: 'strictEqual'
+}
+
+Node.js v24.3.0
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    byte_slice_for_runtime::byte_for_matches_manual_loop_and_oracle_on_every_engine
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 195 filtered out; finished in 2.30s
+

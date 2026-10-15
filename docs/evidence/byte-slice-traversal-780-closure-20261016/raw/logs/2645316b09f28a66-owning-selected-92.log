@@ -1,0 +1,6 @@
+
+running 1 test
+test byte_slice_for_traversal::byte_for_preserves_source_and_lowers_to_one_authenticated_receiver ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 854 filtered out; finished in 0.66s
+

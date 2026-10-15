@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::cache_codec::byte_traversal_tests::source_for_kind_tags_roundtrip_and_refuse_the_tag_after_borrow_bytes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7381 filtered out; finished in 0.00s
+

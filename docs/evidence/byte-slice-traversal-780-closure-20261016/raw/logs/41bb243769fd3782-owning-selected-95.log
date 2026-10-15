@@ -1,0 +1,38 @@
+
+running 1 test
+test byte_slice_for_runtime::byte_for_matches_manual_loop_and_oracle_on_every_engine ... 
+thread 'byte_slice_for_runtime::byte_for_matches_manual_loop_and_oracle_on_every_engine' (26186459) panicked at tests/useful_data/byte_slice_for_runtime.rs:248:5:
+success: stdout= stderr=node:internal/modules/run_main:105
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /descriptor/. Input:
+
+"TypeError: Cannot read properties of undefined (reading 'exports')"
+
+    at file:///Volumes/Semaprax/lane-prompts/large-foundation-final-selected-check-20261012/runtime-tmp/semaprax-byte-slice-for-57300/raw-byte-for.mjs:64:10 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: TypeError: Cannot read properties of undefined (reading 'exports')
+      at memory (file:///Volumes/Semaprax/lane-prompts/large-foundation-final-selected-check-20261012/runtime-tmp/semaprax-byte-slice-for-57300/raw-byte-for.mjs:19:44)
+      at read (file:///Volumes/Semaprax/lane-prompts/large-foundation-final-selected-check-20261012/runtime-tmp/semaprax-byte-slice-for-57300/raw-byte-for.mjs:29:28)
+      at file:///Volumes/Semaprax/lane-prompts/large-foundation-final-selected-check-20261012/runtime-tmp/semaprax-byte-slice-for-57300/raw-byte-for.mjs:64:21
+      at getActual (node:assert:530:5)
+      at strict.throws (node:assert:676:24)
+      at file:///Volumes/Semaprax/lane-prompts/large-foundation-final-selected-check-20261012/runtime-tmp/semaprax-byte-slice-for-57300/raw-byte-for.mjs:64:10,
+  expected: /descriptor/,
+  operator: 'throws'
+}
+
+Node.js v24.3.0
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    byte_slice_for_runtime::byte_for_matches_manual_loop_and_oracle_on_every_engine
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 194 filtered out; finished in 2.42s
+

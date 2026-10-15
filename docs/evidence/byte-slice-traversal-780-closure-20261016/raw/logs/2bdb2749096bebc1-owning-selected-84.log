@@ -1,0 +1,15 @@
+
+running 1 test
+test hir::validation::byte_traversal::nested::tests::nested_byte_same_root_release_does_not_allow_outer_move_or_renewal ... 
+thread 'hir::validation::byte_traversal::nested::tests::nested_byte_same_root_release_does_not_allow_outer_move_or_renewal' (4350891) panicked at src/hir/validation/byte_traversal/nested/tests.rs:39:45:
+called `Result::unwrap()` on an `Err` value: [Diagnostic { code: "SPX-H006", severity: Error, message: "nested for traversal reached bounded-loop HIR admission", path: Some("nested-bytes.spx"), span: Some(Span { start: 225, end: 266, line: 5, column: 23 }), help: None }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    hir::validation::byte_traversal::nested::tests::nested_byte_same_root_release_does_not_allow_outer_move_or_renewal
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8847 filtered out; finished in 0.06s
+

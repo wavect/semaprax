@@ -1,0 +1,6 @@
+
+running 1 test
+test cli_driver::cli::help::authoring::tests::byte_traversal_card_checks_its_actual_example_and_keeps_named_view_authority ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 299 filtered out; finished in 0.26s
+

@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::validation::byte_traversal::nested::tests::nested_byte_census_uses_exact_owner_and_first_refusal_on_foreign_then_restored_scope ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8913 filtered out; finished in 0.08s
+

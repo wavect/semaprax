@@ -1,0 +1,2248 @@
+{
+  "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+  "complete": true,
+  "results": [
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::nested_record_destructure_tests::subtree::whole_subtree_uses_one_exact_prefix_transfer_and_refuses_plan_forgeries",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "cleanup_plan::replay::nested_record_destructure_tests::subtree::whole_subtree_uses_one_exact_prefix_transfer_and_refuses_plan_forgeries",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "cleanup_plan::replay::nested_record_destructure_tests::subtree::whole_subtree_uses_one_exact_prefix_transfer_and_refuses_plan_forgeries"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 1.2870564159820788,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-00.log",
+      "log_sha256": "a9f8fc7a9ff16aee9343f1c49c5907f7adf1931edfef79ed243cb52ba35d5e73",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::nested_record_destructure_tests::subtree::subtree_resolution_and_independent_replay_use_exact_sticky_builder_budget_through_drop",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "cleanup_plan::replay::nested_record_destructure_tests::subtree::subtree_resolution_and_independent_replay_use_exact_sticky_builder_budget_through_drop",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "cleanup_plan::replay::nested_record_destructure_tests::subtree::subtree_resolution_and_independent_replay_use_exact_sticky_builder_budget_through_drop"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 101,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.44493599998531863,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-01.log",
+      "log_sha256": "1e7e4c344e7870286da364a0c4c4f059f87a9236e2e48363009c633a43a88db5",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "executable_sha256_before": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "executable_sha256_after": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "owned_data",
+      "selector": "nested_collection_record::subtree::whole_subtree_and_recursive_control_settle_empty_and_full_vec_on_three_backends",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/owned_data-ba57de47a84533f4",
+        "nested_collection_record::subtree::whole_subtree_and_recursive_control_settle_empty_and_full_vec_on_three_backends",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/owned_data-ba57de47a84533f4",
+      "discovered_names": [
+        "nested_collection_record::subtree::whole_subtree_and_recursive_control_settle_empty_and_full_vec_on_three_backends"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 6.654086499998812,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-02.log",
+      "log_sha256": "517737eda61e7430c5879bb762089eccc923595e0b541a49a24ebc240f7f680f",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "executable_sha256_before": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "executable_sha256_after": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "owned_data",
+      "selector": "nested_collection_record::subtree::subtree_transfer_refuses_hidden_owner_borrow_use_after_move_and_live_descendant",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/owned_data-ba57de47a84533f4",
+        "nested_collection_record::subtree::subtree_transfer_refuses_hidden_owner_borrow_use_after_move_and_live_descendant",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/owned_data-ba57de47a84533f4",
+      "discovered_names": [
+        "nested_collection_record::subtree::subtree_transfer_refuses_hidden_owner_borrow_use_after_move_and_live_descendant"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.12164120899979025,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-03.log",
+      "log_sha256": "37744b0105c310002b1bc39bd076c9d93388adb2e17f5efaa07aa986a03a72b7",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "executable_sha256_before": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "executable_sha256_after": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "owned_data",
+      "selector": "nested_collection_record::subtree::subtree_cache_cold_warm_and_current_source_drift_replay_exact_graph_facts",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/owned_data-ba57de47a84533f4",
+        "nested_collection_record::subtree::subtree_cache_cold_warm_and_current_source_drift_replay_exact_graph_facts",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/owned_data-ba57de47a84533f4",
+      "discovered_names": [
+        "nested_collection_record::subtree::subtree_cache_cold_warm_and_current_source_drift_replay_exact_graph_facts"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 101,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.5573284999991301,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-04.log",
+      "log_sha256": "c26fb22ddc4d3a7e60b9af0faeed7e276f163b5bc073648ec0c2ab3c19e24e6e",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "099052f71b6ec033ef66bd45319bf882b27856ac2c80107d146e3dd5d7c8619a",
+      "executable_sha256_before": "099052f71b6ec033ef66bd45319bf882b27856ac2c80107d146e3dd5d7c8619a",
+      "executable_sha256_after": "099052f71b6ec033ef66bd45319bf882b27856ac2c80107d146e3dd5d7c8619a",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "project",
+      "selector": "semantic_cache::stale_import_signature_cannot_hide_behind_cached_consumers",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/project-9bc7c8c1113ee95a",
+        "semantic_cache::stale_import_signature_cannot_hide_behind_cached_consumers",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/project-9bc7c8c1113ee95a",
+      "discovered_names": [
+        "semantic_cache::stale_import_signature_cannot_hide_behind_cached_consumers"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.7769723749952391,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-05.log",
+      "log_sha256": "737ce72f7ce00bf4bcdbc44fedecd03c2ca9f7cbdceeee812dd77439b0a50455",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "project::incremental::checked_hir::tests::lifecycle::actual_cold_warm_cache_core_and_publication_match_owned_receiver_through_drop",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "project::incremental::checked_hir::tests::lifecycle::actual_cold_warm_cache_core_and_publication_match_owned_receiver_through_drop",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "project::incremental::checked_hir::tests::lifecycle::actual_cold_warm_cache_core_and_publication_match_owned_receiver_through_drop"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 101,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 1.4350650000269525,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-06.log",
+      "log_sha256": "1fe16cf4bf024885a7a1d6483766140752d0f52a2eee1c614f4d802ffda065ba",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "ea37eb3e54d1638166c07a207ef11d0d6a63cd3ea2c8ff9bdf2f3910b5b4c436",
+      "executable_sha256_before": "ea37eb3e54d1638166c07a207ef11d0d6a63cd3ea2c8ff9bdf2f3910b5b4c436",
+      "executable_sha256_after": "ea37eb3e54d1638166c07a207ef11d0d6a63cd3ea2c8ff9bdf2f3910b5b4c436",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "hir_module_boundaries",
+      "selector": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/hir_module_boundaries-e6a7ea38aca24ed7",
+        "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/hir_module_boundaries-e6a7ea38aca24ed7",
+      "discovered_names": [
+        "core_validation_has_no_resolution_cleanup_build_or_physical_authority"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.09198699999251403,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-07.log",
+      "log_sha256": "e5f3cfa88c1f58269209293960f1ed2879da0a5c798c50de36e837d4de66225e",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "executable_sha256_before": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "executable_sha256_after": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "language",
+      "selector": "byte_slice_for_traversal::byte_for_preserves_source_and_lowers_to_one_authenticated_receiver",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/language-63abefdf82f4560b",
+        "byte_slice_for_traversal::byte_for_preserves_source_and_lowers_to_one_authenticated_receiver",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/language-63abefdf82f4560b",
+      "discovered_names": [
+        "byte_slice_for_traversal::byte_for_preserves_source_and_lowers_to_one_authenticated_receiver"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.8634365419857204,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-08.log",
+      "log_sha256": "e866ab9fb5ee0fad7796826b6716352cf1cd636d20e0a02ca2ce515ed94a0027",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "executable_sha256_before": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "executable_sha256_after": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "language",
+      "selector": "byte_slice_for_traversal::hostile_byte_traversal_hir_is_refused_independently_of_its_spelling",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/language-63abefdf82f4560b",
+        "byte_slice_for_traversal::hostile_byte_traversal_hir_is_refused_independently_of_its_spelling",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/language-63abefdf82f4560b",
+      "discovered_names": [
+        "byte_slice_for_traversal::hostile_byte_traversal_hir_is_refused_independently_of_its_spelling"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.15677020899602212,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-09.log",
+      "log_sha256": "55330111cc8688888899baee32322afeb75dd2494598754c8fc381535089f938",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "executable_sha256_before": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "executable_sha256_after": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "language",
+      "selector": "byte_slice_for_traversal::byte_for_refusals_and_owner_freeze_are_stable",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/language-63abefdf82f4560b",
+        "byte_slice_for_traversal::byte_for_refusals_and_owner_freeze_are_stable",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/language-63abefdf82f4560b",
+      "discovered_names": [
+        "byte_slice_for_traversal::byte_for_refusals_and_owner_freeze_are_stable"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.08044658301514573,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-10.log",
+      "log_sha256": "1627ad580903d163f9ca1b77aaa44dd213bcb69c6d4662a39306022349cb5cdd",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "a2ab15dc5d3c16306a47d37afe96621b7458196ba7b58b26d10ca8f3fbea1699",
+      "executable_sha256_before": "a2ab15dc5d3c16306a47d37afe96621b7458196ba7b58b26d10ca8f3fbea1699",
+      "executable_sha256_after": "a2ab15dc5d3c16306a47d37afe96621b7458196ba7b58b26d10ca8f3fbea1699",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "useful_data",
+      "selector": "byte_slice_for_runtime::byte_for_matches_manual_loop_and_oracle_on_every_engine",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/useful_data-50eb46388b20b614",
+        "byte_slice_for_runtime::byte_for_matches_manual_loop_and_oracle_on_every_engine",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/useful_data-50eb46388b20b614",
+      "discovered_names": [
+        "byte_slice_for_runtime::byte_for_matches_manual_loop_and_oracle_on_every_engine"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 2.4379309169889893,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-11.log",
+      "log_sha256": "d85e80d56d1d2f68379abc8f8c1a35de1c27ba18576d4a28f8b50b133b18f6de",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "a2ab15dc5d3c16306a47d37afe96621b7458196ba7b58b26d10ca8f3fbea1699",
+      "executable_sha256_before": "a2ab15dc5d3c16306a47d37afe96621b7458196ba7b58b26d10ca8f3fbea1699",
+      "executable_sha256_after": "a2ab15dc5d3c16306a47d37afe96621b7458196ba7b58b26d10ca8f3fbea1699",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "useful_data",
+      "selector": "byte_slice_for_runtime::byte_for_view_traversal_materializes_no_buffer_on_core_wasm",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/useful_data-50eb46388b20b614",
+        "byte_slice_for_runtime::byte_for_view_traversal_materializes_no_buffer_on_core_wasm",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/useful_data-50eb46388b20b614",
+      "discovered_names": [
+        "byte_slice_for_runtime::byte_for_view_traversal_materializes_no_buffer_on_core_wasm"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.15260191599372774,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-12.log",
+      "log_sha256": "4c1f439b74478bc214599504103b9d003b6f8ad7cf9679ac0e7ec2540bdcea56",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "executable_sha256_before": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "executable_sha256_after": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "owned_data",
+      "selector": "nested_collection_record::subtree::lifetime::live_subtree_break_and_continue_settle_on_every_engine",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/owned_data-ba57de47a84533f4",
+        "nested_collection_record::subtree::lifetime::live_subtree_break_and_continue_settle_on_every_engine",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/owned_data-ba57de47a84533f4",
+      "discovered_names": [
+        "nested_collection_record::subtree::lifetime::live_subtree_break_and_continue_settle_on_every_engine"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 101,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.0935635419737082,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-13.log",
+      "log_sha256": "341b29a15058412e3de8792c26326bbea431d5925d6ac483324128064de358be",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "executable_sha256_before": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "executable_sha256_after": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "owned_data",
+      "selector": "nested_collection_record::subtree::lifetime::subtree_forwarding_allocates_no_replacement_tree_or_payload_copy_at_runtime",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/owned_data-ba57de47a84533f4",
+        "nested_collection_record::subtree::lifetime::subtree_forwarding_allocates_no_replacement_tree_or_payload_copy_at_runtime",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/owned_data-ba57de47a84533f4",
+      "discovered_names": [
+        "nested_collection_record::subtree::lifetime::subtree_forwarding_allocates_no_replacement_tree_or_payload_copy_at_runtime"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 101,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 1.4715639170026407,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-14.log",
+      "log_sha256": "ab9456e2bb994682fec8e813d286ad9cdbacafbf364b8531cdc3ac68d83ccbdc",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "workspace_graph::tests::cache_stage_debits::original_row_loan_checked_cold_and_warm_preserve_ordinary_graph_with_exact_stage_debits",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "workspace_graph::tests::cache_stage_debits::original_row_loan_checked_cold_and_warm_preserve_ordinary_graph_with_exact_stage_debits",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "workspace_graph::tests::cache_stage_debits::original_row_loan_checked_cold_and_warm_preserve_ordinary_graph_with_exact_stage_debits"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 2.547961500007659,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-15.log",
+      "log_sha256": "360aa9fe56a8b69be4f02a745532913aefff0f992bb8c0eb988bfa8225503af9",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "workspace_graph::tests::cache_stage_debits::original_mixed_byte_traversal_checked_cold_and_warm_preserve_ordinary_graph_with_exact_stage_debits",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "workspace_graph::tests::cache_stage_debits::original_mixed_byte_traversal_checked_cold_and_warm_preserve_ordinary_graph_with_exact_stage_debits",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "workspace_graph::tests::cache_stage_debits::original_mixed_byte_traversal_checked_cold_and_warm_preserve_ordinary_graph_with_exact_stage_debits"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 2.6022299170144834,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-16.log",
+      "log_sha256": "77f0c8ee82b6ee41683c4b0d58d3a6a3aaec778624f0be45aa3ea32217263174",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "hir::canonical_loan_storage::tests::funded_current_storage_matches_saved_complete_inventory_and_rejects_transplants",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "hir::canonical_loan_storage::tests::funded_current_storage_matches_saved_complete_inventory_and_rejects_transplants",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "hir::canonical_loan_storage::tests::funded_current_storage_matches_saved_complete_inventory_and_rejects_transplants"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.33897287500440143,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-17.log",
+      "log_sha256": "8e5625d216398a8387dca7ba597d94527347b3d059ebd796a3b4304cea421306",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "hir::canonical_loan_storage::tests::plan_batch_priority_last_local_id_wins_and_moved_origins_match_saved_receiver",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "hir::canonical_loan_storage::tests::plan_batch_priority_last_local_id_wins_and_moved_origins_match_saved_receiver",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "hir::canonical_loan_storage::tests::plan_batch_priority_last_local_id_wins_and_moved_origins_match_saved_receiver"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.32776891699177213,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-18.log",
+      "log_sha256": "8a58708dbcf6790a8141a3972d5b741cf35c8238fbad754a375b999dd9374af7",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "hir::canonical_loan_storage::tests::actual_storage_payer_literal_capacities_exact_short_and_drop_keep_first_receipt",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "hir::canonical_loan_storage::tests::actual_storage_payer_literal_capacities_exact_short_and_drop_keep_first_receipt",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "hir::canonical_loan_storage::tests::actual_storage_payer_literal_capacities_exact_short_and_drop_keep_first_receipt"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.3408650839992333,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-19.log",
+      "log_sha256": "7aff825cee6d40feacb3a88363f87e420d22417b958e80592f4d09c202c08615",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "hir::validation::identity_scratch::tests::borrowed_identity_scratch_preserves_saved_text_order_and_removes_owning_key_storage_through_drop",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "hir::validation::identity_scratch::tests::borrowed_identity_scratch_preserves_saved_text_order_and_removes_owning_key_storage_through_drop",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "hir::validation::identity_scratch::tests::borrowed_identity_scratch_preserves_saved_text_order_and_removes_owning_key_storage_through_drop"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 101,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.41375500001595356,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-20.log",
+      "log_sha256": "7a4da67ec47bd89d24efd7d5652460d6a803200adf8a17310ccda48ac629d46c",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "hir::validation::identity_scratch::tests::borrowed_identity_scratch_keeps_duplicate_and_current_index_first_error_order",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "hir::validation::identity_scratch::tests::borrowed_identity_scratch_keeps_duplicate_and_current_index_first_error_order",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "hir::validation::identity_scratch::tests::borrowed_identity_scratch_keeps_duplicate_and_current_index_first_error_order"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.3446620419854298,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-21.log",
+      "log_sha256": "7a695f682237a2f32406066dc9a5b899e239616256bf478673d4b42c4e2b400d",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "workspace_graph::diagnostics::invocation::tests::invocation_diagnostics_preserve_saved_error_text_and_settle_success_and_error_paths",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "workspace_graph::diagnostics::invocation::tests::invocation_diagnostics_preserve_saved_error_text_and_settle_success_and_error_paths",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "workspace_graph::diagnostics::invocation::tests::invocation_diagnostics_preserve_saved_error_text_and_settle_success_and_error_paths"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.34038016700651497,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-22.log",
+      "log_sha256": "a528a47a523e8cdc2ad33983eaa68b0f2d2fa531a7e89fb3de8defe04e0534be",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "workspace_graph::diagnostics::invocation::tests::nested_and_unwinding_invocations_restore_exact_outer_attribution_without_cloning",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "workspace_graph::diagnostics::invocation::tests::nested_and_unwinding_invocations_restore_exact_outer_attribution_without_cloning",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "workspace_graph::diagnostics::invocation::tests::nested_and_unwinding_invocations_restore_exact_outer_attribution_without_cloning"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.3552423329965677,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-23.log",
+      "log_sha256": "46bb1527a8de5ba126f6c7605450f7a64ba290167d8d079aa52198e2bd071c61",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "workspace_graph::diagnostics::invocation::tests::diagnostic_scope_does_not_restore_or_refund_the_sticky_active_budget",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "workspace_graph::diagnostics::invocation::tests::diagnostic_scope_does_not_restore_or_refund_the_sticky_active_budget",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "workspace_graph::diagnostics::invocation::tests::diagnostic_scope_does_not_restore_or_refund_the_sticky_active_budget"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.3339741659874562,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-24.log",
+      "log_sha256": "f6f33ab44d734d609977936d11a5c654632737c03e309a5a915bf28e90596ae7",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "hir::declaration_index::source::identity_reuse_tests::inserted_identity_reuse_preserves_full_index_inheritance_and_current_text_guards",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "hir::declaration_index::source::identity_reuse_tests::inserted_identity_reuse_preserves_full_index_inheritance_and_current_text_guards",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "hir::declaration_index::source::identity_reuse_tests::inserted_identity_reuse_preserves_full_index_inheritance_and_current_text_guards"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.3330113750125747,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-25.log",
+      "log_sha256": "debc593e26c70c0c15a63188c927696f0bc68d9ef33cccf4deca1029bbf0171f",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "hir::declaration_index::source::identity_reuse_tests::inserted_identity_reuse_removes_literal_reconstruction_payloads_through_index_drop",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "hir::declaration_index::source::identity_reuse_tests::inserted_identity_reuse_removes_literal_reconstruction_payloads_through_index_drop",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "hir::declaration_index::source::identity_reuse_tests::inserted_identity_reuse_removes_literal_reconstruction_payloads_through_index_drop"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.3323370830039494,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-26.log",
+      "log_sha256": "34b248c91ccf3f31565942b4351d997191b0e9890fbe127242735ec8564fca6c",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "a2ab15dc5d3c16306a47d37afe96621b7458196ba7b58b26d10ca8f3fbea1699",
+      "executable_sha256_before": "a2ab15dc5d3c16306a47d37afe96621b7458196ba7b58b26d10ca8f3fbea1699",
+      "executable_sha256_after": "a2ab15dc5d3c16306a47d37afe96621b7458196ba7b58b26d10ca8f3fbea1699",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "useful_data",
+      "selector": "byte_slice_for_runtime::literal_array_bindings_reuse_exact_slots_while_nonliteral_copy_boundaries_remain",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/useful_data-50eb46388b20b614",
+        "byte_slice_for_runtime::literal_array_bindings_reuse_exact_slots_while_nonliteral_copy_boundaries_remain",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/useful_data-50eb46388b20b614",
+      "discovered_names": [
+        "byte_slice_for_runtime::literal_array_bindings_reuse_exact_slots_while_nonliteral_copy_boundaries_remain"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.9512914170045406,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-27.log",
+      "log_sha256": "8340719ff097329af0452773da09ae7a268825c83d675fac54a3ff191becaedd",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "099052f71b6ec033ef66bd45319bf882b27856ac2c80107d146e3dd5d7c8619a",
+      "executable_sha256_before": "099052f71b6ec033ef66bd45319bf882b27856ac2c80107d146e3dd5d7c8619a",
+      "executable_sha256_after": "099052f71b6ec033ef66bd45319bf882b27856ac2c80107d146e3dd5d7c8619a",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "project",
+      "selector": "standard_library::decoded_fingerprint_raw_bytes_execute_on_all_three_backends",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/project-9bc7c8c1113ee95a",
+        "standard_library::decoded_fingerprint_raw_bytes_execute_on_all_three_backends",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/project-9bc7c8c1113ee95a",
+      "discovered_names": [
+        "standard_library::decoded_fingerprint_raw_bytes_execute_on_all_three_backends"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 101,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 1.893853499990655,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-28.log",
+      "log_sha256": "0ec9f6cb1bdc0d8d7a4fea51db30fb5ecb73b8d44528df895b8f81c472cd2a51",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "a2ab15dc5d3c16306a47d37afe96621b7458196ba7b58b26d10ca8f3fbea1699",
+      "executable_sha256_before": "a2ab15dc5d3c16306a47d37afe96621b7458196ba7b58b26d10ca8f3fbea1699",
+      "executable_sha256_after": "a2ab15dc5d3c16306a47d37afe96621b7458196ba7b58b26d10ca8f3fbea1699",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "useful_data",
+      "selector": "catalog_normalizer_application::decoded_index::backends::decoded_index_collision_boundaries_and_failure_order_run_on_native_and_wasm",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/useful_data-50eb46388b20b614",
+        "catalog_normalizer_application::decoded_index::backends::decoded_index_collision_boundaries_and_failure_order_run_on_native_and_wasm",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/useful_data-50eb46388b20b614",
+      "discovered_names": [
+        "catalog_normalizer_application::decoded_index::backends::decoded_index_collision_boundaries_and_failure_order_run_on_native_and_wasm"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 101,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 1.1179954590043053,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-29.log",
+      "log_sha256": "ddf7803b613dbbf789ec7c7ff334b62a3ca4c2c4775c4680fc6193a2ec7f3f85",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "099052f71b6ec033ef66bd45319bf882b27856ac2c80107d146e3dd5d7c8619a",
+      "executable_sha256_before": "099052f71b6ec033ef66bd45319bf882b27856ac2c80107d146e3dd5d7c8619a",
+      "executable_sha256_after": "099052f71b6ec033ef66bd45319bf882b27856ac2c80107d146e3dd5d7c8619a",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "project",
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/project-9bc7c8c1113ee95a",
+        "standard_library::application_json::owned::shiftsim_typed_records::typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/project-9bc7c8c1113ee95a",
+      "discovered_names": [
+        "standard_library::application_json::owned::shiftsim_typed_records::typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 101,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.9129807499994058,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-30.log",
+      "log_sha256": "01a956d6f7ed9656be45cd4e384582697f780ace092bb760ac43215f97fe8633",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "099052f71b6ec033ef66bd45319bf882b27856ac2c80107d146e3dd5d7c8619a",
+      "executable_sha256_before": "099052f71b6ec033ef66bd45319bf882b27856ac2c80107d146e3dd5d7c8619a",
+      "executable_sha256_after": "099052f71b6ec033ef66bd45319bf882b27856ac2c80107d146e3dd5d7c8619a",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "project",
+      "selector": "standard_library::application_json::owned::catalog_scoped_records::typed_catalog_derives_codecs_and_preserves_all_23_functional_cases",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/project-9bc7c8c1113ee95a",
+        "standard_library::application_json::owned::catalog_scoped_records::typed_catalog_derives_codecs_and_preserves_all_23_functional_cases",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/project-9bc7c8c1113ee95a",
+      "discovered_names": [
+        "standard_library::application_json::owned::catalog_scoped_records::typed_catalog_derives_codecs_and_preserves_all_23_functional_cases"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 101,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 1.5055865829926915,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-31.log",
+      "log_sha256": "081dfc8816f2e9588db3c06b5c53f7edce52541a19067b124505dc344eb2a5de",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "a2ab15dc5d3c16306a47d37afe96621b7458196ba7b58b26d10ca8f3fbea1699",
+      "executable_sha256_before": "a2ab15dc5d3c16306a47d37afe96621b7458196ba7b58b26d10ca8f3fbea1699",
+      "executable_sha256_after": "a2ab15dc5d3c16306a47d37afe96621b7458196ba7b58b26d10ca8f3fbea1699",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "useful_data",
+      "selector": "catalog_normalizer_application::decoded_index::frozen_pairwise_reference_preserves_the_complete_normalizer_oracle",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/useful_data-50eb46388b20b614",
+        "catalog_normalizer_application::decoded_index::frozen_pairwise_reference_preserves_the_complete_normalizer_oracle",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/useful_data-50eb46388b20b614",
+      "discovered_names": [
+        "catalog_normalizer_application::decoded_index::frozen_pairwise_reference_preserves_the_complete_normalizer_oracle"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 101,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 2.4989585829898715,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-32.log",
+      "log_sha256": "db669d8c3d89ac449e6ab9a5196eb22b116690cb9bfc9845c3c5c52dd02549a9",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "a2ab15dc5d3c16306a47d37afe96621b7458196ba7b58b26d10ca8f3fbea1699",
+      "executable_sha256_before": "a2ab15dc5d3c16306a47d37afe96621b7458196ba7b58b26d10ca8f3fbea1699",
+      "executable_sha256_after": "a2ab15dc5d3c16306a47d37afe96621b7458196ba7b58b26d10ca8f3fbea1699",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "useful_data",
+      "selector": "catalog_normalizer_application::batch_boundaries_and_string_normalization_agree_across_backends",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/useful_data-50eb46388b20b614",
+        "catalog_normalizer_application::batch_boundaries_and_string_normalization_agree_across_backends",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/useful_data-50eb46388b20b614",
+      "discovered_names": [
+        "catalog_normalizer_application::batch_boundaries_and_string_normalization_agree_across_backends"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 101,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 2.4892151250096504,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-33.log",
+      "log_sha256": "855c8473e9a0b94f12d0301386a9b4adb55d570c08ddf502ca5e5fdb9e425536",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "hir::workspace_link::compiler_prelude::identity_constant_tests::fixed_compiler_prelude_identities_preserve_complete_saved_index_and_drop_payloads",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "hir::workspace_link::compiler_prelude::identity_constant_tests::fixed_compiler_prelude_identities_preserve_complete_saved_index_and_drop_payloads",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "hir::workspace_link::compiler_prelude::identity_constant_tests::fixed_compiler_prelude_identities_preserve_complete_saved_index_and_drop_payloads"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.31976866599870846,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-34.log",
+      "log_sha256": "2946a5033abf471c9cd89f640f1f3c9cb3f76dfc39991f8bf10ed1b34a1ad8b1",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "string_ops::take::tests::exact_named_transfer_has_one_commit_no_clone_or_failure_and_keeps_default_reads",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "string_ops::take::tests::exact_named_transfer_has_one_commit_no_clone_or_failure_and_keeps_default_reads",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "string_ops::take::tests::exact_named_transfer_has_one_commit_no_clone_or_failure_and_keeps_default_reads"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.9995183749997523,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-35.log",
+      "log_sha256": "cca62872b11cf6b2416847e6c0665689087901617590db067b78a01cec4a41fe",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "string_ops::take::tests::named_only_source_refuses_contracts_computed_borrowed_and_live_loan_transfers",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "string_ops::take::tests::named_only_source_refuses_contracts_computed_borrowed_and_live_loan_transfers",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "string_ops::take::tests::named_only_source_refuses_contracts_computed_borrowed_and_live_loan_transfers"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.31892745901132,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-36.log",
+      "log_sha256": "ff908f79133affd0b6133165a79e4fbce9e7aa1ddb44f514af6b92b8ec5b079e",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "string_ops::take::tests::added_transfer_inventory_pays_its_node_exact_short_sticky_and_drop",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "string_ops::take::tests::added_transfer_inventory_pays_its_node_exact_short_sticky_and_drop",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "string_ops::take::tests::added_transfer_inventory_pays_its_node_exact_short_sticky_and_drop"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.3259513329830952,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-37.log",
+      "log_sha256": "8e3b281a32be06d402582091e8f4818e1a93c351072580bc6c327458290035b8",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "string_ops::take::tests::transfer_commit_epochs_and_total_status_are_independently_revalidated",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "string_ops::take::tests::transfer_commit_epochs_and_total_status_are_independently_revalidated",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "string_ops::take::tests::transfer_commit_epochs_and_total_status_are_independently_revalidated"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.33312395800021477,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-38.log",
+      "log_sha256": "f0c0418140ac0aa5ca2aba2393d594520d8fd7c7ba1874f86c95430152be6a37",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "string_ops::take::tests::last_view_use_allows_transfer_but_current_loan_mutations_remain_refused",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "string_ops::take::tests::last_view_use_allows_transfer_but_current_loan_mutations_remain_refused",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "string_ops::take::tests::last_view_use_allows_transfer_but_current_loan_mutations_remain_refused"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.3380758749844972,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-39.log",
+      "log_sha256": "ea08a997130575b3e3516978c82e2062b5c4de68ee5a00ff28279fea1cf986f3",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "executable_sha256_before": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "executable_sha256_after": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "language",
+      "selector": "owned_string_transfer::explicit_transfer_preserves_native_carriers_clone_baseline_and_failure_settlement",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/language-63abefdf82f4560b",
+        "owned_string_transfer::explicit_transfer_preserves_native_carriers_clone_baseline_and_failure_settlement",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/language-63abefdf82f4560b",
+      "discovered_names": [
+        "owned_string_transfer::explicit_transfer_preserves_native_carriers_clone_baseline_and_failure_settlement"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 1.4707888330158312,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-40.log",
+      "log_sha256": "ebcea0e72954fb3d9bac2254c5844b9385307ddc30f160498c388acee9c0f2c0",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "executable_sha256_before": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "executable_sha256_after": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "language",
+      "selector": "owned_string_transfer::explicit_transfer_interpreter_and_private_wasm_reentry_keep_selected_status",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/language-63abefdf82f4560b",
+        "owned_string_transfer::explicit_transfer_interpreter_and_private_wasm_reentry_keep_selected_status",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/language-63abefdf82f4560b",
+      "discovered_names": [
+        "owned_string_transfer::explicit_transfer_interpreter_and_private_wasm_reentry_keep_selected_status"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.6475819579791278,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-41.log",
+      "log_sha256": "82a02b6caa18d35e8b84cbe7043ba45cf7b8321b70b10bf5f335de21c84a1a6f",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "executable_sha256_before": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "executable_sha256_after": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "language",
+      "selector": "owned_string_transfer::named_destructured_string_leaf_keeps_clone_reference_and_all_engine_settlement",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/language-63abefdf82f4560b",
+        "owned_string_transfer::named_destructured_string_leaf_keeps_clone_reference_and_all_engine_settlement",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/language-63abefdf82f4560b",
+      "discovered_names": [
+        "owned_string_transfer::named_destructured_string_leaf_keeps_clone_reference_and_all_engine_settlement"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 1.2869127920130268,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-42.log",
+      "log_sha256": "028a9054c4237053ccc77cf4e0953e12441f7cc9359c519a812006f878d5b1ad",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "executable_sha256_before": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "executable_sha256_after": "d65e238f4aea88f4af82aad0cdc5f5a18f1281e9a959c3d717129f27132dc966",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "language",
+      "selector": "owned_string_transfer::explicit_transfer_fuel_sweep_never_refuels_or_publishes_a_partial_owner",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/language-63abefdf82f4560b",
+        "owned_string_transfer::explicit_transfer_fuel_sweep_never_refuels_or_publishes_a_partial_owner",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/language-63abefdf82f4560b",
+      "discovered_names": [
+        "owned_string_transfer::explicit_transfer_fuel_sweep_never_refuels_or_publishes_a_partial_owner"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 1.0825612500193529,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-43.log",
+      "log_sha256": "dcc78b9f2cb4ac215896c818258341212f9292fb11059b00933324f89e3d544f",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "interpreter::string_operations::take_tests::named_take_operation_and_operand_fuel_boundaries_preserve_owner_and_drop_without_copy",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "interpreter::string_operations::take_tests::named_take_operation_and_operand_fuel_boundaries_preserve_owner_and_drop_without_copy",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "interpreter::string_operations::take_tests::named_take_operation_and_operand_fuel_boundaries_preserve_owner_and_drop_without_copy"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.31849350000265986,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-44.log",
+      "log_sha256": "cea92c98b9f21e32f6d8df97a6675bee0963fb517e79caaa082c93a841722ca5",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::selected_profile::receiving_tests::named_string_transfer_retained_replay_matches_ordinary_exact_and_short",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "cleanup_plan::replay::selected_profile::receiving_tests::named_string_transfer_retained_replay_matches_ordinary_exact_and_short",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "cleanup_plan::replay::selected_profile::receiving_tests::named_string_transfer_retained_replay_matches_ordinary_exact_and_short"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 1.271906958980253,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-45.log",
+      "log_sha256": "11101b138b3d47b1a831643993210c08e37f68a3bd34f27f6e4f4271d456a5f1",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "executable_sha256_before": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "executable_sha256_after": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "owned_data",
+      "selector": "nested_collection_record::subtree::string_transfer::recursive_explicit_string_transfer_matches_original_and_subtree_full_populations",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/owned_data-ba57de47a84533f4",
+        "nested_collection_record::subtree::string_transfer::recursive_explicit_string_transfer_matches_original_and_subtree_full_populations",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/owned_data-ba57de47a84533f4",
+      "discovered_names": [
+        "nested_collection_record::subtree::string_transfer::recursive_explicit_string_transfer_matches_original_and_subtree_full_populations"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 6.431700249988353,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-46.log",
+      "log_sha256": "7856c622a3dc23db9bb8212a2b896a85ea5cc2815408bd2c900944990906ea39",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "executable_sha256_before": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "executable_sha256_after": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "owned_data",
+      "selector": "nested_collection_record::subtree::string_transfer::explicit_recursive_transfer_retains_pointer_without_allocating_copying_or_resizing",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/owned_data-ba57de47a84533f4",
+        "nested_collection_record::subtree::string_transfer::explicit_recursive_transfer_retains_pointer_without_allocating_copying_or_resizing",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/owned_data-ba57de47a84533f4",
+      "discovered_names": [
+        "nested_collection_record::subtree::string_transfer::explicit_recursive_transfer_retains_pointer_without_allocating_copying_or_resizing"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 5.056061458017211,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-47.log",
+      "log_sha256": "dfe7ac5629fb6c60e940541c9517e36cdb72b97086162ef841ae5a790b23d1db",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "executable_sha256_before": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "executable_sha256_after": "1b0c63a807a96b88a4de6f6d1df4bbedb86c9467f78e07e852805b35f8566e07",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "owned_data",
+      "selector": "nested_collection_record::subtree::string_transfer::explicit_recursive_transfer_keeps_pre_post_and_late_field_failure_status",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/owned_data-ba57de47a84533f4",
+        "nested_collection_record::subtree::string_transfer::explicit_recursive_transfer_keeps_pre_post_and_late_field_failure_status",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/owned_data-ba57de47a84533f4",
+      "discovered_names": [
+        "nested_collection_record::subtree::string_transfer::explicit_recursive_transfer_keeps_pre_post_and_late_field_failure_status"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 5.838778332981747,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-48.log",
+      "log_sha256": "8b57c929e7387ba964ba106ab1d69f3e07802ac4993496d62ed006de5d611bf3",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "099052f71b6ec033ef66bd45319bf882b27856ac2c80107d146e3dd5d7c8619a",
+      "executable_sha256_before": "099052f71b6ec033ef66bd45319bf882b27856ac2c80107d146e3dd5d7c8619a",
+      "executable_sha256_after": "099052f71b6ec033ef66bd45319bf882b27856ac2c80107d146e3dd5d7c8619a",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "project",
+      "selector": "semantic_cache::string_transfer::named_string_transfer_checked_cache_keeps_cold_warm_provider_drift_and_recovery",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/project-9bc7c8c1113ee95a",
+        "semantic_cache::string_transfer::named_string_transfer_checked_cache_keeps_cold_warm_provider_drift_and_recovery",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/project-9bc7c8c1113ee95a",
+      "discovered_names": [
+        "semantic_cache::string_transfer::named_string_transfer_checked_cache_keeps_cold_warm_provider_drift_and_recovery"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 101,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.7673845830140635,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-49.log",
+      "log_sha256": "2d6e06e32bbaa0a3ced7cd09b499b3d656dd96765f95bbcad823788d46eb60a8",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "hir::canonical_loan_storage::deferred::tests::deferred_complete_plans_preserve_saved_full_validator_forgery_and_error_priority",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "hir::canonical_loan_storage::deferred::tests::deferred_complete_plans_preserve_saved_full_validator_forgery_and_error_priority",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "hir::canonical_loan_storage::deferred::tests::deferred_complete_plans_preserve_saved_full_validator_forgery_and_error_priority"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.7893133749894332,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-50.log",
+      "log_sha256": "2f426736005b7d4a4335527b401853787cb7dbee013a33cabaa290bd6b734081",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "hir::canonical_loan_storage::deferred::tests::deferred_receipt_seals_exact_subject_and_allocates_no_carrier_or_plan_payload",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "hir::canonical_loan_storage::deferred::tests::deferred_receipt_seals_exact_subject_and_allocates_no_carrier_or_plan_payload",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "hir::canonical_loan_storage::deferred::tests::deferred_receipt_seals_exact_subject_and_allocates_no_carrier_or_plan_payload"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.35206095900502987,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-51.log",
+      "log_sha256": "adba5c285f1d905e7e3c0a3b542b79ff516fcc2308f1b6b2b5c82f159b6a8b48",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "hir::canonical_loan_storage::deferred::tests::complete_invocation_removes_exact_saved_final_rebuild_and_preserves_sticky_budget_drop",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "hir::canonical_loan_storage::deferred::tests::complete_invocation_removes_exact_saved_final_rebuild_and_preserves_sticky_budget_drop",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "hir::canonical_loan_storage::deferred::tests::complete_invocation_removes_exact_saved_final_rebuild_and_preserves_sticky_budget_drop"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.39952558299410157,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-52.log",
+      "log_sha256": "37b965bf3b50319f8b8f57e3b0232a967fe5f6a3632131a0085acae662ad356a",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "c393f94ae6ceddbcfdc5d9d27793efe35d75e53e0469fac4750e2b74dfdc1165",
+      "executable_sha256_before": "c393f94ae6ceddbcfdc5d9d27793efe35d75e53e0469fac4750e2b74dfdc1165",
+      "executable_sha256_after": "c393f94ae6ceddbcfdc5d9d27793efe35d75e53e0469fac4750e2b74dfdc1165",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "semaprax",
+      "selector": "cli_driver::cli::help::authoring::tests::routes_and_search_are_bounded_exact_and_have_complete_continuations",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-0fdb73a06f01a484",
+        "cli_driver::cli::help::authoring::tests::routes_and_search_are_bounded_exact_and_have_complete_continuations",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-0fdb73a06f01a484",
+      "discovered_names": [
+        "cli_driver::cli::help::authoring::tests::routes_and_search_are_bounded_exact_and_have_complete_continuations"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 1.220056833990384,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-53.log",
+      "log_sha256": "cf01868dd9997eb38f178ec6c99bae81c36d6bb48e7e7a3de8c30c5312406bf4",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "project::incremental::cold_source_tests::checked_cold_source_preserves_limits_costs_current_key_and_body_reuse_fallback",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "project::incremental::cold_source_tests::checked_cold_source_preserves_limits_costs_current_key_and_body_reuse_fallback",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "project::incremental::cold_source_tests::checked_cold_source_preserves_limits_costs_current_key_and_body_reuse_fallback"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.3887507499894127,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-54.log",
+      "log_sha256": "220a96c931aed6ccda3965d808e7626c006165757bbf4ecbf7bb1ddc883be59f",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "project::incremental::cold_source_tests::borrowed_checked_cold_preserves_complete_project_graph_image_warm_and_body_edit",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "project::incremental::cold_source_tests::borrowed_checked_cold_preserves_complete_project_graph_image_warm_and_body_edit",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "project::incremental::cold_source_tests::borrowed_checked_cold_preserves_complete_project_graph_image_warm_and_body_edit"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 101,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 1.292029417003505,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-55.log",
+      "log_sha256": "0befd143cf19eb78957c87679068bff38d48560cf1e5b3f91456decda22be0d2",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_leaf::checked_key::tests::cold_checked_key_matches_complete_owned_producer_and_moves_generated_main",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "workspace_graph::expected_projection::borrowed_leaf::checked_key::tests::cold_checked_key_matches_complete_owned_producer_and_moves_generated_main",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "workspace_graph::expected_projection::borrowed_leaf::checked_key::tests::cold_checked_key_matches_complete_owned_producer_and_moves_generated_main"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.32422208299976774,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-56.log",
+      "log_sha256": "46fb6b0e1ebc150516cdc57bc4b88bf1bba9a6e6b27758b83c99a09966103c5c",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_leaf::checked_key::tests::checked_key_omits_only_discarded_sidecar_clone_payloads_and_preserves_sticky_refusal",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "workspace_graph::expected_projection::borrowed_leaf::checked_key::tests::checked_key_omits_only_discarded_sidecar_clone_payloads_and_preserves_sticky_refusal",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "workspace_graph::expected_projection::borrowed_leaf::checked_key::tests::checked_key_omits_only_discarded_sidecar_clone_payloads_and_preserves_sticky_refusal"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 0,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.32504220900591463,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-57.log",
+      "log_sha256": "b3779b48f9e9aabfdc3b17c81be4a931e14d0f0a3e56c5fe9999326e8ac6e61d",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "runtime_manifest_sha256": "1f95caa170a2f3009e0a29802315eae4e3f72c77d6b56272601212841b85108b",
+      "driver_sha256": "a70437a3efb2b17e71bd89672c1f2ba1c766aa8562ae02b99e62ac4127a5a190",
+      "diagnostic_capture": null,
+      "qualification_wall_comparison_eligible": true,
+      "executable_sha256": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_before": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "executable_sha256_after": "9183089b7b9099dfdff5ec03d1ebf15b46b9aa861c53387c99594b75d852f7df",
+      "owning_build_receipt_sha256": "13c1655af292f5d55abbe75feaf1f482a5b03766ec96a6040adc44a70607c4fa",
+      "owning_build_metadata_sha256": "610969ad0fb389075f27b1ae258cb8bbf1b989c2ee02eb1082069f99d57a9c8b",
+      "source_subject": "af8345d25a25857dd16f274b913155773e807121",
+      "harness": "lib",
+      "selector": "hir::canonical_loan_storage::deferred::tests::selected::genuine_selected_4096_join_preserves_saved_final_boundary_plan_and_error_priority",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+        "hir::canonical_loan_storage::deferred::tests::selected::genuine_selected_4096_join_preserves_saved_final_boundary_plan_and_error_priority",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "discovered_names": [
+        "hir::canonical_loan_storage::deferred::tests::selected::genuine_selected_4096_join_preserves_saved_final_boundary_plan_and_error_priority"
+      ],
+      "expected_selected_static": 1,
+      "exit_code": 101,
+      "timed_out": false,
+      "resource_refusal": null,
+      "wall_seconds": 0.7273848750046454,
+      "log": "/Volumes/Semaprax/lane-prompts/cold-source-selected-final-pin-20261012/owning-selected-58.log",
+      "log_sha256": "6ceb4a1695c08ef6ac17306af964186cc574ce9db6a0be63b1dd3ff3c0bf4639",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    }
+  ]
+}

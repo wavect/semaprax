@@ -1,0 +1,10 @@
+
+running 1 test
+test source_verify::byte_traversal::nested::tests::nonnested_byte_source_profile_keeps_full_old_diagnostics_and_before_scope_unwinds ... 
+thread 'source_verify::byte_traversal::nested::tests::nonnested_byte_source_profile_keeps_full_old_diagnostics_and_before_scope_unwinds' (4348726) panicked at src/source_verify/byte_traversal/nested/tests.rs:86:60:
+v1 scope unwind
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8847 filtered out; finished in 0.03s
+

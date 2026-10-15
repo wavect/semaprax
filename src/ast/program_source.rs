@@ -6,6 +6,7 @@ use super::{
 };
 
 mod decl_slices;
+pub(crate) mod function_alias;
 pub(crate) use decl_slices::DeclSlices;
 #[cfg(test)]
 mod decl_slices_original;

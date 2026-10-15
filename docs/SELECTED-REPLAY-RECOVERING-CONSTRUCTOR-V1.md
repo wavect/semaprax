@@ -379,6 +379,26 @@ compiled, with full-source byte controls. Deep walks can pay more cumulative
 replacement backing than the old fixed array; lower cost is claimed only for
 measured shallow owners. Full-HIR and application qualification is pending CI.
 
+The ordinary structural call lookup separately owns a growing stack of lexical
+child cursors. Its original 514-slot traversal ceiling is independent of current
+backing capacity. The first lookup acquires two slots; later descents acquire
+complete replacement buffers up to that same ceiling, charging initialized and
+moved slots to the existing work allowance. Requires/body/ensures order, early
+lookup return, missing-call diagnostics and downstream signature/transfer checks
+are unchanged. Reuse authenticates the existing payer before touching a slot.
+The complete fixed-capacity owner remains independently compiled, and byte
+controls reconstruct the full previous call module and original lookup body.
+Deep traversals can reserve more cumulative bytes; no quota or refund changes.
+`structural_control::calls::cursor::tests` owns real-HIR lookup parity, the raw
+514/515 boundary, allocator overlap and release, exact/short/zero funding and
+work-before-allocation controls. Full-HIR and application qualification remains
+pending CI; isolated carrier probes do not establish application fit.
+
+Physical reservation wrappers propagate the compiler's caller coordinate to the
+existing first-refusal receipt. This preserves all requests, debits, refusal
+ordering and messages while identifying the requesting receiver rather than the
+shared wrapper. It grants no source or replay authority.
+
 Owning lib controls (authored, unexecuted):
 
 - `cleanup_plan::replay::expression_facts::tests::errors::typed_fact_policy_matches_saved_legacy_text_order_and_full_facts`

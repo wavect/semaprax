@@ -79,10 +79,10 @@ pub fn projection_roots<'a>(
     if !grow_frames(&mut stack, 1, &mut reserve) {
         return false;
     }
-    if !reserve(std::mem::size_of::<[Option<PatternFrame<'_>>; 129]>()) {
+    if !reserve(std::mem::size_of::<Vec<Option<PatternFrame<'_>>>>()) {
         return false;
     }
-    let mut patterns = [None; 129];
+    let mut patterns = Vec::new();
 
     let mut markers = Vec::new();
     let mut uses = Vec::new();
@@ -271,9 +271,23 @@ fn pattern_names<'a>(
     pattern: &'a super::MatchPattern,
     names: &mut Vec<&'a str>,
     reserve: &mut impl FnMut(usize) -> bool,
-    frames: &mut [Option<PatternFrame<'a>>; 129],
+    frames: &mut Vec<Option<PatternFrame<'a>>>,
 ) -> bool {
     use super::{MatchPattern, RecordMatchFieldPattern};
+    if !reserve(0) {
+        return false;
+    }
+    if frames.is_empty() {
+        // Acquire the complete original fixed pattern capacity only when a
+        // pattern exists. The 129-slot walk and dispatcher remain unchanged.
+        if !reserve(std::mem::size_of::<[Option<PatternFrame<'_>>; 129]>()) {
+            return false;
+        }
+        if frames.try_reserve_exact(129).is_err() || frames.capacity() != 129 {
+            return false;
+        }
+        frames.resize(129, None);
+    }
     frames[0] = Some(PatternFrame::Pattern(pattern));
     let mut len = 1;
     while len != 0 {

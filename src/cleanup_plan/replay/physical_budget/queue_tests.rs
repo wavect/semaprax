@@ -1,6 +1,47 @@
 //! Actual requested layouts and FIFO contents, independent of growth arithmetic.
 use super::*;
 use crate::test_allocation_observer;
+
+#[test]
+fn first_refusal_names_the_requesting_receiver_through_reservation_wrappers() {
+    let function = function();
+    for operation in 0..6 {
+        let mut budget = ReplayBudget::new();
+        budget.payer = AllocationPayer::ActiveBuilder;
+        budget.prepare_builder(&function).unwrap();
+        budget.prepare_clone_cursor(&function).unwrap();
+        let payload = vec![7u64];
+        let mut vector = Vec::<u64>::new();
+        let mut queue = VecDeque::<u64>::new();
+        let ((begin, end), refused, used, receipt, site) =
+            crate::bounded_output::with_limit_usage_refusal_site(0, || {
+                let begin = line!();
+                let result = match operation {
+                    0 => budget.reserve_bytes(&function, 8, "direct caller"),
+                    1 => budget.reserve_array::<u64>(&function, 1, "array caller"),
+                    2 => budget.reserve_clone(&function, &payload, "clone caller"),
+                    3 => budget.reserve_btree_node::<u64, ()>(&function, "tree caller"),
+                    4 => budget.reserve_vec(&function, &mut vector, 1, "vector caller"),
+                    5 => budget.reserve_deque(&function, &mut queue, 1, "queue caller"),
+                    _ => unreachable!(),
+                };
+                let end = line!();
+                assert_eq!(result.unwrap_err().code, "SPX-H006");
+                assert!(budget.reserve_bytes(&function, 99, "later caller").is_err());
+                (begin, end)
+            });
+        assert!(refused);
+        assert_eq!(used, 0);
+        assert!(receipt.unwrap().requested > 0);
+        assert_eq!(receipt.unwrap().remaining, 0);
+        let site = site.unwrap();
+        assert_eq!(site.file(), file!());
+        assert!(site.line() > begin && site.line() < end);
+        assert_eq!(vector.capacity(), 0);
+        assert_eq!(queue.capacity(), 0);
+    }
+}
+
 const EXPECTED: usize = 255 * std::mem::size_of::<u64>();
 fn function() -> ResolvedFunction {
     let parsed = crate::check(

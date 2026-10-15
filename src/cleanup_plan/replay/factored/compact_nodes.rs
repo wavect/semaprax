@@ -88,4 +88,4 @@ impl Node {
 
 #[cfg(test)]
 #[path = "compact_nodes/before/mod.rs"]
-mod before;
+pub(super) mod before;

@@ -4358,8 +4358,16 @@ fn build_resolved_core_current(
     #[cfg(test)]
     if constructor_failure::receiving::before::active() {
         return constructor_failure::receiving::before::build_resolved_core_current(
-            programs,module_paths,dependency_depths,authored,authenticated_sources,frontend,layouts,compact_order,
-        ).map_err(constructor_failure::receiving::CoreFailure::from);
+            programs,
+            module_paths,
+            dependency_depths,
+            authored,
+            authenticated_sources,
+            frontend,
+            layouts,
+            compact_order,
+        )
+        .map_err(constructor_failure::receiving::CoreFailure::from);
     }
     let retained_output_only = compact_order.is_some();
     let mut loan_scratch = loan_retention::RetentionScratch::default();
@@ -4376,7 +4384,7 @@ fn build_resolved_core_current(
             )
         )?;
     }
-    checked_retention::reserve_input_carriers(programs.len())?;
+    checked_retention::reserve_alias_input_carriers(programs.len())?;
     // The final uncached attempt uses a compact index and sequential HIR
     // filtering; earlier receipts retain the complete synthetic HIR vector.
     let mut validation = retained_output_only
@@ -4424,15 +4432,29 @@ fn build_resolved_core_current(
         }
         let synthetic = staged!(
             SyntheticModule,
-            constructor_failure::typed::construct_transient_core(
-                program,
-                authored,
-                programs,
-                layouts,
-                &mut core_proofs,
-                receiver.as_mut().expect("live constructor receiver"),
-            )
-            .map_err(|failure| receiver.take().expect("first constructor error exits core").receive_typed(failure))
+            (if retained_output_only & frontend.is_none() {
+                constructor_failure::typed::construct_transient_alias_core(
+                    program,
+                    authored,
+                    programs,
+                    layouts,
+                    &mut core_proofs,
+                    receiver.as_mut().expect("live constructor receiver"),
+                )
+            } else {
+                constructor_failure::typed::construct_transient_core(
+                    program,
+                    authored,
+                    programs,
+                    layouts,
+                    &mut core_proofs,
+                    receiver.as_mut().expect("live constructor receiver"),
+                )
+            })
+            .map_err(|failure| receiver
+                .take()
+                .expect("first constructor error exits core")
+                .receive_typed(failure))
         )?;
         // Exact stubs/spans and the unconditional prebound govern hits.
         let cached = staged!(
@@ -4442,6 +4464,8 @@ fn build_resolved_core_current(
                     cache.checked_module(&program.path, input),
                 expected_projection::borrowed_leaf::Input::Borrowed(input) =>
                     cache.checked_module_source(&program.path, input),
+                expected_projection::borrowed_leaf::Input::Transient(_) =>
+                    unreachable!("transient wrapper view has no frontend cache"),
             })
         );
         let shared_before = core_proofs.base_prelude.selected_bytes();
@@ -4665,7 +4689,8 @@ fn build_resolved_core_current(
         return Err(vec![graph_error(
             "SPX-G173",
             "workspace dependency-depth keys disagree with authenticated modules",
-        )].into());
+        )]
+        .into());
     }
     let owned_dependency_depths = staged!(
         CoreDirectories,

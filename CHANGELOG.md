@@ -2,6 +2,14 @@
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
 
+- Check frozen v11 nested-record String refusal at descriptor derivation and replay, retaining array source refusal and adding an identical Bool-field positive control. Preserve the language's admitted String records.
+
+- Acquire the fixed 129-slot formatter hygiene pattern stack only for actual patterns, retaining the complete original dispatcher and source inverses. Add the unchanged 512-payload resolver source as a canonical-budget regression.
+
+- Preserve every historical CLI-help known answer while checking native-test timing and the four documented JSON-codec/fused-source usage additions; bind the complete new projection before restoring the frozen catalogue.
+
+- Grow structural call lookup scratch at actual depth under its unchanged 514-slot bound, paying complete replacement backing and work. Retain the complete original lookup and receiver controls, and propagate reservation caller coordinates through physical-budget wrappers.
+
 - Bind browser graph pins to the hosted paid-cursor result: both complete graphs retain every prior byte after only the declared 458,408-byte bill reduction and self-digest restoration. Preserve all historical cursor controls.
 
 - Grow the paid expression-fact Arena cursor at actual traversal depth, reserving complete replacement backing and copy work while retaining the original factory, type cursor, depth ceiling, producer controls and preclone payload charges.

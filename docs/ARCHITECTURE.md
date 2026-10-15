@@ -4853,6 +4853,12 @@ older independent receiver. Exact full-body source projection, literal spill,
 whole collector Drop and pending qualification controls are recorded in
 `docs/evidence/cleanup-shape-cursor/HANDOFF.md`.
 
+`cleanup_plan/replay/structural_control/calls/cursor.rs` owns the structural
+call lookup's paid continuation storage. It grows at actual depth under the
+original independent 514-slot ceiling. The full signature, parameter, transfer
+and leaf validation receivers remain in `calls.rs`; the complete previous
+lookup owner remains compiled beside its funding and parity controls.
+
 
 `loan_plan/paid_cursor.rs` owns borrowed preorder discovery for the funded
 candidate receiver. One pure full discovery preflight precedes the complete

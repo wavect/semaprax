@@ -117,6 +117,8 @@ pub(in crate::workspace_graph) fn build_resolved_core_current(
                     cache.checked_module(&program.path, input),
                 expected_projection::borrowed_leaf::Input::Borrowed(input) =>
                     cache.checked_module_source(&program.path, input),
+                expected_projection::borrowed_leaf::Input::Transient(_) =>
+                    unreachable!("complete old constructor cannot produce transient function view"),
             })
         );
         let (resolved, static_text) = if let Some((resolved, resolver_bytes, original_loan_bytes)) =

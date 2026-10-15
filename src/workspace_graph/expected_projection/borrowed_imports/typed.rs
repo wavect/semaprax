@@ -397,26 +397,40 @@ mod directory_tests {
             "/docs/evidence/constructor-directory-propagation-825/source-inverses.json"
         )))
         .unwrap();
+        let named = [
+            crate::source_reflows_merge::directory825_input(
+                "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+                include_str!("typed.rs"),
+            ),
+            crate::source_reflows_merge::directory825_input(
+                "docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md",
+                include_str!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md"
+                )),
+            ),
+            crate::source_reflows_merge::directory825_input(
+                "src/workspace_graph/expected_projection/borrowed_imports.rs",
+                include_str!("../borrowed_imports.rs"),
+            ),
+        ];
         let sources = [
             (
-                include_str!("typed.rs"),
+                named[0].as_str(),
                 include_str!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
                     "/docs/evidence/constructor-directory-propagation-825/original/00.before"
                 )),
             ),
             (
-                include_str!(concat!(
-                    env!("CARGO_MANIFEST_DIR"),
-                    "/docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md"
-                )),
+                named[1].as_str(),
                 include_str!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
                     "/docs/evidence/constructor-directory-propagation-825/original/01.before"
                 )),
             ),
             (
-                include_str!("../borrowed_imports.rs"),
+                named[2].as_str(),
                 include_str!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
                     "/docs/evidence/constructor-directory-propagation-825/original/02.before"
@@ -459,3 +473,10 @@ mod directory_tests {
         assert!(!live.contains("budgeted_format, directory"));
     }
 }
+
+mod alias;
+pub(in crate::workspace_graph) use alias::construct_transient;
+
+#[cfg(test)]
+#[path = "typed/before_alias.rs"]
+mod before_alias;

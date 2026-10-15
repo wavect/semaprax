@@ -1,26 +1,35 @@
-//! Borrowed ordered declarations: an authored selection and generated suffix.
-//! Numeric ordinals borrow the exact retained owner; no reference directory.
-pub(crate) struct DeclSlices<'a, T> {
-    authored: &'a [T],
-    indices: Option<&'a [usize]>,
-    generated: &'a [T],
-    length: usize,
+//! Ordered borrowed declarations. The projected variant preserves the exact
+//! ordinary view/iterator carrier size while lending source-held payloads.
+pub(crate) trait DeclarationDirectory<T> {
+    fn len(&self) -> usize;
+    fn get(&self, index: usize) -> Option<&T>;
+}
+pub(crate) enum DeclSlices<'a, T> {
+    Ordinary {
+        authored: &'a [T],
+        indices: Option<&'a [usize]>,
+        generated: &'a [T],
+    },
+    Projected {
+        authored: &'a [T],
+        directory: &'a dyn DeclarationDirectory<T>,
+        start: usize,
+    },
 }
 impl<'a, T> DeclSlices<'a, T> {
     pub(crate) fn one(authored: &'a [T]) -> Self {
-        Self {
+        Self::Ordinary {
             authored,
             indices: None,
             generated: &[],
-            length: authored.len(),
         }
     }
     pub(super) fn append(authored: &'a [T], generated: &'a [T]) -> Option<Self> {
-        Some(Self {
+        authored.len().checked_add(generated.len())?;
+        Some(Self::Ordinary {
             authored,
             indices: None,
             generated,
-            length: authored.len().checked_add(generated.len())?,
         })
     }
     pub(super) fn selected(
@@ -33,55 +42,137 @@ impl<'a, T> DeclSlices<'a, T> {
         {
             return None;
         }
-        Some(Self {
+        indices.len().checked_add(generated.len())?;
+        Some(Self::Ordinary {
             authored,
             indices: Some(indices),
             generated,
-            length: indices.len().checked_add(generated.len())?,
+        })
+    }
+    pub(super) fn projected(
+        authored: &'a [T],
+        directory: &'a dyn DeclarationDirectory<T>,
+    ) -> Option<Self> {
+        authored.len().checked_add(directory.len())?;
+        Some(Self::Projected {
+            authored,
+            directory,
+            start: 0,
         })
     }
     fn authored_len(&self) -> usize {
-        self.indices.map_or(self.authored.len(), <[usize]>::len)
+        match self {
+            Self::Ordinary {
+                authored, indices, ..
+            } => indices.map_or(authored.len(), <[usize]>::len),
+            Self::Projected { authored, .. } => authored.len(),
+        }
     }
     pub(crate) fn len(&self) -> usize {
-        self.length
+        match self {
+            Self::Ordinary { generated, .. } => self.authored_len() + generated.len(),
+            Self::Projected {
+                directory, start, ..
+            } => self.authored_len() + directory.len() - start,
+        }
     }
     pub(crate) fn first(&self) -> Option<&'a T> {
         self.get(0)
     }
     pub(crate) fn get(&self, index: usize) -> Option<&'a T> {
-        let authored_len = self.authored_len();
-        if index < authored_len {
-            self.authored
-                .get(self.indices.map_or(index, |indices| indices[index]))
-        } else {
-            self.generated.get(index.checked_sub(authored_len)?)
+        match self {
+            Self::Ordinary {
+                authored,
+                indices,
+                generated,
+            } => {
+                let count = indices.map_or(authored.len(), <[usize]>::len);
+                if index < count {
+                    authored.get(indices.map_or(index, |indices| indices[index]))
+                } else {
+                    generated.get(index.checked_sub(count)?)
+                }
+            }
+            Self::Projected {
+                authored,
+                directory,
+                start,
+            } => {
+                if index < authored.len() {
+                    authored.get(index)
+                } else if index < self.len() {
+                    directory.get(start + index - authored.len())
+                } else {
+                    None
+                }
+            }
         }
     }
     pub(crate) fn suffix(&self, start: usize) -> Option<Self> {
-        if start > self.length {
+        if start > self.len() {
             return None;
         }
-        let authored_len = self.authored_len();
-        if start < authored_len {
-            match self.indices {
-                Some(indices) => Self::selected(self.authored, &indices[start..], self.generated),
-                None => Self::append(&self.authored[start..], self.generated),
+        match self {
+            Self::Ordinary {
+                authored,
+                indices,
+                generated,
+            } => {
+                let count = self.authored_len();
+                if start < count {
+                    match indices {
+                        Some(indices) => Self::selected(authored, &indices[start..], generated),
+                        None => Self::append(&authored[start..], generated),
+                    }
+                } else {
+                    Some(Self::one(&generated[start - count..]))
+                }
             }
-        } else {
-            Some(Self::one(&self.generated[start - authored_len..]))
+            Self::Projected {
+                authored,
+                directory,
+                start: offset,
+            } => {
+                if start < authored.len() {
+                    Some(Self::Projected {
+                        authored: &authored[start..],
+                        directory: *directory,
+                        start: *offset,
+                    })
+                } else {
+                    Some(Self::Projected {
+                        authored: &[],
+                        directory: *directory,
+                        start: offset + start - authored.len(),
+                    })
+                }
+            }
         }
     }
     pub(crate) fn iter(&self) -> DeclIter<'a, T> {
         DeclIter {
-            view: Self {
-                authored: self.authored,
-                indices: self.indices,
-                generated: self.generated,
-                length: self.length,
+            view: match self {
+                Self::Ordinary {
+                    authored,
+                    indices,
+                    generated,
+                } => Self::Ordinary {
+                    authored,
+                    indices: *indices,
+                    generated,
+                },
+                Self::Projected {
+                    authored,
+                    directory,
+                    start,
+                } => Self::Projected {
+                    authored,
+                    directory: *directory,
+                    start: *start,
+                },
             },
             front: 0,
-            back: self.length,
+            back: self.len(),
         }
     }
 }
@@ -129,3 +220,10 @@ impl<'a, T> IntoIterator for DeclSlices<'a, T> {
         self.iter()
     }
 }
+
+#[cfg(test)]
+#[path = "decl_slices/alias_tests.rs"]
+mod alias_tests;
+#[cfg(test)]
+#[path = "decl_slices/before_alias.rs"]
+mod before_alias;

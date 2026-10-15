@@ -205,7 +205,72 @@ fn excluded_nested_result_shapes_fail_before_descriptor_creation() {
 @id("hostile.app") fn main() -> i64 {{ 0 }}
 "#
         );
-        assert!(semaprax::check(&source, "hostile-nested-api.spx").is_err());
+        let checked = semaprax::check(&source, "hostile-nested-api.spx");
+        if field_type != "string" {
+            // Fixed arrays remain outside ordinary owned-record admission.
+            assert_eq!(field_type, "[u8; 1]");
+            let errors = checked.expect_err("the array field must still fail source checking");
+            assert!(errors
+                .iter()
+                .any(|error| error.message.contains("record `Inner`")));
+            continue;
+        }
+
+        // String records are admitted by the language. That cannot widen the
+        // frozen Project-v11 descriptor or authorize a target artifact.
+        let checked = checked.expect("the language admits this owned String record");
+        let canonical = semaprax::format::canonical(&checked);
+        let reparsed = semaprax::check(&canonical, "hostile-nested-api.spx").unwrap();
+        assert_eq!(semaprax::format::canonical(&reparsed), canonical);
+        let program = hir::resolve(&reparsed).unwrap();
+        let selected = ["hostile.make".to_owned()];
+        let error =
+            derive_nested_owned_record_api_descriptor(&program, &selected, subject()).unwrap_err();
+        assert_eq!(error.code, "SPX-J118");
+        assert_eq!(
+            error.message,
+            "nested owned-record field type is unsupported"
+        );
+
+        // A descriptor for an otherwise identical admitted Bool field proves
+        // this refusal is the closed field vocabulary, not another bad input.
+        let control = source
+            .replace("closed: string", "closed: bool")
+            .replace("closed: \"text\"", "closed: false");
+        assert_ne!(control, source);
+        let control =
+            hir::resolve(&semaprax::check(&control, "nested-control.spx").unwrap()).unwrap();
+        let descriptor =
+            derive_nested_owned_record_api_descriptor(&control, &selected, subject()).unwrap();
+        let bytes = descriptor.canonical_bytes();
+        let digest = descriptor.digest();
+        assert_eq!(
+            replay_nested_owned_record_api_descriptor(
+                &control,
+                &selected,
+                subject(),
+                &bytes,
+                &digest,
+            )
+            .unwrap()
+            .canonical_bytes(),
+            bytes
+        );
+        // Valid framing, a valid digest and the same declaration IDs do not
+        // let a saved Bool descriptor stand in for the current String HIR.
+        let replay_error = replay_nested_owned_record_api_descriptor(
+            &program,
+            &selected,
+            subject(),
+            &bytes,
+            &digest,
+        )
+        .unwrap_err();
+        assert_eq!(replay_error.code, "SPX-J118");
+        assert_eq!(
+            replay_error.message,
+            "nested owned-record field type is unsupported"
+        );
     }
 }
 

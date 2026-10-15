@@ -1,0 +1,60 @@
+{
+  "status": "SOURCE_ONLY_UNCOMPILED_UNEXECUTED",
+  "new_test_bodies": 8,
+  "selectors": [
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "ast::program_source::decl_slices::alias_tests::ordinary_and_projected_views_keep_complete_old_size_order_suffix_and_iteration",
+      "definition": "src/ast/program_source/decl_slices/alias_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::alias::tests::retained_same_name_views_lend_actual_provider_payload_in_original_order_and_hir",
+      "definition": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::alias::tests::renamed_and_malformed_wrapper_payloads_keep_the_complete_owned_fallback",
+      "definition": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::alias::tests::whole_constructor_owner_and_drop_report_actual_costs_without_universal_gain_claim",
+      "definition": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::alias::tests::foreign_and_restored_owner_fail_before_any_projection_or_allocation",
+      "definition": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::alias::tests::mixed_borrowed_renamed_and_owned_type_roots_keep_partial_recursive_drop",
+      "definition": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::alias::tests::complete_immediate_sources_and_independent_old_receivers_remain_authenticated",
+      "definition": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_uncached_core_old_and_current_include_new_entry_controls_and_all_drop",
+      "definition": "src/workspace_graph/function_alias/before_core/tests.rs"
+    }
+  ],
+  "unchanged_application_controls": [
+    "ShiftSim15",
+    "starterCLI49",
+    "original source/HIR/graph/cache/image/native/Wasm owners"
+  ],
+  "numeric_gain_or_fit_claim": null
+}

@@ -25,6 +25,7 @@ impl ReplayBudget {
         })
     }
 
+    #[track_caller]
     pub(super) fn reserve_bytes(
         &mut self,
         function: &ResolvedFunction,
@@ -107,6 +108,7 @@ impl ReplayBudget {
         }
     }
 
+    #[track_caller]
     pub(super) fn reserve_clone<T: ClonePayload>(
         &mut self,
         function: &ResolvedFunction,
@@ -136,6 +138,7 @@ impl ReplayBudget {
         self.reserve_bytes(function, bytes, phase)
     }
 
+    #[track_caller]
     pub(super) fn reserve_array<T>(
         &mut self,
         function: &ResolvedFunction,
@@ -155,6 +158,7 @@ impl ReplayBudget {
         self.reserve_bytes(function, bytes, phase)
     }
 
+    #[track_caller]
     pub(super) fn reserve_btree_node<K, V>(
         &mut self,
         function: &ResolvedFunction,
@@ -173,6 +177,7 @@ impl ReplayBudget {
         self.reserve_bytes(function, bytes, phase)
     }
 
+    #[track_caller]
     pub(super) fn reserve_deque<T>(
         &mut self,
         function: &ResolvedFunction,
@@ -225,6 +230,7 @@ impl ReplayBudget {
     /// The old buffer remains fully charged while its replacement is allocated.
     /// Selected growth is geometric; ordinary replay retains its original allocator
     /// growth and performs no extra scans, reservations or allocator calls here.
+    #[track_caller]
     pub(super) fn reserve_vec<T>(
         &mut self,
         function: &ResolvedFunction,

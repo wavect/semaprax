@@ -1,0 +1,13 @@
+{
+  "before_commit": "334baac4318db4a3da3b8d3d00a6f061d9eb94c1",
+  "sources": {
+    "docs/evidence/pattern-hygiene-scratch-v1/expression_statement.before.rs.txt": {
+      "bytes": 13121,
+      "sha256": "2ee5ce38e7f34d4954237525d4b780b0f13d0919b0afda328ff0af42d7488801"
+    },
+    "src/ast/expression_statement.rs": {
+      "bytes": 13616,
+      "sha256": "eb58cb1f4c2294220542cf2d225a6477984c8f69d7b019414a4b85be75ee64a1"
+    }
+  }
+}

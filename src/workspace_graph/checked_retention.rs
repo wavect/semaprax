@@ -238,3 +238,15 @@ pub(super) fn reserve_input_carriers(count: usize) -> Result<(), Vec<Diagnostic>
             .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?,
     )
 }
+
+/// Actual new uncached selector controls; the old carrier reservation remains
+/// independently callable and unchanged. Workspace admission already bounds
+/// count by MAX_FILES, so this multiplication cannot overflow.
+pub(super) fn reserve_alias_input_carriers(count: usize) -> Result<(), Vec<Diagnostic>> {
+    reserve_builder_structure(
+        2 * std::mem::size_of::<Result<(), Vec<Diagnostic>>>()
+            + 2 * std::mem::size_of::<usize>()
+            + count * 2 * std::mem::size_of::<bool>(),
+    )?;
+    reserve_input_carriers(count)
+}

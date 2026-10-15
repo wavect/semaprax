@@ -1,0 +1,30 @@
+{
+  "status": "SOURCE_ONLY_NOT_EXECUTABLY_QUALIFIED",
+  "complete_current_to_677_inputs": 4,
+  "new_test_bodies": 0,
+  "old_receiver_definitions_restored": [
+    "grow<T>",
+    "CanonicalFrame"
+  ],
+  "unchanged_677_assembly_replay": {
+    "status": "SOURCE_ONLY_JOINED_NOT_QUALIFIED",
+    "named_view_rows": {
+      "d8": 44,
+      "844": 5,
+      "846": 5,
+      "836": 1,
+      "main": 5
+    },
+    "full_844_original_rows": 26,
+    "immediate_844_old_receivers": 5,
+    "new_846_owner_bindings": 3,
+    "old_836_full_input_checks": 25,
+    "actual_MAIN_inputs_byte_exact": 20,
+    "old_packet_files_byte_exact": 222,
+    "new_children_in_each_of_three_audits": 14,
+    "rust_execution": false,
+    "new_head_pin_proof": false
+  },
+  "actual_failure_json_sha256": "351b694cf85b5f280d53fac0bab083ae6b277aebcd664f0826b0bd7c4085a63f",
+  "rust_execution": false
+}

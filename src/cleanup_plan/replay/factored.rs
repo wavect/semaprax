@@ -28,6 +28,8 @@ use super::skeleton_work::{ObservationDag, ObservationDagKind};
 use super::*;
 use std::rc::Rc;
 #[cfg(test)]
+mod before_closure_invocation;
+#[cfg(test)]
 mod borrowed_canonical;
 #[cfg(test)]
 mod canonical_before;
@@ -214,12 +216,18 @@ fn compare_with_index_storage<'hir>(
     }
 
     let mut canonical = canonical_shared::Canonicalizer::new(&automaton, sink);
+    let mut receiving =
+        canonical_shared::closure_receiving::ClosureReceiving::acquire(function, budget)?;
     budget.reserve_array::<(usize, u64)>(function, 1, "factored HIR weighted root")?;
-    let Some(hir) = canonical.id(function, vec![(hir_root, 1)], budget)? else {
+    let Some(hir) =
+        canonical.id_with_receiving(function, vec![(hir_root, 1)], budget, &mut receiving)?
+    else {
         return Ok(None);
     };
     budget.reserve_array::<(usize, u64)>(function, 1, "factored plan weighted root")?;
-    let Some(plan) = canonical.id(function, vec![(plan_root, 1)], budget)? else {
+    let Some(plan) =
+        canonical.id_with_receiving(function, vec![(plan_root, 1)], budget, &mut receiving)?
+    else {
         return Ok(None);
     };
     Ok(Some(hir == plan))

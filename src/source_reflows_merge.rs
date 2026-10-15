@@ -57,6 +57,8 @@ pub(crate) fn ours(source: &str, current: &str) -> String {
     )
 }
 pub(crate) fn main(source: &str, current: &str) -> String {
+    let receiving_stage = closure_previous(source, current);
+    let current = receiving_stage.as_str();
     let repaired = before_build_fix(source, current);
     let predecessor = inline_weighted_previous(source, repaired.as_str());
     let current = predecessor.as_str();
@@ -71,6 +73,8 @@ pub(crate) fn main(source: &str, current: &str) -> String {
 }
 
 pub(crate) fn held(source: &str, current: &str) -> String {
+    let receiving_stage = closure_previous(source, current);
+    let current = receiving_stage.as_str();
     let repaired = before_build_fix(source, current);
     let predecessor = inline_weighted_previous(source, repaired.as_str());
     let current = predecessor.as_str();
@@ -88,4 +92,16 @@ pub(crate) fn weighted(path: &str, current: &str) -> String {
 // NEXT842 source transport precedes every immutable runtime domain.
 fn inline_weighted_previous(source: &str, current: &str) -> String {
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/inline-weighted-successor-842/source-inverses.json")), source, current)
+}
+
+// Separate authenticated #843 predecessor; older runtime manifests stay immutable.
+pub(crate) fn closure_previous(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/held-closure-receiver-843/runtime-projections.json"
+        )),
+        source,
+        current,
+    )
 }

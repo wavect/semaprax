@@ -25,7 +25,10 @@ fn coherent_same_type_field_substitution_fails_source_and_cache_replay() {
         .position(|f| f.id.as_str() == "update")
         .unwrap();
     let function = &mut retained.functions[position];
-    let body = if let ResolvedExprKind::Block { tail, .. } = &mut function.body.kind {
+    let body = if matches!(function.body.kind, ResolvedExprKind::Block { .. }) {
+        let ResolvedExprKind::Block { tail, .. } = &mut function.body.kind else {
+            unreachable!()
+        };
         &mut **tail
     } else {
         &mut function.body

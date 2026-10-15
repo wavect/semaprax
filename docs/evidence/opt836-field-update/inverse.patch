@@ -839,10 +839,10 @@ index 8311ae0f9..000000000
 -mod tests;
 diff --git b/src/project/incremental/snapshot/field_update/tests.rs a/src/project/incremental/snapshot/field_update/tests.rs
 deleted file mode 100644
-index 95ed8314e..000000000
+index 84921c071..000000000
 --- b/src/project/incremental/snapshot/field_update/tests.rs
 +++ /dev/null
-@@ -1,52 +0,0 @@
+@@ -1,55 +0,0 @@
 -use super::*;
 -use crate::hir::{self, DeclarationId, ResolvedExprKind, ResolvedType};
 -const SOURCE: &str = r#"module replay.update;
@@ -870,7 +870,10 @@ index 95ed8314e..000000000
 -        .position(|f| f.id.as_str() == "update")
 -        .unwrap();
 -    let function = &mut retained.functions[position];
--    let body = if let ResolvedExprKind::Block { tail, .. } = &mut function.body.kind {
+-    let body = if matches!(function.body.kind, ResolvedExprKind::Block { .. }) {
+-        let ResolvedExprKind::Block { tail, .. } = &mut function.body.kind else {
+-            unreachable!()
+-        };
 -        &mut **tail
 -    } else {
 -        &mut function.body

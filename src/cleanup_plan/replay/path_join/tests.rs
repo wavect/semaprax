@@ -100,3 +100,40 @@ fn duplicate_states_and_incompatible_control_keep_exact_results_and_input_payloa
     );
     assert!(states.contains(&original));
 }
+
+#[test]
+fn boxed_prefix_keeps_every_history_union_and_control_disagreement() {
+    let function = function();
+    let histories: &[&[u32]] = &[&[], &[1], &[2], &[1, 2], &[2, 3], &[3, 1], &[2, 1], &[1, 3]];
+    for mask in 0..(1usize << histories.len()) {
+        let states: BTreeSet<_> = histories
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| mask & (1usize << *i) != 0)
+            .map(|(_, history)| state(history))
+            .collect();
+        let expected = copied_prefix(&function, &states).err();
+        let boxed: BTreeSet<_> = states.into_iter().map(Box::new).collect();
+        let actual = super::validate_control_group_with_budget(
+            &function,
+            &boxed,
+            BlockId(7),
+            &mut super::ReplayBudget::new(),
+        )
+        .err();
+        assert_eq!(actual, expected);
+    }
+    let mut foreign = state(&[4, 5]);
+    foreign.published = true;
+    let raw: BTreeSet<_> = [state(&[4, 5]), foreign].into_iter().collect();
+    let expected = copied_prefix(&function, &raw).unwrap_err();
+    let boxed = raw.into_iter().map(Box::new).collect();
+    let actual = super::validate_control_group_with_budget(
+        &function,
+        &boxed,
+        BlockId(7),
+        &mut super::ReplayBudget::new(),
+    )
+    .unwrap_err();
+    assert_eq!(actual, expected);
+}

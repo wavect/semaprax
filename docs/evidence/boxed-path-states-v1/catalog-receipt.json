@@ -1,0 +1,15 @@
+{
+  "before_commit": "d6caf6979364b91c51f481fd02fb1e5417bc3ca5",
+  "old_catalog": "sha256:95d14c350ca420420dbf220302d4454431b17b46019261cc3fe1930c11d98416",
+  "new_catalog": "sha256:479c7de1c209061d5706e405ffea92358aef690d02a536dd1f9162c13c977e85",
+  "static_code_count": 1513,
+  "only_new_paths": {
+    "SPX-H006": [
+      "src/cleanup_plan/replay/path_join/receiver_tests.rs"
+    ]
+  },
+  "dynamic_constructor_paths_unchanged": true,
+  "old_envelope": "sha256:e4e0988c8dd824d71339beb88ada394c6e5ba79ec91fff1a8a30f1241b70f013",
+  "new_envelope": "sha256:023c0d3ea1823196a2f5d44e3b10a862df939f834e98d7a164b3245af340a73c",
+  "payload_bytes": 5401
+}

@@ -5,6 +5,8 @@
 - Author fixed authenticated runtime transport for the test-only source-view helper (#848): preserve all 89 original JSON files (93,590,460 bytes), projection logic, stage order, and source guards, with a separate custody fixture. Join every new loader child into the three audits. Repository fixtures are required at test runtime; executable qualification and measured RAM benefit remain pending.
 
 - Author the sealed initial builder-report policy and actual typed CLI propagation (#845), provider-bound borrowed function aliases on the closed uncached route (#847), and a separate cached-prelude report acquisition observer (#796). Preserve original compatibility receivers, source assertions and unfunded output boundaries; executable qualification remains pending.
+- Box ownership path-state tree keys with separate prepaid backing, preserving complete value ordering, full join/replay checks, the original receiver, and exact-budget/allocation controls under the unchanged builder limit.
+
 - Propagate sticky builder refusals through the storage-backed test comparison hook while retaining the full original receiver, funded disagreement assertions, and exact physical-budget and allocation controls.
 
 - Keep the reserved string-builtin source refusal and an independent G235 lookalike-producer rebase control; use a portable auxiliary fixture path, and transport the complete frozen builder fixture through pinned formatting without changing its runtime assertions.

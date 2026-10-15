@@ -1,0 +1,12 @@
+
+running 1 test
+test workspace_graph::identity_resolution::base::cache_billing::source_reference::complete_root_has_only_the_declared_shared_billing_hooks_and_prior_formatting ... 
+thread 'workspace_graph::identity_resolution::base::cache_billing::source_reference::complete_root_has_only_the_declared_shared_billing_hooks_and_prior_formatting' (8358566) panicked at src/source_reflows_merge.rs:16:5:
+assertion `left == right` failed
+  left: "c9d1955e43ba73ed3e2f10dff7dec74d33280da6a1aba4de4d4d56128ecdf5c4"
+ right: String("63c7bfd7c4c03e72998017e54e631410087e14dda42f68630116ba908fc8b520")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9069 filtered out; finished in 0.10s
+

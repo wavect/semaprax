@@ -1,0 +1,6 @@
+
+running 1 test
+test wasm::aggregate::tests::owned_utf8_usage::local_static_text_still_refuses_public_owned_export_authority ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9069 filtered out; finished in 0.01s
+

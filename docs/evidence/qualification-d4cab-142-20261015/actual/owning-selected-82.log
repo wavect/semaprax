@@ -1,0 +1,7 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_complete_old_current_actual_and_reserved_costs_are_separate ... scratch full-old reservation=29117 actual=Metrics { allocations: 119, reallocations: 8, allocated: 11197, freed: 11197, live: 0, highwater: 4493, invalid: false }; current reservation=42358 actual=Metrics { allocations: 70, reallocations: 3, allocated: 6829, freed: 6829, live: 0, highwater: 3293, invalid: false }
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9069 filtered out; finished in 0.01s
+

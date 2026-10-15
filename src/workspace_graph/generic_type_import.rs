@@ -347,3 +347,6 @@ fn with_original_receiver<T>(operation: impl FnOnce() -> T) -> T {
     let _restore = Restore(ORIGINAL_RECEIVER.with(|current| current.replace(true)));
     operation()
 }
+
+#[path = "generic_type_import/receiving.rs"]
+pub(in crate::workspace_graph) mod receiving;

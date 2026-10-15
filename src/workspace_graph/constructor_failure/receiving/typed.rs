@@ -110,6 +110,25 @@ impl Receiver {
         self.first = Some(first);
         first
     }
+    pub(in crate::workspace_graph) fn physical_request(&mut self, requested: usize) -> Setup {
+        if let Some(first) = self.first {
+            return first;
+        }
+        // Fixed Copy/refusal control footprint was acquired with this owner.
+        // Authenticate before the inherited exact-size physical request;
+        // do not put a new paid probe ahead of its inherited first receipt.
+        if self.detached || !self.ledger.current() {
+            self.detached = true;
+            self.first = Some(Setup::Detached);
+            return Setup::Detached;
+        }
+        crate::bounded_output::refuse_active_required(requested);
+        let first = Setup::Budget {
+            maximum: self.maximum,
+        };
+        self.first = Some(first);
+        first
+    }
 }
 
 #[cfg(test)]

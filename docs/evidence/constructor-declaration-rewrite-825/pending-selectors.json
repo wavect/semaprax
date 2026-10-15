@@ -1,0 +1,58 @@
+{
+  "status": "SOURCE_AUTHORED_UNEXECUTED",
+  "basis": "b758c3cdc982905c2584d75520a425ee60099926",
+  "new": [
+    {
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_rewrite_preserves_complete_old_record_class_variant_order_and_six_fields",
+      "source": "src/workspace_graph/generic_type_import/receiving/tests.rs",
+      "source_sha256": "8cc7e655607decc8fa37eb527962318443f2b0e319df60d1802919980e7130fb"
+    },
+    {
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_parameter_spill_keeps_exact_old_sort_lookup_work_and_original_borrows",
+      "source": "src/workspace_graph/generic_type_import/receiving/tests.rs",
+      "source_sha256": "8cc7e655607decc8fa37eb527962318443f2b0e319df60d1802919980e7130fb"
+    },
+    {
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_every_byte_frontier_stops_acquisition_and_preserves_original_first_setup",
+      "source": "src/workspace_graph/generic_type_import/receiving/tests.rs",
+      "source_sha256": "8cc7e655607decc8fa37eb527962318443f2b0e319df60d1802919980e7130fb"
+    },
+    {
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_foreign_restored_owner_keeps_unchanged_ast_and_sticky_detachment",
+      "source": "src/workspace_graph/generic_type_import/receiving/tests.rs",
+      "source_sha256": "8cc7e655607decc8fa37eb527962318443f2b0e319df60d1802919980e7130fb"
+    },
+    {
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_complete_old_receivers_actual_callers_and_full_source_inverses_stay_bound",
+      "source": "src/workspace_graph/generic_type_import/receiving/tests.rs",
+      "source_sha256": "8cc7e655607decc8fa37eb527962318443f2b0e319df60d1802919980e7130fb"
+    }
+  ],
+  "required_existing": [
+    {
+      "selector": "workspace_graph::generic_type_import::borrowed_tests::real_workspace_linked_hir_and_graph_keep_complete_original_generic_rewrite_route",
+      "source": "src/workspace_graph/generic_type_import/borrowed_tests.rs",
+      "source_sha256": "d331c855c41b28628584bd2576c93c0f72226ed07beb1cfe25272e178a0a9b31"
+    },
+    {
+      "selector": "workspace_graph::generic_type_import::borrowed_tests::ordered_record_class_method_and_variant_visits_match_complete_old_rewrites",
+      "source": "src/workspace_graph/generic_type_import/borrowed_tests.rs",
+      "source_sha256": "d331c855c41b28628584bd2576c93c0f72226ed07beb1cfe25272e178a0a9b31"
+    },
+    {
+      "selector": "workspace_graph::generic_type_import::parameter_names::tests::spill_backing_is_exact_paid_owned_and_short_zero_refusal_stays_g171_through_drop",
+      "source": "src/workspace_graph/generic_type_import/parameter_names/tests.rs",
+      "source_sha256": "ef445329240ecd04add5142d9440efd64b1ec568a4df3a53a91acf84172591f0"
+    },
+    {
+      "selector": "workspace_graph::constructor_failure::receiving::typed::tests::typed_core_overlay_matches_complete_old_success_and_late_semantic_failure_through_drop",
+      "source": "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
+      "source_sha256": "950e94b6251c2f33f06d395f7bf85e86ebef26568464e7a1b62941346126fec0"
+    },
+    {
+      "selector": "workspace_graph::constructor_failure::receiving::typed::tests::typed_helper_budget_reaches_original_same_child_prepaid_final_report_without_late_backing",
+      "source": "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
+      "source_sha256": "950e94b6251c2f33f06d395f7bf85e86ebef26568464e7a1b62941346126fec0"
+    }
+  ]
+}

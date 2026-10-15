@@ -1,0 +1,42 @@
+[
+  {
+    "source": "src/workspace_graph/generic_type_import.rs",
+    "lines": 352,
+    "maximum": 1500
+  },
+  {
+    "source": "src/workspace_graph/generic_type_import/parameter_names.rs",
+    "lines": 104,
+    "maximum": 1500
+  },
+  {
+    "source": "src/workspace_graph/generic_type_import/parameter_names/receiving.rs",
+    "lines": 103,
+    "maximum": 1500
+  },
+  {
+    "source": "src/workspace_graph/generic_type_import/receiving.rs",
+    "lines": 194,
+    "maximum": 1500
+  },
+  {
+    "source": "src/workspace_graph/generic_type_import/receiving/tests.rs",
+    "lines": 290,
+    "maximum": 1500
+  },
+  {
+    "source": "src/workspace_graph/constructor_failure/receiving/typed.rs",
+    "lines": 135,
+    "maximum": 1500
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+    "lines": 461,
+    "maximum": 1500
+  },
+  {
+    "source": "tests/workspace/semantic_graph/source_inventory.rs",
+    "lines": 579,
+    "maximum": 1500
+  }
+]

@@ -431,9 +431,12 @@ include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/inl
         include_str!("../../src/workspace_graph/diagnostics/invocation/tests.rs"),
         concat!(
             include_str!("../../src/workspace_graph/generic_type_import.rs"),
+            include_str!("../../src/workspace_graph/generic_type_import/receiving.rs"),
+        include_str!("../../src/workspace_graph/generic_type_import/receiving/tests.rs"),
             include_str!("../../src/workspace_graph/generic_type_import/original.rs"),
             include_str!("../../src/workspace_graph/generic_type_import/borrowed_tests.rs"),
             include_str!("../../src/workspace_graph/generic_type_import/parameter_names.rs"),
+            include_str!("../../src/workspace_graph/generic_type_import/parameter_names/receiving.rs"),
             include_str!("../../src/workspace_graph/generic_type_import/parameter_names/tests.rs"),
         ),
         concat!(

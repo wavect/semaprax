@@ -503,7 +503,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/cleanup_plan/replay/live_oracle/source_custody/presence.rs"),
         include_str!("../src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs"),
         include_str!("../src/source_reflows_merge.rs"), include_str!("../src/source_reflows_merge/runtime_json.rs"), include_str!("../src/source_reflows_merge/runtime_json/inventory.rs"), include_str!("../src/source_reflows_merge/runtime_json/tests.rs"), include_str!("../tests/support/production_source_inventory.rs"), include_str!("../src/source_reflows_merge/runtime_json/membership.rs"),
-        include_str!("../src/cleanup_plan/replay/path_join/storage/empty_renewals.rs"),
+        include_str!("../src/cleanup_plan/replay/path_join/storage/empty_renewals.rs"), include_str!("../src/cleanup_plan/replay/path_join/before.rs"), include_str!("../src/cleanup_plan/replay/path_join/boxed_states.rs"), include_str!("../src/cleanup_plan/replay/path_join/boxed_states/tests.rs"), include_str!("../src/cleanup_plan/replay/path_join/receiver_tests.rs"),
         include_str!("../src/cleanup_plan/replay/path_join/storage/atomic_controls.rs"),
         include_str!("../src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs"),
         include_str!("../src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs"),
@@ -732,7 +732,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
     );
     let validation = production_source_inventory::production(
         validation_raw,
-        include_str!("../docs/evidence/production-source-authority-partition-20261016/hir.json"),
+        include_str!("../docs/evidence/private-175-actual-fixes-20261015/hir.json"),
     );
     for forbidden in [
         "struct Resolver",

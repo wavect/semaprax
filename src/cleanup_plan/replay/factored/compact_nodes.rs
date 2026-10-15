@@ -3,7 +3,9 @@
 use super::{Diagnostic, Label, ReplayBudget, ResolvedFunction};
 use std::mem::size_of;
 
+#[derive(Default)]
 pub(super) enum Node {
+    #[default]
     Empty,
     Movement((Label, usize)),
     Epsilon(usize),
@@ -12,11 +14,6 @@ pub(super) enum Node {
 pub(super) struct Many {
     pub(super) moves: Vec<(Label, usize)>,
     pub(super) epsilon: Vec<usize>,
-}
-impl Default for Node {
-    fn default() -> Self {
-        Self::Empty
-    }
 }
 impl Node {
     pub(super) fn moves(&self) -> &[(Label, usize)] {

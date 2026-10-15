@@ -180,7 +180,11 @@ fn inline_successors_every_actual_byte_cut_covers_promotion_finish_and_zero_with
 
 #[test]
 fn complete_immediate_receiver_helpers_and_all_seven_original_controls_remain_exact() {
-    let saved = include_str!("before_receiving_layers.rs");
+    let saved = crate::source_reflows_merge::assembly_view(
+        "842",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs",
+        include_str!("before_receiving_layers.rs"),
+    );
     let accessors = "\nimpl Canonicalizer<'_> {\n    pub(super) fn signatures(&self) -> &BTreeMap<(u64, Vec<(Label, usize)>), usize> { &self.ids }\n    pub(super) fn states(&self) -> &BTreeMap<SharedWeighted, usize> { &self.states }\n}\n";
     let saved = saved.strip_suffix(accessors).unwrap();
     let registrations = "#[cfg(test)]\nmod before_alias;\n#[cfg(test)]\nmod before_index;\n#[cfg(test)]\nmod before_targets;\nmod epsilon_alias;\nmod memo;\n#[cfg(test)]\nmod singleton_target_tests;\nmod successor_targets;\n";

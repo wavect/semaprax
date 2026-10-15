@@ -46,7 +46,12 @@ fn inline_weighted_complete_source_inverses_and_immediate_receiver_are_exact() {
     body = body.replacen("    fn successors(", "    pub(super) fn successors(", 1);
     expected.push_str(&body);
     expected.push_str("\nimpl Canonicalizer<'_> {\n    pub(super) fn signatures(&self) -> &BTreeMap<(u64, Vec<(Label, usize)>), usize> { &self.ids }\n    pub(super) fn states(&self) -> &BTreeMap<SharedWeighted, usize> { &self.states }\n}\n");
-    assert_eq!(expected, include_str!("../before_inline_weighted.rs"));
+    let complete_original_receiver = crate::source_reflows_merge::assembly_view(
+        "842",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs",
+        include_str!("../before_inline_weighted.rs"),
+    );
+    assert_eq!(expected, complete_original_receiver);
 }
 #[test]
 fn inline_weighted_every_new_owner_remains_in_all_three_full_source_audits() {

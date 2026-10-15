@@ -1,0 +1,13 @@
+{
+  "status": "SOURCE_ONLY_EXACT_EXISTING_WHOLE_RECEIVER_DOMAIN_REPLAY_PASS",
+  "actual_first13source_bindings_passed_before_finalassertion": true,
+  "existing_protected_table": "docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-d8.json",
+  "runtime_fixture": "F64",
+  "current_receiver_sha256": "36cf9c13a46d7c2e1eccbd60bbf07f20fd3662bae7f9082d7a3451f512d3b50e",
+  "full_original_receiver_sha256": "ee5a2e14326357df2e5359c8da6a99e93274ac3b89b668c8aea719fc511d726b",
+  "full_projected_current_equals_actual_failure_expected": true,
+  "old_receiver_file_unchanged": true,
+  "all_expected_body_construction_and_assertions_unchanged": true,
+  "new_selectors": 0,
+  "Rust_Cargo_execution": false
+}

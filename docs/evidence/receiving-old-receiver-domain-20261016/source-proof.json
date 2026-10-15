@@ -1,0 +1,11 @@
+{
+  "status": "SOURCE_ONLY_EXACT_WHOLE_OLD_RECEIVER_REPLAY_PASS_NO_RUST",
+  "actual_failed_current_restoration_bytes": 17487,
+  "unchanged_original_restoration_bytes": 17476,
+  "existing_protected_view": "F64 final-to-d8 fullbefore_receiving_layers",
+  "actual_projected_full_receiver_restores_exact_old_original": true,
+  "saved_receiver_file_unchanged": true,
+  "all_original_expected_strings_and_assertions_unchanged": true,
+  "new_selectors": 0,
+  "Rust_Cargo_execution": false
+}

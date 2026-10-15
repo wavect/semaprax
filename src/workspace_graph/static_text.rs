@@ -349,7 +349,9 @@ mod tests {
         assert_eq!(used, bytes);
         let (cursor, refused, used, first_refusal) =
             crate::bounded_output::with_limit_usage_refusal(bytes - 1, AstCursor::new);
-        let error = cursor.err().expect("one-short cursor backing refuses");
+        let error = cursor
+            .err()
+            .unwrap_or_else(|| panic!("one-short cursor backing refuses"));
         assert!(refused);
         let first_refusal = first_refusal.expect("cursor precharge records refusal");
         assert_eq!(first_refusal.requested, bytes);
@@ -383,7 +385,7 @@ mod tests {
             });
         let error = result
             .err()
-            .expect("one-short selected vector backing refuses");
+            .unwrap_or_else(|| panic!("one-short selected vector backing refuses"));
         assert!(refused);
         let first_refusal = first_refusal.expect("selected vector precharge records refusal");
         assert_eq!(first_refusal.requested, required);

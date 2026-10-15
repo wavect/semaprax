@@ -128,7 +128,7 @@ fn mutate(program: &mut ResolvedProgram, owner: &str, case: usize) {
         12 => cases[1].fields[1].name.push_str(".forged"),
         13 => cases[1].fields[1].id = DeclarationId::new("foreign.field.λ"),
         14 => cases.clear(),
-        15 | 16 | 17 => {
+        15..=17 => {
             let ResolvedType::Nominal { arguments, .. } = &mut cases[1].fields[1].ty else {
                 panic!("canonical tail");
             };

@@ -1,6 +1,8 @@
 //! Owner freeze, provenance and receiver-shape authentication, each exercised
 //! against its own independent check rather than through one shared refusal.
 use super::*;
+
+type Mutation = (&'static str, fn(&mut ResolvedExpr));
 use crate::loan_plan::{LoanCause, LoanPointPhase};
 
 /// An owned, renewable root viewed through a subrange alias: the source
@@ -234,7 +236,7 @@ fn only_the_fully_authenticated_receiver_shape_is_partial() {
     let mut copy = program.clone();
     let original = receiver(region_mut(&mut copy.functions[0])).clone();
     assert!(partial_receiver(&original));
-    let mutations: [(&str, fn(&mut ResolvedExpr)); 9] = [
+    let mutations: [Mutation; 9] = [
         ("guarded arm", |e| {
             let ResolvedExprKind::Match { arms, .. } = &mut e.kind else {
                 unreachable!()

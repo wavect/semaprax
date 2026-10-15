@@ -79,4 +79,8 @@ fn lexical_preflight(
 }
 
 #[path = "tests_before.rs"]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod tests;

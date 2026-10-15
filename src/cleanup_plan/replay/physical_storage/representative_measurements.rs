@@ -286,6 +286,10 @@ fn report(name: &str, source_digest: &str, program: &ResolvedProgram) {
     let mut observations = [[None; SAMPLES]; 4];
     // Rotate the first strategy; the timed pass is uninstrumented. Its exact
     // counters/verdict must equal the separately allocator-observed pass.
+    #[allow(
+        clippy::needless_range_loop,
+        reason = "Preserve the rotated sample order across the four strategy columns."
+    )]
     for sample_index in 0..SAMPLES {
         for offset in 0..4 {
             let index = (sample_index + offset) % 4;

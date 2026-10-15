@@ -538,6 +538,15 @@ fn nested_record_binding_is_exact(contains_owned_bytes: bool) -> bool {
     !contains_owned_bytes
 }
 
+pub(super) fn borrowed_leaf_is_admitted(
+    program: &crate::hir::ResolvedProgram,
+    ty: &ResolvedType,
+) -> bool {
+    matches!(ty, ResolvedType::Bytes | ResolvedType::String)
+        || crate::map_ops::is_collection(ty)
+        || crate::hir::owned_collection_record::vector(&program.declarations, ty)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{byte_binding_mode_is_exact, nested_record_binding_is_exact, wildcard_is_exact};
@@ -588,13 +597,4 @@ mod tests {
         assert!(wildcard_is_exact(ResolvedMatchMode::Own, false));
         assert!(wildcard_is_exact(ResolvedMatchMode::Borrow, false));
     }
-}
-
-pub(super) fn borrowed_leaf_is_admitted(
-    program: &crate::hir::ResolvedProgram,
-    ty: &ResolvedType,
-) -> bool {
-    matches!(ty, ResolvedType::Bytes | ResolvedType::String)
-        || crate::map_ops::is_collection(ty)
-        || crate::hir::owned_collection_record::vector(&program.declarations, ty)
 }

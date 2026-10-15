@@ -1,5 +1,7 @@
 //! Full old ordered storage, real receiving requests and every staged boundary.
 use super::*;
+
+type HeldRoots<K> = (Option<Rc<Node<K>>>, Option<std::rc::Weak<Node<K>>>);
 use crate::test_allocation_observer::{current_metrics, measure, Metrics};
 const LIMIT: usize = 64 * 1024 * 1024;
 fn keys() -> (Vec<ExpressionId>, Vec<ValueId>) {
@@ -53,11 +55,7 @@ fn descendant<'a, K: Key>(set: &'a Set<K>, key: &K) -> Option<&'a Rc<Node<K>>> {
         root.right.as_ref()
     }
 }
-fn hold<K: Key>(
-    set: &Set<K>,
-    key: &K,
-    sharing: Sharing,
-) -> (Option<Rc<Node<K>>>, Option<std::rc::Weak<Node<K>>>) {
+fn hold<K: Key>(set: &Set<K>, key: &K, sharing: Sharing) -> HeldRoots<K> {
     match sharing {
         Sharing::Unique => (None, None),
         Sharing::Root => (set.root.clone(), None),

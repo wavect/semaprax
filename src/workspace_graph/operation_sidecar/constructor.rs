@@ -92,6 +92,27 @@ pub(super) fn collect(
     )
 }
 
+// The old operation view held five borrowed slices/strs. Indexed views retain
+// two extra words each for types/functions/templates; reserve the actual delta
+// before creating the operation directory. This does not pay HIR body copies.
+pub(super) fn reserve_module_views(count: usize) -> Result<(), Vec<Diagnostic>> {
+    type Old<'a> = (
+        &'a str,
+        &'a [hir::ResolvedTypeDeclaration],
+        &'a [hir::ResolvedInterface],
+        &'a [hir::ResolvedFunction],
+        &'a [hir::ResolvedFunctionTemplate],
+    );
+    let delta = std::mem::size_of::<super::OperationModule<'_>>()
+        .saturating_sub(std::mem::size_of::<Old<'_>>());
+    super::reserve_builder_structure(count.checked_mul(delta).ok_or_else(|| {
+        vec![super::limit_error(
+            "builder_bytes",
+            super::active_builder_limit(),
+        )]
+    })?)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -147,25 +168,4 @@ mod tests {
             );
         }
     }
-}
-
-// The old operation view held five borrowed slices/strs. Indexed views retain
-// two extra words each for types/functions/templates; reserve the actual delta
-// before creating the operation directory. This does not pay HIR body copies.
-pub(super) fn reserve_module_views(count: usize) -> Result<(), Vec<Diagnostic>> {
-    type Old<'a> = (
-        &'a str,
-        &'a [hir::ResolvedTypeDeclaration],
-        &'a [hir::ResolvedInterface],
-        &'a [hir::ResolvedFunction],
-        &'a [hir::ResolvedFunctionTemplate],
-    );
-    let delta = std::mem::size_of::<super::OperationModule<'_>>()
-        .saturating_sub(std::mem::size_of::<Old<'_>>());
-    super::reserve_builder_structure(count.checked_mul(delta).ok_or_else(|| {
-        vec![super::limit_error(
-            "builder_bytes",
-            super::active_builder_limit(),
-        )]
-    })?)
 }

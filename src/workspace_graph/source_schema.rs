@@ -518,6 +518,9 @@ fn materialize_host_fields(
 mod consuming_tests;
 
 #[cfg(test)]
+pub(super) use static_text::{with_prepared_test_context, with_test_context};
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -762,6 +765,3 @@ mod tests {
         }
     }
 }
-
-#[cfg(test)]
-pub(super) use static_text::{with_prepared_test_context, with_test_context};

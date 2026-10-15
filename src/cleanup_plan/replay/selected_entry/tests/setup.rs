@@ -45,6 +45,10 @@ fn inline_setup_zero_and_each_one_short_return_the_exact_sticky_ledger_without_a
             assert_eq!(failed.reserve(1).unwrap_err(), first);
             assert_eq!(failed.reserve(0).unwrap_err(), first);
             let charged = failed.charged();
+            #[allow(
+                clippy::drop_non_drop,
+                reason = "End this borrowed proof at the measured lifetime boundary."
+            )]
             drop(failed);
             (charged, selected.message())
         });

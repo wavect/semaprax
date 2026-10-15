@@ -104,7 +104,7 @@ fn checked_retention_keeps_full_input_counter_and_sparse_backing_at_literal_limi
             (refused, retry, observed)
         });
     assert!(overflow && refused && retry);
-    assert!(charged <= required - 1);
+    assert!(charged < required);
     // Refusal diagnostics remain observed; no claim of total diagnostic funding.
     assert_eq!(owner.functions.len(), 6);
     assert!(!allocations.invalid && allocations.live == 0);

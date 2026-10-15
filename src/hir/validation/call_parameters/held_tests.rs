@@ -93,11 +93,11 @@ fn cold_and_warm_held_profile_backing_is_paid_through_drop_exact_short_zero_and_
         drop(lookup);
         Ok::<(), Diagnostic>(())
     };
-    let ((result, metrics), refused, paid) = with_limit_usage(usize::MAX, || measure(|| receive()));
+    let ((result, metrics), refused, paid) = with_limit_usage(usize::MAX, || measure(&receive));
     assert!(result.is_ok() && !refused && !metrics.invalid);
     assert!(metrics.allocated <= paid);
     assert_eq!((metrics.live, metrics.allocated), (0, metrics.freed));
-    let ((result, metrics), refused, exact) = with_limit_usage(paid, || measure(|| receive()));
+    let ((result, metrics), refused, exact) = with_limit_usage(paid, || measure(&receive));
     assert!(result.is_ok() && !refused && !metrics.invalid);
     assert_eq!(exact, paid);
     for limit in [0, paid - 1] {

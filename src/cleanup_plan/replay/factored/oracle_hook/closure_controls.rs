@@ -20,7 +20,9 @@ fn undecided_is_distinct_and_never_relabels_a_decided_mismatch() {
     let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         require_decided(function, &Ok(None));
     }));
-    let payload = outcome.err().expect("undecided must refuse visibly");
+    let payload = outcome
+        .err()
+        .unwrap_or_else(|| panic!("undecided must refuse visibly"));
     let message = payload
         .downcast_ref::<String>()
         .map(String::as_str)

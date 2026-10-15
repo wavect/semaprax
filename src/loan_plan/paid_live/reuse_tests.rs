@@ -4,6 +4,13 @@ use crate::bounded_output::cfg_reservation::CfgReservation;
 use crate::bounded_output::{with_limit_usage, with_limit_usage_refusal};
 use crate::test_allocation_observer::{current_metrics, measure, Metrics};
 
+type ObservedReuse = (
+    ((bool, usize), Metrics),
+    bool,
+    usize,
+    Option<crate::bounded_output::ReservationRefusal>,
+);
+
 fn same_plan(actual: &LoanPlan, expected: &LoanPlan) {
     let LoanPlan {
         schema,
@@ -182,12 +189,7 @@ fn visit(
     repeats: usize,
     old: bool,
     limit: usize,
-) -> (
-    ((bool, usize), Metrics),
-    bool,
-    usize,
-    Option<crate::bounded_output::ReservationRefusal>,
-) {
+) -> ObservedReuse {
     with_limit_usage_refusal(limit, || {
         measure(|| {
             let payer = match CfgReservation::acquire() {

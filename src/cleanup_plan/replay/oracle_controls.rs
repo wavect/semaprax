@@ -107,7 +107,7 @@ mod tests {
         assert_eq!(scope.receipt().charged, old.message.len());
         assert!(scope.receipt().physical_failure.is_none());
         // A pre-allocated owned String cannot be prepaid: sticky physical failure.
-        let _ = replay_error(function, format!("x"));
+        let _ = replay_error(function, "x".to_owned());
         assert!(scope.receipt().physical_failure.is_some());
         assert_eq!(lease.charge(0), Err(OracleRefusal::Sticky));
         // Another function value is a stale subject, never an ACTIVE fallback.

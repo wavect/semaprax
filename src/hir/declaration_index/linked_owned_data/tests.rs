@@ -233,7 +233,7 @@ fn linked_nominal_views_remove_actual_discarded_backing_and_retain_owner_until_d
 #[test]
 fn linked_shared_case_views_last_owner_drop_uses_prepaid_iterative_frontier() {
     let mut global_owner_deltas = [0usize; 2];
-    for attempt in 0..2 {
+    for (attempt, owner_delta) in global_owner_deltas.iter_mut().enumerate() {
         let ((), complete) = measure(|| {
             // Keep potential cold global initialization INSIDE this same observer.
             // Only this exact OnceLock call can contribute the classified delta;
@@ -242,7 +242,7 @@ fn linked_shared_case_views_last_owner_drop_uses_prepaid_iterative_frontier() {
             let global = crate::prelude::declarations();
             let after_global = crate::test_allocation_observer::current_metrics();
             let global_delta = after_global.live.checked_sub(before_global.live).unwrap();
-            global_owner_deltas[attempt] = global_delta;
+            *owner_delta = global_delta;
             assert_eq!(global.as_ptr(), crate::prelude::declarations().as_ptr());
             let owned = crate::prelude::owned_declarations_for_tests();
             let original = crate::prelude::original_initializer_reference();
@@ -293,15 +293,12 @@ fn linked_shared_case_views_last_owner_drop_uses_prepaid_iterative_frontier() {
         assert!(!complete.invalid);
         // This is intentional process ownership classification, not a production
         // Drop fix or an allowance for any unclassified retained allocation.
-        assert_eq!(complete.live, global_owner_deltas[attempt]);
-        assert_eq!(
-            complete.allocated,
-            complete.freed + global_owner_deltas[attempt]
-        );
+        assert_eq!(complete.live, *owner_delta);
+        assert_eq!(complete.allocated, complete.freed + *owner_delta);
         if attempt == 1 {
             // Preserve the original complete zero-live regression on the genuinely
             // warm pass, with all construction and final Drop still in this scope.
-            assert_eq!(global_owner_deltas[attempt], 0);
+            assert_eq!(*owner_delta, 0);
             assert_eq!(complete.live, 0);
             assert_eq!(complete.allocated, complete.freed);
         }

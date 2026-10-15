@@ -79,7 +79,7 @@ fn whole(program: &ResolvedProgram, function: &ResolvedFunction) {
         assert!(!success);
         assert!(refused);
         assert!(first.is_some());
-        assert!(used <= exact - 1);
+        assert!(used < exact);
         assert!(short.allocated <= used);
         assert_eq!(short.freed, short.allocated);
         assert_eq!(short.live, 0);

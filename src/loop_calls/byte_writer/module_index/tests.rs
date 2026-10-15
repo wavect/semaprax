@@ -96,14 +96,16 @@ fn irrelevant_modules_have_no_new_backing_and_allocating_legacy_helpers_keep_old
     for count in crate::hir::renewal_probes::phase::current_map_counts(&plain.declarations) {
         expected += 3 * std::mem::size_of::<usize>();
         let mut capacity = 1;
-        while count != 0 {
-            let bytes = capacity * 2 * std::mem::size_of::<usize>();
-            payload += bytes;
-            expected += bytes + 3 * std::mem::size_of::<usize>();
-            if capacity >= count {
-                break;
+        if count != 0 {
+            loop {
+                let bytes = capacity * 2 * std::mem::size_of::<usize>();
+                payload += bytes;
+                expected += bytes + 3 * std::mem::size_of::<usize>();
+                if capacity >= count {
+                    break;
+                }
+                capacity *= 2;
             }
-            capacity *= 2;
         }
     }
     let ((ordinary, observed), overflowed, required) =

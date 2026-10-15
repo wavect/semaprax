@@ -30,6 +30,10 @@ fn actual_prepare_stage_keeps_full_old_storage_diagnostics_numeric_receipts_and_
     );
     drop(final_plan);
     let (expected, deferred) = owned_before::prepare_original(&seed, &program).unwrap();
+    #[allow(
+        clippy::drop_non_drop,
+        reason = "End this borrowed proof at the measured lifetime boundary."
+    )]
     drop(deferred);
     let run = |saved, limit| {
         bounded_output::with_limit_usage_refusal(limit, || {
@@ -45,6 +49,10 @@ fn actual_prepare_stage_keeps_full_old_storage_diagnostics_numeric_receipts_and_
                             assert_eq!(storage.ids, expected.ids);
                             assert_eq!(storage.liveness, expected.liveness);
                             assert_eq!(storage.origins, expected.origins);
+                            #[allow(
+                                clippy::drop_non_drop,
+                                reason = "End this borrowed proof at the measured lifetime boundary."
+                            )]
                             drop(deferred);
                             drop(storage);
                             None
@@ -132,6 +140,10 @@ fn actual_shared_seal_stage_preserves_exact_short_zero_numeric_receipts_and_comp
     let program = super::super::tests::fixture();
     let seed = ConstructorSeed::authenticate(&program, None).unwrap();
     let (expected, deferred) = owned_before::prepare_original(&seed, &program).unwrap();
+    #[allow(
+        clippy::drop_non_drop,
+        reason = "End this borrowed proof at the measured lifetime boundary."
+    )]
     drop(deferred);
     let run = |saved, limit| {
         bounded_output::with_limit_usage_refusal(limit, || {

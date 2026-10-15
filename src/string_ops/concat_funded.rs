@@ -9,6 +9,7 @@
 //!   is identical and short-circuits at the first match;
 //! - the traversal stack, interpreter child order, map nodes and clone
 //!   payloads of keys and values are debited first.
+//!
 //! A typed-map reopen is admitted by `typed_reopen_admitted`, an allocation-free
 //! borrowed projection of `MapOp::resolved_signature` (the original also builds
 //! unused AST types, parameter names and `ValueId`s). It compares the argument

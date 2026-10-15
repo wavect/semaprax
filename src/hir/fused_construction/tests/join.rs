@@ -5,6 +5,8 @@
 //! hostile controls use the `rescaled` stand-in: mutated, not a checked program.
 use super::super::join::{current_source, join};
 use super::*;
+
+type Forgery = (&'static str, fn(&mut ResolvedProgram));
 use crate::ast;
 use crate::hir::{FunctionExecutionId, ValueId};
 
@@ -235,7 +237,7 @@ fn changed_source_prefix_and_suffix_operands_refuse_against_unchanged_hir() {
 fn same_span_hir_suffix_and_owner_forgeries_cannot_join_unchanged_source() {
     let source = parsed(&text(64));
     let canonical = crate::format::canonical(&source);
-    let forgeries: [(&str, fn(&mut ResolvedProgram)); 13] = [
+    let forgeries: [Forgery; 13] = [
         ("count", |p| {
             let S::Let { value, .. } = &mut block(p)[0] else {
                 panic!("allocation")
@@ -332,7 +334,7 @@ fn same_span_hir_suffix_and_owner_forgeries_cannot_join_unchanged_source() {
 fn generated_traversal_scaffold_identities_are_canonical() {
     let source = parsed(&text(64));
     // Direct mutants keep the freeze replay's shape and equal roots.
-    let direct: [(&str, fn(&mut ResolvedProgram)); 2] = [
+    let direct: [Forgery; 2] = [
         ("foreign length call", |p| {
             length_call(p).id = crate::hir::ExpressionId::new(&main_execution(), "foreign.length");
         }),

@@ -177,8 +177,8 @@ impl Scope {
                     resolved_type_owned_capacity(&value.ty)
                         + value
                             .moved_places
-                            .iter()
-                            .map(|(path, _)| {
+                            .keys()
+                            .map(|path| {
                                 path.capacity() * std::mem::size_of::<PlaceProjection>()
                                     + std::mem::size_of::<(Vec<PlaceProjection>, Availability)>()
                             })

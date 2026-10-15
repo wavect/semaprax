@@ -218,8 +218,8 @@ fn wide_current_signature_access_removes_literal_owned_payload_and_drops_without
             let params = import.parameters.as_slice();
             assert!(std::ptr::eq(&*result, &target.return_type));
             assert_eq!(effects.as_ref(), target.effects.as_slice());
-            for index in 0..2 {
-                assert!(std::ptr::eq(&params[index], &import.parameters[index]));
+            for (index, param) in params.iter().enumerate().take(2) {
+                assert!(std::ptr::eq(param, &import.parameters[index]));
             }
             assert_eq!(owned_capacity(&result), 0);
             drop((result, effects));

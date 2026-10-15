@@ -125,6 +125,10 @@ fn prepared_insertion_drop_and_payload_refusal_preserve_the_complete_prior_root_
         crate::bounded_output::with_limit_usage(64 * 1024 * 1024, || {
             measure(|| {
                 let insertion = outer.prepare_insert().unwrap();
+                #[allow(
+                    clippy::drop_non_drop,
+                    reason = "End this borrowed proof at the measured lifetime boundary."
+                )]
                 drop(insertion);
             })
         });
@@ -140,6 +144,10 @@ fn prepared_insertion_drop_and_payload_refusal_preserve_the_complete_prior_root_
                 let insertion = outer.prepare_insert().unwrap();
                 let error = charge::clone_type(payload).unwrap_err();
                 // The paid insertion owner drops without committing on clone refusal.
+                #[allow(
+                    clippy::drop_non_drop,
+                    reason = "End this borrowed proof at the measured lifetime boundary."
+                )]
                 drop(insertion);
                 assert!(!crate::bounded_output::reserve_active_required(0));
                 drop(error);

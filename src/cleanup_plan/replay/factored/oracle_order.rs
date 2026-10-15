@@ -254,7 +254,7 @@ pub(super) fn resolved_type(
                             "oracle type function frames",
                         )?;
                         // Result runs last; parameters run first.
-                        stack.push(Frame::Pair(&**xr, &**yr));
+                        stack.push(Frame::Pair(xr, yr));
                         stack.push(Frame::Seq {
                             a: xp,
                             b: yp,

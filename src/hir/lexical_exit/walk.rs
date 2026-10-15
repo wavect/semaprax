@@ -261,13 +261,13 @@ fn scan(function: &ResolvedFunction, include_markers: bool) -> Result<bool, Diag
                 .as_mut()
                 .expect("occupied lexical scan frame");
             let expr = frame.expression();
-            if include_markers && !frame.is_started() {
-                if expr.ty == crate::hir::ResolvedType::Never
+            if include_markers
+                && !frame.is_started()
+                && (expr.ty == crate::hir::ResolvedType::Never
                     || matches!(&expr.kind, K::Block { statements, .. } | K::VecConstructor { statements, .. }
-                        if statements.iter().any(|s| matches!(s, crate::hir::ResolvedStatement::LexicalWhile { .. })))
-                {
-                    return Ok(true);
-                }
+                        if statements.iter().any(|s| matches!(s, crate::hir::ResolvedStatement::LexicalWhile { .. }))))
+            {
+                return Ok(true);
             }
             if !frame.is_started() && matches!(&expr.kind, K::LexicalExit { .. }) {
                 if len > crate::cache_codec::MAX_DEPTH + 1 {

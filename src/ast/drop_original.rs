@@ -265,4 +265,8 @@ fn drop(program: Program) {
     std::mem::drop(Original(program));
 }
 #[path = "drop_original_tests.rs"]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod tests;

@@ -387,6 +387,10 @@ pub(in crate::workspace_graph) fn construct_using<'p, 'a>(
 
 #[cfg(test)]
 #[path = "borrowed_imports/tests.rs"]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod tests;
 
 #[cfg(test)]

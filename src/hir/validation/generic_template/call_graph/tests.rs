@@ -242,7 +242,7 @@ fn complete_graph_backing_is_paid_through_drop_at_exact_short_zero_and_sticky_li
             drop(retry);
         })
     });
-    assert!(refused && used <= paid - 1 && first.is_some());
+    assert!(refused && used < paid && first.is_some());
     assert!(!physical.invalid && physical.live == 0 && physical.allocated == physical.freed);
     let (old, old_physical) = measure(|| {
         let result = original::validate_call_graph(&program);

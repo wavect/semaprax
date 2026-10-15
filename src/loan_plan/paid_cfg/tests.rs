@@ -70,7 +70,7 @@ fn fixture_source(width: usize, depth: usize) -> String {
         source.push_str(&format!("let value{index} = 1;"));
     }
     // Alternating leaf/binary widths exercises retained spare capacity.
-    source.push_str("1");
+    source.push('1');
     for _ in 0..depth {
         source.push_str("+1");
     }

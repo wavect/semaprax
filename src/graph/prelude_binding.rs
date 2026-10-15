@@ -325,6 +325,34 @@ pub(super) fn digest(program: &ResolvedProgram) -> String {
     }
 }
 
+// Selection comes from the mandatory validator at the outer projection boundary.
+pub(super) fn schema_selected(program: &ResolvedProgram, selected: bool) -> &'static str {
+    if crate::vec_ops::field_update::uses(program) {
+        prelude::SCHEMA_V19
+    } else if crate::vec_ops::field_unique::uses(program) {
+        prelude::SCHEMA_V18
+    } else if crate::vec_ops::string_slot::resolved_uses(program) {
+        prelude::SCHEMA_V17
+    } else if selected {
+        prelude::SCHEMA_V16
+    } else {
+        schema(program)
+    }
+}
+pub(super) fn digest_selected(program: &ResolvedProgram, selected: bool) -> String {
+    if crate::vec_ops::field_update::uses(program) {
+        prelude::field_update::digest_text()
+    } else if crate::vec_ops::field_unique::uses(program) {
+        prelude::field_unique::digest_text()
+    } else if crate::vec_ops::string_slot::resolved_uses(program) {
+        prelude::string_slots::digest_text()
+    } else if selected {
+        prelude::static_text::digest_text()
+    } else {
+        digest(program)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -388,33 +416,5 @@ module iterator.binding;
         let downgraded = graph.replacen("semaprax.graph.v38", "semaprax.graph.v37", 1);
         assert_ne!(downgraded, graph);
         assert!(crate::graph::verify_json(&program, &downgraded).is_err());
-    }
-}
-
-// Selection comes from the mandatory validator at the outer projection boundary.
-pub(super) fn schema_selected(program: &ResolvedProgram, selected: bool) -> &'static str {
-    if crate::vec_ops::field_update::uses(program) {
-        prelude::SCHEMA_V19
-    } else if crate::vec_ops::field_unique::uses(program) {
-        prelude::SCHEMA_V18
-    } else if crate::vec_ops::string_slot::resolved_uses(program) {
-        prelude::SCHEMA_V17
-    } else if selected {
-        prelude::SCHEMA_V16
-    } else {
-        schema(program)
-    }
-}
-pub(super) fn digest_selected(program: &ResolvedProgram, selected: bool) -> String {
-    if crate::vec_ops::field_update::uses(program) {
-        prelude::field_update::digest_text()
-    } else if crate::vec_ops::field_unique::uses(program) {
-        prelude::field_unique::digest_text()
-    } else if crate::vec_ops::string_slot::resolved_uses(program) {
-        prelude::string_slots::digest_text()
-    } else if selected {
-        prelude::static_text::digest_text()
-    } else {
-        digest(program)
     }
 }

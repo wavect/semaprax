@@ -67,7 +67,7 @@ fn actual_lines_reader_body_preserves_ordinary_while_and_exact_option_eliminatio
         .is_none());
     assert!(schema(&build)
         .err()
-        .expect("Option receiving route remains closed")
+        .unwrap_or_else(|| panic!("Option receiving route remains closed"))
         .iter()
         .any(|d| d.code == "SPX-G410"));
 }

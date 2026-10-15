@@ -21,7 +21,7 @@ const SOURCE: &str = r#"module wasm.row_loan;
 }
 "#;
 
-fn expressions<'a>(function: &'a ResolvedFunction) -> Vec<&'a ResolvedExpr> {
+fn expressions(function: &ResolvedFunction) -> Vec<&ResolvedExpr> {
     let mut pending = std::iter::once(&function.body)
         .chain(&function.requires)
         .chain(&function.ensures)

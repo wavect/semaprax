@@ -205,57 +205,6 @@ fn grow<T>(values: &mut Vec<T>) -> Result<(), Vec<Diagnostic>> {
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn backing_growth_reserves_full_replacement_before_allocation() {
-        let required = 4 * std::mem::size_of::<String>();
-        let ((result, capacity), refused, _) =
-            crate::bounded_output::with_limit_usage(required, || {
-                let mut values = Vec::<String>::new();
-                let result = super::grow(&mut values);
-                (result, values.capacity())
-            });
-        assert!(result.is_ok());
-        assert!(!refused);
-        assert_eq!(capacity, 4);
-        let ((result, capacity), refused, _) =
-            crate::bounded_output::with_limit_usage(required - 1, || {
-                let mut values = Vec::<String>::new();
-                let result = super::grow(&mut values);
-                (result, values.capacity())
-            });
-        assert!(result.is_err());
-        assert!(refused);
-        assert_eq!(capacity, 0);
-        for owner in ["", "é:12", "1234567890"] {
-            for path in ["", "body.arg.0", "é:3"] {
-                let expected = crate::hir::workspace_expression_identity(
-                    &crate::hir::DeclarationId::new(owner),
-                    path,
-                );
-                assert_eq!(super::identity(owner, path).unwrap(), expected);
-            }
-        }
-        let mut sites = vec![
-            ("z".into(), "2".into(), "a".into()),
-            ("a".into(), "3".into(), "b".into()),
-            ("a".into(), "1".into(), "c".into()),
-        ];
-        super::sort(&mut sites, &std::cell::Cell::new(0)).unwrap();
-        assert_eq!(
-            sites
-                .iter()
-                .map(|site| (&*site.0, &*site.1))
-                .collect::<Vec<_>>(),
-            vec![("a", "1"), ("a", "3"), ("z", "2")]
-        );
-        let before = sites.clone();
-        assert!(super::sort(&mut sites, &std::cell::Cell::new(1_000_000)).is_err());
-        assert_eq!(sites, before);
-    }
-}
-
 fn debit(work: &std::cell::Cell<usize>, amount: usize) -> Result<(), Vec<Diagnostic>> {
     let used = work.get().checked_add(amount).ok_or_else(fail)?;
     if used > 1_000_000 {
@@ -328,4 +277,55 @@ fn sort(values: &mut [Site], work: &std::cell::Cell<usize>) -> Result<(), Vec<Di
         sift(values, 0, end, work)?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn backing_growth_reserves_full_replacement_before_allocation() {
+        let required = 4 * std::mem::size_of::<String>();
+        let ((result, capacity), refused, _) =
+            crate::bounded_output::with_limit_usage(required, || {
+                let mut values = Vec::<String>::new();
+                let result = super::grow(&mut values);
+                (result, values.capacity())
+            });
+        assert!(result.is_ok());
+        assert!(!refused);
+        assert_eq!(capacity, 4);
+        let ((result, capacity), refused, _) =
+            crate::bounded_output::with_limit_usage(required - 1, || {
+                let mut values = Vec::<String>::new();
+                let result = super::grow(&mut values);
+                (result, values.capacity())
+            });
+        assert!(result.is_err());
+        assert!(refused);
+        assert_eq!(capacity, 0);
+        for owner in ["", "é:12", "1234567890"] {
+            for path in ["", "body.arg.0", "é:3"] {
+                let expected = crate::hir::workspace_expression_identity(
+                    &crate::hir::DeclarationId::new(owner),
+                    path,
+                );
+                assert_eq!(super::identity(owner, path).unwrap(), expected);
+            }
+        }
+        let mut sites = vec![
+            ("z".into(), "2".into(), "a".into()),
+            ("a".into(), "3".into(), "b".into()),
+            ("a".into(), "1".into(), "c".into()),
+        ];
+        super::sort(&mut sites, &std::cell::Cell::new(0)).unwrap();
+        assert_eq!(
+            sites
+                .iter()
+                .map(|site| (&*site.0, &*site.1))
+                .collect::<Vec<_>>(),
+            vec![("a", "1"), ("a", "3"), ("z", "2")]
+        );
+        let before = sites.clone();
+        assert!(super::sort(&mut sites, &std::cell::Cell::new(1_000_000)).is_err());
+        assert_eq!(sites, before);
+    }
 }

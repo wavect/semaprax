@@ -46,7 +46,7 @@ fn deferred_allocating_call_keeps_caller_epochs_until_both_successes_and_rejects
                 }
             )
         })
-        .last()
+        .next_back()
         .expect("the actual reserve backing source")
         .id
         .clone();

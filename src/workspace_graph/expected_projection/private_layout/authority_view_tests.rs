@@ -72,7 +72,7 @@ fn parse(sources: &[&str]) -> Vec<Program> {
     sources
         .iter()
         .enumerate()
-        .map(|(n, source)| crate::parse(source, &format!("m{n}.spx")).unwrap())
+        .map(|(n, source)| crate::parse(source, format!("m{n}.spx")).unwrap())
         .collect()
 }
 fn codes(errors: &[Diagnostic]) -> Vec<(&str, &str)> {

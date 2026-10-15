@@ -62,6 +62,10 @@ fn classifier_leaf_roots_keep_all_original_profile_results_with_literal_zero_bac
     for root in roots {
         parity(&index, &root);
         let expected = summary(leaf_saved::classify_nested_owned_byte_record(&index, &root));
+        #[allow(
+            clippy::drop_non_drop,
+            reason = "End this borrowed proof at the measured lifetime boundary."
+        )]
         let (_, old) =
             measure(|| drop(leaf_saved::classify_nested_owned_byte_record(&index, &root)));
         let (((), current), refused, used, first) = with_limit_usage_refusal(0, || {
@@ -99,7 +103,15 @@ fn real_nested_record_caller_preserves_full_old_limits_cycles_and_scalar_field_d
         arguments: vec![],
     };
     parity(&index, &root);
+    #[allow(
+        clippy::drop_non_drop,
+        reason = "End this borrowed proof at the measured lifetime boundary."
+    )]
     let (_, old) = measure(|| drop(leaf_saved::classify_nested_owned_byte_record(&index, &root)));
+    #[allow(
+        clippy::drop_non_drop,
+        reason = "End this borrowed proof at the measured lifetime boundary."
+    )]
     let (_, current) = measure(|| drop(classify_nested_owned_byte_record(&index, &root)));
     assert!(!old.invalid && !current.invalid && old.live == 0 && current.live == 0);
     assert_eq!(old.allocated, old.freed);

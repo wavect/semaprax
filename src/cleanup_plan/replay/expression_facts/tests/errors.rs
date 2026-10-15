@@ -95,7 +95,7 @@ fn typed_fact_policy_matches_saved_legacy_text_order_and_full_facts() {
         };
         nested = parent;
     }
-    *tail = Box::new(nested);
+    **tail = nested;
     let old = old::expression_facts(&deep).err().unwrap();
     let current = expression_facts(&deep).err().unwrap();
     assert_eq!((current.code, current.message), (old.code, old.message));

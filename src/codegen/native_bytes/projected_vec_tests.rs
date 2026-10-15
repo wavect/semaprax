@@ -71,7 +71,7 @@ fn owned_outcome_vectors_have_case_qualified_move_and_drop_slots() {
             )
         })
         .flat_map(|exit| &exit.finalize_in_order)
-        .map(|action| action.guard_flag.clone())
+        .map(|action| action.guard_flag)
         .collect::<BTreeSet<_>>();
     assert_eq!(
         expected.len(),

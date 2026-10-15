@@ -123,8 +123,6 @@ fn lifetime(
                 };
                 if result.is_err() {
                     assert!(!crate::bounded_output::reserve_active_required(0));
-                } else {
-                    result.as_ref().unwrap();
                 }
                 drop(result);
                 drop(validator);

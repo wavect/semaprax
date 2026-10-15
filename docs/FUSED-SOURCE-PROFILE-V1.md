@@ -46,6 +46,15 @@ existing admission and diagnostics. Wrong profiles, arguments, exports, web
 output and Project selection are refused. There is no fallback to ordinary
 resolution after selected refusal.
 
+The maximum-row traversal cache controls retain the complete original 4096-row
+source and re-run the explicit source factory after AST transport. Decoded HIR
+has no ordinary authority; tests lend a fresh source/HIR join before complete
+selected validation, including hostile mutable-carrier and missing-freeze cases.
+The separate ordinary 32-row graph control retains the full graph and forged-loan
+checks. The maximum-row execution control uses the explicit profile on all three
+engines, with native allocation forbidden from the first row read through cleanup
+on four invocations at both O0 and O2.
+
 The CLI reads the source once. The callback-free `semaprax::fused_source`
 library facade parses once and holds its immutable AST while the private full
 `ValidatedFusedSelection` is lent to the selected backend. Source SHA-256 is

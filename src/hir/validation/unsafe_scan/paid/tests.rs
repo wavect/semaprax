@@ -116,7 +116,7 @@ fn full_unsafe_receiver_keeps_capture_only_closures_and_exact_child_order() {
         Ok(())
     })
     .unwrap();
-    assert!(authored.iter().any(|child| *child == &boundary));
+    assert!(authored.contains(&&boundary));
     for count in [0, 1, 16, 17, 65] {
         for hit in [false, true] {
             let mut expression = leaf.clone();

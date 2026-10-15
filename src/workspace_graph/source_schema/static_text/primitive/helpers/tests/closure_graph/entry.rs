@@ -548,9 +548,7 @@ fn admitted_local_helper_entry_keeps_saved_identity_exact_work_and_drop() {
             .collect::<Vec<_>>(),
         [run, main]
     );
-    let (old, new) = parity(&build)
-        .ok()
-        .expect("saved and current entries admit");
+    let (old, new) = parity(&build).unwrap_or_else(|_| panic!("saved and current entries admit"));
     // Ordinals: run 0, main 1, leaf 2; run -> leaf and main -> run (local).
     assert_eq!(new.helpers, [leaf]);
     assert_eq!(new.count, 3);
@@ -569,10 +567,9 @@ fn admitted_local_helper_entry_keeps_saved_identity_exact_work_and_drop() {
     assert_eq!(shape.edges, [(0, 2), (1, 0)]);
     assert_eq!(shape.order, [1, 0, 2]);
     // Unchanged production defaults admit both complete entries.
-    let old_default = default_cap(&build, SAVED).ok().expect("saved default cap");
-    let new_default = default_cap(&build, CURRENT)
-        .ok()
-        .expect("current default cap");
+    let old_default = default_cap(&build, SAVED).unwrap_or_else(|_| panic!("saved default cap"));
+    let new_default =
+        default_cap(&build, CURRENT).unwrap_or_else(|_| panic!("current default cap"));
     assert_eq!(old_default.helpers, new_default.helpers);
     assert_eq!(old_default.lexical, new_default.lexical);
     // Exact and one-short work/backing on each entry's own owner, and no

@@ -210,10 +210,10 @@ fn call<'a>(
     for index in 0..program.function_count() {
         budget.charge(function, 1, "borrowed helper actual callee probe")?;
         let current = program.function_at(index).ok_or_else(|| fail(function))?;
-        if id_equal(function, current.id.as_str(), callee.as_str(), budget)? {
-            if target.replace(current).is_some() {
-                return Err(fail(function));
-            }
+        if id_equal(function, current.id.as_str(), callee.as_str(), budget)?
+            && target.replace(current).is_some()
+        {
+            return Err(fail(function));
         }
     }
     let target = target.ok_or_else(|| fail(function))?;

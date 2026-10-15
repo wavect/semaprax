@@ -70,6 +70,10 @@ impl<K> DoubleEndedIterator for Paid<'_, K> {
 }
 impl<K> ExactSizeIterator for Paid<'_, K> {}
 impl<K> std::iter::FusedIterator for Paid<'_, K> {}
+#[allow(
+    clippy::large_enum_variant,
+    reason = "Paid traversal uses inline prepaid storage; boxing would allocate."
+)]
 pub(in crate::hir::validation) enum Iter<'a, K> {
     Paid(Paid<'a, K>),
     #[cfg(test)]

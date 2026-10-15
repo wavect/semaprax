@@ -44,10 +44,8 @@ impl<'a, 'b> Walk<'a, 'b> {
         let mut found = None;
         for (i, f) in source.functions().iter().enumerate() {
             self.debit(1)?;
-            if f.id == *id {
-                if found.replace(i).is_some() {
-                    return Err(self.error());
-                }
+            if f.id == *id && found.replace(i).is_some() {
+                return Err(self.error());
             }
         }
         let i = found.ok_or_else(|| self.error())?;

@@ -92,8 +92,12 @@ fn resolved_leaf_substitution_keeps_full_old_values_diagnostics_payloads_and_dro
                     index,
                 };
                 assert_eq!(
-                    substitute_type(&template, &owner, &[actual.clone()]),
-                    substitution_saved::substitute_type(&template, &owner, &[actual.clone()])
+                    substitute_type(&template, &owner, std::slice::from_ref(&actual)),
+                    substitution_saved::substitute_type(
+                        &template,
+                        &owner,
+                        std::slice::from_ref(&actual)
+                    )
                 );
                 let old = resolved_measure(&template, &owner, std::slice::from_ref(&actual), true);
                 let current =

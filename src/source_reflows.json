@@ -11,6 +11,28 @@
     ]
   },
   {
+    "path": "src/ast/drop_method_original.rs",
+    "before_sha256": "c2fed06ee4bfa2242a6d7f60045886c12f7eed0ab9ccd7cace566ac51edd3bcf",
+    "after_sha256": "4169f42e7f22467506818ec85058d28a438655d00c72f60489b6c8b1fa6cf641",
+    "inverse": [
+      {
+        "after": "    std::mem::drop(Original(program));\n}\n#[path = \"drop_original_tests.rs\"]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"Run the same controls against independent receivers.\"\n)]\nmod tests;\n",
+        "before": "    std::mem::drop(Original(program));\n}\n#[path = \"drop_original_tests.rs\"]\nmod tests;\n"
+      }
+    ]
+  },
+  {
+    "path": "src/ast/drop_original.rs",
+    "before_sha256": "977f90c406406f50e8041e6b0df02aabca5a4c39cd8372623e9c508d06ea40d4",
+    "after_sha256": "0896b563656ca8c0df202b3606792e65ace27787cfdac2e8fe812b4a701ccdfd",
+    "inverse": [
+      {
+        "after": "    std::mem::drop(Original(program));\n}\n#[path = \"drop_original_tests.rs\"]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"Run the same controls against independent receivers.\"\n)]\nmod tests;\n",
+        "before": "    std::mem::drop(Original(program));\n}\n#[path = \"drop_original_tests.rs\"]\nmod tests;\n"
+      }
+    ]
+  },
+  {
     "path": "src/cleanup_plan/replay.rs",
     "before_sha256": "42449fd46e19cb668a435fbea806724c8c7a67e39557eddbb2b67be638aa91e4",
     "after_sha256": "1ee09bd6f221d0eb3e272016f243a00c67815d56fcc246b794975c9ee00a5220",
@@ -40,6 +62,17 @@
       {
         "after": "mod tests;\n\npub(in crate::cleanup_plan::replay) use diagnostic::{\n    raw_error_funded, raw_error_metered, replay_error_funded, ReplayFailure,\n};\npub(in crate::cleanup_plan::replay) use invocation::{\n    authority, authority_for_function, enter, opt_in, opted, InvocationRefusal,\n",
         "before": "mod tests;\n\npub(in crate::cleanup_plan::replay) use diagnostic::{\n    ReplayFailure, raw_error_funded, raw_error_metered, replay_error_funded,\n};\npub(in crate::cleanup_plan::replay) use invocation::{\n    authority, authority_for_function, enter, opt_in, opted, InvocationRefusal,\n"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/allocation/tests.rs",
+    "before_sha256": "4b8b6a29c8381d1256324ebaa11b37296cf0a0327347565b28096372ef58daa0",
+    "after_sha256": "23aa091e6db935a38b1b26a1f9ab34ceaf9e9194dd45101b41ffc8f3749815e6",
+    "inverse": [
+      {
+        "after": "                    let values = vec![0u64; 3];\n                    drop(values);\n                } else {\n                    let error = result\n                        .err()\n                        .unwrap_or_else(|| panic!(\"exactly short builder refuses\"));\n                    assert_eq!(error.code, \"SPX-H006\");\n                    if limit >= text_bytes {\n                        assert!(!error.message.is_empty());\n",
+        "before": "                    let values = vec![0u64; 3];\n                    drop(values);\n                } else {\n                    let error = result.err().expect(\"exactly short builder refuses\");\n                    assert_eq!(error.code, \"SPX-H006\");\n                    if limit >= text_bytes {\n                        assert!(!error.message.is_empty());\n"
       }
     ]
   },
@@ -437,6 +470,21 @@
     ]
   },
   {
+    "path": "src/cleanup_plan/replay/factored/canonical_before.rs",
+    "before_sha256": "98e94a76071f92554027b03caf86575ae0cad71c4f151e961a0c949afeb13ed7",
+    "after_sha256": "c6fdb710f5412d7f6e9f0e83f136a6d67d349811b26f586e86bd9a17e08416e5",
+    "inverse": [
+      {
+        "after": "    pub(super) fn states(&self) -> &BTreeMap<Weighted, usize> {\n        &self.0.states\n    }\n    pub(super) fn signatures(&self) -> &Signatures {\n        &self.0.ids\n    }\n}\n",
+        "before": "    pub(super) fn states(&self) -> &BTreeMap<Weighted, usize> {\n        &self.0.states\n    }\n    pub(super) fn signatures(&self) -> &BTreeMap<(u64, Vec<(Label, usize)>), usize> {\n        &self.0.ids\n    }\n}\n"
+      },
+      {
+        "after": "//! Complete pre-sharing receiver; its interior is retained verbatim.\nuse super::*;\n\ntype Signatures = BTreeMap<(u64, Vec<(Label, usize)>), usize>;\n\nenum CanonicalFrame {\n    Enter(Weighted),\n",
+        "before": "//! Complete pre-sharing receiver; its interior is retained verbatim.\nuse super::*;\n\nenum CanonicalFrame {\n    Enter(Weighted),\n"
+      }
+    ]
+  },
+  {
     "path": "src/cleanup_plan/replay/factored/oracle_hook.rs",
     "before_sha256": "dc67888164c54006a2c87f9ceef744162d57a533b26be3270d2fdd0b7fac0f02",
     "after_sha256": "aefe0d06e3f7a6b4ae36bc11160a9c7aed2bd9b30b6041308f619ada3266f707",
@@ -700,6 +748,32 @@
       {
         "after": "use super::*;\n#[test]\nfn complete_schema_original_and_receiving_body_remain_byte_exact() {\n    let root = ci_str!(\"../../schema.rs\");\n    assert_eq!(\n        root.strip_suffix(\"\\npub(super) mod paid_summary;\\n\")\n            .unwrap(),\n        ci_str!(\"../../../../../docs/evidence/schema-summary/schema.rs.before\")\n    );\n    let restored =\n        crate::cleanup_plan::replay::expression_facts::receiving::before_status_retention(\n            \"src/cleanup_plan/replay.rs\",\n            ci_str!(\"../../../replay.rs\"),\n        );\n    let mut restored = restored;\n    assert_eq!(restored.matches(\"    expression_facts::receiving::validate_entry(function, &storage, &leaves, budget)?;\").count(), 1);\n    restored = restored.replacen(\n        \"    expression_facts::receiving::validate_entry(function, &storage, &leaves, budget)?;\",\n        \"    validate_entry(function, &storage, &leaves)?;\",\n        1,\n    );\n    assert_eq!(\n        restored\n            .matches(\n                \"    expression_facts::receiving::validate_regions(function, &storage, budget)?;\"\n            )\n            .count(),\n        1\n    );\n    restored = restored.replacen(\n        \"    expression_facts::receiving::validate_regions(function, &storage, budget)?;\",\n        \"    validate_regions(function, &storage)?;\",\n        1,\n    );\n    assert_eq!(restored.matches(\"    expression_facts::receiving::validate_exits(\\n        program,\\n        function,\\n        &storage,\\n        &leaves,\\n        &BTreeSet::new(),\\n        budget,\\n    )?;\").count(), 1);\n    restored = restored.replacen(\"    expression_facts::receiving::validate_exits(\\n        program,\\n        function,\\n        &storage,\\n        &leaves,\\n        &BTreeSet::new(),\\n        budget,\\n    )?;\", \"    validate_exits(program, function, &storage, &leaves, &BTreeSet::new())?;\", 1);\n    let current = restored.as_str();\n",
         "before": "use super::*;\n#[test]\nfn complete_schema_original_and_receiving_body_remain_byte_exact() {\n    let root = include_str!(\"../../schema.rs\");\n    assert_eq!(\n        root.strip_suffix(\"\\npub(super) mod paid_summary;\\n\")\n            .unwrap(),\n        include_str!(\"../../../../../docs/evidence/schema-summary/schema.rs.before\")\n    );\n    let restored = crate::cleanup_plan::replay::expression_facts::receiving::before_status_retention(\"src/cleanup_plan/replay.rs\", include_str!(\"../../../replay.rs\"));\n    let mut restored = restored;\n    assert_eq!(restored.matches(\"    expression_facts::receiving::validate_entry(function, &storage, &leaves, budget)?;\").count(), 1);\n    restored = restored.replacen(\"    expression_facts::receiving::validate_entry(function, &storage, &leaves, budget)?;\", \"    validate_entry(function, &storage, &leaves)?;\", 1);\n    assert_eq!(restored.matches(\"    expression_facts::receiving::validate_regions(function, &storage, budget)?;\").count(), 1);\n    restored = restored.replacen(\"    expression_facts::receiving::validate_regions(function, &storage, budget)?;\", \"    validate_regions(function, &storage)?;\", 1);\n    assert_eq!(restored.matches(\"    expression_facts::receiving::validate_exits(\\n        program,\\n        function,\\n        &storage,\\n        &leaves,\\n        &BTreeSet::new(),\\n        budget,\\n    )?;\").count(), 1);\n    restored = restored.replacen(\"    expression_facts::receiving::validate_exits(\\n        program,\\n        function,\\n        &storage,\\n        &leaves,\\n        &BTreeSet::new(),\\n        budget,\\n    )?;\", \"    validate_exits(program, function, &storage, &leaves, &BTreeSet::new())?;\", 1);\n    let current = restored.as_str();\n"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/selected_entry.rs",
+    "before_sha256": "496fb4b8c69b253d31c997c34bc2628c851a12c56f894dbc16f4c0d0388daa5a",
+    "after_sha256": "70029f5236e557aed488f83f4ce551ac80b864782f4887403e6819e05e1f7a61",
+    "inverse": [
+      {
+        "after": "    ) -> Result<Self, Diagnostic> {\n        Self::try_new(function, physical).map_err(|failure| {\n            let (physical, reason) = failure.into_parts();\n            #[allow(\n                clippy::drop_non_drop,\n                reason = \"End this borrowed proof at the measured lifetime boundary.\"\n            )]\n            drop(physical);\n            // Legacy outward Diagnostic has no separately funded report carrier.\n            replay_error(function, reason.message())\n",
+        "before": "    ) -> Result<Self, Diagnostic> {\n        Self::try_new(function, physical).map_err(|failure| {\n            let (physical, reason) = failure.into_parts();\n            drop(physical);\n            // Legacy outward Diagnostic has no separately funded report carrier.\n            replay_error(function, reason.message())\n"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/selected_entry/tests/fact_errors.rs",
+    "before_sha256": "1fff759bb8c4fbf58e3ab41d81c3033e2464e09a362a7ece926b98784aef75a8",
+    "after_sha256": "a81d0273a161aebcfdf765ad19e387f877fc69b6a56bd80c4a63afc82ffaa621",
+    "inverse": [
+      {
+        "after": "                        assert_eq!(refusal.ledger_mut().unwrap() as *const _, ledger);\n                        assert!(refusal.ledger_mut().unwrap().reserve(0).is_err());\n                        let before_report = current_metrics();\n                        drop(\n                            refusal\n                                .into_report(FORM)\n                                .unwrap_or_else(|_| panic!(\"same outward form\")),\n                        );\n                        assert_eq!(current_metrics().allocations, before_report.allocations);\n                    }\n                }\n",
+        "before": "                        assert_eq!(refusal.ledger_mut().unwrap() as *const _, ledger);\n                        assert!(refusal.ledger_mut().unwrap().reserve(0).is_err());\n                        let before_report = current_metrics();\n                        drop(refusal.into_report(FORM).ok().expect(\"same outward form\"));\n                        assert_eq!(current_metrics().allocations, before_report.allocations);\n                    }\n                }\n"
+      },
+      {
+        "after": "                        assert_eq!(facts.len(), 2);\n                        assert_eq!(selected.usage().1, full);\n                        drop(facts);\n                        drop(\n                            selected\n                                .finish_paid()\n                                .unwrap_or_else(|_| panic!(\"successful paid finish\")),\n                        );\n                    }\n                    Err(error) => {\n                        assert!(!success);\n",
+        "before": "                        assert_eq!(facts.len(), 2);\n                        assert_eq!(selected.usage().1, full);\n                        drop(facts);\n                        drop(selected.finish_paid().ok().expect(\"successful paid finish\"));\n                    }\n                    Err(error) => {\n                        assert!(!success);\n"
       }
     ]
   },
@@ -1064,7 +1138,7 @@
   {
     "path": "src/hir/validation/constructor_seed/intrinsic_tests.rs",
     "before_sha256": "76e6208827b5091ab202d8fa776a400320e07e4c28b81da2f9539de08438d7b6",
-    "after_sha256": "388cc1fb71702c83c62698eb693e9d316e546f7aafd6b6608bc56b35e5d02d27",
+    "after_sha256": "9260f47d54fa4c1257aed3d72730370b8fa024c90e5c400af5d3b28ea332fec9",
     "inverse": [
       {
         "after": "#[test]\nfn corrective_controllers_reconstruct_complete_original_sources() {\n    use sha2::{Digest, Sha256};\n    let records: serde_json::Value = serde_json::from_str(ci_str!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/docs/evidence/intrinsic-controller-repair-85286/exact-source-inverses.json\"\n    )))\n    .unwrap();\n    let currents = [\n        ci_str!(\"intrinsic_tests.rs\"),\n        ci_str!(\"../function_lookup/paid_custody.rs\"),\n    ];\n    let originals = [\n        ci_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/intrinsic-controller-repair-85286/src__hir__validation__constructor_seed__intrinsic_tests.rs.before.txt\")),\n        ci_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/intrinsic-controller-repair-85286/src__hir__validation__function_lookup__paid_custody.rs.before.txt\")),\n    ];\n    let hashes = [\n        \"d42039a03f7191b9c89d879f942b0cc005b51e080d36020c5b79849c2fd042a3\",\n",
@@ -1077,6 +1151,10 @@
       {
         "after": "#[test]\nfn complete_intrinsic_sources_and_saved_constructor_dispatch_reconstruct_every_original_byte() {\n    use sha2::{Digest, Sha256};\n    let proof: serde_json::Value = serde_json::from_str(ci_str!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/docs/evidence/constructor-intrinsic-borrowing-824/source-provenance.json\"\n    )))\n    .unwrap();\n    let currents = [\n        ci_str!(\"../../../list_ops.rs\"),\n        ci_str!(\"../../../iterator_ops.rs\"),\n        ci_str!(\"../constructor_seed.rs\"),\n        ci_str!(\"original.rs\"),\n        ci_str!(\"../function_lookup/paid_custody.rs\"),\n    ];\n    let originals = [\n        ci_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/constructor-intrinsic-borrowing-824/src__list_ops.rs.before.txt\"\n        )),\n        ci_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/constructor-intrinsic-borrowing-824/src__iterator_ops.rs.before.txt\"\n        )),\n        ci_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/constructor-intrinsic-borrowing-824/src__hir__validation__constructor_seed.rs.before.txt\"\n        )),\n        ci_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/constructor-intrinsic-borrowing-824/src__hir__validation__constructor_seed__original.rs.before.txt\"\n        )),\n        ci_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/constructor-intrinsic-borrowing-824/src__hir__validation__function_lookup__paid_custody.rs.before.txt\"\n        )),\n",
         "before": "#[test]\nfn complete_intrinsic_sources_and_saved_constructor_dispatch_reconstruct_every_original_byte() {\n    use sha2::{Digest, Sha256};\n    let proof: serde_json::Value = serde_json::from_str(include_str!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/docs/evidence/constructor-intrinsic-borrowing-824/source-provenance.json\"\n    )))\n    .unwrap();\n    let currents = [\n        include_str!(\"../../../list_ops.rs\"),\n        include_str!(\"../../../iterator_ops.rs\"),\n        include_str!(\"../constructor_seed.rs\"),\n        include_str!(\"original.rs\"),\n        include_str!(\"../function_lookup/paid_custody.rs\"),\n    ];\n    let originals = [\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/constructor-intrinsic-borrowing-824/src__list_ops.rs.before.txt\"\n        )),\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/constructor-intrinsic-borrowing-824/src__iterator_ops.rs.before.txt\"\n        )),\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/constructor-intrinsic-borrowing-824/src__hir__validation__constructor_seed.rs.before.txt\"\n        )),\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/constructor-intrinsic-borrowing-824/src__hir__validation__constructor_seed__original.rs.before.txt\"\n        )),\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/constructor-intrinsic-borrowing-824/src__hir__validation__function_lookup__paid_custody.rs.before.txt\"\n        )),\n"
+      },
+      {
+        "after": "        12 => cases[1].fields[1].name.push_str(\".forged\"),\n        13 => cases[1].fields[1].id = DeclarationId::new(\"foreign.field.λ\"),\n        14 => cases.clear(),\n        15..=17 => {\n            let ResolvedType::Nominal { arguments, .. } = &mut cases[1].fields[1].ty else {\n                panic!(\"canonical tail\");\n            };\n",
+        "before": "        12 => cases[1].fields[1].name.push_str(\".forged\"),\n        13 => cases[1].fields[1].id = DeclarationId::new(\"foreign.field.λ\"),\n        14 => cases.clear(),\n        15 | 16 | 17 => {\n            let ResolvedType::Nominal { arguments, .. } = &mut cases[1].fields[1].ty else {\n                panic!(\"canonical tail\");\n            };\n"
       }
     ]
   },
@@ -1153,18 +1231,22 @@
   {
     "path": "src/hir/validation/function_scope/tests.rs",
     "before_sha256": "9668364415acfde0f4f9ab2f78e78113332acd4b5926d1ad27a5051759d7cafa",
-    "after_sha256": "afd3affd193ceb20d58f85d43981fe5b6377f3b20608c3273a3eab77439957d1",
+    "after_sha256": "8d2becba56c8ca8e0e9b9cde425fc6db2383017eb1599993df34a019d9de372b",
     "inverse": [
       {
         "after": "                );\n                assert_eq!(actual.is_err(), hostile);\n                if hostile && admitted {\n                    assert!(actual\n                        .unwrap_err()\n                        .message\n                        .contains(\"contract cannot transfer ownership into a local binding\"));\n                }\n            }\n        }\n",
         "before": "                );\n                assert_eq!(actual.is_err(), hostile);\n                if hostile && admitted {\n                    assert!(\n                        actual\n                            .unwrap_err()\n                            .message\n                            .contains(\"contract cannot transfer ownership into a local binding\")\n                    );\n                }\n            }\n        }\n"
+      },
+      {
+        "after": "                };\n                if result.is_err() {\n                    assert!(!crate::bounded_output::reserve_active_required(0));\n                }\n                drop(result);\n                drop(validator);\n",
+        "before": "                };\n                if result.is_err() {\n                    assert!(!crate::bounded_output::reserve_active_required(0));\n                } else {\n                    result.as_ref().unwrap();\n                }\n                drop(result);\n                drop(validator);\n"
       }
     ]
   },
   {
     "path": "src/hir/validation/generic_template/call_graph/tests.rs",
     "before_sha256": "1ea12fa8610c10a869ecc3c024cf7b704f763c77577d24e9232ea5759429d6e5",
-    "after_sha256": "0f312077d0079e62e6cd2072577fa7d8f441d8f2101d22ca2db034e1781ee97b",
+    "after_sha256": "3e61224ee74e02f78376b9226125c6ad65f07c459344d3cfd6662b843f236141",
     "inverse": [
       {
         "after": "        .unwrap()\n        + start;\n    assert_eq!(&complete_archive[start..end], old);\n    let current = ci_str!(\"original.rs\").strip_prefix(\"//! Complete original constructor graph receiver, independently compiled.\\nuse super::super::*;\\n\\n\").unwrap();\n    let header = \"pub(in crate::hir::validation) fn validate_call_graph(\\n    program: &ResolvedProgram,\\n) -> Result<(), Diagnostic> {\";\n    assert_eq!(current.matches(header).count(), 1);\n    assert_eq!(current.replacen(header, \"pub(super) fn validate_call_graph(program: &ResolvedProgram) -> Result<(), Diagnostic> {\",1), old);\n    let trace = ci_str!(\"tests.rs\")\n        .split_once(\"// ORIGINAL_TRACE_START\\n\")\n        .unwrap()\n        .1\n",
@@ -1177,6 +1259,25 @@
       {
         "after": "#[test]\nfn full_generic_graph_sources_and_independent_constructor_dispatch_preserve_original_bytes() {\n    use sha2::{Digest, Sha256};\n    let records: serde_json::Value = serde_json::from_str(ci_str!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/docs/evidence/paid-generic-constructor-graph-824/exact-source-inverses.json\"\n    )))\n    .unwrap();\n    let currents = [\n        ci_str!(\"../../generic_template.rs\"),\n        ci_str!(\"../../constructor_seed/original.rs\"),\n        ci_str!(\"../../function_lookup/paid_custody.rs\"),\n    ];\n    let originals = [\n        ci_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/paid-generic-constructor-graph-824/src__hir__validation__generic_template.rs.before.txt\")),\n        ci_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/paid-generic-constructor-graph-824/src__hir__validation__constructor_seed__original.rs.before.txt\")),\n        ci_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/paid-generic-constructor-graph-824/src__hir__validation__function_lookup__paid_custody.rs.before.txt\")),\n    ];\n    let hashes = [\n        \"e10f391d931b3b9b9142618b54589eccb7317fabc1c08fda827f5564e9dffeeb\",\n",
         "before": "#[test]\nfn full_generic_graph_sources_and_independent_constructor_dispatch_preserve_original_bytes() {\n    use sha2::{Digest, Sha256};\n    let records: serde_json::Value = serde_json::from_str(include_str!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/docs/evidence/paid-generic-constructor-graph-824/exact-source-inverses.json\"\n    )))\n    .unwrap();\n    let currents = [\n        include_str!(\"../../generic_template.rs\"),\n        include_str!(\"../../constructor_seed/original.rs\"),\n        include_str!(\"../../function_lookup/paid_custody.rs\"),\n    ];\n    let originals = [\n        include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/paid-generic-constructor-graph-824/src__hir__validation__generic_template.rs.before.txt\")),\n        include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/paid-generic-constructor-graph-824/src__hir__validation__constructor_seed__original.rs.before.txt\")),\n        include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/paid-generic-constructor-graph-824/src__hir__validation__function_lookup__paid_custody.rs.before.txt\")),\n    ];\n    let hashes = [\n        \"e10f391d931b3b9b9142618b54589eccb7317fabc1c08fda827f5564e9dffeeb\",\n"
+      },
+      {
+        "after": "            drop(retry);\n        })\n    });\n    assert!(refused && used < paid && first.is_some());\n    assert!(!physical.invalid && physical.live == 0 && physical.allocated == physical.freed);\n    let (old, old_physical) = measure(|| {\n        let result = original::validate_call_graph(&program);\n",
+        "before": "            drop(retry);\n        })\n    });\n    assert!(refused && used <= paid - 1 && first.is_some());\n    assert!(!physical.invalid && physical.live == 0 && physical.allocated == physical.freed);\n    let (old, old_physical) = measure(|| {\n        let result = original::validate_call_graph(&program);\n"
+      }
+    ]
+  },
+  {
+    "path": "src/literal_format.rs",
+    "before_sha256": "233670ec74d78d108d1ffda8df3b399b75feb207f2fb5de58f3b52141cf28b36",
+    "after_sha256": "aad25a8e12e2e49b423399c05d8c7b19810a6d7ae359628d3372b692c231dd3f",
+    "inverse": [
+      {
+        "after": "        assert_eq!(field_count(&scan(&\"{}\".repeat(32)).unwrap()), 32);\n        assert_eq!(scan(&\"{}\".repeat(33)), Err(ScanError::TooManyFields));\n        assert_eq!(scan(&\"a\".repeat(65_537)), Err(ScanError::TooLong));\n        for invalid in [\"{\", \"}\", \"{0}\", \"{name}\", \"{ }\", \"{{}\", \"{}}\"] {\n            assert_eq!(scan(invalid), Err(ScanError::InvalidBrace), \"{invalid}\");\n        }\n    }\n}\n",
+        "before": "        assert_eq!(field_count(&scan(&\"{}\".repeat(32)).unwrap()), 32);\n        assert_eq!(scan(&\"{}\".repeat(33)), Err(ScanError::TooManyFields));\n        assert_eq!(scan(&\"a\".repeat(65_537)), Err(ScanError::TooLong));\n        for invalid in [\"{\", \"}\", \"{0}\", \"{name}\", \"{ }\", \"{{}\", \"{}}\"] {\n            assert_eq!(scan(invalid), Err(ScanError::InvalidBrace), \"{invalid}\");\n        }\n    }\n}\n\n#[cfg(test)]\npub(crate) use funded::work::checked_moving_string_operands_funded_with_work;\n"
+      },
+      {
+        "after": "mod funded;\n#[cfg(test)]\npub(crate) use funded::checked_moving_string_operands_funded;\n\n#[cfg(test)]\nmod move_tests;\n\n#[cfg(test)]\npub(crate) use funded::work::checked_moving_string_operands_funded_with_work;\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn closed_scanner_preserves_utf8_nul_and_escape_order() {\n        assert_eq!(\n            scan(\"é\\0{{{}}}\").unwrap(),\n            vec![\n",
+        "before": "mod funded;\n#[cfg(test)]\npub(crate) use funded::checked_moving_string_operands_funded;\n\n#[cfg(test)]\nmod move_tests;\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn closed_scanner_preserves_utf8_nul_and_escape_order() {\n        assert_eq!(\n            scan(\"é\\0{{{}}}\").unwrap(),\n            vec![\n"
       }
     ]
   },
@@ -1199,6 +1300,28 @@
       {
         "after": "mod source;\nmod source_index;\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete historical receiver retained for independent test comparisons\"\n)]\npub(crate) mod source_index_original;\n#[cfg(test)]\npub(crate) use resolved::checked_absent_with_work_reservation;\n",
         "before": "mod source;\nmod source_index;\n#[cfg(test)]\npub(crate) mod source_index_original;\n#[cfg(test)]\npub(crate) use resolved::checked_absent_with_work_reservation;\n"
+      }
+    ]
+  },
+  {
+    "path": "src/loop_calls/byte_writer/source_index.rs",
+    "before_sha256": "96c5c2aea8bcb9926250f5d16589ec972cd2458b5eb601ec6b4ed76a496594b3",
+    "after_sha256": "278d20c1f0aa21e4bad8e05175943f54346731a5f326a83cd90628d991dc8830",
+    "inverse": [
+      {
+        "after": "}\n#[cfg(test)]\n#[path = \"source_index/tests.rs\"]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"Run the same controls against independent receivers.\"\n)]\nmod tests;\n\npub(crate) trait SourceHelpers {\n",
+        "before": "}\n#[cfg(test)]\n#[path = \"source_index/tests.rs\"]\nmod tests;\n\npub(crate) trait SourceHelpers {\n"
+      }
+    ]
+  },
+  {
+    "path": "src/loop_calls/byte_writer/source_index_original.rs",
+    "before_sha256": "ada0bc8eb040891346371f0435aedd5a557670e25c366e342a02c49193fa347e",
+    "after_sha256": "7e423fccff3cdd0d5e7fac263e38e997075163f115af7b8db7f62efcf9d2a2ad",
+    "inverse": [
+      {
+        "after": "}\n#[cfg(test)]\n#[path = \"source_index/tests.rs\"]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"Run the same controls against independent receivers.\"\n)]\nmod tests;\n\npub(crate) trait SourceHelpers {\n",
+        "before": "}\n#[cfg(test)]\n#[path = \"source_index/tests.rs\"]\nmod tests;\n\npub(crate) trait SourceHelpers {\n"
       }
     ]
   },
@@ -1285,6 +1408,17 @@
     ]
   },
   {
+    "path": "src/string_ops/concat_funded.rs",
+    "before_sha256": "9243367437efae1fe629cb09815cbf7158d9f69fc6c017fba9832c936a9c738b",
+    "after_sha256": "06491fb12dc8b07a548ad4449f7ae38e57d0a185cb72f214d1d66c277eb881f2",
+    "inverse": [
+      {
+        "after": "//!   is identical and short-circuits at the first match;\n//! - the traversal stack, interpreter child order, map nodes and clone\n//!   payloads of keys and values are debited first.\n//!\n//! A typed-map reopen is admitted by `typed_reopen_admitted`, an allocation-free\n//! borrowed projection of `MapOp::resolved_signature` (the original also builds\n//! unused AST types, parameter names and `ValueId`s). It compares the argument\n",
+        "before": "//!   is identical and short-circuits at the first match;\n//! - the traversal stack, interpreter child order, map nodes and clone\n//!   payloads of keys and values are debited first.\n//! A typed-map reopen is admitted by `typed_reopen_admitted`, an allocation-free\n//! borrowed projection of `MapOp::resolved_signature` (the original also builds\n//! unused AST types, parameter names and `ValueId`s). It compares the argument\n"
+      }
+    ]
+  },
+  {
     "path": "src/string_ops/conditions.rs",
     "before_sha256": "555625d9d7b8150080f006b0563e19952353a85180c7b4297e90c951100cdcb8",
     "after_sha256": "81c4813bec9f7f35f23bb6460312e87f17090b31f4507e87e2d693d13aa49280",
@@ -1311,6 +1445,17 @@
     ]
   },
   {
+    "path": "src/workspace_graph/expected_projection/borrowed_imports.rs",
+    "before_sha256": "cbea3d04790517cf7584fe1163000314dbf514990b5cd5ed4429564e59f23675",
+    "after_sha256": "af99934fd00043729c81059b50a045051ee6daf539a81b9a79c85a87e933b132",
+    "inverse": [
+      {
+        "after": "\n#[cfg(test)]\n#[path = \"borrowed_imports/tests.rs\"]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"Run the same controls against independent receivers.\"\n)]\nmod tests;\n\n#[path = \"borrowed_imports/inline.rs\"]\n",
+        "before": "\n#[cfg(test)]\n#[path = \"borrowed_imports/tests.rs\"]\nmod tests;\n\n#[path = \"borrowed_imports/inline.rs\"]\n"
+      }
+    ]
+  },
+  {
     "path": "src/workspace_graph/expected_projection/borrowed_imports/inline.rs",
     "before_sha256": "21e084ec204ca71b1b43aae82bf850176e60b972020efc3971b9ff3db08166f3",
     "after_sha256": "30586033a207b11b600cdb0d08361a37dd78c7a159660aa645115c82b7475422",
@@ -1318,6 +1463,17 @@
       {
         "after": "};\nuse crate::ast::program_source::{generated_roots::GeneratedRoots, SyntheticProgramView};\nuse crate::ast::{Expr, ExprKind, Function, ModuleUseKind, Program, Type, TypeDeclaration};\nuse crate::workspace_graph::constructor_failure::{reserve, Failure};\nuse std::collections::BTreeMap;\n\npub(in crate::workspace_graph) fn construct_using<'p, 'a>(\n    program: &'p Program,\n",
         "before": "};\nuse crate::ast::program_source::{generated_roots::GeneratedRoots, SyntheticProgramView};\nuse crate::ast::{Expr, ExprKind, Function, ModuleUseKind, Program, Type, TypeDeclaration};\nuse std::collections::BTreeMap;\nuse crate::workspace_graph::constructor_failure::{reserve, Failure};\n\npub(in crate::workspace_graph) fn construct_using<'p, 'a>(\n    program: &'p Program,\n"
+      }
+    ]
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/borrowed_imports_original.rs",
+    "before_sha256": "0c4c18c12a4c617ed90103a3107e38a93e9590c27eb0514d9c6d81c21a92a9c7",
+    "after_sha256": "9fde22693b1cb549f5ed25316e380859e5a93796a79c26bd482df2c309b990c6",
+    "inverse": [
+      {
+        "after": "\n#[cfg(test)]\n#[path = \"borrowed_imports/tests.rs\"]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"Run the same controls against independent receivers.\"\n)]\nmod tests;\n",
+        "before": "\n#[cfg(test)]\n#[path = \"borrowed_imports/tests.rs\"]\nmod tests;\n"
       }
     ]
   },
@@ -1348,21 +1504,59 @@
     ]
   },
   {
+    "path": "src/workspace_graph/expected_projection/import_stub/byte_helper.rs",
+    "before_sha256": "f99352d60b71ace1baf2ebb39559a6ac7a1be9033420c3983db5aeea37f4fd78",
+    "after_sha256": "161936d372d3b9669db262bdec164f5fd1af12fe2b0d7fac39d3a5a2e33aafe3",
+    "inverse": [
+      {
+        "after": "\n#[cfg(test)]\n#[path = \"byte_helper/tests.rs\"]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"Run the same controls against independent receivers.\"\n)]\nmod tests;\n",
+        "before": "\n#[cfg(test)]\n#[path = \"byte_helper/tests.rs\"]\nmod tests;\n"
+      }
+    ]
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/import_stub/byte_helper_original.rs",
+    "before_sha256": "13d5ab2918fa7fb97619e985d781d3e60fc06278a73e0d4a27791c4a4fe65206",
+    "after_sha256": "d180b676d6b93e852e39b9f8ee5b94a4b1484d2084fdf51cbee78255ac5e7358",
+    "inverse": [
+      {
+        "after": "\n#[cfg(test)]\n#[path = \"byte_helper/tests.rs\"]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"Run the same controls against independent receivers.\"\n)]\nmod tests;\n\n// ORIGINAL_PROVIDER_OBSERVATION_BEGIN\n",
+        "before": "\n#[cfg(test)]\n#[path = \"byte_helper/tests.rs\"]\nmod tests;\n\n// ORIGINAL_PROVIDER_OBSERVATION_BEGIN\n"
+      }
+    ]
+  },
+  {
     "path": "src/workspace_graph/identity_resolution/tests.rs",
     "before_sha256": "f57201ec80e31657a35081e90b0e0f85b7aee85316822d76ab2d6053cb18007b",
-    "after_sha256": "2bea5335158b2c1463f0ca51f3b7acfe40c93f1325972e63cd6600627462afcd",
+    "after_sha256": "0798bf2114db010efbfa38538376fbcd849e3287c37bf377aec17aff43362ee4",
     "inverse": [
       {
         "after": "            assert_eq!(result.3, oracle.1.static_text());\n            assert!(result.2 > 0);\n            assert_eq!(super::acquisitions(), before + 1);\n            assert!(crate::hir::resolve_source(\n                input.source(),\n                layout.presentation(&current[0], input.source()).unwrap()\n            )\n            .is_err());\n        }\n        // A retained generic wrapper with the wrong persistent identity must\n        // still undergo ordinary source verification, even with a warm cache.\n",
         "before": "            assert_eq!(result.3, oracle.1.static_text());\n            assert!(result.2 > 0);\n            assert_eq!(super::acquisitions(), before + 1);\n            assert!(\n                crate::hir::resolve_source(\n                    input.source(),\n                    layout.presentation(&current[0], input.source()).unwrap()\n                )\n                .is_err()\n            );\n        }\n        // A retained generic wrapper with the wrong persistent identity must\n        // still undergo ordinary source verification, even with a warm cache.\n"
+      },
+      {
+        "after": "        assert!(exact.allocated <= used && exact.highwater <= used);\n        let (((), short), failed, used, first) = observe(required - 1, true);\n        let first = first.expect(\"one-short selects a real original request\");\n        assert!(failed && first.requested > first.remaining && used < required);\n        assert!(!short.invalid && short.live == 0);\n        assert_eq!(short.allocated, short.freed);\n        assert!(short.allocated <= used && short.highwater <= used);\n",
+        "before": "        assert!(exact.allocated <= used && exact.highwater <= used);\n        let (((), short), failed, used, first) = observe(required - 1, true);\n        let first = first.expect(\"one-short selects a real original request\");\n        assert!(failed && first.requested > first.remaining && used <= required - 1);\n        assert!(!short.invalid && short.live == 0);\n        assert_eq!(short.allocated, short.freed);\n        assert!(short.allocated <= used && short.highwater <= used);\n"
       }
     ]
   },
   {
     "path": "src/workspace_graph/source_schema/static_text/tests/retained_lexical_composition.rs",
     "before_sha256": "ae528d01a07710e1ed20921bab781553b9a0a39ff9035e0705fbe2886e63089c",
-    "after_sha256": "da884b7fbab4ea2bef928d7ef12e839bef8ceff31ca1a7b590a66b9da6bdcd3d",
+    "after_sha256": "a3e0ce93da0450228c86e09f351830e8c4ee105a01b2fb769374e5c1b8b074e2",
     "inverse": [
+      {
+        "after": "            .replace(authored, consumer_use);\n        let errors = crate::check(&local, \"writer.spx\")\n            .err()\n            .unwrap_or_else(|| panic!(\"direct source verification refuses the escaping row\"));\n        assert!(\n            errors.iter().any(|error| error.code == \"SPX-T284\"\n                && error.message == \"record traversal row cannot escape or materialize aggregate storage; select a field\"),\n",
+        "before": "            .replace(authored, consumer_use);\n        let errors = crate::check(&local, \"writer.spx\")\n            .err()\n            .expect(\"direct source verification refuses the escaping row\");\n        assert!(\n            errors.iter().any(|error| error.code == \"SPX-T284\"\n                && error.message == \"record traversal row cannot escape or materialize aggregate storage; select a field\"),\n"
+      },
+      {
+        "after": "        assert_ne!(consumer, IMPORTED);\n        let errors = try_build_imported(&provider, &consumer)\n            .err()\n            .unwrap_or_else(|| panic!(\"retained build refuses the escaping row\"));\n        assert!(\n            errors.iter().any(|error| error.code == \"SPX-T284\"\n                && error.message\n",
+        "before": "        assert_ne!(consumer, IMPORTED);\n        let errors = try_build_imported(&provider, &consumer)\n            .err()\n            .expect(\"retained build refuses the escaping row\");\n        assert!(\n            errors.iter().any(|error| error.code == \"SPX-T284\"\n                && error.message\n"
+      },
+      {
+        "after": "        };\n        assert_ne!(escaping, PROVIDER);\n        let errors = try_build_imported(&escaping, &consumer)\n            .err().unwrap_or_else(|| panic!(\"an escaping imported helper is not a row reader\"));\n        assert!(\n            errors.iter().any(|error| error.code == \"SPX-T284\"),\n            \"{escaping}: {errors:#?}\"\n",
+        "before": "        };\n        assert_ne!(escaping, PROVIDER);\n        let errors = try_build_imported(&escaping, &consumer)\n            .err()\n            .expect(\"an escaping imported helper is not a row reader\");\n        assert!(\n            errors.iter().any(|error| error.code == \"SPX-T284\"),\n            \"{escaping}: {errors:#?}\"\n"
+      },
       {
         "after": "        \"exact literal-site authentication precedes composed lexical replay\"\n    );\n    let module = writer(build);\n    let expected = if module\n        .functions\n        .iter()\n        .chain(\n            module\n                .function_instances\n                .iter()\n                .map(|instance| &instance.function),\n        )\n        .any(|function| {\n            std::iter::once(&function.body)\n                .chain(&function.requires)\n                .chain(&function.ensures)\n                .any(crate::vec_field::expression_uses)\n        }) {\n        crate::graph::VEC_FIELD_GRAPH_SCHEMA\n    } else {\n        crate::graph::STATIC_TEXT_GRAPH_SCHEMA\n    };\n    assert_eq!(\n        build.source_graph_schemas().unwrap()[\"writer.spx\"],\n        expected\n    );\n}\n\nfn evaluate(program: &hir::ResolvedProgram) -> ResolvedEvaluationOutcome {\n",
         "before": "        \"exact literal-site authentication precedes composed lexical replay\"\n    );\n    let module = writer(build);\n    let expected = if module.functions.iter()\n        .chain(module.function_instances.iter().map(|instance| &instance.function))\n        .any(|function| std::iter::once(&function.body)\n            .chain(&function.requires).chain(&function.ensures)\n            .any(crate::vec_field::expression_uses))\n    {\n        crate::graph::VEC_FIELD_GRAPH_SCHEMA\n    } else {\n        crate::graph::STATIC_TEXT_GRAPH_SCHEMA\n    };\n    assert_eq!(build.source_graph_schemas().unwrap()[\"writer.spx\"], expected);\n}\n\nfn evaluate(program: &hir::ResolvedProgram) -> ResolvedEvaluationOutcome {\n"

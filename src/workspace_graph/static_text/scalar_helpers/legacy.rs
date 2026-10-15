@@ -51,10 +51,8 @@ pub(super) fn capture(
                 .and_then(|n| n.checked_add(1))
                 .ok_or_else(fail)?,
         )?;
-        if source.path == program.path {
-            if selected.replace(source).is_some() {
-                return Err(fail());
-            }
+        if source.path == program.path && selected.replace(source).is_some() {
+            return Err(fail());
         }
     }
     let source = selected.ok_or_else(fail)?;
@@ -110,10 +108,8 @@ pub(super) fn capture(
                     .and_then(|n| n.checked_add(1))
                     .ok_or_else(fail)?,
             )?;
-            if function.id.as_str() == source.stable_id {
-                if current.replace(function).is_some() {
-                    return Err(fail());
-                }
+            if function.id.as_str() == source.stable_id && current.replace(function).is_some() {
+                return Err(fail());
             }
         }
         let function = current.ok_or_else(fail)?;
@@ -176,10 +172,8 @@ pub(super) fn capture(
                     .and_then(|n| n.checked_add(1))
                     .ok_or_else(fail)?,
             )?;
-            if function.id.as_str() == source.stable_id {
-                if current.replace(function).is_some() {
-                    return Err(fail());
-                }
+            if function.id.as_str() == source.stable_id && current.replace(function).is_some() {
+                return Err(fail());
             }
         }
         let function = current.ok_or_else(fail)?;

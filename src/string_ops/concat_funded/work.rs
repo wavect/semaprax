@@ -360,9 +360,9 @@ pub(crate) fn is_same_owner_concat_hir_funded_with_work<E>(
     }
 }
 
-fn appends_scan<'a, E>(
+fn appends_scan<E>(
     appends: &mut BTreeMap<ExpressionId, ExpressionId>,
-    pending: &mut Vec<&'a ResolvedExpr>,
+    pending: &mut Vec<&ResolvedExpr>,
     work: Work<'_, E>,
     reserve: Reserve<'_, E>,
 ) -> Result<(), FundedError<E>> {

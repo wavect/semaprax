@@ -927,6 +927,18 @@ fn error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-B104", message)
 }
 
+impl NativeBytesProducer for NativeBytesPlan {
+    fn base(&self) -> &NativeBytesPlan {
+        self
+    }
+    fn transitions(&self) -> origin::Selection<'_, ExpressionId> {
+        self.transitions.select(None)
+    }
+    fn variant_cases(&self) -> origin::Selection<'_, (ExpressionId, DeclarationId)> {
+        self.variant_case_transitions.select(None)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1050,17 +1062,5 @@ mod tests {
                 },
             )
             .is_err());
-    }
-}
-
-impl NativeBytesProducer for NativeBytesPlan {
-    fn base(&self) -> &NativeBytesPlan {
-        self
-    }
-    fn transitions(&self) -> origin::Selection<'_, ExpressionId> {
-        self.transitions.select(None)
-    }
-    fn variant_cases(&self) -> origin::Selection<'_, (ExpressionId, DeclarationId)> {
-        self.variant_case_transitions.select(None)
     }
 }

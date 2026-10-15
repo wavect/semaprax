@@ -1,0 +1,52 @@
+{
+  "source_subject": "d8fadfb7cd5ece54504cda542575e5a154d3657c",
+  "source_tree": "72ea16ced4d014737244fc21c058b94ec2cff9f8",
+  "build_receipt_sha256": "e839a0b7b38796c55cbe8fd78671640dbe9c1baf17e651794a12281456243588",
+  "build_metadata_sha256": "de57f1b9b06270739a4f1bbd583dfe80f6b2607cb61a77e4e8f12de9e96926f9",
+  "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04",
+  "executable_sha256": "17d553295d19f4249bd42812ac7c004560f48e7a77a08ffd3d5efb7e12393c3a",
+  "selectors": [
+    "project::incremental::checked_hir::tests::cold_and_warm_checked_owner_preserves_body_pointer_and_exact_source_guards",
+    "workspace_graph::tests::cache_stage_debits::original_row_loan_checked_cold_and_warm_preserve_ordinary_graph_with_exact_stage_debits",
+    "workspace_graph::tests::cache_stage_debits::original_mixed_byte_traversal_checked_cold_and_warm_preserve_ordinary_graph_with_exact_stage_debits"
+  ],
+  "ownership_cut_equal_to_e93": [
+    {
+      "path": "src/hir/declaration_index",
+      "tree_listing_sha256": "b69f1121918386842b04ea57c45d37752200b78d39853abcd531fea7470a951d"
+    },
+    {
+      "path": "src/hir/nominal_payload",
+      "tree_listing_sha256": "b741d1aa0eb2da609c1e15f0ab8c9897264492bd57823c92fb84407a1cc4ebb4"
+    },
+    {
+      "path": "src/hir/nominal_payload.rs",
+      "tree_listing_sha256": "916368c218c81614275628e54040978b97e734113467a563f7a2bb67825878e8"
+    },
+    {
+      "path": "src/hir/resolve_program.rs",
+      "tree_listing_sha256": "bb3e0df7f082931c418ad450c83cde01f19282932ea4b81553f3ddcadb1f337a"
+    },
+    {
+      "path": "src/workspace_graph/identity_resolution/base",
+      "tree_listing_sha256": "21ff65040a61f9098f5a55b2a4f2839cde2c1e8cf8386c19eb75b8112b81a88f"
+    },
+    {
+      "path": "src/workspace_graph/identity_resolution/base.rs",
+      "tree_listing_sha256": "0c9fb40596b20fbcafc6c344e1a4302e4d476271e90210d5151e7b7ce49512cf"
+    },
+    {
+      "path": "src/workspace_graph/identity_resolution/nominal.rs",
+      "tree_listing_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "controller_sha256": "6348dab633700753f51009e3efb0963b9af3899415cd36625a45105379bf24a5",
+  "guard": {
+    "observation_helper_path": "/Volumes/Semaprax/lane-prompts/pin-consumer-d8fad-seven-20261015/drivers/semaprax_pressure_observation_v3.py",
+    "observation_helper_sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+    "phase_monitor_path": "/Volumes/Semaprax/lane-prompts/pin-consumer-d8fad-seven-20261015/drivers/observed_phase.py",
+    "phase_monitor_sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+  },
+  "no_cargo": true,
+  "no_current_e93_whole_compiler_qualification": true
+}

@@ -1,0 +1,17 @@
+
+running 1 test
+test workspace_graph::tests::cache_stage_debits::original_mixed_byte_traversal_checked_cold_and_warm_preserve_ordinary_graph_with_exact_stage_debits ... 
+thread 'workspace_graph::tests::cache_stage_debits::original_mixed_byte_traversal_checked_cold_and_warm_preserve_ordinary_graph_with_exact_stage_debits' (10239468) panicked at src/workspace_graph/tests/cache_stage_debits.rs:156:5:
+assertion `left == right` failed
+  left: 9
+ right: 6
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::tests::cache_stage_debits::original_mixed_byte_traversal_checked_cold_and_warm_preserve_ordinary_graph_with_exact_stage_debits
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9101 filtered out; finished in 2.53s
+

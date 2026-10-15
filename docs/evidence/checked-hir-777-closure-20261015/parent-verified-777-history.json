@@ -1,0 +1,65 @@
+[
+  {
+    "selector": "project::incremental::checked_hir::tests::cold_and_warm_checked_owner_preserves_body_pointer_and_exact_source_guards",
+    "source": "1a0b9d9bc5ce2b36133d61ea4636dc9614f2f41e",
+    "receipt_sha256": "5d198fd2b899c1a87b72868b71ca20056f3927ba6a24e677f3062837a6000adb",
+    "log_sha256": "c18c384b244e71ff88dea16d400126f5d178a8f9ca7c20027cf367ebeab16436",
+    "old_schema_execution_confirmed_by_actual_single_body_summary": false
+  },
+  {
+    "selector": "project::incremental::checked_hir::tests::lifecycle::actual_cold_warm_cache_core_and_publication_match_owned_receiver_through_drop",
+    "source": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+    "receipt_sha256": "6e8f85c6d9d5742e7e4fea362d0b28f66c90b9ed7475f7d18afe3510bb15efe4",
+    "log_sha256": "03206851b9584d6444a7770c8a9d9386bc0311f2c24053441478bab48ef78a4e",
+    "old_schema_execution_confirmed_by_actual_single_body_summary": false
+  },
+  {
+    "selector": "workspace_graph::checked_retention::tests::contiguous_checked_views_allocate_nothing_and_materialize_only_at_owned_boundary",
+    "source": "033caf93a2028d0aaa0da5b755d021ee9b1b6640",
+    "receipt_sha256": "7ad94b4a4c33b3eef9bcc21d7c5589b04cd0dced057b98c7d752a67e6fee5ee2",
+    "log_sha256": "55e19a0d733d335bddf2280788d66892b4cfdc98a29dc19d7204617322230059",
+    "old_schema_execution_confirmed_by_actual_single_body_summary": true
+  },
+  {
+    "selector": "workspace_graph::checked_retention::tests::noncontiguous_output_carrier_reservation_is_exact_sticky_and_precedes_clone",
+    "source": "033caf93a2028d0aaa0da5b755d021ee9b1b6640",
+    "receipt_sha256": "7ad94b4a4c33b3eef9bcc21d7c5589b04cd0dced057b98c7d752a67e6fee5ee2",
+    "log_sha256": "a4eace89cda292ed0d0244435eedd89d02f1f660fc82284710d52e8d2df09b76",
+    "old_schema_execution_confirmed_by_actual_single_body_summary": true
+  },
+  {
+    "selector": "workspace_graph::checked_retention::tests::noncontiguous_three_and_five_backings_have_no_growth_and_input_headers_pay_actual_delta",
+    "source": "033caf93a2028d0aaa0da5b755d021ee9b1b6640",
+    "receipt_sha256": "7ad94b4a4c33b3eef9bcc21d7c5589b04cd0dced057b98c7d752a67e6fee5ee2",
+    "log_sha256": "c95be11fec55eaf0144bbdabe698ddf97c481315f1d9befbba229477c385be3a",
+    "old_schema_execution_confirmed_by_actual_single_body_summary": true
+  },
+  {
+    "selector": "workspace_graph::checked_retention::tests::ordinals::sparse_checked_ordinals_preserve_cold_warm_body_identity_old_wire_and_paid_drop",
+    "source": "033caf93a2028d0aaa0da5b755d021ee9b1b6640",
+    "receipt_sha256": "7ad94b4a4c33b3eef9bcc21d7c5589b04cd0dced057b98c7d752a67e6fee5ee2",
+    "log_sha256": "3fcc0e08746981cb8c6a61f837006b72146e92bd166977e47a143ebfa1c1e4e1",
+    "old_schema_execution_confirmed_by_actual_single_body_summary": true
+  },
+  {
+    "selector": "workspace_graph::checked_retention::tests::input_accounting::checked_retention_keeps_full_input_counter_and_sparse_backing_at_literal_limits",
+    "source": "033caf93a2028d0aaa0da5b755d021ee9b1b6640",
+    "receipt_sha256": "7ad94b4a4c33b3eef9bcc21d7c5589b04cd0dced057b98c7d752a67e6fee5ee2",
+    "log_sha256": "4b779a3d983fbe31a616fe5c65c4a0f8de1f08e5c75cebc67f8af8134ada270d",
+    "old_schema_execution_confirmed_by_actual_single_body_summary": true
+  },
+  {
+    "selector": "workspace_graph::checked_retention::tests::input_accounting::all_input_loan_sidecars_match_owned_retention_before_filtering_and_survive_cache_drop",
+    "source": "033caf93a2028d0aaa0da5b755d021ee9b1b6640",
+    "receipt_sha256": "7ad94b4a4c33b3eef9bcc21d7c5589b04cd0dced057b98c7d752a67e6fee5ee2",
+    "log_sha256": "b6de279b365f66f2a23c189a33100881aeee5d2987f1e6293c9b4477c66f4fcc",
+    "old_schema_execution_confirmed_by_actual_single_body_summary": true
+  },
+  {
+    "selector": "workspace_graph::checked_retention::tests::publication::final_owned_materialization_is_independent_and_settles_its_actual_backings",
+    "source": "033caf93a2028d0aaa0da5b755d021ee9b1b6640",
+    "receipt_sha256": "7ad94b4a4c33b3eef9bcc21d7c5589b04cd0dced057b98c7d752a67e6fee5ee2",
+    "log_sha256": "030d3f170dcdfcff3b6bd5364de902a6bdd9c5cdbac0cc45e181a1a23de38589",
+    "old_schema_execution_confirmed_by_actual_single_body_summary": true
+  }
+]

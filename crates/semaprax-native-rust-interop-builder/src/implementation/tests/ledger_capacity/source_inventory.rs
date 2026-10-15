@@ -216,6 +216,11 @@ macro_rules! loan_cfg_source_inventory {
         include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/source.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/factored/before_closure_invocation.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_closure_receiver.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/source.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/source.rs"),
@@ -309,7 +314,6 @@ macro_rules! diagnostic_source_inventory {
         )
     };
 }
-
 // Complete substituters and the saved current caller, alongside original gates.
 macro_rules! substitution_leaf_source_inventory {
     () => {
@@ -336,7 +340,6 @@ macro_rules! reachability_leaf_source_inventory {
         )
     };
 }
-
 // Complete borrowed-root oracle owners and their relocated children.
 macro_rules! hir_borrowed_root_oracle_source_inventory {
     () => {
@@ -384,7 +387,6 @@ macro_rules! hir_borrowed_root_oracle_source_inventory {
         )
     };
 }
-
 // Resolver source join: every original source in its original order, with the
 // missing production descendants inserted beside their parents.
 macro_rules! hir_resolver_source_inventory {
@@ -799,7 +801,6 @@ macro_rules! hir_resolver_source_inventory {
         )
     };
 }
-
 // Validator source join, same ordering rule as the resolver join.
 macro_rules! hir_validator_source_inventory {
     () => {
@@ -989,7 +990,6 @@ macro_rules! hir_validator_source_inventory {
         )
     };
 }
-
 // Source verifier join, same ordering rule as the resolver join.
 macro_rules! verifier_source_inventory {
     () => {

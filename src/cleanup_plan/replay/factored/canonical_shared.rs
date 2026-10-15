@@ -8,11 +8,11 @@ use super::{
 };
 
 #[cfg(test)]
-mod before_held;
-#[cfg(test)]
-mod held_auth_tests;
-#[cfg(test)]
 mod before_alias;
+#[cfg(test)]
+pub(super) mod before_closure_receiver;
+#[cfg(test)]
+mod before_held;
 #[cfg(test)]
 mod before_index;
 #[cfg(test)]
@@ -21,8 +21,11 @@ mod before_ordered;
 mod before_scratch;
 #[cfg(test)]
 mod before_targets;
+pub(in crate::cleanup_plan::replay) mod closure_receiving;
 #[cfg(test)]
 mod epsilon_alias;
+#[cfg(test)]
+mod held_auth_tests;
 mod memo;
 mod ordered_alias;
 mod ordered_weights;
@@ -136,12 +139,57 @@ impl<'a> Canonicalizer<'a> {
 
     /// Nodes with moves (or the sink) reachable through epsilon edges, each
     /// with its number of epsilon routes.
+    // Single-request test entries pay their real owner here; equivalent()
+    // instead lends one invocation owner across both roots. No wrapper gain claim.
+    #[cfg(test)]
+    pub(super) fn id(
+        &mut self,
+        function: &ResolvedFunction,
+        root: Weighted,
+        budget: &mut ReplayBudget,
+    ) -> Result<Option<usize>, Diagnostic> {
+        let mut receiving = closure_receiving::ClosureReceiving::acquire(function, budget)?;
+        self.id_with_receiving(function, root, budget, &mut receiving)
+    }
+    #[cfg(test)]
+    fn successors(
+        &mut self,
+        function: &ResolvedFunction,
+        state: &SharedWeighted,
+        budget: &mut ReplayBudget,
+    ) -> Result<Option<(u64, Vec<(Label, SharedWeighted)>)>, Diagnostic> {
+        let mut receiving = closure_receiving::ClosureReceiving::acquire(function, budget)?;
+        self.successors_with_receiving(function, state, budget, &mut receiving)
+    }
+    #[cfg(test)]
     fn closure(
         &mut self,
         function: &ResolvedFunction,
         root: usize,
         budget: &mut ReplayBudget,
     ) -> Result<Option<Rc<ordered_weights::OrderedWeights>>, Diagnostic> {
+        self.closures.authenticate_retained(function, budget);
+        if self.closures.failed() {
+            return Err(self.closures.failure());
+        }
+        if self.closures.contains_key(&root) {
+            budget.charge(function, 1, "factored closure cursor")?;
+            return Ok(self.closures.get(&root).cloned());
+        }
+        let mut receiving = closure_receiving::ClosureReceiving::acquire(function, budget)?;
+        self.closure_with_receiving(function, root, budget, &mut receiving)
+    }
+    fn closure_with_receiving(
+        &mut self,
+        function: &ResolvedFunction,
+        root: usize,
+        budget: &mut ReplayBudget,
+        receiving: &mut closure_receiving::ClosureReceiving,
+    ) -> Result<Option<Rc<ordered_weights::OrderedWeights>>, Diagnostic> {
+        // Validate the held destination before any ordinary payer query.
+        if !receiving.valid(function, budget) {
+            return Err(Diagnostic::io("SPX-H006", String::new()));
+        }
         self.closures.authenticate_retained(function, budget);
         if self.closures.failed() {
             return Err(self.closures.failure());
@@ -157,48 +205,74 @@ impl<'a> Canonicalizer<'a> {
         if budget.pays_allocations() {
             budget.reserve_bytes(
                 function,
-                std::mem::size_of::<Result<Option<Rc<ordered_weights::OrderedWeights>>, Diagnostic>>()
+                closure_receiving::ClosureReceiving::PER_MISS_CONTROLS
                     + std::mem::size_of::<Result<(), Diagnostic>>()
                     + std::mem::size_of::<usize>(),
                 "factored closure scratch receiving",
             )?;
         }
         self.prepare_scratch(function, budget)?;
-        let result = self.closure_inner(function, root, budget);
+        receiving.begin();
+        #[cfg(test)]
+        closure_receiving::note_producer();
+        self.closure_inner_into(function, root, budget, receiving);
         self.cursor.clear();
-        result
+        assert!(receiving.ready, "unit producer settled exactly once");
+        receiving.ready = false;
+        // Do not construct an Option<Diagnostic> receiver on success.
+        if receiving.refusal.is_some() {
+            return Err(receiving.refusal.take().expect("published refusal"));
+        }
+        Ok(receiving.value.take())
     }
 
-    fn closure_inner(
+    fn closure_inner_into(
         &mut self,
         function: &ResolvedFunction,
         root: usize,
         budget: &mut ReplayBudget,
-    ) -> Result<Option<Rc<ordered_weights::OrderedWeights>>, Diagnostic> {
-        budget.reserve_vec(
+        receiving: &mut closure_receiving::ClosureReceiving,
+    ) {
+        macro_rules! attempt {
+            ($operation:expr) => {
+                match $operation {
+                    Ok(value) => value,
+                    Err(error) => {
+                        receiving.refuse(error);
+                        return;
+                    }
+                }
+            };
+        }
+        attempt!(budget.reserve_vec(
             function,
             &mut self.cursor,
             1,
             "factored closure initial cursor",
-        )?;
+        ));
         self.cursor.push((root, false));
         while let Some((node, expanded)) = self.cursor.pop() {
-            budget.charge(function, 1, "factored closure cursor")?;
+            attempt!(budget.charge(function, 1, "factored closure cursor"));
             if self.closures.contains_key(&node) {
                 continue;
             }
             let state = &self.automaton.nodes[node];
             if !expanded {
-                budget.reserve_vec(function, &mut self.cursor, 1, "factored closure cursors")?;
+                attempt!(budget.reserve_vec(
+                    function,
+                    &mut self.cursor,
+                    1,
+                    "factored closure cursors"
+                ));
                 self.cursor.push((node, true));
                 for target in &state.epsilon {
                     if !self.closures.contains_key(target) {
-                        budget.reserve_vec(
+                        attempt!(budget.reserve_vec(
                             function,
                             &mut self.cursor,
                             1,
                             "factored closure cursors",
-                        )?;
+                        ));
                         self.cursor.push((*target, false));
                     }
                 }
@@ -211,7 +285,8 @@ impl<'a> Canonicalizer<'a> {
                 #[cfg(test)]
                 app_census::eligible();
                 let Some(inner) = self.closures.get(&state.epsilon[0]) else {
-                    return Err(replay_error(function, "cleanup CFG contains a cycle"));
+                    receiving.refuse(replay_error(function, "cleanup CFG contains a cycle"));
+                    return;
                 };
                 #[cfg(test)]
                 app_census::child_ready(inner.len());
@@ -219,40 +294,44 @@ impl<'a> Canonicalizer<'a> {
                     Ok(shared) => shared,
                     Err(error) => {
                         self.closures.reject_after_error();
-                        return Err(error);
+                        receiving.refuse(error);
+                        return;
                     }
                 };
                 #[cfg(test)]
                 app_census::acquired();
-                self.closures
-                    .insert_retained(function, node, budget, || shared)?;
+                attempt!(
+                    self.closures
+                        .insert_retained(function, node, budget, || shared)
+                );
                 #[cfg(test)]
                 app_census::published();
                 continue;
             }
             if budget.pays_allocations() {
-                budget.reserve_bytes(
+                attempt!(budget.reserve_bytes(
                     function,
                     ordered_weights::OrderedWeights::CONTROLS,
                     "factored ordered closure controls",
-                )?;
+                ));
             }
             let mut closure = ordered_weights::OrderedWeights::new();
             if !state.moves.is_empty() || node == self.sink {
                 if closure.needs_capacity() {
-                    closure.grow(function, budget)?;
+                    attempt!(closure.grow(function, budget));
                 }
                 closure.insert_prepaid(node, 1_u64);
             }
             for target in &state.epsilon {
                 let Some(inner) = self.closures.get(target) else {
-                    return Err(replay_error(function, "cleanup CFG contains a cycle"));
+                    receiving.refuse(replay_error(function, "cleanup CFG contains a cycle"));
+                    return;
                 };
                 for (inner_node, routes) in inner.iter() {
-                    budget.charge(function, 1, "factored closure route addition")?;
+                    attempt!(budget.charge(function, 1, "factored closure route addition"));
                     if closure.get(inner_node).is_none() {
                         if closure.needs_capacity() {
-                            closure.grow(function, budget)?;
+                            attempt!(closure.grow(function, budget));
                         }
                         closure.insert_prepaid(*inner_node, 0_u64);
                     }
@@ -260,34 +339,38 @@ impl<'a> Canonicalizer<'a> {
                         .get_mut(inner_node)
                         .expect("inserted ordered weight");
                     let Some(sum) = slot.checked_add(*routes) else {
-                        return Ok(None);
+                        receiving.complete(None);
+                        return;
                     };
                     *slot = sum;
                 }
             }
-            budget.charge(
+            attempt!(budget.charge(
                 function,
                 closure.len().saturating_add(1),
                 "factored skeleton closure",
-            )?;
-            budget.reserve_bytes(
+            ));
+            attempt!(budget.reserve_bytes(
                 function,
                 physical_clone::rc_backing_bytes::<ordered_weights::OrderedWeights>(),
                 "factored closure shared header",
-            )?;
-            self.closures
-                .insert_retained(function, node, budget, || Rc::new(closure))?;
+            ));
+            attempt!(
+                self.closures
+                    .insert_retained(function, node, budget, || Rc::new(closure))
+            );
         }
-        Ok(self.closures.get(&root).cloned())
+        receiving.complete(self.closures.get(&root).cloned());
     }
 
     /// The accepted weight of `state` and its weighted successor per label.
     #[allow(clippy::type_complexity)]
-    fn successors(
+    fn successors_with_receiving(
         &mut self,
         function: &ResolvedFunction,
         state: &SharedWeighted,
         budget: &mut ReplayBudget,
+        receiving: &mut closure_receiving::ClosureReceiving,
     ) -> Result<Option<(u64, Vec<(Label, SharedWeighted)>)>, Diagnostic> {
         if budget.pays_allocations() {
             budget.reserve_bytes(
@@ -297,7 +380,8 @@ impl<'a> Canonicalizer<'a> {
             )?;
         }
         let closed = if let [(node, 1)] = state.as_slice() {
-            let Some(closure) = self.closure(function, *node, budget)? else {
+            let Some(closure) = self.closure_with_receiving(function, *node, budget, receiving)?
+            else {
                 return Ok(None);
             };
             // The old empty accumulator saw every unique closure entry once.
@@ -323,7 +407,9 @@ impl<'a> Canonicalizer<'a> {
             }
             let mut closed = ordered_weights::OrderedWeights::new();
             for (node, weight) in state.iter() {
-                let Some(closure) = self.closure(function, *node, budget)? else {
+                let Some(closure) =
+                    self.closure_with_receiving(function, *node, budget, receiving)?
+                else {
                     return Ok(None);
                 };
                 for (inner, routes) in closure.iter() {
@@ -532,17 +618,22 @@ impl<'a> Canonicalizer<'a> {
         Ok(Some((accepted, result)))
     }
 
-    pub(super) fn id(
+    pub(super) fn id_with_receiving(
         &mut self,
         function: &ResolvedFunction,
         root: Weighted,
         budget: &mut ReplayBudget,
+        receiving: &mut closure_receiving::ClosureReceiving,
     ) -> Result<Option<usize>, Diagnostic> {
         #[cfg(test)]
         tests::note_actual_entry(budget);
         // Authenticate even when states already contains the requested root.
         // One equivalent() call holds this function and budget borrowed across
         // both roots; no closure/cache view leaves that invocation.
+        // Validate the held destination before any ordinary payer query.
+        if !receiving.valid(function, budget) {
+            return Err(Diagnostic::io("SPX-H006", String::new()));
+        }
         self.closures.authenticate_retained(function, budget);
         if self.closures.failed() {
             return Err(self.closures.failure());
@@ -557,7 +648,7 @@ impl<'a> Canonicalizer<'a> {
             )?;
         }
         self.prepare_scratch(function, budget)?;
-        let result = self.id_inner(function, root, budget);
+        let result = self.id_inner(function, root, budget, receiving);
         // Retain capacity, never owned references, across either root and all
         // success, arithmetic, work, physical and semantic failure exits.
         self.cursor.clear();
@@ -592,6 +683,7 @@ impl<'a> Canonicalizer<'a> {
         function: &ResolvedFunction,
         root: Weighted,
         budget: &mut ReplayBudget,
+        receiving: &mut closure_receiving::ClosureReceiving,
     ) -> Result<Option<usize>, Diagnostic> {
         budget.reserve_vec(
             function,
@@ -619,7 +711,8 @@ impl<'a> Canonicalizer<'a> {
                         "factored retained open-state identity slots",
                     )?;
                     self.open.push(share_weighted(function, budget, &state)?);
-                    let Some((accepted, successors)) = self.successors(function, &state, budget)?
+                    let Some((accepted, successors)) =
+                        self.successors_with_receiving(function, &state, budget, receiving)?
                     else {
                         return Ok(None);
                     };

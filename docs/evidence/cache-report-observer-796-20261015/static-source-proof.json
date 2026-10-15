@@ -1,0 +1,34 @@
+{
+  "state": "SOURCE_ONLY_NOT_EXECUTED",
+  "base": "2cf33c156735bc644b933cd5a4c1e0f891649b9b",
+  "rows": [
+    {
+      "source": "src/workspace_graph/identity_resolution.rs",
+      "whole_current_to_Git_base_exact": true,
+      "whole_inverse_exact": true,
+      "tampered_current_refused": true
+    },
+    {
+      "source": "src/workspace_graph/identity_resolution/base/cache_billing.rs",
+      "whole_current_to_Git_base_exact": true,
+      "whole_inverse_exact": true,
+      "tampered_current_refused": true
+    },
+    {
+      "source": "src/workspace_graph/tests/cache_stage_debits.rs",
+      "whole_current_to_Git_base_exact": true,
+      "whole_inverse_exact": true,
+      "tampered_current_refused": true
+    },
+    {
+      "source": "src/source_reflows_merge.rs",
+      "whole_current_to_Git_base_exact": true,
+      "whole_inverse_exact": true,
+      "tampered_current_refused": true
+    }
+  ],
+  "all_original_downstream_graph_Image_stage_work_assertions_byte_exact": true,
+  "original_total_observer_body_unchanged": true,
+  "production_changes": false,
+  "pending_bodies": 2
+}

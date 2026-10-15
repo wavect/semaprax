@@ -10,6 +10,8 @@ use std::fmt;
     reason = "the original affine ledger moves inline; a refusal must not allocate a Box"
 )]
 enum Owner {
+    Initial(crate::workspace_graph::InitialReport),
+    Unreceived(crate::workspace_graph::initial_report::Unreceived),
     Existing(Vec<Diagnostic>),
     Selected {
         failure: SelectedReplayRefusal,
@@ -23,6 +25,12 @@ enum Owner {
 /// Explicit `into_legacy_unfunded()` is the allocating compatibility boundary.
 pub struct WorkspaceReportFailure(Owner, Option<Vec<Diagnostic>>);
 impl WorkspaceReportFailure {
+    pub(crate) fn initial(failure: crate::workspace_graph::InitialReport) -> Self {
+        Self(Owner::Initial(failure), None)
+    }
+    pub(crate) fn unreceived(failure: crate::workspace_graph::initial_report::Unreceived) -> Self {
+        Self(Owner::Unreceived(failure), None)
+    }
     pub(crate) fn existing(diagnostics: Vec<Diagnostic>) -> Self {
         Self(Owner::Existing(diagnostics), None)
     }
@@ -46,6 +54,8 @@ impl WorkspaceReportFailure {
     pub fn retained_report(&self) -> Option<&[Diagnostic]> {
         match &self.0 {
             Owner::Existing(diagnostics) => Some(diagnostics),
+            Owner::Initial(_) => None,
+            Owner::Unreceived(failure) => Some(failure.diagnostics()),
             Owner::Selected { failure, form } => failure.published_for(*form),
         }
     }
@@ -81,6 +91,8 @@ impl WorkspaceReportFailure {
         }
         match self.0 {
             Owner::Existing(diagnostics) => diagnostics,
+            Owner::Initial(failure) => vec![failure.materialize_unfunded()],
+            Owner::Unreceived(failure) => failure.into_legacy_unfunded(),
             Owner::Selected { failure, form } => failure
                 .into_report(form)
                 .unwrap_or_else(crate::cleanup_plan::SelectedReplayUnpaid::into_unfunded),
@@ -114,7 +126,8 @@ impl fmt::Display for WorkspaceReportFailure {
         }
         let form = match &self.0 {
             Owner::Selected { form, .. } => *form,
-            Owner::Existing(_) => unreachable!(),
+            Owner::Initial(failure) => return failure.write_human(out),
+            Owner::Existing(_) | Owner::Unreceived(_) => unreachable!(),
         };
         fmt::Display::fmt(&Diagnostic::io_static(form.code(), form.message()), out)
     }
@@ -154,6 +167,11 @@ impl WorkspaceReportFailure {
     ) -> Self {
         match self {
             Self(Owner::Existing(report), None) => Self::existing(mapper(report)),
+            // Explicit remaining unreceived-child compatibility allocation;
+            // the original primary and failed owner survive until this edge.
+            Self(Owner::Unreceived(failure), None) => {
+                Self::existing(mapper(failure.into_legacy_unfunded()))
+            }
             owner => owner,
         }
     }
@@ -164,3 +182,5 @@ impl WorkspaceReportFailure {
         matches!(self.0, Owner::Selected { .. })
     }
 }
+
+mod initial;

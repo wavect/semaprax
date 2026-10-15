@@ -1,0 +1,32 @@
+[
+  {
+    "source": "src/semantic_workspace_change.rs",
+    "archive": "docs/evidence/initial-report-policy-845-20261015/before/src/semantic_workspace_change.rs",
+    "original_sha256": "e234b66dd9373362ccb9f0da4a11406c288b9e83db19fbe49f49f0c5d5574ab6",
+    "functions": [
+      "map_change_builder_limit",
+      "limit"
+    ],
+    "adaptation": "only map visibility widened within cfg(test) module; complete original bodies and constant expressions preserved"
+  },
+  {
+    "source": "src/semantic_workspace_structural_change.rs",
+    "archive": "docs/evidence/initial-report-policy-845-20261015/before/src/semantic_workspace_structural_change.rs",
+    "original_sha256": "96bf37d9e17573224f20c0d1438ddd249617132d22be8458823d109d362ae3f5",
+    "functions": [
+      "map_candidate_builder_limit",
+      "limit"
+    ],
+    "adaptation": "only map visibility widened within cfg(test) module; complete original bodies and constant expressions preserved"
+  },
+  {
+    "source": "src/semantic_workspace_operations.rs",
+    "archive": "docs/evidence/initial-report-policy-845-20261015/before/src/semantic_workspace_operations.rs",
+    "original_sha256": "2ab0abfeade18ff756ddec9b1f63c186b70a513b7dbdf736d8d8fe3acf5e56c1",
+    "functions": [
+      "map_candidate_diagnostics",
+      "limit"
+    ],
+    "adaptation": "only map visibility widened within cfg(test) module; complete original bodies and constant expressions preserved"
+  }
+]

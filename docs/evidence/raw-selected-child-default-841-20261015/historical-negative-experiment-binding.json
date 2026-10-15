@@ -1,0 +1,39 @@
+{
+  "status": "HISTORICAL_PAIR_BINDING_NOT_NEW_CURRENT_RUN",
+  "summary_path": "/Volumes/Semaprax/provenance/841-successful-unit-pair-7a87-20261015/conditional-pair-summary.json",
+  "summary_sha256": "390ae5e6a9e4ca230e0154083c342db726782515e50c1b938674682efb6e6af7",
+  "original_summary_status": "CONDITIONAL_UNIT_PAIR_GZIP_OWNER_OR_FINAL_RECEIPT_MAY_REMAIN_PENDING",
+  "raw_head": "57e1485ca695771d0f381ce20f4d740ee98f2b86",
+  "gzip_head": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+  "raw_unit_phase_peak_group_rss_bytes": 5249531904,
+  "gzip_unit_phase_peak_group_rss_bytes": 5930647552,
+  "gzip_minus_raw": {
+    "unit_phase_wall_seconds": -31.736814625997795,
+    "unit_phase_peak_group_rss_bytes": 681115648,
+    "artifact_bytes": -4738944
+  },
+  "unit_wall_comparison_confounded_by_warm_target_and_order": true,
+  "retain_five_test_dependencies_and_all_decoder_controls": true,
+  "no_RAM_or_token_gain_claim": true,
+  "new_current_execution": false,
+  "actual_raw_owner_receipt_sha256": "50482b39a97edd5920c0a751463449f8b69f1b386154685bd6d5b5c1c73548ea",
+  "actual_raw_owner_receipt_state": "ACTUAL_RESULT",
+  "actual_raw_owner_observation": {
+    "executed": true,
+    "source_subject": "57e1485ca695771d0f381ce20f4d740ee98f2b86",
+    "selector": "cleanup_plan::replay::selected_context::child::tests::source::finite_child_cut_sources_and_complete_old_receivers_stay_exact",
+    "discovered_names": [
+      "cleanup_plan::replay::selected_context::child::tests::source::finite_child_cut_sources_and_complete_old_receivers_stay_exact"
+    ],
+    "expected_selected_static": 1,
+    "exit_code": 0,
+    "log": "/Volumes/Semaprax/lane-prompts/opt841-raw-7a87-qualification-20261015/owning-selected-00.log",
+    "log_sha256": "805ebf4b292be07d01b56e4f320b433ea7882acaea149e7b1ce3363f413bd40b",
+    "summary": [
+      "ok",
+      "1",
+      "0",
+      "0"
+    ]
+  }
+}

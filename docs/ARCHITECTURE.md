@@ -1012,13 +1012,24 @@ unpriced compatibility boundary. Drop never refuses destruction or grants a
 budget. `ast/drop_original.rs` compiles the complete prior destructor and its
 original deep-root owner independently; whole-source and actual free-order
 controls accompany the unchanged custody receiving observer.
-`ast/program_source` owns a sealed two-slice compiler input and a concrete
-presentation identity. `workspace_graph/expected_projection/borrowed_leaf`
+`ast/program_source` owns sealed ordinary and projected declaration views and a
+concrete presentation identity. `workspace_graph/expected_projection/borrowed_leaf`
 lends authored AST collections for admitted import-free synthetic inputs and
-owns only their optional scalar main. Imported views own generated aliases and
-checking bodies while lending immutable authored slices. The source verifier,
+owns only their optional scalar main. The ordinary imported route owns generated
+aliases and checking bodies while lending immutable authored slices. The source verifier,
 prelude/declaration index and resolver consume that exact input; invariant
 transformations and semantic cache publication keep genuine owning boundaries.
+`ast/program_source/function_alias.rs` owns provider-bound borrowed function
+views and the projected `DeclSlices` directory. A view requires the exact
+provider member and unchanged function name; pointer identity grants no authority.
+Its `FunctionDirectory` retains one `GeneratedRoots` owner for all generated
+types and fallback functions, including partial-construction teardown.
+`expected_projection/borrowed_imports/typed/alias.rs` owns the ordered import
+walk. The original wrapper classifier still admits the shape, and renamed or
+unsupported aliases retain the owning fallback. The actual core selects this
+transient route only for retained-output uncached construction without a
+frontend; it cannot publish a checked cache key. Existing semantic replay and
+final owning products retain their original boundaries.
 `expected_projection/borrowed_imports/receiving.rs` owns the actual core import
 walk, retaining the full standalone producer as an independent receiver. Its
 `bounded_output/key_directory.rs` affine owner allocates and pays real spare
@@ -2186,13 +2197,22 @@ passes renewal authority explicitly through the Graph classifiers for that
 invocation. It retains no additional declaration index. Cleanup selector
 equivalences are checked before higher Graph selectors can mask a mismatch;
 frozen from-parts routes without declaration provenance retain their refusal.
-`workspace_report.rs` retains one affine selected-replay failure, its exact
-ledger and any paid diagnostic backing; explicit legacy materialization stays
-an allocating boundary. `semantic_workspace/reporting.rs` owns the additive
-source-only checked preflight and its independent receiving replay. Its checked
-manifest/revision view grants no filesystem lock or publication authority.
-Filesystem preparers and dynamic directory/TLS attribution remain legacy;
-this source-only route does not qualify those reports as funded. See
+`workspace_report.rs` retains the affine selected-replay failure and its exact
+ledger/backing, an opaque initial report, or a complete unreceived primary and
+failed owner. `workspace_graph/initial_report.rs` and `initial_report/build.rs`
+own the sealed builder error policy: the legacy Vec strategy invokes the
+original lexical renderer once, while the typed strategy records complete
+message/help/evidence/combined-help acceptance on the real active parent before
+invocation restoration. `diagnostics/initial` then moves the existing attribution
+Strings and renders later without consulting TLS or spending that original
+payer again. Initial inline controls and ordinary caller output are explicitly
+unfunded; explicit legacy materialization remains an allocating boundary.
+`semantic_workspace/reporting.rs` owns checked preflight and its independent
+receiving replay; its manifest/revision view grants no filesystem lock or
+publication authority. The actual typed change, structural-change and operations
+callers retain their existing read/commit authorities. Snapshot/base-operations
+compatibility routes and unmatched legacy reports remain explicit boundaries;
+this policy does not certify complete report funding. See
 [Workspace Report Owner v1](WORKSPACE-REPORT-OWNER-V1.md).
 `workspace_graph/paid_view.rs` owns the typed change, operation and schema
 view refusal (`ViewRefusal`). The actual selected lexical replay caller in

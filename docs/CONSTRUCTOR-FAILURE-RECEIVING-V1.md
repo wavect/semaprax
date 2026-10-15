@@ -190,3 +190,23 @@ Drop, zero/exact/short and sticky refusal, floor and foreign/restored identity,
 post-restoration zero-allocation transfer under an unfunded foreign payer, and
 the real remaining dynamic/Many compatibility routes. They are source-only
 until the parent records their actual qualification.
+
+
+## Initial workspace report policy (#845; source-ready, executable gates pending)
+
+The retaining-source builder now selects a sealed error policy at the original
+lexical failure producer. The legacy policy invokes the original renderer there;
+the typed policy records message, base help, evidence and combined-help acceptance
+against the real live parent, then moves the existing invocation context before
+restoration. A refused formatting field discards its entire text while retaining
+all earlier debits. Dynamic field formatting and the three combined-help writes
+keep their original order. Later replay does not inspect invocation TLS or bill
+the original payer again. Initial inline controls are **unfunded caller stack**;
+no report Vec, Box or report text is acquired on that typed initial boundary.
+
+The existing typed preflight and thirteen CLI report consumers use this policy.
+JSON escaping continues to obey the ordinary current output budget; explicitly
+materializing legacy diagnostics is ordinary caller IO, not prepaid output.
+Existing Budget/Rc bootstrap, early parser/static-preflight/snapshot diagnostics,
+later LegacyMany and unreceived-child publication remain explicit #825 residuals.
+This route does not claim a global zero-cap constructor ABI or close #825.

@@ -86,22 +86,25 @@ fn preflight_typed(
         })
         .collect();
     let (graph, recovered_sources) = if let Some(change_builder_limit) = change_builder_limit {
-        if retain_operations {
-            workspace_graph::build_owned_retaining_sources_for_operations(
-                graph_sources,
-                graph_builder_limit.expect("operations preflight supplies Graph limit"),
-                change_builder_limit,
-            )?
-        } else {
-            workspace_graph::build_owned_retaining_sources_for_change(
-                graph_sources,
-                change_builder_limit,
-            )?
-        }
-    } else if let Some(frontend) = frontend.as_deref_mut() {
-        workspace_graph::build_owned_retaining_sources_with_frontend(graph_sources, frontend)?
+        workspace_graph::build_owned_retaining_sources_with_frontend_limit::<WorkspaceReportFailure>(
+            graph_sources,
+            if retain_operations {
+                graph_builder_limit.expect("operations preflight supplies Graph limit")
+            } else {
+                workspace_graph::MAX_BUILDER_BYTES
+            },
+            Some(change_builder_limit),
+            retain_operations,
+            None,
+        )?
     } else {
-        workspace_graph::build_owned_retaining_sources(graph_sources)?
+        workspace_graph::build_owned_retaining_sources_with_frontend_limit::<WorkspaceReportFailure>(
+            graph_sources,
+            workspace_graph::MAX_BUILDER_BYTES,
+            None,
+            false,
+            frontend.as_deref_mut(),
+        )?
     };
     // The exact sources this build consumed are the receiving authority.
     let mut schemas = graph.source_graph_schemas_receiving_typed(&recovered_sources)?;

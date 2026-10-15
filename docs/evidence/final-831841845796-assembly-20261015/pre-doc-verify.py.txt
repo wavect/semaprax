@@ -1,0 +1,74 @@
+"""Independent whole branch namespaces; no Rust, executable discovery or old writes."""
+from pathlib import Path
+from collections import Counter
+import contextlib,hashlib,io,json,re,subprocess
+R=Path(__file__).resolve().parents[3];D=Path(__file__).resolve().parent;BRANCHES=json.loads((D/'branch-checkpoints.json').read_text());h=lambda b:hashlib.sha256(b).hexdigest();g=lambda *a:subprocess.check_output(['git',*a],cwd=R);views={};counts={}
+for label,rev in BRANCHES.items():
+ rows=json.loads((D/f'final-to-{label}.json').read_text());named={}
+ for row in rows:
+  p=R/row['source'];raw=p.read_bytes();old=(R/row['archive']).read_bytes();assert len(row['edits'])==1 and raw==row['edits'][0]['new'].encode() and old==row['edits'][0]['old'].encode();assert h(raw)==row['current_sha256'] and h(old)==row['original_sha256'];assert old==g('show',rev+':'+row['source']);named[p.resolve()]=old
+ views[label]=named;counts[label]=len(rows)
+assert (D/'source-inverses.json').read_bytes()==(D/'final-to-796.json').read_bytes()
+# Reviewed production and directly owned behavior test bodies stay byteexact.
+for label,paths in {'831':['src/cleanup_plan/replay/factored/canonical_shared.rs','src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs'],'841':['src/cleanup_plan/replay/selected_context/child/tests/source/compressed_fixture.rs','src/cleanup_plan/replay/selected_context/child/tests/source.rs'],'796':['src/workspace_graph/identity_resolution.rs','src/workspace_graph/identity_resolution/base/cache_billing.rs','src/workspace_graph/tests/cache_stage_debits.rs']}.items():
+ for p in paths:assert (R/p).read_bytes()==g('show',BRANCHES[label]+':'+p),(label,p)
+newowners=json.loads((R/'docs/evidence/initial-report-policy-845-20261015/new-owners.json').read_text());assert len(newowners)==11
+for row in newowners:assert h((R/row['source']).read_bytes())==row['sha256']
+# Auto-merged workspace root retains exact845 new builder prefix and exact796
+# post-builder portion, including847's existing actual alias construction path.
+p='src/workspace_graph.rs';actual=(R/p).read_text();marker='fn build_resolved_core_current(';a=g('show',BRANCHES['845']+':'+p).decode();b=g('show',BRANCHES['796']+':'+p).decode();assert actual[:actual.index(marker)]==a[:a.index(marker)];assert actual[actual.index(marker):]==b[b.index(marker):]+'\npub(crate) mod initial_report;\npub(crate) use diagnostics::initial::Captured as InitialReport;\n'
+# The831 source guard only receives its independently authenticated whole view.
+p='src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs';s=(R/p).read_text();wrapper='        let current_view = crate::source_reflows_merge::branch_closed831_input(path, current);\n        let current = current_view.as_str();\n';assert s.count(wrapper)==1 and s.replace(wrapper,'')==g('show',BRANCHES['831']+':'+p).decode()
+assert 'tuples[1].0 < tuples[0].0' in s
+# Every existing/new source occurrence keeps the larger reviewed count from the
+# two actual audit branches; do not delete repeated independent workspace joins.
+audits=['tests/hir_module_boundaries.rs','tests/workspace/semantic_graph/source_inventory.rs','crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs']
+def entries(s):return Counter(re.findall(r'include_str!\(\s*"([^"\n]+\.rs)"',s))
+for p in audits:
+ current=entries((R/p).read_text());old=entries(g('show',BRANCHES['796']+':'+p).decode());fresh=entries(g('show',BRANCHES['845']+':'+p).decode());expected=old|fresh;assert current==expected,(p,current-expected,expected-current)
+ for row in newowners:assert row['source'][4:]+'"' in (R/p).read_text()
+assert len((R/audits[2]).read_text().splitlines())==1500
+assert len(actual.splitlines())<=6018
+assert len((R/'src/source_reflows_merge.rs').read_text().splitlines())<=1500
+# Every feature packet is physical immutable current evidence, not a rewritten
+# active JSON. MAIN differences versus pre-MAIN845 live only in named old views.
+protected=0
+for label,folder in [('831','branch-closed-receiving-831-20261015'),('841','raw-selected-child-default-841-20261015'),('796','cache-report-observer-796-20261015'),('845','initial-report-policy-845-20261015')]:
+ for p in g('ls-tree','-r','--name-only',BRANCHES[label],'--','docs/evidence/'+folder).decode().splitlines():assert (R/p).read_bytes()==g('show',BRANCHES[label]+':'+p),p;protected+=1
+# Exact whole source namespaces for unchanged archived source scripts. Newly
+# introduced files are hidden only in those named old namespaces, never current
+# physical-input checks above. No assertion body or old script byte is edited.
+def replay(label,script):
+ rev=BRANCHES[label];path=R/script;code=path.read_text();named=views[label];tracked=set(g('ls-tree','-r','--name-only',rev).decode().splitlines());rb,rt,wt,co,glob,ex=Path.read_bytes,Path.read_text,Path.write_text,subprocess.check_output,Path.rglob,Path.exists;captured=[]
+ def relative(p):
+  try:return str(p.resolve().relative_to(R))
+  except ValueError:return None
+ def read_bytes(p,*a,**k):return named[p.resolve()] if p.resolve() in named else rb(p,*a,**k)
+ def read_text(p,*a,**k):return named[p.resolve()].decode() if p.resolve() in named else rt(p,*a,**k)
+ def write(p,s,*a,**k):assert p.name=='source-proof.json';captured.append(json.loads(s));return len(s)
+ def output(args,*a,**k):
+  if isinstance(args,list) and args[:2]==['git','diff']:
+   i=args.index('--') if '--' in args else len(args);revs=[v for v in args[2:i] if not v.startswith('-')]
+   if len(revs)==1:args=args[:i]+[rev]+args[i:]
+  return co(args,*a,**k)
+ def rglob(p,pattern):return (x for x in glob(p,pattern) if relative(x) is None or relative(x) in tracked or x.is_dir())
+ def exists(p):
+  rel=relative(p)
+  return False if rel is not None and p.suffix and rel not in tracked else ex(p)
+ try:
+  Path.read_bytes,Path.read_text,Path.write_text,subprocess.check_output,Path.rglob,Path.exists=read_bytes,read_text,write,output,rglob,exists
+  with contextlib.redirect_stdout(io.StringIO()) as out:exec(compile(code,str(path),'exec'),{'__file__':str(path),'__name__':'__main__'})
+ finally:Path.read_bytes,Path.read_text,Path.write_text,subprocess.check_output,Path.rglob,Path.exists=rb,rt,wt,co,glob,ex
+ return captured[-1] if captured else json.loads(out.getvalue())
+print('Source-only complete branch841 proof running',flush=True);raw=replay('841','docs/evidence/raw-selected-child-default-841-20261015/verify.py')
+print('Source-only complete branch831 proof running',flush=True);closed=replay('831','docs/evidence/branch-closed-receiving-831-20261015/verify.py')
+print('Source-only complete branch845 proof running',flush=True);initial=replay('845','docs/evidence/initial-report-policy-845-20261015/verify.py')
+#796 had no executable script: bind every complete original/current row directly
+# and the three physical behavior files byteexact to its reviewed checkpoint.
+rows=json.loads((R/'docs/evidence/cache-report-observer-796-20261015/current-to-2cf33.json').read_text());assert len(rows)==4
+for row in rows:
+ current=views['796'].get((R/row['source']).resolve(),(R/row['source']).read_bytes());assert h(current)==row['current_sha256']
+ for e in row['edits']:assert current.count(e['new'].encode())==1;current=current.replace(e['new'].encode(),e['old'].encode(),1)
+ assert h(current)==row['original_sha256'] and current==(R/row['archive']).read_bytes()
+proof={'status':'SOURCE_ONLY_FOUR_BRANCH_JOIN_NOT_QUALIFIED','independent_full_views':counts,'new845owners_each_three_audits':11,'all_existing_audit_occurrence_counts_preserved':True,'protected_feature_packet_files_byteexact':protected,'reviewed_production_algorithms_byteexact_or_exact_disjoint_root_join':True,'strict831_assertion_unchanged':True,'raw841_exact_tested_payload_helper':True,'branch841_proof':raw,'branch831_proof':closed,'branch845_proof':initial,'branch796_full_immediate_inverses':4,'old_JSON_proofs_archives_not_rewritten':True,'Rust_Cargo_Node_Clippy_tests_executed':False,'gain_pin_app_or_closure_claim':False}
+(D/'source-proof.json').write_text(json.dumps(proof,indent=2)+'\n');print(json.dumps({k:v for k,v in proof.items() if not k.startswith('branch')},indent=2))

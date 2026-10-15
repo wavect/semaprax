@@ -8,7 +8,7 @@ const OUTPUT_CAP: usize = 5_196_870;
 const COMPRESSED_CAP: usize = 524_288;
 const BYTES: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/docs/evidence/compressed-selected-child-fixture-841/exact-source-inverses.json.gz"
+    "/docs/evidence/selected-child-refusal-781/exact-source-inverses.json"
 ));
 #[derive(Debug, Eq, PartialEq)]
 enum Failure {

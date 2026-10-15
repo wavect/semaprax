@@ -270,9 +270,14 @@ pub(super) fn prepare_owned_inner_typed(
         remaining_operations,
     )
     .map_err(|failure| {
-        failure.map_legacy(|diagnostics| {
-            map_candidate_diagnostics(diagnostics, candidate_graph_limit, remaining_operations)
-        })
+        failure.map_operations_limit(
+            candidate_graph_limit,
+            MAX_CANDIDATE_GRAPH_BUILDER_BYTES,
+            MAX_OPERATIONS_BUILDER_BYTES,
+            |diagnostics| {
+                map_candidate_diagnostics(diagnostics, candidate_graph_limit, remaining_operations)
+            },
+        )
     })?;
     let (candidate_files, candidate_manifest, candidate_revision, candidate_build) =
         candidate.into_snapshot_parts();

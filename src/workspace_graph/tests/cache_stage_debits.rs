@@ -149,11 +149,18 @@ fn reproduce(bytes: bool) {
     let ordinary_trace = trace();
     take_completed();
     let acquired_ordinary = identity_resolution::acquisitions();
+    let cached_ordinary = identity_resolution::cached_prelude_acquisitions();
     let warm = cache.build(&manifest, &fixture.sources(&manifest)).unwrap();
     let warm_trace = trace();
-    // Exact hits validate and charge only the stored residual: no new
-    // identity report is acquired and no index is rebuilt.
-    assert_eq!(identity_resolution::acquisitions(), acquired_ordinary);
+    // Exact hits still acquire their actual cached-prelude report receivers.
+    // Excluding only that independently classified acquisition preserves the
+    // original no-fresh-resolution/index predicate; the total stays truthful.
+    let cached_warm = identity_resolution::cached_prelude_acquisitions();
+    assert_eq!(cached_warm - cached_ordinary, 3);
+    assert_eq!(
+        identity_resolution::acquisitions() - cached_warm,
+        acquired_ordinary - cached_ordinary
+    );
     let report: serde_json::Value = serde_json::from_str(warm.to_json()).unwrap();
     assert_eq!(report["work"]["modules_resolved"], 0);
     assert_eq!(report["work"]["checked_HIR_reused"], 3);

@@ -1,0 +1,34 @@
+{
+  "status": "SOURCE_ONLY_FOUR_BRANCH_JOIN_NOT_QUALIFIED",
+  "independent_full_views": {
+    "796": 17,
+    "831": 20,
+    "841": 21,
+    "845": 36
+  },
+  "shared_whole_doc_rows": 2,
+  "shared_unique_doc_edits": 4,
+  "old_branch_execution_reuse": "actual pre-doc scripts completed; current exact whole checkpoint namespaces and scripts verified unchanged",
+  "new845owners_each_three_audits": 11,
+  "all_existing_audit_occurrence_counts_preserved": true,
+  "protected_feature_packet_files_byteexact": 55,
+  "reviewed_production_algorithms_byteexact_or_exact_disjoint_root_join": true,
+  "strict831_assertion_unchanged": true,
+  "raw841_exact_tested_payload_helper": true,
+  "branch841_proof": {
+    "status": "PRIOR_EXECUTION_REUSED_BY_EXACT_WHOLE_CHECKPOINT_NAMESPACE",
+    "receipt": "completed-replays-before-docs.json"
+  },
+  "branch831_proof": {
+    "status": "PRIOR_EXECUTION_REUSED_BY_EXACT_WHOLE_CHECKPOINT_NAMESPACE",
+    "receipt": "completed-replays-before-docs.json"
+  },
+  "branch845_proof": {
+    "status": "PRIOR_EXECUTION_REUSED_BY_EXACT_WHOLE_CHECKPOINT_NAMESPACE",
+    "receipt": "completed-replays-before-docs.json"
+  },
+  "branch796_full_immediate_inverses": 4,
+  "old_JSON_proofs_archives_not_rewritten": true,
+  "Rust_Cargo_Node_Clippy_tests_executed": false,
+  "gain_pin_app_or_closure_claim": false
+}

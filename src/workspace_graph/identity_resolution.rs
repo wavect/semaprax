@@ -120,6 +120,9 @@ thread_local! {
     /// the callback never allocates; it carries no authority.
     static ACQUIRED: std::cell::Cell<(usize, Option<(usize, usize)>)> =
         const { std::cell::Cell::new((0, None)) };
+    // Classification only: these real report owners also remain in ACQUIRED.
+    static CACHED_PRELUDE_ACQUIRED: std::cell::Cell<usize> =
+        const { std::cell::Cell::new(0) };
 }
 
 #[cfg(test)]
@@ -134,6 +137,16 @@ fn observe_acquired(owner: &IdentityReservation) {
 #[cfg(test)]
 pub(super) fn acquisitions() -> usize {
     ACQUIRED.with(|acquired| acquired.get().0)
+}
+
+#[cfg(test)]
+fn observe_cached_prelude_acquired() {
+    CACHED_PRELUDE_ACQUIRED.with(|acquired| acquired.set(acquired.get() + 1));
+}
+
+#[cfg(test)]
+pub(super) fn cached_prelude_acquisitions() -> usize {
+    CACHED_PRELUDE_ACQUIRED.with(std::cell::Cell::get)
 }
 
 #[cfg(test)]

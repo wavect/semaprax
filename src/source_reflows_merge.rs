@@ -484,6 +484,8 @@ fn assembly_main927_input(source: &str, current: &str) -> String {
 
 // Authenticated physical successor for the bounded preowned-setup/starter batch.
 fn before_setup825(source: &str, current: &str) -> String {
+    let previous = before_setup_reference_controls(source, current);
+    let current = previous.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -495,10 +497,24 @@ fn before_setup825(source: &str, current: &str) -> String {
 }
 // Preserve the complete immutable typed825 runtime manifest's own exact domain.
 pub(crate) fn setup_typed_input(source: &str, current: &str) -> String {
+    let previous = before_setup_reference_controls(source, current);
+    let current = previous.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/setup825-relative-starter-assembly-20261015/view-typed825.json"
+        )),
+        source,
+        current,
+    )
+}
+
+// Corrected physical receiving fees precede the immutable initial setup views.
+fn before_setup_reference_controls(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/setup825-reference-controls-assembly-20261015/current-to-9cb.json"
         )),
         source,
         current,

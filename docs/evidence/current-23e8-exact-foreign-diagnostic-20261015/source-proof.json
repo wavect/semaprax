@@ -1,0 +1,11 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED_ASSERTION_STRENGTHENING",
+  "base_commit": "7beb6ec70254420646dfbe64b452312db3515b27",
+  "source": "src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs",
+  "complete_immediate_original_sha256": "ca425c4dab37107989b992de1d5a0fe50259a2f5d5323952aadd597736d8631a",
+  "current_sha256": "c44fa798acede93f7914b99b6a5526569414edf2a5bc03c439a28406f332cc22",
+  "diagnostic_comparison": "Derived Diagnostic Eq by reference compares all official fields; firstforeignerror and stickyretry. No JSON, clones, or heap-formatting in observer.",
+  "original_is_err_and_metrics_and_drop_assertions_retained": true,
+  "no_build_test_clippy_execution": true,
+  "initial_corrective_packet_unchanged": true
+}

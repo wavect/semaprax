@@ -1,0 +1,337 @@
+{
+  "schema": "semaprax.prelude-forecast-pin-candidates.v1",
+  "source_head": "d6bf8151942190a956eb57350fa8b8892a8c68e5",
+  "source_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "candidates": [
+    {
+      "name": "public-graph",
+      "file": "wires/public-graph.json",
+      "bytes": 6597,
+      "document_sha256": "sha256:0ec942b38ccfb4bb473245f49a20a07d14f2f0a2b4427bd8df04028bf4552ba6",
+      "graph_digest": "sha256:4686aee473461d35b28ef770141aeac5dc0ac36e51d2469a66a498d066e25b2e",
+      "workspace_revision": "sha256:439c8e57567cf718044295d92c7b879aa23f5cf5d37ba2bf369c26209fdb5b14",
+      "budget": {
+        "used_managed_files": 2,
+        "used_reachable_modules": 2,
+        "used_entry_module_bytes": 10,
+        "used_total_source_bytes": 606,
+        "used_declarations": 6,
+        "used_callables": 4,
+        "used_call_sites": 2,
+        "used_uses": 2,
+        "used_resolved_cross_file_edges": 7,
+        "used_dependency_depth": 2,
+        "used_builder_bytes": 1451576,
+        "used_manifest_bytes": 584,
+        "used_output_bytes": 6597,
+        "used_retained_generations": 1,
+        "used_staging_attempts": 0,
+        "used_unexpected_inventory_entries": 0
+      }
+    },
+    {
+      "name": "context",
+      "file": "wires/context.json",
+      "bytes": 4514,
+      "document_sha256": "sha256:9378458b2b0bc01b60ed2f08fdc3258b65eebecc49d154f5f587be712ac5063c",
+      "workspace_revision": "sha256:439c8e57567cf718044295d92c7b879aa23f5cf5d37ba2bf369c26209fdb5b14",
+      "budget": {
+        "workspace": {
+          "used_managed_files": 2,
+          "used_reachable_modules": 2,
+          "used_entry_module_bytes": 10,
+          "used_total_source_bytes": 606,
+          "used_declarations": 6,
+          "used_callables": 4,
+          "used_call_sites": 2,
+          "used_uses": 2,
+          "used_resolved_cross_file_edges": 7,
+          "used_dependency_depth": 2,
+          "used_builder_bytes": 1451576,
+          "used_manifest_bytes": 584,
+          "used_output_bytes": 6597,
+          "used_retained_generations": 1,
+          "used_staging_attempts": 0,
+          "used_unexpected_inventory_entries": 0
+        },
+        "analysis": {
+          "used_target_bytes": 11,
+          "used_traversal_depth": 1,
+          "used_traversal_nodes": 4,
+          "used_analysis_builder_bytes": 7137,
+          "used_output_bytes": 4514
+        }
+      }
+    },
+    {
+      "name": "forward",
+      "file": "wires/forward.json",
+      "bytes": 4515,
+      "document_sha256": "sha256:c0d96b1ae985e6138620a0edf912ef9cd4c04fa6229551ca0af96d32fb3fb51b",
+      "workspace_revision": "sha256:439c8e57567cf718044295d92c7b879aa23f5cf5d37ba2bf369c26209fdb5b14",
+      "budget": {
+        "workspace": {
+          "used_managed_files": 2,
+          "used_reachable_modules": 2,
+          "used_entry_module_bytes": 10,
+          "used_total_source_bytes": 606,
+          "used_declarations": 6,
+          "used_callables": 4,
+          "used_call_sites": 2,
+          "used_uses": 2,
+          "used_resolved_cross_file_edges": 7,
+          "used_dependency_depth": 2,
+          "used_builder_bytes": 1451576,
+          "used_manifest_bytes": 584,
+          "used_output_bytes": 6597,
+          "used_retained_generations": 1,
+          "used_staging_attempts": 0,
+          "used_unexpected_inventory_entries": 0
+        },
+        "analysis": {
+          "used_target_bytes": 11,
+          "used_traversal_depth": 1,
+          "used_traversal_nodes": 4,
+          "used_analysis_builder_bytes": 6950,
+          "used_output_bytes": 4515
+        }
+      }
+    },
+    {
+      "name": "capability-context",
+      "file": "wires/capability-context.json",
+      "bytes": 4338,
+      "document_sha256": "sha256:11bad85162b859db283ed784a5506d8e846eaf673d867e17243009e06b932374",
+      "workspace_revision": "sha256:439c8e57567cf718044295d92c7b879aa23f5cf5d37ba2bf369c26209fdb5b14",
+      "budget": {
+        "workspace": {
+          "used_managed_files": 2,
+          "used_reachable_modules": 2,
+          "used_entry_module_bytes": 10,
+          "used_total_source_bytes": 606,
+          "used_declarations": 6,
+          "used_callables": 4,
+          "used_call_sites": 2,
+          "used_uses": 2,
+          "used_resolved_cross_file_edges": 7,
+          "used_dependency_depth": 2,
+          "used_builder_bytes": 1451576,
+          "used_manifest_bytes": 584,
+          "used_output_bytes": 6597,
+          "used_retained_generations": 1,
+          "used_staging_attempts": 0,
+          "used_unexpected_inventory_entries": 0
+        },
+        "analysis": {
+          "used_target_bytes": 11,
+          "used_traversal_depth": 1,
+          "used_traversal_nodes": 4,
+          "used_analysis_builder_bytes": 7377,
+          "used_output_bytes": 4338
+        }
+      }
+    },
+    {
+      "name": "type-context",
+      "file": "wires/type-context.json",
+      "bytes": 4012,
+      "document_sha256": "sha256:29abf99ae91d14e1cf6223975e15e66d399f022f803c0e1abcc7546d5d596917",
+      "workspace_revision": "sha256:439c8e57567cf718044295d92c7b879aa23f5cf5d37ba2bf369c26209fdb5b14",
+      "budget": {
+        "workspace": {
+          "used_managed_files": 2,
+          "used_reachable_modules": 2,
+          "used_entry_module_bytes": 10,
+          "used_total_source_bytes": 606,
+          "used_declarations": 6,
+          "used_callables": 4,
+          "used_call_sites": 2,
+          "used_uses": 2,
+          "used_resolved_cross_file_edges": 7,
+          "used_dependency_depth": 2,
+          "used_builder_bytes": 1451576,
+          "used_manifest_bytes": 584,
+          "used_output_bytes": 6597,
+          "used_retained_generations": 1,
+          "used_staging_attempts": 0,
+          "used_unexpected_inventory_entries": 0
+        },
+        "analysis": {
+          "used_target_bytes": 12,
+          "used_traversal_depth": 1,
+          "used_traversal_nodes": 3,
+          "used_analysis_builder_bytes": 6608,
+          "used_output_bytes": 4012
+        }
+      }
+    },
+    {
+      "name": "impact",
+      "file": "wires/impact.json",
+      "bytes": 4160,
+      "document_sha256": "sha256:6a004cf1c2103d5851a75fca347974093d0b32260cc8cb88bee699405d52537c",
+      "workspace_revision": "sha256:439c8e57567cf718044295d92c7b879aa23f5cf5d37ba2bf369c26209fdb5b14",
+      "budget": {
+        "workspace": {
+          "used_managed_files": 2,
+          "used_reachable_modules": 2,
+          "used_entry_module_bytes": 10,
+          "used_total_source_bytes": 606,
+          "used_declarations": 6,
+          "used_callables": 4,
+          "used_call_sites": 2,
+          "used_uses": 2,
+          "used_resolved_cross_file_edges": 7,
+          "used_dependency_depth": 2,
+          "used_builder_bytes": 1451576,
+          "used_manifest_bytes": 584,
+          "used_output_bytes": 6597,
+          "used_retained_generations": 1,
+          "used_staging_attempts": 0,
+          "used_unexpected_inventory_entries": 0
+        },
+        "analysis": {
+          "used_target_bytes": 11,
+          "used_traversal_depth": 1,
+          "used_traversal_nodes": 3,
+          "used_analysis_builder_bytes": 6867,
+          "used_output_bytes": 4160
+        }
+      }
+    },
+    {
+      "name": "custom-impact",
+      "file": "wires/custom-impact.json",
+      "bytes": 4569,
+      "document_sha256": "sha256:932c04053969066647162df259948274fdbf384fff512796591d4b739b18aad3",
+      "workspace_revision": "sha256:439c8e57567cf718044295d92c7b879aa23f5cf5d37ba2bf369c26209fdb5b14",
+      "budget": {
+        "workspace": {
+          "used_managed_files": 2,
+          "used_reachable_modules": 2,
+          "used_entry_module_bytes": 10,
+          "used_total_source_bytes": 606,
+          "used_declarations": 6,
+          "used_callables": 4,
+          "used_call_sites": 2,
+          "used_uses": 2,
+          "used_resolved_cross_file_edges": 7,
+          "used_dependency_depth": 2,
+          "used_builder_bytes": 1451576,
+          "used_manifest_bytes": 584,
+          "used_output_bytes": 6597,
+          "used_retained_generations": 1,
+          "used_staging_attempts": 0,
+          "used_unexpected_inventory_entries": 0
+        },
+        "analysis": {
+          "used_target_bytes": 11,
+          "used_traversal_depth": 1,
+          "used_traversal_nodes": 4,
+          "used_analysis_builder_bytes": 7765,
+          "used_output_bytes": 4569
+        }
+      }
+    },
+    {
+      "name": "review",
+      "file": "wires/review.json",
+      "bytes": 12709,
+      "document_sha256": "sha256:c0a9dfc624332dd764c321db71c09dcc4ae083e5f2fc782896739f40eb2ffc6d",
+      "workspace_revision": "sha256:439c8e57567cf718044295d92c7b879aa23f5cf5d37ba2bf369c26209fdb5b14",
+      "budget": {
+        "workspace": {
+          "used_managed_files": 2,
+          "used_reachable_modules": 2,
+          "used_entry_module_bytes": 10,
+          "used_total_source_bytes": 606,
+          "used_declarations": 6,
+          "used_callables": 4,
+          "used_call_sites": 2,
+          "used_uses": 2,
+          "used_resolved_cross_file_edges": 7,
+          "used_dependency_depth": 2,
+          "used_builder_bytes": 1451576,
+          "used_manifest_bytes": 584,
+          "used_output_bytes": 6597,
+          "used_retained_generations": 1,
+          "used_staging_attempts": 0,
+          "used_unexpected_inventory_entries": 0
+        },
+        "analysis": {
+          "used_target_bytes": 11,
+          "used_traversal_depth": 1,
+          "used_traversal_nodes": 3,
+          "used_analysis_builder_bytes": 8962,
+          "used_context_bytes": 3991,
+          "used_impact_bytes": 4163,
+          "used_output_bytes": 12709
+        }
+      }
+    },
+    {
+      "name": "capability-review",
+      "file": "wires/capability-review.json",
+      "bytes": 13626,
+      "document_sha256": "sha256:bce6ed997de805784cd45685ad211c5edc1ec23d23958b09a795718843c7a8ca",
+      "workspace_revision": "sha256:439c8e57567cf718044295d92c7b879aa23f5cf5d37ba2bf369c26209fdb5b14",
+      "budget": {
+        "workspace": {
+          "used_managed_files": 2,
+          "used_reachable_modules": 2,
+          "used_entry_module_bytes": 10,
+          "used_total_source_bytes": 606,
+          "used_declarations": 6,
+          "used_callables": 4,
+          "used_call_sites": 2,
+          "used_uses": 2,
+          "used_resolved_cross_file_edges": 7,
+          "used_dependency_depth": 2,
+          "used_builder_bytes": 1451576,
+          "used_manifest_bytes": 584,
+          "used_output_bytes": 6597,
+          "used_retained_generations": 1,
+          "used_staging_attempts": 0,
+          "used_unexpected_inventory_entries": 0
+        },
+        "analysis": {
+          "used_target_bytes": 11,
+          "used_traversal_depth": 1,
+          "used_traversal_nodes": 4,
+          "used_analysis_builder_bytes": 10643,
+          "used_context_bytes": 4342,
+          "used_impact_bytes": 4575,
+          "used_output_bytes": 13626
+        }
+      }
+    },
+    {
+      "name": "projection-wire",
+      "file": "wires/projection-wire.json",
+      "bytes": 5529,
+      "document_sha256": "sha256:a74a5477c98ac2b85fd5903a2632d62b94b68818363f478c3d8028925a8f53b3",
+      "graph_digest": "sha256:c4cb2c5f34caf69f2aed77f5468b532f5f6587d1af6ef3305c7d50331f40a5b6",
+      "workspace_revision": "sha256:workspace",
+      "budget": {
+        "used_managed_files": 4,
+        "used_reachable_modules": 3,
+        "used_entry_module_bytes": 9,
+        "used_total_source_bytes": 563,
+        "used_declarations": 6,
+        "used_callables": 4,
+        "used_call_sites": 2,
+        "used_uses": 3,
+        "used_resolved_cross_file_edges": 5,
+        "used_dependency_depth": 4,
+        "used_builder_bytes": 3463209,
+        "used_manifest_bytes": 711,
+        "used_output_bytes": 5529,
+        "used_retained_generations": 3,
+        "used_staging_attempts": 2,
+        "used_unexpected_inventory_entries": 0
+      }
+    }
+  ],
+  "missing": [],
+  "note": "Actual byte captures only; source pins were not edited. Inspect status.tsv and full logs. A missing renamed calculator capture can follow the earlier baseline pin assertion; review/update only captured baseline pins, then rerun into a fresh directory."
+}

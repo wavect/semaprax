@@ -1,0 +1,83 @@
+{
+  "schema": "semaprax.prelude-forecast-reviewed-pin-plan.v1",
+  "capture_head": "d6bf8151942190a956eb57350fa8b8892a8c68e5",
+  "status": "actual-candidate-plan-requires-wire-review",
+  "edits": [
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "assert_eq!(graph.budget().used_builder_bytes(), 1_428_092);",
+      "after": "assert_eq!(graph.budget().used_builder_bytes(), 1_451_576);",
+      "actual_wire": "public-graph"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:ac4f8cf345ec9b214109e8932a10a6d733408bc7f5d6dd2b68df24d42d811fd6",
+      "after": "sha256:0ec942b38ccfb4bb473245f49a20a07d14f2f0a2b4427bd8df04028bf4552ba6",
+      "actual_wire": "public-graph"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:71855c0574be5fd10adb3b71de33afb4cbae905cc7110a8da68fbe5d09b808f9",
+      "after": "sha256:9378458b2b0bc01b60ed2f08fdc3258b65eebecc49d154f5f587be712ac5063c",
+      "actual_wire": "context"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:4b0d89b424ac9058c44093ccbe4a60a0eb3ec584ce5c85bc1378d31dfd0d9080",
+      "after": "sha256:c0d96b1ae985e6138620a0edf912ef9cd4c04fa6229551ca0af96d32fb3fb51b",
+      "actual_wire": "forward"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:52b7f0a8f754cacfffe82f7cdbdb851641fdc1ef86f9ee188590436a5bf77896",
+      "after": "sha256:11bad85162b859db283ed784a5506d8e846eaf673d867e17243009e06b932374",
+      "actual_wire": "capability-context"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:387c789cb5f6a014ab377ea97138ed9e9869ece09068db7c3889f6acc058bc5a",
+      "after": "sha256:29abf99ae91d14e1cf6223975e15e66d399f022f803c0e1abcc7546d5d596917",
+      "actual_wire": "type-context"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:ffb6cb3247de03e4409c67f267bc4a77e20949171e79d5a80b40cad9a861ead1",
+      "after": "sha256:6a004cf1c2103d5851a75fca347974093d0b32260cc8cb88bee699405d52537c",
+      "actual_wire": "impact"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:c1d4b519315729c71b590be9926de416136cb0e4bca007c3fb2a90d2996213dc",
+      "after": "sha256:932c04053969066647162df259948274fdbf384fff512796591d4b739b18aad3",
+      "actual_wire": "custom-impact"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:b14145b8e6975212415b282b2f67e5e38d1e43bea2c8a5f689c003a9883a21ac",
+      "after": "sha256:c0a9dfc624332dd764c321db71c09dcc4ae083e5f2fc782896739f40eb2ffc6d",
+      "actual_wire": "review"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:6d503a367d03d11fa4cb37e50f579bc16f0e22c3469f47dbbbd05647c93f1eca",
+      "after": "sha256:bce6ed997de805784cd45685ad211c5edc1ec23d23958b09a795718843c7a8ca",
+      "actual_wire": "capability-review"
+    },
+    {
+      "path": "src/workspace_graph/type_proof_tests.rs",
+      "before": "sha256:9215b8decf168cc7692058f59ca949d41e0bc455b7594f5b749b5d544f5b857a",
+      "after": "sha256:a74a5477c98ac2b85fd5903a2632d62b94b68818363f478c3d8028925a8f53b3",
+      "actual_wire": "projection-wire"
+    }
+  ],
+  "source_sha256": {
+    "src/workspace_graph/type_proof_tests.rs": "sha256:5c3223f7ecac32ed29d90a0c796ed79b1a9f91556afaf3074c5a63a3945c4ab5",
+    "tests/workspace/semantic_graph.rs": "sha256:910cc41a86fb254e3aa36e2708b109ec91f7a309dd64aac051854cbf5806abab"
+  },
+  "after_sha256": {
+    "src/workspace_graph/type_proof_tests.rs": "sha256:33d206b383f1ac8277f503290704e5faf3131f7361e393a8d18762351bfdf99f",
+    "tests/workspace/semantic_graph.rs": "sha256:02ecd18135f2b3e69017317ff59a65a6b319c3810e85e0abde456d7e13108175"
+  },
+  "trusted_build_receipt_sha256": "sha256:9fef9c7e57b48a23016bb1b45b32386780e679068ac0fc774244bca40442fa42",
+  "trusted_producer_receipt_sha256": "sha256:1fef1fa1d1a60576c283fc9280b4b92ce8c3a9712bfd492acadcccfeb229caf0"
+}

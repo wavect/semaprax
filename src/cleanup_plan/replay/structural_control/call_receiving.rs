@@ -253,7 +253,7 @@ impl Policy for Engine {
         expression: &ResolvedExpr,
         budget: &mut ReplayBudget,
     ) -> Result<(), Self> {
-        selected_profile::paid_children::collections::field(program, function, expression, budget)
+        selected_profile::paid_children::field(program, function, expression, budget)
     }
     fn call_facts(
         program: &dyn ReplayContext,
@@ -261,15 +261,13 @@ impl Policy for Engine {
         expression: &ResolvedExpr,
         budget: &mut ReplayBudget,
     ) -> Result<Option<bool>, Self> {
-        selected_profile::paid_children::collections::call_facts(
-            program, function, expression, budget,
-        )
+        selected_profile::paid_children::call_facts(program, function, expression, budget)
     }
     fn string_operand<'a>(
         function: &ResolvedFunction,
         expression: &'a ResolvedExpr,
         budget: &mut ReplayBudget,
     ) -> Result<Option<&'a ResolvedExpr>, Self> {
-        selected_profile::paid_children::string_transfer::operand(function, expression, budget)
+        selected_profile::paid_children::operand(function, expression, budget)
     }
 }

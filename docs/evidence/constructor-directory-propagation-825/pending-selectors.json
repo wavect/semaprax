@@ -5,17 +5,17 @@
     {
       "selector": "workspace_graph::expected_projection::borrowed_imports::typed::directory_tests::typed_overlay_directories_match_original_values_and_whole_drop_at_every_byte_frontier",
       "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
-      "source_sha256": "f30ca63036d60c90044ce305bb3e8700515138587b7e47d9f70a5a63eed17828"
+      "source_sha256": "835c5ffe298e1ac87fb192b4dc5813cbeada751ba05d00c0efe9d32d03e16996"
     },
     {
       "selector": "workspace_graph::expected_projection::borrowed_imports::typed::directory_tests::typed_overlay_directory_foreign_restored_and_overflow_exits_keep_original_first_setup",
       "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
-      "source_sha256": "f30ca63036d60c90044ce305bb3e8700515138587b7e47d9f70a5a63eed17828"
+      "source_sha256": "835c5ffe298e1ac87fb192b4dc5813cbeada751ba05d00c0efe9d32d03e16996"
     },
     {
       "selector": "workspace_graph::expected_projection::borrowed_imports::typed::directory_tests::typed_overlay_directory_complete_source_inverses_and_three_live_calls_are_bound",
       "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
-      "source_sha256": "f30ca63036d60c90044ce305bb3e8700515138587b7e47d9f70a5a63eed17828"
+      "source_sha256": "835c5ffe298e1ac87fb192b4dc5813cbeada751ba05d00c0efe9d32d03e16996"
     }
   ],
   "required_existing": [

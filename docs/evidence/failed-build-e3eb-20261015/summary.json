@@ -1,0 +1,620 @@
+{
+  "source_subject": "e3eb476838442b58c02ccc815aae4bbdfebfd50e",
+  "exit_code": 101,
+  "wall_seconds": 127.58361095799773,
+  "build_finished_phases": [
+    false
+  ],
+  "production_compilation_passed": false,
+  "executed_test_bodies": 0,
+  "compiler_errors": 9,
+  "errors": [
+    {
+      "code": null,
+      "message": "let chains are only allowed in Rust 2024 or later",
+      "spans": [
+        {
+          "byte_end": 2902,
+          "byte_start": 2872,
+          "column_end": 50,
+          "column_start": 20,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/expression_facts/receiving/return_operands.rs",
+          "is_primary": true,
+          "label": null,
+          "line_end": 67,
+          "line_start": 67,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 50,
+              "highlight_start": 20,
+              "text": "                && let Some(operand) = exit.value"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": {
+        "code": "E0583",
+        "explanation": "A file wasn't found for an out-of-line module.\n\nErroneous code example:\n\n```compile_fail,E0583\nmod file_that_doesnt_exist; // error: file not found for module\n\nfn main() {}\n```\n\nPlease be sure that a file corresponding to the module exists. If you\nwant to use a module named `file_that_doesnt_exist`, you need to have a file\nnamed `file_that_doesnt_exist.rs` or `file_that_doesnt_exist/mod.rs` in the\nsame directory.\n"
+      },
+      "message": "file not found for module `owner_controls`",
+      "spans": [
+        {
+          "byte_end": 13830,
+          "byte_start": 13811,
+          "column_end": 20,
+          "column_start": 1,
+          "expansion": null,
+          "file_name": "src/workspace_graph/expected_projection/private_layout/capacity_tests.rs",
+          "is_primary": true,
+          "label": null,
+          "line_end": 367,
+          "line_start": 367,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 20,
+              "highlight_start": 1,
+              "text": "mod owner_controls;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": {
+        "code": "E0583",
+        "explanation": "A file wasn't found for an out-of-line module.\n\nErroneous code example:\n\n```compile_fail,E0583\nmod file_that_doesnt_exist; // error: file not found for module\n\nfn main() {}\n```\n\nPlease be sure that a file corresponding to the module exists. If you\nwant to use a module named `file_that_doesnt_exist`, you need to have a file\nnamed `file_that_doesnt_exist.rs` or `file_that_doesnt_exist/mod.rs` in the\nsame directory.\n"
+      },
+      "message": "file not found for module `source`",
+      "spans": [
+        {
+          "byte_end": 13842,
+          "byte_start": 13831,
+          "column_end": 12,
+          "column_start": 1,
+          "expansion": null,
+          "file_name": "src/workspace_graph/expected_projection/private_layout/capacity_tests.rs",
+          "is_primary": true,
+          "label": null,
+          "line_end": 368,
+          "line_start": 368,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 12,
+              "highlight_start": 1,
+              "text": "mod source;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": {
+        "code": "E0603",
+        "explanation": "A private item was used outside its scope.\n\nErroneous code example:\n\n```compile_fail,E0603\nmod foo {\n    const PRIVATE: u32 = 0x_a_bad_1dea_u32; // This const is private, so we\n                                            // can't use it outside of the\n                                            // `foo` module.\n}\n\nprintln!(\"const value: {}\", foo::PRIVATE); // error: constant `PRIVATE`\n                                                  //        is private\n```\n\nIn order to fix this error, you need to make the item public by using the `pub`\nkeyword. Example:\n\n```\nmod foo {\n    pub const PRIVATE: u32 = 0x_a_bad_1dea_u32; // We set it public by using the\n                                                // `pub` keyword.\n}\n\nprintln!(\"const value: {}\", foo::PRIVATE); // ok!\n```\n"
+      },
+      "message": "module `collections` is private",
+      "spans": [
+        {
+          "byte_end": 10248,
+          "byte_start": 10237,
+          "column_end": 53,
+          "column_start": 42,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/structural_control/call_receiving.rs",
+          "is_primary": true,
+          "label": "private module",
+          "line_end": 256,
+          "line_start": 256,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 53,
+              "highlight_start": 42,
+              "text": "        selected_profile::paid_children::collections::field(program, function, expression, budget)"
+            }
+          ]
+        },
+        {
+          "byte_end": 10255,
+          "byte_start": 10250,
+          "column_end": 60,
+          "column_start": 55,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/structural_control/call_receiving.rs",
+          "is_primary": false,
+          "label": "function `field` is not publicly re-exported",
+          "line_end": 256,
+          "line_start": 256,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 60,
+              "highlight_start": 55,
+              "text": "        selected_profile::paid_children::collections::field(program, function, expression, budget)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": {
+        "code": "E0603",
+        "explanation": "A private item was used outside its scope.\n\nErroneous code example:\n\n```compile_fail,E0603\nmod foo {\n    const PRIVATE: u32 = 0x_a_bad_1dea_u32; // This const is private, so we\n                                            // can't use it outside of the\n                                            // `foo` module.\n}\n\nprintln!(\"const value: {}\", foo::PRIVATE); // error: constant `PRIVATE`\n                                                  //        is private\n```\n\nIn order to fix this error, you need to make the item public by using the `pub`\nkeyword. Example:\n\n```\nmod foo {\n    pub const PRIVATE: u32 = 0x_a_bad_1dea_u32; // We set it public by using the\n                                                // `pub` keyword.\n}\n\nprintln!(\"const value: {}\", foo::PRIVATE); // ok!\n```\n"
+      },
+      "message": "module `collections` is private",
+      "spans": [
+        {
+          "byte_end": 10554,
+          "byte_start": 10543,
+          "column_end": 53,
+          "column_start": 42,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/structural_control/call_receiving.rs",
+          "is_primary": true,
+          "label": "private module",
+          "line_end": 264,
+          "line_start": 264,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 53,
+              "highlight_start": 42,
+              "text": "        selected_profile::paid_children::collections::call_facts("
+            }
+          ]
+        },
+        {
+          "byte_end": 10566,
+          "byte_start": 10556,
+          "column_end": 65,
+          "column_start": 55,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/structural_control/call_receiving.rs",
+          "is_primary": false,
+          "label": "function `call_facts` is not publicly re-exported",
+          "line_end": 264,
+          "line_start": 264,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 65,
+              "highlight_start": 55,
+              "text": "        selected_profile::paid_children::collections::call_facts("
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": {
+        "code": "E0603",
+        "explanation": "A private item was used outside its scope.\n\nErroneous code example:\n\n```compile_fail,E0603\nmod foo {\n    const PRIVATE: u32 = 0x_a_bad_1dea_u32; // This const is private, so we\n                                            // can't use it outside of the\n                                            // `foo` module.\n}\n\nprintln!(\"const value: {}\", foo::PRIVATE); // error: constant `PRIVATE`\n                                                  //        is private\n```\n\nIn order to fix this error, you need to make the item public by using the `pub`\nkeyword. Example:\n\n```\nmod foo {\n    pub const PRIVATE: u32 = 0x_a_bad_1dea_u32; // We set it public by using the\n                                                // `pub` keyword.\n}\n\nprintln!(\"const value: {}\", foo::PRIVATE); // ok!\n```\n"
+      },
+      "message": "module `string_transfer` is private",
+      "spans": [
+        {
+          "byte_end": 10878,
+          "byte_start": 10863,
+          "column_end": 57,
+          "column_start": 42,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/structural_control/call_receiving.rs",
+          "is_primary": true,
+          "label": "private module",
+          "line_end": 273,
+          "line_start": 273,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 57,
+              "highlight_start": 42,
+              "text": "        selected_profile::paid_children::string_transfer::operand(function, expression, budget)"
+            }
+          ]
+        },
+        {
+          "byte_end": 10887,
+          "byte_start": 10880,
+          "column_end": 66,
+          "column_start": 59,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/structural_control/call_receiving.rs",
+          "is_primary": false,
+          "label": "function `operand` is not publicly re-exported",
+          "line_end": 273,
+          "line_start": 273,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 66,
+              "highlight_start": 59,
+              "text": "        selected_profile::paid_children::string_transfer::operand(function, expression, budget)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": {
+        "code": "E0277",
+        "explanation": "You tried to use a type which doesn't implement some trait in a place which\nexpected that trait.\n\nErroneous code example:\n\n```compile_fail,E0277\n// here we declare the Foo trait with a bar method\ntrait Foo {\n    fn bar(&self);\n}\n\n// we now declare a function which takes an object implementing the Foo trait\nfn some_func<T: Foo>(foo: T) {\n    foo.bar();\n}\n\nfn main() {\n    // we now call the method with the i32 type, which doesn't implement\n    // the Foo trait\n    some_func(5i32); // error: the trait bound `i32 : Foo` is not satisfied\n}\n```\n\nIn order to fix this error, verify that the type you're using does implement\nthe trait. Example:\n\n```\ntrait Foo {\n    fn bar(&self);\n}\n\n// we implement the trait on the i32 type\nimpl Foo for i32 {\n    fn bar(&self) {}\n}\n\nfn some_func<T: Foo>(foo: T) {\n    foo.bar(); // we can now use this method since i32 implements the\n               // Foo trait\n}\n\nfn main() {\n    some_func(5i32); // ok!\n}\n```\n\nOr in a generic context, an erroneous code example would look like:\n\n```compile_fail,E0277\nfn some_func<T>(foo: T) {\n    println!(\"{:?}\", foo); // error: the trait `core::fmt::Debug` is not\n                           //        implemented for the type `T`\n}\n\nfn main() {\n    // We now call the method with the i32 type,\n    // which *does* implement the Debug trait.\n    some_func(5i32);\n}\n```\n\nNote that the error here is in the definition of the generic function. Although\nwe only call it with a parameter that does implement `Debug`, the compiler\nstill rejects the function. It must work with all possible input types. In\norder to make this example compile, we need to restrict the generic type we're\naccepting:\n\n```\nuse std::fmt;\n\n// Restrict the input type to types that implement Debug.\nfn some_func<T: fmt::Debug>(foo: T) {\n    println!(\"{:?}\", foo);\n}\n\nfn main() {\n    // Calling the method is still fine, as i32 implements Debug.\n    some_func(5i32);\n\n    // This would fail to compile now:\n    // struct WithoutDebug;\n    // some_func(WithoutDebug);\n}\n```\n\nRust only looks at the signature of the called function, as such it must\nalready specify all requirements that will be used for every type parameter.\n"
+      },
+      "message": "the trait bound `Array<u8, UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>>: LowerHex` is not satisfied",
+      "spans": [
+        {
+          "byte_end": 15500,
+          "byte_start": 15468,
+          "column_end": 61,
+          "column_start": 29,
+          "expansion": {
+            "def_site_span": {
+              "byte_end": 0,
+              "byte_start": 0,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/lib.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 1,
+              "line_start": 1,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            },
+            "macro_decl_name": "desugaring of format string literal",
+            "span": {
+              "byte_end": 4524,
+              "byte_start": 4484,
+              "column_end": 73,
+              "column_start": 33,
+              "expansion": {
+                "def_site_span": {
+                  "byte_end": 35077,
+                  "byte_start": 35053,
+                  "column_end": 29,
+                  "column_start": 5,
+                  "expansion": null,
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 996,
+                  "line_start": 996,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                },
+                "macro_decl_name": "$crate::__export::format_args!",
+                "span": {
+                  "byte_end": 4524,
+                  "byte_start": 4484,
+                  "column_end": 73,
+                  "column_start": 33,
+                  "expansion": {
+                    "def_site_span": {
+                      "byte_end": 4389,
+                      "byte_start": 4370,
+                      "column_end": 20,
+                      "column_start": 1,
+                      "expansion": null,
+                      "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 111,
+                      "line_start": 111,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": []
+                    },
+                    "macro_decl_name": "format!",
+                    "span": {
+                      "byte_end": 15501,
+                      "byte_start": 15452,
+                      "column_end": 62,
+                      "column_start": 13,
+                      "expansion": null,
+                      "file_name": "src/workspace_graph/cold_canonical/tests.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 372,
+                      "line_start": 372,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": [
+                        {
+                          "highlight_end": 62,
+                          "highlight_start": 13,
+                          "text": "            format!(\"{:x}\", Sha256::digest(bytes.as_bytes())),"
+                        }
+                      ]
+                    }
+                  },
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 114,
+                  "line_start": 114,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                }
+              },
+              "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 114,
+              "line_start": 114,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            }
+          },
+          "file_name": "src/workspace_graph/cold_canonical/tests.rs",
+          "is_primary": true,
+          "label": "the trait `std::fmt::LowerHex` is not implemented for `Array<u8, UInt<UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>, ...>>`",
+          "line_end": 372,
+          "line_start": 372,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 61,
+              "highlight_start": 29,
+              "text": "            format!(\"{:x}\", Sha256::digest(bytes.as_bytes())),"
+            }
+          ]
+        },
+        {
+          "byte_end": 15465,
+          "byte_start": 15461,
+          "column_end": 26,
+          "column_start": 22,
+          "expansion": {
+            "def_site_span": {
+              "byte_end": 0,
+              "byte_start": 0,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/lib.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 1,
+              "line_start": 1,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            },
+            "macro_decl_name": "desugaring of format string literal",
+            "span": {
+              "byte_end": 4524,
+              "byte_start": 4484,
+              "column_end": 73,
+              "column_start": 33,
+              "expansion": {
+                "def_site_span": {
+                  "byte_end": 35077,
+                  "byte_start": 35053,
+                  "column_end": 29,
+                  "column_start": 5,
+                  "expansion": null,
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 996,
+                  "line_start": 996,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                },
+                "macro_decl_name": "$crate::__export::format_args!",
+                "span": {
+                  "byte_end": 4524,
+                  "byte_start": 4484,
+                  "column_end": 73,
+                  "column_start": 33,
+                  "expansion": {
+                    "def_site_span": {
+                      "byte_end": 4389,
+                      "byte_start": 4370,
+                      "column_end": 20,
+                      "column_start": 1,
+                      "expansion": null,
+                      "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 111,
+                      "line_start": 111,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": []
+                    },
+                    "macro_decl_name": "format!",
+                    "span": {
+                      "byte_end": 15501,
+                      "byte_start": 15452,
+                      "column_end": 62,
+                      "column_start": 13,
+                      "expansion": null,
+                      "file_name": "src/workspace_graph/cold_canonical/tests.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 372,
+                      "line_start": 372,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": [
+                        {
+                          "highlight_end": 62,
+                          "highlight_start": 13,
+                          "text": "            format!(\"{:x}\", Sha256::digest(bytes.as_bytes())),"
+                        }
+                      ]
+                    }
+                  },
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 114,
+                  "line_start": 114,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                }
+              },
+              "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 114,
+              "line_start": 114,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            }
+          },
+          "file_name": "src/workspace_graph/cold_canonical/tests.rs",
+          "is_primary": false,
+          "label": "required by this formatting parameter",
+          "line_end": 372,
+          "line_start": 372,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 26,
+              "highlight_start": 22,
+              "text": "            format!(\"{:x}\", Sha256::digest(bytes.as_bytes())),"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": {
+        "code": "E0277",
+        "explanation": "You tried to use a type which doesn't implement some trait in a place which\nexpected that trait.\n\nErroneous code example:\n\n```compile_fail,E0277\n// here we declare the Foo trait with a bar method\ntrait Foo {\n    fn bar(&self);\n}\n\n// we now declare a function which takes an object implementing the Foo trait\nfn some_func<T: Foo>(foo: T) {\n    foo.bar();\n}\n\nfn main() {\n    // we now call the method with the i32 type, which doesn't implement\n    // the Foo trait\n    some_func(5i32); // error: the trait bound `i32 : Foo` is not satisfied\n}\n```\n\nIn order to fix this error, verify that the type you're using does implement\nthe trait. Example:\n\n```\ntrait Foo {\n    fn bar(&self);\n}\n\n// we implement the trait on the i32 type\nimpl Foo for i32 {\n    fn bar(&self) {}\n}\n\nfn some_func<T: Foo>(foo: T) {\n    foo.bar(); // we can now use this method since i32 implements the\n               // Foo trait\n}\n\nfn main() {\n    some_func(5i32); // ok!\n}\n```\n\nOr in a generic context, an erroneous code example would look like:\n\n```compile_fail,E0277\nfn some_func<T>(foo: T) {\n    println!(\"{:?}\", foo); // error: the trait `core::fmt::Debug` is not\n                           //        implemented for the type `T`\n}\n\nfn main() {\n    // We now call the method with the i32 type,\n    // which *does* implement the Debug trait.\n    some_func(5i32);\n}\n```\n\nNote that the error here is in the definition of the generic function. Although\nwe only call it with a parameter that does implement `Debug`, the compiler\nstill rejects the function. It must work with all possible input types. In\norder to make this example compile, we need to restrict the generic type we're\naccepting:\n\n```\nuse std::fmt;\n\n// Restrict the input type to types that implement Debug.\nfn some_func<T: fmt::Debug>(foo: T) {\n    println!(\"{:?}\", foo);\n}\n\nfn main() {\n    // Calling the method is still fine, as i32 implements Debug.\n    some_func(5i32);\n\n    // This would fail to compile now:\n    // struct WithoutDebug;\n    // some_func(WithoutDebug);\n}\n```\n\nRust only looks at the signature of the called function, as such it must\nalready specify all requirements that will be used for every type parameter.\n"
+      },
+      "message": "the trait bound `diagnostic::Diagnostic: serde::Serialize` is not satisfied",
+      "spans": [
+        {
+          "byte_end": 11988,
+          "byte_start": 11982,
+          "column_end": 61,
+          "column_start": 55,
+          "expansion": null,
+          "file_name": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+          "is_primary": true,
+          "label": "unsatisfied trait bound",
+          "line_end": 326,
+          "line_start": 326,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 61,
+              "highlight_start": 55,
+              "text": "                                serde_json::to_value(&report).unwrap(),"
+            }
+          ]
+        },
+        {
+          "byte_end": 11980,
+          "byte_start": 11960,
+          "column_end": 53,
+          "column_start": 33,
+          "expansion": null,
+          "file_name": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+          "is_primary": false,
+          "label": "required by a bound introduced by this call",
+          "line_end": 326,
+          "line_start": 326,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 53,
+              "highlight_start": 33,
+              "text": "                                serde_json::to_value(&report).unwrap(),"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": {
+        "code": "E0277",
+        "explanation": "You tried to use a type which doesn't implement some trait in a place which\nexpected that trait.\n\nErroneous code example:\n\n```compile_fail,E0277\n// here we declare the Foo trait with a bar method\ntrait Foo {\n    fn bar(&self);\n}\n\n// we now declare a function which takes an object implementing the Foo trait\nfn some_func<T: Foo>(foo: T) {\n    foo.bar();\n}\n\nfn main() {\n    // we now call the method with the i32 type, which doesn't implement\n    // the Foo trait\n    some_func(5i32); // error: the trait bound `i32 : Foo` is not satisfied\n}\n```\n\nIn order to fix this error, verify that the type you're using does implement\nthe trait. Example:\n\n```\ntrait Foo {\n    fn bar(&self);\n}\n\n// we implement the trait on the i32 type\nimpl Foo for i32 {\n    fn bar(&self) {}\n}\n\nfn some_func<T: Foo>(foo: T) {\n    foo.bar(); // we can now use this method since i32 implements the\n               // Foo trait\n}\n\nfn main() {\n    some_func(5i32); // ok!\n}\n```\n\nOr in a generic context, an erroneous code example would look like:\n\n```compile_fail,E0277\nfn some_func<T>(foo: T) {\n    println!(\"{:?}\", foo); // error: the trait `core::fmt::Debug` is not\n                           //        implemented for the type `T`\n}\n\nfn main() {\n    // We now call the method with the i32 type,\n    // which *does* implement the Debug trait.\n    some_func(5i32);\n}\n```\n\nNote that the error here is in the definition of the generic function. Although\nwe only call it with a parameter that does implement `Debug`, the compiler\nstill rejects the function. It must work with all possible input types. In\norder to make this example compile, we need to restrict the generic type we're\naccepting:\n\n```\nuse std::fmt;\n\n// Restrict the input type to types that implement Debug.\nfn some_func<T: fmt::Debug>(foo: T) {\n    println!(\"{:?}\", foo);\n}\n\nfn main() {\n    // Calling the method is still fine, as i32 implements Debug.\n    some_func(5i32);\n\n    // This would fail to compile now:\n    // struct WithoutDebug;\n    // some_func(WithoutDebug);\n}\n```\n\nRust only looks at the signature of the called function, as such it must\nalready specify all requirements that will be used for every type parameter.\n"
+      },
+      "message": "the trait bound `diagnostic::Diagnostic: serde::Serialize` is not satisfied",
+      "spans": [
+        {
+          "byte_end": 12061,
+          "byte_start": 12053,
+          "column_end": 62,
+          "column_start": 54,
+          "expansion": null,
+          "file_name": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+          "is_primary": true,
+          "label": "unsatisfied trait bound",
+          "line_end": 327,
+          "line_start": 327,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 62,
+              "highlight_start": 54,
+              "text": "                                serde_json::to_value(expected).unwrap()"
+            }
+          ]
+        },
+        {
+          "byte_end": 12052,
+          "byte_start": 12032,
+          "column_end": 53,
+          "column_start": 33,
+          "expansion": null,
+          "file_name": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+          "is_primary": false,
+          "label": "required by a bound introduced by this call",
+          "line_end": 327,
+          "line_start": 327,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 53,
+              "highlight_start": 33,
+              "text": "                                serde_json::to_value(expected).unwrap()"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "full_suite": false,
+  "raw_sha256": {
+    "owning-build-result.json": "daad057c60c06a0c010f6df2fa67af69114161e22a8ec05f1c406962241af8b0",
+    "owning-build.jsonl": "bc175248e0667ea87919c56283fcb0580c49d880b0d4372589dcc506b5245900",
+    "owning-build.log": "d7c83cdcda0a2f5e806d7b89e3f220e062159d7fe8e98724499e894b4ec414ad",
+    "expected-counts.json": "b4d66e4bdf4f96f4b52f576a7a04ab402f415a8b5fa9e2277a57423bcb2d6942",
+    "compilation-manifest.json": "b4d66e4bdf4f96f4b52f576a7a04ab402f415a8b5fa9e2277a57423bcb2d6942",
+    "preparation-receipt.json": "edd30862f3f248c9dbe4f0010655326ffb22b6ee2df52c375e9965296ce53303",
+    "memory-samples.jsonl": "e172b51cb83c7c79ec888ca03f53e526375636fc8775f53ccf1ae00ea18b29a9"
+  }
+}

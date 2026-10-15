@@ -3,7 +3,7 @@
 from pathlib import Path
 from collections import OrderedDict
 import argparse,copy,hashlib,json,re,subprocess,tempfile,os,runpy,contextlib,io
-A=argparse.ArgumentParser();A.add_argument('--verify-only',action='store_true');A.add_argument('--basis',required=True);A.add_argument('--extra-packet',action='append',default=[]);A.add_argument('--source36-runner',default='docs/evidence/source36-main88884-merge-20261015/verify_source36.py');args=A.parse_args()
+A=argparse.ArgumentParser();A.add_argument('--verify-only',action='store_true');A.add_argument('--basis',required=True);A.add_argument('--extra-packet',action='append',default=[]);A.add_argument('--protected-runtime-input',action='append',default=[]);A.add_argument('--source36-runner',default='docs/evidence/source36-main88884-merge-20261015/verify_source36.py');args=A.parse_args()
 R=Path.cwd();HERE=Path(__file__).resolve().parent;BASE=args.basis
 assert re.fullmatch(r'[0-9a-f]{40}',BASE)
 OBSERVED_HEAD=subprocess.check_output(['git','rev-parse','HEAD'],cwd=R,text=True).strip()
@@ -54,12 +54,35 @@ names += ['docs/evidence/ram-round-warning-corrections-20261015/source-inverses.
           'docs/evidence/source36-after-next-838-839-20261015/source-projections.json',
           'docs/evidence/source36-main88884-merge-20261015/source-inverses.json',
           'docs/evidence/source36-main88884-merge-20261015/ours-projections.json',
-          'docs/evidence/source36-main88884-merge-20261015/main-reflow-projections.json']
-assert len(names)==len(set(names))==100
+          'docs/evidence/source36-main88884-merge-20261015/main-reflow-projections.json',
+          'docs/evidence/weighted-storage-838-main2b5-adapter-20261015/source-inverses.json']
+assert len(names)==len(set(names))==101
+# Runtime Source36 adapters consume these manifests at named intermediate views.
+# Compose separate derived metadata; never rewrite their actual include_str inputs.
+protected={name:digest(R/name) for name in names if '/source36-' in name}
+for source in ['src/source_reflows.json','src/cleanup_plan/replay/live_oracle/source_custody/presence.json']:
+ protected[source]=digest(R/source)
+weighted_runtime='docs/evidence/weighted-storage-838-main2b5-adapter-20261015/runtime-projections.json'
+for source in ([weighted_runtime] if (R/weighted_runtime).is_file() else [])+args.protected_runtime_input:
+ assert source.startswith('docs/evidence/') and '..' not in Path(source).parts
+ protected[source]=digest(R/source)
+# Local addition/history manifests are evidence inputs, never recursive active rows.
+for folder in ['docs/evidence/source36-after-next-838-839-20261015/metadata-history',
+               'docs/evidence/source36-main88884-merge-20261015/metadata-history',
+               'docs/evidence/weighted-storage-838-main2b5-adapter-20261015/metadata-history']:
+ if (R/folder).is_dir():
+  for path in (R/folder).rglob('*'):
+   if path.is_file():protected[str(path.relative_to(R))]=digest(path)
+for source in ['docs/evidence/weighted-storage-838-main2b5-adapter-20261015/immutable-patch-history.json',
+               'docs/evidence/weighted-storage-838-main2b5-adapter-20261015/literal-bindings.json']:
+ if (R/source).is_file():protected[source]=digest(R/source)
+def active_path(name):
+ return str(HERE.relative_to(R)/'derived-packets'/name.removeprefix('docs/evidence/')) if name in protected else name
 for extra in args.extra_packet:
  assert extra.startswith('docs/evidence/') and extra.endswith('.json') and '..' not in Path(extra).parts
  assert extra not in names
  names.append(extra)
+ if '/source36-' in extra:protected[extra]=digest(R/extra)
 REVERSE={'loan-candidate-inventory-reuse','exit-status-directory-reuse','referenced-edge-ownership-proof','prefix-certified-expression-lookup','receiving-transitive-results-816','exit-prefix-reference-proof','status-fact-borrow-reuse','constructor-inline-failure-825','default-static-error-custody-825','prelude-forecast-286','pin-capture','region-entry-receiving-816'}
 script=G.get(BASE,'docs/evidence/compile-correction-e3eb-20261015/compose_active_sources.py').decode()
 revisions=list(dict.fromkeys([BASE,'6e549d1ae','ea0be15f4dea6f3db36a031e17988e9fa105dbf5','5f1fecd42694c52fbdcec67f9ef3d3fd0b7d7f3b','d39fe676a7c1df3323888b25c9481f7bbb65feaa','15ac307443132d8631e8b16b036ba9a689d97139','f8ff67481513a720a50eb747188beb19bc6b9b83','41b6e19ad','40f77262950e9dc4bb1da6626f441f2f504cfe59','94c392e9b','1dee376ca','ae7285469','b3e4e2b71','c771609c1','d6bf81519','e3eb47683','cb7aeb1a1','75fca93b2','8d1c4bc59','315b70b27','bb12f4897','77f454702','8756ad07a']+re.findall(r"'([0-9a-f]{6,40})'",script)))
@@ -100,7 +123,7 @@ with tempfile.TemporaryDirectory(prefix='.composition-',dir=HERE) as tmp:
  for n,data in derived.items():
   if isinstance(data,bytes):stage(n,data)
  for name in names:
-  packet=load(name) if args.verify_only else load(seeds[name]['seed']) if name in seeds else json.loads(G.get(PRIOR_PACKET_BASIS,name)) if name in prior_names else copy.deepcopy(derived[name]) if name in derived else original(name)
+  packet=load(active_path(name)) if args.verify_only else load(seeds[name]['seed']) if name in seeds else json.loads(G.get(PRIOR_PACKET_BASIS,name)) if name in prior_names else copy.deepcopy(derived[name]) if name in derived else original(name)
   rows=packet if isinstance(packet,list) else packet.get('whole_sources',packet.get('owners',[packet]));repairs=[];independent=0;backward=Path(name).parent.name in REVERSE;isnom='nominal-payload-827/exact-source-inverses-activation-v14.json' in name
   for row in rows:
    oldrow=copy.deepcopy(row);source=row.get('source',row.get('file',row.get('path')));raw=(R/source).read_bytes();source_hashes[source]=sha(raw);text=raw.decode();record=nominal[source] if isnom else row
@@ -151,7 +174,7 @@ with tempfile.TemporaryDirectory(prefix='.composition-',dir=HERE) as tmp:
     source=child['source'];current=(R/source).read_bytes();source_hashes[source]=sha(current)
     if child['sha256']!=sha(current):
      assert not args.verify_only,(name,source,'child SHA');rev,prior=checkpoint(source,lambda b:True,child['sha256']);child.setdefault('prior_bindings',[]).append(dict(sha256=child['sha256'],revision=rev,application_basis=BASE));child['sha256']=sha(current)
-  stage(name,(json.dumps(packet,indent=2)+'\n').encode());summary.append(dict(packet=name,rows=len(rows),repairs=repairs,whole_original_rows=len(rows)-independent,independently_bound_new_rows=independent,all_old_hooks_and_originals_preserved=True))
+  stage(active_path(name),(json.dumps(packet,indent=2)+'\n').encode());summary.append(dict(packet=name,active_packet=active_path(name),rows=len(rows),repairs=repairs,whole_original_rows=len(rows)-independent,independently_bound_new_rows=independent,all_old_hooks_and_originals_preserved=True))
  if not args.verify_only:inventory['final_integrated_source_basis']=BASE
  stage(INV,(json.dumps(inventory,indent=2)+'\n').encode())
  for s,h in source_hashes.items():assert digest(R/s)==h
@@ -166,7 +189,8 @@ assert len(ns['results'])==36
 assert args.source36_runner.startswith('docs/evidence/') and '..' not in Path(args.source36_runner).parts
 assert subprocess.check_output(['git','rev-parse','HEAD'],cwd=R,text=True).strip()==OBSERVED_HEAD, 'HEAD drift during composition'
 for s,h in preserved.items():assert digest(R/s)==h,s
-proof=dict(status='SOURCE_ONLY_NO_RUST_EXECUTION',immutable_basis=BASE,total_packets=len(summary),total_rows=sum(x['rows'] for x in summary),packets=summary,source_36=ns['results'],source_36_output=log.getvalue(),source_inputs=source_hashes,unchanged_original_archives=archives,preserved_prior_proofs_and_scripts=preserved,new_source_prior_bindings=newbindings,candidate_cache_limit_bytes=16*1024*1024,candidate_cache_peak_bytes=G.peak,prior_active_packet_count=90,prior_active_row_count=795,prior_active_packet_basis=PRIOR_PACKET_BASIS,new_complete_stage_histories=histories)
+for s,h in protected.items():assert digest(R/s)==h,(s,'named runtime-stage manifest changed')
+proof=dict(status='SOURCE_ONLY_NO_RUST_EXECUTION',immutable_basis=BASE,total_packets=len(summary),total_rows=sum(x['rows'] for x in summary),packets=summary,source_36=ns['results'],source_36_output=log.getvalue(),source_inputs=source_hashes,unchanged_original_archives=archives,preserved_prior_proofs_and_scripts=preserved,new_source_prior_bindings=newbindings,candidate_cache_limit_bytes=16*1024*1024,candidate_cache_peak_bytes=G.peak,prior_active_packet_count=90,prior_active_row_count=795,prior_active_packet_basis=PRIOR_PACKET_BASIS,new_complete_stage_histories=histories,protected_runtime_stage_packets=protected)
 if not args.verify_only:(HERE/'combined-source-proof.json').write_text(json.dumps(proof,indent=2)+'\n')
 print(json.dumps(dict(mode='verify-only' if args.verify_only else 'composed',packets=len(summary),rows=proof['total_rows'],repairs=sum(len(x['repairs']) for x in summary),source36='PASS',cache_peak_bytes=G.peak)))
 G.p.terminate()

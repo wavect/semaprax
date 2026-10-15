@@ -16,7 +16,9 @@ three additions that the old d39 compositor required on its command line. It
 then adds complete 839 initial/result-fee and 838 checkpoint/amortized stage
 packets (all66 full commit patch paths), the two-warning packet, the earlier
 Source36 successor's inverse/four views, and all three reviewed MAIN Source36
-packets. Expected default inventory is100 packets / 903 rows; only a completed
+packets. The838 MAIN literal adapter adds its single helper inverse; its four runtime
+views and local metadata history remain protected inputs. Expected default
+inventory is101 packets / 904 rows; only a completed
 final invocation can establish the actual counts. Additional packets may be
 explicitly supplied; no default packet is removed.
 
@@ -63,3 +65,16 @@ parent owner-selection inventory and every existing 838/839/original source
 selector. The new Source36 presence/projection owning selector comes from the
 reviewer's source adapter. No application recovery, 838/839 completion, runtime,
 backend, budget-fit, or live-model efficiency claim follows from metadata proof.
+
+Protected-domain correction after the actual2b5 checkpoint: the first compositor
+rewrote an intermediate Source36 runtime manifest for physical current source,
+then its original runner correctly refused the mismatched domain. The corrected
+new tool writes derived active manifests under `derived-packets/`, retaining the
+logical original packet identities and all old hooks. The nine actual Source36
+packet files, MAIN71 and presence JSON, the838 runtime views and local metadata
+histories remain byte-exact. `--protected-runtime-input` extends this explicitly.
+The historical failed and corrected2b5 source-only runs are recorded once under
+`execution-history/2b5cae-checkpoint/`; they are not the final successor proof.
+No generated active packet manifests or current proof outputs are included in
+this correction-only commit. Final composition must be rerun at the supplied
+source basis after the parent applies the tool correction.

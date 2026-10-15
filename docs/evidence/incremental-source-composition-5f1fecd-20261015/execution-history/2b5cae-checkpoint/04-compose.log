@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/source-composition-final-2b5cae-20261015/AI-Lang/docs/evidence/source36-main88884-merge-20261015/verify_source36.py", line 62, in <module>
+    try:exec(compile(code,'original36-adapted-candidate','exec'),globals())
+        ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "original36-adapted-candidate", line 50, in <module>
+  File "original36-adapted-candidate", line 23, in project
+AssertionError
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/source-composition-final-2b5cae-20261015/AI-Lang/docs/evidence/incremental-source-composition-5f1fecd-20261015/compose.py", line 164, in <module>
+    with contextlib.redirect_stdout(log):ns=runpy.run_path(str(R/args.source36_runner))
+                                            ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Volumes/Semaprax/worktrees/source-composition-final-2b5cae-20261015/AI-Lang/docs/evidence/source36-main88884-merge-20261015/verify_source36.py", line 62, in <module>
+    try:exec(compile(code,'original36-adapted-candidate','exec'),globals())
+        ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "original36-adapted-candidate", line 50, in <module>
+  File "original36-adapted-candidate", line 23, in project
+AssertionError

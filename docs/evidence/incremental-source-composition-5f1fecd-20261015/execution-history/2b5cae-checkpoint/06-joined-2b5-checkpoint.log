@@ -1,0 +1,70 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "immutable_basis": "2b5cae170e13b16c4a5f57a619b302405e2934a6",
+  "prior_active_packets": 90,
+  "prior_active_rows": 795,
+  "old_hooks_preserved": 3371,
+  "authenticated_added_checkpoint_rows": 316,
+  "all_source_frozen_at": "2b5cae170e13b16c4a5f57a619b302405e2934a6",
+  "independent_receivers_verified": 53,
+  "independent_receivers_byte_unchanged": 46,
+  "independent_receiver_complete_current_to_old_joins": 7,
+  "starter_complete_patch_source_inverses": [
+    {
+      "owner": "starter-original",
+      "authored_revision": "604e7fb05203a6701be6bdbcda8a181c5b969df2",
+      "original_base": "e3eb476838442b58c02ccc815aae4bbdfebfd50e",
+      "all_patch_sources_equal": true,
+      "patch_paths": 32,
+      "archived_files": 22
+    },
+    {
+      "owner": "starter-held-input-fix",
+      "authored_revision": "2ae6fee203fb726980524885ec36da268d5361bd",
+      "original_base": "604e7fb05203a6701be6bdbcda8a181c5b969df2",
+      "all_patch_sources_equal": true,
+      "patch_paths": 6,
+      "archived_files": 6
+    }
+  ],
+  "starter_current_bindings": 38,
+  "next_complete_patch_source_inverses": [
+    {
+      "owner": "canonical-839-initial",
+      "authored_revision": "15ac307443132d8631e8b16b036ba9a689d97139",
+      "original_base": "94c392e9bd8b60edba497263d0267ec54a4dd728",
+      "all_patch_sources_equal": true,
+      "patch_paths": 12,
+      "archived_files": 12
+    },
+    {
+      "owner": "canonical-839-result-fee",
+      "authored_revision": "f8ff67481513a720a50eb747188beb19bc6b9b83",
+      "original_base": "15ac307443132d8631e8b16b036ba9a689d97139",
+      "all_patch_sources_equal": true,
+      "patch_paths": 4,
+      "archived_files": 4
+    },
+    {
+      "owner": "weighted-838-checkpoint",
+      "authored_revision": "41b6e19ad4bbc817091137a991e6b5c37c628f7a",
+      "original_base": "dd3b0ce6a49fcc18874539a02965c303353b312c",
+      "all_patch_sources_equal": true,
+      "patch_paths": 28,
+      "archived_files": 28
+    },
+    {
+      "owner": "weighted-838-amortized",
+      "authored_revision": "40f77262950e9dc4bb1da6626f441f2f504cfe59",
+      "original_base": "41b6e19ad4bbc817091137a991e6b5c37c628f7a",
+      "all_patch_sources_equal": true,
+      "patch_paths": 22,
+      "archived_files": 22
+    }
+  ],
+  "next_complete_patch_paths": 66,
+  "source36_local_metadata_addition_inverse": true,
+  "capacity834_original_and833_receiving_bound_retained": true,
+  "candidate_cache_limit_bytes": 16777216,
+  "candidate_cache_peak_bytes": 16775080
+}

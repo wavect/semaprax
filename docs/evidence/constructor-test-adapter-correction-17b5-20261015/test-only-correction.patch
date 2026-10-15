@@ -1,0 +1,102 @@
+--- a/src/workspace_graph/constructor_failure/receiving/typed/tests.rs
++++ b/src/workspace_graph/constructor_failure/receiving/typed/tests.rs
+@@ -5,7 +5,10 @@
+ use crate::diagnostic::Diagnostic;
+ use crate::test_allocation_observer::{current_metrics, measure};
+ use crate::workspace_graph::constructor_failure::{typed, typed::Failure};
+-use crate::workspace_graph::expected_projection::{defaults, import_stub};
++use crate::workspace_graph::expected_projection::borrowed_imports::{
++    constructor_test_default_expr_inline, constructor_test_inline_defaults,
++    constructor_test_typed_defaults, constructor_test_typed_import_stub,
++};
+ const LIMIT: usize = 8 * 1024 * 1024;
+ fn primary() -> Diagnostic {
+     Diagnostic::io_static("SPX-G172", "selected semantic primary")
+@@ -125,12 +128,12 @@
+             *fields = all[..width].to_vec();
+         }
+         let declarations = [("Row", &row)];
+-        let old = defaults::inline::default_expr(&ty, &declarations, false).unwrap();
++        let old = constructor_test_inline_defaults::default_expr(&ty, &declarations, false).unwrap();
+         let (((), physical), refused, exact, first) = with_limit_usage_refusal(LIMIT, || {
+             measure(|| {
+                 let mut owner = Receiver::acquire().unwrap();
+                 let actual =
+-                    defaults::typed::default_expr(&ty, &declarations, false, &mut owner).unwrap();
++                    constructor_test_typed_defaults::default_expr(&ty, &declarations, false, &mut owner).unwrap();
+                 assert_eq!(actual, old);
+                 drop(actual);
+                 drop(owner);
+@@ -152,7 +155,7 @@
+                             Err(_) => return false,
+                         };
+                         let actual =
+-                            defaults::typed::default_expr(&ty, &declarations, false, &mut owner);
++                            constructor_test_typed_defaults::default_expr(&ty, &declarations, false, &mut owner);
+                         let stop = current_metrics().allocated;
+                         let success = actual.is_ok();
+                         if let Err(error) = &actual {
+@@ -195,12 +198,12 @@
+     ] {
+         program.functions[0].return_type = ty;
+         let function = &program.functions[0];
+-        let old = import_stub::default_expr_inline(function, &[], false, false);
++        let old = constructor_test_default_expr_inline(function, &[], false, false);
+         let (((), physical), refused, used, first) = with_limit_usage_refusal(LIMIT, || {
+             measure(|| {
+                 let mut owner = Receiver::acquire().unwrap();
+                 let actual =
+-                    import_stub::typed::default_expr(function, &[], false, false, &mut owner);
++                    constructor_test_typed_import_stub::default_expr(function, &[], false, false, &mut owner);
+                 match (actual, &old) {
+                     (Ok(actual), Ok(old)) => assert_eq!(&actual, old),
+                     (Err(Failure::One(actual)), Err(old)) => {
+@@ -260,8 +263,8 @@
+                 );
+                 match (&current, &old) {
+                     (Ok(actual), Ok(old)) => {
+-                        assert_eq!(actual.source().types(), old.source().types());
+-                        assert_eq!(actual.source().functions(), old.source().functions());
++                        assert!(actual.source().types().iter().eq(old.source().types().iter()));
++                        assert!(actual.source().functions().iter().eq(old.source().functions().iter()));
+                     }
+                     (Err(Failure::One(actual)), Err(old)) => {
+                         assert_eq!(std::slice::from_ref(actual), old.diagnostics())
+@@ -285,7 +288,7 @@
+     let operation = || {
+         attempt::run(usize::MAX, || {
+             let mut owner = Receiver::acquire()?;
+-            match defaults::typed::default_expr(&Type::I64, &[], false, &mut owner) {
++            match constructor_test_typed_defaults::default_expr(&Type::I64, &[], false, &mut owner) {
+                 Ok(value) => {
+                     drop(value);
+                     drop(owner);
+--- a/src/workspace_graph/expected_projection/borrowed_imports.rs
++++ b/src/workspace_graph/expected_projection/borrowed_imports.rs
+@@ -395,3 +395,26 @@
+ 
+ #[path = "borrowed_imports/typed.rs"]
+ pub(in crate::workspace_graph) mod typed;
++
++// Test-only access to complete prior/current helpers from the affine receiver
++// tests. Production module visibility and the complete old bodies stay exact.
++#[cfg(test)]
++pub(in crate::workspace_graph) use super::defaults::{
++    inline as constructor_test_inline_defaults, typed as constructor_test_typed_defaults,
++};
++#[cfg(test)]
++pub(in crate::workspace_graph) use super::import_stub::typed as constructor_test_typed_import_stub;
++#[cfg(test)]
++pub(in crate::workspace_graph) fn constructor_test_default_expr_inline(
++    function: &crate::ast::Function,
++    declarations: &[(&str, &crate::ast::TypeDeclaration)],
++    allow_owned: bool,
++    allow_byte_forward: bool,
++) -> Result<crate::ast::Expr, crate::workspace_graph::constructor_failure::Failure> {
++    super::import_stub::default_expr_inline(
++        function,
++        declarations,
++        allow_owned,
++        allow_byte_forward,
++    )
++}

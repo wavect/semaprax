@@ -1,0 +1,19 @@
+{
+  "source_subject": "17b52bb5cd259ed38cc9fb0acd4fa1f8b0dc60ca",
+  "status": "ACTUAL_PRIOR_HEAD_FAILURE_PRESERVED",
+  "exit_code": 101,
+  "wall_seconds": 358.699,
+  "production": "PASS129s",
+  "compiler_errors": 8,
+  "executed_tests": 0,
+  "files": {
+    "docs/evidence/failed-build-17b5-20261015/summary.json": "58b4b78a06c76480c67361a5c81943b1a32dbb80b800c9f091d66d3325024988",
+    "docs/evidence/failed-build-17b5-20261015/memory-samples.jsonl": "8b117e8eb191df9adb76461bb9e52951f1c925016ed6b7fded4ee2e76fb1a861",
+    "docs/evidence/failed-build-17b5-20261015/owning-build.log": "7f503d32e4057a40d6f49a81e5055d4a80039f242c5c6c7a97cbf1c155c09879",
+    "docs/evidence/failed-build-17b5-20261015/compilation-manifest.json": "c598a36472bb28848d4fca0eef6fb1e7ebde0f31b0804b74f195f4008363f62b",
+    "docs/evidence/failed-build-17b5-20261015/expected-counts.json": "c598a36472bb28848d4fca0eef6fb1e7ebde0f31b0804b74f195f4008363f62b",
+    "docs/evidence/failed-build-17b5-20261015/owning-build-result.json": "bc597a49d2d9b61918419c25acf3bb2cdcf2545bc4c221544138646493fe1391",
+    "docs/evidence/failed-build-17b5-20261015/owning-build.jsonl": "24b2ed8d150d9986d6b20ed9533350f49c88f3f17af06158d99d9df67abcb553",
+    "docs/evidence/failed-build-17b5-20261015/preparation-receipt.json": "9c8ccac7f128b9bea3a1fc089f0d1a565bbe4e114fdca99a9917daa99536882e"
+  }
+}

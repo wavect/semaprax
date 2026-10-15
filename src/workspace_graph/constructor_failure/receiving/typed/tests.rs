@@ -5,7 +5,10 @@ use crate::bounded_output::with_limit_usage_refusal;
 use crate::diagnostic::Diagnostic;
 use crate::test_allocation_observer::{current_metrics, measure};
 use crate::workspace_graph::constructor_failure::{typed, typed::Failure};
-use crate::workspace_graph::expected_projection::{defaults, import_stub};
+use crate::workspace_graph::expected_projection::borrowed_imports::{
+    constructor_test_default_expr_inline, constructor_test_inline_defaults,
+    constructor_test_typed_defaults, constructor_test_typed_import_stub,
+};
 const LIMIT: usize = 8 * 1024 * 1024;
 fn primary() -> Diagnostic {
     Diagnostic::io_static("SPX-G172", "selected semantic primary")
@@ -125,12 +128,12 @@ fn typed_default_fields_match_complete_old_and_every_byte_refusal_has_no_later_a
             *fields = all[..width].to_vec();
         }
         let declarations = [("Row", &row)];
-        let old = defaults::inline::default_expr(&ty, &declarations, false).unwrap();
+        let old = constructor_test_inline_defaults::default_expr(&ty, &declarations, false).unwrap();
         let (((), physical), refused, exact, first) = with_limit_usage_refusal(LIMIT, || {
             measure(|| {
                 let mut owner = Receiver::acquire().unwrap();
                 let actual =
-                    defaults::typed::default_expr(&ty, &declarations, false, &mut owner).unwrap();
+                    constructor_test_typed_defaults::default_expr(&ty, &declarations, false, &mut owner).unwrap();
                 assert_eq!(actual, old);
                 drop(actual);
                 drop(owner);
@@ -152,7 +155,7 @@ fn typed_default_fields_match_complete_old_and_every_byte_refusal_has_no_later_a
                             Err(_) => return false,
                         };
                         let actual =
-                            defaults::typed::default_expr(&ty, &declarations, false, &mut owner);
+                            constructor_test_typed_defaults::default_expr(&ty, &declarations, false, &mut owner);
                         let stop = current_metrics().allocated;
                         let success = actual.is_ok();
                         if let Err(error) = &actual {
@@ -195,12 +198,12 @@ fn typed_static_defaults_and_stub_forwarding_keep_complete_old_six_fields_and_va
     ] {
         program.functions[0].return_type = ty;
         let function = &program.functions[0];
-        let old = import_stub::default_expr_inline(function, &[], false, false);
+        let old = constructor_test_default_expr_inline(function, &[], false, false);
         let (((), physical), refused, used, first) = with_limit_usage_refusal(LIMIT, || {
             measure(|| {
                 let mut owner = Receiver::acquire().unwrap();
                 let actual =
-                    import_stub::typed::default_expr(function, &[], false, false, &mut owner);
+                    constructor_test_typed_import_stub::default_expr(function, &[], false, false, &mut owner);
                 match (actual, &old) {
                     (Ok(actual), Ok(old)) => assert_eq!(&actual, old),
                     (Err(Failure::One(actual)), Err(old)) => {
@@ -260,8 +263,8 @@ fn typed_core_overlay_matches_complete_old_success_and_late_semantic_failure_thr
                 );
                 match (&current, &old) {
                     (Ok(actual), Ok(old)) => {
-                        assert_eq!(actual.source().types(), old.source().types());
-                        assert_eq!(actual.source().functions(), old.source().functions());
+                        assert!(actual.source().types().iter().eq(old.source().types().iter()));
+                        assert!(actual.source().functions().iter().eq(old.source().functions().iter()));
                     }
                     (Err(Failure::One(actual)), Err(old)) => {
                         assert_eq!(std::slice::from_ref(actual), old.diagnostics())
@@ -285,7 +288,7 @@ fn typed_helper_budget_reaches_original_same_child_prepaid_final_report_without_
     let operation = || {
         attempt::run(usize::MAX, || {
             let mut owner = Receiver::acquire()?;
-            match defaults::typed::default_expr(&Type::I64, &[], false, &mut owner) {
+            match constructor_test_typed_defaults::default_expr(&Type::I64, &[], false, &mut owner) {
                 Ok(value) => {
                     drop(value);
                     drop(owner);

@@ -562,5 +562,5 @@
   "repair_basis": "actual a33c16996b4f095ffa2cf631bc39db4589e28302 composed with corrected nested-byte source; source-only no runtime claim",
   "combined_final_source_basis": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
   "explicit_import_source_basis": "a41774c0b",
-  "ordered_integrated_source_basis": "912aee2ed2e1178aef6512043d6fbfa3be15c809"
+  "ordered_integrated_source_basis": "17b52bb5cd259ed38cc9fb0acd4fa1f8b0dc60ca"
 }

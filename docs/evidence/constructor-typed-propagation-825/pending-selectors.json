@@ -5,37 +5,86 @@
     {
       "selector": "workspace_graph::constructor_failure::receiving::typed::tests::typed_constructor_receiver_first_budget_and_foreign_restoration_preserve_original_owner",
       "source": "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
-      "source_sha256": "950e94b6251c2f33f06d395f7bf85e86ebef26568464e7a1b62941346126fec0"
+      "source_sha256": "1d7a125305ea461083caa3adcb5c2bb9a9b4bbb241e0a30204f2cea9ce8df566",
+      "prior_source_bindings": [
+        {
+          "source_sha256": "950e94b6251c2f33f06d395f7bf85e86ebef26568464e7a1b62941346126fec0",
+          "basis": "17b52bb5cd259ed38cc9fb0acd4fa1f8b0dc60ca",
+          "change_owner": "docs/evidence/constructor-test-adapter-correction-17b5-20261015/source-inverses.json"
+        }
+      ]
     },
     {
       "selector": "workspace_graph::constructor_failure::receiving::typed::tests::typed_constructor_selected_semantic_and_many_keep_all_fields_pointer_and_drop",
       "source": "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
-      "source_sha256": "950e94b6251c2f33f06d395f7bf85e86ebef26568464e7a1b62941346126fec0"
+      "source_sha256": "1d7a125305ea461083caa3adcb5c2bb9a9b4bbb241e0a30204f2cea9ce8df566",
+      "prior_source_bindings": [
+        {
+          "source_sha256": "950e94b6251c2f33f06d395f7bf85e86ebef26568464e7a1b62941346126fec0",
+          "basis": "17b52bb5cd259ed38cc9fb0acd4fa1f8b0dc60ca",
+          "change_owner": "docs/evidence/constructor-test-adapter-correction-17b5-20261015/source-inverses.json"
+        }
+      ]
     },
     {
       "selector": "workspace_graph::constructor_failure::receiving::typed::tests::typed_default_fields_match_complete_old_and_every_byte_refusal_has_no_later_allocation",
       "source": "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
-      "source_sha256": "950e94b6251c2f33f06d395f7bf85e86ebef26568464e7a1b62941346126fec0"
+      "source_sha256": "1d7a125305ea461083caa3adcb5c2bb9a9b4bbb241e0a30204f2cea9ce8df566",
+      "prior_source_bindings": [
+        {
+          "source_sha256": "950e94b6251c2f33f06d395f7bf85e86ebef26568464e7a1b62941346126fec0",
+          "basis": "17b52bb5cd259ed38cc9fb0acd4fa1f8b0dc60ca",
+          "change_owner": "docs/evidence/constructor-test-adapter-correction-17b5-20261015/source-inverses.json"
+        }
+      ]
     },
     {
       "selector": "workspace_graph::constructor_failure::receiving::typed::tests::typed_static_defaults_and_stub_forwarding_keep_complete_old_six_fields_and_values",
       "source": "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
-      "source_sha256": "950e94b6251c2f33f06d395f7bf85e86ebef26568464e7a1b62941346126fec0"
+      "source_sha256": "1d7a125305ea461083caa3adcb5c2bb9a9b4bbb241e0a30204f2cea9ce8df566",
+      "prior_source_bindings": [
+        {
+          "source_sha256": "950e94b6251c2f33f06d395f7bf85e86ebef26568464e7a1b62941346126fec0",
+          "basis": "17b52bb5cd259ed38cc9fb0acd4fa1f8b0dc60ca",
+          "change_owner": "docs/evidence/constructor-test-adapter-correction-17b5-20261015/source-inverses.json"
+        }
+      ]
     },
     {
       "selector": "workspace_graph::constructor_failure::receiving::typed::tests::typed_core_overlay_matches_complete_old_success_and_late_semantic_failure_through_drop",
       "source": "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
-      "source_sha256": "950e94b6251c2f33f06d395f7bf85e86ebef26568464e7a1b62941346126fec0"
+      "source_sha256": "1d7a125305ea461083caa3adcb5c2bb9a9b4bbb241e0a30204f2cea9ce8df566",
+      "prior_source_bindings": [
+        {
+          "source_sha256": "950e94b6251c2f33f06d395f7bf85e86ebef26568464e7a1b62941346126fec0",
+          "basis": "17b52bb5cd259ed38cc9fb0acd4fa1f8b0dc60ca",
+          "change_owner": "docs/evidence/constructor-test-adapter-correction-17b5-20261015/source-inverses.json"
+        }
+      ]
     },
     {
       "selector": "workspace_graph::constructor_failure::receiving::typed::tests::typed_helper_budget_reaches_original_same_child_prepaid_final_report_without_late_backing",
       "source": "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
-      "source_sha256": "950e94b6251c2f33f06d395f7bf85e86ebef26568464e7a1b62941346126fec0"
+      "source_sha256": "1d7a125305ea461083caa3adcb5c2bb9a9b4bbb241e0a30204f2cea9ce8df566",
+      "prior_source_bindings": [
+        {
+          "source_sha256": "950e94b6251c2f33f06d395f7bf85e86ebef26568464e7a1b62941346126fec0",
+          "basis": "17b52bb5cd259ed38cc9fb0acd4fa1f8b0dc60ca",
+          "change_owner": "docs/evidence/constructor-test-adapter-correction-17b5-20261015/source-inverses.json"
+        }
+      ]
     },
     {
       "selector": "workspace_graph::constructor_failure::receiving::typed::tests::typed_constructor_complete_sources_original_helpers_and_live_caller_are_exactly_bound",
       "source": "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
-      "source_sha256": "950e94b6251c2f33f06d395f7bf85e86ebef26568464e7a1b62941346126fec0"
+      "source_sha256": "1d7a125305ea461083caa3adcb5c2bb9a9b4bbb241e0a30204f2cea9ce8df566",
+      "prior_source_bindings": [
+        {
+          "source_sha256": "950e94b6251c2f33f06d395f7bf85e86ebef26568464e7a1b62941346126fec0",
+          "basis": "17b52bb5cd259ed38cc9fb0acd4fa1f8b0dc60ca",
+          "change_owner": "docs/evidence/constructor-test-adapter-correction-17b5-20261015/source-inverses.json"
+        }
+      ]
     }
   ],
   "required_existing": [

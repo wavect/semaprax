@@ -395,3 +395,26 @@ pub(in crate::workspace_graph) mod inline;
 
 #[path = "borrowed_imports/typed.rs"]
 pub(in crate::workspace_graph) mod typed;
+
+// Test-only access to complete prior/current helpers from the affine receiver
+// tests. Production module visibility and the complete old bodies stay exact.
+#[cfg(test)]
+pub(in crate::workspace_graph) use super::defaults::{
+    inline as constructor_test_inline_defaults, typed as constructor_test_typed_defaults,
+};
+#[cfg(test)]
+pub(in crate::workspace_graph) use super::import_stub::typed as constructor_test_typed_import_stub;
+#[cfg(test)]
+pub(in crate::workspace_graph) fn constructor_test_default_expr_inline(
+    function: &crate::ast::Function,
+    declarations: &[(&str, &crate::ast::TypeDeclaration)],
+    allow_owned: bool,
+    allow_byte_forward: bool,
+) -> Result<crate::ast::Expr, crate::workspace_graph::constructor_failure::Failure> {
+    super::import_stub::default_expr_inline(
+        function,
+        declarations,
+        allow_owned,
+        allow_byte_forward,
+    )
+}

@@ -1,0 +1,10 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "complete_sources": 2,
+  "full_immediate_inverses_verified": true,
+  "actual_prior_compiler_error": "E0004 missing VecOp::UpdateField in selected Vec<Bytes> consumer classifier",
+  "execution_performed": false,
+  "old_refusal_cases_preserved": true,
+  "selected_admission_unchanged": true,
+  "source_inverses_sha256": "30ce3a0724bd32600925453bf8455ef29d9f36e78c9d9147ac682aee647c3869"
+}

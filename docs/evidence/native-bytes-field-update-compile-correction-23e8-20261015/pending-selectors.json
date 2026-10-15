@@ -1,0 +1,17 @@
+{
+  "status": "UNEXECUTED_SOURCE_AUTHORED",
+  "checks": [
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "codegen::native_byte_data::native_shared_bytes::tests::every_byte_and_bytes_vec_operation_is_classified",
+      "reason": "Exhaustive new record-only operation classification and unchanged selected Bytes exact refusal"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "codegen::native_byte_data::native_shared_bytes::tests::unsupported_consumers_name_the_exact_blocker_before_admission",
+      "reason": "Exhaustive new record-only operation classification and unchanged selected Bytes exact refusal"
+    }
+  ]
+}

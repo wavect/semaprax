@@ -1,0 +1,8 @@
+{
+  "source_subject": "d4cab900edac07fdcc4de0cdcb1bf3daafbef5ef",
+  "selector": "cleanup_plan::replay::expression_facts::receiving::regions_entry::tests::complete_region_entry_and_four_variant_source_projections_restore_full_originals",
+  "exit_code": 101,
+  "actual_log_sha256": "3974fc1724a8abb8dd273b09a23244efec0eec1b70195d51284df56341b96e27",
+  "copied_log": "actual-d4-owner23-failure.log",
+  "runtime_fix_claim": false
+}

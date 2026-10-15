@@ -511,10 +511,24 @@ pub(crate) fn setup_typed_input(source: &str, current: &str) -> String {
 
 // Corrected physical receiving fees precede the immutable initial setup views.
 fn before_setup_reference_controls(source: &str, current: &str) -> String {
+    let previous = before_region_status_view(source, current);
+    let current = previous.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/setup825-reference-controls-assembly-20261015/current-to-9cb.json"
+        )),
+        source,
+        current,
+    )
+}
+
+// Full physical successor; the prior receiving correction domain stays exact.
+fn before_region_status_view(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/region-status-import-view-d4-20261015/current-to-a0c.json"
         )),
         source,
         current,

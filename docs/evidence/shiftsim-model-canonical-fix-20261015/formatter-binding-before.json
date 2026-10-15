@@ -1,0 +1,42 @@
+{
+  "source_subject": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+  "build_receipt": "/Volumes/Semaprax/lane-prompts/final-35cc-175-qualification-20261015/owning-build-result.json",
+  "build_receipt_sha256": "90e37876f0737759b03104a0d6d8debff72166dfa2cca0a488a1bdef62ab6ac2",
+  "compiler_artifact": {
+    "reason": "compiler-artifact",
+    "package_id": "path+file:///Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang#semaprax@0.9.0",
+    "manifest_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/Cargo.toml",
+    "target": {
+      "kind": [
+        "bin"
+      ],
+      "crate_types": [
+        "bin"
+      ],
+      "name": "semaprax",
+      "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/src/main.rs",
+      "edition": "2021",
+      "doc": true,
+      "doctest": false,
+      "test": true
+    },
+    "profile": {
+      "opt_level": "0",
+      "debuginfo": 0,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "test": false
+    },
+    "features": [
+      "default"
+    ],
+    "filenames": [
+      "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/semaprax"
+    ],
+    "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/semaprax",
+    "fresh": false
+  },
+  "executable_sha256": "c83f20d827e6d8c558307123650ae637d2b84b59ca5aff9f898451ea2c407672",
+  "source_path": "/Volumes/Semaprax/worktrees/opt-shiftsim-model-canonical-fix-20261015/AI-Lang/examples/shiftsim-typed-record-successor/src/model.spx",
+  "original_sha256": "9c85ed17639905c1b141f9b70e45c5826e56d0669933be0e1f75eba114dad547"
+}

@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/semaprax",
+    "fmt",
+    "/Volumes/Semaprax/worktrees/opt-shiftsim-model-canonical-fix-20261015/AI-Lang/examples/shiftsim-typed-record-successor/src/model.spx",
+    "--check"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "",
+  "no_tests_or_builds": true
+}

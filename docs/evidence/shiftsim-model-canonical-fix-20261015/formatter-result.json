@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/semaprax",
+    "fmt",
+    "/Volumes/Semaprax/worktrees/opt-shiftsim-model-canonical-fix-20261015/AI-Lang/examples/shiftsim-typed-record-successor/src/model.spx"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 0.3682720420038095,
+  "executable_sha256_before": "c83f20d827e6d8c558307123650ae637d2b84b59ca5aff9f898451ea2c407672",
+  "executable_sha256_after": "c83f20d827e6d8c558307123650ae637d2b84b59ca5aff9f898451ea2c407672",
+  "test_or_Cargo_execution": false
+}

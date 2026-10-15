@@ -2,6 +2,8 @@
 use sha2::{Digest, Sha256};
 
 pub(super) fn project(source: &str, current: &str) -> String {
+    let held = crate::cleanup_plan::replay::physical_budget::authentication::previous(source, current);
+    let current = held.as_str();
     let merged = crate::source_reflows_merge::ours(source, current);
     let current = merged.as_str();
     let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(

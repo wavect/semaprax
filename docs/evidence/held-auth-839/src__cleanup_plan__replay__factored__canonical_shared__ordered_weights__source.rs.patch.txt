@@ -1,0 +1,15 @@
+--- a/src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/source.rs
++++ b/src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/source.rs
+@@ -115,7 +115,11 @@
+             .replacen("    fn successors(", "    pub(super) fn successors(", 1),
+     );
+     expected.push_str("\n\nimpl Canonicalizer<'_> {\n    pub(super) fn signatures(&self) -> &BTreeMap<(u64, Vec<(Label, usize)>), usize> { &self.ids }\n    pub(super) fn states(&self) -> &BTreeMap<SharedWeighted, usize> { &self.states }\n}\n");
+-    assert_eq!(expected, include_str!("../before_ordered.rs"));
++    let immediate = crate::cleanup_plan::replay::physical_budget::authentication::previous(
++        "src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs",
++        include_str!("../before_ordered.rs"),
++    );
++    assert_eq!(expected, immediate);
+     let alias = include_str!("../epsilon_alias.rs")
+         .replace("use super::{BTreeMap, Diagnostic, Rc, ReplayBudget, ResolvedFunction};",
+             "use super::ordered_weights::OrderedWeights;\nuse super::{Diagnostic, Rc, ReplayBudget, ResolvedFunction};")

@@ -8,6 +8,10 @@ use super::{
 };
 
 #[cfg(test)]
+mod before_held;
+#[cfg(test)]
+mod held_auth_tests;
+#[cfg(test)]
 mod before_alias;
 #[cfg(test)]
 mod before_index;
@@ -129,7 +133,8 @@ impl<'a> Canonicalizer<'a> {
         }
         // The cached route still executes its original one cursor work debit.
         // It constructs neither a cursor Vec nor a closure_inner Result
-        // receiver. The ordinary memo authentication Result remains paid.
+        // receiver. Cold memo authentication still pays its real Result; warm
+        // authentication writes directly into its already paid refusal slot.
         if self.closures.contains_key(&root) {
             budget.charge(function, 1, "factored closure cursor")?;
             return Ok(self.closures.get(&root).cloned());

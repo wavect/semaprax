@@ -1,0 +1,11 @@
+--- a/tests/documentation.rs
++++ b/tests/documentation.rs
+@@ -4,6 +4,8 @@
+ 
+ #[path = "documentation/archived_sources.rs"]
+ mod archived_sources;
++#[path = "documentation/held_auth_sources.rs"]
++mod held_auth_sources;
+ 
+ #[path = "documentation/benchmark_fixtures.rs"]
+ mod benchmark_fixtures;

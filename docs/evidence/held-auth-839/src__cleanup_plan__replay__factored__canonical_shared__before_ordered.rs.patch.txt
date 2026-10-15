@@ -1,0 +1,12 @@
+--- a/src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs
++++ b/src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs
+@@ -7,7 +7,8 @@
+     ResolvedFunction, Weighted,
+ };
+ 
+-use super::{app_census, epsilon_alias, memo, successor_targets, tests};
++use super::{app_census, epsilon_alias, successor_targets, tests};
++use super::before_held::memo;
+ 
+ type SharedWeighted = Rc<Weighted>;
+ 

@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 
 #[path = "documentation/archived_sources.rs"]
 mod archived_sources;
+#[path = "documentation/held_auth_sources.rs"]
+mod held_auth_sources;
 
 #[path = "documentation/benchmark_fixtures.rs"]
 mod benchmark_fixtures;

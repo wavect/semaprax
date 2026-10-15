@@ -52,6 +52,22 @@ impl PhysicalReservation {
         Ok(())
     }
 
+    /// Exact reserve(0) frontier without constructing its Result receiver.
+    /// Adding/subtracting zero cannot overflow valid usize fields. The held
+    /// refusal remains first; enclosing floor authentication still runs.
+    pub(in crate::cleanup_plan::replay) fn authenticate_zero(&mut self) -> bool {
+        if self.refusal.is_some() {
+            return false;
+        }
+        if crate::bounded_output::active_refused()
+            || !crate::bounded_output::reserve_active_required(0)
+        {
+            self.refusal = Some(PhysicalRefusal::EnclosingBudget);
+            return false;
+        }
+        true
+    }
+
     /// `T` describes the actual allocated element, including its padding. Nested
     /// String/Vec/map/identity backing is separate and must be charged by callers.
     pub(crate) fn reserve_array<T>(&mut self, count: usize) -> Result<(), PhysicalRefusal> {
@@ -219,3 +235,6 @@ mod growth_tests;
 
 #[cfg(test)]
 mod representative_measurements;
+
+#[cfg(test)]
+mod zero_tests;

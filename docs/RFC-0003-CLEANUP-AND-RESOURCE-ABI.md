@@ -396,6 +396,16 @@ first overflow and original work-refusal frontiers. The independent full BTree
 receiver and prior controls remain executable test sources. Reservation,
 allocation, application recovery and behavior qualification remain pending.
 
+The source-only [OPT839 held authentication successor](evidence/held-auth-839/README.md)
+uses the already paid diagnostic slot only after successful retained Memo
+activation. Its warm gateway returns unit and preserves exact function, budget
+and held-ledger identity before any payer query. Zero authentication keeps the
+ordinary payer matrix, sticky first failure, reserved floor and test-oracle
+attempts. Cold activation and every still-constructed Result retain their
+original fees. Complete immediate-old receivers, all six diagnostic fields and
+terminal empty-sentinel publication remain controls. Focused execution and
+application attribution are pending; no measured gain or cap-fit claim follows.
+
 ## Conformance trace
 
 Backend equivalence tests use the versioned [conformance trace v1](CONFORMANCE-TRACE-V1.md): a target-neutral event trace containing stable import/lifecycle IDs, semantic storage/place IDs, expression IDs for transitions, event kind (`initialize`, `transfer`, `call_commit`, `import_begin`, `import_end`, `select_failure`, `finalize_begin`, `finalize_end`, or `result_commit`), and normalized status. `select_failure` exposes the exact write-once source selected by every nested frame as well as the root. Callable imports may complete with a normalized failure; automatic-finalizer import completion is success-only in the type system. A trivial strategy emits both finalization events with success even though it performs no host call. Physical pointers, Wasm handles, status tokens, stack offsets, and host exception objects are excluded. Two backends conform only when they produce the same ordered semantic events and normalized final status for the same verified program and injected import outcomes.

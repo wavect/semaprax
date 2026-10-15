@@ -1,0 +1,19 @@
+--- a/docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md
++++ b/docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md
+@@ -395,6 +395,16 @@
+ first overflow and original work-refusal frontiers. The independent full BTree
+ receiver and prior controls remain executable test sources. Reservation,
+ allocation, application recovery and behavior qualification remain pending.
++
++The source-only [OPT839 held authentication successor](evidence/held-auth-839/README.md)
++uses the already paid diagnostic slot only after successful retained Memo
++activation. Its warm gateway returns unit and preserves exact function, budget
++and held-ledger identity before any payer query. Zero authentication keeps the
++ordinary payer matrix, sticky first failure, reserved floor and test-oracle
++attempts. Cold activation and every still-constructed Result retain their
++original fees. Complete immediate-old receivers, all six diagnostic fields and
++terminal empty-sentinel publication remain controls. Focused execution and
++application attribution are pending; no measured gain or cap-fit claim follows.
+ 
+ ## Conformance trace
+ 

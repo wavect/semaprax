@@ -1,0 +1,32 @@
+--- a/src/cleanup_plan/replay/physical_storage.rs
++++ b/src/cleanup_plan/replay/physical_storage.rs
+@@ -50,6 +50,22 @@
+         self.charged = charged;
+         self.remaining = remaining;
+         Ok(())
++    }
++
++    /// Exact reserve(0) frontier without constructing its Result receiver.
++    /// Adding/subtracting zero cannot overflow valid usize fields. The held
++    /// refusal remains first; enclosing floor authentication still runs.
++    pub(in crate::cleanup_plan::replay) fn authenticate_zero(&mut self) -> bool {
++        if self.refusal.is_some() {
++            return false;
++        }
++        if crate::bounded_output::active_refused()
++            || !crate::bounded_output::reserve_active_required(0)
++        {
++            self.refusal = Some(PhysicalRefusal::EnclosingBudget);
++            return false;
++        }
++        true
+     }
+ 
+     /// `T` describes the actual allocated element, including its padding. Nested
+@@ -219,3 +235,6 @@
+ 
+ #[cfg(test)]
+ mod representative_measurements;
++
++#[cfg(test)]
++mod zero_tests;

@@ -1,0 +1,16 @@
+{
+  "source_only": true,
+  "base": "7f22bde63733bcc1e5200e54190c7eff99633545",
+  "complete_inverses": 8,
+  "whole_main_receiver_exact": true,
+  "whole_main_callbacks_exact": true,
+  "old_main_generic_tests_exact": true,
+  "project_body_exact": true,
+  "new_rust_owners": 3,
+  "old_json_mutations": 0,
+  "all_sources_under1500": true,
+  "runtime_tables_protected": [
+    "source-inverses.json",
+    "current-to-main019d.json"
+  ]
+}

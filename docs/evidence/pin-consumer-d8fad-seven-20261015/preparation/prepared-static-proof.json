@@ -1,0 +1,68 @@
+{
+  "state": "SOURCE_ONLY_PREPARATION_NO_EXECUTION_BY_PREPARER",
+  "source_subject": "d8fadfb7cd5ece54504cda542575e5a154d3657c",
+  "manifest_sha256": "c04f836ff871804273e0eee5a38a5128c5a4b9f8c765718a006e5808ada67497",
+  "bodies": 7,
+  "harness_roles": [
+    "semaprax::lib",
+    "semaprax::workspace",
+    "semaprax::offline_package"
+  ],
+  "commands": [
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "build",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--test",
+      "offline_package",
+      "--test",
+      "workspace",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ]
+  ],
+  "all_six_drivers_byte_exact": true,
+  "prior_actual_rows_retained": 145,
+  "prior_actual_failures_retained": 25,
+  "source_scope": "Six live Rust files equal reviewed1cc; all other non-doc production files unchanged from7a87. cfg(test) cached observer is the sole change inside production-owned source.",
+  "no_fresh_clippy": "Parent-approved production-equivalence reuse; actual7a87 core/fullCLI PASS receipts remain historical/bound."
+}

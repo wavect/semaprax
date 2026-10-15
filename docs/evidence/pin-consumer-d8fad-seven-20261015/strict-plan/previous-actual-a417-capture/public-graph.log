@@ -1,0 +1,17 @@
+
+running 1 test
+test semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact ... 
+thread 'semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact' (4305716) panicked at tests/workspace/semantic_graph.rs:621:5:
+assertion `left == right` failed
+  left: 1428092
+ right: 1421848
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 278 filtered out; finished in 0.68s
+

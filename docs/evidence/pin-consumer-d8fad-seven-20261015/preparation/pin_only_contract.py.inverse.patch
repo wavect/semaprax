@@ -1,0 +1,47 @@
+--- successor/pin_only_contract.py
++++ original/pin_only_contract.py
+@@ -3,8 +3,6 @@
+ import hashlib, json, re, subprocess
+ 
+ SELECTORS = [
+- ('semaprax','lib','workspace_graph::identity_resolution::base::cache_billing::tests::cached_prelude_replay_keeps_foreign_core_refusal_sticky'),
+- ('semaprax','test:offline_package','resolver_cli::help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot'),
+  ('semaprax','lib','workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding'),
+  ('semaprax','test:workspace','semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact'),
+  ('semaprax','test:workspace','semantic_graph::public_workspace_analysis_api_cli_kats_and_locking_are_exact'),
+@@ -104,26 +102,19 @@
+   assert artifacts[str(Path(row['executable']).resolve())]==row['executable_sha256']==row['executable_sha256_before']==row['executable_sha256_after']
+   if key in wanted:matching.append(row)
+  assert seen==set(expected)
+- return {'source_subject':head,'source_tree':tree,'round':str(rd),'build_receipt_sha256':build_sha,'production_clippy_receipt_sha256':clippy_sha,'actual_successful_production_phase':production[0],'inputs_sha256':inputs,'matching_prior_actual_rows':matching,'prior_selected_rows':len(matching),'prior_executed_bodies':sum(int(r['summary'][1])+int(r['summary'][2]) for r in matching if r.get('summary')),'prior_failed_bodies':sum(int(r['summary'][2]) for r in matching if r.get('summary')),'all_prior_actual_rows':actual['results'],'all_prior_actual_failed_rows':[r for r in actual['results'] if r.get('summary') and int(r['summary'][2])>0],'all_prior_actual_failure_count':sum(int(r['summary'][2]) for r in actual['results'] if r.get('summary'))}
++ return {'source_subject':head,'source_tree':tree,'round':str(rd),'build_receipt_sha256':build_sha,'production_clippy_receipt_sha256':clippy_sha,'actual_successful_production_phase':production[0],'inputs_sha256':inputs,'matching_prior_actual_rows':matching,'prior_selected_rows':len(matching),'prior_executed_bodies':sum(int(r['summary'][1])+int(r['summary'][2]) for r in matching if r.get('summary')),'prior_failed_bodies':sum(int(r['summary'][2]) for r in matching if r.get('summary'))}
+ 
+ def scope(repo, prior, current, hooks=False):
+- assert prior=='7a87b33115c0cd45b14cac64d7b37e5742503159' and hooks
+- checkpoint='1cc913a885fa3b9962b649c4cc4ea1465bc44090'
+  assert git(repo,'merge-base','--is-ancestor',prior,current)==''
+- expected={line.split('\t')[1] for line in git(repo,'diff','--name-status',prior,checkpoint,'--','*.rs').splitlines() if not line.split('\t')[1].startswith('docs/')}
+- assert len(expected)==6
+- result=[];seen=set()
+- for line in git(repo,'diff','--name-status','--no-renames',prior,current).splitlines():
+-  status,path=line.split('\t');assert status in {'A','M'}
+-  mode=git(repo,'ls-tree',current,'--',path).split()[0];assert mode in {'100644','100755'}
++ allowed=PIN_RUST | (HOOK_RUST if hooks else set())
++ changes=git(repo,'diff','--name-status','--no-renames',prior,current).splitlines();result=[]
++ for line in changes:
++  status,path=line.split('\t');assert status in {'A','M','D'}
++  assert not path.endswith('.spx') and Path(path).name not in {'Cargo.toml','Cargo.lock'} and '.cargo' not in Path(path).parts, ('language/Cargo configuration outside pin scope',path)
+   if path.startswith('docs/'):
+-   assert status=='A', ('old evidence cannot change',path)
+-   result.append(dict(status=status,path=path,role='additive_metadata_no_authority'));continue
+-  assert path in expected and status=='M', ('outside reviewed seven-consumer Rust scope',path)
+-  assert subprocess.check_output(['git','show',current+':'+path],cwd=repo)==subprocess.check_output(['git','show',checkpoint+':'+path],cwd=repo), ('Rust differs from reviewed consumer checkpoint',path)
+-  seen.add(path);result.append(dict(status=status,path=path,role='exact_reviewed_test_consumer_checkpoint'))
+- assert seen==expected
+- assert '#[cfg(test)]\nmod source_reflows_merge;' in (repo/'src/lib.rs').read_text()
++   result.append({'status':status,'path':path,'role':'documentation_or_proof_metadata'});continue
++  assert path in allowed and status=='M', ('outside pin-only source scope',path,status)
++  result.append({'status':status,'path':path,'role':'cfg_test_pin_owner_or_explicit_source_custody_hook'})
+  return result
+ 
+ def evidence(directory, repo, prior, current, producer_sha, prior_proof, previous_capture, current_capture):

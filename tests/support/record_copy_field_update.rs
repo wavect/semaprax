@@ -229,7 +229,7 @@ pub(crate) fn assert_sources() {
             .find(|r| r["source"] == path)
             .unwrap();
         assert_eq!(
-            format!("{:x}", Sha256::digest(bytes.as_bytes())),
+            format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(bytes.as_bytes()))),
             row["sha256"].as_str().unwrap()
         );
     }
@@ -279,7 +279,7 @@ fn assert_coverage_sources() {
             .find(|r| r["source"] == path)
             .unwrap();
         assert_eq!(
-            format!("{:x}", Sha256::digest(bytes.as_bytes())),
+            format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(bytes.as_bytes()))),
             row["sha256"].as_str().unwrap()
         );
     }

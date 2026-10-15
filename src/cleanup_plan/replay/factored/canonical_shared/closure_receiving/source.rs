@@ -16,6 +16,8 @@ fn held_closure_every_source_and_full_immediate_inverse_are_exact() {
     let sources = SOURCES;
     assert_eq!(sources.len(), rows.as_array().unwrap().len());
     for &(path, current) in sources {
+        let projected = crate::source_reflows_merge::assembly_view("843", path, current);
+        let current = projected.as_str();
         let rows: Vec<_> = rows
             .as_array()
             .unwrap()

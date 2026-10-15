@@ -1,0 +1,30 @@
+{
+  "label": "842",
+  "source_view": "8025cd196fd15629cdfb6646fe281fb74f606a04",
+  "original_verifier": "docs/evidence/inline-weighted-successor-842/verify_source.py",
+  "original_verifier_sha256": "bf4513d3715e53be1112a2ec0d94701bc7ad48650395e034d6012aa0dbf0c082",
+  "derived_adapter_sha256": "2ccf9cec709d286b777f378a3ae7253a122cbab360d1a3204af5b4819a572ccb",
+  "assertion_code_byte_exact": true,
+  "reads_sha256": {
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": "726b2584827bf5e5ee3f2a25a5db6dc14e6c5cd4ced936adad326756c97f402f",
+    "docs/ARCHITECTURE.md": "54b90e3354bbcd9bd45abccb26ec1559268142285a37819e171933ea26a4a36e",
+    "src/cleanup_plan/replay/factored/canonical_shared.rs": "5d85624e66bfcdc3e964beb8c473dfc436b4a19540138f558b6ddd25179eac4f",
+    "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs": "55cd8ad7cd22c5dd66e7d797a9b1461be57ea4fde1214e66fc667f0f5d5b727b",
+    "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/receiver_tests.rs": "fcfe6d05ab69a4aeefcd4281e5a941108cfbca73f6f85883120181c18eb1f074",
+    "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs": "d5054407b2b56f0d06d1809036eda0005b936e004ef72fc1fa5104bb8dcdda45",
+    "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs": "c4c006a456f6d1a9a370e52d720aa4d679e499b6e25a8253b614bb44875b78e7",
+    "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs": "8f6d967b8a223247b9578e8c7411788c2aa703d7a77ec5368ded5f0b3bc35748",
+    "src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs": "08a7690413f287030f0574828ba25e97581960b654c50fc22c1013112b62b024",
+    "src/cleanup_plan/replay/factored/canonical_shared/tests.rs": "1db768b7b77e8857bd76f1f2f0c8ba53e6225a11b09b8d1a796a67b980dee63f",
+    "src/source_reflows_merge.rs": "f4ee41a3c6424508ce7cb6f76935b838d6b456c69bc2cc38766f518c132026a5",
+    "tests/hir_module_boundaries.rs": "e8f3825fbc8eca0c33db32aea59005d9566b389e76aacfa06b5f9db0c6e99182",
+    "tests/workspace/semantic_graph/source_inventory.rs": "0bd0714b8e205e9df78536d74cef9d812566644ac1a2c517f9db9394e26f3173"
+  },
+  "writes_redirected_to_new_output": {
+    "docs/evidence/inline-weighted-successor-842/source-inverses.json": "73b32eaf57a0af165fb8377fb1bbdf3a499fe969b159e1e03eee795391c99f95"
+  },
+  "source_only": true,
+  "status": "FAIL",
+  "failure": "AssertionError('undeclared old file write:/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/final-842-843-source-assembly-20261015/replays/842/docs__evidence__inline-weighted-successor-842__source-inverses.json')",
+  "git_cache_peak_bytes": 10049501
+}

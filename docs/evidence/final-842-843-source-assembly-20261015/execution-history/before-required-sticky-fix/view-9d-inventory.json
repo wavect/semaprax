@@ -1,0 +1,57 @@
+{
+  "revision": "9d4358078f9e2ae7740683c06bbf939284038058",
+  "equal": [
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/before_held.rs",
+      "sha256": "c6839e4f0a2f7036691ea1f074278b21010aa02f91243ddba1bf41aa8aef5ba9"
+    }
+  ],
+  "absent": [
+    {
+      "source": "src/cleanup_plan/replay/factored/before_closure_invocation.rs",
+      "current_sha256": "a7ae1113a5ef03e8aedb9e842c6ae2ae09d7e0667190cb6ace342326b55558ce",
+      "target_absent": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/before_closure_receiver.rs",
+      "current_sha256": "17941a56ba96666a07977db9c9d3f31d6d3fbb27e4b6b4888b2f54e58186b2ff",
+      "target_absent": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs",
+      "current_sha256": "ee5a2e14326357df2e5359c8da6a99e93274ac3b89b668c8aea719fc511d726b",
+      "target_absent": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs",
+      "current_sha256": "77c3a4d7a6897bc33acf94c36c14812596f9ec0e47bce60de8146c758e64d92f",
+      "target_absent": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/source.rs",
+      "current_sha256": "931d25d8fe60d41658adc4604e66b3c1cc76cbd4016fd98b72fc43351bc0d091",
+      "target_absent": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "current_sha256": "70ba83f609313187e5db9cc38c105b5c85c806192ff909777dcad35f29ff15a3",
+      "target_absent": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs",
+      "current_sha256": "ba2cbe772ecabcd29f519778201f842609f045294ef514ead976b737ec157b50",
+      "target_absent": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/source.rs",
+      "current_sha256": "23c1eb36f9d5e49c82e449ec6cca10f3fd518ae4a146057609efa1422d7f120f",
+      "target_absent": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs",
+      "current_sha256": "32fc3e8d9cc41c9f64d8fa2f07ebc1e819448dc355b13500b773430588195ed8",
+      "target_absent": true
+    }
+  ],
+  "changed": 14
+}

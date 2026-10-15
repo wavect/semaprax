@@ -1,0 +1,40 @@
+{
+  "common_predecessor": "7800b014151b6ce0709c351ccdfd52ae25832e07",
+  "merged_input": "5786c6b5fb4c6464a9178d23ada8e3ee12bbe7c0",
+  "branches": {
+    "9d": "9d4358078f9e2ae7740683c06bbf939284038058",
+    "842": "8025cd196fd15629cdfb6646fe281fb74f606a04",
+    "843": "538673710c463b911c2e5a38d8f7fc9275f99c62"
+  },
+  "source_paths": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "docs/ARCHITECTURE.md",
+    "src/cleanup_plan/replay/factored.rs",
+    "src/cleanup_plan/replay/factored/before_closure_invocation.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_closure_receiver.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_held.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/source.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/source.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/receiver_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+    "src/source_reflows_merge.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "original_production_unchanged_except_source_custody_helpers": [
+    "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/source.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/source.rs",
+    "src/source_reflows_merge.rs"
+  ]
+}

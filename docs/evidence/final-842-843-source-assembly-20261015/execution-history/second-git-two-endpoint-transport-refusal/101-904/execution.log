@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/final-842-843-source-assembly-20261015/replay.py", line 44, in <module>
+    exec(compile(original,str(R/script),'exec'),{'__file__':str(R/script),'__name__':'__main__'})
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/source-composition-f813-held-20261015/verify_inherited.py", line 45, in <module>
+    try:runpy.run_path(str(P/'verify_joined.py'),run_name='__main__')
+        ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/incremental-source-composition-5f1fecd-20261015/verify_joined.py", line 253, in <module>
+    result = verify_patch(history["label"], history["authored_revision"], history["original_base"], history["complete_patch"], originals, complete_commit=True)
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/incremental-source-composition-5f1fecd-20261015/verify_joined.py", line 208, in verify_patch
+    assert patch == subprocess.check_output(["git", "diff", "--binary", base, revision], cwd=ROOT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

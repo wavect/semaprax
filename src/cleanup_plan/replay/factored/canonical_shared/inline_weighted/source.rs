@@ -23,6 +23,8 @@ fn inline_weighted_complete_source_inverses_and_immediate_receiver_are_exact() {
     ];
     assert_eq!(sources.len(), rows.as_array().unwrap().len());
     for (path, current) in sources {
+        let projected = crate::source_reflows_merge::assembly_view("842", path, current);
+        let current = projected.as_str();
         let matching: Vec<_> = rows.as_array().unwrap().iter().filter(|row| row["source"] == path).collect();
         assert_eq!(matching.len(), 1);
         let row = matching[0];

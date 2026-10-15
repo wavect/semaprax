@@ -1,0 +1,18 @@
+MAIN85 complete source inverses and both explicit CI→presence512 full hashes equal; additional cache zero.
+Source-only whole inverse proofs: 36 all equal; unchanged constructor paid/key/substitute/storage archives all equal. No Rust execution.
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "runtime_views": 4,
+  "drift_sources": [
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs",
+    "docs/ARCHITECTURE.md"
+  ],
+  "amortized_bindings_forward_inverse": 7,
+  "original_bindings_forward_inverse": 7,
+  "old_patch_archive_files_preserved": 28,
+  "complete_previous_helper_preserved": true,
+  "source_rs_untouched": true,
+  "actual839_guard_input_drift": false
+}

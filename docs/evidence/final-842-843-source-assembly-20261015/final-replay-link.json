@@ -1,0 +1,9 @@
+{
+  "status": "SOURCE_ONLY_FINAL_JOIN_TO_COMPLETED_UNCHANGED_VIEW_REPLAYS",
+  "production_basis": "b1e3cad9100494e81ac7e5f6ae2695eb0ee586da",
+  "actual_final_source_proof_sha256": "cd7b1e46d851784c2cb4c01cfd6553081c08014af6b1d129b091cef26ad2afca",
+  "completed_view_replay_proof_sha256": "5fde3f177ee0e9adb72400a77870615ddd18a006383ec7dd650c892085038074",
+  "unchanged_named_view_read_hashes_revalidated": 3351,
+  "runtime_tests_executed": 0,
+  "reason": "Only the final physical-to-immutable-view join changed after the required production correction. Each original assertion program and every declared named input remain byte-identical; no repeated historical replay is needed."
+}

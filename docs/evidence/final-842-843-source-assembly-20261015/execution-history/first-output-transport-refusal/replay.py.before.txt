@@ -1,0 +1,53 @@
+"""Replay unchanged old assertion code in explicit immutable named source views.
+Every file read is Git-bound; actual final inputs are joined independently by verify.py.
+Writes are confined to NEW replay outputs; original tools/data never change.
+"""
+from pathlib import Path
+import sys,subprocess,json,hashlib,io,contextlib,runpy
+R=Path.cwd();D=Path(__file__).resolve().parent
+sys.path.insert(0,str(R/'docs/evidence/incremental-source-composition-5f1fecd-20261015'));from source_tools import Git
+G=Git(R);sha=lambda b:hashlib.sha256(b).hexdigest();META=json.loads((D/'branches.json').read_text());orig_rb=Path.read_bytes;orig_rt=Path.read_text;orig_op=Path.open;orig_wt=Path.write_text;orig_co=subprocess.check_output
+jobs=[('9d',META['branches']['9d'],'docs/evidence/compiler-receiving-fix-7800-20261015/verify.py'),('842',META['branches']['842'],'docs/evidence/inline-weighted-successor-842/verify_source.py'),('source36-838',META['common_predecessor'],'docs/evidence/source-composition-f813-held-20261015/verify_source36.py'),('838',META['common_predecessor'],'docs/evidence/source-composition-f813-held-20261015/verify_838.py'),('101-904',META['common_predecessor'],'docs/evidence/source-composition-f813-held-20261015/verify_inherited.py')]
+results=[]
+try:
+ for label,stage,script in jobs:
+  target=D/'replays'/label;target.mkdir(parents=True,exist_ok=True);reads={};writes={};original=G.get(stage,script);assert original is not None
+  (target/'original-verifier.py.txt').write_bytes(original)
+  def rb(p):
+   try:key=str(p.resolve().relative_to(R))
+   except ValueError:return orig_rb(p)
+   if key.startswith(str(D.relative_to(R))+'/'):return orig_rb(p)
+   b=G.get(stage,key)
+   if b is None:raise FileNotFoundError('not in named source view:'+stage+':'+key)
+   reads[key]=sha(b);return b
+  def rt(p,*a,**kw):return rb(p).decode(kw.get('encoding') or 'utf-8')
+  def op(p,mode='r',*a,**kw):
+   if mode in ('r','rb'):
+    b=rb(p);return io.BytesIO(b) if mode=='rb' else io.StringIO(b.decode())
+   raise AssertionError('undeclared old file write:'+str(p))
+  def wt(p,data,*a,**kw):
+   key=str(p.resolve().relative_to(R));dest=target/(key.replace('/','__'));writes[key]=sha(data.encode());return orig_wt(dest,data,*a,**kw)
+  def co(command,*a,**kw):
+   if isinstance(command,list) and command[:2]==['git','diff']:
+    # Old programs ask for a working-tree diff. Provide that exact named branch
+    # as the explicit right endpoint; no old comparison/assertion is removed.
+    c=list(command);i=c.index('--') if '--' in c else len(c);c.insert(i,stage);return orig_co(c,*a,**kw)
+   if command==['git','rev-parse','HEAD']:return stage+'\n' if kw.get('text') else (stage+'\n').encode()
+   return orig_co(command,*a,**kw)
+  output=io.StringIO();failure=None
+  Path.read_bytes=rb;Path.read_text=rt;Path.open=op;Path.write_text=wt;subprocess.check_output=co
+  argv=sys.argv
+  try:
+   sys.argv=[str(R/script)]
+   with contextlib.redirect_stdout(output),contextlib.redirect_stderr(output):
+    exec(compile(original,str(R/script),'exec'),{'__file__':str(R/script),'__name__':'__main__'})
+  except Exception as e:
+   failure=repr(e)
+   import traceback;traceback.print_exc(file=output)
+  finally:
+   Path.read_bytes=orig_rb;Path.read_text=orig_rt;Path.open=orig_op;Path.write_text=orig_wt;subprocess.check_output=orig_co;sys.argv=argv
+  (target/'execution.log').write_text(output.getvalue());receipt={'label':label,'source_view':stage,'original_verifier':script,'original_verifier_sha256':sha(original),'derived_adapter_sha256':sha(orig_rb(Path(__file__))),'assertion_code_byte_exact':True,'reads_sha256':reads,'writes_redirected_to_new_output':writes,'source_only':True,'status':'FAIL' if failure else 'PASS','failure':failure,'git_cache_peak_bytes':G.peak};(target/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n');results.append(receipt)
+  print(label,receipt['status'],failure or '',flush=True)
+  if failure:raise AssertionError(label+':'+failure)
+ (D/'replay-proof.json').write_text(json.dumps({'status':'SOURCE_ONLY_NO_RUST_EXECUTION','assertions_original_bytes':True,'results':[{k:v for k,v in r.items() if k!='reads_sha256'} for r in results],'git_cache_peak_bytes':G.peak},indent=2)+'\n')
+finally:G.close()

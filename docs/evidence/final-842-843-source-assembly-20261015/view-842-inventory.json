@@ -1,0 +1,73 @@
+{
+  "revision": "8025cd196fd15629cdfb6646fe281fb74f606a04",
+  "equal": [
+    {
+      "source": "docs/ARCHITECTURE.md",
+      "sha256": "54b90e3354bbcd9bd45abccb26ec1559268142285a37819e171933ea26a4a36e"
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs",
+      "sha256": "ee5a2e14326357df2e5359c8da6a99e93274ac3b89b668c8aea719fc511d726b"
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs",
+      "sha256": "55cd8ad7cd22c5dd66e7d797a9b1461be57ea4fde1214e66fc667f0f5d5b727b"
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs",
+      "sha256": "ba2cbe772ecabcd29f519778201f842609f045294ef514ead976b737ec157b50"
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs",
+      "sha256": "32fc3e8d9cc41c9f64d8fa2f07ebc1e819448dc355b13500b773430588195ed8"
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/receiver_tests.rs",
+      "sha256": "fcfe6d05ab69a4aeefcd4281e5a941108cfbca73f6f85883120181c18eb1f074"
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "sha256": "d5054407b2b56f0d06d1809036eda0005b936e004ef72fc1fa5104bb8dcdda45"
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+      "sha256": "8f6d967b8a223247b9578e8c7411788c2aa703d7a77ec5368ded5f0b3bc35748"
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs",
+      "sha256": "08a7690413f287030f0574828ba25e97581960b654c50fc22c1013112b62b024"
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+      "sha256": "1db768b7b77e8857bd76f1f2f0c8ba53e6225a11b09b8d1a796a67b980dee63f"
+    }
+  ],
+  "absent": [
+    {
+      "source": "src/cleanup_plan/replay/factored/before_closure_invocation.rs",
+      "current_sha256": "a7ae1113a5ef03e8aedb9e842c6ae2ae09d7e0667190cb6ace342326b55558ce",
+      "target_absent": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/before_closure_receiver.rs",
+      "current_sha256": "17941a56ba96666a07977db9c9d3f31d6d3fbb27e4b6b4888b2f54e58186b2ff",
+      "target_absent": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs",
+      "current_sha256": "77c3a4d7a6897bc33acf94c36c14812596f9ec0e47bce60de8146c758e64d92f",
+      "target_absent": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/source.rs",
+      "current_sha256": "931d25d8fe60d41658adc4604e66b3c1cc76cbd4016fd98b72fc43351bc0d091",
+      "target_absent": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "current_sha256": "78c6bfedd01a582a93788c427223e79e134c894e3d3767b99683e6137c9a6b19",
+      "target_absent": true
+    }
+  ],
+  "changed": 9
+}

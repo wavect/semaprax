@@ -1,0 +1,107 @@
+{
+  "source_subject": "677e658f6f3671fdcc5942c1f3522598d83ab7b2",
+  "files": [
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-677-101-qualification-20261015/compilation-manifest.json",
+      "archive": "round/compilation-manifest.json",
+      "sha256": "4111353db292a90f34d9de83ee33c812c1b580f5f271bf6424952f3d98da3e4f",
+      "bytes": 606149
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-677-101-qualification-20261015/drivers/build-owning.py",
+      "archive": "round/drivers/build-owning.py",
+      "sha256": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888",
+      "bytes": 9776
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-677-101-qualification-20261015/drivers/draft_contract.py",
+      "archive": "round/drivers/draft_contract.py",
+      "sha256": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1",
+      "bytes": 1752
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-677-101-qualification-20261015/drivers/observed_phase.py",
+      "archive": "round/drivers/observed_phase.py",
+      "sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867",
+      "bytes": 11471
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-677-101-qualification-20261015/drivers/run-extra-production-clippy.py",
+      "archive": "round/drivers/run-extra-production-clippy.py",
+      "sha256": "47ff9dd51db73eb2b1e6b666c06ad37429d34e2959253179ed14ecb81f2ac8fe",
+      "bytes": 6678
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-677-101-qualification-20261015/drivers/run-owning-selected.py",
+      "archive": "round/drivers/run-owning-selected.py",
+      "sha256": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450",
+      "bytes": 10438
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-677-101-qualification-20261015/drivers/run-production-lib-cli-clippy.py",
+      "archive": "round/drivers/run-production-lib-cli-clippy.py",
+      "sha256": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077",
+      "bytes": 6214
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-677-101-qualification-20261015/drivers/semaprax_pressure_observation_v3.py",
+      "archive": "round/drivers/semaprax_pressure_observation_v3.py",
+      "sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+      "bytes": 10269
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-677-101-qualification-20261015/expected-counts.json",
+      "archive": "round/expected-counts.json",
+      "sha256": "4111353db292a90f34d9de83ee33c812c1b580f5f271bf6424952f3d98da3e4f",
+      "bytes": 606149
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-677-101-qualification-20261015/memory-samples.jsonl",
+      "archive": "round/memory-samples.jsonl",
+      "sha256": "725cc0b0f98a20fee88329644f65d134561da3e06f2867370ce8b9c061879160",
+      "bytes": 100006
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-677-101-qualification-20261015/owning-build-progress.json",
+      "archive": "round/owning-build-progress.json",
+      "sha256": "0451ea16c0d5fd901a7a7f83a57c4848abc53bb74995a4f1ccfd5fa026e4bf92",
+      "bytes": 9769
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-677-101-qualification-20261015/owning-build-result.json",
+      "archive": "round/owning-build-result.json",
+      "sha256": "126d1032dd45c10ed8e165ce34841d30a7431674b9c0972f9d3b12aa3c77ff2d",
+      "bytes": 10083
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-677-101-qualification-20261015/owning-build.jsonl",
+      "archive": "round/owning-build.jsonl",
+      "sha256": "73987ab51d5ca72674bbf43c5b35924b0e9411b92d72793340cf3f8fe9b19e2f",
+      "bytes": 417993
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-677-101-qualification-20261015/owning-build.log",
+      "archive": "round/owning-build.log",
+      "sha256": "6d30915a134c79e6ffc7047acb01e0ef263efb6c18c2515ab161767453e0a193",
+      "bytes": 198
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-677-101-qualification-20261015/preparation-receipt.json",
+      "archive": "round/preparation-receipt.json",
+      "sha256": "00eef22658c6186ac032cd8dd6ded38ad7a9cae87da1540e5b67b7fed64a4394",
+      "bytes": 4334
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-677-101-qualification-20261015/pressure-guardian-source.py",
+      "archive": "round/pressure-guardian-source.py",
+      "sha256": "a4477f43ec63fccb169a9b951c793f62a1cd06352d3a690872cfe1673be58119",
+      "bytes": 6400
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-677-101-qualification-20261015/pressure-guardian.jsonl",
+      "archive": "round/pressure-guardian.jsonl",
+      "sha256": "06641d3273887bb54e0aefdfcace74baeef41febaa78df0ee7ebacc2f8a1c130",
+      "bytes": 16573
+    }
+  ]
+}

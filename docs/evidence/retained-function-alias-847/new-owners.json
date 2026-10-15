@@ -1,0 +1,34 @@
+[
+  {
+    "source": "src/ast/program_source/decl_slices/alias_tests.rs",
+    "sha256": "5533f1fdf357b7b0ccfef93fe663599b6ecf2b1604f848d35f2f08e2479d38f8"
+  },
+  {
+    "source": "src/ast/program_source/decl_slices/before_alias.rs",
+    "sha256": "2dbd704d16e38656ccd8b7aa035a1b2e2ddf6b5bfaf74ab7fe572cff858f7681"
+  },
+  {
+    "source": "src/ast/program_source/function_alias.rs",
+    "sha256": "5a17ee7902bbb474a8dc2a0153d767f861abd755f2fd58b145bbf10c6c4bdd9e"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs",
+    "sha256": "dab090eb57ad9b4fe31a3ca2244c8d741d11d226bd65ee946c67be8cec57fab4"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs",
+    "sha256": "3b8484243fe918fddb053d078eece28a55b33dfa737d10f87f6b8b71110a9b03"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/before_alias.rs",
+    "sha256": "e3765f7769af43df16f0ddec00d1df1af56414da65a35633dc3435d3c6145f8c"
+  },
+  {
+    "source": "src/workspace_graph/function_alias/before_core.rs",
+    "sha256": "338108ef1d07da8f393091e1c2b86f1ef0af0a01098efc0fe965f65a203173b1"
+  },
+  {
+    "source": "src/workspace_graph/function_alias/before_core/tests.rs",
+    "sha256": "35f88df531c06d70d05cdedb20f5cfa9572211f94d970ec16da8f7cce18f9c37"
+  }
+]

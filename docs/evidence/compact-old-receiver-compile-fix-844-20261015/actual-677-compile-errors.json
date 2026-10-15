@@ -1,0 +1,467 @@
+[
+  {
+    "code": {
+      "code": "E0425",
+      "explanation": "An unresolved name was used.\n\nErroneous code examples:\n\n```compile_fail,E0425\nsomething_that_doesnt_exist::foo;\n// error: unresolved name `something_that_doesnt_exist::foo`\n\n// or:\n\ntrait Foo {\n    fn bar() {\n        Self; // error: unresolved name `Self`\n    }\n}\n\n// or:\n\nlet x = unknown_variable;  // error: unresolved name `unknown_variable`\n```\n\nPlease verify that the name wasn't misspelled and ensure that the\nidentifier being referred to is valid for the given situation. Example:\n\n```\nenum something_that_does_exist {\n    Foo,\n}\n```\n\nOr:\n\n```\nmod something_that_does_exist {\n    pub static foo : i32 = 0i32;\n}\n\nsomething_that_does_exist::foo; // ok!\n```\n\nOr:\n\n```\nlet unknown_variable = 12u32;\nlet x = unknown_variable; // ok!\n```\n\nIf the item is not defined in the current module, it must be imported using a\n`use` statement, like so:\n\n```\n# mod foo { pub fn bar() {} }\n# fn main() {\nuse foo::bar;\nbar();\n# }\n```\n\nIf the item you are importing is not defined in some super-module of the\ncurrent module, then it must also be declared as public (e.g., `pub fn`).\n"
+    },
+    "message": "cannot find function `grow` in this scope",
+    "primary_spans": [
+      {
+        "byte_end": 1797,
+        "byte_start": 1793,
+        "column_end": 21,
+        "column_start": 17,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs",
+        "is_primary": true,
+        "label": "not found in this scope",
+        "line_end": 48,
+        "line_start": 48,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 21,
+            "highlight_start": 17,
+            "text": "                grow(function, budget, &mut stack, 1, \"factored closure cursors\")?;"
+          }
+        ]
+      }
+    ],
+    "rendered": "error[E0425]: cannot find function `grow` in this scope\n   --> src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs:48:17\n    |\n 48 |                 grow(function, budget, &mut stack, 1, \"factored closure cursors\")?;\n    |                 ^^^^ not found in this scope\n    |\nnote: these functions exist but are inaccessible\n   --> src/cleanup_plan/replay/factored/borrowed_canonical.rs:297:1\n    |\n297 | / fn grow<T>(\n298 | |     function: &ResolvedFunction,\n299 | |     budget: &mut ReplayBudget,\n300 | |     values: &mut Vec<T>,\n...   |\n315 | |     budget.reserve_vec(function, values, additional, phase)\n316 | | }\n    | |_^ `crate::cleanup_plan::replay::factored::borrowed_canonical::grow`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/oracle_order.rs:182:1\n    |\n182 | / fn grow<T>(\n183 | |     function: &ResolvedFunction,\n184 | |     budget: &mut ReplayBudget,\n185 | |     values: &mut Vec<T>,\n...   |\n199 | |     budget.reserve_vec(function, values, additional, phase)\n200 | | }\n    | |_^ `crate::cleanup_plan::replay::factored::oracle_order::grow`: not accessible\n    |\n   ::: src/cleanup_plan/replay/paid_type_facts/inventory_flags.rs:73:1\n    |\n 73 | / pub(super) fn grow<T>(\n 74 | |     items: &mut Vec<T>,\n 75 | |     additional: usize,\n 76 | |     payer: &mut Payer<'_>,\n...   |\n 90 | |     Ok(())\n 91 | | }\n    | |_^ `crate::cleanup_plan::replay::paid_type_facts::inventory_flags::grow`: not accessible\n    |\n   ::: src/hir/declaration_index/nominal_paid_values.rs:37:1\n    |\n 37 | / pub(super) fn grow<T, E>(\n 38 | |     values: &mut Vec<T>,\n 39 | |     additional: usize,\n 40 | |     reserve: &mut Reserve<'_, E>,\n...   |\n 52 | |     Ok(())\n 53 | | }\n    | |_^ `crate::hir::declaration_index::nominal_paid_values::grow`: not accessible\n    |\n   ::: src/hir/funded.rs:38:1\n    |\n 38 | / pub(crate) fn grow<T, E>(\n 39 | |     values: &mut Vec<T>,\n 40 | |     additional: usize,\n 41 | |     reserve: Reserve<'_, E>,\n...   |\n 68 | |     Ok(())\n 69 | | }\n    | |_^ `crate::string_ops::replacement::funded::tests::funded::grow`: not accessible\n    |\n   ::: src/workspace_graph/expected_projection/string_slots.rs:190:1\n    |\n190 |   fn grow<T>(values: &mut Vec<T>) -> Result<(), Vec<Diagnostic>> {\n    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `crate::workspace_graph::expected_projection::string_slots::grow`: not accessible\n    |\n   ::: src/workspace_graph/source_schema/static_text/primitive/helpers/graph.rs:55:1\n    |\n 55 | / fn grow<T>(\n 56 | |     values: &mut Vec<T>,\n 57 | |     phase: &'static str,\n 58 | |     resources: &mut SelectedReplayPreparation,\n...   |\n 68 | |     Ok(())\n 69 | | }\n    | |_^ `crate::workspace_graph::source_schema::static_text::primitive::helpers::graph::grow`: not accessible\n\n"
+  },
+  {
+    "code": {
+      "code": "E0425",
+      "explanation": "An unresolved name was used.\n\nErroneous code examples:\n\n```compile_fail,E0425\nsomething_that_doesnt_exist::foo;\n// error: unresolved name `something_that_doesnt_exist::foo`\n\n// or:\n\ntrait Foo {\n    fn bar() {\n        Self; // error: unresolved name `Self`\n    }\n}\n\n// or:\n\nlet x = unknown_variable;  // error: unresolved name `unknown_variable`\n```\n\nPlease verify that the name wasn't misspelled and ensure that the\nidentifier being referred to is valid for the given situation. Example:\n\n```\nenum something_that_does_exist {\n    Foo,\n}\n```\n\nOr:\n\n```\nmod something_that_does_exist {\n    pub static foo : i32 = 0i32;\n}\n\nsomething_that_does_exist::foo; // ok!\n```\n\nOr:\n\n```\nlet unknown_variable = 12u32;\nlet x = unknown_variable; // ok!\n```\n\nIf the item is not defined in the current module, it must be imported using a\n`use` statement, like so:\n\n```\n# mod foo { pub fn bar() {} }\n# fn main() {\nuse foo::bar;\nbar();\n# }\n```\n\nIf the item you are importing is not defined in some super-module of the\ncurrent module, then it must also be declared as public (e.g., `pub fn`).\n"
+    },
+    "message": "cannot find function `grow` in this scope",
+    "primary_spans": [
+      {
+        "byte_end": 2144,
+        "byte_start": 2140,
+        "column_end": 29,
+        "column_start": 25,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs",
+        "is_primary": true,
+        "label": "not found in this scope",
+        "line_end": 53,
+        "line_start": 53,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 29,
+            "highlight_start": 25,
+            "text": "                        grow(function, budget, &mut stack, 1, \"factored closure cursors\")?;"
+          }
+        ]
+      }
+    ],
+    "rendered": "error[E0425]: cannot find function `grow` in this scope\n   --> src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs:53:25\n    |\n 53 |                         grow(function, budget, &mut stack, 1, \"factored closure cursors\")?;\n    |                         ^^^^ not found in this scope\n    |\nnote: these functions exist but are inaccessible\n   --> src/cleanup_plan/replay/factored/borrowed_canonical.rs:297:1\n    |\n297 | / fn grow<T>(\n298 | |     function: &ResolvedFunction,\n299 | |     budget: &mut ReplayBudget,\n300 | |     values: &mut Vec<T>,\n...   |\n315 | |     budget.reserve_vec(function, values, additional, phase)\n316 | | }\n    | |_^ `crate::cleanup_plan::replay::factored::borrowed_canonical::grow`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/oracle_order.rs:182:1\n    |\n182 | / fn grow<T>(\n183 | |     function: &ResolvedFunction,\n184 | |     budget: &mut ReplayBudget,\n185 | |     values: &mut Vec<T>,\n...   |\n199 | |     budget.reserve_vec(function, values, additional, phase)\n200 | | }\n    | |_^ `crate::cleanup_plan::replay::factored::oracle_order::grow`: not accessible\n    |\n   ::: src/cleanup_plan/replay/paid_type_facts/inventory_flags.rs:73:1\n    |\n 73 | / pub(super) fn grow<T>(\n 74 | |     items: &mut Vec<T>,\n 75 | |     additional: usize,\n 76 | |     payer: &mut Payer<'_>,\n...   |\n 90 | |     Ok(())\n 91 | | }\n    | |_^ `crate::cleanup_plan::replay::paid_type_facts::inventory_flags::grow`: not accessible\n    |\n   ::: src/hir/declaration_index/nominal_paid_values.rs:37:1\n    |\n 37 | / pub(super) fn grow<T, E>(\n 38 | |     values: &mut Vec<T>,\n 39 | |     additional: usize,\n 40 | |     reserve: &mut Reserve<'_, E>,\n...   |\n 52 | |     Ok(())\n 53 | | }\n    | |_^ `crate::hir::declaration_index::nominal_paid_values::grow`: not accessible\n    |\n   ::: src/hir/funded.rs:38:1\n    |\n 38 | / pub(crate) fn grow<T, E>(\n 39 | |     values: &mut Vec<T>,\n 40 | |     additional: usize,\n 41 | |     reserve: Reserve<'_, E>,\n...   |\n 68 | |     Ok(())\n 69 | | }\n    | |_^ `crate::string_ops::replacement::funded::tests::funded::grow`: not accessible\n    |\n   ::: src/workspace_graph/expected_projection/string_slots.rs:190:1\n    |\n190 |   fn grow<T>(values: &mut Vec<T>) -> Result<(), Vec<Diagnostic>> {\n    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `crate::workspace_graph::expected_projection::string_slots::grow`: not accessible\n    |\n   ::: src/workspace_graph/source_schema/static_text/primitive/helpers/graph.rs:55:1\n    |\n 55 | / fn grow<T>(\n 56 | |     values: &mut Vec<T>,\n 57 | |     phase: &'static str,\n 58 | |     resources: &mut SelectedReplayPreparation,\n...   |\n 68 | |     Ok(())\n 69 | | }\n    | |_^ `crate::workspace_graph::source_schema::static_text::primitive::helpers::graph::grow`: not accessible\n\n"
+  },
+  {
+    "code": {
+      "code": "E0425",
+      "explanation": "An unresolved name was used.\n\nErroneous code examples:\n\n```compile_fail,E0425\nsomething_that_doesnt_exist::foo;\n// error: unresolved name `something_that_doesnt_exist::foo`\n\n// or:\n\ntrait Foo {\n    fn bar() {\n        Self; // error: unresolved name `Self`\n    }\n}\n\n// or:\n\nlet x = unknown_variable;  // error: unresolved name `unknown_variable`\n```\n\nPlease verify that the name wasn't misspelled and ensure that the\nidentifier being referred to is valid for the given situation. Example:\n\n```\nenum something_that_does_exist {\n    Foo,\n}\n```\n\nOr:\n\n```\nmod something_that_does_exist {\n    pub static foo : i32 = 0i32;\n}\n\nsomething_that_does_exist::foo; // ok!\n```\n\nOr:\n\n```\nlet unknown_variable = 12u32;\nlet x = unknown_variable; // ok!\n```\n\nIf the item is not defined in the current module, it must be imported using a\n`use` statement, like so:\n\n```\n# mod foo { pub fn bar() {} }\n# fn main() {\nuse foo::bar;\nbar();\n# }\n```\n\nIf the item you are importing is not defined in some super-module of the\ncurrent module, then it must also be declared as public (e.g., `pub fn`).\n"
+    },
+    "message": "cannot find type `CanonicalFrame` in this scope",
+    "primary_spans": [
+      {
+        "byte_end": 7332,
+        "byte_start": 7318,
+        "column_end": 46,
+        "column_start": 32,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs",
+        "is_primary": true,
+        "label": "not found in this scope",
+        "line_end": 183,
+        "line_start": 183,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 46,
+            "highlight_start": 32,
+            "text": "        budget.reserve_array::<CanonicalFrame>(function, 1, \"factored canonical initial frame\")?;"
+          }
+        ]
+      }
+    ],
+    "rendered": "error[E0425]: cannot find type `CanonicalFrame` in this scope\n   --> src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs:183:32\n    |\n183 |         budget.reserve_array::<CanonicalFrame>(function, 1, \"factored canonical initial frame\")?;\n    |                                ^^^^^^^^^^^^^^ not found in this scope\n    |\nnote: these enums exist but are inaccessible\n   --> src/cleanup_plan/replay/factored/canonical_before.rs:6:1\n    |\n  6 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_before::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared.rs:45:1\n    |\n 45 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs:10:1\n    |\n 10 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_alias::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_closure_receiver.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_closure_receiver::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_held.rs:18:1\n    |\n 18 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_held::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_index.rs:10:1\n    |\n 10 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_index::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs:7:1\n    |\n  7 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_inline_weighted::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs:15:1\n    |\n 15 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_ordered::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_receiving_layers::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs:15:1\n    |\n 15 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_scratch::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_targets.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_targets::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs:11:1\n    |\n 11 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::compact_nodes::before::canonical_shared::CanonicalFrame`: not accessible\nhelp: consider importing this enum\n    |\n  3 + use crate::cleanup_plan::replay::factored::CanonicalFrame;\n    |\n\n"
+  },
+  {
+    "code": {
+      "code": "E0433",
+      "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+    },
+    "message": "cannot find type `CanonicalFrame` in this scope",
+    "primary_spans": [
+      {
+        "byte_end": 7495,
+        "byte_start": 7481,
+        "column_end": 45,
+        "column_start": 31,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs",
+        "is_primary": true,
+        "label": "use of undeclared type `CanonicalFrame`",
+        "line_end": 185,
+        "line_start": 185,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 45,
+            "highlight_start": 31,
+            "text": "        let mut frames = vec![CanonicalFrame::Enter(root_copy)];"
+          }
+        ]
+      }
+    ],
+    "rendered": "error[E0433]: cannot find type `CanonicalFrame` in this scope\n   --> src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs:185:31\n    |\n185 |         let mut frames = vec![CanonicalFrame::Enter(root_copy)];\n    |                               ^^^^^^^^^^^^^^ use of undeclared type `CanonicalFrame`\n    |\nnote: these enums exist but are inaccessible\n   --> src/cleanup_plan/replay/factored/canonical_before.rs:6:1\n    |\n  6 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_before::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared.rs:45:1\n    |\n 45 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs:10:1\n    |\n 10 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_alias::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_closure_receiver.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_closure_receiver::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_held.rs:18:1\n    |\n 18 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_held::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_index.rs:10:1\n    |\n 10 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_index::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs:7:1\n    |\n  7 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_inline_weighted::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs:15:1\n    |\n 15 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_ordered::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_receiving_layers::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs:15:1\n    |\n 15 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_scratch::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_targets.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_targets::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs:11:1\n    |\n 11 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::compact_nodes::before::canonical_shared::CanonicalFrame`: not accessible\nhelp: consider importing this enum\n    |\n  3 + use crate::cleanup_plan::replay::factored::CanonicalFrame;\n    |\n\n"
+  },
+  {
+    "code": {
+      "code": "E0433",
+      "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+    },
+    "message": "cannot find type `CanonicalFrame` in this scope",
+    "primary_spans": [
+      {
+        "byte_end": 7900,
+        "byte_start": 7886,
+        "column_end": 31,
+        "column_start": 17,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs",
+        "is_primary": true,
+        "label": "use of undeclared type `CanonicalFrame`",
+        "line_end": 195,
+        "line_start": 195,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 31,
+            "highlight_start": 17,
+            "text": "                CanonicalFrame::Enter(state) => {"
+          }
+        ]
+      }
+    ],
+    "rendered": "error[E0433]: cannot find type `CanonicalFrame` in this scope\n   --> src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs:195:17\n    |\n195 |                 CanonicalFrame::Enter(state) => {\n    |                 ^^^^^^^^^^^^^^ use of undeclared type `CanonicalFrame`\n    |\nnote: these enums exist but are inaccessible\n   --> src/cleanup_plan/replay/factored/canonical_before.rs:6:1\n    |\n  6 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_before::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared.rs:45:1\n    |\n 45 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs:10:1\n    |\n 10 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_alias::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_closure_receiver.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_closure_receiver::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_held.rs:18:1\n    |\n 18 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_held::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_index.rs:10:1\n    |\n 10 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_index::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs:7:1\n    |\n  7 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_inline_weighted::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs:15:1\n    |\n 15 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_ordered::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_receiving_layers::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs:15:1\n    |\n 15 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_scratch::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_targets.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_targets::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs:11:1\n    |\n 11 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::compact_nodes::before::canonical_shared::CanonicalFrame`: not accessible\nhelp: consider importing this enum\n    |\n  3 + use crate::cleanup_plan::replay::factored::CanonicalFrame;\n    |\n\n"
+  },
+  {
+    "code": {
+      "code": "E0425",
+      "explanation": "An unresolved name was used.\n\nErroneous code examples:\n\n```compile_fail,E0425\nsomething_that_doesnt_exist::foo;\n// error: unresolved name `something_that_doesnt_exist::foo`\n\n// or:\n\ntrait Foo {\n    fn bar() {\n        Self; // error: unresolved name `Self`\n    }\n}\n\n// or:\n\nlet x = unknown_variable;  // error: unresolved name `unknown_variable`\n```\n\nPlease verify that the name wasn't misspelled and ensure that the\nidentifier being referred to is valid for the given situation. Example:\n\n```\nenum something_that_does_exist {\n    Foo,\n}\n```\n\nOr:\n\n```\nmod something_that_does_exist {\n    pub static foo : i32 = 0i32;\n}\n\nsomething_that_does_exist::foo; // ok!\n```\n\nOr:\n\n```\nlet unknown_variable = 12u32;\nlet x = unknown_variable; // ok!\n```\n\nIf the item is not defined in the current module, it must be imported using a\n`use` statement, like so:\n\n```\n# mod foo { pub fn bar() {} }\n# fn main() {\nuse foo::bar;\nbar();\n# }\n```\n\nIf the item you are importing is not defined in some super-module of the\ncurrent module, then it must also be declared as public (e.g., `pub fn`).\n"
+    },
+    "message": "cannot find function `grow` in this scope",
+    "primary_spans": [
+      {
+        "byte_end": 8716,
+        "byte_start": 8712,
+        "column_end": 25,
+        "column_start": 21,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs",
+        "is_primary": true,
+        "label": "not found in this scope",
+        "line_end": 213,
+        "line_start": 213,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 25,
+            "highlight_start": 21,
+            "text": "                    grow("
+          }
+        ]
+      }
+    ],
+    "rendered": "error[E0425]: cannot find function `grow` in this scope\n   --> src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs:213:21\n    |\n213 |                     grow(\n    |                     ^^^^ not found in this scope\n    |\nnote: these functions exist but are inaccessible\n   --> src/cleanup_plan/replay/factored/borrowed_canonical.rs:297:1\n    |\n297 | / fn grow<T>(\n298 | |     function: &ResolvedFunction,\n299 | |     budget: &mut ReplayBudget,\n300 | |     values: &mut Vec<T>,\n...   |\n315 | |     budget.reserve_vec(function, values, additional, phase)\n316 | | }\n    | |_^ `crate::cleanup_plan::replay::factored::borrowed_canonical::grow`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/oracle_order.rs:182:1\n    |\n182 | / fn grow<T>(\n183 | |     function: &ResolvedFunction,\n184 | |     budget: &mut ReplayBudget,\n185 | |     values: &mut Vec<T>,\n...   |\n199 | |     budget.reserve_vec(function, values, additional, phase)\n200 | | }\n    | |_^ `crate::cleanup_plan::replay::factored::oracle_order::grow`: not accessible\n    |\n   ::: src/cleanup_plan/replay/paid_type_facts/inventory_flags.rs:73:1\n    |\n 73 | / pub(super) fn grow<T>(\n 74 | |     items: &mut Vec<T>,\n 75 | |     additional: usize,\n 76 | |     payer: &mut Payer<'_>,\n...   |\n 90 | |     Ok(())\n 91 | | }\n    | |_^ `crate::cleanup_plan::replay::paid_type_facts::inventory_flags::grow`: not accessible\n    |\n   ::: src/hir/declaration_index/nominal_paid_values.rs:37:1\n    |\n 37 | / pub(super) fn grow<T, E>(\n 38 | |     values: &mut Vec<T>,\n 39 | |     additional: usize,\n 40 | |     reserve: &mut Reserve<'_, E>,\n...   |\n 52 | |     Ok(())\n 53 | | }\n    | |_^ `crate::hir::declaration_index::nominal_paid_values::grow`: not accessible\n    |\n   ::: src/hir/funded.rs:38:1\n    |\n 38 | / pub(crate) fn grow<T, E>(\n 39 | |     values: &mut Vec<T>,\n 40 | |     additional: usize,\n 41 | |     reserve: Reserve<'_, E>,\n...   |\n 68 | |     Ok(())\n 69 | | }\n    | |_^ `crate::string_ops::replacement::funded::tests::funded::grow`: not accessible\n    |\n   ::: src/workspace_graph/expected_projection/string_slots.rs:190:1\n    |\n190 |   fn grow<T>(values: &mut Vec<T>) -> Result<(), Vec<Diagnostic>> {\n    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `crate::workspace_graph::expected_projection::string_slots::grow`: not accessible\n    |\n   ::: src/workspace_graph/source_schema/static_text/primitive/helpers/graph.rs:55:1\n    |\n 55 | / fn grow<T>(\n 56 | |     values: &mut Vec<T>,\n 57 | |     phase: &'static str,\n 58 | |     resources: &mut SelectedReplayPreparation,\n...   |\n 68 | |     Ok(())\n 69 | | }\n    | |_^ `crate::workspace_graph::source_schema::static_text::primitive::helpers::graph::grow`: not accessible\n\n"
+  },
+  {
+    "code": {
+      "code": "E0433",
+      "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+    },
+    "message": "cannot find type `CanonicalFrame` in this scope",
+    "primary_spans": [
+      {
+        "byte_end": 9026,
+        "byte_start": 9012,
+        "column_end": 47,
+        "column_start": 33,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs",
+        "is_primary": true,
+        "label": "use of undeclared type `CanonicalFrame`",
+        "line_end": 221,
+        "line_start": 221,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 47,
+            "highlight_start": 33,
+            "text": "                    frames.push(CanonicalFrame::Exit(state, accepted, successors));"
+          }
+        ]
+      }
+    ],
+    "rendered": "error[E0433]: cannot find type `CanonicalFrame` in this scope\n   --> src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs:221:33\n    |\n221 |                     frames.push(CanonicalFrame::Exit(state, accepted, successors));\n    |                                 ^^^^^^^^^^^^^^ use of undeclared type `CanonicalFrame`\n    |\nnote: these enums exist but are inaccessible\n   --> src/cleanup_plan/replay/factored/canonical_before.rs:6:1\n    |\n  6 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_before::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared.rs:45:1\n    |\n 45 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs:10:1\n    |\n 10 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_alias::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_closure_receiver.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_closure_receiver::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_held.rs:18:1\n    |\n 18 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_held::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_index.rs:10:1\n    |\n 10 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_index::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs:7:1\n    |\n  7 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_inline_weighted::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs:15:1\n    |\n 15 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_ordered::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_receiving_layers::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs:15:1\n    |\n 15 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_scratch::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_targets.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_targets::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs:11:1\n    |\n 11 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::compact_nodes::before::canonical_shared::CanonicalFrame`: not accessible\nhelp: consider importing this enum\n    |\n  3 + use crate::cleanup_plan::replay::factored::CanonicalFrame;\n    |\n\n"
+  },
+  {
+    "code": {
+      "code": "E0433",
+      "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+    },
+    "message": "cannot find type `CanonicalFrame` in this scope",
+    "primary_spans": [
+      {
+        "byte_end": 9156,
+        "byte_start": 9142,
+        "column_end": 43,
+        "column_start": 29,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs",
+        "is_primary": true,
+        "label": "use of undeclared type `CanonicalFrame`",
+        "line_end": 223,
+        "line_start": 223,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 43,
+            "highlight_start": 29,
+            "text": "                        let CanonicalFrame::Exit(_, _, successors) = &frames[exit_index] else {"
+          }
+        ]
+      }
+    ],
+    "rendered": "error[E0433]: cannot find type `CanonicalFrame` in this scope\n   --> src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs:223:29\n    |\n223 |                         let CanonicalFrame::Exit(_, _, successors) = &frames[exit_index] else {\n    |                             ^^^^^^^^^^^^^^ use of undeclared type `CanonicalFrame`\n    |\nnote: these enums exist but are inaccessible\n   --> src/cleanup_plan/replay/factored/canonical_before.rs:6:1\n    |\n  6 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_before::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared.rs:45:1\n    |\n 45 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs:10:1\n    |\n 10 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_alias::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_closure_receiver.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_closure_receiver::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_held.rs:18:1\n    |\n 18 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_held::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_index.rs:10:1\n    |\n 10 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_index::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs:7:1\n    |\n  7 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_inline_weighted::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs:15:1\n    |\n 15 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_ordered::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_receiving_layers::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs:15:1\n    |\n 15 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_scratch::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_targets.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_targets::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs:11:1\n    |\n 11 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::compact_nodes::before::canonical_shared::CanonicalFrame`: not accessible\nhelp: consider importing this enum\n    |\n  3 + use crate::cleanup_plan::replay::factored::CanonicalFrame;\n    |\n\n"
+  },
+  {
+    "code": {
+      "code": "E0425",
+      "explanation": "An unresolved name was used.\n\nErroneous code examples:\n\n```compile_fail,E0425\nsomething_that_doesnt_exist::foo;\n// error: unresolved name `something_that_doesnt_exist::foo`\n\n// or:\n\ntrait Foo {\n    fn bar() {\n        Self; // error: unresolved name `Self`\n    }\n}\n\n// or:\n\nlet x = unknown_variable;  // error: unresolved name `unknown_variable`\n```\n\nPlease verify that the name wasn't misspelled and ensure that the\nidentifier being referred to is valid for the given situation. Example:\n\n```\nenum something_that_does_exist {\n    Foo,\n}\n```\n\nOr:\n\n```\nmod something_that_does_exist {\n    pub static foo : i32 = 0i32;\n}\n\nsomething_that_does_exist::foo; // ok!\n```\n\nOr:\n\n```\nlet unknown_variable = 12u32;\nlet x = unknown_variable; // ok!\n```\n\nIf the item is not defined in the current module, it must be imported using a\n`use` statement, like so:\n\n```\n# mod foo { pub fn bar() {} }\n# fn main() {\nuse foo::bar;\nbar();\n# }\n```\n\nIf the item you are importing is not defined in some super-module of the\ncurrent module, then it must also be declared as public (e.g., `pub fn`).\n"
+    },
+    "message": "cannot find function `grow` in this scope",
+    "primary_spans": [
+      {
+        "byte_end": 9446,
+        "byte_start": 9442,
+        "column_end": 29,
+        "column_start": 25,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs",
+        "is_primary": true,
+        "label": "not found in this scope",
+        "line_end": 227,
+        "line_start": 227,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 29,
+            "highlight_start": 25,
+            "text": "                        grow("
+          }
+        ]
+      }
+    ],
+    "rendered": "error[E0425]: cannot find function `grow` in this scope\n   --> src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs:227:25\n    |\n227 |                         grow(\n    |                         ^^^^ not found in this scope\n    |\nnote: these functions exist but are inaccessible\n   --> src/cleanup_plan/replay/factored/borrowed_canonical.rs:297:1\n    |\n297 | / fn grow<T>(\n298 | |     function: &ResolvedFunction,\n299 | |     budget: &mut ReplayBudget,\n300 | |     values: &mut Vec<T>,\n...   |\n315 | |     budget.reserve_vec(function, values, additional, phase)\n316 | | }\n    | |_^ `crate::cleanup_plan::replay::factored::borrowed_canonical::grow`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/oracle_order.rs:182:1\n    |\n182 | / fn grow<T>(\n183 | |     function: &ResolvedFunction,\n184 | |     budget: &mut ReplayBudget,\n185 | |     values: &mut Vec<T>,\n...   |\n199 | |     budget.reserve_vec(function, values, additional, phase)\n200 | | }\n    | |_^ `crate::cleanup_plan::replay::factored::oracle_order::grow`: not accessible\n    |\n   ::: src/cleanup_plan/replay/paid_type_facts/inventory_flags.rs:73:1\n    |\n 73 | / pub(super) fn grow<T>(\n 74 | |     items: &mut Vec<T>,\n 75 | |     additional: usize,\n 76 | |     payer: &mut Payer<'_>,\n...   |\n 90 | |     Ok(())\n 91 | | }\n    | |_^ `crate::cleanup_plan::replay::paid_type_facts::inventory_flags::grow`: not accessible\n    |\n   ::: src/hir/declaration_index/nominal_paid_values.rs:37:1\n    |\n 37 | / pub(super) fn grow<T, E>(\n 38 | |     values: &mut Vec<T>,\n 39 | |     additional: usize,\n 40 | |     reserve: &mut Reserve<'_, E>,\n...   |\n 52 | |     Ok(())\n 53 | | }\n    | |_^ `crate::hir::declaration_index::nominal_paid_values::grow`: not accessible\n    |\n   ::: src/hir/funded.rs:38:1\n    |\n 38 | / pub(crate) fn grow<T, E>(\n 39 | |     values: &mut Vec<T>,\n 40 | |     additional: usize,\n 41 | |     reserve: Reserve<'_, E>,\n...   |\n 68 | |     Ok(())\n 69 | | }\n    | |_^ `crate::string_ops::replacement::funded::tests::funded::grow`: not accessible\n    |\n   ::: src/workspace_graph/expected_projection/string_slots.rs:190:1\n    |\n190 |   fn grow<T>(values: &mut Vec<T>) -> Result<(), Vec<Diagnostic>> {\n    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `crate::workspace_graph::expected_projection::string_slots::grow`: not accessible\n    |\n   ::: src/workspace_graph/source_schema/static_text/primitive/helpers/graph.rs:55:1\n    |\n 55 | / fn grow<T>(\n 56 | |     values: &mut Vec<T>,\n 57 | |     phase: &'static str,\n 58 | |     resources: &mut SelectedReplayPreparation,\n...   |\n 68 | |     Ok(())\n 69 | | }\n    | |_^ `crate::workspace_graph::source_schema::static_text::primitive::helpers::graph::grow`: not accessible\n\n"
+  },
+  {
+    "code": {
+      "code": "E0433",
+      "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+    },
+    "message": "cannot find type `CanonicalFrame` in this scope",
+    "primary_spans": [
+      {
+        "byte_end": 9735,
+        "byte_start": 9721,
+        "column_end": 51,
+        "column_start": 37,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs",
+        "is_primary": true,
+        "label": "use of undeclared type `CanonicalFrame`",
+        "line_end": 234,
+        "line_start": 234,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 51,
+            "highlight_start": 37,
+            "text": "                        frames.push(CanonicalFrame::Enter(child));"
+          }
+        ]
+      }
+    ],
+    "rendered": "error[E0433]: cannot find type `CanonicalFrame` in this scope\n   --> src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs:234:37\n    |\n234 |                         frames.push(CanonicalFrame::Enter(child));\n    |                                     ^^^^^^^^^^^^^^ use of undeclared type `CanonicalFrame`\n    |\nnote: these enums exist but are inaccessible\n   --> src/cleanup_plan/replay/factored/canonical_before.rs:6:1\n    |\n  6 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_before::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared.rs:45:1\n    |\n 45 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs:10:1\n    |\n 10 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_alias::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_closure_receiver.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_closure_receiver::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_held.rs:18:1\n    |\n 18 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_held::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_index.rs:10:1\n    |\n 10 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_index::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs:7:1\n    |\n  7 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_inline_weighted::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs:15:1\n    |\n 15 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_ordered::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_receiving_layers::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs:15:1\n    |\n 15 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_scratch::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_targets.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_targets::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs:11:1\n    |\n 11 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::compact_nodes::before::canonical_shared::CanonicalFrame`: not accessible\nhelp: consider importing this enum\n    |\n  3 + use crate::cleanup_plan::replay::factored::CanonicalFrame;\n    |\n\n"
+  },
+  {
+    "code": {
+      "code": "E0433",
+      "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+    },
+    "message": "cannot find type `CanonicalFrame` in this scope",
+    "primary_spans": [
+      {
+        "byte_end": 9822,
+        "byte_start": 9808,
+        "column_end": 31,
+        "column_start": 17,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs",
+        "is_primary": true,
+        "label": "use of undeclared type `CanonicalFrame`",
+        "line_end": 237,
+        "line_start": 237,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 31,
+            "highlight_start": 17,
+            "text": "                CanonicalFrame::Exit(state, accepted, successors) => {"
+          }
+        ]
+      }
+    ],
+    "rendered": "error[E0433]: cannot find type `CanonicalFrame` in this scope\n   --> src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs:237:17\n    |\n237 |                 CanonicalFrame::Exit(state, accepted, successors) => {\n    |                 ^^^^^^^^^^^^^^ use of undeclared type `CanonicalFrame`\n    |\nnote: these enums exist but are inaccessible\n   --> src/cleanup_plan/replay/factored/canonical_before.rs:6:1\n    |\n  6 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_before::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared.rs:45:1\n    |\n 45 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs:10:1\n    |\n 10 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_alias::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_closure_receiver.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_closure_receiver::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_held.rs:18:1\n    |\n 18 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_held::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_index.rs:10:1\n    |\n 10 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_index::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs:7:1\n    |\n  7 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_inline_weighted::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs:15:1\n    |\n 15 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_ordered::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_receiving_layers::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs:15:1\n    |\n 15 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_scratch::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/before_targets.rs:14:1\n    |\n 14 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::before_targets::CanonicalFrame`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs:11:1\n    |\n 11 | enum CanonicalFrame {\n    | ^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::compact_nodes::before::canonical_shared::CanonicalFrame`: not accessible\nhelp: consider importing this enum\n    |\n  3 + use crate::cleanup_plan::replay::factored::CanonicalFrame;\n    |\n\n"
+  },
+  {
+    "code": {
+      "code": "E0603",
+      "explanation": "A private item was used outside its scope.\n\nErroneous code example:\n\n```compile_fail,E0603\nmod foo {\n    const PRIVATE: u32 = 0x_a_bad_1dea_u32; // This const is private, so we\n                                            // can't use it outside of the\n                                            // `foo` module.\n}\n\nprintln!(\"const value: {}\", foo::PRIVATE); // error: constant `PRIVATE`\n                                                  //        is private\n```\n\nIn order to fix this error, you need to make the item public by using the `pub`\nkeyword. Example:\n\n```\nmod foo {\n    pub const PRIVATE: u32 = 0x_a_bad_1dea_u32; // We set it public by using the\n                                                // `pub` keyword.\n}\n\nprintln!(\"const value: {}\", foo::PRIVATE); // ok!\n```\n"
+    },
+    "message": "module `before` is private",
+    "primary_spans": [
+      {
+        "byte_end": 122,
+        "byte_start": 116,
+        "column_end": 40,
+        "column_start": 34,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs",
+        "is_primary": true,
+        "label": "private module",
+        "line_end": 2,
+        "line_start": 2,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 40,
+            "highlight_start": 34,
+            "text": "use super::super::compact_nodes::before::{Automaton, Weighted};"
+          }
+        ]
+      }
+    ],
+    "rendered": "error[E0603]: module `before` is private\n  --> src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs:2:34\n   |\n 2 | use super::super::compact_nodes::before::{Automaton, Weighted};\n   |                                  ^^^^^^   --------- struct `Automaton` is not publicly re-exported\n   |                                  |\n   |                                  private module\n   |\nnote: the module `before` is defined here\n  --> src/cleanup_plan/replay/factored/compact_nodes.rs:91:1\n   |\n91 | mod before;\n   | ^^^^^^^^^^^\n\n"
+  },
+  {
+    "code": {
+      "code": "E0603",
+      "explanation": "A private item was used outside its scope.\n\nErroneous code example:\n\n```compile_fail,E0603\nmod foo {\n    const PRIVATE: u32 = 0x_a_bad_1dea_u32; // This const is private, so we\n                                            // can't use it outside of the\n                                            // `foo` module.\n}\n\nprintln!(\"const value: {}\", foo::PRIVATE); // error: constant `PRIVATE`\n                                                  //        is private\n```\n\nIn order to fix this error, you need to make the item public by using the `pub`\nkeyword. Example:\n\n```\nmod foo {\n    pub const PRIVATE: u32 = 0x_a_bad_1dea_u32; // We set it public by using the\n                                                // `pub` keyword.\n}\n\nprintln!(\"const value: {}\", foo::PRIVATE); // ok!\n```\n"
+    },
+    "message": "module `before` is private",
+    "primary_spans": [
+      {
+        "byte_end": 122,
+        "byte_start": 116,
+        "column_end": 40,
+        "column_start": 34,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs",
+        "is_primary": true,
+        "label": "private module",
+        "line_end": 2,
+        "line_start": 2,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 40,
+            "highlight_start": 34,
+            "text": "use super::super::compact_nodes::before::{Automaton, Weighted};"
+          }
+        ]
+      }
+    ],
+    "rendered": "error[E0603]: module `before` is private\n  --> src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs:2:34\n   |\n 2 | use super::super::compact_nodes::before::{Automaton, Weighted};\n   |                                  ^^^^^^              -------- type alias `Weighted` is not publicly re-exported\n   |                                  |\n   |                                  private module\n   |\nnote: the module `before` is defined here\n  --> src/cleanup_plan/replay/factored/compact_nodes.rs:91:1\n   |\n91 | mod before;\n   | ^^^^^^^^^^^\n\n"
+  },
+  {
+    "code": {
+      "code": "E0599",
+      "explanation": "This error occurs when a method is used on a type which doesn't implement it:\n\nErroneous code example:\n\n```compile_fail,E0599\nstruct Mouth;\n\nlet x = Mouth;\nx.chocolate(); // error: no method named `chocolate` found for type `Mouth`\n               //        in the current scope\n```\n\nIn this case, you need to implement the `chocolate` method to fix the error:\n\n```\nstruct Mouth;\n\nimpl Mouth {\n    fn chocolate(&self) { // We implement the `chocolate` method here.\n        println!(\"Hmmm! I love chocolate!\");\n    }\n}\n\nlet x = Mouth;\nx.chocolate(); // ok!\n```\n"
+    },
+    "message": "no method named `child_count` found for reference `&hir::expr_nodes::ResolvedExpr` in the current scope",
+    "primary_spans": [
+      {
+        "byte_end": 9244,
+        "byte_start": 9233,
+        "column_end": 47,
+        "column_start": 36,
+        "expansion": null,
+        "file_name": "src/vec_ops/field_update/tests.rs",
+        "is_primary": true,
+        "label": "method not found in `&hir::expr_nodes::ResolvedExpr`",
+        "line_end": 247,
+        "line_start": 247,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 47,
+            "highlight_start": 36,
+            "text": "        for index in 0..expression.child_count() {"
+          }
+        ]
+      }
+    ],
+    "rendered": "error[E0599]: no method named `child_count` found for reference `&hir::expr_nodes::ResolvedExpr` in the current scope\n   --> src/vec_ops/field_update/tests.rs:247:36\n    |\n247 |         for index in 0..expression.child_count() {\n    |                                    ^^^^^^^^^^^ method not found in `&hir::expr_nodes::ResolvedExpr`\n\n"
+  },
+  {
+    "code": {
+      "code": "E0599",
+      "explanation": "This error occurs when a method is used on a type which doesn't implement it:\n\nErroneous code example:\n\n```compile_fail,E0599\nstruct Mouth;\n\nlet x = Mouth;\nx.chocolate(); // error: no method named `chocolate` found for type `Mouth`\n               //        in the current scope\n```\n\nIn this case, you need to implement the `chocolate` method to fix the error:\n\n```\nstruct Mouth;\n\nimpl Mouth {\n    fn chocolate(&self) { // We implement the `chocolate` method here.\n        println!(\"Hmmm! I love chocolate!\");\n    }\n}\n\nlet x = Mouth;\nx.chocolate(); // ok!\n```\n"
+    },
+    "message": "no method named `child` found for reference `&hir::expr_nodes::ResolvedExpr` in the current scope",
+    "primary_spans": [
+      {
+        "byte_end": 9290,
+        "byte_start": 9285,
+        "column_end": 42,
+        "column_start": 37,
+        "expansion": null,
+        "file_name": "src/vec_ops/field_update/tests.rs",
+        "is_primary": true,
+        "label": "method not found in `&hir::expr_nodes::ResolvedExpr`",
+        "line_end": 248,
+        "line_start": 248,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 42,
+            "highlight_start": 37,
+            "text": "            pending.push(expression.child(index).unwrap());"
+          }
+        ]
+      }
+    ],
+    "rendered": "error[E0599]: no method named `child` found for reference `&hir::expr_nodes::ResolvedExpr` in the current scope\n   --> src/vec_ops/field_update/tests.rs:248:37\n    |\n248 |             pending.push(expression.child(index).unwrap());\n    |                                     ^^^^^ method not found in `&hir::expr_nodes::ResolvedExpr`\n\n"
+  }
+]

@@ -45,6 +45,13 @@ variants, `String`, resources, classes, arrays, stored borrows, owned parameters
 borrowed results, nested input records, and every other result shape reject
 before target generation.
 
+This is an API-profile boundary, independent of the language's ordinary
+record vocabulary. An admitted owned `String` field must still fail v11
+descriptor derivation and replay with `SPX-J118`; a valid descriptor for an
+otherwise identical scalar field cannot substitute for current String-bearing
+HIR. Shapes already refused during source checking, including an array field
+inside this owned-Bytes record tree, remain source refusals.
+
 Classification is iterative and uses checked accounting. A result tree admits
 at most 64 record levels, 256 owned leaves, and 4,096 examined fields. The
 complete linked function inventory remains at most 256, exports at most 32,

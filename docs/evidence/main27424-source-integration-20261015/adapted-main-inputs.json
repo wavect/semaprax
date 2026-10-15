@@ -1,0 +1,50 @@
+[
+  {
+    "source": "CHANGELOG.md",
+    "main_sha256": "1dd32edda27e2217485661a6202d03385211add68848b3e78879e84efedce78a",
+    "current_sha256": "98b55f0f7ac4970c03fac3abd912fcb8f0579d10e5e812ab3140be84190c618d",
+    "archive": "docs/evidence/main27424-source-integration-20261015/main-original-0.txt"
+  },
+  {
+    "source": "docs/ARCHITECTURE.md",
+    "main_sha256": "2bf00879a344511aa0c30987c3d15443afbb5bca7d6d9d342e7f9a1b3c6a76ee",
+    "current_sha256": "fda0dc80f43b0db93a1074abc2a8469b659f0ee52bae2e555c056d34cb631f7a",
+    "archive": "docs/evidence/main27424-source-integration-20261015/main-original-1.txt"
+  },
+  {
+    "source": "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+    "main_sha256": "572f7d48dc161255a69028bff02d4e5bae0591b711e10a41d93eee0ddf4e57d0",
+    "current_sha256": "7d05ff5cfafdd4c47e349c183d38faa42975e3d5b94882ade6197e055381da7b",
+    "archive": "docs/evidence/main27424-source-integration-20261015/main-original-2.txt"
+  },
+  {
+    "source": "src/cleanup_plan/replay/physical_budget.rs",
+    "main_sha256": "31f1ec5525f566268384254fcd09dd695ddd9d4d45df8fd1069f9846bff0c410",
+    "current_sha256": "21838768b0d7d3cf4dbbc2aaadb6e7361159b8ebc9a55750e37323416197b727",
+    "archive": "docs/evidence/main27424-source-integration-20261015/main-original-3.txt"
+  },
+  {
+    "source": "src/cleanup_plan/replay/structural_control/calls.rs",
+    "main_sha256": "43384a448492f20e042f02fe4de5a23241331bae3aa7501a3844dd5a5f72a587",
+    "current_sha256": "ff4af4658d4f51db9a3652316bcbdd5c13c79fc5bcde2fbb4b7f1a011472aaec",
+    "archive": "docs/evidence/main27424-source-integration-20261015/main-original-4.txt"
+  },
+  {
+    "source": "src/cleanup_plan/replay/structural_control/calls/cursor.rs",
+    "main_sha256": "ab17d234e39dcc9e973ffe14414ddb8d4e38a2da5cbbb90b9720e057fa273de2",
+    "current_sha256": "70cb41afb0ec46bcdac9fe6fb242da2a33eb242bd945b006a4548b0fd586415b",
+    "archive": "docs/evidence/main27424-source-integration-20261015/main-original-5.txt"
+  },
+  {
+    "source": "src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs",
+    "main_sha256": "f2365d257ed9516b0e0691c2e5e3b9610945e67d39bd9bdc2141ba62bb47d909",
+    "current_sha256": "d9ea3284a2d4d56f8f6627d5769206d1a55dd744c5d9e9afa9441ffb53faec4a",
+    "archive": "docs/evidence/main27424-source-integration-20261015/main-original-6.txt"
+  },
+  {
+    "source": "tests/offline_package/resolver_cli.rs",
+    "main_sha256": "6050b715d6af001864128d83a0b9769e0e9913b4ef90f89729ed7c67838294b0",
+    "current_sha256": "7fbe63eb1eb06d77fa2ade01999b245a6825928dc61e8df3c42a59e11f160ae5",
+    "archive": "docs/evidence/main27424-source-integration-20261015/main-original-7.txt"
+  }
+]

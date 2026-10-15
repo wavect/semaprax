@@ -1,0 +1,67 @@
+[
+  {
+    "source": "docs/PUBLIC-NESTED-OWNED-RECORD-API-V1.md",
+    "sha256": "88c0d4339faf22a79d7ab20d943c751d8bb26b0932ffe02ae63adca1e3bb1367",
+    "revision": "27424cdcd5ad28daf4ce25fc8e633a4586852d9f"
+  },
+  {
+    "source": "docs/evidence/format-hygiene-scratch-v1/README.md",
+    "sha256": "d88bc764f1ead22f440d8aa2fba310d4ccc7351fdd54883f6335b26be7469d45",
+    "revision": "27424cdcd5ad28daf4ce25fc8e633a4586852d9f"
+  },
+  {
+    "source": "docs/evidence/pattern-hygiene-scratch-v1/README.md",
+    "sha256": "644ff9aea8f29ba5e8be3a491644d0d255831a9d9164b2b95dcdcca3a19b200b",
+    "revision": "27424cdcd5ad28daf4ce25fc8e633a4586852d9f"
+  },
+  {
+    "source": "docs/evidence/pattern-hygiene-scratch-v1/expression_statement.before.rs.txt",
+    "sha256": "2ee5ce38e7f34d4954237525d4b780b0f13d0919b0afda328ff0af42d7488801",
+    "revision": "27424cdcd5ad28daf4ce25fc8e633a4586852d9f"
+  },
+  {
+    "source": "docs/evidence/pattern-hygiene-scratch-v1/source-receipt.json",
+    "sha256": "8b9b40fb133d8478fdea5f799471773826a5e53af0b484d2a830fa4ab27c0b0f",
+    "revision": "27424cdcd5ad28daf4ce25fc8e633a4586852d9f"
+  },
+  {
+    "source": "docs/evidence/structural-call-cursor-v1/README.md",
+    "sha256": "248b73dd255e729ee2f6349fd4001f5848bd8ce475200cdde7aed8116a542bcb",
+    "revision": "27424cdcd5ad28daf4ce25fc8e633a4586852d9f"
+  },
+  {
+    "source": "docs/evidence/structural-call-cursor-v1/calls.before.rs.txt",
+    "sha256": "90dec4afdeb5b935ee824a7d58855dfdbf27610121bd0fb458808a8de71b19ee",
+    "revision": "27424cdcd5ad28daf4ce25fc8e633a4586852d9f"
+  },
+  {
+    "source": "docs/evidence/structural-call-cursor-v1/source-receipt.json",
+    "sha256": "fd34fcb3cce69e07fca7eb65518fdedc95705d771f0476bfdf5428e8fb3d313c",
+    "revision": "27424cdcd5ad28daf4ce25fc8e633a4586852d9f"
+  },
+  {
+    "source": "src/ast/expression_statement.rs",
+    "sha256": "eb58cb1f4c2294220542cf2d225a6477984c8f69d7b019414a4b85be75ee64a1",
+    "revision": "27424cdcd5ad28daf4ce25fc8e633a4586852d9f"
+  },
+  {
+    "source": "src/ast/expression_statement/tests.rs",
+    "sha256": "78d512f9e36911b5b539cac18fbb81e8e7c7c8d53802c853d870c03c966f2da4",
+    "revision": "27424cdcd5ad28daf4ce25fc8e633a4586852d9f"
+  },
+  {
+    "source": "src/cleanup_plan/replay/physical_budget/queue_tests.rs",
+    "sha256": "69edf6aca1273b7e00a2b1aed3221cd366a9c6d8d824075c183def75e87a8b6a",
+    "revision": "27424cdcd5ad28daf4ce25fc8e633a4586852d9f"
+  },
+  {
+    "source": "src/cleanup_plan/replay/structural_control/calls/cursor_before.rs",
+    "sha256": "e0d050fe14022f2cbedeafef2a66c58da778c0ba588d3a9e1a7899310fae0568",
+    "revision": "27424cdcd5ad28daf4ce25fc8e633a4586852d9f"
+  },
+  {
+    "source": "tests/project/nested_owned_record_api.rs",
+    "sha256": "96197fc6232dc11eddcda2a3a8b7ab71f9e9ca7f6ae49690cb01919b4e1cc3eb",
+    "revision": "27424cdcd5ad28daf4ce25fc8e633a4586852d9f"
+  }
+]

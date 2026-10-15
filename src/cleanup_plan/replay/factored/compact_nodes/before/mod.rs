@@ -34,7 +34,7 @@ mod borrowed_canonical;
 mod instrumentation;
 #[path = "storage.rs"]
 mod storage;
-use super::super::{copy_regions, dag_memo, oracle_hook};
+use super::super::{dag_memo, oracle_hook};
 use storage::{memo_insert, push_end, push_frame, reserve_transition_observation};
 
 /// Path count above which the factored comparison replaces enumeration.
@@ -807,6 +807,12 @@ fn edge_observation(
 /// A weighted set of automaton nodes: each node with the number of distinct
 /// automaton paths that reach it on one observation sequence.
 pub(in crate::cleanup_plan::replay::factored) type Weighted = Vec<(usize, u64)>;
+
+#[cfg(test)]
+enum CanonicalFrame {
+    Enter(Weighted),
+    Exit(Weighted, u64, Vec<(Label, Weighted)>),
+}
 
 #[path = "../tests.rs"]
 mod tests;

@@ -128,6 +128,7 @@ pub(in crate::workspace_graph) fn input_carrier_delta() -> Result<usize, Vec<Dia
 #[allow(clippy::large_enum_variant)]
 pub(in crate::workspace_graph) enum Input<'a> {
     Owned(Program),
+    Transient(crate::ast::program_source::function_alias::TransientFunctions<'a>),
     Borrowed(SyntheticProgramView<'a>),
 }
 impl<'a> Input<'a> {
@@ -213,7 +214,7 @@ impl<'a> Input<'a> {
     }
     pub(in crate::workspace_graph) fn borrowed(&self) -> Option<&SyntheticProgramView<'_>> {
         match self {
-            Self::Owned(_) => None,
+            Self::Owned(_) | Self::Transient(_) => None,
             Self::Borrowed(program) => Some(program),
         }
     }
@@ -223,6 +224,7 @@ impl<'a> Input<'a> {
         match self {
             Self::Owned(program) => Ok(program),
             Self::Borrowed(view) => checked_key::materialize(view),
+            Self::Transient(_) => unreachable!("transient wrapper view cannot publish a cache key"),
         }
     }
 
@@ -235,6 +237,7 @@ impl<'a> Input<'a> {
             Self::Owned(program) => {
                 Ok(crate::ast::program_source::checked_key::CheckedSource::Owned(program))
             }
+            Self::Transient(_) => unreachable!("transient wrapper view cannot publish a cache key"),
             Self::Borrowed(view) => {
                 let (program, generated) = view.into_overlay_owner();
                 Ok(
@@ -253,13 +256,14 @@ impl<'a> Input<'a> {
         match self {
             Self::Owned(program) => Ok(program),
             Self::Borrowed(view) => checked_key::materialize_receiving(view),
+            Self::Transient(_) => unreachable!("transient wrapper view cannot publish a cache key"),
         }
     }
 
     pub(in crate::workspace_graph) fn owned(&self) -> Option<&Program> {
         match self {
             Self::Owned(program) => Some(program),
-            Self::Borrowed(_) => None,
+            Self::Borrowed(_) | Self::Transient(_) => None,
         }
     }
     pub(in crate::workspace_graph) fn source(
@@ -268,13 +272,14 @@ impl<'a> Input<'a> {
         match self {
             Self::Owned(program) => program,
             Self::Borrowed(program) => program,
+            Self::Transient(program) => program,
         }
     }
     #[cfg(test)]
     pub(in crate::workspace_graph) fn into_owned(self) -> Result<Program, Vec<Diagnostic>> {
         match self {
             Self::Owned(program) => Ok(program),
-            Self::Borrowed(_) => Err(vec![graph_error(
+            Self::Borrowed(_) | Self::Transient(_) => Err(vec![graph_error(
                 "SPX-G173",
                 "borrowed projection cannot become a checked cache key",
             )]),
@@ -300,6 +305,11 @@ impl<'a> Input<'a> {
                 |bytes| owner.reserve(bytes),
             ),
             Self::Borrowed(program) => {
+                hir::identity_resolution::resolve_source_nominal(program, private, |bytes| {
+                    owner.reserve(bytes)
+                })
+            }
+            Self::Transient(program) => {
                 hir::identity_resolution::resolve_source_nominal(program, private, |bytes| {
                     owner.reserve(bytes)
                 })

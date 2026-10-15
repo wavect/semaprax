@@ -1,3 +1,7 @@
+The evidence below describes the first expression-cursor change. The later
+[pattern scratch follow-up](../pattern-hygiene-scratch-v1/README.md) retains
+these original controls and records its separate pending qualification.
+
 # Canonical hygiene scratch
 
 The source formatter still performs the complete expression-statement hygiene

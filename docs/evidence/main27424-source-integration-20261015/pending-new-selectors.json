@@ -1,0 +1,80 @@
+{
+  "status": "SOURCE_ONLY_NOT_RUN",
+  "new": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::structural_control::calls::cursor::tests::every_lookup_and_missing_error_match_the_complete_original_owner",
+      "new_body": true
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::structural_control::calls::cursor::tests::raw_cursor_retains_the_original_514_depth_boundary",
+      "new_body": true
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::structural_control::calls::cursor::tests::actual_growth_backing_overlap_drop_and_every_short_frontier_are_paid",
+      "new_body": true
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::structural_control::calls::cursor::tests::complete_original_lookup_and_unchanged_receivers_remain_byte_bound",
+      "new_body": true
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::structural_control::calls::cursor::tests::selected_cursor_pays_every_growth_and_reuse_permit_and_retains_whole_old_owner",
+      "new_body": true
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::physical_budget::queue_tests::first_refusal_names_the_requesting_receiver_through_reservation_wrappers",
+      "new_body": true
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "ast::expression_statement::tests::resolver_512_payload_source_fits_the_same_canonical_budget_without_pattern_scratch",
+      "new_body": true
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "ast::expression_statement::tests::lazy_pattern_backing_is_exact_short_sticky_and_reused_at_the_original_capacity",
+      "new_body": true
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "ast::expression_statement::tests::a_pattern_free_projection_acquires_no_pattern_backing",
+      "new_body": true
+    }
+  ],
+  "retained_existing": "actual101 and83626/app/strict owners remain parent scope; add changed nested profile owner and oldformatter sourceguard/help if not selected, plus828supplement;8478separate",
+  "changed_existing": [
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "nested_owned_record_api::excluded_nested_result_shapes_fail_before_descriptor_creation",
+      "why": "MAIN now tests the frozen descriptor/profile boundary after admitted language checking; preserves positive control and no artifact authority"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "ast::expression_statement::tests::complete_original_source_and_declared_storage_change_are_bound",
+      "why": "changed formatter source guards after lazy pattern acquisition; original source and literals retained"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:offline_package",
+      "selector": "resolver_cli::help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot",
+      "why": "stronger complete677 help dual domain covers MAINtiming fix; preserve all47 inverses/11pins"
+    }
+  ]
+}

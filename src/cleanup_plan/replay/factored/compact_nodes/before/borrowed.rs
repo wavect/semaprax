@@ -290,3 +290,24 @@ fn clone_weighted(
     )?;
     Ok(value.clone())
 }
+
+fn grow<T>(
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+    values: &mut Vec<T>,
+    additional: usize,
+    phase: &str,
+) -> Result<(), Diagnostic> {
+    let required = values
+        .len()
+        .checked_add(additional)
+        .ok_or_else(|| replay_error(function, "borrowed canonical cursor length overflowed"))?;
+    if required > values.capacity() {
+        budget.charge(
+            function,
+            values.len(),
+            "borrowed canonical actual cursor relocation",
+        )?;
+    }
+    budget.reserve_vec(function, values, additional, phase)
+}

@@ -327,6 +327,15 @@ fn complete_original_source_and_declared_storage_change_are_bound() {
     );
     let mut projected = current.to_owned();
     projected.replace_range(start..end, "");
+    let pattern_storage = [
+        ("    if !reserve(std::mem::size_of::<Vec<Option<PatternFrame<'_>>>>()) {\n        return false;\n    }\n    let mut patterns = Vec::new();", "    if !reserve(std::mem::size_of::<[Option<PatternFrame<'_>>; 129]>()) {\n        return false;\n    }\n    let mut patterns = [None; 129];"),
+        ("    frames: &mut Vec<Option<PatternFrame<'a>>>,", "    frames: &mut [Option<PatternFrame<'a>>; 129],"),
+        ("    if !reserve(0) {\n        return false;\n    }\n    if frames.is_empty() {\n        // Acquire the complete original fixed pattern capacity only when a\n        // pattern exists. The 129-slot walk and dispatcher remain unchanged.\n        if !reserve(std::mem::size_of::<[Option<PatternFrame<'_>>; 129]>()) {\n            return false;\n        }\n        if frames.try_reserve_exact(129).is_err() || frames.capacity() != 129 {\n            return false;\n        }\n        frames.resize(129, None);\n    }\n", ""),
+    ];
+    for (new, old) in pattern_storage {
+        assert_eq!(projected.matches(new).count(), 1);
+        projected = projected.replacen(new, old, 1);
+    }
     let substitutions = [
         (
             "    let mut stack = Vec::new();\n    if !grow_frames(&mut stack, 1, &mut reserve) {",
@@ -347,4 +356,161 @@ fn complete_original_source_and_declared_storage_change_are_bound() {
         projected = projected.replacen(new, old, 1);
     }
     assert_eq!(projected, original);
+}
+
+#[test]
+fn resolver_512_payload_source_fits_the_same_canonical_budget_without_pattern_scratch() {
+    let package = "resolver.work.a";
+    let padding = "a".repeat(230);
+    let mut functions = (0..512)
+        .map(|index| Function {
+            stable_id: format!("{package}.payload.{index}"),
+            explicit_id: true,
+            name: format!("payload_{index}_{padding}"),
+            name_span: Span::default(),
+            type_parameters: vec![],
+            params: Vec::<Param>::new(),
+            return_type: Type::I64,
+            effects: vec![],
+            yields: None,
+            follows: None,
+            requires: vec![],
+            ensures: vec![],
+            body: block(
+                vec![],
+                Expr {
+                    kind: ExprKind::Int(0),
+                    ..leaf()
+                },
+            ),
+            span: Span::default(),
+        })
+        .collect::<Vec<_>>();
+    functions.push(Function {
+        stable_id: format!("{package}.main"),
+        explicit_id: true,
+        name: "main".into(),
+        name_span: Span::default(),
+        type_parameters: vec![],
+        params: Vec::<Param>::new(),
+        return_type: Type::I64,
+        effects: vec![],
+        yields: None,
+        follows: None,
+        requires: vec![],
+        ensures: vec![],
+        body: block(
+            vec![],
+            Expr {
+                kind: ExprKind::Int(0),
+                ..leaf()
+            },
+        ),
+        span: Span::default(),
+    });
+    let program = crate::ast::Program {
+        path: "format-hygiene.spx".into(),
+        module: package.into(),
+        module_uses: vec![],
+        permits: vec![],
+        types: vec![],
+        interfaces: vec![],
+        protocols: vec![],
+        implementations: vec![],
+        session_protocols: vec![],
+        agents: vec![],
+        functions,
+    };
+    let expected = crate::format::canonical(&program);
+    let (actual, refused, used) =
+        crate::bounded_output::with_limit_usage(1_048_576, || crate::format::canonical(&program));
+    assert!(!refused, "canonical scratch used {used}");
+    assert_eq!(actual, expected);
+    let payloads = (0..512)
+        .map(|index| {
+            format!(
+        "\n@id(\"{package}.payload.{index}\")\nfn payload_{index}_{padding}() -> i64 {{\n    0\n}}\n"
+    )
+        })
+        .collect::<String>();
+    let exact_source = format!(
+        "module {package};\n{payloads}\n@id(\"{package}.main\")\nfn main() -> i64 {{\n    0\n}}\n"
+    );
+    assert_eq!(actual, exact_source);
+    assert!(used < 1_048_576);
+}
+
+#[test]
+fn lazy_pattern_backing_is_exact_short_sticky_and_reused_at_the_original_capacity() {
+    let pattern = MatchPattern::Wildcard {
+        span: Span::default(),
+    };
+    let mut frames = Vec::new();
+    let mut names = Vec::new();
+    let backing = std::mem::size_of::<[Option<PatternFrame<'_>>; 129]>();
+    let (accepted, refused, used) = crate::bounded_output::with_limit_usage(backing - 1, || {
+        pattern_names(
+            &pattern,
+            &mut names,
+            &mut crate::bounded_output::reserve_active_required,
+            &mut frames,
+        )
+    });
+    assert!(!accepted && refused);
+    assert_eq!(used, 0);
+    assert_eq!(frames.capacity(), 0);
+    let (((), observed), refused, used) = crate::bounded_output::with_limit_usage(backing, || {
+        crate::test_allocation_observer::measure(|| {
+            assert!(pattern_names(
+                &pattern,
+                &mut names,
+                &mut crate::bounded_output::reserve_active_required,
+                &mut frames
+            ));
+            assert_eq!(frames.len(), 129);
+            assert_eq!(frames.capacity(), 129);
+            let pointer = frames.as_ptr();
+            assert!(pattern_names(
+                &pattern,
+                &mut names,
+                &mut crate::bounded_output::reserve_active_required,
+                &mut frames
+            ));
+            assert_eq!(frames.as_ptr(), pointer);
+            assert!(!crate::bounded_output::reserve_active_required(1));
+            assert!(!pattern_names(
+                &pattern,
+                &mut names,
+                &mut crate::bounded_output::reserve_active_required,
+                &mut frames
+            ));
+            drop(frames);
+        })
+    });
+    assert!(refused); // the explicit final byte refusal is sticky on reuse
+    assert_eq!(used, backing);
+    assert!(!observed.invalid);
+    assert_eq!(observed.allocated, backing);
+    assert_eq!(observed.freed, backing);
+    assert_eq!(observed.live, 0);
+}
+
+#[test]
+fn a_pattern_free_projection_acquires_no_pattern_backing() {
+    type Frame<'a> = Option<(&'a Expr, usize, usize)>;
+    let root = leaf();
+    let expression_request =
+        3 * std::mem::size_of::<Frame<'_>>() + 2 * std::mem::size_of::<Vec<Frame<'_>>>();
+    let owner = std::mem::size_of::<Vec<Option<PatternFrame<'_>>>>();
+    let ((accepted, observed), refused, used) =
+        crate::bounded_output::with_limit_usage(expression_request + owner, || {
+            crate::test_allocation_observer::measure(|| {
+                projection_is_hygienic(&root, crate::bounded_output::reserve_active_required)
+            })
+        });
+    assert!(accepted && !refused && !observed.invalid);
+    assert_eq!(used, expression_request + owner);
+    assert_eq!(observed.allocated, 2 * std::mem::size_of::<Frame<'_>>());
+    assert_eq!(observed.allocated, observed.freed);
+    assert_eq!(observed.live, 0);
 }

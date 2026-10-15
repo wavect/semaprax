@@ -1,0 +1,10 @@
+[
+  "src/ast/program_source/decl_slices/alias_tests.rs",
+  "src/ast/program_source/decl_slices/before_alias.rs",
+  "src/ast/program_source/function_alias.rs",
+  "src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs",
+  "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs",
+  "src/workspace_graph/expected_projection/borrowed_imports/typed/before_alias.rs",
+  "src/workspace_graph/function_alias/before_core.rs",
+  "src/workspace_graph/function_alias/before_core/tests.rs"
+]

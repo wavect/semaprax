@@ -291,3 +291,12 @@ pub(crate) mod nominal_original;
 
 #[cfg(test)]
 mod nominal_invalid_layout_tests;
+
+// Independently instantiated complete immediate-old resolver receiver.
+#[cfg(test)]
+#[path = "identity_resolution/nominal.rs"]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Independently compile the complete immediate-old resolver receiver."
+)]
+pub(crate) mod before_function_alias;

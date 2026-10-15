@@ -1,0 +1,17 @@
+{
+  "baseline_commit": "1e3a14ce71c115595185c1ce4d9dae5d5f6e34ad",
+  "sources": {
+    "docs/evidence/structural-call-cursor-v1/calls.before.rs.txt": {
+      "bytes": 16589,
+      "sha256": "90dec4afdeb5b935ee824a7d58855dfdbf27610121bd0fb458808a8de71b19ee"
+    },
+    "src/cleanup_plan/replay/structural_control/calls/cursor_before.rs": {
+      "bytes": 2684,
+      "sha256": "e0d050fe14022f2cbedeafef2a66c58da778c0ba588d3a9e1a7899310fae0568"
+    },
+    "src/cleanup_plan/replay/structural_control/calls/cursor.rs": {
+      "bytes": 4110,
+      "sha256": "ab17d234e39dcc9e973ffe14414ddb8d4e38a2da5cbbb90b9720e057fa273de2"
+    }
+  }
+}

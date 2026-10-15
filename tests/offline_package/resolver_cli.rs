@@ -108,7 +108,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         ),
         ("semaprax fmt --manifest <semaprax.toml> [--check]\n", ""),
         (
-            "semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text|stdin-stream-data|stdin-stream-collection-record|source-command-file-text] [--layout frozen|tables]\n",
+            "semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text|stdin-stream-data|stdin-stream-collection-record|source-command-file-text] [--layout frozen|tables|current]\n",
             "semaprax project-scaffold --name project-name [--template calculator]\n",
         ),
         (

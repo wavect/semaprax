@@ -152,3 +152,44 @@ fn final_attempt_help_never_imports_canonical_label_from_an_earlier_refused_atte
     assert!(help.contains("exact inner operation is unknown"));
     assert!(!help.contains("canonical shared-loan storage preparation"));
 }
+
+#[test]
+fn actual_reservation_site_extends_only_outward_help_and_stays_omitted_under_a_budget() {
+    use crate::bounded_output::{reserve_active_required, with_limit_usage_refusal_site};
+    let (line, refused, used, refusal, site) = with_limit_usage_refusal_site(3, || {
+        let line = line!() + 1;
+        assert!(!reserve_active_required(4));
+        line
+    });
+    assert!(refused);
+    assert_eq!(used, 0);
+    let old = live_builder_refusal(3, refusal);
+    let mut current = live_builder_refusal_at(3, refusal, site);
+    let suffix = format!(
+        " Reservation caller: {}:{}:{}.",
+        file!(),
+        line,
+        site.unwrap().column()
+    );
+    let help = current.help.as_ref().unwrap();
+    assert!(help.ends_with(&suffix));
+    assert_eq!(
+        help.strip_suffix(&suffix).unwrap(),
+        old.help.as_ref().unwrap()
+    );
+    current.help = current
+        .help
+        .map(|text| text.strip_suffix(&suffix).unwrap().to_owned());
+    assert_eq!(current, old); // all six diagnostic fields remain exact
+    assert_eq!(live_builder_refusal_at(3, refusal, None), old);
+    let (_, overflowed, base_paid) = crate::bounded_output::with_limit_usage(usize::MAX, || {
+        drop(live_builder_refusal(3, refusal));
+    });
+    assert!(!overflowed);
+    let (_, overflowed, site_paid) = crate::bounded_output::with_limit_usage(usize::MAX, || {
+        let diagnostic = live_builder_refusal_at(3, refusal, site);
+        assert!(!diagnostic.help.unwrap().contains("Reservation caller:"));
+    });
+    assert!(!overflowed);
+    assert_eq!(site_paid, base_paid);
+}

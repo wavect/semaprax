@@ -19,6 +19,7 @@ pub(crate) fn source_owner_scope<T, U>(
         floor: Cell::new(0),
         overflowed: Cell::new(false),
         first_refusal: Cell::new(None),
+        first_site: Cell::new(None),
         stage: Cell::new(None),
     });
     let previous = ACTIVE.with(|active| active.borrow_mut().replace(Rc::clone(&budget)));

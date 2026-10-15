@@ -1,0 +1,10 @@
+{
+  "producer_exit": 0,
+  "producer_wall_seconds": 5.838195208998513,
+  "strict_patch_preparation_exit": 1,
+  "failure": "archive-actual-and-build-patch.py:44 assertion: tests/workspace/semantic_graph.rs historical include source-inventory inverse absent from current full source",
+  "pins_modified": false,
+  "pin_consumers_validated": false,
+  "remaining_issue": 828,
+  "actual_capture_preserved": true
+}

@@ -303,6 +303,32 @@ pub(super) fn live_builder_refusal(
     }
 }
 
+/// Render the already captured compiler call site only at the ordinary outward
+/// report boundary. Active/refused report scopes retain the existing omission.
+pub(super) fn live_builder_refusal_at(
+    maximum: usize,
+    refusal: Option<crate::bounded_output::ReservationRefusal>,
+    site: Option<crate::bounded_output::ReservationSite>,
+) -> Diagnostic {
+    let mut diagnostic = live_builder_refusal(maximum, refusal);
+    if crate::bounded_output::active_remaining().is_some() || refusal.is_none() {
+        return diagnostic;
+    }
+    if let Some(site) = site {
+        if let Some(help) = diagnostic.help.as_mut() {
+            use std::fmt::Write as _;
+            let _ = write!(
+                help,
+                " Reservation caller: {}:{}:{}.",
+                site.file(),
+                site.line(),
+                site.column()
+            );
+        }
+    }
+    diagnostic
+}
+
 #[cfg(test)]
 mod refusal_tests;
 

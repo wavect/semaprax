@@ -1,0 +1,211 @@
+{
+  "execution_source": "d4cab900edac07fdcc4de0cdcb1bf3daafbef5ef",
+  "build_exit": 0,
+  "executed": 142,
+  "passed": 124,
+  "failed": [
+    {
+      "selector": "cleanup_plan::replay::expression_facts::receiving::regions_entry::tests::complete_region_entry_and_four_variant_source_projections_restore_full_originals",
+      "exit_code": 101,
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "log": "/Volumes/Semaprax/lane-prompts/final-d4cab-142-qualification-20261015/owning-selected-22.log"
+    },
+    {
+      "selector": "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+      "exit_code": 101,
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "log": "/Volumes/Semaprax/lane-prompts/final-d4cab-142-qualification-20261015/owning-selected-114.log"
+    },
+    {
+      "selector": "application_starter::application_starter_selected_file_declared_native_tests_and_unchanged_cli49",
+      "exit_code": 101,
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "log": "/Volumes/Semaprax/lane-prompts/final-d4cab-142-qualification-20261015/owning-selected-115.log"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+      "exit_code": 101,
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "log": "/Volumes/Semaprax/lane-prompts/final-d4cab-142-qualification-20261015/owning-selected-117.log"
+    },
+    {
+      "selector": "workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+      "exit_code": 101,
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "log": "/Volumes/Semaprax/lane-prompts/final-d4cab-142-qualification-20261015/owning-selected-118.log"
+    },
+    {
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "exit_code": 101,
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "log": "/Volumes/Semaprax/lane-prompts/final-d4cab-142-qualification-20261015/owning-selected-119.log"
+    },
+    {
+      "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_actual_byte_and_item_plus_one_preflight_never_reserve_output",
+      "exit_code": 101,
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "log": "/Volumes/Semaprax/lane-prompts/final-d4cab-142-qualification-20261015/owning-selected-120.log"
+    },
+    {
+      "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_reads_and_short_refusal_allocate_nothing_then_copy_final_string_once",
+      "exit_code": 101,
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "log": "/Volumes/Semaprax/lane-prompts/final-d4cab-142-qualification-20261015/owning-selected-121.log"
+    },
+    {
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_request_decision_response_keeps_duplicate_unicode_and_boundary_slots",
+      "exit_code": 101,
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "log": "/Volumes/Semaprax/lane-prompts/final-d4cab-142-qualification-20261015/owning-selected-122.log"
+    },
+    {
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_actual_item_and_byte_plus_one_refuse_before_publication",
+      "exit_code": 101,
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "log": "/Volumes/Semaprax/lane-prompts/final-d4cab-142-qualification-20261015/owning-selected-123.log"
+    },
+    {
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_maximum_escaping_exact_output_cap_and_plus_one",
+      "exit_code": 101,
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "log": "/Volumes/Semaprax/lane-prompts/final-d4cab-142-qualification-20261015/owning-selected-124.log"
+    },
+    {
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_plan_receipts_and_live_revision_reject_forged_versions",
+      "exit_code": 101,
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "log": "/Volumes/Semaprax/lane-prompts/final-d4cab-142-qualification-20261015/owning-selected-125.log"
+    },
+    {
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_two_nested_paths_preserve_exact_and_one_short_bytes",
+      "exit_code": 101,
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "log": "/Volumes/Semaprax/lane-prompts/final-d4cab-142-qualification-20261015/owning-selected-126.log"
+    },
+    {
+      "selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+      "exit_code": 101,
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "log": "/Volumes/Semaprax/lane-prompts/final-d4cab-142-qualification-20261015/owning-selected-127.log"
+    },
+    {
+      "selector": "workspace_graph::identity_resolution::base::cache_billing::tests::cached_prelude_replay_keeps_foreign_core_refusal_sticky",
+      "exit_code": 101,
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "log": "/Volumes/Semaprax/lane-prompts/final-d4cab-142-qualification-20261015/owning-selected-129.log"
+    },
+    {
+      "selector": "semantic_cache::same_length_provider_edits_after_a_checked_hit_keep_full_cold_graph_and_image_bytes",
+      "exit_code": 101,
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "log": "/Volumes/Semaprax/lane-prompts/final-d4cab-142-qualification-20261015/owning-selected-131.log"
+    },
+    {
+      "selector": "workspace_graph::expected_projection::defaults::inline_tests::complete_inline_sources_and_original_owners_have_exact_whole_file_inverses",
+      "exit_code": 101,
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "log": "/Volumes/Semaprax/lane-prompts/final-d4cab-142-qualification-20261015/owning-selected-138.log"
+    },
+    {
+      "selector": "workspace_graph::expected_projection::import_stub::core_proofs::tests::complete_original_receivers_and_all_literal_source_inverses_remain_byte_exact",
+      "exit_code": 101,
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "log": "/Volumes/Semaprax/lane-prompts/final-d4cab-142-qualification-20261015/owning-selected-139.log"
+    }
+  ],
+  "complete": true,
+  "resource_refusals": [],
+  "source_drift": [],
+  "unsettled": [],
+  "no_live_benchmark_run": true
+}

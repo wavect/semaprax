@@ -4114,8 +4114,8 @@ fn build_owned_inner(
             })
             .transpose()?;
         layouts.release_scratch();
-        let (core, overflowed, consumed, refusal) =
-            crate::bounded_output::with_limit_usage_refusal(active_builder_limit(), || {
+        let (core, overflowed, consumed, refusal, site) =
+            crate::bounded_output::with_limit_usage_refusal_site(active_builder_limit(), || {
                 #[cfg(test)]
                 let _trace = crate::bounded_output::stage_debits::start(
                     resolve_builder_bytes,
@@ -4173,9 +4173,10 @@ fn build_owned_inner(
             || !retry_allowed
         {
             return Err(paid_refusal.unwrap_or_else(|| {
-                vec![diagnostics::live_builder_refusal(
+                vec![diagnostics::live_builder_refusal_at(
                     active_builder_limit(),
                     refusal,
+                    site,
                 )]
             }));
         }

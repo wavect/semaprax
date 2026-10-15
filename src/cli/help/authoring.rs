@@ -127,7 +127,7 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "Contract and owning gates: docs/STATIC-BORROWED-UTF8-LITERALS-V1.md.\n"
         ).to_owned()),
         "author:string-take" => Ok(concat!(
-            "Named String owner transfer (core.string.take); owning qualification pending.\n",
+            "Named String owner transfer (core.string.take).\n",
             "Use let output = string_take(input); with a live named owned String local, parameter or destructured leaf. It forwards the same owner and retires input; ordinary owning reads still clone. End all overlapping views before take.\n",
             "Computed values, record projections, borrowed roots and contract calls are refused. Bind a whole String leaf first; take supplies no general move syntax or implicit last-use rule.\n",
             "Arguments stage left to right. A later argument, precondition or postcondition failure keeps ordinary sticky cleanup; it never revives input or publishes output. Empty Strings still own a carrier.\n",

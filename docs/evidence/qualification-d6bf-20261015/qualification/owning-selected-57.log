@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_logical_cost_cap_has_no_invented_receipt_and_foreign_stays_detached ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8965 filtered out; finished in 0.00s
+

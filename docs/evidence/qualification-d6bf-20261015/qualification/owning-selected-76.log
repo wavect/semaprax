@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::constructor_failure::report::tests::constructor_report_stage_capacity_is_closed_and_original_formatter_bodies_are_complete ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8965 filtered out; finished in 0.00s
+

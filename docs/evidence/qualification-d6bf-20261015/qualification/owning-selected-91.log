@@ -1,0 +1,6 @@
+
+running 1 test
+test format::iterative_tests::expression_blocks_and_empty_match_keep_exact_separators ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8965 filtered out; finished in 0.80s
+

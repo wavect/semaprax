@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::structural_control::blocks_before_receipt::tests::selected_structural_edges_preserve_unique_owner_and_complementary_branches ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8965 filtered out; finished in 0.01s
+

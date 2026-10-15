@@ -1,0 +1,17 @@
+
+running 1 test
+test cleanup_plan::replay::selected_entry::tests::fact_errors::tree_policy::complete_tree_and_both_arena_policies_keep_full_scalar_corpus_ids_and_verdicts ... 
+thread 'cleanup_plan::replay::selected_entry::tests::fact_errors::tree_policy::complete_tree_and_both_arena_policies_keep_full_scalar_corpus_ids_and_verdicts' (6263851) panicked at src/cleanup_plan/replay/selected_entry/tests/fact_errors/tree_policy.rs:156:9:
+assertion `left == right` failed
+  left: (31988885, 971491)
+ right: (31988338, 1021611)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::selected_entry::tests::fact_errors::tree_policy::complete_tree_and_both_arena_policies_keep_full_scalar_corpus_ids_and_verdicts
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8965 filtered out; finished in 0.06s
+

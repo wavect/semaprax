@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::structural_control::calls::custody_tests::actual_borrowed_receiving_controls_are_paid_before_the_child_at_exact_short_zero ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8965 filtered out; finished in 0.00s
+

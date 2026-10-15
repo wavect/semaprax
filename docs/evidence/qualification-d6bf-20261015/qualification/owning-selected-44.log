@@ -1,0 +1,15 @@
+
+running 1 test
+test format::comments::compare::tests::full_commented_comparison_keeps_old_unicode_crlf_trailing_nested_and_noncanonical_bytes ... 
+thread 'format::comments::compare::tests::full_commented_comparison_keeps_old_unicode_crlf_trailing_nested_and_noncanonical_bytes' (6234262) panicked at src/format/comments/compare/tests.rs:15:74:
+called `Result::unwrap()` on an `Err` value: Diagnostic { code: "SPX-P101", severity: Error, message: "a module must declare at least one function", path: Some("compare.spx"), span: Some(Span { start: 22, end: 22, line: 2, column: 1 }), help: None }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    format::comments::compare::tests::full_commented_comparison_keeps_old_unicode_crlf_trailing_nested_and_noncanonical_bytes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8965 filtered out; finished in 0.87s
+

@@ -341,4 +341,5 @@ fn directory<T>(count: usize, owner: &mut Receiver) -> Result<Vec<T>, Failure> {
 }
 
 #[cfg(test)]
+#[path = "alias/tests.rs"]
 mod tests;

@@ -1,0 +1,29 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "old_hooks_preserved": 2951,
+  "authenticated_added_checkpoint_rows": 191,
+  "all_rust_frozen_at": "e30e017e503f8e0362a186ada126c48e6199d4d7",
+  "unchanged_independent_receivers": 53,
+  "starter_complete_patch_source_inverses": [
+    {
+      "owner": "starter-original",
+      "authored_revision": "604e7fb05203a6701be6bdbcda8a181c5b969df2",
+      "original_base": "e3eb476838442b58c02ccc815aae4bbdfebfd50e",
+      "all_patch_sources_equal": true,
+      "patch_paths": 32,
+      "archived_patch_direction": "forward bytes applied in reverse",
+      "archived_files": 22
+    },
+    {
+      "owner": "starter-held-input-fix",
+      "authored_revision": "2ae6fee203fb726980524885ec36da268d5361bd",
+      "original_base": "604e7fb05203a6701be6bdbcda8a181c5b969df2",
+      "all_patch_sources_equal": true,
+      "patch_paths": 6,
+      "archived_patch_direction": "forward bytes applied in reverse",
+      "archived_files": 6
+    }
+  ],
+  "starter_current_bindings": 38,
+  "capacity834_original_and833_receiving_bound_retained": true
+}

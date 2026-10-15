@@ -376,7 +376,7 @@
     },
     {
       "source": "src/workspace_graph.rs",
-      "sha256": "afbc29c9ddba10122ea724072913522b56b7c6ef4d9a5f6276503897e2b291d2",
+      "sha256": "df1b090cc949a6d8913b3550fa1af748146281d89850118956172410a092e454",
       "original": "docs/evidence/nominal-payload-827/original/src/workspace_graph.rs",
       "original_sha256": "fe644b87c264e23b9afa0660d4bcd8149583f19438146734d258025c27087771",
       "new_file": false
@@ -562,5 +562,6 @@
   "repair_basis": "actual a33c16996b4f095ffa2cf631bc39db4589e28302 composed with corrected nested-byte source; source-only no runtime claim",
   "combined_final_source_basis": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
   "explicit_import_source_basis": "a41774c0b",
-  "ordered_integrated_source_basis": "e3eb476838442b58c02ccc815aae4bbdfebfd50e"
+  "ordered_integrated_source_basis": "e3eb476838442b58c02ccc815aae4bbdfebfd50e",
+  "final_integrated_source_basis": "e30e017e503f8e0362a186ada126c48e6199d4d7"
 }

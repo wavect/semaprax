@@ -1231,6 +1231,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Source-only #836 adds consuming `vec_update_field<Row>(rows,index,value,"field")`
+  for exact Copy scalar slots of invariant-free flat owned-leaf records, with
+  independent source/HIR/graph/cache checks, ordinary sticky preflight cleanup,
+  interpreter/native/Wasm paths, typed ShiftSim Worker adoption and an unrelated
+  inventory example. Owning gates remain pending; no efficiency result is claimed.
+
 - Source correction for #780: ordinary and retained loan candidate discovery use the paid contextual byte slot before plan selection; preserve complete strict v1 candidate controls, typed child-ledger refusal, external setup observations and unreachable-fixture diagnostics. Executable qualification remains pending.
 
 - Source-only nested record-pattern validation now streams exact binding paths

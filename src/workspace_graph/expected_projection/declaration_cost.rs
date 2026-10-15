@@ -195,7 +195,9 @@ fn ast_expr_cost_at(
             // Complete synthetic key/layout identities are additional HIR text.
             // Bound every transient replay buffer before entering the builder;
             // descriptor construction itself charges its actual allocation.
-            if crate::vec_ops::field_unique::literal_call(name) {
+            if crate::vec_ops::field_unique::literal_call(name)
+                || name == crate::vec_ops::field_update::NAME
+            {
                 cost.add_split(
                     8 * crate::vec_ops::sort_keys::MAX_DESCRIPTOR_BYTES,
                     8 * crate::vec_ops::sort_keys::MAX_DESCRIPTOR_BYTES,

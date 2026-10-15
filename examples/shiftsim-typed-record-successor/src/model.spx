@@ -30,3 +30,11 @@ fn model_anchor() -> i64
 {
     0
 }
+
+@id("shiftsim.worker")
+record Worker {
+    @id("shiftsim.worker.id")
+    id: string,
+    @id("shiftsim.worker.free_at")
+    free_at: i64,
+}

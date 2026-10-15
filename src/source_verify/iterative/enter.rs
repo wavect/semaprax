@@ -274,7 +274,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 type_arguments,
                 args,
             } => {
-                let args: &[Expr] = if name == crate::vec_ops::sort_keys::NAME {
+                let update_field_type = crate::source_verify::field_update::prepare(
+                    self.types,
+                    self.current,
+                    expression,
+                    self.program,
+                )?;
+                let args: &[Expr] = if update_field_type.is_some() {
+                    &args[..3]
+                } else if name == crate::vec_ops::sort_keys::NAME {
                     if !self.current.type_parameters.is_empty()
                         || crate::source_verify::sort_keys::descriptor(
                             self.types,
@@ -641,7 +649,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     }
                     VerifierCallTarget::Ordinary(element.map(|element| {
                         VerifierFunctionSignature::Specialized {
-                            params: crate::vec_ops::ast_params_with_owned_element(
+                            params: crate::source_verify::field_update::params(
                                 op,
                                 element,
                                 *element == crate::ast::Type::Bytes
@@ -650,6 +658,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                         owned_leaf_collection::runtime_element(
                                             self.types, element,
                                         ),
+                                update_field_type.as_ref(),
                             ),
                             return_type: op.ast_return_type(element),
                             implicit_unique_ownership: false,

@@ -72,6 +72,16 @@ pub(super) fn validate_uses_with_registry(
         for module_use in &program.module_uses {
             if module_use
                 .persistent_id
+                .starts_with(crate::vec_ops::field_update::PREFIX)
+            {
+                return Err(vec![use_error(
+                    program,
+                    module_use,
+                    "compiler-owned scalar field update descriptors cannot be imported",
+                )]);
+            }
+            if module_use
+                .persistent_id
                 .starts_with(crate::vec_ops::sort_keys::PREFIX)
             {
                 return Err(vec![use_error(

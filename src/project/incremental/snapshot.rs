@@ -6,6 +6,7 @@ use std::collections::BTreeSet;
 
 mod borrowed_encoding;
 mod field_unique;
+mod field_update;
 mod literal_format;
 mod loan_replay;
 mod vec_field;
@@ -203,6 +204,7 @@ pub(crate) fn decode_snapshot(bytes: &[u8]) -> Result<ProjectFrontendCache> {
                 crate::hir::replay_agent_source_associations(&program, &entry.resolved.agents)
                     .map_err(|error| vec![error])?;
                 literal_format::replay_source(&entry.source, &entry.synthetic, &entry.resolved)?;
+                field_update::replay_source(&entry.source, &entry.synthetic, &entry.resolved)?;
                 vec_field::replay_source(&entry.source, &entry.synthetic, &entry.resolved)?;
                 field_unique::replay_source(&entry.source, &entry.synthetic, &entry.resolved)?;
                 loan_replay::reconstruct(&mut entry.resolved)?;

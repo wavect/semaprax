@@ -38,6 +38,7 @@ pub(super) fn call_behavior(
                 | crate::vec_ops::VecOp::ReserveExact
                 | crate::vec_ops::VecOp::Set
                 | crate::vec_ops::VecOp::Replace
+                | crate::vec_ops::VecOp::UpdateField
                 | crate::vec_ops::VecOp::ReserveOwned
         )
     ) || callee.as_str() == crate::iterator_ops::NEXT_ID

@@ -434,6 +434,14 @@ pub(super) fn resolved_call_params(
                     "cleanup bounded Vec call has unsupported element",
                 ));
             }
+            if op == crate::vec_ops::VecOp::UpdateField {
+                return crate::vec_ops::field_update::params(
+                    program.declarations(),
+                    element,
+                    callee.as_str(),
+                )
+                .ok_or_else(|| replay_error(function, "forged scalar update signature"));
+            }
             return Ok(crate::vec_ops::resolved_params_in(
                 program.declarations(),
                 op,
@@ -490,7 +498,7 @@ pub(super) fn defers_owner_commit(expression: &crate::hir::ResolvedExpr) -> bool
                 crate::vec_ops::VecOp::Push
                     | crate::vec_ops::VecOp::ReserveExact
                     | crate::vec_ops::VecOp::Set
-                | crate::vec_ops::VecOp::Replace | crate::vec_ops::VecOp::ReserveOwned
+                | crate::vec_ops::VecOp::Replace | crate::vec_ops::VecOp::ReserveOwned | crate::vec_ops::VecOp::UpdateField
             )
         )
             || callee.as_str() == crate::iterator_ops::NEXT_ID
@@ -505,4 +513,17 @@ pub(super) fn defers_owner_commit(expression: &crate::hir::ResolvedExpr) -> bool
             || crate::string_ops::by_id(callee.as_str())
                 .is_some_and(crate::string_ops::StringOp::reopens_map)
     )
+}
+
+pub(super) fn vector_params(
+    index: &crate::hir::DeclarationIndex,
+    op: crate::vec_ops::VecOp,
+    element: &ResolvedType,
+    callee: &DeclarationId,
+) -> Vec<ResolvedParam> {
+    if op == crate::vec_ops::VecOp::UpdateField {
+        return crate::vec_ops::field_update::params(index, element, callee.as_str())
+            .unwrap_or_default();
+    }
+    crate::vec_ops::resolved_params_in(index, op, element)
 }

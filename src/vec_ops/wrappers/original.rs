@@ -35,7 +35,8 @@ pub(crate) fn source_wrapper(program: &dyn ProgramSource, function: &Function) -
         | VecOp::SortOwned
         | VecOp::SortBy
         | VecOp::StrAt
-        | VecOp::UniqueBy => return None,
+        | VecOp::UniqueBy
+        | VecOp::UpdateField => return None,
     };
     if function.params.len() != expected.len()
         || function

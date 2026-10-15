@@ -276,9 +276,14 @@ fn call(
                     "an uncatalogued Vec operation shape",
                 )),
                 V::Get => reads("an owned Vec element read"),
-                V::Push | V::Len | V::Capacity | V::Set | V::Clear | V::Replace | V::StrAt => {
-                    Ok(())
-                }
+                V::Push
+                | V::Len
+                | V::Capacity
+                | V::Set
+                | V::Clear
+                | V::Replace
+                | V::StrAt
+                | V::UpdateField => Ok(()),
             };
         }
         if let Some(operation) = crate::map_ops::by_id(callee.as_str()) {

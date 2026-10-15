@@ -53,11 +53,26 @@ impl PlanBuilder<'_> {
     pub(super) fn bounded_vec_params(
         &self,
         op: crate::vec_ops::VecOp,
+        callee: &DeclarationId,
         has_instance: bool,
         argument_count: usize,
         type_arguments: &[ResolvedType],
         expression: &ExpressionId,
     ) -> Result<Vec<ResolvedParam>, Diagnostic> {
+        if op == crate::vec_ops::VecOp::UpdateField {
+            let [element] = type_arguments else {
+                return Err(plan_error("scalar update missing element"));
+            };
+            if has_instance || argument_count != 3 {
+                return Err(plan_error("scalar update invalid call shape"));
+            }
+            return crate::vec_ops::field_update::params(
+                &self.program.declarations,
+                element,
+                callee.as_str(),
+            )
+            .ok_or_else(|| plan_error("scalar update forged descriptor"));
+        }
         resolved_params(
             &self.program.declarations,
             op,

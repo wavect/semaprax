@@ -615,11 +615,15 @@ fn validate_structure_with_budget_storage<'hir>(
 
     let expression_facts = expression_facts::with_budget(function, budget)?;
     ordinary_inventory::validate_inventory_coverage(program, function, budget)?;
-    let status_cases = expression_facts::receiving::StatusCases::validate(program, function, budget)?;
+    let status_cases =
+        expression_facts::receiving::StatusCases::validate(program, function, budget)?;
     let storage = validate_slots_paid(function, budget)?;
     let leaves = collect_leaves_paid(function, budget)?;
     let statuses = expression_facts::receiving::validate_status_sources_certified(
-        function, &expression_facts, budget, &status_cases,
+        function,
+        &expression_facts,
+        budget,
+        &status_cases,
     )?;
     expression_facts::receiving::validate_regions(function, &storage, budget)?;
     expression_facts::receiving::validate_entry(function, &storage, &leaves, budget)?;
@@ -3593,10 +3597,11 @@ fn expression_skeleton_run<'hir>(
                                             "bounded Vec skeleton call has incorrect type arity",
                                         ));
                                     };
-                                    crate::vec_ops::resolved_params_in(
+                                    resolved_call::vector_params(
                                         program.declarations(),
                                         op,
                                         element,
+                                        callee,
                                     )
                                     .into()
                                 }

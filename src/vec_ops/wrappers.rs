@@ -51,7 +51,8 @@ pub(crate) fn wrapper_id(op: VecOp) -> Option<&'static str> {
         | VecOp::SortOwned
         | VecOp::SortBy
         | VecOp::StrAt
-        | VecOp::UniqueBy => return None,
+        | VecOp::UniqueBy
+        | VecOp::UpdateField => return None,
     })
 }
 
@@ -72,7 +73,8 @@ pub(crate) fn wrapper_name(op: VecOp) -> Option<&'static str> {
         | VecOp::SortOwned
         | VecOp::SortBy
         | VecOp::StrAt
-        | VecOp::UniqueBy => return None,
+        | VecOp::UniqueBy
+        | VecOp::UpdateField => return None,
     })
 }
 
@@ -119,7 +121,8 @@ pub(crate) fn source_wrapper(program: &dyn ProgramSource, function: &Function) -
         | VecOp::SortOwned
         | VecOp::SortBy
         | VecOp::StrAt
-        | VecOp::UniqueBy => return None,
+        | VecOp::UniqueBy
+        | VecOp::UpdateField => return None,
     };
     if function.params.len() != expected_names.len()
         || function
@@ -245,7 +248,8 @@ pub(crate) fn hir_wrapper(template: &ResolvedFunctionTemplate) -> Option<VecOp> 
         | VecOp::SortOwned
         | VecOp::SortBy
         | VecOp::StrAt
-        | VecOp::UniqueBy => return None,
+        | VecOp::UniqueBy
+        | VecOp::UpdateField => return None,
     };
     if template.params.len() != expected.len()
         || template
@@ -367,7 +371,8 @@ pub(crate) fn template_ownership(
             | VecOp::SortOwned
             | VecOp::SortBy
             | VecOp::StrAt
-            | VecOp::UniqueBy => {
+            | VecOp::UniqueBy
+            | VecOp::UpdateField => {
                 return None;
             }
         })

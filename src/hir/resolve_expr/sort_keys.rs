@@ -16,7 +16,17 @@ impl Resolver<'_> {
                 element,
                 callee,
             } => {
-                let args = take_results(results, 1);
+                let args = take_results(
+                    results,
+                    if callee
+                        .as_str()
+                        .starts_with(crate::vec_ops::field_update::PREFIX)
+                    {
+                        3
+                    } else {
+                        1
+                    },
+                );
                 let path = paths.at(path);
                 results.push(self.finish_sort_by(function, span, path, element, callee, args)?);
             }
@@ -45,7 +55,15 @@ impl Resolver<'_> {
         // distinct versioned descriptor, borrowed operand and Bool result.
         let unique = matches!(&expression.kind, ExprKind::Call { name, .. }
             if name == crate::vec_ops::field_unique::NAME);
+        let update = matches!(&expression.kind, ExprKind::Call { name, .. } if name == crate::vec_ops::field_update::NAME);
         let fail = || {
+            if update {
+                return self.error(
+                    "SPX-H006",
+                    crate::vec_ops::field_update::SHAPE,
+                    expression.span,
+                );
+            }
             if unique {
                 self.error(
                     "SPX-H006",
@@ -62,14 +80,25 @@ impl Resolver<'_> {
         let [ty] = types else {
             return Err(fail());
         };
-        let [_, literal] = args else {
-            return Err(fail());
+        let literal = if update {
+            let [_, _, _, literal] = args else {
+                return Err(fail());
+            };
+            literal
+        } else {
+            let [_, literal] = args else {
+                return Err(fail());
+            };
+            literal
         };
         let ExprKind::String(keys) = &literal.kind else {
             return Err(fail());
         };
         let element = self.resolve_type(ty, expression.span)?;
-        let descriptor = if unique {
+        let descriptor = if update {
+            crate::vec_ops::field_update::resolve(&self.declarations, &element, keys)
+                .and_then(|d| d.identity())
+        } else if unique {
             crate::vec_ops::field_unique::resolve(&self.declarations, &element, keys)
                 .and_then(|d| d.identity())
         } else {
@@ -88,7 +117,23 @@ impl Resolver<'_> {
         callee: DeclarationId,
         args: Vec<ResolvedExpr>,
     ) -> Result<ResolvedExpr, Diagnostic> {
-        let op = if callee
+        let update = callee
+            .as_str()
+            .starts_with(crate::vec_ops::field_update::PREFIX);
+        if update {
+            let (_, field_type) = crate::vec_ops::field_update::position(
+                &self.declarations,
+                &element,
+                callee.as_str(),
+            )
+            .ok_or_else(|| self.error("SPX-H006", crate::vec_ops::field_update::SHAPE, span))?;
+            if !crate::vec_ops::field_update::arguments(&args, &element, &field_type) {
+                return Err(self.error("SPX-H006", crate::vec_ops::field_update::SHAPE, span));
+            }
+        }
+        let op = if update {
+            crate::vec_ops::VecOp::UpdateField
+        } else if callee
             .as_str()
             .starts_with(crate::vec_ops::field_unique::PREFIX)
         {
@@ -114,6 +159,14 @@ impl Resolver<'_> {
         path: PathId,
     ) -> Result<[Frame<'e>; 2], Diagnostic> {
         let (element, callee) = self.prepare_sort_by(function, expression, types, args)?;
+        let runtime_count = if callee
+            .as_str()
+            .starts_with(crate::vec_ops::field_update::PREFIX)
+        {
+            3
+        } else {
+            1
+        };
         Ok([
             Frame::FinishSortBy {
                 span: expression.span,
@@ -122,7 +175,7 @@ impl Resolver<'_> {
                 callee,
             },
             Frame::ChildNext {
-                children: &args[..1],
+                children: &args[..runtime_count],
                 index: 0,
                 bindings,
                 path,

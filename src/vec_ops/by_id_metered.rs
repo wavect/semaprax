@@ -8,6 +8,10 @@ pub(crate) fn by_id_with_work(
     if id.starts_with(sort_keys::PREFIX) {
         return Ok(Some(VecOp::SortBy));
     }
+    if id.starts_with(field_update::PREFIX) {
+        crate::hir::renewal_probes::units(work, field_update::PREFIX.len() + 1)?;
+        return Ok(Some(VecOp::UpdateField));
+    }
     // Borrowed field uniqueness is deliberately unclassified here: every
     // renewal-profile caller admits only owner-reopening or Push operations, so
     // its None result is equivalent and existing lookup work stays unchanged.

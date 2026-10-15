@@ -222,24 +222,30 @@ impl Resolver<'_> {
                         span: expr.span,
                     });
                 }
-                if crate::vec_ops::field_unique::literal_call(name) {
+                if crate::vec_ops::field_unique::literal_call(name)
+                    || name == crate::vec_ops::field_update::NAME
+                {
                     let (element, callee) =
                         self.prepare_sort_by(function, expr, type_arguments, args)?;
-                    let value = self.resolve_expr_recursive_reference_inner(
-                        function,
-                        &args[0],
-                        bindings,
-                        &format!("{path}.arg.0"),
-                        nearest,
-                    )?;
-                    return self.finish_sort_by(
-                        function,
-                        expr.span,
-                        path,
-                        element,
-                        callee,
-                        vec![value],
-                    );
+                    let count = if name == crate::vec_ops::field_update::NAME {
+                        3
+                    } else {
+                        1
+                    };
+                    let values = args[..count]
+                        .iter()
+                        .enumerate()
+                        .map(|(index, arg)| {
+                            self.resolve_expr_recursive_reference_inner(
+                                function,
+                                arg,
+                                bindings,
+                                &format!("{path}.arg.{index}"),
+                                nearest,
+                            )
+                        })
+                        .collect::<Result<Vec<_>, _>>()?;
+                    return self.finish_sort_by(function, expr.span, path, element, callee, values);
                 }
                 if name == crate::vec_field::NAME {
                     let (element, field) =

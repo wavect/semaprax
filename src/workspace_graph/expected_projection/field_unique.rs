@@ -1,6 +1,8 @@
 //! Independent source-derived field-uniqueness callee replay at exact source
 //! paths. It shares SPX-G173 with explicit sort keys: both are compiler-owned
 //! literal descriptors that must equal retained HIR at each source identity.
+#[path = "field_update.rs"]
+mod field_update;
 use crate::ast::{Expr, ExprKind, ModuleUseKind, Program, Type};
 use crate::bounded_output::budgeted_format;
 use crate::diagnostic::Diagnostic;
@@ -12,6 +14,7 @@ pub(super) fn verify(
     resolved: &hir::ResolvedProgram,
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
 ) -> Result<(), Vec<Diagnostic>> {
+    field_update::verify(program, resolved, authored)?;
     let fail = || {
         vec![graph_error(
             "SPX-G173",

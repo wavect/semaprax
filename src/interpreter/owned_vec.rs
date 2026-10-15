@@ -1,6 +1,7 @@
 //! Reference-interpreter carrier and evaluation for compiler-owned bounded Vec.
 
 mod field_unique;
+mod field_update;
 #[cfg(test)]
 mod float_order_probe;
 mod owned_leaf;
@@ -187,6 +188,14 @@ impl Evaluator<'_> {
         {
             return Err(Flow::Guard("forged borrowed field uniqueness descriptor"));
         }
+        if op == crate::vec_ops::VecOp::UpdateField {
+            let (_, field) =
+                crate::vec_ops::field_update::position(declarations, &element, identity)
+                    .ok_or(Flow::Guard("forged scalar field update descriptor"))?;
+            if !crate::vec_ops::field_update::arguments(args, &element, &field) {
+                return Err(Flow::Guard("forged scalar field update operands"));
+            }
+        }
         let mut values = Vec::with_capacity(args.len());
         for (index, argument) in args.iter().enumerate() {
             if index == 0
@@ -206,6 +215,9 @@ impl Evaluator<'_> {
             }
         }
         match op {
+            crate::vec_ops::VecOp::UpdateField => {
+                self.update_owned_vec_field(&element, identity, values)
+            }
             crate::vec_ops::VecOp::StrAt => Err(Flow::Guard(
                 "String-slot operation requires exact borrowed call dispatch",
             )),

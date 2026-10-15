@@ -2,6 +2,8 @@
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
 
+- Remove real held-slot and initial weighted-root Result carriers from the direct factored replay path (#831), retaining the complete original constructor fees and strict old receiver independently. Source review and inverse proofs passed; executable qualification and measured gains remain pending.
+
 - Resolve explicitly selected starter plan and command-source paths once from
   the full host's working directory, retaining all held no-follow reads and
   prepublication rechecks. Add relative/absolute exact-byte and symlink-refusal

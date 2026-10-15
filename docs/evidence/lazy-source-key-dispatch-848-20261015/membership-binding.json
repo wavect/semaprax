@@ -1,0 +1,1622 @@
+{
+  "base": "79d5be03a898c00869aebd4efc62ec2d59088551",
+  "fixtures": [
+    {
+      "fixture": "F00",
+      "path": "/docs/evidence/compiler-receiving-fix-7800-20261015/predecessor-projections.json",
+      "length": 113196,
+      "sha256": "2b22adba85fe3d3d95f08117fa6a7fe0969eca213d2a166111934d468479d527",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/factored/canonical_shared/before_held.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+        "src/source_reflows_merge.rs"
+      ]
+    },
+    {
+      "fixture": "F01",
+      "path": "/docs/evidence/source-composition-f813-held-20261015/pre-ours.json",
+      "length": 147463,
+      "sha256": "8eee1bb63c129384e2ffd54b5895c137b9db935c393cfa6e5dc5e311c5c88f8a",
+      "source_keys_with_multiplicity": [
+        "src/hir/lexical_exit/walk.rs",
+        "src/literal_format.rs",
+        "src/string_ops/concat_funded.rs",
+        "src/workspace_graph/identity_resolution/tests.rs"
+      ]
+    },
+    {
+      "fixture": "F02",
+      "path": "/docs/evidence/source36-main88884-merge-20261015/ours-projections.json",
+      "length": 436921,
+      "sha256": "a58a5a05526cf4ab68e9c176d720b1c20a0e5e6cf83b2290ac940d5848f17a2f",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/allocation.rs",
+        "src/cleanup_plan/replay/allocation/oracle.rs",
+        "src/cleanup_plan/replay/factored.rs",
+        "src/cleanup_plan/replay/factored/oracle_hook.rs",
+        "src/cleanup_plan/replay/paid_type_facts/inventory_tests.rs",
+        "src/hir/funded.rs",
+        "src/hir/lexical_exit/owner_funded.rs",
+        "src/hir/lexical_exit/walk.rs",
+        "src/workspace_graph/identity_resolution/tests.rs",
+        "tests/hir_module_boundaries.rs"
+      ]
+    },
+    {
+      "fixture": "F03",
+      "path": "/docs/evidence/source-composition-f813-held-20261015/main-projections.json",
+      "length": 2204457,
+      "sha256": "192192521cd61c4b6acd0add780f39a58a7170a8deda6867becbf89a8c0bdf8b",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay.rs",
+        "src/cleanup_plan/replay/allocation/oracle.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+        "src/cleanup_plan/replay/factored.rs",
+        "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+        "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+        "src/cleanup_plan/replay/selected_entry/tests/fact_errors.rs",
+        "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs",
+        "src/cleanup_plan/replay/selected_profile.rs",
+        "src/hir/declaration_index.rs",
+        "src/hir/identity_resolution/nominal_tests/legacy.rs",
+        "src/loop_calls/byte_writer.rs",
+        "src/source_verify/iterative/enter.rs",
+        "src/workspace_graph.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports.rs",
+        "src/workspace_graph/expected_projection/import_stub/byte_helper.rs",
+        "tests/hir_module_boundaries.rs"
+      ]
+    },
+    {
+      "fixture": "F04",
+      "path": "/docs/evidence/source-composition-f813-held-20261015/held-projections.json",
+      "length": 34546,
+      "sha256": "153369a8c55e440e6a0a493c9cab849443a94cfa681363199d42ac90e2476f70",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs",
+        "src/cleanup_plan/replay/physical_budget/authentication/source.rs"
+      ]
+    },
+    {
+      "fixture": "F05",
+      "path": "/docs/evidence/source-composition-f813-held-20261015/weighted-projections.json",
+      "length": 40395,
+      "sha256": "a72d0412d3fc40d368f189643c02c4df54eaeb94325b2f04068c114e7e547a5f",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs"
+      ]
+    },
+    {
+      "fixture": "F06",
+      "path": "/docs/evidence/inline-weighted-successor-842/source-inverses.json",
+      "length": 1429146,
+      "sha256": "73b32eaf57a0af165fb8377fb1bbdf3a499fe969b159e1e03eee795391c99f95",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/ARCHITECTURE.md",
+        "src/cleanup_plan/replay/factored/canonical_shared.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/receiver_tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+        "src/source_reflows_merge.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F07",
+      "path": "/docs/evidence/held-closure-receiver-843/runtime-projections.json",
+      "length": 602726,
+      "sha256": "fe2e11f4544bcd297fee73fe279ec38b3a8e196945b54f523eac9a1c7221ab7e",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "src/cleanup_plan/replay/factored.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared.rs",
+        "src/source_reflows_merge.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F08",
+      "path": "/docs/evidence/final-842-843-source-assembly-20261015/view-9d.json",
+      "length": 1517319,
+      "sha256": "0da41b5915268ce70feb567bf79b929dcbb7e1ce727474933df0cb17f4f102e7",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/ARCHITECTURE.md",
+        "src/cleanup_plan/replay/factored.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/receiver_tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+        "src/source_reflows_merge.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F09",
+      "path": "/docs/evidence/final-842-843-source-assembly-20261015/view-842.json",
+      "length": 726495,
+      "sha256": "4ac7a4a6977d2b859d0736b00b3801861ac16d63cda0647d7dcbd0c67b844b2e",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "src/cleanup_plan/replay/factored.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_held.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/source.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+        "src/source_reflows_merge.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F10",
+      "path": "/docs/evidence/final-842-843-source-assembly-20261015/view-843.json",
+      "length": 1559346,
+      "sha256": "30b3761648acdcad75a9b13533aa987c428141f6c4c4ab50d410800acdf582cc",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/ARCHITECTURE.md",
+        "src/cleanup_plan/replay/factored/canonical_shared.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_held.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/source.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/receiver_tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+        "src/source_reflows_merge.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F11",
+      "path": "/docs/evidence/main7f-source-successor-20261015/current-to-9365.json",
+      "length": 3919369,
+      "sha256": "e119f7695d88cd94b6dccecbd87d95ae26ca9d87fa7bf1d099cae228ab9fa552",
+      "source_keys_with_multiplicity": [
+        ".github/workflows/ci.yml",
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/AGENT-SKILL-BUNDLE-V1.json",
+        "docs/DECLARATION-IDENTITY-BACKING-V1.md",
+        "src/bounded_output.rs",
+        "src/byte_data_capacity.rs",
+        "src/byte_data_capacity/before.rs",
+        "src/cleanup_plan/checked_allocation/projection/tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs",
+        "src/cleanup_plan/replay/path_join.rs",
+        "src/cleanup_plan/replay/path_join/storage.rs",
+        "src/cli/help.rs",
+        "src/loan_plan/funded_flat.rs",
+        "src/loan_plan/paid_live.rs",
+        "src/loan_plan/paid_live/funded_before.rs",
+        "src/loan_plan/paid_live/original.rs",
+        "src/source_reflows.json",
+        "src/source_reflows_merge.rs",
+        "src/source_verify/declaration/functions.rs",
+        "src/source_verify/declaration/functions/public_signature_before.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports_original.rs",
+        "tests/agent_runtime_v1/execution_revision/workspace.rs",
+        "tests/harness_isolation.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/image_v5/string_builtin_constructors.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F12",
+      "path": "/docs/evidence/main7f-source-successor-20261015/current-to-main7f.json",
+      "length": 2206290,
+      "sha256": "d3efa3b7417f4fd0b37f390c629ddce7861436ddcf88909e5d96dee697d18c5d",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay.rs",
+        "src/cleanup_plan/replay/allocation/oracle.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+        "src/cleanup_plan/replay/factored.rs",
+        "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+        "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+        "src/cleanup_plan/replay/selected_entry/tests/fact_errors.rs",
+        "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs",
+        "src/cleanup_plan/replay/selected_profile.rs",
+        "src/hir/declaration_index.rs",
+        "src/hir/identity_resolution/nominal_tests/legacy.rs",
+        "src/loop_calls/byte_writer.rs",
+        "src/source_verify/iterative/enter.rs",
+        "src/workspace_graph.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports.rs",
+        "src/workspace_graph/expected_projection/import_stub/byte_helper.rs",
+        "tests/hir_module_boundaries.rs"
+      ]
+    },
+    {
+      "fixture": "F13",
+      "path": "/docs/evidence/mainff869-source-successor-20261015/current-to-mainff.json",
+      "length": 2206475,
+      "sha256": "d8a6696e6b3bf9afa3f0a1b4343efc31bf249eabce42a3daddba11bfe10eaae0",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay.rs",
+        "src/cleanup_plan/replay/allocation/oracle.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+        "src/cleanup_plan/replay/factored.rs",
+        "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+        "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+        "src/cleanup_plan/replay/selected_entry/tests/fact_errors.rs",
+        "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs",
+        "src/cleanup_plan/replay/selected_profile.rs",
+        "src/hir/declaration_index.rs",
+        "src/hir/identity_resolution/nominal_tests/legacy.rs",
+        "src/loop_calls/byte_writer.rs",
+        "src/source_verify/iterative/enter.rs",
+        "src/workspace_graph.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports.rs",
+        "src/workspace_graph/expected_projection/import_stub/byte_helper.rs",
+        "tests/hir_module_boundaries.rs"
+      ]
+    },
+    {
+      "fixture": "F14",
+      "path": "/docs/evidence/d1bb-corrective-source-successor-20261015/current-to-d1bb.json",
+      "length": 130873,
+      "sha256": "5859a6a945397cb471a6f77d059321391e54a08bf0b200202d3a935b3d60cfae",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs",
+        "src/cleanup_plan/replay/factored/strategy.rs",
+        "src/cleanup_plan/replay/selected_entry/tests/fact_errors/tree_policy.rs",
+        "src/loan_plan/paid_candidate/retained.rs",
+        "src/source_reflows_merge.rs"
+      ]
+    },
+    {
+      "fixture": "F15",
+      "path": "/docs/evidence/d1bb-corrective-source-successor-20261015/scalar-policy-inputs.json",
+      "length": 65634,
+      "sha256": "d07a9031e043669b663bcda1dbaff3d3597ed713efb82a4caff49ae89bc231cd",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/selected_entry.rs",
+        "src/cleanup_plan/replay/selected_entry/tests/fact_errors.rs"
+      ]
+    },
+    {
+      "fixture": "F16",
+      "path": "/docs/evidence/source-consumer-closure-fixes-20261015/current-to-3d4b.json",
+      "length": 835008,
+      "sha256": "7ac6ce516a2bad03bfb2f7ac4f096d8f500ee9c4bd823f2f588b940de8acd672",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-owned-data-package/src/project_publication/application.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+        "src/cleanup_plan/replay/lexical_replay/operand_tests/source.rs",
+        "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph/cold_canonical/tests.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+        "src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs",
+        "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+        "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+        "src/workspace_graph/generic_type_import/parameter_names/receiving.rs",
+        "src/workspace_graph/generic_type_import/receiving.rs",
+        "src/workspace_graph/generic_type_import/receiving/tests.rs",
+        "tests/workspace/semantic_graph.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F17",
+      "path": "/docs/evidence/source-consumer-closure-fixes-20261015/decl825.json",
+      "length": 144029,
+      "sha256": "e1ed539e3b0109559a346534c9a8a301e0a852f948fd478fb92d90e398e96e4c",
+      "source_keys_with_multiplicity": [
+        "src/workspace_graph/generic_type_import/parameter_names/receiving.rs",
+        "src/workspace_graph/generic_type_import/receiving.rs",
+        "src/workspace_graph/generic_type_import/receiving/tests.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F18",
+      "path": "/docs/evidence/source-consumer-closure-fixes-20261015/cost825.json",
+      "length": 324148,
+      "sha256": "ac3cde3c5a0098c1071e329a6638561ce68108ba4f88f1eb0ab0898dbb2c648c",
+      "source_keys_with_multiplicity": [
+        "src/workspace_graph/expected_projection/borrowed_imports.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+        "tests/workspace/semantic_graph.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F19",
+      "path": "/docs/evidence/source-consumer-closure-fixes-20261015/signature825.json",
+      "length": 156819,
+      "sha256": "6d10a1c0532eac1d78fc6d779915b40d688eced5e602054dc3e26a8c96bb0861",
+      "source_keys_with_multiplicity": [
+        "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F20",
+      "path": "/docs/evidence/source-consumer-closure-fixes-20261015/capacity834.json",
+      "length": 613621,
+      "sha256": "f50c83a99e315990b1c9304d4bd36fd523daa7267cb38728a77a9a48412faa13",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+        "src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F21",
+      "path": "/docs/evidence/source-consumer-closure-fixes-20261015/registry833.json",
+      "length": 98179,
+      "sha256": "8e08780d27089fcb74b18440a2cc98ed3f140cf3b2e0b18c8a8599e1a1c855fb",
+      "source_keys_with_multiplicity": [
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F22",
+      "path": "/docs/evidence/source-consumer-closure-fixes-20261015/receiving831.json",
+      "length": 48407,
+      "sha256": "a5524f9b56a0024effc3a2fc2d2c72e2d4405f7b75afd55ce38eba2699b791d2",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs"
+      ]
+    },
+    {
+      "fixture": "F23",
+      "path": "/docs/evidence/source-consumer-closure-fixes-20261015/lexical832.json",
+      "length": 614082,
+      "sha256": "ade119e1f38ebb1f08047fc66ebf44d2c89bc6128aa343730fcd0a0151f95203",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "src/cleanup_plan/replay/lexical_replay/operand_tests/source.rs",
+        "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F24",
+      "path": "/docs/evidence/source-consumer-closure-fixes-20261015/cold835.json",
+      "length": 98184,
+      "sha256": "1430b5f5e29ae541a0071ca865ff057ec68a4ef43d05a92f06dd7f41685c230e",
+      "source_keys_with_multiplicity": [
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F25",
+      "path": "/docs/evidence/ae91-source-consumer-corrections-20261015/current-to-ae91.json",
+      "length": 289211,
+      "sha256": "8bcc77a9cfbfce4efdbb582e3e3b1dcc298ae3edbc2d2a56a3b8dc7fd6191bd8",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs",
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph/cold_canonical/tests.rs",
+        "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+        "src/workspace_graph/generic_type_import/receiving/tests.rs",
+        "tests/workspace/semantic_graph.rs"
+      ]
+    },
+    {
+      "fixture": "F26",
+      "path": "/docs/evidence/final-ae91-mainf045-assembly-20261015/fixes-ae91-reconcile.json",
+      "length": 32759,
+      "sha256": "e645fb5f3a11864a727b7b7e08045cad98672ec7f4c38f11fdcfdb451920ca0a",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs"
+      ]
+    },
+    {
+      "fixture": "F27",
+      "path": "/docs/evidence/ae91-source-consumer-corrections-20261015/registry833-children.json",
+      "length": 36585,
+      "sha256": "6b102013e4ca81b1706b33bbd59f27fa0e2e848f47c6e4023aef6b090e85be3d",
+      "source_keys_with_multiplicity": [
+        "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs"
+      ]
+    },
+    {
+      "fixture": "F28",
+      "path": "/docs/evidence/ae91-source-consumer-corrections-20261015/cold835-children.json",
+      "length": 33160,
+      "sha256": "95422aaa693b736de60ce9fd16525993eac9005568924c91aa6e08728c0a9379",
+      "source_keys_with_multiplicity": [
+        "src/workspace_graph/cold_canonical/tests.rs"
+      ]
+    },
+    {
+      "fixture": "F29",
+      "path": "/docs/evidence/ae91-source-consumer-corrections-20261015/ordered838-observer.json",
+      "length": 26450,
+      "sha256": "8cc6e4eea88f371cbc903818b7d94e6e1b35ab3cb3c4676193dcac4e4fb966eb",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs"
+      ]
+    },
+    {
+      "fixture": "F30",
+      "path": "/docs/evidence/final-ae91-mainf045-assembly-20261015/view-fixes.json",
+      "length": 3025887,
+      "sha256": "8145d4c98651b5bddfafd4dd3ad9d7b7ce88c9c30122537a2dab573ca9488d52",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/AGENT-SKILL-BUNDLE-V1.json",
+        "docs/DECLARATION-IDENTITY-BACKING-V1.md",
+        "src/cleanup_plan/replay/expression_facts/receiving/regions_entry/tests.rs",
+        "src/cleanup_plan/replay/path_join.rs",
+        "src/cleanup_plan/replay/path_join/storage.rs",
+        "src/cleanup_plan/replay/path_join/storage/empty_renewals.rs",
+        "src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs",
+        "src/cleanup_plan/replay/skeleton_work/ordinary_dag/frontier_tests.rs",
+        "src/hir/borrowed_scalar/option_u8.rs",
+        "src/hir/ids/fixed_operation_tests.rs",
+        "src/hir/owned_leaf_collection.rs",
+        "src/hir/resolve_for/bytes/tests.rs",
+        "src/hir/resolve_statement/text_reference.rs",
+        "src/hir/static_text/backing.rs",
+        "src/hir/validation/generic_template/call_graph/ordered.rs",
+        "src/hir/validation/iterative_while_admission_tests.rs",
+        "src/source_reflows.json",
+        "src/source_reflows.rs",
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph/identity_resolution.rs",
+        "tests/agent_runtime_v1/execution_revision/workspace.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/image_transport_v5/builtin_calls.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F31",
+      "path": "/docs/evidence/final-ae91-mainf045-assembly-20261015/view-main.json",
+      "length": 326416,
+      "sha256": "ed0ef018ad0f5578aeb4238bfed7dcc70006091cd31213f6b4bc650f1b67e9d8",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs",
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph/cold_canonical/tests.rs",
+        "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+        "src/workspace_graph/generic_type_import/receiving/tests.rs",
+        "tests/workspace/semantic_graph.rs"
+      ]
+    },
+    {
+      "fixture": "F32",
+      "path": "/docs/evidence/mainff869-source-successor-20261015/current-to-ae91.json",
+      "length": 1825639,
+      "sha256": "c88576c167782a8f0dfce615604b0b7548e0c2f101c3fe4bf0f2aeba019dfb40",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/AGENT-SKILL-BUNDLE-V1.json",
+        "docs/DECLARATION-IDENTITY-BACKING-V1.md",
+        "src/cleanup_plan/replay/path_join.rs",
+        "src/cleanup_plan/replay/path_join/storage.rs",
+        "src/cleanup_plan/replay/path_join/storage/empty_renewals.rs",
+        "src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs",
+        "src/hir/borrowed_scalar/option_u8.rs",
+        "src/hir/owned_leaf_collection.rs",
+        "src/hir/static_text/backing.rs",
+        "src/hir/validation/generic_template/call_graph/ordered.rs",
+        "src/source_reflows.rs",
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph/identity_resolution.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/image_transport_v5/builtin_calls.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F33",
+      "path": "/docs/evidence/final-ae91-mainf045-assembly-20261015/main-ae91-reconcile.json",
+      "length": 995551,
+      "sha256": "347b59e2457836f920acba4aca0fc3c31e3611d68985842e230128bc96f54d88",
+      "source_keys_with_multiplicity": [
+        "src/source_reflows.json",
+        "tests/agent_runtime_v1/execution_revision/workspace.rs"
+      ]
+    },
+    {
+      "fixture": "F34",
+      "path": "/docs/evidence/mainf045-source-successor-20261015/current-to-f045.json",
+      "length": 55895,
+      "sha256": "b66b00fd1ed4be60072a88a606f319a9f16f7f8495b6c33f7e72b4e1b826c272",
+      "source_keys_with_multiplicity": [
+        "src/hir/resolve_statement.rs"
+      ]
+    },
+    {
+      "fixture": "F35",
+      "path": "/docs/evidence/mainf045-source-successor-20261015/current-to-0bf.json",
+      "length": 231187,
+      "sha256": "c6db1c2c36aed61e934fa476fc18838a072fa2e710bae9f6c36a476b8637b3fb",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/expression_facts/receiving/regions_entry/tests.rs",
+        "src/cleanup_plan/replay/skeleton_work/ordinary_dag/frontier_tests.rs",
+        "src/hir/ids/fixed_operation_tests.rs",
+        "src/hir/resolve_for/bytes/tests.rs",
+        "src/hir/resolve_statement/text_reference.rs",
+        "src/hir/validation/iterative_while_admission_tests.rs",
+        "src/source_reflows.rs",
+        "src/source_reflows_merge.rs"
+      ]
+    },
+    {
+      "fixture": "F36",
+      "path": "/docs/evidence/main927-hex-starter-assembly-20261015/view-hex.json",
+      "length": 4906245,
+      "sha256": "34f1e6e2d4bb98a71cb942c7508632a0dee585fadc42df84ff1da898a5895cbb",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+        "docs/AGENT-SKILL-BUNDLE-V1.json",
+        "docs/ARCHITECTURE.md",
+        "docs/NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md",
+        "docs/PAID-INVOCATION-BASE-PRELUDE-V1.md",
+        "src/hir/prelude_bundle/invocation.rs",
+        "src/source_reflows.json",
+        "src/source_reflows.rs",
+        "src/source_reflows_merge.rs",
+        "src/wasm/aggregate.rs",
+        "src/wasm/aggregate/tests.rs",
+        "src/wasm/aggregate/tests/owned_utf8_usage.rs",
+        "src/wasm/owned_data_public.rs",
+        "src/workspace_graph.rs",
+        "src/workspace_graph/expected_projection/defaults/inline_tests.rs",
+        "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs",
+        "src/workspace_graph/identity_resolution.rs",
+        "src/workspace_graph/identity_resolution/base.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/native/owned_data_string_settlement.rs",
+        "tests/project/semantic_cache.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F37",
+      "path": "/docs/evidence/main927-source-successor-20261015/current-to-9b.json",
+      "length": 4869391,
+      "sha256": "b9270bad35e0c7b107971cfde8b4b2f99412530fd77edb6a617b4f84c633505a",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/AGENT-SKILL-BUNDLE-V1.json",
+        "docs/ARCHITECTURE.md",
+        "docs/NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md",
+        "docs/PAID-INVOCATION-BASE-PRELUDE-V1.md",
+        "src/hir/prelude_bundle/invocation.rs",
+        "src/source_reflows.json",
+        "src/source_reflows.rs",
+        "src/source_reflows_merge.rs",
+        "src/wasm/aggregate.rs",
+        "src/wasm/aggregate/tests.rs",
+        "src/wasm/aggregate/tests/owned_utf8_usage.rs",
+        "src/wasm/owned_data_public.rs",
+        "src/workspace_graph.rs",
+        "src/workspace_graph/expected_projection/defaults/inline_tests.rs",
+        "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs",
+        "src/workspace_graph/identity_resolution.rs",
+        "src/workspace_graph/identity_resolution/base.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/native/owned_data_string_settlement.rs",
+        "tests/project/semantic_cache.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F38",
+      "path": "/docs/evidence/main927-source-successor-20261015/current-to-main927.json",
+      "length": 5081115,
+      "sha256": "62a6854685792c02948087ac7105127acff2aa96e30ce2f8e26f22d3faf73d98",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/ARCHITECTURE.md",
+        "src/cleanup_plan/replay.rs",
+        "src/cleanup_plan/replay/allocation/oracle.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+        "src/cleanup_plan/replay/factored.rs",
+        "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+        "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+        "src/cleanup_plan/replay/selected_entry/tests/fact_errors.rs",
+        "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs",
+        "src/cleanup_plan/replay/selected_profile.rs",
+        "src/hir/declaration_index.rs",
+        "src/hir/identity_resolution/nominal_tests/legacy.rs",
+        "src/loop_calls/byte_writer.rs",
+        "src/source_reflows.rs",
+        "src/source_verify/iterative/enter.rs",
+        "src/wasm/aggregate.rs",
+        "src/workspace_graph.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports.rs",
+        "src/workspace_graph/expected_projection/defaults/inline_tests.rs",
+        "src/workspace_graph/expected_projection/import_stub/byte_helper.rs",
+        "src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F39",
+      "path": "/docs/evidence/workspace-facade-hex-fix-9b-20261015/current-to-9b.json",
+      "length": 139825,
+      "sha256": "1bf1b8a754378c9a115f1665d26c09ccff2e80c5f329e91e32d4c19eeae00c4c",
+      "source_keys_with_multiplicity": [
+        "src/source_reflows_merge.rs",
+        "tests/workspace/semantic_graph.rs"
+      ]
+    },
+    {
+      "fixture": "F40",
+      "path": "/docs/evidence/main927-hex-starter-assembly-20261015/view-main927.json",
+      "length": 177832,
+      "sha256": "519ea48b00df4d250ccea01e830190d002d15b7d4f9c375153035cc053009be2",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+        "src/source_reflows_merge.rs",
+        "tests/workspace/semantic_graph.rs"
+      ]
+    },
+    {
+      "fixture": "F41",
+      "path": "/docs/evidence/setup825-relative-starter-assembly-20261015/view-d4.json",
+      "length": 1865132,
+      "sha256": "ffaddced2e2be3d5e2122d1105d365892afa0e58b34c26b7e57286ced3bd289f",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "crates/semaprax-toolchain/src/new_project/application.rs",
+        "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+        "docs/APPLICATION-STARTER-V1.md",
+        "docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md",
+        "docs/DEVELOPMENT.md",
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph/constructor_failure.rs",
+        "src/workspace_graph/constructor_failure/attempt.rs",
+        "src/workspace_graph/constructor_failure/receiving.rs",
+        "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
+        "src/workspace_graph/constructor_failure/report.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F42",
+      "path": "/docs/evidence/setup825-relative-starter-assembly-20261015/view-typed825.json",
+      "length": 750638,
+      "sha256": "3139a4f4d4a789c7bd6c0778a2e070cab7d8ccea20deddc7f3ff8ee0854c95d5",
+      "source_keys_with_multiplicity": [
+        "docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md",
+        "src/workspace_graph.rs",
+        "src/workspace_graph/constructor_failure.rs",
+        "src/workspace_graph/constructor_failure/attempt.rs",
+        "src/workspace_graph/constructor_failure/receiving.rs",
+        "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
+        "src/workspace_graph/constructor_failure/report.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F43",
+      "path": "/docs/evidence/setup825-reference-controls-assembly-20261015/current-to-9cb.json",
+      "length": 45563,
+      "sha256": "13bf20e634e031dd8b80fa34184f59eed6d6520548e411c048897c2bedd9069d",
+      "source_keys_with_multiplicity": [
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph/constructor_failure/attempt.rs"
+      ]
+    },
+    {
+      "fixture": "F44",
+      "path": "/docs/evidence/region-status-import-view-d4-20261015/current-to-a0c.json",
+      "length": 82730,
+      "sha256": "fddd73e3becee66373f19d536c8daef5efa764cc6703f769ba16377aedcf254a",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/expression_facts/receiving/regions_entry/tests.rs",
+        "src/source_reflows_merge.rs"
+      ]
+    },
+    {
+      "fixture": "F45",
+      "path": "/docs/evidence/constructor-complete-runtime-views-d4-20261015/current-to-aa03.json",
+      "length": 135096,
+      "sha256": "3988e40c97214c1ec9dae0ded043c0707ea3ec982006f80c0f761b07a38d6d5a",
+      "source_keys_with_multiplicity": [
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph/expected_projection/defaults/inline_tests.rs",
+        "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs"
+      ]
+    },
+    {
+      "fixture": "F46",
+      "path": "/docs/evidence/constructor-complete-runtime-views-d4-20261015/runtime-views.json",
+      "length": 1417735,
+      "sha256": "914a7d95dc3c93de33bae2186a68b96ed09372e737693c99db3916c9d25f3f51",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "src/loop_calls/byte_writer.rs",
+        "src/loop_calls/byte_writer/source_index.rs",
+        "src/loop_calls/byte_writer/source_index_original.rs",
+        "src/workspace_graph.rs",
+        "src/workspace_graph/constructor_failure.rs",
+        "src/workspace_graph/expected_projection.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports/inline.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports_original.rs",
+        "src/workspace_graph/expected_projection/borrowed_leaf.rs",
+        "src/workspace_graph/expected_projection/defaults.rs",
+        "src/workspace_graph/expected_projection/defaults/inline.rs",
+        "src/workspace_graph/expected_projection/defaults/inline_fields.rs",
+        "src/workspace_graph/expected_projection/defaults/inline_tests.rs",
+        "src/workspace_graph/expected_projection/held_projection.rs",
+        "src/workspace_graph/expected_projection/held_projection_original.rs",
+        "src/workspace_graph/expected_projection/import_stub.rs",
+        "src/workspace_graph/expected_projection/import_stub/byte_helper.rs",
+        "src/workspace_graph/expected_projection/import_stub/byte_helper_original.rs",
+        "src/workspace_graph/expected_projection/import_stub_original.rs",
+        "src/workspace_graph/expected_projection/uncached_peak.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F47",
+      "path": "/docs/evidence/main5ba-future-source-assembly-20261015/current-to-1c.json",
+      "length": 2116146,
+      "sha256": "1227325d7f12e8c0660f411218829dc97d7b120d885b9156e7e47db32dd6626b",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+        "docs/WORKSPACE-SEMANTIC-GRAPH-V1.md",
+        "scripts/release-notes.py",
+        "src/bounded_output.rs",
+        "src/bounded_output/refusal_tests.rs",
+        "src/bounded_output/source_owner_scope.rs",
+        "src/project/incremental/snapshot/field_update/tests.rs",
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph.rs",
+        "src/workspace_graph/diagnostics.rs",
+        "src/workspace_graph/diagnostics/refusal_tests.rs",
+        "src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs",
+        "src/workspace_graph/identity_resolution/base/cache_billing/tests.rs",
+        "tests/offline_package/resolver_cli.rs",
+        "tests/project/semantic_cache.rs"
+      ]
+    },
+    {
+      "fixture": "F48",
+      "path": "/docs/evidence/main5ba-future-source-assembly-20261015/current-to-main5ba.json",
+      "length": 565373,
+      "sha256": "e1771ce83e360bd0a7d56bb1f578f4069b62a6e9fc7b2310ed53fa2ece0ad0c3",
+      "source_keys_with_multiplicity": [
+        "src/workspace_graph.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F49",
+      "path": "/docs/evidence/compressed-fixture-841-assembly-20261015/current-to-13d.json",
+      "length": 1778045,
+      "sha256": "a0aaf59e1e7938b67f1aae59f7ad825f03adafa1abd17c263d05c0b91ec00082",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "Cargo.lock",
+        "Cargo.toml",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "src/cleanup_plan/replay/selected_context/child/tests/source.rs",
+        "src/source_reflows_merge.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F50",
+      "path": "/docs/evidence/raw-selected-child-default-841-20261015/current-to-56dc.json",
+      "length": 108485,
+      "sha256": "22e1c46db26c0a5fc9774a4ba35a9c1ae2f64d71989ccb206442985d79f33e94",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/selected_context/child/tests/source.rs",
+        "src/cleanup_plan/replay/selected_context/child/tests/source/compressed_fixture.rs",
+        "src/source_reflows_merge.rs"
+      ]
+    },
+    {
+      "fixture": "F51",
+      "path": "/docs/evidence/compressed-fixture-841-assembly-20261015/pilot-runtime-views.json",
+      "length": 641582,
+      "sha256": "a53d99a2f5c5d8f4d11fe8065503da01f5ee04635dd39aefd684d01c351bf399",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+        "src/cleanup_plan/replay/selected_context/child/tests/source.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F52",
+      "path": "/docs/evidence/retained-registry-833-assembly-20261015/current-to-381.json",
+      "length": 806529,
+      "sha256": "3911701b0c203345d2a681dbb33f3f9de7815bc56bd159a28b33f3a60212b33f",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/PRIVATE-NOMINAL-LAYOUT-CLOSURE-V1.md",
+        "src/bounded_output/classifier_string.rs",
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph/expected_projection/private_layout.rs",
+        "src/workspace_graph/expected_projection/private_layout/names.rs",
+        "src/workspace_graph/expected_projection/private_layout/owner_index.rs",
+        "src/workspace_graph/expected_projection/private_layout/registry.rs",
+        "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F53",
+      "path": "/docs/evidence/retained-registry-833-assembly-20261015/current-to-c3.json",
+      "length": 829179,
+      "sha256": "25b3d22670c8392ee5a7ac485c04e8ddc701b1c3e58a17faefcdc63d8368201c",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/PRIVATE-NOMINAL-LAYOUT-CLOSURE-V1.md",
+        "src/bounded_output/classifier_string.rs",
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph/expected_projection/private_layout.rs",
+        "src/workspace_graph/expected_projection/private_layout/names.rs",
+        "src/workspace_graph/expected_projection/private_layout/owner_index.rs",
+        "src/workspace_graph/expected_projection/private_layout/registry.rs",
+        "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F54",
+      "path": "/docs/evidence/main66517-source-assembly-20261015/current-to-397.json",
+      "length": 2126152,
+      "sha256": "4c2d136676811b71143e798993227504be75038e1c779457450cf6b88301ea48",
+      "source_keys_with_multiplicity": [
+        ".github/workflows/ci.yml",
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/AGENT-SKILL-BUNDLE-V1.json",
+        "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+        "src/ast/expression_statement.rs",
+        "src/cli_driver/project_scaffold_options.rs",
+        "src/project/build.rs",
+        "src/project/build/tests.rs",
+        "src/source_reflows_merge.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/project/native_law_v1.rs",
+        "tests/wasm/scalar_browser_ci_contract.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F55",
+      "path": "/docs/evidence/retry-fixture-full-source-view-61f-20261015/current-to-61f.json",
+      "length": 123829,
+      "sha256": "e290038be7478fc1321df6516712fc48e194bf71978a4843a7d5a8b999d7bff9",
+      "source_keys_with_multiplicity": [
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph/tests/builder_limits.rs"
+      ]
+    },
+    {
+      "fixture": "F56",
+      "path": "/docs/evidence/retry-fixture-full-source-view-61f-20261015/runtime-view.json",
+      "length": 75072,
+      "sha256": "7cad30590aae9f29883d4f2399e18bc6f632f71a11d57c4bde6ccf3693da5a6d",
+      "source_keys_with_multiplicity": [
+        "src/workspace_graph/tests/builder_limits.rs"
+      ]
+    },
+    {
+      "fixture": "F57",
+      "path": "/docs/evidence/direct-canonical-carriers-831-20261015/current-to-297.json",
+      "length": 295767,
+      "sha256": "e0424e31cbe2d3b129bb6ba5e4d1b1e41451222ebaf42da5647aebc84fa661f2",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/factored.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+        "src/cleanup_plan/replay/factored/strategy.rs",
+        "src/source_reflows_merge.rs"
+      ]
+    },
+    {
+      "fixture": "F58",
+      "path": "/docs/evidence/cached-prelude-acquisition-observer-7a87/current-to-7a87.json",
+      "length": 55543,
+      "sha256": "6c1e91a9d35e66758623fea1b38304aac47dc21df226859adaad382381279b84",
+      "source_keys_with_multiplicity": [
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph/identity_resolution/base/cache_billing.rs"
+      ]
+    },
+    {
+      "fixture": "F59",
+      "path": "/docs/evidence/sourceguard-input-domains-7a87/current-to-d20.json",
+      "length": 301665,
+      "sha256": "5aa6737641630985fb3107137614651052f302c7abe98a7ac674f4eae583da62",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+        "src/source_reflows_merge.rs",
+        "tests/offline_package/resolver_cli.rs"
+      ]
+    },
+    {
+      "fixture": "F60",
+      "path": "/docs/evidence/sourceguard-input-domains-7a87/classifier-input.json",
+      "length": 19870,
+      "sha256": "895b1a917484f94989039406f9532bb7fdf9f5766ed5e479fe0b843d3e3eafec",
+      "source_keys_with_multiplicity": [
+        "src/bounded_output/classifier_string.rs"
+      ]
+    },
+    {
+      "fixture": "F61",
+      "path": "/docs/evidence/actual-pin-consumer-7a87-20261015/current-to-92.json",
+      "length": 274422,
+      "sha256": "f6d612293f0c73062eb838b8dd8dc377cb6e3da6227e53c7a1e01927bcb45eba",
+      "source_keys_with_multiplicity": [
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph/type_proof_tests.rs",
+        "tests/workspace/semantic_graph.rs"
+      ]
+    },
+    {
+      "fixture": "F62",
+      "path": "/docs/evidence/compact-old-receiver-compile-fix-844-20261015/current-to-677.json",
+      "length": 157135,
+      "sha256": "133c56b6447b0709818c003c3b50ac2f4cf08dad49c47b1266835c6430380ef3",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/factored/compact_nodes.rs",
+        "src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs",
+        "src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs",
+        "src/source_reflows_merge.rs"
+      ]
+    },
+    {
+      "fixture": "F63",
+      "path": "/docs/evidence/field-update-hir-visitor-836-20261015/current-to-677.json",
+      "length": 80549,
+      "sha256": "b4520b4fc5503936578bdb2bc3e483b57a4448f4b2ee7a3674238648071fce80",
+      "source_keys_with_multiplicity": [
+        "src/source_reflows_merge.rs",
+        "src/vec_ops/field_update/tests.rs"
+      ]
+    },
+    {
+      "fixture": "F64",
+      "path": "/docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-d8.json",
+      "length": 3859314,
+      "sha256": "de63c9c73e349ba54518aa3ec12162490e997dfa8b7a2d38ff1e40351a6053c3",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/ARCHITECTURE.md",
+        "docs/OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md",
+        "docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md",
+        "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+        "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+        "src/cleanup_plan/replay/expression_facts/arena.rs",
+        "src/cleanup_plan/replay/expression_facts/arena/producer.rs",
+        "src/cleanup_plan/replay/expression_facts/capacity.rs",
+        "src/cleanup_plan/replay/factored.rs",
+        "src/cleanup_plan/replay/factored/borrowed_canonical.rs",
+        "src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_before.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_closure_receiver.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_held.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_index.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_targets.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+        "src/cleanup_plan/replay/factored/continuation_receiver/tests.rs",
+        "src/cleanup_plan/replay/factored/lexical_plan_tests.rs",
+        "src/cleanup_plan/replay/factored/strategy.rs",
+        "src/cleanup_plan/replay/factored/strategy/tests.rs",
+        "src/cli_driver/source_execution.rs",
+        "src/diagnostic.rs",
+        "src/hir/resolve_statement.rs",
+        "src/source_reflows_merge.rs",
+        "src/source_verify/iterative/while_rules.rs",
+        "src/source_verify/oracle/while_oracle.rs",
+        "src/vec_ops/field_update/tests.rs",
+        "src/workspace_report.rs",
+        "tests/cli_check_routing_v1.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/support/record_copy_field_update.rs",
+        "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F65",
+      "path": "/docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-844.json",
+      "length": 1605572,
+      "sha256": "ecd62823b50ec108b9302aaefb67ff6f847edef080d1efa31bf5115eaa49cecd",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "src/source_reflows_merge.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F66",
+      "path": "/docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-846.json",
+      "length": 1603839,
+      "sha256": "c82be7096ac97fc25c9c2bcdfd861f113f55bf0675a4e284b023564b7c342c78",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "src/source_reflows_merge.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F67",
+      "path": "/docs/evidence/compact-automaton-844-immediate7a87/current-to-a3.json",
+      "length": 2264299,
+      "sha256": "daba9b64ee3fa68bdaa4683dafe6a6ab358b63aa4b0512bab966af4dbda622a5",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/AGENT-SKILL-BUNDLE-V1.json",
+        "src/ast/expression_statement.rs",
+        "src/cleanup_plan/replay/factored.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+        "src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs",
+        "src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs",
+        "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+        "src/cleanup_plan/replay/factored/strategy.rs",
+        "src/cli_driver/project_scaffold_options.rs",
+        "src/project/build.rs",
+        "src/project/build/tests.rs",
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph/tests/builder_limits.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/project/native_law_v1.rs",
+        "tests/wasm/scalar_browser_ci_contract.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F68",
+      "path": "/docs/evidence/main27424-source-integration-20261015/final-to-7f.json",
+      "length": 2696673,
+      "sha256": "f0fd28d5a748a65483de05d1ee48b97053b531a5c0cf4e138b13c6819b7ca885",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/ARCHITECTURE.md",
+        "docs/PUBLIC-NESTED-OWNED-RECORD-API-V1.md",
+        "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+        "docs/evidence/format-hygiene-scratch-v1/README.md",
+        "src/ast/expression_statement.rs",
+        "src/ast/expression_statement/tests.rs",
+        "src/cleanup_plan/replay/factored/compact_nodes.rs",
+        "src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs",
+        "src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs",
+        "src/cleanup_plan/replay/physical_budget.rs",
+        "src/cleanup_plan/replay/physical_budget/queue_tests.rs",
+        "src/cleanup_plan/replay/structural_control/calls.rs",
+        "src/source_reflows_merge.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/project/nested_owned_record_api.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F69",
+      "path": "/docs/evidence/main27424-source-integration-20261015/final-to-523.json",
+      "length": 2619867,
+      "sha256": "53ed4f4c9dcc9450221aa68353dc3938a31fd944db077d38b538ec9f8adad634",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/ARCHITECTURE.md",
+        "docs/PUBLIC-NESTED-OWNED-RECORD-API-V1.md",
+        "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+        "docs/evidence/format-hygiene-scratch-v1/README.md",
+        "src/ast/expression_statement.rs",
+        "src/ast/expression_statement/tests.rs",
+        "src/cleanup_plan/replay/physical_budget.rs",
+        "src/cleanup_plan/replay/physical_budget/queue_tests.rs",
+        "src/cleanup_plan/replay/structural_control/calls.rs",
+        "src/source_reflows_merge.rs",
+        "src/vec_ops/field_update/tests.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/project/nested_owned_record_api.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F70",
+      "path": "/docs/evidence/main27424-source-integration-20261015/final-to-main.json",
+      "length": 68369,
+      "sha256": "642cccb3ae268a91d961cf441e89420dc5f4bbb5067a999b0797c1e540e759fb",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/structural_control/calls.rs",
+        "src/cleanup_plan/replay/structural_control/calls/cursor.rs",
+        "src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs"
+      ]
+    },
+    {
+      "fixture": "F71",
+      "path": "/docs/evidence/retained-function-alias-847/directory825-domain.json",
+      "length": 110549,
+      "sha256": "cdfe935d7ce733a8a6f19539e21d6f161f07bc198a5c49e986cc3e58d862b1d0",
+      "source_keys_with_multiplicity": [
+        "docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md",
+        "src/workspace_graph/expected_projection/borrowed_imports.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports/typed.rs"
+      ]
+    },
+    {
+      "fixture": "F72",
+      "path": "/docs/evidence/retained-alias-compact-joined-20261015/final-to-453.json",
+      "length": 4447519,
+      "sha256": "7c8aeb4a63552805ab1ffd506fbfc91712860cc8bd7537a1d54bdf4df41770d0",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/ARCHITECTURE.md",
+        "docs/OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md",
+        "docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md",
+        "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+        "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+        "src/cleanup_plan/replay/expression_facts/arena.rs",
+        "src/cleanup_plan/replay/expression_facts/arena/producer.rs",
+        "src/cleanup_plan/replay/expression_facts/capacity.rs",
+        "src/cleanup_plan/replay/factored.rs",
+        "src/cleanup_plan/replay/factored/borrowed_canonical.rs",
+        "src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_before.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_closure_receiver.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_held.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_index.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_targets.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+        "src/cleanup_plan/replay/factored/continuation_receiver/tests.rs",
+        "src/cleanup_plan/replay/factored/lexical_plan_tests.rs",
+        "src/cleanup_plan/replay/factored/strategy.rs",
+        "src/cleanup_plan/replay/factored/strategy/tests.rs",
+        "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+        "src/cli_driver/source_execution.rs",
+        "src/diagnostic.rs",
+        "src/hir/resolve_statement.rs",
+        "src/source_reflows_merge.rs",
+        "src/source_verify/iterative/while_rules.rs",
+        "src/source_verify/oracle/while_oracle.rs",
+        "src/vec_ops/field_update/tests.rs",
+        "src/workspace_graph/cache_key_original.rs",
+        "src/workspace_graph/constructor_failure/receiving/before.rs",
+        "src/workspace_graph/function_alias/before_core.rs",
+        "src/workspace_graph/identity_resolution/base/cache_billing.rs",
+        "src/workspace_graph/type_proof_tests.rs",
+        "src/workspace_report.rs",
+        "tests/cli_check_routing_v1.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/offline_package/resolver_cli.rs",
+        "tests/support/record_copy_field_update.rs",
+        "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+        "tests/workspace/semantic_graph.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F73",
+      "path": "/docs/evidence/retained-alias-compact-joined-20261015/final-to-523.json",
+      "length": 1385288,
+      "sha256": "b188a256a3da85117d59a730573a6f1a9cecff03c14d7cde28f35f614933d8fa",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md",
+        "src/ast/program_source.rs",
+        "src/ast/program_source/decl_slices.rs",
+        "src/hir/identity_resolution.rs",
+        "src/source_reflows_merge.rs",
+        "src/vec_ops/field_update/tests.rs",
+        "src/workspace_graph.rs",
+        "src/workspace_graph/cache_key_original.rs",
+        "src/workspace_graph/checked_retention.rs",
+        "src/workspace_graph/constructor_failure/receiving/before.rs",
+        "src/workspace_graph/constructor_failure/typed.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+        "src/workspace_graph/expected_projection/borrowed_leaf.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F74",
+      "path": "/docs/evidence/retained-alias-compact-joined-20261015/final-to-7f.json",
+      "length": 1462096,
+      "sha256": "28119241183327e6b2cee895a615d2614f646ecdd37b66f42aa41f7f662fcb77",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md",
+        "src/ast/program_source.rs",
+        "src/ast/program_source/decl_slices.rs",
+        "src/cleanup_plan/replay/factored/compact_nodes.rs",
+        "src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs",
+        "src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs",
+        "src/hir/identity_resolution.rs",
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph.rs",
+        "src/workspace_graph/cache_key_original.rs",
+        "src/workspace_graph/checked_retention.rs",
+        "src/workspace_graph/constructor_failure/receiving/before.rs",
+        "src/workspace_graph/constructor_failure/typed.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+        "src/workspace_graph/expected_projection/borrowed_leaf.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F75",
+      "path": "/docs/evidence/cache-report-observer-796-20261015/current-to-2cf33.json",
+      "length": 101427,
+      "sha256": "5c41a4c80fb64119a8093d6d3b7f236a092cc545fb480d11ba23996b41f4a206",
+      "source_keys_with_multiplicity": [
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph/identity_resolution.rs",
+        "src/workspace_graph/identity_resolution/base/cache_billing.rs",
+        "src/workspace_graph/tests/cache_stage_debits.rs"
+      ]
+    },
+    {
+      "fixture": "F76",
+      "path": "/docs/evidence/branch-closed-receiving-831-20261015/current-to-e93f.json",
+      "length": 192696,
+      "sha256": "c786789375a7ebca2f8db7a9196852a86f73ff7ad31d6b6751ae296c91c496ea",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/factored/canonical_shared.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+        "src/source_reflows_merge.rs"
+      ]
+    },
+    {
+      "fixture": "F77",
+      "path": "/docs/evidence/alias-module-loader-fix-847-20261015/current-to-340.json",
+      "length": 134579,
+      "sha256": "92d79c9f7f3b04b9da3cbba1a2a74a6b37e89f2455571fbd1eeea8c0ef6753b2",
+      "source_keys_with_multiplicity": [
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs"
+      ]
+    },
+    {
+      "fixture": "F78",
+      "path": "/docs/evidence/final-main27424-alias847-assembly-20261015/final-to-main-checkpoint.json",
+      "length": 1368192,
+      "sha256": "73be506bd69b7d3c9c557759492fedde6b968a08e357657fe3078e305f13caa3",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md",
+        "src/ast/program_source.rs",
+        "src/ast/program_source/decl_slices.rs",
+        "src/hir/identity_resolution.rs",
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph.rs",
+        "src/workspace_graph/cache_key_original.rs",
+        "src/workspace_graph/checked_retention.rs",
+        "src/workspace_graph/constructor_failure/receiving/before.rs",
+        "src/workspace_graph/constructor_failure/typed.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+        "src/workspace_graph/expected_projection/borrowed_leaf.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F79",
+      "path": "/docs/evidence/final-main27424-alias847-assembly-20261015/final-to-alias-checkpoint.json",
+      "length": 2606304,
+      "sha256": "d4afcfe8eed767d79fe489a417dc735dd58134f72a5e70f35aeeb7ff0b8a4104",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/ARCHITECTURE.md",
+        "docs/PUBLIC-NESTED-OWNED-RECORD-API-V1.md",
+        "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+        "docs/evidence/format-hygiene-scratch-v1/README.md",
+        "src/ast/expression_statement.rs",
+        "src/ast/expression_statement/tests.rs",
+        "src/cleanup_plan/replay/physical_budget.rs",
+        "src/cleanup_plan/replay/physical_budget/queue_tests.rs",
+        "src/cleanup_plan/replay/structural_control/calls.rs",
+        "src/source_reflows_merge.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/project/nested_owned_record_api.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F80",
+      "path": "/docs/evidence/runtime-fixture-848-assembly-20261015/current-to-999fa.json",
+      "length": 10486,
+      "sha256": "72b3e0ff089d49c123c92034d5612d540e406c469113df20576137f69ab23103",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/selected_context/child/tests/source/compressed_fixture.rs",
+        "src/source_reflows_merge.rs"
+      ]
+    },
+    {
+      "fixture": "F81",
+      "path": "/docs/evidence/main-f4a448-integration-20261015/current-to-6444.json",
+      "length": 68986,
+      "sha256": "53bef911379670681ce1c4e2cf7ab68ca384dd818a294bb1d4c3249c5e769ffe",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/AGENT-SKILL-BUNDLE-V1.json",
+        "docs/BOUNDED-LANGUAGE-COMMAND-IO-V1.md",
+        "docs/PRIVATE-NOMINAL-LAYOUT-CLOSURE-V1.md",
+        "docs/RFC-STATIC-BORROWED-UTF8-LITERALS-V1.md",
+        "docs/SCOPED-RECORD-ROW-LOAN-V1.md",
+        "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+        "docs/evidence/structural-call-cursor-v1/README.md",
+        "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+        "src/cleanup_plan/replay/ordinary_inventory/storage.rs",
+        "src/cleanup_plan/replay/path_join/storage.rs",
+        "src/cleanup_plan/replay/supplemental/receiving.rs",
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph/record_traversal/row_loan.rs",
+        "src/workspace_graph/retained_validation/dependency_closure.rs",
+        "src/workspace_graph/source_schema/static_text/primitive/helpers/tests.rs",
+        "src/workspace_graph/static_text/scalar_helpers.rs",
+        "src/workspace_graph/static_text/scalar_helpers/capture_directory/tests.rs",
+        "src/workspace_graph/tests/record_traversal.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/project/command_argument_borrow.rs",
+        "tests/project/signature_owned_values.rs",
+        "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F82",
+      "path": "/docs/evidence/final-831841845796-assembly-20261015/current-docs-to-896.json",
+      "length": 8725,
+      "sha256": "2211cf3705030595e4611c98b51d6d492449b6b6a3019d5ccdfafcf2e1232080",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "docs/ARCHITECTURE.md"
+      ]
+    },
+    {
+      "fixture": "F83",
+      "path": "/docs/evidence/final-831841845796-assembly-20261015/final-to-796.json",
+      "length": 1555621,
+      "sha256": "8f15bbcd4db947b1baabf2cb424f586ca5bfa1f92ab64238a67c7b8f5ab36ec5",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md",
+        "src/bounded_output.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+        "src/cleanup_plan/replay/selected_context/child/tests/source/compressed_fixture.rs",
+        "src/cli_driver.rs",
+        "src/cli_driver/source_execution.rs",
+        "src/semantic_workspace/reporting.rs",
+        "src/semantic_workspace_change/reporting/prepare.rs",
+        "src/semantic_workspace_operations/reporting/prepare.rs",
+        "src/semantic_workspace_structural_change/reporting/prepare.rs",
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph.rs",
+        "src/workspace_graph/diagnostics.rs",
+        "src/workspace_report.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F84",
+      "path": "/docs/evidence/final-831841845796-assembly-20261015/final-to-831.json",
+      "length": 1590338,
+      "sha256": "ab20764c71e677e696a584139c27d8c4fe95599eb963834ce2720f2074fbf02c",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md",
+        "src/bounded_output.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+        "src/cleanup_plan/replay/selected_context/child/tests/source/compressed_fixture.rs",
+        "src/cli_driver.rs",
+        "src/cli_driver/source_execution.rs",
+        "src/semantic_workspace/reporting.rs",
+        "src/semantic_workspace_change/reporting/prepare.rs",
+        "src/semantic_workspace_operations/reporting/prepare.rs",
+        "src/semantic_workspace_structural_change/reporting/prepare.rs",
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph.rs",
+        "src/workspace_graph/diagnostics.rs",
+        "src/workspace_graph/identity_resolution.rs",
+        "src/workspace_graph/identity_resolution/base/cache_billing.rs",
+        "src/workspace_graph/tests/cache_stage_debits.rs",
+        "src/workspace_report.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F85",
+      "path": "/docs/evidence/final-831841845796-assembly-20261015/final-to-841.json",
+      "length": 1672013,
+      "sha256": "e172339b5ba9916a58599bb10590a51bf8f0ff874a8d73d7e4a8637303f02c09",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md",
+        "src/bounded_output.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+        "src/cli_driver.rs",
+        "src/cli_driver/source_execution.rs",
+        "src/semantic_workspace/reporting.rs",
+        "src/semantic_workspace_change/reporting/prepare.rs",
+        "src/semantic_workspace_operations/reporting/prepare.rs",
+        "src/semantic_workspace_structural_change/reporting/prepare.rs",
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph.rs",
+        "src/workspace_graph/diagnostics.rs",
+        "src/workspace_graph/identity_resolution.rs",
+        "src/workspace_graph/identity_resolution/base/cache_billing.rs",
+        "src/workspace_graph/tests/cache_stage_debits.rs",
+        "src/workspace_report.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F86",
+      "path": "/docs/evidence/final-831841845796-assembly-20261015/final-to-845.json",
+      "length": 3680989,
+      "sha256": "0d29b4e7a459adb5b9d674ee576dfa3db3aebf7fe70abc35ae25713ff101acab",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/ARCHITECTURE.md",
+        "docs/PUBLIC-NESTED-OWNED-RECORD-API-V1.md",
+        "docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md",
+        "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+        "docs/evidence/format-hygiene-scratch-v1/README.md",
+        "src/ast/expression_statement.rs",
+        "src/ast/expression_statement/tests.rs",
+        "src/ast/program_source.rs",
+        "src/ast/program_source/decl_slices.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+        "src/cleanup_plan/replay/factored/compact_nodes.rs",
+        "src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs",
+        "src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs",
+        "src/cleanup_plan/replay/physical_budget.rs",
+        "src/cleanup_plan/replay/physical_budget/queue_tests.rs",
+        "src/cleanup_plan/replay/selected_context/child/tests/source/compressed_fixture.rs",
+        "src/cleanup_plan/replay/structural_control/calls.rs",
+        "src/hir/identity_resolution.rs",
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph.rs",
+        "src/workspace_graph/cache_key_original.rs",
+        "src/workspace_graph/checked_retention.rs",
+        "src/workspace_graph/constructor_failure/receiving/before.rs",
+        "src/workspace_graph/constructor_failure/typed.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+        "src/workspace_graph/expected_projection/borrowed_leaf.rs",
+        "src/workspace_graph/identity_resolution.rs",
+        "src/workspace_graph/identity_resolution/base/cache_billing.rs",
+        "src/workspace_graph/tests/cache_stage_debits.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/project/nested_owned_record_api.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F87",
+      "path": "/docs/evidence/initial-report-policy-845-20261015/current-to-2bfd.json",
+      "length": 1491343,
+      "sha256": "c1d98d9a72e76e5c86eeb4967553b5dcb4588c3b438927f5639edfffdfb77f23",
+      "source_keys_with_multiplicity": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md",
+        "src/bounded_output.rs",
+        "src/cli_driver.rs",
+        "src/cli_driver/source_execution.rs",
+        "src/semantic_workspace/reporting.rs",
+        "src/semantic_workspace_change/reporting/prepare.rs",
+        "src/semantic_workspace_operations/reporting/prepare.rs",
+        "src/semantic_workspace_structural_change/reporting/prepare.rs",
+        "src/source_reflows_merge.rs",
+        "src/workspace_graph.rs",
+        "src/workspace_graph/diagnostics.rs",
+        "src/workspace_report.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    },
+    {
+      "fixture": "F88",
+      "path": "/docs/evidence/runtime-fixture-848-assembly-20261015/current-to-848.json",
+      "length": 6863,
+      "sha256": "6e29b7951f8f59cae08f2a6a4bec8310b7d1cea141c45c185c48f5dcb327da51",
+      "source_keys_with_multiplicity": [
+        "src/cleanup_plan/replay/selected_context/child/tests/source/compressed_fixture.rs",
+        "src/source_reflows_merge.rs"
+      ]
+    },
+    {
+      "fixture": "Custody",
+      "path": "/docs/evidence/runtime-json-transport-848-20261015/current-to-9ccc.json",
+      "length": 51472,
+      "sha256": "60b5485d63b3ca5c28a766beb5cc062b7804e4fc6a7ddc7fffbe62861f3fb957",
+      "source_keys_with_multiplicity": [
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/ARCHITECTURE.md",
+        "src/source_reflows_merge.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs"
+      ]
+    }
+  ]
+}

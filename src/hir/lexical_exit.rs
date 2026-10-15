@@ -63,6 +63,8 @@ pub enum LoopLatchKind {
 }
 
 mod walk;
+mod selected_child;
+pub(crate) use selected_child::requires_inline;
 pub(crate) use walk::{child, contains, requires, ChildCursor};
 
 mod owner;

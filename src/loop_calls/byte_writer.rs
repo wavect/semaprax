@@ -9,6 +9,9 @@ mod bindings;
 pub(crate) use bindings::HelperBindings;
 mod module_index;
 mod resolved;
+#[cfg(test)]
+pub(crate) use resolved::checked_bindings_with_reservation_and_work;
+pub(crate) use resolved::checked_bindings_with_reservation_and_work_inline;
 pub(crate) mod validation_frontier;
 pub(crate) use module_index::ModuleIndex;
 mod source;
@@ -18,7 +21,7 @@ pub(crate) mod source_index_original;
 #[cfg(test)]
 pub(crate) use resolved::checked_absent_with_work_reservation;
 pub(crate) use resolved::{
-    bindings, checked_bindings, checked_bindings_with_reservation_and_work,
+    bindings, checked_bindings,
     nonallocating as resolved_nonallocating,
     nonallocating_with_cursor as resolved_nonallocating_with_cursor, ProofCursor,
 };

@@ -5,6 +5,7 @@ use super::*;
 #[derive(Debug)]
 pub(super) enum Atom {
     SelectedSession(&'static str),
+    SelectedChild(crate::cleanup_plan::renewal_profile::child_refusal::Refusal),
     RepeatedStatus(ExpressionId),
     UnknownStatus(ExpressionId),
     NoncontiguousSlot(usize),
@@ -33,9 +34,13 @@ impl Receipt {
             atom: Atom::SelectedSession(detail),
         }
     }
+    pub(super) fn selected_child(function:&ResolvedFunction,reason:crate::cleanup_plan::renewal_profile::child_refusal::Refusal)->Self {
+        Self {source:function.body.id.clone(),atom:Atom::SelectedChild(reason)}
+    }
     pub(super) fn stage(&self) -> &'static str {
         match &self.atom {
             Atom::SelectedSession(_) => "selected session",
+            Atom::SelectedChild(_) => "selected child",
             _ => "structural replay",
         }
     }
@@ -44,6 +49,9 @@ impl Receipt {
         // Branch-local calls: no `fmt::Arguments` escapes its own statement.
         match self.atom {
             Atom::SelectedSession(detail) => replay_error(function, detail),
+            Atom::SelectedChild(reason) => {
+                if reason.prefixed(){replay_error(function,reason.detail())}else{reason.legacy()}
+            }
             Atom::RepeatedStatus(id) => replay_error(
                 function,
                 format_args!("status source for `{id}` is repeated"),

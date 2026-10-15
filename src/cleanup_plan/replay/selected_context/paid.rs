@@ -1,8 +1,8 @@
 //! Selected-session error data, paid before the first local refusal can exist.
 //! This adds no source/replay authority. Unmigrated child Diagnostics stay owned.
 use super::{
-    Context, ReplayBudget, ReplayContext, ResolvedFunction, expression_facts, replay_error,
-    selected_owner, selected_profile, semantic_refusal,
+    Context, ReplayBudget, ReplayContext, ResolvedFunction, expression_facts, selected_owner,
+    selected_profile, semantic_refusal,
 };
 type Error = expression_facts::errors::EngineError;
 /// Every added full carrier is charged independently; no old-header credit.
@@ -43,12 +43,15 @@ impl<'a> Context<'a> {
         lexical: bool,
     ) -> Result<Self, Error> {
         if lexical
-            && (!crate::hir::lexical_exit::requires(function)?
-                || !matches!(
-                    function.cleanup_plan.schema,
-                    crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V18
-                        | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V19
-                ))
+            && (!{
+                let permit = super::child::Permit::acquire::<bool>(function, budget)?;
+                crate::hir::lexical_exit::requires_inline(function)
+                    .map_err(|reason| permit.refuse(reason))?
+            } || !matches!(
+                function.cleanup_plan.schema,
+                crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V18
+                    | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V19
+            ))
         {
             return Err(refusal(
                 function,
@@ -59,28 +62,7 @@ impl<'a> Context<'a> {
         selected_profile::paid::validate(source, function, budget)?;
         selected_owner::paid::owner(source, function, budget)?;
         budget.reserve_array::<Self>(function, 1, "selected immutable replay lease")?;
-        let renewals = {
-            let ReplayBudget {
-                remaining,
-                physical,
-                ..
-            } = budget;
-            let physical = physical.as_deref_mut().ok_or_else(|| {
-                replay_error(function, "selected replay lost physical reservation")
-            })?;
-            let mut debit = |units| {
-                if let Some(next) = remaining.checked_sub(units) {
-                    *remaining = next;
-                    Ok(())
-                } else {
-                    *remaining = 0;
-                    Err(replay_error(function, "selected renewal work exhausted"))
-                }
-            };
-            crate::cleanup_plan::renewal_profile::bindings_with_reservation_and_work(
-                source, function, physical, &mut debit,
-            )?
-        };
+        let renewals = super::child::renewals(source, function, budget)?;
         if (function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V19)
             != renewals.has_helpers()
         {

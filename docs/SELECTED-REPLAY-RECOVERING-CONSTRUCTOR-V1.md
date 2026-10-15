@@ -464,3 +464,42 @@ Session refusal. Execution qualification is pending.
 Arbitrary renewal and child-helper Diagnostics remain their explicit Owned
 boundary. This successor neither funds those producers nor completes whole
 transitive OPT781 or application admission; allowances and caps are unchanged.
+
+
+## Finite selected child refusal cut (source-only successor)
+
+The actual paid Context entry now uses the exact bounded lexical scan and the
+selected renewal/helper census/proof twins with closed inline failure data.
+Lexical-depth, renewal/helper census and collection-probe failures keep their
+original raw H006 rendering; renewal-work and lost-reservation failures keep
+the original complete function prefix. No already-allocated Diagnostic is
+translated into a paid receipt. Complete old receivers remain compiled, including
+the full previous paid Context method, and all diagnostic fields/order remain
+owning controls.
+
+Before child entry, the same budget acquires an affine subject-borrowed permit
+covering its complete receipt, error, optional and receiving/result controls,
+on successful entry too. The typed census/proof receiving and scratch controls
+are charged in addition to original backing/node requests; no old-header credit
+is taken. Added initializer work is charged explicitly, with all original walk,
+lookup and proof units unchanged. The permit owns only the one refusal slot
+permission; it lends no lookup, source, member or provider authority. No report
+or physical allowance is added. A work failure still zeros remaining before
+return; a physical failure keeps the original first ledger receipt. Returning
+the exact finite semantic receipt after either failure spends the permit paid
+before entry, not a later debit or retroactive diagnostic allocation.
+
+The permit carries the original borrowed subject and consumes itself to retain
+the existing shared body identity. It accepts neither a replacement subject nor
+a new payer at refusal. Raw detailed rendering remains explicit compatibility;
+publication still transfers the original fixed outward report and ledger.
+The previous complete sum/Option/Result layout controls remain mandatory: no
+portable layout equality, runtime success, byte savings or application recovery
+is claimed by this source-only successor. Actual added control bytes/work may
+increase cumulative reservations.
+
+Remaining explicit inner boundaries include selected_vector_element's old
+ignored classification errors, the selected profile's collection/append and
+other dynamic child Diagnostic producers, and arbitrary owned helper/renewal
+routes outside this finite cut. They are not certified paid by the new receipt
+or the outward report. This batch does not claim whole transitive OPT781 closure.

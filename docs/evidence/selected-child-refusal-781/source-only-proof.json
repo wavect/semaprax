@@ -1,0 +1,151 @@
+{
+  "status": "source-only; Rust owners unexecuted",
+  "basis": "ef0cb9602612ee736993ea2bada93242ec75d24b",
+  "own22": [
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "current_sha256": "1593370b2d34db9f2809dff6db36ac5281f62d6660d7cdba81eea446287e7d66",
+      "complete_original_equal": true,
+      "lines": 1436
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile.rs",
+      "current_sha256": "3c1368e042c7002c7dc8c95737f69e7bdd4472dbc2374177b6ae05db91f83ba5",
+      "complete_original_equal": true,
+      "lines": 304
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "current_sha256": "ad132d827584ddeef1fe5c095dbde83ae87fd18b084912c83c1fbf056a0c17b9",
+      "complete_original_equal": true,
+      "lines": 33
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/selected.rs",
+      "current_sha256": "9e786d9ee1ea0710c8c56b8d22839f4d83731bf33e10dc6c38f17a008ef5f870",
+      "complete_original_equal": true,
+      "lines": 460
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/selected_inline.rs",
+      "current_sha256": "1bc7395f83f03adb78baba3bfe3d74db3e94064756cf3a09f4e60441ae2e58b0",
+      "complete_original_equal": true,
+      "lines": 225
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/selected_inline/append.rs",
+      "current_sha256": "b072c182cb4b4bc5078143c57bf22107792497f2d2f3e67613a26c3f8b4739b1",
+      "complete_original_equal": true,
+      "lines": 75
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/selected_inline/cells.rs",
+      "current_sha256": "1222eb3c0727f7c935b714e8aace1b8cee71302ec592ff3745efb2ab5f3cbfee",
+      "complete_original_equal": true,
+      "lines": 123
+    },
+    {
+      "source": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "current_sha256": "2f038a2261cec457dd37c9a5c3f025a0e553dd1149347fd581b886fc368226e7",
+      "complete_original_equal": true,
+      "lines": 1364
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context.rs",
+      "current_sha256": "929fde43f03e5d52ee3e90b2a7d84a93467c308e8830131aa84bb57a1b9732c8",
+      "complete_original_equal": true,
+      "lines": 112
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context/child.rs",
+      "current_sha256": "23d17af296decef0fb30d6574b334e3d31d6378f506935202190bee8009e3a53",
+      "complete_original_equal": true,
+      "lines": 71
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context/child/tests.rs",
+      "current_sha256": "c0fff9d41c28830186a0fd30844355cf1fc1da9528fb165131ff3a0e5fc3c860",
+      "complete_original_equal": true,
+      "lines": 344
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context/child/tests/source.rs",
+      "current_sha256": "794343c459c05603e80d24c21648415d6cd4087795e4efbc19a6b70e216cdad5",
+      "complete_original_equal": true,
+      "lines": 146
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context/paid.rs",
+      "current_sha256": "c1cc9bc652c03d6050b35a9b33083ed230046f36e4573ce341200b401e7c2173",
+      "complete_original_equal": true,
+      "lines": 81
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context/paid_before_children.rs",
+      "current_sha256": "a063b107ad3e4f96109ef226e5600459deae27d9e839dd05e1238c7eba18eaf9",
+      "complete_original_equal": true,
+      "lines": 99
+    },
+    {
+      "source": "src/cleanup_plan/replay/semantic_refusal.rs",
+      "current_sha256": "d51e7c1c6e5e84c6be8a1d27db2eb0f2979f523a50cae7c085e37d049d21f952",
+      "complete_original_equal": true,
+      "lines": 123
+    },
+    {
+      "source": "src/hir/lexical_exit.rs",
+      "current_sha256": "a953e489157e9a22275257d1f15712d42d06b9aec0fbb4e3f2fc66a61d876ba8",
+      "complete_original_equal": true,
+      "lines": 185
+    },
+    {
+      "source": "src/hir/lexical_exit/selected_child.rs",
+      "current_sha256": "c0eac68cf3d34f65c3cd3df2e4324293c1c2b870cfe6b76e8d2d0bf3c0d304c5",
+      "complete_original_equal": true,
+      "lines": 36
+    },
+    {
+      "source": "src/loop_calls/byte_writer.rs",
+      "current_sha256": "2469ee3667c8b865ed6faf480e61aa9b1f443acdd842c5a6317c6d168cb7610f",
+      "complete_original_equal": true,
+      "lines": 217
+    },
+    {
+      "source": "src/loop_calls/byte_writer/resolved.rs",
+      "current_sha256": "0ab9fa73794e264a5701323deb73baa2763fadc5a2574c2f55c3812e6db26908",
+      "complete_original_equal": true,
+      "lines": 593
+    },
+    {
+      "source": "src/loop_calls/byte_writer/resolved/selected_inline.rs",
+      "current_sha256": "5634914aba2e68e15d41835cc0cdd7f119cd3ea5e330035bd728b81d8bcf0a5c",
+      "complete_original_equal": true,
+      "lines": 302
+    },
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "current_sha256": "6bc26717f8ce12a0bdde08e68ce86ca6b3530cce12d9ad863ba61726b351f489",
+      "complete_original_equal": true,
+      "lines": 755
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "current_sha256": "de04b96a11d39a86e93eef5efeb12960eeb2274cc88aaec65edc7485e42a9601",
+      "complete_original_equal": true,
+      "lines": 559
+    }
+  ],
+  "existing_selected_local19_complete_original_equal": true,
+  "selected_local19_current_bridges": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+    "src/cleanup_plan/replay/selected_context.rs",
+    "src/cleanup_plan/replay/semantic_refusal.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "src/cleanup_plan/replay/selected_context/paid.rs"
+  ],
+  "full_before_paid_context_only_method_rename": true,
+  "source36": "PASS; separate Python source-only helper; no Rust execution",
+  "rust_execution": false
+}

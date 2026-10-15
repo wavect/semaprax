@@ -1,0 +1,175 @@
+Independent bounded #781 implementation-design review. Tools disabled, source-sharing authorized. Old producers must remain independently compiled unchanged. Current EngineError is Failed|Owned(Diagnostic)|Fact(FactReceipt)|Structural(Receipt). Receipt retains existing shared ExpressionId and Atom. Atom::SelectedSession(&static str) renders function-prefixed replay_error; other atoms already larger. Existing full old/current sum/Result/Option layout controls reject mismatch. Outward report is already affine/fixed/same-ledger; inner Owned allocations are target.
+Proposed finite connected cut: sealed Copy ChildRefusal variants LexicalDepth,RenewalCensus,HelperCensus,RenewalWork,LostPhysical. Preserve original raw IO versus function-prefixed detailed rendering. Generic error policy or exact paid twins through lexical requires, selected renewal walk/append/cells, helper census+proof. Actual Context::new_paid adopts typed route; unknown dynamic/layout children remain explicit Owned, never translate already-allocated Diagnostic to 'paid'. Prefer existing EngineError with Atom::SelectedChild(ChildRefusal), subject to unchanged full receiving layout checks. Fund actual newly receiving/results/controls BEFORE call including success if larger; no old header credit. Fund full Receipt/control tuple and initializer work BEFORE shared source-handle clone. Split physical/remaining borrow cannot reborrow whole budget in callbacks; return finite Copy failure then materialize paid receipt after borrow ends. Fund new Copy/result carrier before it exists. Preserve semantic/error order, actual work debits and first sticky physical/work receipt, no quota/cap/refund/ambient payer.
+Identify concrete flaws and smallest safe payment/policy design; focus nested helper traversal and initial refusal. Source is incomplete beyond exact snippets, mark uncertainty. <=900words, no runtime verdict.
+
+SOURCE src/cleanup_plan/replay/selected_context/paid.rs:35
+    }
+    Error::Structural(semantic_refusal::Receipt::selected(function, detail))
+}
+impl<'a> Context<'a> {
+    pub(in super::super) fn new_paid(
+        source: &'a dyn ReplayContext,
+        function: &'a ResolvedFunction,
+        budget: &mut ReplayBudget,
+        lexical: bool,
+    ) -> Result<Self, Error> {
+        if lexical
+            && (!crate::hir::lexical_exit::requires(function)?
+                || !matches!(
+                    function.cleanup_plan.schema,
+                    crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V18
+                        | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V19
+                ))
+        {
+            return Err(refusal(
+                function,
+                budget,
+                "selected retained lexical replay requires an actual lexical function",
+            ));
+        }
+        selected_profile::paid::validate(source, function, budget)?;
+        selected_owner::paid::owner(source, function, budget)?;
+        budget.reserve_array::<Self>(function, 1, "selected immutable replay lease")?;
+        let renewals = {
+            let ReplayBudget {
+                remaining,
+                physical,
+                ..
+            } = budget;
+            let physical = physical.as_deref_mut().ok_or_else(|| {
+                replay_error(function, "selected replay lost physical reservation")
+            })?;
+            let mut debit = |units| {
+                if let Some(next) = remaining.checked_sub(units) {
+                    *remaining = next;
+                    Ok(())
+                } else {
+                    *remaining = 0;
+                    Err(replay_error(function, "selected renewal work exhausted"))
+                }
+            };
+            crate::cleanup_plan::renewal_profile::bindings_with_reservation_and_work(
+                source, function, physical, &mut debit,
+            )?
+        };
+        if (function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V19)
+            != renewals.has_helpers()
+        {
+            return Err(refusal(
+                function,
+                budget,
+                "selected lexical schema disagrees with independently proved helper renewal",
+            ));
+        }
+        Ok(Self {
+            source,
+            function,
+            renewals,
+        })
+    }
+}
+
+SOURCE src/cleanup_plan/renewal_profile/selected.rs:28
+pub(crate) fn bindings_with_reservation_and_work<'a>(
+    program: &'a dyn crate::cleanup::ReplayContext,
+    function: &'a ResolvedFunction,
+    physical: &mut ReplayPhysicalReservation,
+    charge: &mut dyn FnMut(usize) -> Result<(), crate::diagnostic::Diagnostic>,
+) -> Result<RenewalBindings<'a>, crate::diagnostic::Diagnostic> {
+    physical
+        .reserve(std::mem::size_of::<[Frame<'_>; DEPTH]>())
+        .map_err(|_| error())?;
+    let mut frames = [None; DEPTH];
+    let mut mutable = BTreeSet::new();
+    walk(
+        function,
+        &mut frames,
+        charge,
+
+SOURCE src/loop_calls/byte_writer/resolved/selected.rs:14
+pub(crate) fn checked_bindings_with_reservation_and_work<'a>(
+    program: &'a dyn crate::cleanup::ReplayContext,
+    function: &'a ResolvedFunction,
+    physical: &mut ReplayPhysicalReservation,
+    debit: &mut dyn FnMut(usize) -> Result<(), crate::diagnostic::Diagnostic>,
+) -> Result<HelperBindings<'a>, crate::diagnostic::Diagnostic> {
+    let mut possible = false;
+    for ordinal in 0..program.function_count() {
+        debit(1)?;
+        let member = program.function_at(ordinal).ok_or_else(census_error)?;
+        if member.return_type == ResolvedType::Bytes {
+            for parameter in &member.params {
+                debit(1)?;
+                if parameter.ownership == OwnershipMode::Own && parameter.ty == ResolvedType::Bytes
+                {
+                    possible = true;
+                    break;
+                }
+            }
+        }
+        if possible {
+            break;
+
+SOURCE src/loop_calls/byte_writer/resolved/selected.rs:88
+            }
+            let proved = nonallocating_with_cursor_and_work(
+                target,
+                |id, instance| program.resolve_call_target(id, instance),
+                |_, mode, ty| primitive_param(mode, ty),
+                |_, ty| crate::hir::is_scalar_resolved_type(ty),
+                program
+                    .function_count()
+                    .saturating_add(program.function_instances().len()),
+                proof.as_mut().ok_or_else(census_error)?,
+                *debit,
+            )?;
+            Ok(assignment_with_target(
+                program, binding, value, target, proved,
+            ))
+        },
+        |bytes, storage| storage.0.reserve(bytes).is_ok(),
+        |units, storage| (storage.1)(units),
+        CensusRefusal {
+            physical: |_| {},
+            error: census_error,
+        },
+    )
+}
+/// Guarded receiving proof for a complete nonowning helper profile. The
+
+SOURCE src/hir/lexical_exit/walk.rs:236
+pub(crate) fn requires(function: &ResolvedFunction) -> Result<bool, Diagnostic> {
+    let mut stack = [None; crate::cache_codec::MAX_DEPTH + 1];
+    for root in function
+        .requires
+        .iter()
+        .chain(std::iter::once(&function.body))
+        .chain(&function.ensures)
+    {
+        stack[0] = Some(ChildCursor::new(root));
+        let mut len = 1usize;
+        while len != 0 {
+            let frame = stack[len - 1]
+                .as_mut()
+                .expect("occupied lexical scan frame");
+            let expr = frame.expression();
+            if !frame.is_started() && matches!(&expr.kind, K::LexicalExit { .. }) {
+                return Ok(true);
+            }
+            if let Some(next) = frame.next() {
+                if len == stack.len() {
+                    return Err(Diagnostic::io(
+                        "SPX-H006",
+                        "lexical control scan exceeds admitted expression depth",
+                    ));
+                }
+                stack[len] = Some(ChildCursor::new(next));
+                len += 1;
+            } else {
+                stack[len - 1] = None;
+                len -= 1;
+            }
+        }
+    }
+    Ok(false)
+}

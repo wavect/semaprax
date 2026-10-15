@@ -1,0 +1,38 @@
+{
+  "status": "future batch only; source authored, unexecuted",
+  "new": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_context::child::tests::complete_old_child_receivers_keep_success_raw_errors_prefix_and_order",
+      "source": "src/cleanup_plan/replay/selected_context/child/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_context::child::tests::actual_paid_context_uses_child_receiving_and_keeps_complete_old_success_and_drop",
+      "source": "src/cleanup_plan/replay/selected_context/child/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_context::child::tests::child_permit_exact_short_zero_bytes_and_work_preserve_first_ledger_full_drop",
+      "source": "src/cleanup_plan/replay/selected_context/child/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_context::child::tests::complete_old_helper_proof_and_collection_probe_keep_all_fields_and_drop",
+      "source": "src/cleanup_plan/replay/selected_context/child/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_context::child::tests::source::finite_child_cut_sources_and_complete_old_receivers_stay_exact",
+      "source": "src/cleanup_plan/replay/selected_context/child/tests/source.rs"
+    }
+  ],
+  "retain_existing_packet": "docs/evidence/selected-session-static-refusal-781/pending-selectors.json",
+  "required_original_paid_setup_and_actual_callers": "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+  "not_current108_expansion": true
+}

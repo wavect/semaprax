@@ -106,6 +106,7 @@ pub(crate) use oracle::matches as general_matches;
     }
     {
         let mut current = include_str!("../../../../hir/lexical_exit.rs").to_owned();
+        undo(&mut current,"mod walk;\nmod selected_child;\npub(crate) use selected_child::requires_inline;","mod walk;","781 finite child lexical registration");
         undo(
             &mut current,
             r#"    }
@@ -1087,6 +1088,7 @@ fn one_mib_ledger_preserves_first_cursor_refusal_and_sticky_retries() {
     }
     {
         let mut current = include_str!("../../../../../tests/hir_module_boundaries.rs").to_owned();
+        undo(&mut current,"        include_str!(\"../src/cleanup_plan/renewal_profile/child_refusal.rs\"),\n        include_str!(\"../src/cleanup_plan/renewal_profile/selected_inline.rs\"),\n        include_str!(\"../src/cleanup_plan/renewal_profile/selected_inline/append.rs\"),\n        include_str!(\"../src/cleanup_plan/renewal_profile/selected_inline/cells.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/selected_context/child.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/selected_context/child/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/selected_context/child/tests/source.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/selected_context/paid_before_children.rs\"),\n        include_str!(\"../src/hir/lexical_exit/selected_child.rs\"),\n        include_str!(\"../src/loop_calls/byte_writer/resolved/selected_inline.rs\"),\n","","781 complete finite-child source join");
         undo(&mut current, r########"        include_str!("../src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_before.rs"),
         include_str!("../src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs"),
 "########, ""); undo(&mut current, "        include_str!(\"../src/loan_plan/nested_candidate_before.rs\"),\n", ""); undo(&mut current, "        include_str!(\"../src/loan_plan/paid_candidate/retained/nested_tests.rs\"),\n", ""); undo(&mut current, "        include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs\"),\n", ""); undo(&mut current, "        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/app_census.rs\"),\n", "");

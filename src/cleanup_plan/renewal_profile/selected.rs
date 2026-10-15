@@ -2,13 +2,20 @@
 //! closes Vec/iterator/String-replacement families before using this subset.
 use super::*;
 mod append;
+#[cfg(test)]
 mod cells;
-use crate::cleanup_plan::{replay_btree_node_upper, ReplayPhysicalReservation};
+use crate::cleanup_plan::ReplayPhysicalReservation;
+#[cfg(test)]
+use crate::cleanup_plan::replay_btree_node_upper;
+#[cfg(test)]
 use crate::hir::{ResolvedExprKind, ResolvedStatement, ValueId};
 pub(crate) use append::admitted as selected_string_append;
+#[cfg(test)]
 use std::collections::BTreeSet;
 const DEPTH: usize = 514;
+#[cfg(test)]
 const WORK: usize = crate::cache_codec::MAX_NODES;
+#[cfg(test)]
 type Frame<'a> = Option<(crate::hir::lexical_exit::ChildCursor<'a>, bool, bool)>;
 fn error() -> crate::diagnostic::Diagnostic {
     crate::diagnostic::Diagnostic::io("SPX-H006", "selected primitive renewal census refused")
@@ -25,6 +32,7 @@ pub(crate) fn bindings_with_reservation<'a>(
         Ok(())
     })
 }
+#[cfg(test)]
 pub(crate) fn bindings_with_reservation_and_work<'a>(
     program: &'a dyn crate::cleanup::ReplayContext,
     function: &'a ResolvedFunction,
@@ -135,6 +143,7 @@ pub(crate) fn bindings_with_reservation_and_work<'a>(
         helpers: HelperSites::Owned(helpers),
     })
 }
+#[cfg(test)]
 fn walk<'a>(
     function: &'a ResolvedFunction,
     frames: &mut [Frame<'a>; DEPTH],

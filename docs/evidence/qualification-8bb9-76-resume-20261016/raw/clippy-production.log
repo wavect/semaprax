@@ -1,0 +1,15 @@
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+error: manual saturating arithmetic
+  --> src/cleanup_plan/replay/path_join/boxed_states.rs:63:20
+   |
+63 |           let held = node
+   |  ____________________^
+64 | |             .checked_add(Self::entry_controls())
+65 | |             .unwrap_or(usize::MAX);
+   | |__________________________________^ help: consider using `saturating_add`: `node.saturating_add(Self::entry_controls())`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_saturating_arithmetic
+   = note: `-D clippy::manual-saturating-arithmetic` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::manual_saturating_arithmetic)]`
+
+error: could not compile `semaprax` (lib) due to 1 previous error

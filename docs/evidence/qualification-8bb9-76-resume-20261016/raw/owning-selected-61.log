@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::renewal_profile::ordinary::record_presence::tests::exact_metadata_and_census_work_and_one_short_fail_closed_without_allocation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9187 filtered out; finished in 0.01s
+

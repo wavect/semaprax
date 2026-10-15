@@ -1,0 +1,29 @@
+{
+  "source": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+  "complete": true,
+  "actual": 76,
+  "PASS": 56,
+  "FAIL": 20,
+  "all_logs_authenticated": true,
+  "runtime_audit": {
+    "path": "/Volumes/Semaprax/provenance/8bb9-76-runtime-parent-audit-20261016.json",
+    "sha256": "3a090a97ffe23a82aa552987c39fb22220b88cecbda469bc66c37a925fba0ff9"
+  },
+  "build_receipt_sha256": "adaeeaa70d39722dfe0110b7e073f8300988d7fc337c33c80f500d92b945bc4f",
+  "derived_four_build_success": true,
+  "original_interrupted_attempt_not_promoted": true,
+  "both_scoped_clippy": [
+    {
+      "file": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/clippy-production-result.json",
+      "sha256": "cf2ef8901008ae87b774e14271dccd6bfc93115f28b0f5c17101588ec6e0e9d5",
+      "exit_code": 101
+    },
+    {
+      "file": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/clippy-production-toolchain-full-cli-result.json",
+      "sha256": "296e59abfbd097c46ffe4518bedbb10ab9330f019e72c8bc016ab10671d9f66a",
+      "exit_code": 101
+    }
+  ],
+  "clippy_both_failed_same_lint": true,
+  "universal_closure_authorized": false
+}

@@ -1,0 +1,17 @@
+
+running 1 test
+test semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root ... 
+thread 'semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root' (11986948) panicked at tests/workspace/semantic_graph.rs:1345:5:
+assertion `left == right` failed
+  left: "29b30697dd853755c764ee558ab76c4d42a2b0e96e8ab74a1a5ce62f7aa52bef"
+ right: String("2f529bc28e2b42218eb6b78d260a655709032e967fd312ba64099af12eeef4bd")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 278 filtered out; finished in 0.11s
+

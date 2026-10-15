@@ -1,0 +1,7 @@
+
+running 1 test
+test cleanup_plan::replay::path_join::boxed_states::receiving_tests::complete_main_callback_and_current_receiving_replay_keep_full_success_error_work_and_costs ... 849 whole small callback old/current reserved=39825/48070
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9187 filtered out; finished in 0.01s
+

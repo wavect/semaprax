@@ -1,0 +1,20 @@
+--- supplement
++++ original
+@@ -30,7 +30,6 @@
+ runtime_manifest_sha256=hashlib.sha256((OUT/'expected-counts.json').read_bytes()).hexdigest()
+ def bound():
+  verify_frozen(m, ROOT)
+- if sha_file(OUT/'parent-expected-counts.json')!=m['supplement_parent']['manifest_sha256'] or sha_file(OUT/'owning-build-result.json')!=m['supplement_parent']['actual_build_receipt_sha256']:raise SystemExit('Actual parent receipt/manifest drift')
+  if hashlib.sha256((OUT/'expected-counts.json').read_bytes()).hexdigest()!=runtime_manifest_sha256:raise SystemExit('Runtime manifest drift')
+  if subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()!=subject or subprocess.check_output(['git','status','--porcelain','--untracked-files=all'],cwd=ROOT,text=True).strip():raise SystemExit('Source drift')
+ bound()
+@@ -50,8 +49,7 @@
+ build_receipt_path=OUT/'owning-build-result.json'
+ build_receipt=json.loads(build_receipt_path.read_text())
+ if build_receipt.get('source_subject')!=subject or build_receipt.get('exit_code')!=0:raise SystemExit('Unqualified compiler artifacts')
+-assert build_receipt['manifest_sha256']==m['supplement_parent']['manifest_sha256']==sha_file(OUT/'parent-expected-counts.json')
+-assert sha_file(build_receipt_path)==m['supplement_parent']['actual_build_receipt_sha256']
++assert build_receipt['manifest_sha256']==runtime_manifest_sha256
+ assert build_receipt['source_tree']==m['source_tree']
+ assert build_receipt['owning_build_metadata_sha256']==sha_file(OUT/'owning-build.jsonl')
+ build_receipt_sha=sha_file(build_receipt_path)

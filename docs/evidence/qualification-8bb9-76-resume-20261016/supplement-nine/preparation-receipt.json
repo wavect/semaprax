@@ -1,0 +1,29 @@
+{
+  "state": "PREPARED_UNEXECUTED_NO_BUILD",
+  "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+  "selected": 9,
+  "selectors": [
+    "cleanup_plan::replay::factored::compact_nodes::before::tests::exhaustive_small_order_parallel_epsilon_and_weighted_languages_match_complete_old",
+    "cleanup_plan::replay::factored::compact_nodes::before::tests::complete_builder_and_comparison_receivers_keep_work_and_later_semantic_diagnostics",
+    "cleanup_plan::replay::factored::compact_nodes::before::tests::whole_constructor_to_drop_reports_empty_singleton_and_unfavorable_many_costs",
+    "cleanup_plan::replay::factored::compact_nodes::before::tests::promotion_refusal_preserves_old_inline_value_and_all_drop_ownership",
+    "cleanup_plan::replay::factored::compact_nodes::before::tests::complete_build_comparison_and_canonical_receivers_report_physical_costs_through_drop",
+    "semantic_change::reporting::typed_public_evidence_refusal_keeps_complete_original_diagnostics",
+    "semantic_structural_change::reporting::typed_public_evidence_refusal_keeps_complete_original_diagnostics",
+    "semantic_operations::reporting::typed_public_generation_verification_and_application_keep_full_legacy_bytes",
+    "semantic_operations::reporting::typed_public_evidence_refusal_keeps_complete_original_diagnostics"
+  ],
+  "parent_build_receipt_sha256": "adaeeaa70d39722dfe0110b7e073f8300988d7fc337c33c80f500d92b945bc4f",
+  "original_six_drivers_byte_exact": true,
+  "original_runtime_driver_sha256": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450",
+  "derived_runtime_driver_sha256": "57e9f3591f226302fa97d44112f9aac721f08ecfe116d28ddf346d3c8c4cd87f",
+  "only_binding_seam_changed_full_inverse_exact": true,
+  "runtime_rss_guard_bytes": 8589934592,
+  "registration_parser_sha256": "8774afeeb957dabcde7eee44a29c1a91aec2572d7740413a0dbebf473ec7da6f",
+  "runtime_command": [
+    "env",
+    "SEMAPRAX_CHECK_ROUND=/Volumes/Semaprax/lane-prompts/closure-8bb9-844845-nine-supplement-20261016",
+    "python3",
+    "/Volumes/Semaprax/lane-prompts/closure-8bb9-844845-nine-supplement-20261016/drivers/run-owning-selected-supplement.py"
+  ]
+}

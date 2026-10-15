@@ -1,0 +1,10 @@
+{
+  "package": "semaprax",
+  "kind": "lib",
+  "selector": "hir::identity_resolution::nominal_tests::legacy::legacy_postpass_keeps_full_original_diagnostics_before_any_canonicalization",
+  "source": "src/hir/identity_resolution/nominal_tests/legacy.rs",
+  "source_sha256": "c8f59844679de5f127cc04c7eb5a79017c5aaa998053c5950493b1d8092e5538",
+  "status": "UNEXECUTED_CORRECTION",
+  "actual_failure_log": "/Volumes/Semaprax/lane-prompts/final-legacy-card-a417-20261015/owning-selected-131.log",
+  "actual_failure_log_sha256": "f9d497a062afa8d0ad82a23418cacbdb76f14e3f4fc61addf70030aa635e1772"
+}

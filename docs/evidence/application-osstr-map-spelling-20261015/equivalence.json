@@ -1,0 +1,19 @@
+{
+  "status": "SOURCE_ONLY_NO_CLIPPY_OR_RUST_EXECUTION",
+  "source_basis": "77cd4b8307aa4d6ef35007d6c33045aac72859bb",
+  "production_source_bytes_changed": true,
+  "original_sha256": "38f2c9cb6c841a4cb83a5796748533d2c131f21d44b2f23d9c110c217572d777",
+  "current_sha256": "5f4ee2befaa1836b8a4aa1e4d5da7afb0ba874ced101026bc64e7243cd7e7a3f",
+  "original_lines": [
+    61,
+    101
+  ],
+  "old": "map(|name| OsStr::new(name))",
+  "new": "map(OsStr::new)",
+  "argument_type": "&String",
+  "result_type": "&OsStr with the same input borrow lifetime",
+  "actual_map_kind": "array::map over [&String; N], eager and same array order",
+  "callable_controls": "zero-capture closure replaced with zero-sized monomorphized function item; no function-pointer cast, environment or new allocation",
+  "full_inverse_restores_git_original": true,
+  "new_selectors": []
+}

@@ -58,7 +58,7 @@ impl<const N: usize> ApplicationFiles for Files<N> {
                 .map(|((_, bytes), name)| hold_matching(directory, OsStr::new(name), bytes))
                 .collect::<Result<Vec<_>, _>>()?;
             let mut scan = platform::prepare_inventory_entries_exact(
-                self.names.each_ref().map(|name| OsStr::new(name)),
+                self.names.each_ref().map(OsStr::new),
                 N,
             )
             .map_err(map_invalid)?;
@@ -98,7 +98,7 @@ fn prepare<const N: usize>(
             .to_owned()
     });
     let inventory =
-        platform::prepare_owned_discard_inventory(names.each_ref().map(|name| OsStr::new(name)))
+        platform::prepare_owned_discard_inventory(names.each_ref().map(OsStr::new))
             .map_err(map_invalid)?;
     Ok(Box::new(Files { names, inventory }))
 }

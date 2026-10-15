@@ -1277,6 +1277,11 @@ mod oracle_source_inventory;
 "###, "");
         undo(&mut current, "        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs\"),\n", "");
         undo(&mut current, "        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/memo.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/memo/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_index.rs\"),\n", "");
+        // Exact singleton target producer, complete predecessor and controls.
+        undo(&mut current, r########"        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs"),
+        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_targets.rs"),
+        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs"),
+"########, "");
         undo(&mut current, r###"        include_str!("../src/cleanup_plan/replay/factored/canonical_shared.rs"),
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/tests.rs"),
         include_str!("../src/cleanup_plan/replay/factored/canonical_before.rs"),

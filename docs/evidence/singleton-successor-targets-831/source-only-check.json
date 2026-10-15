@@ -1,0 +1,43 @@
+{
+  "status": "SOURCE_ONLY_NO_CARGO_OR_RUST_TEST_EXECUTION",
+  "own_rows": 8,
+  "all_current_bindings_and_fixed_original_inverses": "PASS",
+  "complete_before_receiver_adapter_inverse": "PASS",
+  "complete_unchanged_weighted_successor_0to4_body": "PASS",
+  "source36": "PASS",
+  "module_limits": [
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "lines": 398
+    },
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "lines": 741
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "lines": 543
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "lines": 1420
+    },
+    {
+      "source": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "lines": 1362
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/before_targets.rs",
+      "lines": 353
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs",
+      "lines": 116
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+      "lines": 446
+    }
+  ],
+  "pending_new_owners": 7
+}

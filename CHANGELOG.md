@@ -7156,3 +7156,8 @@ are authored. Qualification is pending; Catalog corpus and limits are unchanged.
   coordinates without promoting unfunded storage; complete immediate prior
   finalizer, mutation, Owned baseline and iterative Drop controls await the
   next combined qualification.
+
+- Source-only #831 keeps singleton weighted successor targets inline, promoting
+  only on a distinct second child after full payment. Complete prior receiver
+  and new algebra/physical/work/authority controls await combined execution;
+  no cap changes or application recovery claim.

@@ -7,12 +7,17 @@ use super::{
     physical_clone, replay_error,
 };
 
-mod epsilon_alias;
 #[cfg(test)]
 mod before_alias;
-mod memo;
 #[cfg(test)]
 mod before_index;
+#[cfg(test)]
+mod before_targets;
+mod epsilon_alias;
+mod memo;
+#[cfg(test)]
+mod singleton_target_tests;
+mod successor_targets;
 
 type SharedWeighted = Rc<Weighted>;
 
@@ -178,7 +183,8 @@ impl<'a> Canonicalizer<'a> {
                 physical_clone::rc_backing_bytes::<BTreeMap<usize, u64>>(),
                 "factored closure shared header",
             )?;
-            self.closures.insert(function, node, budget, || Rc::new(closure))?;
+            self.closures
+                .insert(function, node, budget, || Rc::new(closure))?;
         }
         Ok(self.closures.get(&root).cloned())
     }
@@ -213,7 +219,15 @@ impl<'a> Canonicalizer<'a> {
             }
         }
         let accepted = closed.get(&self.sink).copied().unwrap_or(0);
-        let mut successors = BTreeMap::<Label, BTreeMap<usize, u64>>::new();
+        if budget.pays_allocations() {
+            budget.reserve_bytes(
+                function,
+                std::mem::size_of::<BTreeMap<Label, successor_targets::Targets>>()
+                    + std::mem::size_of::<Option<&mut successor_targets::Targets>>(),
+                "factored successor label receiving controls",
+            )?;
+        }
+        let mut successors = BTreeMap::<Label, successor_targets::Targets>::new();
         for (node, weight) in &closed {
             let moves = &self.automaton.nodes[*node].moves;
             budget.charge(
@@ -223,23 +237,45 @@ impl<'a> Canonicalizer<'a> {
             )?;
             for (label, child) in moves {
                 if !successors.contains_key(label) {
-                    budget.reserve_btree_node::<Label, BTreeMap<usize, u64>>(
+                    budget.reserve_btree_node::<Label, successor_targets::Targets>(
                         function,
                         "factored successor label node",
                     )?;
+                    let targets =
+                        successor_targets::Targets::one(function, budget, *child, *weight)?;
+                    successors.insert(label.clone(), targets);
+                } else {
+                    let targets = successors.get_mut(label).expect("existing label");
+                    match targets {
+                        successor_targets::Targets::One {
+                            child: first,
+                            weight: total,
+                        } if *first == *child => {
+                            // Same repeated-child checked_add before any later
+                            // target acquisition or error, as in the old map.
+                            let Some(sum) = total.checked_add(*weight) else {
+                                return Ok(None);
+                            };
+                            *total = sum;
+                        }
+                        successor_targets::Targets::One { .. } => {
+                            targets.promote(function, budget, *child, *weight)?;
+                        }
+                        successor_targets::Targets::Many(targets) => {
+                            if !targets.contains_key(child) {
+                                budget.reserve_btree_node::<usize, u64>(
+                                    function,
+                                    "factored successor target node",
+                                )?;
+                            }
+                            let slot = targets.entry(*child).or_insert(0);
+                            let Some(sum) = slot.checked_add(*weight) else {
+                                return Ok(None);
+                            };
+                            *slot = sum;
+                        }
+                    }
                 }
-                let targets = successors.entry(label.clone()).or_default();
-                if !targets.contains_key(child) {
-                    budget.reserve_btree_node::<usize, u64>(
-                        function,
-                        "factored successor target node",
-                    )?;
-                }
-                let slot = targets.entry(*child).or_insert(0);
-                let Some(sum) = slot.checked_add(*weight) else {
-                    return Ok(None);
-                };
-                *slot = sum;
             }
         }
         budget.reserve_array::<(Label, SharedWeighted)>(
@@ -248,8 +284,18 @@ impl<'a> Canonicalizer<'a> {
             "factored successor vector",
         )?;
         let mut result = Vec::with_capacity(successors.len());
+        if budget.pays_allocations() {
+            budget.reserve_bytes(
+                function,
+                std::mem::size_of::<
+                    std::collections::btree_map::IntoIter<Label, successor_targets::Targets>,
+                >() + std::mem::size_of::<Option<(Label, successor_targets::Targets)>>()
+                    + std::mem::size_of::<(Label, successor_targets::Targets)>(),
+                "factored successor target iterator receiving",
+            )?;
+        }
         for (label, targets) in successors {
-            result.push((label, weighted_successor(function, budget, targets)?));
+            result.push((label, targets.finish(function, budget)?));
         }
         Ok(Some((accepted, result)))
     }

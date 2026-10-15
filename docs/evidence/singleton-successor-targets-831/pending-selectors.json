@@ -1,0 +1,74 @@
+{
+  "status": "UNEXECUTED_SOURCE_ONLY",
+  "source_basis": "4a7da2229fb151259da152eada88908820c9cc3a",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_targets_complete_before_receiver_keeps_widths_repeats_signatures_and_overflow_work",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+      "source_sha256": "129171ccd7c422ead56006fe7502449a4d91e48713154ab1d9fe582a18f8dc84",
+      "reason": "Actual singleton/promoted weighted successor algebra, full old/current work, physical boundaries, authority and Drop."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_targets_actual_before_current_reserved_allocated_peak_and_complete_drop",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+      "source_sha256": "129171ccd7c422ead56006fe7502449a4d91e48713154ab1d9fe582a18f8dc84",
+      "reason": "Actual singleton/promoted weighted successor algebra, full old/current work, physical boundaries, authority and Drop."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_targets_full_receiver_exact_short_zero_bytes_and_work_keep_all_drop",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+      "source_sha256": "129171ccd7c422ead56006fe7502449a4d91e48713154ab1d9fe582a18f8dc84",
+      "reason": "Actual singleton/promoted weighted successor algebra, full old/current work, physical boundaries, authority and Drop."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_target_promotions_sort_and_preserve_same_child_overflow_before_later_acquisition",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+      "source_sha256": "129171ccd7c422ead56006fe7502449a4d91e48713154ab1d9fe582a18f8dc84",
+      "reason": "Actual singleton/promoted weighted successor algebra, full old/current work, physical boundaries, authority and Drop."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_promotion_acquires_both_tree_nodes_before_first_allocation_and_stays_inline_on_refusal",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+      "source_sha256": "129171ccd7c422ead56006fe7502449a4d91e48713154ab1d9fe582a18f8dc84",
+      "reason": "Actual singleton/promoted weighted successor algebra, full old/current work, physical boundaries, authority and Drop."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_actual_receiver_foreign_restored_function_budget_and_stale_owner_fail_before_new_targets",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+      "source_sha256": "129171ccd7c422ead56006fe7502449a4d91e48713154ab1d9fe582a18f8dc84",
+      "reason": "Actual singleton/promoted weighted successor algebra, full old/current work, physical boundaries, authority and Drop."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_finish_every_real_carrier_vector_and_rc_boundary_refuses_before_unpaid_backing",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+      "source_sha256": "129171ccd7c422ead56006fe7502449a4d91e48713154ab1d9fe582a18f8dc84",
+      "reason": "Actual singleton/promoted weighted successor algebra, full old/current work, physical boundaries, authority and Drop."
+    }
+  ],
+  "required_existing": [
+    "cleanup_plan::replay::factored::canonical_shared::tests::full_old_receiver_preserves_ids_signatures_work_duplicates_overflow_and_cycle",
+    "cleanup_plan::replay::factored::canonical_shared::tests::shared_full_backing_exact_short_refusal_and_error_drop_are_physical",
+    "cleanup_plan::replay::factored::canonical_shared::tests::exact_short_and_zero_work_match_the_complete_old_receiver",
+    "cleanup_plan::replay::factored::canonical_shared::tests::overflow_returns_no_proof_and_drops_all_paid_backing",
+    "cleanup_plan::replay::factored::canonical_shared::tests::exact_small_weighted_successor_capacity_and_requested_backing_are_paid_before_allocation",
+    "cleanup_plan::replay::factored::canonical_shared::tests::exact_small_successor_producer_keeps_complete_old_weighted_algebra_and_work",
+    "cleanup_plan::replay::factored::canonical_shared::memo::tests::numeric_memo_foreign_function_budget_and_stale_ledger_fail_before_cached_reuse",
+    "cleanup_plan::replay::factored::canonical_shared::epsilon_alias::tests::epsilon_alias_foreign_restored_function_budget_and_stale_owners_never_return_views",
+    "workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+    "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap"
+  ]
+}

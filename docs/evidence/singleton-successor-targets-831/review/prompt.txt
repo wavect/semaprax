@@ -1,0 +1,191 @@
+Independent bounded source implementation review. Tools disabled; no execution. ≤600words. Issue831: remove singleton's temporary BTreeMap while keeping exactcheckedadd/order/work/limits, funded NEWouterlabelnode value layout and all actualcarriers; promote after BOTH node acquisitions before EITHER insert. Existing full pre-change canonical receiver will remain compiled. Newcompleteowning tests pending. Need concrete semantic/accounting blockers, not broad redesign.
+FULL NEWTARGET HELPER:
+//! A label starts with one target; only a second distinct child owns a tree.
+use super::{
+    own_weighted, weighted_successor, Diagnostic, ReplayBudget, ResolvedFunction, SharedWeighted,
+};
+use std::{collections::BTreeMap, mem::size_of};
+
+pub(super) enum Targets {
+    One { child: usize, weight: u64 },
+    Many(BTreeMap<usize, u64>),
+}
+impl Targets {
+    pub(super) fn one(
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+        child: usize,
+        weight: u64,
+    ) -> Result<Self, Diagnostic> {
+        if budget.pays_allocations() {
+            budget.reserve_bytes(
+                function,
+                2 * size_of::<Self>()
+                    + size_of::<Result<Self, Diagnostic>>()
+                    + size_of::<Option<u64>>(),
+                "factored singleton target initializer and receiving",
+            )?;
+        }
+        budget.reserve_bytes(function, 0, "factored singleton target authentication")?;
+        // Preserve the first route's original zero-plus-weight operation.
+        let weight = 0_u64
+            .checked_add(weight)
+            .expect("zero plus u64 cannot overflow");
+        Ok(Self::One { child, weight })
+    }
+    pub(super) fn add(
+        &mut self,
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+        child: usize,
+        weight: u64,
+    ) -> Result<bool, Diagnostic> {
+        if budget.pays_allocations() {
+            budget.reserve_bytes(
+                function,
+                size_of::<Result<bool, Diagnostic>>() + size_of::<Option<u64>>(),
+                "factored successor target accumulation receiving",
+            )?;
+        }
+        budget.reserve_bytes(function, 0, "factored successor target authentication")?;
+        match self {
+            Self::One {
+                child: first,
+                weight: total,
+            } if *first == child => {
+                let Some(sum) = total.checked_add(weight) else {
+                    return Ok(false);
+                };
+                *total = sum;
+            }
+            Self::One {
+                child: first,
+                weight: total,
+            } => {
+                if budget.pays_allocations() {
+                    budget.reserve_bytes(
+                        function,
+                        2 * size_of::<BTreeMap<usize, u64>>()
+                            + size_of::<Self>()
+                            + 2 * size_of::<Option<u64>>(),
+                        "factored successor target promotion carriers",
+                    )?;
+                }
+                // BOTH acquisitions precede EITHER tree allocation. No refund
+                // or credit for the inline first target's old absence of a tree.
+                budget
+                    .reserve_btree_node::<usize, u64>(function, "factored successor target node")?;
+                budget
+                    .reserve_btree_node::<usize, u64>(function, "factored successor target node")?;
+                let mut targets = BTreeMap::new();
+                targets.insert(*first, *total);
+                let sum = 0_u64
+                    .checked_add(weight)
+                    .expect("zero plus u64 cannot overflow");
+                targets.insert(child, sum);
+                *self = Self::Many(targets);
+            }
+            Self::Many(targets) => {
+                if !targets.contains_key(&child) {
+                    budget.reserve_btree_node::<usize, u64>(
+                        function,
+                        "factored successor target node",
+                    )?;
+                }
+                let slot = targets.entry(child).or_insert(0);
+                let Some(sum) = slot.checked_add(weight) else {
+                    return Ok(false);
+                };
+                *slot = sum;
+            }
+        }
+        Ok(true)
+    }
+    pub(super) fn finish(
+        self,
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+    ) -> Result<SharedWeighted, Diagnostic> {
+        if budget.pays_allocations() {
+            budget.reserve_bytes(
+                function,
+                size_of::<Self>()
+                    + size_of::<Result<SharedWeighted, Diagnostic>>()
+                    + 2 * size_of::<SharedWeighted>()
+                    + size_of::<Vec<(usize, u64)>>()
+                    + size_of::<(usize, u64)>(),
+                "factored successor target finish receiving",
+            )?;
+        }
+        budget.reserve_bytes(
+            function,
+            0,
+            "factored successor target finish authentication",
+        )?;
+        match self {
+            Self::One { child, weight } => {
+                // Same exact one-entry Vec/Rc producer as weighted_successor;
+                // no temporary target tree or FromIterator capacity rounding.
+                budget.reserve_array::<(usize, u64)>(
+                    function,
+                    1,
+                    "factored weighted successor vector",
+                )?;
+                let mut state = Vec::with_capacity(1);
+                state.push((child, weight));
+                own_weighted(function, budget, state)
+            }
+            Self::Many(targets) => weighted_successor(function, budget, targets),
+        }
+    }
+}
+
+ENTIRE ACTUAL GATHER/FINISH CALL SEQUENCE (unchanged closure before this):
+        let accepted = closed.get(&self.sink).copied().unwrap_or(0);
+        if budget.pays_allocations() {
+            budget.reserve_bytes(
+                function,
+                std::mem::size_of::<BTreeMap<Label, successor_targets::Targets>>()
+                    + std::mem::size_of::<Option<successor_targets::Targets>>()
+                    + std::mem::size_of::<Result<bool, Diagnostic>>(),
+                "factored successor label receiving controls",
+            )?;
+        }
+        let mut successors = BTreeMap::<Label, successor_targets::Targets>::new();
+        for (node, weight) in &closed {
+            let moves = &self.automaton.nodes[*node].moves;
+            budget.charge(
+                function,
+                moves.len().saturating_add(1),
+                "factored skeleton subset construction",
+            )?;
+            for (label, child) in moves {
+                if !successors.contains_key(label) {
+                    budget.reserve_btree_node::<Label, successor_targets::Targets>(
+                        function,
+                        "factored successor label node",
+                    )?;
+                    let targets = successor_targets::Targets::one(function, budget, *child, *weight)?;
+                    successors.insert(label.clone(), targets);
+                } else if !successors
+                    .get_mut(label)
+                    .expect("existing label")
+                    .add(function, budget, *child, *weight)?
+                {
+                    return Ok(None);
+                }
+            }
+        }
+        budget.reserve_array::<(Label, SharedWeighted)>(
+            function,
+            successors.len(),
+            "factored successor vector",
+        )?;
+        let mut result = Vec::with_capacity(successors.len());
+        for (label, targets) in successors {
+            result.push((label, targets.finish(function, budget)?));
+        }
+        Ok(Some((accepted, result)))
+CONTRACT: ReplayBudget::pays_allocations false only explicit LegacyUnobserved. Positive reserve_bytes bootstraps original prepaid refusal and debits same sticky payer; reserve_array/nodes noops only unobserved; positive/zero currentowner/refusal checks unchanged. reserve_btree_node full generic actual layout upper; no oldheaderdiscount. Memo.authenticate precedes all actual canonical id/closure paths and binds exact function/budget/active ClassifierLedger; foreign/restored sticky. Targets ephemeral inside successors, no retained authority/cachetoken; no separateowner added. Existing weighted_successor(function,budget,BTreeMap) unchanged (width0..4 controls exact vector+Rc): reserve_array(tuple,len); Vec::with_capacity(len); extend; own_weighted pays Rc backing thenRc::new. One finish duplicates that exact singleentrypaid allocation path without map; helper/fullcallerreceivingfees separately charged. Current bytes mayregress many/repeated smallcases, no universalgain. No new work charge/discount: all actual original moves.len+1 subset and route/closure/copy work calls remain original sequence; checked_add zero+weight kept forfirstentry andsamechild accumulation, overflowreturnsNone.
+OLD GATHER: successors BTreeMap<Label,BTreeMap<usize,u64>>; eachmove ifnewlabel reserve outerfullnode oldlayout, entry(label.clone()).or_default(); ifnewchild reserve targetnode; slot=targets.entry(child).or_insert(0); sum=slot.checked_add(weight) elseNone; slot=sum. Eachlabel then unchanged weighted_successor.
+Questions: same encounteredchild overflow/errorpriority? BOTHpromotioninserts before allocation? actualinitializedcontrol/carrierfunding (including changedoutervalue); sticky/authority boundaries? Any unsupported net-benefit claim? New tests will compare FULL old algebra/signatures/work, actualphysical exactshortzero/everyacq/completeDrop, old/new genuine baselines, allsorted widths andoverflow; newtestchild leaves existing testimports peerowned.

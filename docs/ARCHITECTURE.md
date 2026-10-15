@@ -144,6 +144,12 @@ original route/skeleton work request and authenticates the same held memo owner.
 The complete a33 receiver remains in test-only `canonical_shared/before_alias.rs`.
 Qualification and application fit remain pending.
 
+`canonical_shared/successor_targets.rs` owns the ephemeral One/Many label-target
+representation. New outer value/control layouts and both promotion inserts are
+acquired before construction; existing checked accumulation stays in the
+canonical receiver. Its complete predecessor and owning controls are separate
+children, joined into all source inventories. Qualification remains pending.
+
 `hir/resolve_program/initial_loan_plans.rs` owns the initial authored and
 instantiated loan-plan attachment. Active construction captures one existing
 CFG reservation and funds complete planner scratch. One caller-held staging

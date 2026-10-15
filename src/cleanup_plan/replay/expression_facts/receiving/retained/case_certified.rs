@@ -1,5 +1,9 @@
 //! Complete retained status receiver; only the certified arithmetic branch differs.
-use super::*;
+use super::{
+    CONTROL_BYTES, CallFact, ClassifierLedger, Diagnostic, Directory, Facts, Lookup, ReplayBudget,
+    ResolvedFunction, StatusLane, StatusProducer, StatusSources, case_proof, directory,
+    replay_error, semantic_refusal,
+};
 
 pub(in crate::cleanup_plan::replay) fn validate_status_sources_certified<'hir>(
     function: &'hir ResolvedFunction,

@@ -1,6 +1,6 @@
 //! Authority comes only from complete independent typed-HIR status discovery.
 //! This affine proof borrows the immutable table, never its names as authority.
-use super::*;
+use super::{ClassifierLedger, Diagnostic, ReplayBudget, ResolvedFunction, StatusSource};
 use std::cell::Cell;
 use std::mem::size_of;
 

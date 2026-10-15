@@ -1,0 +1,418 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index b84fe99d2..038a7c18e 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,7 @@
+ # Changelog
+ 
++- Bind fresh application plan/activation reads (#837) to the existing no-follow bounded held regular-file owner, closing inspection/open symlink and FIFO replacement races. Add deterministic pre-open swap controls and small independent typed native-test selector owners. Source-only correction; execution remains pending.
++
+ - Author fresh application assembly (#837) from existing replayed codec plans and explicit command profiles through the original held-parent scaffold publisher. Bind canonical source/generation receipts and exact native routes; add an explicit pure typed v31 native-test successor while preserving old profile refusals. Full ShiftSim15/selected-file CLI49 and hostile-publication scenarios are authored; all executable qualification and the source-capacity dependency remain pending.
+ 
+ - Author the ordinary lexical return-operand inventory (#832) on fallible paid AVL backing with borrowed identities, exact caller/facts/budget/ledger binding and certificate-boundary authentication. Preserve complete old callers and original verification charges; new directory work is additional. Rust qualification remains pending.
+diff --git a/crates/semaprax-toolchain/src/new_project/application.rs b/crates/semaprax-toolchain/src/new_project/application.rs
+index f05a949e0..c3997d5c5 100644
+--- a/crates/semaprax-toolchain/src/new_project/application.rs
++++ b/crates/semaprax-toolchain/src/new_project/application.rs
+@@ -1,6 +1,6 @@
+ //! Explicit full-host fresh installation, reusing the scaffold publisher.
+ use super::*;
+-use std::io::Read;
++use semaprax_native_rust_interop_platform as platform;
+ 
+ fn failure(message: impl Into<String>) -> NewProjectFailure {
+     NewProjectFailure::creation(message)
+@@ -16,32 +16,53 @@ fn diagnostic(errors: Vec<semaprax::diagnostic::Diagnostic>) -> NewProjectFailur
+ }
+ 
+ fn read_bound(path: &Path, maximum: usize) -> Result<Vec<u8>, NewProjectFailure> {
++    read_bound_with_hook(path, maximum, &|_| Ok(()))
++}
++
++fn read_bound_with_hook(
++    path: &Path,
++    maximum: usize,
++    before_open: &dyn Fn(&Path) -> Result<(), NewProjectFailure>,
++) -> Result<Vec<u8>, NewProjectFailure> {
++    let parent_path = path
++        .parent()
++        .filter(|p| !p.as_os_str().is_empty())
++        .unwrap_or_else(|| Path::new("."));
++    let name = path
++        .file_name()
++        .ok_or_else(|| failure("starter input must name one regular file"))?;
++    let parent = platform::hold_directory(parent_path)
++        .map_err(|_| failure("cannot hold starter input parent"))?;
++    // This early inspection is a convenience refusal only. The actual file
++    // classification and no-follow/nonblocking open belong to the held owner.
+     let metadata = fs::symlink_metadata(path)
+         .map_err(|e| failure(format!("cannot inspect starter input: {e}")))?;
+     if !metadata.is_file() || metadata.file_type().is_symlink() {
+         return Err(failure("starter input must be a regular non-symlink file"));
+     }
+-    let before = Handle::from_path(path).map_err(|e| failure(e.to_string()))?;
+-    let file = fs::File::open(path).map_err(|e| failure(e.to_string()))?;
+-    if Handle::from_file(file.try_clone().map_err(|e| failure(e.to_string()))?)
+-        .map_err(|e| failure(e.to_string()))?
+-        != before
+-    {
+-        return Err(failure("starter input changed while opening"));
+-    }
+-    let mut bytes = Vec::new();
+-    file.take(maximum as u64 + 1)
+-        .read_to_end(&mut bytes)
+-        .map_err(|e| failure(e.to_string()))?;
+-    if bytes.len() > maximum
+-        || Handle::from_path(path).map_err(|e| failure(e.to_string()))? != before
++    before_open(path)?;
++    let file = platform::hold_regular_file_bounded(&parent, name, maximum)
++        .map_err(|_| failure("starter input is not a bounded held regular non-symlink file"))?;
++    let bytes = platform::read_exact(&file, maximum)
++        .map_err(|_| failure("starter input changed while reading"))?;
++    platform::recheck_regular_file_named_bounded(&parent, name, &file, maximum)
++        .map_err(|_| failure("starter input binding changed while reading"))?;
++    if !platform::same_directory_path(&parent, parent_path)
++        .map_err(|_| failure("starter input parent changed"))?
+     {
+-        return Err(failure("starter input changed or exceeds its byte bound"));
++        return Err(failure("starter input parent binding changed"));
+     }
+     Ok(bytes)
+ }
+ 
+ pub(super) fn run(arguments: &[String]) -> Result<PathBuf, NewProjectFailure> {
++    run_with_input_hook(arguments, &|_| Ok(()))
++}
++
++fn run_with_input_hook(
++    arguments: &[String],
++    before_open: &dyn Fn(&Path) -> Result<(), NewProjectFailure>,
++) -> Result<PathBuf, NewProjectFailure> {
+     let usage = || {
+         NewProjectFailure::invocation("new <fresh-directory> --from <project> --codec-plan <plan-json> --command-profile <exact-profile> [--command-path <declared-path> --command-source <source-file>]")
+     };
+@@ -93,10 +114,10 @@ pub(super) fn run(arguments: &[String]) -> Result<PathBuf, NewProjectFailure> {
+         (Some(path), Some(file)) => Some(((*path).to_owned(), PathBuf::from(file))),
+         _ => return Err(usage()),
+     };
+-    let plan = read_bound(&plan_path, 16_384)?;
++    let plan = read_bound_with_hook(&plan_path, 16_384, before_open)?;
+     let command_bytes = activation
+         .as_ref()
+-        .map(|(_, file)| read_bound(file, 131_072))
++        .map(|(_, file)| read_bound_with_hook(file, 131_072, before_open))
+         .transpose()?;
+     let command = activation
+         .as_ref()
+@@ -321,4 +342,109 @@ mod tests {
+             assert_eq!(run(&arguments).unwrap_err().exit_code(), 2);
+         }
+     }
++    #[cfg(unix)]
++    #[test]
++    fn starter_plan_and_activation_swap_to_symlink_or_fifo_refuses_before_staging() {
++        for selected in ["plan.json", "command.spx"] {
++            for replacement in ["symlink", "fifo"] {
++                let parent = root();
++                let plan = parent.join("plan.json");
++                let activation = parent.join("command.spx");
++                let outside = parent.join("outside");
++                fs::write(&plan, b"{}").unwrap();
++                fs::write(&activation, b"module app;\n").unwrap();
++                fs::write(&outside, b"outside original").unwrap();
++                let destination = parent.join("new");
++                let arguments = [
++                    destination.to_str().unwrap(),
++                    "--from",
++                    "not-opened-project",
++                    "--codec-plan",
++                    plan.to_str().unwrap(),
++                    "--command-profile",
++                    "source-command.v1",
++                    "--command-path",
++                    "src/app.spx",
++                    "--command-source",
++                    activation.to_str().unwrap(),
++                ]
++                .map(str::to_owned)
++                .to_vec();
++                let swapped = std::cell::Cell::new(false);
++                let result = run_with_input_hook(&arguments, &|path| {
++                    if path.file_name().unwrap() == std::ffi::OsStr::new(selected)
++                        && !swapped.replace(true)
++                    {
++                        fs::remove_file(path).unwrap();
++                        if replacement == "symlink" {
++                            std::os::unix::fs::symlink(&outside, path).unwrap();
++                        } else {
++                            assert!(std::process::Command::new("mkfifo")
++                                .arg(path)
++                                .status()
++                                .unwrap()
++                                .success());
++                        }
++                    }
++                    Ok(())
++                });
++                assert!(swapped.get());
++                assert!(result
++                    .unwrap_err()
++                    .to_string()
++                    .contains("bounded held regular non-symlink"));
++                assert!(!destination.exists());
++                assert!(fs::read_dir(&parent).unwrap().all(|entry| !entry
++                    .unwrap()
++                    .file_name()
++                    .to_string_lossy()
++                    .starts_with(".semaprax-new-")));
++                assert_eq!(fs::read(&outside).unwrap(), b"outside original");
++                fs::remove_dir_all(parent).unwrap();
++            }
++        }
++    }
++
++    #[test]
++    fn starter_input_held_regular_reader_preserves_exact_bytes_and_bounds() {
++        let parent = root();
++        let input = parent.join("plan.json");
++        fs::write(&input, b"stable").unwrap();
++        assert_eq!(read_bound(&input, 6).unwrap(), b"stable");
++        assert!(read_bound(&input, 5).is_err());
++        assert_eq!(fs::read(&input).unwrap(), b"stable");
++        fs::remove_dir_all(parent).unwrap();
++    }
++
++    #[cfg(unix)]
++    #[test]
++    fn starter_initial_symlink_and_existing_destination_preserve_originals() {
++        let parent = root();
++        let outside = parent.join("outside");
++        let alias = parent.join("plan.json");
++        fs::write(&outside, b"outside original").unwrap();
++        std::os::unix::fs::symlink(&outside, &alias).unwrap();
++        assert!(read_bound(&alias, 64).is_err());
++        let destination = parent.join("existing");
++        fs::create_dir(&destination).unwrap();
++        fs::write(destination.join("authored"), b"do not overwrite").unwrap();
++        let arguments = [
++            destination.to_str().unwrap(),
++            "--from",
++            "not-opened-project",
++            "--codec-plan",
++            alias.to_str().unwrap(),
++            "--command-profile",
++            "source-command.v1",
++        ]
++        .map(str::to_owned)
++        .to_vec();
++        assert!(run(&arguments).is_err());
++        assert_eq!(
++            fs::read(destination.join("authored")).unwrap(),
++            b"do not overwrite"
++        );
++        assert_eq!(fs::read(&outside).unwrap(), b"outside original");
++        fs::remove_dir_all(parent).unwrap();
++    }
+ }
+diff --git a/crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs b/crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs
+index 4a51eb172..cd900e32d 100644
+--- a/crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs
++++ b/crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs
+@@ -352,3 +352,70 @@ fn application_starter_selected_file_declared_native_tests_and_unchanged_cli49()
+         std::fs::read(reference.join("tests.mjs")).unwrap()
+     );
+ }
++
++#[test]
++fn tiny_collection_record_selector_executes_typed_native_roots_and_keeps_legacy_refusal() {
++    let fixture = Fixture::new("tiny-pure-native-selector");
++    assert_success(&cli(
++        &fixture.root,
++        &[
++            "new",
++            "typed",
++            "--name",
++            "tiny",
++            "--template",
++            "stdin-stream-collection-record",
++        ],
++    ));
++    let root = fixture.root.join("typed");
++    semaprax::project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
++        assert_eq!(
++            snapshot.manifest().schema(),
++            semaprax::project::PROJECT_SCHEMA_V31
++        );
++        assert_eq!(
++            snapshot.native_test_roots().unwrap_err()[0].code,
++            "SPX-B104"
++        );
++        let profile = semaprax::project::ProjectNativeTestProfile::CollectionRecordPureV1;
++        let roots = snapshot.native_test_roots_with_profile(profile)?;
++        assert_eq!(roots.len(), 2);
++        assert!(roots.iter().all(|root| !root.result_is_exit_status()));
++        let undeclared = root.join("undeclared-native-root");
++        assert_eq!(
++            snapshot
++                .build_native_test_with_profile("tiny.not-a-declared-test", &undeclared, profile)
++                .unwrap_err()[0]
++                .code,
++            "SPX-G172"
++        );
++        assert!(!undeclared.exists());
++        Ok(())
++    })
++    .unwrap();
++    let legacy = cli(&root, &["test", ".", "--target", "native", "--json"]);
++    assert!(!legacy.status.success());
++    assert!(String::from_utf8_lossy(&legacy.stderr).contains("SPX-B104"));
++    let explicit = cli(
++        &root,
++        &[
++            "test",
++            ".",
++            "--target",
++            "native-collection-record-pure.v1",
++            "--json",
++        ],
++    );
++    assert_success(&explicit);
++    let result: serde_json::Value = serde_json::from_slice(&explicit.stdout).unwrap();
++    assert_eq!(
++        result["schema"],
++        "semaprax.native-test.collection-record-pure.v1"
++    );
++    assert_eq!(result["passed"], true);
++    let cases = result["cases"].as_array().unwrap();
++    assert_eq!(cases.len(), 2);
++    assert!(cases
++        .iter()
++        .all(|case| case["result"] == 0 && case["stdout"] == "0\n" && case["stderr"] == ""));
++}
+diff --git a/docs/APPLICATION-STARTER-V1.md b/docs/APPLICATION-STARTER-V1.md
+index e9354a769..82acedc9b 100644
+--- a/docs/APPLICATION-STARTER-V1.md
++++ b/docs/APPLICATION-STARTER-V1.md
+@@ -31,8 +31,11 @@ source remains in the receipt's codec bundle. Original files are never rewritten
+ 
+ `--command-path` and `--command-source` appear together or neither appears.
+ The latter is an explicit bounded regular non-symlink UTF-8 file, at most 131072
+-bytes. The plan is at most 16384 bytes. Both selected input files are read through
+-identity-checked handles and rechecked before staging. The authenticated Project
++bytes. The plan is at most 16384 bytes. Both selected input files are opened through the existing held-directory bounded
++regular-file owner: final-component no-follow, nonblocking Unix classification,
++opened-handle regular-file authentication and exact named-handle rechecks. Early
++path metadata is only a convenience refusal and never establishes authority.
++Both byte sequences are independently rechecked before staging. The authenticated Project
+ owner independently performs its ordinary final input recheck. These operations
+ bind one held invocation revision; subsequent edits cannot mutate returned bytes.
+ 
+@@ -107,7 +110,9 @@ Owning pending checks:
+   installed product capability.
+ - `cli_new_project_v1 new_project::application::tests::` owns partial writes,
+   old-source preservation, existing/symlink destinations/parents and malformed
+-  options. `project_publication::application::tests::` owns exact arities/path
++  options. Its deterministic plan/activation swap controls replace an inspected
++  regular input with a symlink or FIFO before the held open; both refuse before
++  staging and preserve external/authored files. `project_publication::application::tests::` owns exact arities/path
+   refusals. Existing scaffold physical namespace-race cases remain required.
+ - `project standard_library::application_json::starter::` and existing plan
+   decoder/overlap/stale/source/bounds/receipt gates retain closed decoding,
+diff --git a/docs/PROJECT-NATIVE-TEST-COLLECTION-RECORD-PURE-V1.md b/docs/PROJECT-NATIVE-TEST-COLLECTION-RECORD-PURE-V1.md
+index 4b5680590..e39cae3a0 100644
+--- a/docs/PROJECT-NATIVE-TEST-COLLECTION-RECORD-PURE-V1.md
++++ b/docs/PROJECT-NATIVE-TEST-COLLECTION-RECORD-PURE-V1.md
+@@ -37,7 +37,12 @@ remain 10000ms and 65536 combined output bytes; maximums remain 600000ms and
+ 1048576 bytes. Selecting it executes native code only under that explicit host
+ operation; a starter receipt alone cannot execute it.
+ 
+-Pending gates: the full starter ShiftSim15 journey, explicit selector parse
+-controls, old native-target v31 refusal, v31 effectful test refusal, wrong profile,
++Pending gates: `cli_new_project_v1 application_starter::tiny_collection_record_selector_executes_typed_native_roots_and_keeps_legacy_refusal`
++independently exercises a small real v31 typed Report helper, native declared
++roots, undeclared-root prepublication refusal and old CLI target refusal.
++`--lib project::native_test::collection_record_pure_tests::` independently admits
++its checked typed closure and refuses checked effectful source, module permits
++and hostile function effects. The full starter ShiftSim15 journey and explicit
++selector parse controls remain required alongside old native-target v31 refusal, v31 effectful test refusal, wrong profile,
+ undeclared root refusal, and original source-command result/timeout/output/
+ settlement receivers. No backend or application qualification is claimed.
+diff --git a/src/project/native_test.rs b/src/project/native_test.rs
+index ee55883ff..19dbdb698 100644
+--- a/src/project/native_test.rs
++++ b/src/project/native_test.rs
+@@ -61,14 +61,7 @@ impl ProjectSnapshot {
+         require_native_test_profile(self, profile)?;
+         let program = self.test_program();
+         if profile == ProjectNativeTestProfile::CollectionRecordPureV1 {
+-            crate::hir::validate_stream_collection_record_program(program, None)
+-                .map_err(|e| vec![e])?;
+-            if !program.permits.is_empty() {
+-                return Err(vec![Diagnostic::io(
+-                    "SPX-J131",
+-                    "collection-record-pure.v1 requires a pure declared test closure",
+-                )]);
+-            }
++            validate_collection_record_pure_test(program)?;
+         }
+         let result_is_exit_status = !program.permits.is_empty();
+         if program.module != self.manifest().test_module() {
+@@ -228,3 +221,58 @@ fn require_native_test_profile(
+         )])
+     }
+ }
++
++fn validate_collection_record_pure_test(
++    program: &crate::hir::ResolvedProgram,
++) -> Result<(), Vec<Diagnostic>> {
++    crate::hir::validate_stream_collection_record_program(program, None).map_err(|e| vec![e])?;
++    if !program.permits.is_empty() {
++        return Err(vec![Diagnostic::io(
++            "SPX-J131",
++            "collection-record-pure.v1 requires a pure declared test closure",
++        )]);
++    }
++    Ok(())
++}
++
++#[cfg(test)]
++mod collection_record_pure_tests {
++    use super::*;
++    fn typed_program() -> crate::hir::ResolvedProgram {
++        let source = include_str!("../../tests/fixtures/nested-collection-string-record.spx");
++        crate::hir::resolve(&crate::check(source, "pure-native-test.spx").unwrap()).unwrap()
++    }
++    #[test]
++    fn pure_typed_selector_owner_admits_complete_small_record_closure() {
++        let program = typed_program();
++        validate_collection_record_pure_test(&program).unwrap();
++        assert!(program
++            .functions
++            .iter()
++            .any(|f| f.id.as_str() == "collection.inspect_borrow"));
++    }
++    #[test]
++    fn pure_typed_selector_owner_refuses_module_permits_and_function_effects() {
++        // An actually checked effectful source is refused by the selected
++        // pure boundary; the mutations below independently cover hostile HIR.
++        let source = include_str!("../../tests/fixtures/nested-collection-string-record.spx")
++            .replace("module test.nested_collection_string_record;", "module test.nested_collection_string_record;\npermit { process.stderr.write }")
++            .replace("@id(\"app.main\") fn main()->i64 {", "@id(\"app.main\") fn main()->i64 uses { process.stderr.write } { let message=\"blocked\"; let ignored=stderr_write(str_as_bytes(string_as_str(message))); ");
++        let checked =
++            crate::hir::resolve(&crate::check(&source, "effectful-native-test.spx").unwrap())
++                .unwrap();
++        assert!(validate_collection_record_pure_test(&checked).is_err());
++        let mut permitted = typed_program();
++        permitted.permits.push("process.stderr.write".to_owned());
++        assert!(validate_collection_record_pure_test(&permitted).is_err());
++        let mut effectful = typed_program();
++        effectful
++            .functions
++            .iter_mut()
++            .find(|f| f.id.as_str() == "collection.inspect_borrow")
++            .unwrap()
++            .effects
++            .push("process.stderr.write".to_owned());
++        assert!(validate_collection_record_pure_test(&effectful).is_err());
++    }
++}

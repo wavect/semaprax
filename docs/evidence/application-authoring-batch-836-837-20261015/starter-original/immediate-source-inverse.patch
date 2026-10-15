@@ -1,0 +1,2464 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 9cbaa8c2a..b84fe99d2 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,7 @@
+ # Changelog
+ 
++- Author fresh application assembly (#837) from existing replayed codec plans and explicit command profiles through the original held-parent scaffold publisher. Bind canonical source/generation receipts and exact native routes; add an explicit pure typed v31 native-test successor while preserving old profile refusals. Full ShiftSim15/selected-file CLI49 and hostile-publication scenarios are authored; all executable qualification and the source-capacity dependency remain pending.
++
+ - Author the ordinary lexical return-operand inventory (#832) on fallible paid AVL backing with borrowed identities, exact caller/facts/budget/ledger binding and certificate-boundary authentication. Preserve complete old callers and original verification charges; new directory work is additional. Rust qualification remains pending.
+ 
+ - Author selected call-local refusal custody (#781): nineteen fixed reasons and the exact unknown-callee handle reach the paid engine through selected block replay; retain complete old receivers and prepaid success/failure controls. Source-only checkpoint; Rust qualification and whole-issue closure remain pending.
+diff --git a/crates/semaprax-native-rust-interop-platform/src/inventory_names.rs b/crates/semaprax-native-rust-interop-platform/src/inventory_names.rs
+new file mode 100644
+index 000000000..bea584ca2
+--- /dev/null
++++ b/crates/semaprax-native-rust-interop-platform/src/inventory_names.rs
+@@ -0,0 +1,35 @@
++//! Runtime names own their spelling; frozen static inventories allocate nothing new.
++use super::*;
++pub(super) enum InventoryNames<const N: usize> {
++    Static([&'static OsStr; N]),
++    Owned([std::ffi::OsString; N]),
++}
++impl<const N: usize> InventoryNames<N> {
++    pub(super) fn get(&self, index: usize) -> &OsStr {
++        match self {
++            Self::Static(names) => names[index],
++            Self::Owned(names) => &names[index],
++        }
++    }
++    pub(super) fn owned_capacity(&self) -> usize {
++        match self {
++            Self::Static(_) => 0,
++            Self::Owned(names) => names.iter().map(|name| name.capacity()).sum(),
++        }
++    }
++}
++/// Prepare explicit owned names before any file authority is acquired.
++pub fn prepare_owned_discard_inventory<const N: usize>(
++    names: [&OsStr; N],
++) -> Result<PreparedDiscardInventory<N>, Error> {
++    let native = semaprax_native_rust_interop_platform_sys::prepare_discard_names(names)?;
++    Ok(PreparedDiscardInventory {
++        names: InventoryNames::Owned(names.map(OsStr::to_os_string)),
++        native,
++        files: [const { None }; N],
++        settled: [const { None }; N],
++        attached: 0,
++        #[cfg(debug_assertions)]
++        failure_after_delete: None,
++    })
++}
+diff --git a/crates/semaprax-native-rust-interop-platform/src/lib.rs b/crates/semaprax-native-rust-interop-platform/src/lib.rs
+index d2a6e3203..c498688a9 100644
+--- a/crates/semaprax-native-rust-interop-platform/src/lib.rs
++++ b/crates/semaprax-native-rust-interop-platform/src/lib.rs
+@@ -2,6 +2,9 @@
+ 
+ #![forbid(unsafe_code)]
+ 
++mod inventory_names;
++pub use inventory_names::prepare_owned_discard_inventory;
++use inventory_names::InventoryNames;
+ mod doctor;
+ pub use doctor::{doctor_version_probe, DoctorProbeError};
+ // Opaque settled observations only. The process-consuming unsafe collector
+@@ -121,7 +124,7 @@ pub struct PreparedPublishDirectory(
+ );
+ 
+ pub struct PreparedDiscardInventory<const N: usize> {
+-    names: [&'static OsStr; N],
++    names: InventoryNames<N>,
+     native: semaprax_native_rust_interop_platform_sys::PreparedDiscardNames<N>,
+     files: [Option<HeldRegularFile>; N],
+     settled: [Option<semaprax_native_rust_interop_platform_sys::SettledRegularFile>; N],
+@@ -178,7 +181,7 @@ pub fn prepare_discard_inventory<const N: usize>(
+ ) -> Result<PreparedDiscardInventory<N>, Error> {
+     let native = semaprax_native_rust_interop_platform_sys::prepare_discard_names(names)?;
+     Ok(PreparedDiscardInventory {
+-        names,
++        names: InventoryNames::Static(names),
+         native,
+         files: [const { None }; N],
+         settled: [const { None }; N],
+@@ -204,21 +207,20 @@ pub fn prepared_discard_inventory_owned_capacity<const N: usize>(
+ ) -> usize {
+     semaprax_native_rust_interop_platform_sys::prepared_discard_names_owned_capacity(
+         &inventory.native,
+-    )
++    ) + inventory.names.owned_capacity()
+ }
+ 
+ impl<const N: usize> PreparedDiscardInventory<N> {
+     fn planned_slot(&self, name: &str) -> Result<usize, Error> {
+-        self.names
+-            .iter()
+-            .position(|candidate| *candidate == OsStr::new(name))
++        (0..N)
++            .find(|index| self.names.get(*index) == OsStr::new(name))
+             .ok_or(Error::Invalid)
+     }
+ 
+     pub fn validate_next(&self, name: &str) -> Result<usize, Error> {
+         let index = self.attached;
+         if index >= N
+-            || self.names[index] != OsStr::new(name)
++            || self.names.get(index) != OsStr::new(name)
+             || self.files[index].is_some()
+             || self.settled[index].is_some()
+         {
+@@ -228,17 +230,15 @@ impl<const N: usize> PreparedDiscardInventory<N> {
+     }
+ 
+     pub fn validate_slot(&self, name: &str) -> Result<usize, Error> {
+-        self.names[..self.attached]
+-            .iter()
+-            .position(|candidate| *candidate == OsStr::new(name))
++        (0..self.attached)
++            .find(|index| self.names.get(*index) == OsStr::new(name))
+             .filter(|index| self.files[*index].is_some())
+             .ok_or(Error::Invalid)
+     }
+ 
+     fn validate_settled_slot(&self, name: &str) -> Result<usize, Error> {
+-        self.names[..self.attached]
+-            .iter()
+-            .position(|candidate| *candidate == OsStr::new(name))
++        (0..self.attached)
++            .find(|index| self.names.get(*index) == OsStr::new(name))
+             .filter(|index| self.files[*index].is_none() && self.settled[*index].is_some())
+             .ok_or(Error::Invalid)
+     }
+@@ -251,9 +251,8 @@ impl<const N: usize> PreparedDiscardInventory<N> {
+     }
+ 
+     pub fn file(&self, name: &str) -> Result<&HeldRegularFile, Error> {
+-        self.names[..self.attached]
+-            .iter()
+-            .position(|candidate| *candidate == OsStr::new(name))
++        (0..self.attached)
++            .find(|index| self.names.get(*index) == OsStr::new(name))
+             .and_then(|index| self.files[index].as_ref())
+             .ok_or(Error::Changed)
+     }
+diff --git a/crates/semaprax-native-rust-owned-data-package/src/project_publication.rs b/crates/semaprax-native-rust-owned-data-package/src/project_publication.rs
+index 5814cdb12..fecf8adb6 100644
+--- a/crates/semaprax-native-rust-owned-data-package/src/project_publication.rs
++++ b/crates/semaprax-native-rust-owned-data-package/src/project_publication.rs
+@@ -4,6 +4,8 @@
+ //! crate can reuse the safe cross-platform handle-relative platform facade
+ //! without acquiring raw platform authority or introducing unsafe code.
+ 
++mod application;
++
+ use std::ffi::{OsStr, OsString};
+ use std::path::{Path, PathBuf};
+ 
+@@ -41,6 +43,7 @@ enum SourceInventory {
+     Library(platform::PreparedDiscardInventory<3>),
+     Service(platform::PreparedDiscardInventory<3>),
+     SourceCommandFileText(platform::PreparedDiscardInventory<2>),
++    Application(Box<dyn application::ApplicationFiles>),
+ }
+ 
+ enum RootInventory {
+@@ -156,6 +159,20 @@ impl NewProjectAuthority {
+         )
+     }
+ 
++    /// Explicit fresh application inventory. No receipt or capsule grants this authority.
++    pub fn create_application(
++        parent: &Path,
++        output: &OsStr,
++        stage: &OsStr,
++        paths: &[String],
++    ) -> Result<Self, NewProjectAuthorityError> {
++        let files = application::inventory(paths)?;
++        let mut authority =
++            Self::create_for_template(parent, output, stage, TemplateInventory::Calculator)?;
++        authority.source_files = SourceInventory::Application(files);
++        Ok(authority)
++    }
++
+     fn create_for_template(
+         parent_path: &Path,
+         output_name: &OsStr,
+@@ -323,13 +340,54 @@ impl NewProjectAuthority {
+             ("src/tests.spx", SourceInventory::SourceCommandFileText(files)) => {
+                 platform::write_file_new_prepared(source, files, "tests.spx", bytes, 0o600)
+             }
++            (path, SourceInventory::Application(files)) => files.write(
++                source,
++                path.strip_prefix("src/")
++                    .ok_or(NewProjectAuthorityError::Invalid)?,
++                bytes,
++            ),
+             _ => return Err(NewProjectAuthorityError::Invalid),
+         }
+         .map_err(map_create)
+     }
+ 
+     pub fn authenticate(&self, files: &[(&str, &[u8])]) -> Result<(), NewProjectAuthorityError> {
++        if let SourceInventory::Application(source_files) = &self.source_files {
++            if files.len() < 4 || files[..3].iter().map(|(name, _)| *name).ne(ROOT_NAMES) {
++                return Err(NewProjectAuthorityError::Invalid);
++            }
++            let source = self
++                .source
++                .as_ref()
++                .ok_or(NewProjectAuthorityError::Changed)?;
++            for (name, bytes) in &files[..3] {
++                authenticate_file(self.root.file(name)?, bytes)?;
++            }
++            source_files.authenticate(source, &files[3..], false)?;
++            let mut scan = platform::prepare_inventory_entries_exact(
++                [
++                    OsStr::new("README.md"),
++                    OsStr::new("AGENTS.md"),
++                    OsStr::new("semaprax.toml"),
++                    OsStr::new("src"),
++                ],
++                3,
++            )
++            .map_err(map_invalid)?;
++            return platform::inventory_entries_exact_prepared(
++                &mut scan,
++                &self.stage,
++                [
++                    self.root.file("README.md")?,
++                    self.root.file("AGENTS.md")?,
++                    self.root.file("semaprax.toml")?,
++                ],
++                [source],
++            )
++            .map_err(map_changed);
++        }
+         let expected_names: &[&str] = match &self.source_files {
++            SourceInventory::Application(_) => unreachable!("handled above"),
+             SourceInventory::Calculator(_) => &[
+                 "README.md",
+                 "AGENTS.md",
+@@ -381,6 +439,7 @@ impl NewProjectAuthority {
+         authenticate_file(self.root.file("AGENTS.md")?, files[1].1)?;
+         authenticate_file(self.root.file("semaprax.toml")?, files[2].1)?;
+         match &self.source_files {
++            SourceInventory::Application(_) => unreachable!("handled above"),
+             SourceInventory::Calculator(source_files) | SourceInventory::Service(source_files) => {
+                 authenticate_file(
+                     source_files.file("app.spx").map_err(map_changed)?,
+@@ -427,6 +486,7 @@ impl NewProjectAuthority {
+             }
+         }
+         match &self.source_files {
++            SourceInventory::Application(_) => unreachable!("handled above"),
+             SourceInventory::Calculator(source_files) | SourceInventory::Service(source_files) => {
+                 let mut source_scan =
+                     platform::prepare_inventory_exact(source_files).map_err(map_invalid)?;
+@@ -535,6 +595,7 @@ impl NewProjectAuthority {
+     ) -> Result<(), NewProjectAuthorityError> {
+         self.authenticate(files)?;
+         match &mut self.source_files {
++            SourceInventory::Application(files) => files.settle(),
+             SourceInventory::Calculator(source_files) => source_files.settle_for_publish(),
+             SourceInventory::Library(source_files) => source_files.settle_for_publish(),
+             SourceInventory::Service(source_files) => source_files.settle_for_publish(),
+@@ -593,6 +654,9 @@ impl NewProjectAuthority {
+         let agents = hold_matching(&self.stage, OsStr::new("AGENTS.md"), files[1].1)?;
+         let manifest = hold_matching(&self.stage, OsStr::new("semaprax.toml"), files[2].1)?;
+         match &self.source_files {
++            SourceInventory::Application(source_files) => {
++                source_files.authenticate(source, &files[3..], true)?
++            }
+             SourceInventory::Calculator(_) | SourceInventory::Service(_) => {
+                 let app = hold_matching(source, OsStr::new("app.spx"), files[3].1)?;
+                 let core = hold_matching(source, OsStr::new("core.spx"), files[4].1)?;
+@@ -760,6 +824,9 @@ impl Drop for NewProjectAuthority {
+         }
+         if self.source.as_ref().is_some_and(|source| {
+             match &self.source_files {
++                SourceInventory::Application(files) => {
++                    files.discard(&self.stage, source, &self.source_name)
++                }
+                 SourceInventory::Calculator(source_files) => {
+                     platform::discard_owned_stage_prepared(
+                         &self.stage,
+diff --git a/crates/semaprax-native-rust-owned-data-package/src/project_publication/application.rs b/crates/semaprax-native-rust-owned-data-package/src/project_publication/application.rs
+new file mode 100644
+index 000000000..2e901345b
+--- /dev/null
++++ b/crates/semaprax-native-rust-owned-data-package/src/project_publication/application.rs
+@@ -0,0 +1,147 @@
++//! Bounded application inventories use the same held stage and publication owner.
++use super::*;
++
++pub(super) trait ApplicationFiles {
++    fn write(
++        &mut self,
++        directory: &platform::HeldDirectory,
++        name: &str,
++        bytes: &[u8],
++    ) -> Result<(), platform::Error>;
++    fn authenticate(
++        &self,
++        directory: &platform::HeldDirectory,
++        files: &[(&str, &[u8])],
++        published: bool,
++    ) -> Result<(), NewProjectAuthorityError>;
++    fn settle(&mut self) -> Result<(), platform::Error>;
++    fn discard(
++        &self,
++        stage: &platform::HeldDirectory,
++        source: &platform::HeldDirectory,
++        name: &platform::PreparedStageName,
++    ) -> Result<(), platform::Error>;
++}
++
++struct Files<const N: usize> {
++    names: [String; N],
++    inventory: platform::PreparedDiscardInventory<N>,
++}
++
++impl<const N: usize> ApplicationFiles for Files<N> {
++    fn write(
++        &mut self,
++        directory: &platform::HeldDirectory,
++        name: &str,
++        bytes: &[u8],
++    ) -> Result<(), platform::Error> {
++        platform::write_file_new_prepared(directory, &mut self.inventory, name, bytes, 0o600)
++    }
++    fn authenticate(
++        &self,
++        directory: &platform::HeldDirectory,
++        files: &[(&str, &[u8])],
++        published: bool,
++    ) -> Result<(), NewProjectAuthorityError> {
++        if files.len() != N
++            || files
++                .iter()
++                .zip(&self.names)
++                .any(|((path, _), name)| path.strip_prefix("src/") != Some(name.as_str()))
++        {
++            return Err(NewProjectAuthorityError::Invalid);
++        }
++        if published {
++            let held = files
++                .iter()
++                .zip(&self.names)
++                .map(|((_, bytes), name)| hold_matching(directory, OsStr::new(name), bytes))
++                .collect::<Result<Vec<_>, _>>()?;
++            let mut scan = platform::prepare_inventory_entries_exact(
++                self.names.each_ref().map(|name| OsStr::new(name)),
++                N,
++            )
++            .map_err(map_invalid)?;
++            let references: [&platform::HeldRegularFile; N] = std::array::from_fn(|i| &held[i]);
++            platform::inventory_entries_exact_prepared(&mut scan, directory, references, [])
++                .map_err(map_changed)
++        } else {
++            for ((_, bytes), name) in files.iter().zip(&self.names) {
++                authenticate_file(self.inventory.file(name).map_err(map_changed)?, bytes)?;
++            }
++            let mut scan =
++                platform::prepare_inventory_exact(&self.inventory).map_err(map_invalid)?;
++            platform::inventory_exact_prepared(&mut scan, directory, &self.inventory)
++                .map_err(map_changed)
++        }
++    }
++    fn settle(&mut self) -> Result<(), platform::Error> {
++        self.inventory.settle_for_publish()
++    }
++    fn discard(
++        &self,
++        stage: &platform::HeldDirectory,
++        source: &platform::HeldDirectory,
++        name: &platform::PreparedStageName,
++    ) -> Result<(), platform::Error> {
++        platform::discard_owned_stage_prepared(stage, source, name, &self.inventory)
++    }
++}
++
++fn prepare<const N: usize>(
++    paths: &[String],
++) -> Result<Box<dyn ApplicationFiles>, NewProjectAuthorityError> {
++    let names: [String; N] = std::array::from_fn(|i| {
++        paths[i]
++            .strip_prefix("src/")
++            .expect("validated source path")
++            .to_owned()
++    });
++    let inventory =
++        platform::prepare_owned_discard_inventory(names.each_ref().map(|name| OsStr::new(name)))
++            .map_err(map_invalid)?;
++    Ok(Box::new(Files { names, inventory }))
++}
++
++pub(super) fn inventory(
++    paths: &[String],
++) -> Result<Box<dyn ApplicationFiles>, NewProjectAuthorityError> {
++    if paths.iter().any(|path| {
++        path.strip_prefix("src/").is_none_or(|name| {
++            name.is_empty() || name.contains('/') || name.contains('\\') || !name.ends_with(".spx")
++        })
++    }) || paths.windows(2).any(|pair| pair[0] >= pair[1])
++    {
++        return Err(NewProjectAuthorityError::Invalid);
++    }
++    macro_rules! arities { ($($n:literal),*) => { match paths.len() { $($n => prepare::<$n>(paths),)* _ => Err(NewProjectAuthorityError::Invalid) } }; }
++    arities!(
++        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
++        26, 27, 28, 29, 30, 31, 32
++    )
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn application_inventory_is_closed_sorted_unique_and_bounded() {
++        for count in [1, 32] {
++            let paths = (0..count)
++                .map(|i| format!("src/module{i:02}.spx"))
++                .collect::<Vec<_>>();
++            assert!(inventory(&paths).is_ok());
++        }
++        for paths in [
++            vec![],
++            vec!["src/a.spx".to_owned(); 33],
++            vec!["src/a.spx".to_owned(); 2],
++            vec!["src/b.spx".to_owned(), "src/a.spx".to_owned()],
++            vec!["../outside.spx".to_owned()],
++            vec!["src/../outside.spx".to_owned()],
++            vec!["src/a/b.spx".to_owned()],
++        ] {
++            assert!(inventory(&paths).is_err());
++        }
++    }
++}
+diff --git a/crates/semaprax-toolchain/src/new_project.rs b/crates/semaprax-toolchain/src/new_project.rs
+index ee918ddbc..b2bfb4e25 100644
+--- a/crates/semaprax-toolchain/src/new_project.rs
++++ b/crates/semaprax-toolchain/src/new_project.rs
+@@ -1,3 +1,4 @@
++mod application;
+ #[path = "new_project/templates.rs"]
+ mod templates;
+ 
+@@ -78,6 +79,9 @@ impl WriteHook for NoopWriteHook {
+ }
+ 
+ pub(crate) fn run(arguments: &[String]) -> Result<(PathBuf, &'static str), NewProjectFailure> {
++    if arguments.iter().any(|arg| arg == "--codec-plan") {
++        return application::run(arguments).map(|path| (path, "application"));
++    }
+     let options = parse(arguments)?;
+     // `parse` already refused anything outside `PROJECT_SCAFFOLD_TEMPLATES`;
+     // resolve the owned, validated string back to the matching `'static`
+@@ -173,6 +177,24 @@ fn create_with_serial_template(
+         .map_err(NewProjectFailure::creation)?;
+     let expected = expected_files(template, project::ScaffoldLayout::Current, files)?;
+ 
++    publish_files(
++        destination,
++        &requested_destination,
++        &expected,
++        Some(template),
++        hook,
++        serial,
++    )
++}
++
++fn publish_files(
++    destination: &Path,
++    requested_destination: &Path,
++    files: &[(&str, &[u8])],
++    template: Option<&str>,
++    hook: &dyn WriteHook,
++    serial: &mut dyn FnMut() -> u64,
++) -> Result<PathBuf, NewProjectFailure> {
+     let file_name = requested_destination.file_name().ok_or_else(|| {
+         NewProjectFailure::creation("new project destination must name one directory")
+     })?;
+@@ -205,7 +227,10 @@ fn create_with_serial_template(
+             "new project parent identity changed during canonicalization",
+         ));
+     }
+-    let (mut authority, staging) = create_staging_authority(&parent, file_name, template, serial)?;
++    let (mut authority, staging) = match template {
++        Some(template) => create_staging_authority(&parent, file_name, template, serial)?,
++        None => application::create_authority(&parent, file_name, files, serial)?,
++    };
+     hook.after_stage_created().map_err(|error| {
+         NewProjectFailure::creation(format!(
+             "injected failure after staged project creation: {error}"
+@@ -213,23 +238,23 @@ fn create_with_serial_template(
+     })?;
+     require_original_parent_identity(requested_parent, &parent_identity)?;
+     require_ambient_binding(&authority, &parent, &staging)?;
+-    for (index, file) in files.iter().enumerate() {
+-        hook.before_write(index, file.path()).map_err(|error| {
++    for (index, (path, bytes)) in files.iter().enumerate() {
++        hook.before_write(index, path).map_err(|error| {
+             NewProjectFailure::creation(format!(
+                 "injected write failure before `{}`: {error}",
+-                file.path()
++                path
+             ))
+         })?;
+         authority
+-            .write(file.path(), file.bytes())
++            .write(path, bytes)
+             .map_err(|error| authority_failure("write staged project", error))?;
+     }
+     authority
+-        .authenticate(&expected)
++        .authenticate(files)
+         .map_err(|error| authority_failure("authenticate staged project", error))?;
+     require_ambient_binding(&authority, &parent, &staging)?;
+     authority
+-        .publish_and_verify(&expected)
++        .publish_and_verify(files)
+         .map_err(|error| authority_failure("publish and verify new project", error))?;
+     #[cfg(test)]
+     hook.after_publish().map_err(|error| {
+diff --git a/crates/semaprax-toolchain/src/new_project/application.rs b/crates/semaprax-toolchain/src/new_project/application.rs
+new file mode 100644
+index 000000000..f05a949e0
+--- /dev/null
++++ b/crates/semaprax-toolchain/src/new_project/application.rs
+@@ -0,0 +1,324 @@
++//! Explicit full-host fresh installation, reusing the scaffold publisher.
++use super::*;
++use std::io::Read;
++
++fn failure(message: impl Into<String>) -> NewProjectFailure {
++    NewProjectFailure::creation(message)
++}
++fn diagnostic(errors: Vec<semaprax::diagnostic::Diagnostic>) -> NewProjectFailure {
++    failure(
++        errors
++            .iter()
++            .map(ToString::to_string)
++            .collect::<Vec<_>>()
++            .join("; "),
++    )
++}
++
++fn read_bound(path: &Path, maximum: usize) -> Result<Vec<u8>, NewProjectFailure> {
++    let metadata = fs::symlink_metadata(path)
++        .map_err(|e| failure(format!("cannot inspect starter input: {e}")))?;
++    if !metadata.is_file() || metadata.file_type().is_symlink() {
++        return Err(failure("starter input must be a regular non-symlink file"));
++    }
++    let before = Handle::from_path(path).map_err(|e| failure(e.to_string()))?;
++    let file = fs::File::open(path).map_err(|e| failure(e.to_string()))?;
++    if Handle::from_file(file.try_clone().map_err(|e| failure(e.to_string()))?)
++        .map_err(|e| failure(e.to_string()))?
++        != before
++    {
++        return Err(failure("starter input changed while opening"));
++    }
++    let mut bytes = Vec::new();
++    file.take(maximum as u64 + 1)
++        .read_to_end(&mut bytes)
++        .map_err(|e| failure(e.to_string()))?;
++    if bytes.len() > maximum
++        || Handle::from_path(path).map_err(|e| failure(e.to_string()))? != before
++    {
++        return Err(failure("starter input changed or exceeds its byte bound"));
++    }
++    Ok(bytes)
++}
++
++pub(super) fn run(arguments: &[String]) -> Result<PathBuf, NewProjectFailure> {
++    let usage = || {
++        NewProjectFailure::invocation("new <fresh-directory> --from <project> --codec-plan <plan-json> --command-profile <exact-profile> [--command-path <declared-path> --command-source <source-file>]")
++    };
++    if arguments.is_empty()
++        || arguments[0].is_empty()
++        || arguments[0].starts_with('-')
++        || arguments.len() % 2 != 1
++    {
++        return Err(usage());
++    }
++    let mut options = std::collections::BTreeMap::new();
++    for pair in arguments[1..].as_chunks::<2>().0 {
++        if ![
++            "--from",
++            "--codec-plan",
++            "--command-profile",
++            "--command-path",
++            "--command-source",
++        ]
++        .contains(&pair[0].as_str())
++            || pair[1].is_empty()
++            || pair[1].starts_with('-')
++            || options.insert(pair[0].as_str(), pair[1].as_str()).is_some()
++        {
++            return Err(usage());
++        }
++    }
++    let original = PathBuf::from(options.get("--from").ok_or_else(usage)?);
++    let plan_path = PathBuf::from(options.get("--codec-plan").ok_or_else(usage)?);
++    let profile = *options.get("--command-profile").ok_or_else(usage)?;
++    // Vocabulary closes before any filesystem authority; matching the exact
++    // authenticated profile below cannot elevate a project to this selection.
++    if ![
++        "source-command.v1",
++        "source-command.resource-output.v1",
++        "source-command.selected-file.v1",
++        "source-command.selected-file.resource-output.v1",
++        "language-command-io.collection-record.v1",
++    ]
++    .contains(&profile)
++    {
++        return Err(usage());
++    }
++    let activation = match (
++        options.get("--command-path"),
++        options.get("--command-source"),
++    ) {
++        (None, None) => None,
++        (Some(path), Some(file)) => Some(((*path).to_owned(), PathBuf::from(file))),
++        _ => return Err(usage()),
++    };
++    let plan = read_bound(&plan_path, 16_384)?;
++    let command_bytes = activation
++        .as_ref()
++        .map(|(_, file)| read_bound(file, 131_072))
++        .transpose()?;
++    let command = activation
++        .as_ref()
++        .zip(command_bytes.as_ref())
++        .map(|((path, _), bytes)| {
++            Ok::<_, NewProjectFailure>(project::ApplicationCommandSource {
++                path: path.clone(),
++                source: String::from_utf8(bytes.clone())
++                    .map_err(|_| failure("command source is not UTF-8"))?,
++            })
++        })
++        .transpose()?;
++    let manifest = if original.is_dir() {
++        original.join("semaprax.toml")
++    } else {
++        original
++    };
++    let starter = project::with_authenticated_project(&manifest, |snapshot| {
++        project::derive_application_starter(
++            &snapshot.retain_revision(),
++            &plan,
++            profile,
++            command.as_ref(),
++        )
++    })
++    .map_err(diagnostic)?;
++    // Recheck every separately selected input before any stage is created.
++    if read_bound(&plan_path, 16_384)? != plan {
++        return Err(failure("codec plan changed before publication"));
++    }
++    if let Some((_, path)) = &activation {
++        if Some(read_bound(path, 131_072)?) != command_bytes {
++            return Err(failure("command source changed before publication"));
++        }
++    }
++    let destination = PathBuf::from(&arguments[0]);
++    let absolute = std::path::absolute(&destination).map_err(|e| failure(e.to_string()))?;
++    let files = starter
++        .files()
++        .iter()
++        .map(|(path, bytes)| (path.as_str(), bytes.as_slice()))
++        .collect::<Vec<_>>();
++    publish_files(
++        &destination,
++        &absolute,
++        &files,
++        None,
++        &NoopWriteHook,
++        &mut || STAGING_SERIAL.fetch_add(1, Ordering::Relaxed),
++    )
++}
++
++pub(super) fn create_authority(
++    parent: &Path,
++    output: &std::ffi::OsStr,
++    files: &[(&str, &[u8])],
++    serial: &mut dyn FnMut() -> u64,
++) -> Result<(NewProjectAuthority, PathBuf), NewProjectFailure> {
++    let paths = files
++        .iter()
++        .skip(3)
++        .map(|(path, _)| (*path).to_owned())
++        .collect::<Vec<_>>();
++    for _ in 0..MAX_STAGING_ATTEMPTS {
++        let name = format!(".semaprax-new-{}-{}", std::process::id(), serial());
++        if name
++            .as_bytes()
++            .eq_ignore_ascii_case(output.as_encoded_bytes())
++        {
++            continue;
++        }
++        match NewProjectAuthority::create_application(
++            parent,
++            output,
++            std::ffi::OsStr::new(&name),
++            &paths,
++        ) {
++            Ok(authority) => return Ok((authority, parent.join(name))),
++            Err(NewProjectAuthorityError::StageExists) => continue,
++            Err(error) => return Err(authority_failure("create staged application", error)),
++        }
++    }
++    Err(failure(
++        "cannot allocate a fresh same-parent application stage",
++    ))
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    const FILES: [(&str, &[u8]); 5] = [
++        ("README.md", b"readme"),
++        ("AGENTS.md", b"agents"),
++        ("semaprax.toml", b"manifest"),
++        ("src/app.spx", b"app"),
++        ("src/tests.spx", b"tests"),
++    ];
++    fn root() -> PathBuf {
++        let path = std::env::temp_dir().join(format!(
++            "spx-application-publish-{}-{}",
++            std::process::id(),
++            STAGING_SERIAL.fetch_add(1, Ordering::Relaxed)
++        ));
++        fs::create_dir(&path).unwrap();
++        path
++    }
++    struct Fail(usize);
++    impl WriteHook for Fail {
++        fn before_write(&self, index: usize, _: &str) -> Result<(), String> {
++            if index == self.0 {
++                Err("selected write failure".to_owned())
++            } else {
++                Ok(())
++            }
++        }
++    }
++    #[test]
++    fn fresh_application_partial_writes_never_publish_or_overwrite() {
++        let parent = root();
++        for index in 0..FILES.len() {
++            let destination = parent.join(format!("fail-{index}"));
++            let error = publish_files(
++                &destination,
++                &destination,
++                &FILES,
++                None,
++                &Fail(index),
++                &mut || STAGING_SERIAL.fetch_add(1, Ordering::Relaxed),
++            )
++            .unwrap_err();
++            assert!(error.to_string().contains("selected write failure"));
++            assert!(!destination.exists());
++            assert_eq!(
++                fs::read_dir(&parent).unwrap().count(),
++                0,
++                "owned private stage must be cleaned"
++            );
++        }
++        let destination = parent.join("complete");
++        publish_files(
++            &destination,
++            &destination,
++            &FILES,
++            None,
++            &NoopWriteHook,
++            &mut || STAGING_SERIAL.fetch_add(1, Ordering::Relaxed),
++        )
++        .unwrap();
++        assert!(publish_files(
++            &destination,
++            &destination,
++            &FILES,
++            None,
++            &NoopWriteHook,
++            &mut || STAGING_SERIAL.fetch_add(1, Ordering::Relaxed)
++        )
++        .is_err());
++        for (path, bytes) in FILES {
++            assert_eq!(fs::read(destination.join(path)).unwrap(), bytes);
++        }
++        assert_eq!(fs::read_dir(&parent).unwrap().count(), 1);
++        fs::remove_dir_all(parent).unwrap();
++    }
++    #[cfg(unix)]
++    #[test]
++    fn fresh_application_symlink_destinations_and_parents_are_refused() {
++        let parent = root();
++        let original = parent.join("original");
++        fs::create_dir(&original).unwrap();
++        let destination = parent.join("alias");
++        std::os::unix::fs::symlink(&original, &destination).unwrap();
++        assert!(publish_files(
++            &destination,
++            &destination,
++            &FILES,
++            None,
++            &NoopWriteHook,
++            &mut || 0
++        )
++        .is_err());
++        let nested = destination.join("new");
++        assert!(publish_files(&nested, &nested, &FILES, None, &NoopWriteHook, &mut || 0).is_err());
++        assert_eq!(fs::read_dir(&original).unwrap().count(), 0);
++        fs::remove_dir_all(parent).unwrap();
++    }
++    #[test]
++    fn starter_unknown_duplicate_and_incomplete_profiles_refuse_before_input_reads() {
++        for arguments in [
++            vec![
++                "fresh",
++                "--from",
++                "absent",
++                "--codec-plan",
++                "absent",
++                "--command-profile",
++                "unknown",
++            ],
++            vec![
++                "fresh",
++                "--from",
++                "absent",
++                "--codec-plan",
++                "absent",
++                "--command-profile",
++                "source-command.v1",
++                "--command-path",
++                "src/app.spx",
++            ],
++            vec![
++                "fresh",
++                "--from",
++                "absent",
++                "--codec-plan",
++                "absent",
++                "--command-profile",
++                "source-command.v1",
++                "--from",
++                "other",
++            ],
++        ] {
++            let arguments = arguments.into_iter().map(str::to_owned).collect::<Vec<_>>();
++            assert_eq!(run(&arguments).unwrap_err().exit_code(), 2);
++        }
++    }
++}
+diff --git a/crates/semaprax-toolchain/tests/cli_new_project_v1.rs b/crates/semaprax-toolchain/tests/cli_new_project_v1.rs
+index a7148eab9..b8d11a72c 100644
+--- a/crates/semaprax-toolchain/tests/cli_new_project_v1.rs
++++ b/crates/semaprax-toolchain/tests/cli_new_project_v1.rs
+@@ -1,3 +1,6 @@
++#[path = "cli_new_project_v1/application_starter.rs"]
++mod application_starter;
++
+ use std::collections::BTreeMap;
+ use std::path::{Path, PathBuf};
+ use std::process::{Command, Output};
+diff --git a/crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs b/crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs
+new file mode 100644
+index 000000000..4a51eb172
+--- /dev/null
++++ b/crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs
+@@ -0,0 +1,354 @@
++//! Full fresh-tree route; retained acceptance bodies stay independent and unchanged.
++use super::*;
++use std::io::Write;
++use std::process::Stdio;
++
++fn repo() -> PathBuf {
++    Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
++}
++fn install(
++    root: &Path,
++    original: &Path,
++    plan: &Path,
++    profile: &str,
++    activation: Option<&Path>,
++) -> Output {
++    let mut command = Command::new(env!("CARGO_BIN_EXE_semaprax-full"));
++    command
++        .arg("new")
++        .arg(root)
++        .arg("--from")
++        .arg(original)
++        .arg("--codec-plan")
++        .arg(plan)
++        .arg("--command-profile")
++        .arg(profile);
++    if let Some(activation) = activation {
++        command
++            .arg("--command-path")
++            .arg("src/app.spx")
++            .arg("--command-source")
++            .arg(activation);
++    }
++    command.output().unwrap()
++}
++fn assert_roundtrip(root: &Path) {
++    semaprax::project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
++        assert_eq!(
++            snapshot.manifest().to_canonical_toml(),
++            std::fs::read_to_string(root.join("semaprax.toml")).unwrap()
++        );
++        for source in snapshot
++            .sources()
++            .iter()
++            .filter(|s| snapshot.manifest().sources().iter().any(|p| p == s.path()))
++        {
++            let parsed = semaprax::parse(source.source(), source.path()).unwrap();
++            assert_eq!(semaprax::format::canonical(&parsed), source.source());
++        }
++        let text = std::fs::read_to_string(root.join("README.md")).unwrap();
++        let receipt: serde_json::Value = serde_json::from_str(
++            text.split("```json\n")
++                .nth(1)
++                .unwrap()
++                .split("\n```")
++                .next()
++                .unwrap(),
++        )
++        .unwrap();
++        assert_eq!(receipt["project_revision"], snapshot.project_revision());
++        assert_eq!(receipt["workspace_revision"], snapshot.workspace_revision());
++        assert_eq!(
++            receipt["semantic_graph_digest"],
++            snapshot.retain_revision().semantic_graph_digest()
++        );
++        assert_eq!(
++            receipt["manifest_sha256"],
++            sha(&std::fs::read(root.join("semaprax.toml")).unwrap())
++        );
++        assert!(
++            receipt["codec_bundle"]["authored_sources"]
++                .as_array()
++                .unwrap()
++                .len()
++                >= snapshot.manifest().sources().len()
++        );
++        assert_eq!(
++            receipt["sources"].as_array().unwrap().len(),
++            snapshot.manifest().sources().len()
++        );
++        for source in receipt["sources"].as_array().unwrap() {
++            assert_eq!(
++                source["sha256"],
++                sha(&std::fs::read(root.join(source["path"].as_str().unwrap())).unwrap())
++            );
++        }
++        snapshot.check()
++    })
++    .unwrap();
++}
++fn sha(bytes: &[u8]) -> String {
++    use sha2::Digest;
++    format!(
++        "sha256:{:x}",
++        semaprax::digest_hex::LowerHex(sha2::Sha256::digest(bytes))
++    )
++}
++fn execute(binary: &Path, input: &[u8]) -> Output {
++    let mut child = Command::new(binary)
++        .stdin(Stdio::piped())
++        .stdout(Stdio::piped())
++        .stderr(Stdio::piped())
++        .spawn()
++        .unwrap();
++    child.stdin.take().unwrap().write_all(input).unwrap();
++    child.wait_with_output().unwrap()
++}
++
++// Preserve the original wire spelling control (including escaped keys/identifiers)
++// instead of replacing all cases with serde's sorted object-key rendering.
++fn wire(value: &serde_json::Value, field: Option<&str>, escaped: bool) -> String {
++    match value {
++        serde_json::Value::Object(fields) => format!(
++            "{{{}}}",
++            fields
++                .iter()
++                .map(|(key, value)| format!(
++                    "{}:{}",
++                    if escaped {
++                        escape(key)
++                    } else {
++                        serde_json::to_string(key).unwrap()
++                    },
++                    wire(value, Some(key), escaped)
++                ))
++                .collect::<Vec<_>>()
++                .join(",")
++        ),
++        serde_json::Value::Array(items) => format!(
++            "[{}]",
++            items
++                .iter()
++                .map(|item| wire(item, field, escaped))
++                .collect::<Vec<_>>()
++                .join(",")
++        ),
++        serde_json::Value::String(text) if escaped && matches!(field, Some("id" | "servers")) => {
++            escape(text)
++        }
++        _ => serde_json::to_string(value).unwrap(),
++    }
++}
++fn escape(value: &str) -> String {
++    format!(
++        "\"{}\"",
++        value
++            .bytes()
++            .map(|byte| format!("\\u{byte:04x}"))
++            .collect::<String>()
++    )
++}
++
++fn expected_wire(value: &serde_json::Value) -> String {
++    let assignments = value["assignments"]
++        .as_array()
++        .unwrap()
++        .iter()
++        .map(|item| {
++            format!(
++                "{{\"id\":{},\"server\":{},\"arrival\":{},\"start\":{},\"finish\":{},\"wait\":{},\"late\":{}}}",
++                serde_json::to_string(item["id"].as_str().unwrap()).unwrap(),
++                serde_json::to_string(item["server"].as_str().unwrap()).unwrap(),
++                item["arrival"], item["start"], item["finish"], item["wait"], item["late"]
++            )
++        })
++        .collect::<Vec<_>>()
++        .join(",");
++    let metrics = &value["metrics"];
++    format!(
++        "{{\"assignments\":[{assignments}],\"metrics\":{{\"patients\":{},\"total_wait\":{},\"max_wait\":{},\"late\":{},\"busy_time\":{},\"makespan\":{},\"peak_queue\":{},\"utilization_ppm\":{}}}}}\n",
++        metrics["patients"],
++        metrics["total_wait"],
++        metrics["max_wait"],
++        metrics["late"],
++        metrics["busy_time"],
++        metrics["makespan"],
++        metrics["peak_queue"],
++        metrics["utilization_ppm"]
++    )
++}
++
++#[test]
++fn application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen() {
++    let fixture = Fixture::new("application-typed");
++    let source = repo().join("examples/shiftsim-typed-record-successor");
++    let before = read_tree(&source);
++    let output = fixture.root.join("application");
++    assert_success(&install(
++        &output,
++        &source,
++        &source.join("codec-plan.json"),
++        "language-command-io.collection-record.v1",
++        Some(&source.join("src/app.command.spx")),
++    ));
++    assert_eq!(
++        read_tree(&source),
++        before,
++        "installer must not modify authored inputs"
++    );
++    assert_roundtrip(&output);
++    let repeated = fixture.root.join("repeated");
++    assert_success(&install(
++        &repeated,
++        &source,
++        &source.join("codec-plan.json"),
++        "language-command-io.collection-record.v1",
++        Some(&source.join("src/app.command.spx")),
++    ));
++    assert_eq!(
++        read_tree(&output),
++        read_tree(&repeated),
++        "fresh destination spelling must not alter complete bytes or receipts"
++    );
++    assert_success(&cli(&output, &["check", "."]));
++    // Frozen route remains refused; the new typed pure route is explicit.
++    let legacy = cli(&output, &["test", ".", "--target", "native", "--json"]);
++    assert!(!legacy.status.success());
++    assert!(String::from_utf8_lossy(&legacy.stderr).contains("SPX-B104"));
++    let tests = cli(
++        &output,
++        &[
++            "test",
++            ".",
++            "--target",
++            "native-collection-record-pure.v1",
++            "--json",
++        ],
++    );
++    assert_success(&tests);
++    let result: serde_json::Value = serde_json::from_slice(&tests.stdout).unwrap();
++    assert_eq!(
++        result["schema"],
++        "semaprax.native-test.collection-record-pure.v1"
++    );
++    assert_eq!(result["passed"], true);
++    assert_eq!(result["cases"].as_array().unwrap().len(), 3);
++    assert_success(&cli(
++        &output,
++        &["build", ".", "--target", "native", "-o", "app"],
++    ));
++    let corpus: serde_json::Value = serde_json::from_slice(
++        &std::fs::read(repo().join("benchmarks/event-sim-tokens-v1/acceptance/corpus.json"))
++            .unwrap(),
++    )
++    .unwrap();
++    assert_eq!(
++        corpus["valid"].as_array().unwrap().len() + corpus["invalid"].as_array().unwrap().len(),
++        15
++    );
++    for case in corpus["valid"].as_array().unwrap() {
++        let mut input = vec![b' '; case["leading_whitespace_bytes"].as_u64().unwrap_or(0) as usize];
++        input.extend_from_slice(
++            wire(
++                &case["input"],
++                None,
++                case["request_encoding"] == "unicode-escaped-keys-and-identifiers-v1",
++            )
++            .as_bytes(),
++        );
++        let result = execute(&output.join("app"), &input);
++        assert_success(&result);
++        assert!(result.stderr.is_empty());
++        assert_eq!(
++            serde_json::from_slice::<serde_json::Value>(&result.stdout).unwrap(),
++            case["expected"],
++            "{}",
++            case["name"]
++        );
++        assert_eq!(
++            result.stdout,
++            expected_wire(&case["expected"]).as_bytes(),
++            "{}",
++            case["name"]
++        );
++    }
++    for case in corpus["invalid"].as_array().unwrap() {
++        let input = case
++            .get("raw_input")
++            .and_then(|v| v.as_str())
++            .map(str::to_owned)
++            .unwrap_or_else(|| wire(&case["input"], None, false));
++        let result = execute(&output.join("app"), input.as_bytes());
++        assert_eq!(result.status.code(), Some(2), "{}", case["name"]);
++        assert!(result.stdout.is_empty());
++        assert_eq!(String::from_utf8_lossy(&result.stderr).lines().count(), 1);
++    }
++    assert!(!install(
++        &output,
++        &source,
++        &source.join("codec-plan.json"),
++        "language-command-io.collection-record.v1",
++        Some(&source.join("src/app.command.spx"))
++    )
++    .status
++    .success());
++    assert_eq!(read_tree(&source), before);
++}
++
++#[cfg(unix)]
++#[test]
++fn application_starter_selected_file_declared_native_tests_and_unchanged_cli49() {
++    use std::os::unix::fs::PermissionsExt;
++    let fixture = Fixture::new("application-selected-file");
++    let authored = fixture.root.join("authored");
++    std::fs::create_dir_all(authored.join("src")).unwrap();
++    let reference = repo().join("experiments/selected-file-input/loglens");
++    let manifest = std::fs::read_to_string(reference.join("semaprax.toml")).unwrap()
++        .replace("\"loglens.spx\", \"unit.spx\"", "\"src/app.spx\", \"src/schema.spx\", \"src/tests.spx\"")
++        .replace("[targets]", "[dependencies]\nstd.data.json.digits = \"=0.1.0\"\nstd.data.json.query = \"=0.1.0\"\nstd.data.json.scan = \"=0.1.0\"\nstd.data.json.token = \"=0.1.0\"\nstd.data.json.write = \"=0.1.0\"\n\n[targets]");
++    std::fs::write(authored.join("semaprax.toml"), manifest).unwrap();
++    std::fs::copy(reference.join("loglens.spx"), authored.join("src/app.spx")).unwrap();
++    std::fs::copy(reference.join("unit.spx"), authored.join("src/tests.spx")).unwrap();
++    std::fs::write(authored.join("src/schema.spx"), "module loglens.schema;\n@id(\"starter.row\") record Row { @id(\"starter.row.value\") value:i64, }\n@id(\"starter.anchor\") fn anchor()->i64{0}\n").unwrap();
++    let plan = fixture.root.join("plan.json");
++    std::fs::write(&plan, r#"{"schema":"semaprax.json-codec-plan.v1","entries":[{"source":"src/schema.spx","record":"starter.row","profile":"flat-scalars.v1"}]}"#).unwrap();
++    let output = fixture.root.join("application");
++    assert_success(&install(
++        &output,
++        &authored,
++        &plan,
++        "source-command.selected-file.resource-output.v1",
++        None,
++    ));
++    assert_roundtrip(&output);
++    assert_success(&cli(&output, &["check", "."]));
++    assert_success(&cli(&output, &["test", ".", "--target", "native"]));
++    assert_success(&cli(
++        &output,
++        &["build", ".", "--target", "native", "-o", "loglens"],
++    ));
++    // Copy the independent receiver unchanged; the installer owns source/tree
++    // assembly, while this receiver retains every original assertion body.
++    std::fs::copy(reference.join("run.sh"), output.join("run.sh")).unwrap();
++    std::fs::set_permissions(
++        output.join("run.sh"),
++        std::fs::Permissions::from_mode(0o755),
++    )
++    .unwrap();
++    std::fs::copy(reference.join("tests.mjs"), output.join("tests.mjs")).unwrap();
++    let result = Command::new("node")
++        .arg("tests.mjs")
++        .current_dir(&output)
++        .env(
++            "LOGLENS_SAMPLE",
++            repo().join("benchmarks/cli-tokens-v1/sample.log"),
++        )
++        .output()
++        .unwrap();
++    assert_success(&result);
++    assert!(String::from_utf8_lossy(&result.stdout).contains("49"));
++    assert_eq!(
++        std::fs::read(output.join("tests.mjs")).unwrap(),
++        std::fs::read(reference.join("tests.mjs")).unwrap()
++    );
++}
+diff --git a/docs/APPLICATION-STARTER-V1.md b/docs/APPLICATION-STARTER-V1.md
+new file mode 100644
+index 000000000..e9354a769
+--- /dev/null
++++ b/docs/APPLICATION-STARTER-V1.md
+@@ -0,0 +1,119 @@
++# Fresh application starter v1
++
++Status: source implementation; executable qualification pending. This does not
++qualify a runnable typed application while ordinary compiler admission refuses
++it (including the currently open source-capacity G171808 dependency).
++
++The full host composes existing checked codec plans with an explicit command:
++
++```sh
++semaprax-full new fresh-app --from authored-project --codec-plan codec-plan.json \
++  --command-profile language-command-io.collection-record.v1 \
++  --command-path src/app.spx --command-source authored-project/src/app.command.spx
++cd fresh-app
++semaprax check .
++semaprax test . --target native-collection-record-pure.v1
++semaprax build . --target native -o app
++./app < request.json
++```
++
++The plan is the unchanged [codec plan v1](APPLICATION-JSON-CODEC-PLAN-V1.md),
++including its exact optional expected Project revision, bounds and overlapping
++selector refusals. Its decoder and profile selector are shared with json-codec;
++there is one generator and one regeneration replay. A successful derivation
++replays the whole bundle, activates the explicitly supplied command source at
++one existing manifest path, formats all authored modules canonically, then
++rebuilds and independently validates the complete candidate through ordinary
++Project/source/HIR/profile admission. Command activation cannot overlap a codec
++replacement. It does not select a new manifest, target, dependency or capability.
++Formatting can remove comments in this fresh canonical projection; exact original
++source remains in the receipt's codec bundle. Original files are never rewritten.
++
++`--command-path` and `--command-source` appear together or neither appears.
++The latter is an explicit bounded regular non-symlink UTF-8 file, at most 131072
++bytes. The plan is at most 16384 bytes. Both selected input files are read through
++identity-checked handles and rechecked before staging. The authenticated Project
++owner independently performs its ordinary final input recheck. These operations
++bind one held invocation revision; subsequent edits cannot mutate returned bytes.
++
++The closed admitted command profiles are `source-command.v1`,
++`source-command.resource-output.v1`, `source-command.selected-file.v1`,
++`source-command.selected-file.resource-output.v1` and
++`language-command-io.collection-record.v1`. The caller's selection must exactly
++match the authenticated manifest. Unknown profiles and incomplete or duplicate
++options refuse before reading inputs. Existing single-codec, bundle and template
++creation routes retain their contracts and frozen capsule bytes.
++
++The starter admits 1..32 sorted unique direct `src/*.spx` authored paths and at
++most 2 MiB combined canonical source. It copies only manifest-authored modules;
++compiler-bundled dependencies retain their original checked bindings rather than
++becoming copied input files. External dependency subjects, Rust packages and law
++sources refuse because their complete installation contracts are outside v1. There are exactly three root files, in existing
++scaffold order: README.md, AGENTS.md, semaprax.toml, followed by canonical sources
++in path order. README contains exact check, declared native test, native build and
++run routes. Selected-file routes explicitly retain the original argument-index
++handshake; the selected application argument is index zero. A caller whose file
++argument occupies another slot must select that index explicitly. No launcher
++silently reparses application flags. Other commands keep their own original argv
++or stdin protocol.
++
++README embeds compact deterministic `semaprax.application-starter.v1` receipt
++JSON (at most 12 MiB): exact input plan and its SHA-256, the complete replayed
++codec bundle including original schemas/sources, optional exact command activation
++and its SHA-256, final Project/workspace revisions, canonical manifest hash and
++every final authored source path/hash, plus exact command routes. The bundle
++revision is the pre-activation candidate; the receipt's final revision is the
++complete activated/formatted generation. Neither is silently substituted for
++the other. Receipts are evidence and confer no authority.
++
++Only the full host exposes installation. Its existing scaffold held-parent
++publisher acquires a fresh same-parent private stage, writes create-new files,
++authenticates the complete exact held inventory, and performs its existing
++no-replace directory pivot and postpublication authentication. Runtime source
++names have owned bounded inventory storage; old static inventories retain their
++original name allocation behavior. Existing destinations, symlinks, invalid
++names, racing creators, changed parents/stages and surplus inventory refuse.
++Ordinary prepublication failures discard only proven-owned staged files. A
++failed pivot after child handles settle can leave inert staging residue; loss
++of binding after a successful pivot reports uncertainty and preserves both trees.
++No failed operation gains overwrite or recursive cleanup authority. The original
++scaffold failure selection and uncertainty behavior remain authoritative.
++
++No managed apply is exposed. There is no ACTIVE pivot, in-place source mutation,
++Git/editor/raw-path transaction guarantee, dependency download, native compilation
++or application execution during installation. Later check/test/build/execute are
++separate explicit host operations. A source-valid tree is not executable evidence.
++This changes starter/profile/prompt conditions; no command, token, time or numeric
++efficiency improvement is claimed without later matched trials.
++
++The v31 declared native test route is the explicit
++[collection-record pure test successor](PROJECT-NATIVE-TEST-COLLECTION-RECORD-PURE-V1.md).
++Other admitted source-command starters select the existing `--target native`.
++The old v31 native-target refusal remains unchanged. Typed application source
++and backend limits still fail closed before publication: this starter does not
++repair or suppress G171808, grant helpers special admission, or claim ShiftSim15
++passage before the real owning gate succeeds.
++
++Owning pending checks:
++
++- `cli_new_project_v1 application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen`
++  creates a fresh typed request/decision/response application, checks its
++  canonical inventory and graph-bound receipt, executes the explicit native
++  tests/build and all original fifteen acceptance inputs. Its current compiler
++  dependency is a real failure, not a skipped or weakened expectation.
++- `cli_new_project_v1 application_starter::application_starter_selected_file_declared_native_tests_and_unchanged_cli49`
++  creates a selected-file project and executes declared native tests and the
++  unchanged independent CLI49 receiver. The receiver is test input, not an
++  installed product capability.
++- `cli_new_project_v1 new_project::application::tests::` owns partial writes,
++  old-source preservation, existing/symlink destinations/parents and malformed
++  options. `project_publication::application::tests::` owns exact arities/path
++  refusals. Existing scaffold physical namespace-race cases remain required.
++- `project standard_library::application_json::starter::` and existing plan
++  decoder/overlap/stale/source/bounds/receipt gates retain closed decoding,
++  canonical replay and no authority escalation. Existing native test old-profile,
++  result/timeout/output/settlement known answers remain required.
++
++No Cargo build, tests, Clippy, benchmark, hosted run or full gate was performed
++when authoring this source batch. The user prohibited full gates. Minimum exact
++owning checks are pending the parent's grouped compilation/verification budget.
+diff --git a/docs/ARCHITECTURE.md b/docs/ARCHITECTURE.md
+index 3d61ca0ea..67c8ac849 100644
+--- a/docs/ARCHITECTURE.md
++++ b/docs/ARCHITECTURE.md
+@@ -1089,6 +1089,19 @@ unperformed. `cli/json_codec/suitability.rs` accepts strict optional policy and
+ uses the ordinary authenticated held-input route; it has no output/publication
+ boundary. Existing codec derivation remains the only source candidate consumer.
+ 
++`project/application_starter` composes the existing checked codec plan/replay
++with an explicit same-profile command activation, canonical authored inventory
++and exact original/generated source receipts. It performs full ordinary Project
++construction without filesystem or native execution authority. The full host's
++`new_project/application` invokes the original scaffold `publish_files` held-parent
++sequence; `project_publication/application` supplies a bounded owned-name source
++inventory to that same authority. Static template inventories and frozen capsules
++remain separate. The explicit collection-record pure native-test selector reuses
++the existing native test runner after complete typed HIR validation; the old
++native test selector retains its old admission and schema. No managed apply or
++raw-path atomicity is added. [Application Starter v1](APPLICATION-STARTER-V1.md)
++and [typed native tests](PROJECT-NATIVE-TEST-COLLECTION-RECORD-PURE-V1.md) own limits.
++
+ `src/project/json_codec` owns checked-source application codec derivation and
+ exact regeneration replay. Its `plan` child derives a bounded set against one
+ immutable retained revision and admits the complete combined candidate through
+diff --git a/docs/COMPLETION-MATRIX.md b/docs/COMPLETION-MATRIX.md
+index 85a838925..691ced276 100644
+--- a/docs/COMPLETION-MATRIX.md
++++ b/docs/COMPLETION-MATRIX.md
+@@ -310,6 +310,7 @@ the remaining threshold, not as a list of existing features.
+ | Private owned Source Agent continuation (#330) | Partial; the consuming turn-two Completed join retains physical Resume provenance and the later Step hold. A private Complete closure now carries that Step through cleanup/transfer/terminal ACK and Report claim, then consumes that claim to return its checked canonical Report projection with exact authenticated terminal evidence bytes; a projection refusal retains the same owner in the sealed private failure path. Focused local success and terminal-prewrite refusal passed 1/1 each, while receipt-prewrite remains unrun. A private initial/continued failed-Observe driver now performs the acknowledged State cleanup, receipt, and sticky Stop rows, sealing its released State and quarantining any incomplete boundary; later failed Observe remains unjoined. The public-entry contract fixes the two-step fresh-registration boundary and the ownership transfer required before a public driver can enter this chain. A fresh public `SourceOwnedAgentJournalV1` constructor and opaque borrowed run handle are now authored: the constructor derives binding from the retained Project, creates a fresh locked v8 store and requires full registration retention ACK; the run composes both turns and keeps reached failure ownership in runtime custody. Its `public_owned_agent_fresh_entry_runs_two_real_turns_and_projects_report` regression compiled once, but the default-stack run overflowed; a larger-stack diagnostic exposed an incorrect unconditional-Complete fixture, which was corrected to a genuine two-turn source. The corrected rerun was blocked by local disk exhaustion, so public promotion is pending. A strict public recovered constructor and first-Prepared restart entry now recheck complete host-retained registration against the compiled runtime and physical store, then consume separate one-use host grants into the same two-turn custody. Its preparer/relauncher, forged-registration, fresh-history and hostile-tail public regression is authored but unexecuted. General failure settlement, shutdown and other recovery phases remain open. After authenticated close/reopen, a first-turn Prepared restart packet rehydrates fresh Bytes backing and, with a second one-use host grant, can reauthenticate that exact prefix before entering the original first model path. A source-added two-subprocess regression now makes the preparer exit before an independently rebuilt relaunch restores and dispatches once; a hostile-tail relaunch refuses before owner or adapter creation. These restart regressions remain unexecuted. Prior join success and foreign-wait refusal passed 1/1 each; authorization-prewrite refusal remains unexecuted. The private runtime now composes its first Model owner through Authorize, target, Reduce/Continue and the existing second-turn terminal driver, retaining every incomplete join in runtime custody and allowing close after consumed Complete Report. The new `owned_runtime_two_turn_` success and fault corpus is authored but unexecuted. The exact recovered first Prepared tail now enters that same runtime custody before Model; continuation failure keeps its physical owner in a restart quarantine. The new `owned_runtime_restart_prepared_` process-to-terminal, no-redispatch, cancellation and append-fault gates are authored but unexecuted. | [Public owned-Agent entry v1 contract](SOURCE-AGENT-OWNED-WAIT-PUBLIC-V1.md); [Private later Completed join](SOURCE-AGENT-OWNED-WAIT-V1.md#50-private-later-completed-owner-join-330); [private Complete closure](SOURCE-AGENT-OWNED-WAIT-V1.md#51-private-later-complete-terminal-and-report-closure-330) | Pass the remaining receipt and authorization-prewrite gates; pass the fresh public two-turn gate and complete its failure cleanup/shutdown matrix; run the process-restart continuation regressions; then complete later failed-Observe cleanup and the remaining physical owner recovery classifications. |
+ | Human-readable program | Partial; canonical `.spx`, separate source/semantic digests, ProgramRoot v1/v2/v3, exact context and source-owned Agent/contract/test facts are retained and replayed without changing frozen identities. | [RFC 0001](RFC-0001.md), [canonical workspace revision](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md), [ProgramRoot v1](PROGRAM-ROOT-V1.md), [v2](PROGRAM-ROOT-V2.md), [v3](PROGRAM-ROOT-V3.md), [exact context v2](EXACT-PROGRAM-CONTEXT-V2.md), [contracts/tests](CONTRACTS-AND-TESTS-FACTS-V1.md) | Canonical source round-trips every stable language feature with migrations and reviewable diffs; complete source/meaning coverage across the mature language. |
+ | Application JSON codecs | Source implementation, focused gates pending: checked-source derivation emits private scalar and identifier/array-view codecs, plus an owning identifier-request successor with actual String/record vectors, typed rejection, deterministic encoding and whole-stream normalization; original Project/profile replay remains authoritative. | [Application JSON Codecs v1](APPLICATION-JSON-CODECS-V1.md); `project::json_codec::tests::`, `project::json_codec::owned::tests::`, `project standard_library::application_json::`, `cli::json_codec::tests::` | Execute all authored source/owning/backend/stream gates; then generalize nested and Unicode-string application schemas, exhaust partial-construction/output allocation failures, and qualify full ShiftSim plus independent application acceptance before #724 completion or efficiency claims. The private allocation-v20 source owner and plan candidates remain unactivated; checked public applications, independent allocation replay and escaped SDK allocator leases are pending all-backend gates. |
++| Fresh application starter assembly (#837) | Source implementation, executable qualification pending; no runnable application claim while ordinary compiler dependencies remain open. | [Application Starter v1](APPLICATION-STARTER-V1.md), explicit [collection-record pure native tests](PROJECT-NATIVE-TEST-COLLECTION-RECORD-PURE-V1.md); `cli_new_project_v1 application_starter::`, `new_project::application::tests::`, `project_publication::application::tests::`, `project standard_library::application_json::starter::` | Execute complete fresh typed ShiftSim15 and selected-file CLI49 journeys, source/receipt/canonical roundtrips, partial publication and unchanged legacy receivers. G171808 remains a real ordinary-check dependency; no bypass or efficiency claim. |
+ | Verified source semantics | Partial; exact workspace/context selection, retained HIR facts, authority-free transactions, bounded universal queries and the process-resident incremental semantic service are implemented. The stdio and MCP facades preserve their closed authority-free service contracts. The versioned Rust embedding facade exposes bounded byte-only analysis, opaque Project sessions, exact refresh/candidate replay and capability-gated deterministic execution with local lifecycle/host-consumer evidence. | [Architecture](ARCHITECTURE.md), [Universal Query](UNIVERSAL-SEMANTIC-QUERY-V1.md), [Universal Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md), [v2](UNIVERSAL-SEMANTIC-TRANSACTION-V2.md), [composition](UNIVERSAL-SEMANTIC-TRANSACTION-COMPOSITION-V1.md), [semantic service](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md), [Rust embedding API](EMBEDDING-API-V3.md), [stdio](PERSISTENT-SEMANTIC-SERVICE-TRANSPORT-V1.md), [MCP](PERSISTENT-SEMANTIC-SERVICE-MCP-V1.md) | All admitted language features reach validated HIR only after complete type, effect, contract and ownership checks; broaden shared/durable service transports, cover every mature semantic object family, preserve comments and unrelated trivia, and broaden the transaction algebra without bypassing validation. |
+ | Cross-backend semantic equivalence | Partial; admitted scalar, numeric-text, String, owned-data, generic and collection corpora execute through their interpreter, C11 and Core-Wasm profiles with hosted-green release evidence. The bounded source-level resumable slice now has a deterministic compiler-owned ordered plan for one to eight direct sequential Copy-scalar yields, an authority-free production preparation profile that emits bounded plan/state/target-bound native C11 or Core-Wasm artifacts in memory, a public bounded checkpoint envelope HMAC-authenticated under exact caller-supplied ProgramRoot/invocation/policy facts, and local `cfg(test)`-only execution parity evidence through the interpreter, native C11 `-O0`/`-O2`, and Core Wasm. Its per-site suspension binding commits exact checked-program, site, scalar-argument and prior-answer bits; replay checks every recorded request, and covered intermediate/final/contract failures retain normalized statuses. Its closed projection retains only the selected and authored-entrypoint direct-call closures, so disconnected yielding functions are isolated; retained helpers must remain explicit, effect-free and Copy-scalar. Ordinary native/Wasm emission still refuses `yields` (`SPX-B116`/`SPX-W126`); prepared artifacts and decoded checkpoints grant no execution, publication, host-call, answer, or storage authority, and arbitrary Wasm NaN-payload preservation is unclaimed because the test adapter crosses JavaScript `Number`. A second slice (#296) adds a resumable-effects continuation contract v1: a durable, fsync'd, HMAC-chained, single-writer (flock) journal-backed library driver (Unix only) is a real durable append sink, superseding the former in-memory-only reference journal for this profile. The source-level profile now also admits control-dependent yields (`if`/`else` branches and `while` bodies; a v3 plan/envelope, up to 8 static sites, up to 16 suspensions) and carries one whole owned `Bytes` local across `if`/`else`-nested yields in a v4 envelope, with driver-enforced per-item cleanup settlement backed by a `cfg(test)`-only cleanup-inventory liveness query. Loop-embedded owned-Bytes carrying is refused (`SPX-T303`), not silently narrowed, until dynamic-occurrence-aware carrying exists. Ordinary native/Wasm emission still refuses `yields` (`SPX-B116`/`SPX-W126`); prepared artifacts and decoded checkpoints grant no execution, publication, host-call, answer, or storage authority, and arbitrary Wasm NaN-payload preservation is unclaimed because the test adapter crosses JavaScript `Number`. An additional R20 slice admits one direct sequential request site with up to eight bounded 1 KiB `Bytes` leaves in a flat record or variant. Interpreter execution, durable journal recovery, and an HMAC-authenticated v6 checkpoint now carry that request; the max-size local round trip and `SPX-T307` refusal for a second Bytes site are tested. `Bytes` responses remain refused. A separate sequential interpreter API admits bounded Copy-only record/variant whole-function parameters and results with exact argument replay binding. A distinct aggregate durable invocation now uses a v2 HMAC journal and v7 authenticated checkpoint; local success/failure crash matrices cover every append boundary, recovered in-doubt dispatch, sticky failure, and checked record/variant answer refusals before append. Scalar v1 and v5/v6 APIs remain unchanged. An opt-in ordinary-v2 interpreter model-wait route now uses one combined v7 Source Live journal, checked Copy Observation/Proposal carriers, precharged evaluation/replay and exact joined evidence. An explicit offline repair example exercises the public route and checked feedback retry; local crash windows and source/graph gates pass. A separate checked SourceLive v8 owned-Agent source-interpreter profile now exposes a nontrivial public two-turn lifecycle, authenticated first-Prepared and exact TransferCompleted process restart, actual Refused and later-target failure settlement, and eligible Completed-State cancellation/explicit shutdown. Its local macOS public, process and hostile gates are recorded in the owned-wait public v1 contract; this does not promote native/Wasm yields, other restoration phases, Report recovery or general Agent migration. Other journal profiles and native/Wasm yields remain open. There is still no runtime scheduler, general public continuation ABI, complete Agent lifecycle migration, or rollback detection, and #204 remains open beyond this bounded plan. | [Conformance Trace](CONFORMANCE-TRACE-V1.md), [Resumable Effects v1](RESUMABLE-EFFECTS-V1.md), [Resumable Effects Continuation v1](RESUMABLE-EFFECTS-CONTINUATION-V1.md), [Source Model Wait v1](SOURCE-MODEL-WAIT-V1.md), [Owned Agent Wait public v1](SOURCE-AGENT-OWNED-WAIT-PUBLIC-V1.md), [String operations](STRING-OPS-V1.md), [owned-data API](PUBLIC-OWNED-DATA-API-V1.md), [UTF-8 API](PUBLIC-OWNED-UTF8-API-V1.md), [native String settlement](NATIVE-INLINE-STRING-SETTLEMENT-V1.md), [String interpreter](INTERPRETER-INTERNAL-STRINGS-V1.md), [Wasm Strings](WASM-INTERNAL-STRINGS-V1.md) | Every supported backend passes the same complete behavior, failure, cleanup and contract corpus for the mature language; separately specified opt-in or broader target profiles require their own evidence. General resumable lowering still requires a runtime scheduler, owned state beyond one carried `Bytes` local, effectful prefixes, native/Wasm yields, loop-embedded carrying, a public execution/runtime profile, and durable crash recovery beyond the journal's own local evidence. |
+ | Atomic agent changes | Partial; exact-old-state rename, ReplaceBlock, AddContract, AddDeclaration and additive body ReplaceExpression validation/replay are implemented. Composition admits its bounded structural diff, rename rebase and ordered sibling-rename merge; validation remains authority-free and does not itself publish. | [Universal Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md), [v2](UNIVERSAL-SEMANTIC-TRANSACTION-V2.md), [composition](UNIVERSAL-SEMANTIC-TRANSACTION-COMPOSITION-V1.md), [workflow CLI](UNIVERSAL-SEMANTIC-WORKFLOW-CLI-V1.md), [patch evidence](SEMANTIC-PATCH-EVIDENCE-V1.md), [workspace change](SEMANTIC-WORKSPACE-CHANGE-V1.md), [Candidate Git publication](PROJECT-CANDIDATE-GIT-PUBLICATION-V1.md) | General supported single- and multi-file semantic changes replay and publish atomically with recovery and provenance; preserve comments and exact unrelated trivia, broaden typed operations/preconditions, and close the remaining same-principal repository-content and publication-host hostility scope. |
+diff --git a/docs/DEVELOPMENT.md b/docs/DEVELOPMENT.md
+index cc402533c..c10256486 100644
+--- a/docs/DEVELOPMENT.md
++++ b/docs/DEVELOPMENT.md
+@@ -81,6 +81,7 @@ Additional required references:
+ | Process-resident incremental semantic workspace service core | [Persistent Incremental Semantic Workspace Service v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md), [Canonical Semantic Workspace Revision v1](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md), [Universal Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md), [Frontend Cache v1](PROJECT-FRONTEND-CACHE-V1.md) |
+ | Persistent semantic service JSON-lines/MCP transport or `service` CLI | [Persistent Semantic Workspace Service Transport v1](PERSISTENT-SEMANTIC-SERVICE-TRANSPORT-V1.md), [Persistent Semantic Workspace Service MCP v1](PERSISTENT-SEMANTIC-SERVICE-MCP-V1.md), [Persistent Incremental Semantic Workspace Service v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md), [Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md), [Universal Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md) |
+ | One-shot universal semantic query or change-preview CLI | [Universal Semantic Workflow CLI v1](UNIVERSAL-SEMANTIC-WORKFLOW-CLI-V1.md), [Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md), [Universal Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md), [Universal Semantic Transaction v2](UNIVERSAL-SEMANTIC-TRANSACTION-V2.md), [Persistent Incremental Semantic Workspace Service v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md), [CLI Help v4](CLI-HELP-V4.md), [CLI Help v5](CLI-HELP-V5.md) |
++| Fresh codec/command application assembly and declared typed native tests | [Application Starter v1](APPLICATION-STARTER-V1.md), [Codec Plan v1](APPLICATION-JSON-CODEC-PLAN-V1.md), [Pure collection-record native tests v1](PROJECT-NATIVE-TEST-COLLECTION-RECORD-PURE-V1.md), [Scaffold v8](PROJECT-SCAFFOLD-V8.md), [Native Tests v1](PROJECT-NATIVE-TEST-V1.md) |
+ | Read-only checked-type codec suitability explanation | [JSON Codec Suitability Discovery v1](JSON-CODEC-SUITABILITY-V1.md), [Checked-source Application JSON Codecs v1](APPLICATION-JSON-CODECS-V1.md), [CLI Help v5](CLI-HELP-V5.md) |
+ | Installed agent guidance, skill selector, or query capability catalogue | [Installed Agent Guidance v1](INSTALLED-AGENT-GUIDANCE-V1.md), [Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md), [Guided CLI Help v4](CLI-HELP-V4.md), [CLI Help v5](CLI-HELP-V5.md) |
+ | Installed diagnostic catalogue, explanation, source-token scanner, or `explain` CLI | [Installed Diagnostics v1](INSTALLED-DIAGNOSTICS-V1.md), [Human Diagnostic Locations v1](HUMAN-DIAGNOSTICS-V1.md), [Guided CLI Help v4](CLI-HELP-V4.md), [CLI Help v5](CLI-HELP-V5.md) |
+diff --git a/docs/PROJECT-NATIVE-TEST-COLLECTION-RECORD-PURE-V1.md b/docs/PROJECT-NATIVE-TEST-COLLECTION-RECORD-PURE-V1.md
+new file mode 100644
+index 000000000..4b5680590
+--- /dev/null
++++ b/docs/PROJECT-NATIVE-TEST-COLLECTION-RECORD-PURE-V1.md
+@@ -0,0 +1,43 @@
++# Native collection-record pure tests v1
++
++Status: authored source, focused execution pending. This is an explicit test
++protocol successor; the frozen [native test v1](PROJECT-NATIVE-TEST-V1.md)
++profile set, schema, output and v31 refusal remain unchanged.
++
++Select `semaprax test <project> --target native-collection-record-pure.v1`
++with optional `--json`, `--native-timeout-ms` and
++`--native-max-output-bytes`. Only exact Project v31
++`language-command-io.collection-record.v1` is admitted. Every other Project
++profile refuses this selector with SPX-B104. Diagnostic timing and interpreter
++limits refuse. `--target native` still selects only the original source-command
++profiles, including its original v31 SPX-B104 refusal.
++
++The Rust selector is `ProjectNativeTestProfile::CollectionRecordPureV1` passed
++to `native_test_roots_with_profile` and `build_native_test_with_profile`.
++Existing methods call the original SourceCommandV1 selector. Admission replays
++the complete ordinary v31 typed HIR validator with no command/effect exemption.
++The declared test closure must have no permits or function effects. Native
++emission is the existing ordinary pure scalar-root C emitter after that replay;
++it supplies no argv, filesystem, stdin, stdout command or other provider. The
++root list and order remain the manifest-declared main followed by explicit-ID
++zero-argument i64 `test_` roots in identity order. An undeclared ID refuses.
++Pure test roots print the existing canonical i64 line and pass only on zero.
++Typed private helpers keep all ordinary ownership, layout, cleanup and status
++validation; this selector cannot bypass a source capacity or backend refusal.
++
++The explicit JSON envelope is
++`semaprax.native-test.collection-record-pure.v1`, with target
++`native-collection-record-pure.v1`. It has the same four closed envelope fields
++(schema, target, passed, cases) and original complete ordered case fields and
++canonical result interpretation. Ordinary host diagnostic rendering is unchanged.
++This reuses the original bounded child runner, null stdin, Project working
++directory, closed process capture, timeout/output/read refusal and settlement,
++private scratch authentication/discard and sticky host failure selection. Defaults
++remain 10000ms and 65536 combined output bytes; maximums remain 600000ms and
++1048576 bytes. Selecting it executes native code only under that explicit host
++operation; a starter receipt alone cannot execute it.
++
++Pending gates: the full starter ShiftSim15 journey, explicit selector parse
++controls, old native-target v31 refusal, v31 effectful test refusal, wrong profile,
++undeclared root refusal, and original source-command result/timeout/output/
++settlement receivers. No backend or application qualification is claimed.
+diff --git a/src/cli/execution.rs b/src/cli/execution.rs
+index 0b5c969ef..498214115 100644
+--- a/src/cli/execution.rs
++++ b/src/cli/execution.rs
+@@ -26,6 +26,7 @@ pub(crate) struct ExecutionOptions {
+ 
+ #[derive(Debug, Eq, PartialEq, Clone, Copy)]
+ pub(crate) struct NativeTestLimits {
++    pub(crate) collection_record_pure: bool,
+     pub(crate) diagnostic_timing: bool,
+     pub(crate) timeout_ms: u64,
+     pub(crate) max_output_bytes: usize,
+@@ -203,7 +204,10 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
+             }
+             "--target" if command == "test" && target.is_none() => {
+                 let value = option_value(args, index, command, argument)?;
+-                if !matches!(value, "native" | "interpreter") {
++                if !matches!(
++                    value,
++                    "native" | "interpreter" | "native-collection-record-pure.v1"
++                ) {
+                     eprintln!("test option `--target` requires native or interpreter");
+                     return Err(2);
+                 }
+@@ -321,11 +325,18 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
+         );
+         return Err(2);
+     }
+-    let native_test = if target.as_deref() == Some("native") {
++    let native_test = if matches!(
++        target.as_deref(),
++        Some("native" | "native-collection-record-pure.v1")
++    ) {
+         if max_steps.is_some() || max_bytes.is_some() {
+             eprintln!("native test cannot use interpreter --max-steps or --max-bytes");
+             return Err(2);
+         }
++        if native_timing && target.as_deref() == Some("native-collection-record-pure.v1") {
++            eprintln!("native-collection-record-pure.v1 does not admit diagnostic timing");
++            return Err(2);
++        }
+         if native_timing && !json {
+             eprintln!("native diagnostic timing requires `--json`");
+             return Err(2);
+@@ -337,6 +348,7 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
+             return Err(2);
+         }
+         Some(NativeTestLimits {
++            collection_record_pure: target.as_deref() == Some("native-collection-record-pure.v1"),
+             diagnostic_timing: native_timing,
+             timeout_ms,
+             max_output_bytes,
+@@ -583,6 +595,7 @@ mod tests {
+         assert_eq!(
+             options.native_test,
+             Some(NativeTestLimits {
++                collection_record_pure: false,
+                 diagnostic_timing: false,
+                 timeout_ms: 25,
+                 max_output_bytes: 1024,
+@@ -593,6 +606,7 @@ mod tests {
+                 .unwrap()
+                 .native_test,
+             Some(NativeTestLimits {
++                collection_record_pure: false,
+                 diagnostic_timing: false,
+                 timeout_ms: 10_000,
+                 max_output_bytes: 65_536
+@@ -642,4 +656,51 @@ mod tests {
+         }
+         assert!(parse_run(&strings(&["--json", "--native-timing"])).is_err());
+     }
++    #[test]
++    fn collection_record_native_test_successor_requires_explicit_closed_selection() {
++        let selected = parse_test(&strings(&[
++            ".",
++            "--target",
++            "native-collection-record-pure.v1",
++            "--json",
++        ]))
++        .unwrap();
++        assert!(selected.native_test.unwrap().collection_record_pure);
++        assert!(
++            !parse_test(&strings(&[".", "--target", "native"]))
++                .unwrap()
++                .native_test
++                .unwrap()
++                .collection_record_pure
++        );
++        for arguments in [
++            &["--target", "native-collection-record-pure.v2"][..],
++            &[
++                "--target",
++                "native-collection-record-pure.v1",
++                "--json",
++                "--native-timing",
++            ][..],
++            &[
++                "--target",
++                "native-collection-record-pure.v1",
++                "--max-steps",
++                "10",
++            ][..],
++            &[
++                "--target",
++                "native-collection-record-pure.v1",
++                "--max-bytes",
++                "10",
++            ][..],
++            &[
++                "--target",
++                "native-collection-record-pure.v1",
++                "--target",
++                "native",
++            ][..],
++        ] {
++            assert!(parse_test(&strings(arguments)).is_err());
++        }
++    }
+ }
+diff --git a/src/cli/help.rs b/src/cli/help.rs
+index c2fbab8fe..46d468ca6 100644
+--- a/src/cli/help.rs
++++ b/src/cli/help.rs
+@@ -229,12 +229,12 @@ static COMMANDS: &[CommandSpec] = &[
+     CommandSpec { id: CommandId::Serve, canonical: "serve", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax serve <file> [--max-request-bytes N]"] },
+     CommandSpec { id: CommandId::QualityPlan, canonical: "quality-plan", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax quality-plan <quick|changed|full> [exact-changed-path ...]"] },
+     CommandSpec { id: CommandId::Doctor, canonical: "doctor", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax doctor [--profile <id>] [--target native|web|all] [--json]", "semaprax doctor verify-release <release-dir> --trusted-root-sha256 <64-lowercase-hex>"] },
+-    CommandSpec { id: CommandId::New, canonical: "new", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|stdin-stream-data|stdin-stream-collection-record|source-command-file-text]"] },
++    CommandSpec { id: CommandId::New, canonical: "new", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|stdin-stream-data|stdin-stream-collection-record|source-command-file-text]", "semaprax-full new <fresh-directory> --from <project> --codec-plan <plan-json> --command-profile <exact-profile> [--command-path <declared-path> --command-source <source-file>]"] },
+     CommandSpec { id: CommandId::ProjectScaffold, canonical: "project-scaffold", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text|stdin-stream-data|stdin-stream-collection-record|source-command-file-text] [--layout frozen|tables|current]"] },
+     CommandSpec { id: CommandId::Build, canonical: "build", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax build <file> --profile fused-construction-v1 --managed-bytes N --target native|wasm [-o|--output fresh-path] [--json]", "semaprax build <file> [--target native] [-o|--output path] [--json]", "semaprax build <file> --target native-callable --function stable-id [-o|--output path] [--json]", "semaprax build <file> --target web|wasm [--profile internal-strings-v1|text-toolkit-v1] [--export stable-id ...] [-o|--output path] [--json]", "semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm|oci|rust] [-o|--output path] [--json]"] },
+     CommandSpec { id: CommandId::Run, canonical: "run", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax run <file> --profile fused-construction-v1 --managed-bytes N [--json] [--max-steps N|--native]", "semaprax run <file> [--json] [--max-steps N] [--max-bytes N] [--native] [-- <arg>...]", "semaprax run [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]"] },
+     CommandSpec { id: CommandId::NetworkRun, canonical: "network-run", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax network-run [<dir>|semaprax.toml|--manifest-path path] --fixture fixture.json [--arg UTF8]... [--stdin path] [--max-steps N]"] },
+-    CommandSpec { id: CommandId::Test, canonical: "test", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N] [--target interpreter]", "semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] --target native [--native-timeout-ms N] [--native-max-output-bytes N] [--native-timing]"] },
++    CommandSpec { id: CommandId::Test, canonical: "test", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N] [--target interpreter]", "semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] --target native [--native-timeout-ms N] [--native-max-output-bytes N] [--native-timing]", "semaprax test [<dir>|semaprax.toml|--manifest-path path] --target native-collection-record-pure.v1 [--json] [--native-timeout-ms N] [--native-max-output-bytes N]"] },
+     CommandSpec { id: CommandId::Fmt, canonical: "fmt", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax fmt <file>|<dir>|semaprax.toml [--check]", "semaprax fmt --manifest <semaprax.toml> [--check]"] },
+     CommandSpec { id: CommandId::Patch, canonical: "patch", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax patch <file> <patch.spatch>"] },
+     CommandSpec { id: CommandId::PatchReceipt, canonical: "patch-receipt", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax patch-receipt <project> render <transaction-json> <candidate-digest>", "semaprax patch-receipt <project> verify <transaction-json> <candidate-digest> <receipt-json>", "semaprax patch-receipt <project> refusal <transaction-json> <requested-candidate-digest>", "semaprax patch-receipt <project> verify-refusal <transaction-json> <requested-candidate-digest> <receipt-json>", "semaprax patch-receipt <project> compare <left-transaction-json> <left-candidate-digest> <left-receipt-json> <right-transaction-json> <right-candidate-digest> <right-receipt-json>", "semaprax patch-receipt <project> evidence-summary <transaction-json> <candidate-digest>", "semaprax patch-receipt <project> evidence-page <transaction-json> <candidate-digest> <evidence-id> <handle> <cursor|->"] },
+diff --git a/src/cli/json_codec.rs b/src/cli/json_codec.rs
+index 8cb09a4ae..4bce39d81 100644
+--- a/src/cli/json_codec.rs
++++ b/src/cli/json_codec.rs
+@@ -13,7 +13,7 @@ use semaprax::diagnostic::Diagnostic;
+ 
+ static NEXT: AtomicU64 = AtomicU64::new(0);
+ const USAGE: &str = "json-codec <project> --source <module-path> --type <record-id> --output <new-file> [--profile <selector>] [--max-string-bytes <1..64>] [--max-array-items <1..256>]";
+-pub(crate) const HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile. UTF-8 owned request profiles bound each decoded string with --max-string-bytes (1..64 UTF-8 bytes). bounded-collection-response.v1 selects an encode-only nested collection view and also requires that bound. bounded-nested-request.v1 requires both --max-string-bytes (1..64) and --max-array-items (1..256); direct decoding only, under the independently admitted caller Project profile. bounded-stream-nested-request.v1 uses the same bounds, original schema stdin permit and a computed normalized spelling envelope; it adds no raw-input or whitespace cap. bounded-nested-response.v1 requires the same two bounds and derives encode-only borrowed finite nested records; primitive Vec<string> refuses. Contract: docs/APPLICATION-JSON-NESTED-RESPONSE-V1.md. bounded-nested-response.v2 adds named borrowed Vec<string> slot reads with the same caps and distinct generated identities. Contract: docs/APPLICATION-JSON-NESTED-RESPONSE-V2.md.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nAdd --plan <plan-json> --output <new-bundle> instead of single-codec selectors to derive 1..8 distinct replacements against one immutable revision and validate the complete candidate. The deterministic JSON bundle preserves authored schema bytes, complete candidate sources and exact per-entry evidence; no authority to install it. Existing destinations refuse. Plan contract: docs/APPLICATION-JSON-CODEC-PLAN-V1.md.\nRead-only shape discovery: json-codec <project> --explain --type <stable-id> [--source <path>] [--target native64|wasm32] [--max-string-bytes N] [--max-array-items N] [--max-bytes N] [--revision <digest>] [--offset N]. Reports actual shape predicates and explicit unmet policy; candidate/backend admission remains unperformed. Continuations require the returned project revision. Contract: docs/JSON-CODEC-SUITABILITY-V1.md\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
++pub(crate) const HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile. UTF-8 owned request profiles bound each decoded string with --max-string-bytes (1..64 UTF-8 bytes). bounded-collection-response.v1 selects an encode-only nested collection view and also requires that bound. bounded-nested-request.v1 requires both --max-string-bytes (1..64) and --max-array-items (1..256); direct decoding only, under the independently admitted caller Project profile. bounded-stream-nested-request.v1 uses the same bounds, original schema stdin permit and a computed normalized spelling envelope; it adds no raw-input or whitespace cap. bounded-nested-response.v1 requires the same two bounds and derives encode-only borrowed finite nested records; primitive Vec<string> refuses. Contract: docs/APPLICATION-JSON-NESTED-RESPONSE-V1.md. bounded-nested-response.v2 adds named borrowed Vec<string> slot reads with the same caps and distinct generated identities. Contract: docs/APPLICATION-JSON-NESTED-RESPONSE-V2.md.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nAdd --plan <plan-json> --output <new-bundle> instead of single-codec selectors to derive 1..8 distinct replacements against one immutable revision and validate the complete candidate. The deterministic JSON bundle preserves authored schema bytes, complete candidate sources and exact per-entry evidence; no authority to install it. Existing destinations refuse. Plan contract: docs/APPLICATION-JSON-CODEC-PLAN-V1.md.\nFull-host fresh application assembly: semaprax-full new <fresh-directory> --from <project> --codec-plan <plan-json> --command-profile <exact-profile> [--command-path <declared-path> --command-source <source-file>]. Reuses this plan and complete ordinary checks; preserves the manifest grant, writes canonical authored inventory and generation/source receipts through held-parent no-replace publication. Only direct src/*.spx modules (1..32); source-command v26/v28/v33/v34 and collection-record v31. V31 explicitly selects test --target native-collection-record-pure.v1, a pure typed declared-test successor; --target native retains its old refusal. Installation executes no native code; unresolved source-capacity/compiler admission still refuses before publication. Standalone new has no installer authority. Contract: docs/APPLICATION-STARTER-V1.md.\nRead-only shape discovery: json-codec <project> --explain --type <stable-id> [--source <path>] [--target native64|wasm32] [--max-string-bytes N] [--max-array-items N] [--max-bytes N] [--revision <digest>] [--offset N]. Reports actual shape predicates and explicit unmet policy; candidate/backend admission remains unperformed. Continuations require the returned project revision. Contract: docs/JSON-CODEC-SUITABILITY-V1.md\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
+ 
+ pub(crate) struct Options {
+     project: PathBuf,
+diff --git a/src/cli/json_codec/plan.rs b/src/cli/json_codec/plan.rs
+index a6e70b7c4..85ec7d9f3 100644
+--- a/src/cli/json_codec/plan.rs
++++ b/src/cli/json_codec/plan.rs
+@@ -1,43 +1,13 @@
+ //! Bounded plan decoding and one no-overwrite bundle publication.
+ use super::*;
+ use semaprax::project::{derive_json_codec_plan, JsonCodecPlanEntry};
+-use serde::Deserialize;
+ use std::io::Read as _;
+ 
+ const USAGE: &str = "json-codec <project> --plan <plan-json> --output <new-bundle>";
+ const MAX_PLAN_BYTES: u64 = 16_384;
+ 
+-#[derive(Deserialize)]
+-#[serde(deny_unknown_fields)]
+-struct Plan {
+-    schema: String,
+-    #[serde(default)]
+-    expected_project_revision: Option<String>,
+-    entries: Vec<Entry>,
+-}
+-
+-#[derive(Deserialize)]
+-#[serde(deny_unknown_fields)]
+-struct Entry {
+-    source: String,
+-    record: String,
+-    profile: String,
+-    #[serde(default)]
+-    max_string_bytes: Option<usize>,
+-    #[serde(default)]
+-    max_array_items: Option<usize>,
+-}
+-
+-fn decode(bytes: &[u8]) -> Result<Plan, Diagnostic> {
+-    if bytes.len() > MAX_PLAN_BYTES as usize {
+-        return Err(error("codec plan exceeds 16384 bytes"));
+-    }
+-    let plan: Plan =
+-        serde_json::from_slice(bytes).map_err(|_| error("invalid closed codec plan JSON"))?;
+-    if plan.schema != "semaprax.json-codec-plan.v1" || !(1..=8).contains(&plan.entries.len()) {
+-        return Err(error("codec plan requires schema v1 and 1..8 entries"));
+-    }
+-    Ok(plan)
++fn decode(bytes: &[u8]) -> Result<(Option<String>, Vec<JsonCodecPlanEntry>), Diagnostic> {
++    semaprax::project::decode_json_codec_plan(bytes)
+ }
+ 
+ pub(super) fn run(args: &[String], report: impl Fn(&[Diagnostic]) -> u8) -> Result<(), u8> {
+@@ -66,29 +36,11 @@ pub(super) fn run(args: &[String], report: impl Fn(&[Diagnostic]) -> u8) -> Resu
+     fs::File::open(input)
+         .and_then(|f| f.take(MAX_PLAN_BYTES + 1).read_to_end(&mut bytes))
+         .map_err(|e| report(&[error(format!("cannot read codec plan: {e}"))]))?;
+-    let plan = decode(&bytes).map_err(|e| report(&[e]))?;
+-    let mut entries = Vec::new();
+-    for entry in &plan.entries {
+-        let bytes = entry.max_string_bytes.map(|n| n.to_string());
+-        let items = entry.max_array_items.map(|n| n.to_string());
+-        let selector = if entry.profile == "flat-scalars.v1" {
+-            None
+-        } else {
+-            Some(entry.profile.as_str())
+-        };
+-        let profile = profile::parse(selector, bytes.as_deref(), items.as_deref())
+-            .ok_or_else(|| report(&[error("invalid codec member profile or bounds")]))?;
+-        entries.push(JsonCodecPlanEntry {
+-            source_path: entry.source.clone(),
+-            record_id: entry.record.clone(),
+-            profile,
+-        });
+-    }
++    let (expected_revision, entries) = decode(&bytes).map_err(|e| report(&[e]))?;
+     let project = super::super::project::resolve_positional(PathBuf::from(&args[0]));
+     let bundle = semaprax::project::with_authenticated_project(&project, |snapshot| {
+         let revision = snapshot.retain_revision();
+-        if plan
+-            .expected_project_revision
++        if expected_revision
+             .as_deref()
+             .is_some_and(|expected| expected != revision.project_revision())
+         {
+diff --git a/src/cli/json_codec/profile.rs b/src/cli/json_codec/profile.rs
+index 3655ab1b9..4b101c797 100644
+--- a/src/cli/json_codec/profile.rs
++++ b/src/cli/json_codec/profile.rs
+@@ -1,64 +1,2 @@
+-use semaprax::project::JsonCodecProfile;
+-
+-pub(super) fn parse(
+-    profile: Option<&str>,
+-    max_string_bytes: Option<&str>,
+-    max_array_items: Option<&str>,
+-) -> Option<JsonCodecProfile> {
+-    match (profile, max_string_bytes, max_array_items) {
+-        (None, None, None) => Some(JsonCodecProfile::FlatScalars),
+-        (Some("identifier-views.v1"), None, None) => Some(JsonCodecProfile::IdentifierViews),
+-        (Some("request-views.v1"), None, None) => Some(JsonCodecProfile::RequestViews),
+-        (Some("stream-request-views.v1"), None, None) => Some(JsonCodecProfile::StreamRequestViews),
+-        (Some("owned-request.v1"), None, None) => Some(JsonCodecProfile::OwnedRequest),
+-        (Some("stream-owned-request.v1"), None, None) => Some(JsonCodecProfile::StreamOwnedRequest),
+-        (Some("utf8-owned-request.v1"), Some(raw), None) => {
+-            let bytes = bound(raw, 64)?;
+-            Some(JsonCodecProfile::Utf8OwnedRequest {
+-                max_string_bytes: bytes,
+-            })
+-        }
+-        (Some("stream-utf8-owned-request.v1"), Some(raw), None) => {
+-            let bytes = bound(raw, 64)?;
+-            Some(JsonCodecProfile::StreamUtf8OwnedRequest {
+-                max_string_bytes: bytes,
+-            })
+-        }
+-        (Some("bounded-collection-response.v1"), Some(raw), None) => {
+-            let bytes = bound(raw, 64)?;
+-            Some(JsonCodecProfile::CollectionResponse {
+-                max_string_bytes: bytes,
+-            })
+-        }
+-        (Some("bounded-nested-request.v1"), Some(bytes), Some(items)) => {
+-            Some(JsonCodecProfile::NestedRequest {
+-                max_string_bytes: bound(bytes, 64)?,
+-                max_array_items: bound(items, 256)?,
+-            })
+-        }
+-        (Some("bounded-nested-response.v2"), Some(bytes), Some(items)) => {
+-            Some(JsonCodecProfile::NestedResponseV2 {
+-                max_string_bytes: bound(bytes, 64)?,
+-                max_array_items: bound(items, 256)?,
+-            })
+-        }
+-        (Some("bounded-nested-response.v1"), Some(bytes), Some(items)) => {
+-            Some(JsonCodecProfile::NestedResponse {
+-                max_string_bytes: bound(bytes, 64)?,
+-                max_array_items: bound(items, 256)?,
+-            })
+-        }
+-        (Some("bounded-stream-nested-request.v1"), Some(bytes), Some(items)) => {
+-            Some(JsonCodecProfile::StreamNestedRequest {
+-                max_string_bytes: bound(bytes, 64)?,
+-                max_array_items: bound(items, 256)?,
+-            })
+-        }
+-        _ => None,
+-    }
+-}
+-
+-pub(super) fn bound(raw: &str, maximum: usize) -> Option<usize> {
+-    let value = raw.parse::<usize>().ok()?;
+-    ((1..=maximum).contains(&value) && value.to_string() == raw).then_some(value)
+-}
++pub(super) use semaprax::project::parse_json_codec_bound as bound;
++pub(super) use semaprax::project::parse_json_codec_profile as parse;
+diff --git a/src/cli_driver/native_test.rs b/src/cli_driver/native_test.rs
+index d7d84e979..3aea19387 100644
+--- a/src/cli_driver/native_test.rs
++++ b/src/cli_driver/native_test.rs
+@@ -80,7 +80,12 @@ fn host_error(message: impl Into<String>) -> Vec<Diagnostic> {
+ 
+ pub(super) fn execute(manifest: &Path, limits: NativeTestLimits, json: bool) -> Result<(), u8> {
+     let cases = project::with_authenticated_project(manifest, |snapshot| {
+-        let roots = snapshot.native_test_roots()?;
++        let profile = if limits.collection_record_pure {
++            project::ProjectNativeTestProfile::CollectionRecordPureV1
++        } else {
++            project::ProjectNativeTestProfile::SourceCommandV1
++        };
++        let roots = snapshot.native_test_roots_with_profile(profile)?;
+         let project_root = snapshot.root().to_path_buf();
+         let mut cases = Vec::with_capacity(roots.len());
+         for root in roots {
+@@ -89,7 +94,11 @@ pub(super) fn execute(manifest: &Path, limits: NativeTestLimits, json: bool) ->
+                 host_error(format!("cannot create native test scratch: {error}"))
+             })?;
+             let result = (|| {
+-                snapshot.build_native_test(root.stable_id(), scratch.path())?;
++                snapshot.build_native_test_with_profile(
++                    root.stable_id(),
++                    scratch.path(),
++                    profile,
++                )?;
+                 scratch.seal().map_err(|error| {
+                     host_error(format!("cannot seal native test executable: {error}"))
+                 })?;
+@@ -140,7 +149,7 @@ pub(super) fn execute(manifest: &Path, limits: NativeTestLimits, json: bool) ->
+             .collect();
+         println!(
+             "{}",
+-            serde_json::json!({"schema": "semaprax.native-test.v1", "target": "native", "passed": failed == 0, "cases": results})
++            serde_json::json!({"schema": if limits.collection_record_pure { "semaprax.native-test.collection-record-pure.v1" } else { "semaprax.native-test.v1" }, "target": if limits.collection_record_pure { "native-collection-record-pure.v1" } else { "native" }, "passed": failed == 0, "cases": results})
+         );
+     } else if failed == 0 {
+         println!(
+diff --git a/src/project/application_starter.rs b/src/project/application_starter.rs
+new file mode 100644
+index 000000000..689cc6379
+--- /dev/null
++++ b/src/project/application_starter.rs
+@@ -0,0 +1,233 @@
++//! Complete fresh application bytes, derived through the existing codec owner.
++use super::{JsonCodecBundle, ProjectRevision};
++use crate::diagnostic::Diagnostic;
++use crate::semantic_workspace::SemanticWorkspaceSource;
++use serde::Serialize;
++use sha2::{Digest, Sha256};
++
++/// Explicit command activation; no path is read by this authority-free API.
++#[derive(Clone, Debug)]
++pub struct ApplicationCommandSource {
++    pub path: String,
++    pub source: String,
++}
++
++#[derive(Clone, Debug)]
++pub struct ApplicationStarter {
++    files: Vec<(String, Vec<u8>)>,
++    project_revision: String,
++    workspace_revision: String,
++}
++impl ApplicationStarter {
++    pub fn files(&self) -> &[(String, Vec<u8>)] {
++        &self.files
++    }
++    pub fn project_revision(&self) -> &str {
++        &self.project_revision
++    }
++    pub fn workspace_revision(&self) -> &str {
++        &self.workspace_revision
++    }
++}
++
++fn refusal(message: &str) -> Vec<Diagnostic> {
++    vec![Diagnostic::io("SPX-J181", message)]
++}
++fn digest(bytes: &[u8]) -> String {
++    format!(
++        "sha256:{:x}",
++        crate::digest_hex::LowerHex(Sha256::digest(bytes))
++    )
++}
++
++#[derive(Serialize)]
++struct Receipt<'a> {
++    schema: &'static str,
++    command_profile: &'a str,
++    codec_plan_sha256: String,
++    codec_plan: &'a str,
++    codec_bundle: &'a JsonCodecBundle,
++    activated_command: Option<CommandReceipt<'a>>,
++    project_revision: &'a str,
++    workspace_revision: &'a str,
++    semantic_graph_digest: &'a str,
++    manifest_sha256: String,
++    sources: Vec<SourceReceipt<'a>>,
++    check: &'static str,
++    test: &'a str,
++    build: &'static str,
++    run: &'a str,
++}
++#[derive(Serialize)]
++struct CommandReceipt<'a> {
++    path: &'a str,
++    source: &'a str,
++    sha256: String,
++}
++#[derive(Serialize)]
++struct SourceReceipt<'a> {
++    path: &'a str,
++    sha256: String,
++}
++
++/// Derive and replay one complete candidate before a host acquires fresh-tree
++/// publication authority. Source/HIR/profile admission is never bypassed.
++pub fn derive_application_starter(
++    revision: &ProjectRevision,
++    plan_bytes: &[u8],
++    command_profile: &str,
++    command: Option<&ApplicationCommandSource>,
++) -> Result<ApplicationStarter, Vec<Diagnostic>> {
++    let (expected, entries) = super::decode_json_codec_plan(plan_bytes).map_err(|e| vec![e])?;
++    if expected
++        .as_deref()
++        .is_some_and(|expected| expected != revision.project_revision())
++    {
++        return Err(refusal("codec plan authored Project revision is stale"));
++    }
++    if revision.manifest().profile() != Some(command_profile)
++        || !(revision.manifest().project_profile().is_source_command()
++            || revision.manifest().project_profile()
++                == super::ProjectProfile::StdinStreamCollectionRecordCommandIoV1)
++    {
++        return Err(refusal("starter requires an exact admitted source-command or v31 command profile; it never changes a manifest grant"));
++    }
++    if !revision.manifest().dependency_sources().is_empty()
++        || !revision.manifest().rust_dependencies().is_empty()
++        || !revision.manifest().law_sources().is_empty()
++    {
++        return Err(refusal("starter admits compiler-bundled dependencies only; external subjects, Rust packages and law sources need their own complete installation contract"));
++    }
++    let bundle = super::derive_json_codec_plan(revision, &entries)?;
++    super::verify_json_codec_plan(revision, &entries, &bundle)?;
++    if let Some(command) = command {
++        if !revision.manifest().sources().contains(&command.path)
++            || entries
++                .iter()
++                .any(|entry| entry.source_path == command.path)
++            || command.source.len() > 131_072
++        {
++            return Err(refusal(
++                "command activation is absent, overlaps codec output or exceeds its source bound",
++            ));
++        }
++    }
++    let mut sources = Vec::new();
++    for path in revision.manifest().sources() {
++        let name = path
++            .strip_prefix("src/")
++            .ok_or_else(|| refusal("starter sources require direct src/*.spx paths"))?;
++        if name.is_empty() || name.contains('/') || name.contains('\\') || !name.ends_with(".spx") {
++            return Err(refusal("starter sources require direct src/*.spx paths"));
++        }
++        let original = bundle
++            .candidate_sources
++            .iter()
++            .find(|s| &s.path == path)
++            .ok_or_else(|| refusal("complete candidate source is missing"))?;
++        let text = command
++            .filter(|c| &c.path == path)
++            .map_or(original.source.as_str(), |c| c.source.as_str());
++        let parsed = crate::parse(text, path).map_err(|e| vec![e])?;
++        sources.push(SemanticWorkspaceSource {
++            path: path.clone(),
++            source: crate::format::canonical(&parsed),
++        });
++    }
++    if !(1..=32).contains(&sources.len())
++        || sources.iter().map(|s| s.source.len()).sum::<usize>() > 2 * 1024 * 1024
++    {
++        return Err(refusal(
++            "starter exceeds 32 authored modules or 2 MiB of source",
++        ));
++    }
++    let manifest = revision.manifest().to_canonical_toml();
++    let parsed_manifest = super::ProjectManifest::parse(&manifest)?;
++    let candidate = super::build::build_owned(&parsed_manifest, sources)?;
++    crate::hir::validate(&candidate.entry_program).map_err(|e| vec![e])?;
++    crate::hir::validate(&candidate.test_program).map_err(|e| vec![e])?;
++    // v31 native tests admit pure typed closures only. Effects cannot acquire
++    // a command adapter merely by being listed as tests.
++    if revision.manifest().project_profile()
++        == super::ProjectProfile::StdinStreamCollectionRecordCommandIoV1
++    {
++        crate::hir::validate_stream_collection_record_program(&candidate.test_program, None)
++            .map_err(|e| vec![e])?;
++        if !candidate.test_program.permits.is_empty() {
++            return Err(refusal(
++                "v31 starter requires a pure declared native test closure",
++            ));
++        }
++    }
++    let authored = candidate
++        .sources
++        .iter()
++        .filter(|s| revision.manifest().sources().iter().any(|p| p == s.path()))
++        .collect::<Vec<_>>();
++    let run = if matches!(
++        revision.manifest().project_profile(),
++        super::ProjectProfile::SourceCommandSelectedFileV1
++            | super::ProjectProfile::SourceCommandSelectedFileResourceV1
++    ) {
++        "./app --spx-selected-file-v1 0 -- <selected-file> [arguments]"
++    } else {
++        "./app [arguments]"
++    };
++    let test = if revision.manifest().project_profile()
++        == super::ProjectProfile::StdinStreamCollectionRecordCommandIoV1
++    {
++        "semaprax test . --target native-collection-record-pure.v1"
++    } else {
++        "semaprax test . --target native"
++    };
++    let receipt = Receipt {
++        schema: "semaprax.application-starter.v1",
++        command_profile,
++        codec_plan_sha256: digest(plan_bytes),
++        codec_plan: std::str::from_utf8(plan_bytes)
++            .map_err(|_| refusal("codec plan is not UTF-8"))?,
++        codec_bundle: &bundle,
++        activated_command: command.map(|c| CommandReceipt {
++            path: &c.path,
++            source: &c.source,
++            sha256: digest(c.source.as_bytes()),
++        }),
++        project_revision: &candidate.project_revision,
++        workspace_revision: &candidate.workspace_revision,
++        semantic_graph_digest: candidate.semantic.graph_digest(),
++        manifest_sha256: digest(manifest.as_bytes()),
++        sources: authored
++            .iter()
++            .map(|s| SourceReceipt {
++                path: s.path(),
++                sha256: digest(s.source().as_bytes()),
++            })
++            .collect(),
++        check: "semaprax check .",
++        test,
++        build: "semaprax build . --target native -o app",
++        run,
++    };
++    let encoded =
++        serde_json::to_string(&receipt).map_err(|_| refusal("cannot encode starter receipt"))?;
++    if encoded.len() > 12 * 1024 * 1024 {
++        return Err(refusal("starter receipt exceeds 12 MiB"));
++    }
++    let readme = format!("# {}\n\nCompiler-derived application starter.\n\n```sh\nsemaprax check .\n{test}\nsemaprax build . --target native -o app\n{run}\n```\n\nSupply the command's explicit argv, selected-file or stdin input when running.\nThese routes grant only the original manifest capabilities. Native compiler and\nprocess execution remain explicit host operations; installation runs neither.\n\nExact generation receipt (evidence, without publication authority):\n\n```json\n{}\n```\n", revision.manifest().name(), encoded);
++    let guide = "# Application authoring\n\nStart with `semaprax help language author:routes`; select only the bounded card\nyou need. The complete declared source and test inventory is in semaprax.toml.\nUse the exact native test target in README.md for declared tests; build the command\nwith `semaprax build . --target native -o app`. Read README.md for exact source,\ncodec-plan, command activation and generation receipts. A fresh source tree is\nnot runtime qualification. No installation executes native code or downloads\ndependencies. Do not change stable IDs or silently add capabilities.\n";
++    let mut files = vec![
++        ("README.md".to_owned(), readme.into_bytes()),
++        ("AGENTS.md".to_owned(), guide.as_bytes().to_vec()),
++        ("semaprax.toml".to_owned(), manifest.into_bytes()),
++    ];
++    files.extend(
++        authored
++            .iter()
++            .map(|s| (s.path().to_owned(), s.source().as_bytes().to_vec())),
++    );
++    Ok(ApplicationStarter {
++        files,
++        project_revision: candidate.project_revision,
++        workspace_revision: candidate.workspace_revision,
++    })
++}
+diff --git a/src/project/json_codec.rs b/src/project/json_codec.rs
+index 3b3b43af8..313737289 100644
+--- a/src/project/json_codec.rs
++++ b/src/project/json_codec.rs
+@@ -8,6 +8,10 @@ mod nested_request;
+ mod nested_response;
+ mod owned;
+ mod plan;
++mod plan_input;
++pub use plan_input::decode_json_codec_plan;
++mod profile_selector;
++pub use profile_selector::{parse_json_codec_profile, parse_json_codec_bound};
+ pub use plan::{
+     derive_json_codec_plan, verify_json_codec_plan, JsonCodecBundle, JsonCodecBundleSource,
+     JsonCodecEntryReceipt, JsonCodecPlanEntry,
+diff --git a/src/project/json_codec/plan_input.rs b/src/project/json_codec/plan_input.rs
+new file mode 100644
+index 000000000..9a3a3e3e0
+--- /dev/null
++++ b/src/project/json_codec/plan_input.rs
+@@ -0,0 +1,64 @@
++//! The existing closed codec-plan decoder shared by bundle and starter routes.
++use super::{parse_json_codec_profile, JsonCodecPlanEntry};
++use crate::diagnostic::Diagnostic;
++use serde::Deserialize;
++const MAX_PLAN_BYTES: u64 = 16_384;
++fn error(message: impl Into<String>) -> Diagnostic {
++    Diagnostic::io("SPX-J181", message)
++}
++#[derive(Deserialize)]
++#[serde(deny_unknown_fields)]
++struct Plan {
++    schema: String,
++    #[serde(default)]
++    expected_project_revision: Option<String>,
++    entries: Vec<Entry>,
++}
++
++#[derive(Deserialize)]
++#[serde(deny_unknown_fields)]
++struct Entry {
++    source: String,
++    record: String,
++    profile: String,
++    #[serde(default)]
++    max_string_bytes: Option<usize>,
++    #[serde(default)]
++    max_array_items: Option<usize>,
++}
++
++fn decode(bytes: &[u8]) -> Result<Plan, Diagnostic> {
++    if bytes.len() > MAX_PLAN_BYTES as usize {
++        return Err(error("codec plan exceeds 16384 bytes"));
++    }
++    let plan: Plan =
++        serde_json::from_slice(bytes).map_err(|_| error("invalid closed codec plan JSON"))?;
++    if plan.schema != "semaprax.json-codec-plan.v1" || !(1..=8).contains(&plan.entries.len()) {
++        return Err(error("codec plan requires schema v1 and 1..8 entries"));
++    }
++    Ok(plan)
++}
++
++pub fn decode_json_codec_plan(
++    bytes: &[u8],
++) -> Result<(Option<String>, Vec<JsonCodecPlanEntry>), Diagnostic> {
++    let plan = decode(bytes)?;
++    let mut entries = Vec::new();
++    for entry in plan.entries {
++        let bytes = entry.max_string_bytes.map(|n| n.to_string());
++        let items = entry.max_array_items.map(|n| n.to_string());
++        let selector = if entry.profile == "flat-scalars.v1" {
++            None
++        } else {
++            Some(entry.profile.as_str())
++        };
++        let profile = parse_json_codec_profile(selector, bytes.as_deref(), items.as_deref())
++            .ok_or_else(|| error("invalid codec member profile or bounds"))?;
++        entries.push(JsonCodecPlanEntry {
++            source_path: entry.source,
++            record_id: entry.record,
++            profile,
++        });
++    }
++    Ok((plan.expected_project_revision, entries))
++}
+diff --git a/src/project/json_codec/profile_selector.rs b/src/project/json_codec/profile_selector.rs
+new file mode 100644
+index 000000000..dba61b7ab
+--- /dev/null
++++ b/src/project/json_codec/profile_selector.rs
+@@ -0,0 +1,64 @@
++use super::JsonCodecProfile;
++
++pub fn parse_json_codec_profile(
++    profile: Option<&str>,
++    max_string_bytes: Option<&str>,
++    max_array_items: Option<&str>,
++) -> Option<JsonCodecProfile> {
++    match (profile, max_string_bytes, max_array_items) {
++        (None, None, None) => Some(JsonCodecProfile::FlatScalars),
++        (Some("identifier-views.v1"), None, None) => Some(JsonCodecProfile::IdentifierViews),
++        (Some("request-views.v1"), None, None) => Some(JsonCodecProfile::RequestViews),
++        (Some("stream-request-views.v1"), None, None) => Some(JsonCodecProfile::StreamRequestViews),
++        (Some("owned-request.v1"), None, None) => Some(JsonCodecProfile::OwnedRequest),
++        (Some("stream-owned-request.v1"), None, None) => Some(JsonCodecProfile::StreamOwnedRequest),
++        (Some("utf8-owned-request.v1"), Some(raw), None) => {
++            let bytes = parse_json_codec_bound(raw, 64)?;
++            Some(JsonCodecProfile::Utf8OwnedRequest {
++                max_string_bytes: bytes,
++            })
++        }
++        (Some("stream-utf8-owned-request.v1"), Some(raw), None) => {
++            let bytes = parse_json_codec_bound(raw, 64)?;
++            Some(JsonCodecProfile::StreamUtf8OwnedRequest {
++                max_string_bytes: bytes,
++            })
++        }
++        (Some("bounded-collection-response.v1"), Some(raw), None) => {
++            let bytes = parse_json_codec_bound(raw, 64)?;
++            Some(JsonCodecProfile::CollectionResponse {
++                max_string_bytes: bytes,
++            })
++        }
++        (Some("bounded-nested-request.v1"), Some(bytes), Some(items)) => {
++            Some(JsonCodecProfile::NestedRequest {
++                max_string_bytes: parse_json_codec_bound(bytes, 64)?,
++                max_array_items: parse_json_codec_bound(items, 256)?,
++            })
++        }
++        (Some("bounded-nested-response.v2"), Some(bytes), Some(items)) => {
++            Some(JsonCodecProfile::NestedResponseV2 {
++                max_string_bytes: parse_json_codec_bound(bytes, 64)?,
++                max_array_items: parse_json_codec_bound(items, 256)?,
++            })
++        }
++        (Some("bounded-nested-response.v1"), Some(bytes), Some(items)) => {
++            Some(JsonCodecProfile::NestedResponse {
++                max_string_bytes: parse_json_codec_bound(bytes, 64)?,
++                max_array_items: parse_json_codec_bound(items, 256)?,
++            })
++        }
++        (Some("bounded-stream-nested-request.v1"), Some(bytes), Some(items)) => {
++            Some(JsonCodecProfile::StreamNestedRequest {
++                max_string_bytes: parse_json_codec_bound(bytes, 64)?,
++                max_array_items: parse_json_codec_bound(items, 256)?,
++            })
++        }
++        _ => None,
++    }
++}
++
++pub fn parse_json_codec_bound(raw: &str, maximum: usize) -> Option<usize> {
++    let value = raw.parse::<usize>().ok()?;
++    ((1..=maximum).contains(&value) && value.to_string() == raw).then_some(value)
++}
+diff --git a/src/project/mod.rs b/src/project/mod.rs
+index 934cace4a..e7f97b103 100644
+--- a/src/project/mod.rs
++++ b/src/project/mod.rs
+@@ -21,6 +21,8 @@ mod canonical_sources;
+ mod canonical_workspace_revision;
+ mod contracts_and_tests_facts;
+ mod create;
++mod application_starter;
++pub use application_starter::{derive_application_starter, ApplicationCommandSource, ApplicationStarter};
+ mod cxx_owned_data;
+ mod environment;
+ mod exact_program_context;
+@@ -30,7 +32,7 @@ mod filesystem;
+ mod flat_owned_record;
+ mod json_codec;
+ pub use json_codec::{
+-    derive_json_codec_plan, derive_json_codec_source, derive_json_codec_source_with_profile,
++    decode_json_codec_plan, parse_json_codec_bound, parse_json_codec_profile, derive_json_codec_plan, derive_json_codec_source, derive_json_codec_source_with_profile,
+     explain_json_codec_suitability, verify_json_codec_plan, verify_json_codec_source,
+     verify_json_codec_source_with_profile, JsonCodecBundle, JsonCodecBundleSource,
+     JsonCodecEntryReceipt, JsonCodecPlanEntry, JsonCodecProfile, JsonCodecSuitabilityOptions,
+@@ -67,7 +69,7 @@ mod interface_artifact_facts;
+ mod manifest;
+ mod native_publication;
+ mod native_test;
+-pub use native_test::ProjectNativeTestRoot;
++pub use native_test::{ProjectNativeTestRoot, ProjectNativeTestProfile};
+ mod native_sdk;
+ mod nested_owned_record;
+ mod next_construct_query;
+diff --git a/src/project/native_test.rs b/src/project/native_test.rs
+index b4d4616e1..ee55883ff 100644
+--- a/src/project/native_test.rs
++++ b/src/project/native_test.rs
+@@ -8,6 +8,13 @@ use crate::diagnostic::Diagnostic;
+ 
+ use super::{execution, native_publication, ProjectProfile, ProjectSnapshot};
+ 
++/// Explicit test admission. Existing v1 methods retain their original profile.
++#[derive(Clone, Copy, Debug, Eq, PartialEq)]
++pub enum ProjectNativeTestProfile {
++    SourceCommandV1,
++    CollectionRecordPureV1,
++}
++
+ /// One authenticated, zero-argument `i64` root of the manifest-declared test
+ /// module. `main` is first; named cases follow in linked stable-identity order.
+ #[derive(Clone, Debug, Eq, PartialEq)]
+@@ -44,8 +51,25 @@ impl ProjectSnapshot {
+     /// authority. Every effect remains bounded by the manifest and the same
+     /// native source-command admission used for an ordinary Project build.
+     pub fn native_test_roots(&self) -> Result<Vec<ProjectNativeTestRoot>, Vec<Diagnostic>> {
+-        require_native_test_profile(self)?;
++        self.native_test_roots_with_profile(ProjectNativeTestProfile::SourceCommandV1)
++    }
++
++    pub fn native_test_roots_with_profile(
++        &self,
++        profile: ProjectNativeTestProfile,
++    ) -> Result<Vec<ProjectNativeTestRoot>, Vec<Diagnostic>> {
++        require_native_test_profile(self, profile)?;
+         let program = self.test_program();
++        if profile == ProjectNativeTestProfile::CollectionRecordPureV1 {
++            crate::hir::validate_stream_collection_record_program(program, None)
++                .map_err(|e| vec![e])?;
++            if !program.permits.is_empty() {
++                return Err(vec![Diagnostic::io(
++                    "SPX-J131",
++                    "collection-record-pure.v1 requires a pure declared test closure",
++                )]);
++            }
++        }
+         let result_is_exit_status = !program.permits.is_empty();
+         if program.module != self.manifest().test_module() {
+             return Err(vec![Diagnostic::io(
+@@ -103,7 +127,20 @@ impl ProjectSnapshot {
+         stable_id: &str,
+         output: &Path,
+     ) -> Result<(), Vec<Diagnostic>> {
+-        let roots = self.native_test_roots()?;
++        self.build_native_test_with_profile(
++            stable_id,
++            output,
++            ProjectNativeTestProfile::SourceCommandV1,
++        )
++    }
++
++    pub fn build_native_test_with_profile(
++        &mut self,
++        stable_id: &str,
++        output: &Path,
++        profile: ProjectNativeTestProfile,
++    ) -> Result<(), Vec<Diagnostic>> {
++        let roots = self.native_test_roots_with_profile(profile)?;
+         if !roots.iter().any(|root| root.stable_id == stable_id) {
+             return Err(vec![Diagnostic::io(
+                 "SPX-G172",
+@@ -162,13 +199,32 @@ impl ProjectSnapshot {
+     }
+ }
+ 
+-fn require_native_test_profile(snapshot: &ProjectSnapshot) -> Result<(), Vec<Diagnostic>> {
+-    if snapshot.manifest().project_profile().is_source_command() {
++fn require_native_test_profile(
++    snapshot: &ProjectSnapshot,
++    profile: ProjectNativeTestProfile,
++) -> Result<(), Vec<Diagnostic>> {
++    let admitted = match profile {
++        ProjectNativeTestProfile::SourceCommandV1 => {
++            snapshot.manifest().project_profile().is_source_command()
++        }
++        ProjectNativeTestProfile::CollectionRecordPureV1 => {
++            snapshot.manifest().project_profile()
++                == ProjectProfile::StdinStreamCollectionRecordCommandIoV1
++        }
++    };
++    if admitted {
+         Ok(())
+     } else {
+         Err(vec![Diagnostic::io(
+             "SPX-B104",
+-            "native test compilation is admitted only for source-command Project profiles",
++            match profile {
++                ProjectNativeTestProfile::SourceCommandV1 => {
++                    "native test compilation is admitted only for source-command Project profiles"
++                }
++                ProjectNativeTestProfile::CollectionRecordPureV1 => {
++                    "collection-record-pure.v1 native tests require exact Project v31"
++                }
++            },
+         )])
+     }
+ }
+diff --git a/tests/doctor_production_provisioner_v1.rs b/tests/doctor_production_provisioner_v1.rs
+index 50652d64a..90dd9b7df 100644
+--- a/tests/doctor_production_provisioner_v1.rs
++++ b/tests/doctor_production_provisioner_v1.rs
+@@ -151,6 +151,8 @@ impl Sources {
+                     read(repository, "src/cli/json_codec.rs"),
+                     read(repository, "src/cli/json_codec/plan.rs"),
+                     read(repository, "src/cli/json_codec/profile.rs"),
++                    read(repository, "src/project/json_codec/plan_input.rs"),
++                    read(repository, "src/project/json_codec/profile_selector.rs"),
+                     read(repository, "src/cli/json_codec/suitability.rs"),
+                 ]
+                 .join("\n"),
+diff --git a/tests/native_rust_interop_ci_contract.rs b/tests/native_rust_interop_ci_contract.rs
+index 64e99af91..843937512 100644
+--- a/tests/native_rust_interop_ci_contract.rs
++++ b/tests/native_rust_interop_ci_contract.rs
+@@ -164,7 +164,11 @@ fn native_rust_interop_implementation_crates_are_unpublished_and_quarantined() {
+     assert!(!root_main.contains("native-rust-interop"));
+ 
+     let builder = read("crates/semaprax-native-rust-interop-builder/src/lib.rs");
+-    let platform = read("crates/semaprax-native-rust-interop-platform/src/lib.rs");
++    let platform = [
++        read("crates/semaprax-native-rust-interop-platform/src/lib.rs"),
++        read("crates/semaprax-native-rust-interop-platform/src/inventory_names.rs"),
++    ]
++    .join("\n");
+     let (sys_common, _, _, _, sys) = read_platform_sys_sources();
+     assert!(builder.contains("#![forbid(unsafe_code)]"));
+     assert!(platform.contains("#![forbid(unsafe_code)]"));
+@@ -424,7 +428,11 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
+ 
+     let (_, _, windows_source, sys_tests, sys) = read_platform_sys_sources();
+     let sys_evidence = [sys.as_str(), sys_tests.as_str()].concat();
+-    let platform_source = read("crates/semaprax-native-rust-interop-platform/src/lib.rs");
++    let platform_source = [
++        read("crates/semaprax-native-rust-interop-platform/src/lib.rs"),
++        read("crates/semaprax-native-rust-interop-platform/src/inventory_names.rs"),
++    ]
++    .join("\n");
+     assert!(sys.contains("\"-O0\""));
+     assert!(sys.contains("\"-O2\""));
+     let windows = windows_source.as_str();
+@@ -984,7 +992,11 @@ fn public_sdk_minimal_failure_diagnostic_locks_exact_monotonic_phase_c_boundarie
+ 
+ #[test]
+ fn private_platform_cleanup_surface_is_exact_inventory_only() {
+-    let facade = read("crates/semaprax-native-rust-interop-platform/src/lib.rs");
++    let facade = [
++        read("crates/semaprax-native-rust-interop-platform/src/lib.rs"),
++        read("crates/semaprax-native-rust-interop-platform/src/inventory_names.rs"),
++    ]
++    .join("\n");
+     let (_, _, _, _, sys) = read_platform_sys_sources();
+     assert_contains_all(
+         "safe exact-inventory cleanup facade",
+diff --git a/tests/project/standard_library/application_json.rs b/tests/project/standard_library/application_json.rs
+index b96220305..65d5e67b7 100644
+--- a/tests/project/standard_library/application_json.rs
++++ b/tests/project/standard_library/application_json.rs
+@@ -17,6 +17,8 @@ mod nested_response;
+ mod owned;
+ #[path = "application_json/plan.rs"]
+ mod plan;
++#[path = "application_json/starter.rs"]
++mod starter;
+ #[path = "application_json/stream.rs"]
+ mod stream;
+ #[path = "application_json/stream_native.rs"]
+diff --git a/tests/project/standard_library/application_json/plan.rs b/tests/project/standard_library/application_json/plan.rs
+index da194b2a8..a4ee06618 100644
+--- a/tests/project/standard_library/application_json/plan.rs
++++ b/tests/project/standard_library/application_json/plan.rs
+@@ -1,7 +1,7 @@
+ //! Complete multi-codec candidates stay bound to one authored Project revision.
+ use super::*;
+ 
+-fn paired_fixture(label: &str) -> std::path::PathBuf {
++pub(super) fn paired_fixture(label: &str) -> std::path::PathBuf {
+     let root = fixture(label, SCHEMA);
+     let manifest = MANIFEST.replace(
+         "\"src/schema.spx\",",
+@@ -32,7 +32,7 @@ fn entries() -> Vec<project::JsonCodecPlanEntry> {
+ // Bundled dependency paths are semantic workspace identities, not files below
+ // the fixture root. Independently read the exact compiler-bundled file mapping
+ // (standard_dependencies.rs PACKAGES), before deriving any receipt.
+-fn paired_originals(root: &std::path::Path) -> std::collections::BTreeMap<String, String> {
++pub(super) fn paired_originals(root: &std::path::Path) -> std::collections::BTreeMap<String, String> {
+     let mut originals = std::collections::BTreeMap::new();
+     for path in [
+         "src/schema.spx",
+diff --git a/tests/project/standard_library/application_json/starter.rs b/tests/project/standard_library/application_json/starter.rs
+new file mode 100644
+index 000000000..d6f0fad0a
+--- /dev/null
++++ b/tests/project/standard_library/application_json/starter.rs
+@@ -0,0 +1,29 @@
++//! Exact plan decoder and complete assembly preconditions reuse codec owners.
++use super::*;
++
++#[test]
++fn starter_shared_plan_decoder_retains_closed_schema_bounds_and_stale_source_refusals() {
++    let root = super::plan::paired_fixture("starter-plan-controls");
++    let plan = br#"{"schema":"semaprax.json-codec-plan.v1","entries":[{"source":"src/schema.spx","record":"application.patient","profile":"flat-scalars.v1"},{"source":"src/second.spx","record":"application.other","profile":"flat-scalars.v1"}]}"#;
++    let before = super::plan::paired_originals(&root);
++    project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
++        assert_eq!(snapshot.native_test_roots_with_profile(project::ProjectNativeTestProfile::CollectionRecordPureV1).unwrap_err()[0].code, "SPX-B104");
++        let revision = snapshot.retain_revision();
++        // This fixture intentionally has no command authority. A codec bundle
++        // cannot turn an arbitrary profile into a runnable command.
++        for profile in ["unknown", "source-command.v1", "language-command-io.collection-record.v1"] {
++            assert_eq!(project::derive_application_starter(&revision, plan, profile, None).unwrap_err()[0].code, "SPX-J181");
++        }
++        let stale = String::from_utf8(plan.to_vec()).unwrap().replace("\"entries\":", "\"expected_project_revision\":\"sha256:stale\",\"entries\":");
++        assert!(project::derive_application_starter(&revision, stale.as_bytes(), "owned-data-api.v1", None).unwrap_err()[0].message.contains("stale"));
++        for malformed in [
++            b"{}".as_slice(),
++            b"{\"schema\":\"semaprax.json-codec-plan.v1\",\"schema\":\"semaprax.json-codec-plan.v1\",\"entries\":[]}".as_slice(),
++            b"{\"schema\":\"semaprax.json-codec-plan.v1\",\"entries\":[{\"source\":\"src/schema.spx\",\"record\":\"application.patient\",\"profile\":\"flat-scalars.v1\",\"max_string_bytes\":1}]}".as_slice(),
++            &vec![b' '; 16385],
++        ] { assert!(project::decode_json_codec_plan(malformed).is_err()); }
++        Ok(())
++    }).unwrap();
++    assert_eq!(before, super::plan::paired_originals(&root));
++    std::fs::remove_dir_all(root).unwrap();
++}
+diff --git a/tests/public_native_rust_sdk_ci_contract.rs b/tests/public_native_rust_sdk_ci_contract.rs
+index 3cfd47b0a..a59fcd6fd 100644
+--- a/tests/public_native_rust_sdk_ci_contract.rs
++++ b/tests/public_native_rust_sdk_ci_contract.rs
+@@ -251,7 +251,11 @@ fn general_windows_matrix_binds_the_same_explicit_nested_cargo_linker() {
+ 
+ #[test]
+ fn archive_failures_without_settlement_evidence_are_fail_stop() {
+-    let platform = read("crates/semaprax-native-rust-interop-platform/src/lib.rs");
++    let platform = [
++        read("crates/semaprax-native-rust-interop-platform/src/lib.rs"),
++        read("crates/semaprax-native-rust-interop-platform/src/inventory_names.rs"),
++    ]
++    .join("\n");
+     let legacy = platform
+         .split("#[cfg(not(target_os = \"macos\"))]")
+         .nth(1)

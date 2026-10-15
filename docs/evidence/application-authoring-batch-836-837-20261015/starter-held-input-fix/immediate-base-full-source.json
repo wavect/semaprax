@@ -1,0 +1,42 @@
+{
+  "schema": "opt837.held-input-fix.immediate-base.v1",
+  "base": "604e7fb05203a6701be6bdbcda8a181c5b969df2",
+  "files": [
+    {
+      "path": "CHANGELOG.md",
+      "base": "604e7fb05203a6701be6bdbcda8a181c5b969df2",
+      "bytes": 522881,
+      "sha256": "ad83af56e5d801604c80e1f0ac8924ae2ea5c0d3395fa4b796bda1e34e29f943"
+    },
+    {
+      "path": "crates/semaprax-toolchain/src/new_project/application.rs",
+      "base": "604e7fb05203a6701be6bdbcda8a181c5b969df2",
+      "bytes": 10896,
+      "sha256": "22f94b8428d1aa8c12c2563301ab5b3ce77df6305fd3228eff08ae412f07f8f7"
+    },
+    {
+      "path": "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+      "base": "604e7fb05203a6701be6bdbcda8a181c5b969df2",
+      "bytes": 12916,
+      "sha256": "736d8d912cd381e116bd6215726ff5e2353fbca8aebacb4f9290223650b9684e"
+    },
+    {
+      "path": "docs/APPLICATION-STARTER-V1.md",
+      "base": "604e7fb05203a6701be6bdbcda8a181c5b969df2",
+      "bytes": 7658,
+      "sha256": "3edd79a49573c9616f0e62eeed1a94efbf017e9fc81d879bc22ca59ed805bdb3"
+    },
+    {
+      "path": "docs/PROJECT-NATIVE-TEST-COLLECTION-RECORD-PURE-V1.md",
+      "base": "604e7fb05203a6701be6bdbcda8a181c5b969df2",
+      "bytes": 2749,
+      "sha256": "b734ef75f842f15cb399585f077cdf070013ce7ee9a73d7d91a469bb4ea4e9c0"
+    },
+    {
+      "path": "src/project/native_test.rs",
+      "base": "604e7fb05203a6701be6bdbcda8a181c5b969df2",
+      "bytes": 8770,
+      "sha256": "d56ab71420a6e16929f3e10daf78dc4070888dbab4207f6e846002dec5f03bd8"
+    }
+  ]
+}

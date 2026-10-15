@@ -1,0 +1,25 @@
+{
+  "base": "604e7fb05203a6701be6bdbcda8a181c5b969df2",
+  "executed": [
+    "direct rustfmt --check",
+    "git diff --check",
+    "changed-module static <=1500 check"
+  ],
+  "not_executed": [
+    "Cargo",
+    "build",
+    "tests",
+    "Clippy",
+    "Claude",
+    "benchmarks",
+    "full gates"
+  ],
+  "pending": [
+    "cargo test --locked -p semaprax-toolchain --test cli_new_project_v1 new_project::application::tests::starter_plan_and_activation_swap_to_symlink_or_fifo_refuses_before_staging",
+    "cargo test --locked -p semaprax-toolchain --test cli_new_project_v1 new_project::application::tests::starter_input_held_regular_reader_preserves_exact_bytes_and_bounds",
+    "cargo test --locked -p semaprax-toolchain --test cli_new_project_v1 new_project::application::tests::starter_initial_symlink_and_existing_destination_preserve_originals",
+    "cargo test --locked -p semaprax-toolchain --test cli_new_project_v1 application_starter::tiny_collection_record_selector_executes_typed_native_roots_and_keeps_legacy_refusal",
+    "cargo test --locked -p semaprax --lib project::native_test::collection_record_pure_tests::",
+    "previous full starter ShiftSim15 and CLI49 journeys remain required; G171808 remains OPEN"
+  ]
+}

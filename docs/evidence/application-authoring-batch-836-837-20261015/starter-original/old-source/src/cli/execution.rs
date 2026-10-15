@@ -1,0 +1,645 @@
+use std::path::PathBuf;
+
+use super::project::{
+    is_project_manifest, normalize_project_path, resolve_positional, DEFAULT_MANIFEST,
+};
+
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) enum ExecutionInput {
+    Source(PathBuf),
+    Project(PathBuf),
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) struct ExecutionOptions {
+    pub(crate) input: ExecutionInput,
+    pub(crate) json: bool,
+    pub(crate) max_steps: Option<usize>,
+    pub(crate) max_bytes: Option<usize>,
+    pub(crate) native: bool,
+    pub(crate) fused_account: Option<semaprax::fused_source::RuntimeAccount>,
+    pub(crate) native_test: Option<NativeTestLimits>,
+    /// Program arguments after `--`, passed to a single-file command-line
+    /// program (`docs/TEXT-TOOLKIT-V1.md`).
+    pub(crate) arguments: Vec<String>,
+}
+
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub(crate) struct NativeTestLimits {
+    pub(crate) diagnostic_timing: bool,
+    pub(crate) timeout_ms: u64,
+    pub(crate) max_output_bytes: usize,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) struct NetworkRunOptions {
+    pub(crate) manifest_path: PathBuf,
+    pub(crate) fixture_path: PathBuf,
+    pub(crate) arguments: Vec<String>,
+    pub(crate) stdin_path: Option<PathBuf>,
+    pub(crate) max_steps: Option<usize>,
+}
+
+pub(crate) fn parse_network_run(args: &[String]) -> Result<NetworkRunOptions, u8> {
+    let mut positional = None::<PathBuf>;
+    let mut manifest = None::<PathBuf>;
+    let mut fixture = None::<PathBuf>;
+    let mut arguments = Vec::new();
+    let mut stdin_path = None::<PathBuf>;
+    let mut max_steps = None;
+    let mut index = 0;
+    while index < args.len() {
+        let option = args[index].as_str();
+        match option {
+            "--manifest-path" if manifest.is_none() => {
+                manifest = Some(PathBuf::from(option_value(
+                    args,
+                    index,
+                    "network-run",
+                    option,
+                )?));
+                index += 2;
+            }
+            "--fixture" if fixture.is_none() => {
+                fixture = Some(PathBuf::from(option_value(
+                    args,
+                    index,
+                    "network-run",
+                    option,
+                )?));
+                index += 2;
+            }
+            "--arg" => {
+                arguments.push(option_value(args, index, "network-run", option)?.to_owned());
+                index += 2;
+            }
+            "--stdin" if stdin_path.is_none() => {
+                stdin_path = Some(PathBuf::from(option_value(
+                    args,
+                    index,
+                    "network-run",
+                    option,
+                )?));
+                index += 2;
+            }
+            "--max-steps" if max_steps.is_none() => {
+                max_steps = Some(positive_number(
+                    "network-run",
+                    option,
+                    number_option_value(args, index, "network-run", option)?,
+                )?);
+                index += 2;
+            }
+            value if value.starts_with('-') => {
+                eprintln!("unknown network-run option `{value}` or repeated singleton option");
+                return Err(2);
+            }
+            value if positional.is_none() => {
+                positional = Some(PathBuf::from(value));
+                index += 1;
+            }
+            _ => {
+                eprintln!("network-run accepts at most one project selector");
+                return Err(2);
+            }
+        }
+    }
+    if positional.is_some() && manifest.is_some() {
+        eprintln!("network-run cannot combine a project path with --manifest-path");
+        return Err(2);
+    }
+    if arguments.len() > 16 {
+        eprintln!("network-run accepts at most 16 --arg values");
+        return Err(2);
+    }
+    let fixture_path = fixture.ok_or_else(|| {
+        eprintln!("network-run requires --fixture <fixture.json>");
+        2
+    })?;
+    let manifest_path = match (positional, manifest) {
+        (None, None) => PathBuf::from(DEFAULT_MANIFEST),
+        (None, Some(path)) => normalize_project_path(path),
+        (Some(path), None) => resolve_positional(path),
+        (Some(_), Some(_)) => unreachable!("ambiguity rejected above"),
+    };
+    Ok(NetworkRunOptions {
+        manifest_path,
+        fixture_path,
+        arguments,
+        stdin_path,
+        max_steps,
+    })
+}
+
+pub(crate) fn parse_run(args: &[String]) -> Result<ExecutionOptions, u8> {
+    parse(args, "run", true)
+}
+
+pub(crate) fn parse_test(args: &[String]) -> Result<ExecutionOptions, u8> {
+    parse(args, "test", false)
+}
+
+fn parse(args: &[String], command: &str, allow_source: bool) -> Result<ExecutionOptions, u8> {
+    let mut positional = None::<PathBuf>;
+    let mut manifest = None::<PathBuf>;
+    let mut json = false;
+    let mut max_steps = None;
+    let mut max_bytes = None;
+    let mut native = false;
+    let mut profile = None::<String>;
+    let mut managed = None;
+    let mut target = None;
+    let mut native_timing = false;
+    let mut native_timeout_ms = None;
+    let mut native_max_output_bytes = None;
+    let mut arguments = Vec::new();
+    let mut index = 0;
+    while index < args.len() {
+        let argument = args[index].as_str();
+        match argument {
+            "--" if allow_source => {
+                arguments = args[index + 1..].to_vec();
+                break;
+            }
+            "--json" if !json => {
+                json = true;
+                index += 1;
+            }
+            "--json" => {
+                eprintln!("{command} option `--json` may not be repeated");
+                return Err(2);
+            }
+            "--manifest-path" if manifest.is_none() => {
+                manifest = Some(PathBuf::from(option_value(args, index, command, argument)?));
+                index += 2;
+            }
+            "--manifest-path" => {
+                eprintln!("{command} option `--manifest-path` may not be repeated");
+                return Err(2);
+            }
+            "--max-steps" if max_steps.is_none() => {
+                max_steps = Some(positive_number(
+                    command,
+                    argument,
+                    number_option_value(args, index, command, argument)?,
+                )?);
+                index += 2;
+            }
+            "--max-steps" => {
+                eprintln!("{command} option `--max-steps` may not be repeated");
+                return Err(2);
+            }
+            "--max-bytes" if max_bytes.is_none() => {
+                max_bytes = Some(positive_number(
+                    command,
+                    argument,
+                    option_value(args, index, command, argument)?,
+                )?);
+                index += 2;
+            }
+            "--max-bytes" => {
+                eprintln!("{command} option `--max-bytes` may not be repeated");
+                return Err(2);
+            }
+            "--target" if command == "test" && target.is_none() => {
+                let value = option_value(args, index, command, argument)?;
+                if !matches!(value, "native" | "interpreter") {
+                    eprintln!("test option `--target` requires native or interpreter");
+                    return Err(2);
+                }
+                target = Some(value.to_owned());
+                index += 2;
+            }
+            "--native-timing" if command == "test" && !native_timing => {
+                native_timing = true;
+                index += 1;
+            }
+            "--native-timeout-ms" if command == "test" && native_timeout_ms.is_none() => {
+                native_timeout_ms = Some(positive_number(
+                    command,
+                    argument,
+                    number_option_value(args, index, command, argument)?,
+                )? as u64);
+                index += 2;
+            }
+            "--native-max-output-bytes"
+                if command == "test" && native_max_output_bytes.is_none() =>
+            {
+                native_max_output_bytes = Some(positive_number(
+                    command,
+                    argument,
+                    number_option_value(args, index, command, argument)?,
+                )?);
+                index += 2;
+            }
+            "--profile" if allow_source && profile.is_none() => {
+                profile = Some(option_value(args, index, command, argument)?.to_owned());
+                index += 2;
+            }
+            "--managed-bytes" if allow_source && managed.is_none() => {
+                managed = Some(super::fused_profile::account(option_value(
+                    args, index, command, argument,
+                )?)?);
+                index += 2;
+            }
+            "--native" if allow_source && !native => {
+                native = true;
+                index += 1;
+            }
+            "--native" if allow_source => {
+                eprintln!("{command} option `--native` may not be repeated");
+                return Err(2);
+            }
+            option if option.starts_with('-') => {
+                eprintln!("unknown {command} option `{option}`");
+                return Err(2);
+            }
+            path if positional.is_none() => {
+                positional = Some(PathBuf::from(path));
+                index += 1;
+            }
+            _ => {
+                eprintln!("{command} accepts at most one input selector");
+                return Err(2);
+            }
+        }
+    }
+    if positional.is_some() && manifest.is_some() {
+        eprintln!("{command} cannot combine an input file with --manifest-path");
+        return Err(2);
+    }
+    let input = match (positional, manifest) {
+        (None, None) => ExecutionInput::Project(PathBuf::from(DEFAULT_MANIFEST)),
+        (None, Some(path)) => ExecutionInput::Project(normalize_project_path(path)),
+        (Some(path), None) => match resolve_positional(path) {
+            path if is_project_manifest(&path) => ExecutionInput::Project(path),
+            path if allow_source => ExecutionInput::Source(path),
+            path if path.extension().is_none() => ExecutionInput::Project(path),
+            _ => {
+                eprintln!("{command} requires a Project v1 semaprax.toml manifest");
+                return Err(2);
+            }
+        },
+        (Some(_), Some(_)) => unreachable!("ambiguity rejected above"),
+    };
+    let fused_account = match profile.as_deref() {
+        Some(semaprax::fused_source::PROFILE)
+            if matches!(input, ExecutionInput::Source(_))
+                && arguments.is_empty()
+                && max_bytes.is_none() =>
+        {
+            Some(managed.ok_or_else(|| {
+                eprintln!(
+                    "fused-construction-v1 requires explicit --managed-bytes <1..=1073741824>"
+                );
+                2
+            })?)
+        }
+        Some(_) => {
+            eprintln!("run profile requires fused-construction-v1, one source file, no arguments and no --max-bytes");
+            return Err(2);
+        }
+        None if managed.is_some() => {
+            eprintln!("--managed-bytes requires --profile fused-construction-v1");
+            return Err(2);
+        }
+        None => None,
+    };
+    if native && !matches!(input, ExecutionInput::Source(_)) {
+        eprintln!("run option `--native` requires a single .spx source file");
+        return Err(2);
+    }
+    if !arguments.is_empty() && !matches!(input, ExecutionInput::Source(_)) {
+        eprintln!(
+            "{command} passes program arguments after `--` only to a single .spx source file"
+        );
+        return Err(2);
+    }
+    if native && ((json && fused_account.is_none()) || max_steps.is_some() || max_bytes.is_some()) {
+        eprintln!(
+            "native single-file run cannot combine `--native` with interpreter output or capacity options"
+        );
+        return Err(2);
+    }
+    let native_test = if target.as_deref() == Some("native") {
+        if max_steps.is_some() || max_bytes.is_some() {
+            eprintln!("native test cannot use interpreter --max-steps or --max-bytes");
+            return Err(2);
+        }
+        if native_timing && !json {
+            eprintln!("native diagnostic timing requires `--json`");
+            return Err(2);
+        }
+        let timeout_ms = native_timeout_ms.unwrap_or(10_000);
+        let max_output_bytes = native_max_output_bytes.unwrap_or(65_536);
+        if timeout_ms > 600_000 || max_output_bytes > 1_048_576 {
+            eprintln!("native test limits exceed 600000 ms or 1048576 output bytes");
+            return Err(2);
+        }
+        Some(NativeTestLimits {
+            diagnostic_timing: native_timing,
+            timeout_ms,
+            max_output_bytes,
+        })
+    } else {
+        if native_timing || native_timeout_ms.is_some() || native_max_output_bytes.is_some() {
+            eprintln!("native test limits require `--target native`");
+            return Err(2);
+        }
+        None
+    };
+    Ok(ExecutionOptions {
+        input,
+        json,
+        max_steps,
+        max_bytes,
+        native,
+        fused_account,
+        native_test,
+        arguments,
+    })
+}
+
+fn option_value<'a>(
+    args: &'a [String],
+    index: usize,
+    command: &str,
+    option: &str,
+) -> Result<&'a str, u8> {
+    args.get(index + 1)
+        .filter(|value| !value.starts_with('-'))
+        .map(String::as_str)
+        .ok_or_else(|| {
+            eprintln!("{command} option `{option}` requires a value");
+            2
+        })
+}
+
+fn positive_number(command: &str, option: &str, value: &str) -> Result<usize, u8> {
+    if value.is_empty()
+        || value == "0"
+        || (value.len() > 1 && value.starts_with('0'))
+        || !value.bytes().all(|byte| byte.is_ascii_digit())
+    {
+        eprintln!("{command} option `{option}` requires a canonical positive integer");
+        return Err(2);
+    }
+    let parsed = value.parse::<usize>().map_err(|_| {
+        eprintln!("{command} option `{option}` requires a canonical positive integer");
+        2
+    })?;
+    if option == "--max-steps" && parsed > semaprax::interpreter::MAX_STEPS_LIMIT {
+        eprintln!(
+            "{command} option `--max-steps` requires an integer between 1 and {}",
+            semaprax::interpreter::MAX_STEPS_LIMIT
+        );
+        return Err(2);
+    }
+    Ok(parsed)
+}
+
+fn number_option_value<'a>(
+    args: &'a [String],
+    index: usize,
+    command: &str,
+    option: &str,
+) -> Result<&'a str, u8> {
+    args.get(index + 1).map(String::as_str).ok_or_else(|| {
+        eprintln!("{command} option `{option}` requires a value");
+        2
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn strings(values: &[&str]) -> Vec<String> {
+        values.iter().map(|value| (*value).to_owned()).collect()
+    }
+
+    #[test]
+    fn run_preserves_legacy_source_and_selects_projects_explicitly() {
+        assert_eq!(
+            parse_run(&strings(&["legacy.spx"])).unwrap(),
+            ExecutionOptions {
+                input: ExecutionInput::Source(PathBuf::from("legacy.spx")),
+                json: false,
+                max_steps: None,
+                max_bytes: None,
+                native: false,
+                fused_account: None,
+                native_test: None,
+                arguments: Vec::new(),
+            }
+        );
+        assert_eq!(
+            parse_run(&[]).unwrap(),
+            ExecutionOptions {
+                input: ExecutionInput::Project(PathBuf::from(DEFAULT_MANIFEST)),
+                json: false,
+                max_steps: None,
+                max_bytes: None,
+                native: false,
+                fused_account: None,
+                native_test: None,
+                arguments: Vec::new(),
+            }
+        );
+        assert_eq!(
+            parse_run(&strings(&[
+                "--manifest-path",
+                "fixtures/semaprax.toml",
+                "--json",
+                "--max-steps",
+                "4096",
+                "--max-bytes",
+                "65536",
+            ]))
+            .unwrap(),
+            ExecutionOptions {
+                input: ExecutionInput::Project(normalize_project_path(PathBuf::from(
+                    "fixtures/semaprax.toml",
+                ))),
+                json: true,
+                max_steps: Some(4096),
+                max_bytes: Some(65536),
+                native: false,
+                fused_account: None,
+                native_test: None,
+                arguments: Vec::new(),
+            }
+        );
+        assert_eq!(
+            parse_run(&strings(&[
+                "legacy.spx",
+                "--json",
+                "--max-steps",
+                "4096",
+                "--max-bytes",
+                "65536",
+            ]))
+            .unwrap(),
+            ExecutionOptions {
+                input: ExecutionInput::Source(PathBuf::from("legacy.spx")),
+                json: true,
+                max_steps: Some(4096),
+                max_bytes: Some(65536),
+                native: false,
+                fused_account: None,
+                native_test: None,
+                arguments: Vec::new(),
+            }
+        );
+        assert!(parse_run(&strings(&["legacy.spx", "--native", "--json"])).is_err());
+    }
+
+    #[test]
+    fn run_passes_arguments_after_the_separator_to_a_source_file() {
+        let options = parse_run(&strings(&[
+            "loglens.spx",
+            "--native",
+            "--",
+            "sample.log",
+            "--top",
+            "3",
+        ]))
+        .unwrap();
+        assert!(options.native);
+        assert_eq!(options.arguments, strings(&["sample.log", "--top", "3"]));
+        assert!(parse_run(&strings(&["loglens.spx", "--"]))
+            .unwrap()
+            .arguments
+            .is_empty());
+        assert!(parse_run(&strings(&["--", "sample.log"])).is_err());
+        assert!(parse_test(&strings(&["--", "sample.log"])).is_err());
+    }
+
+    #[test]
+    fn test_accepts_only_default_or_explicit_project_manifests() {
+        assert_eq!(
+            parse_test(&strings(&["fixtures/semaprax.toml", "--max-steps", "1",])).unwrap(),
+            ExecutionOptions {
+                input: ExecutionInput::Project(normalize_project_path(PathBuf::from(
+                    "fixtures/semaprax.toml",
+                ))),
+                json: false,
+                max_steps: Some(1),
+                native: false,
+                fused_account: None,
+                native_test: None,
+                max_bytes: None,
+                arguments: Vec::new(),
+            }
+        );
+        assert!(parse_test(&strings(&["legacy.spx"])).is_err());
+        assert_eq!(
+            parse_test(&strings(&["missing-project"])).unwrap().input,
+            ExecutionInput::Project(PathBuf::from("missing-project"))
+        );
+        let directory = std::env::temp_dir().join(format!(
+            "semaprax-test-directory-operand-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        let operand = directory.to_string_lossy().into_owned();
+        let expected = ExecutionInput::Project(directory.join(DEFAULT_MANIFEST));
+        assert_eq!(
+            parse_test(std::slice::from_ref(&operand)).unwrap().input,
+            expected
+        );
+        assert_eq!(parse_run(&[operand]).unwrap().input, expected);
+        std::fs::remove_dir(&directory).unwrap();
+        assert!(parse_test(&strings(&["--max-bytes", "0"])).is_err());
+        assert!(parse_test(&strings(&["--max-steps", "01"])).is_err());
+        assert!(parse_test(&strings(&["--max-steps", "-1"])).is_err());
+        let max_steps = semaprax::interpreter::MAX_STEPS_LIMIT;
+        assert_eq!(
+            parse_test(&["--max-steps".into(), max_steps.to_string()])
+                .unwrap()
+                .max_steps,
+            Some(max_steps)
+        );
+        assert!(parse_test(&["--max-steps".into(), (max_steps + 1).to_string()]).is_err());
+        assert!(parse_test(&strings(&[
+            DEFAULT_MANIFEST,
+            "--manifest-path",
+            "fixtures/semaprax.toml",
+        ]))
+        .is_err());
+    }
+
+    #[test]
+    fn native_test_selection_has_bounded_host_limits_and_no_interpreter_fuel() {
+        let options = parse_test(&strings(&[
+            "--target",
+            "native",
+            "--native-timeout-ms",
+            "25",
+            "--native-max-output-bytes",
+            "1024",
+        ]))
+        .unwrap();
+        assert_eq!(
+            options.native_test,
+            Some(NativeTestLimits {
+                diagnostic_timing: false,
+                timeout_ms: 25,
+                max_output_bytes: 1024,
+            })
+        );
+        assert_eq!(
+            parse_test(&strings(&["--target", "native"]))
+                .unwrap()
+                .native_test,
+            Some(NativeTestLimits {
+                diagnostic_timing: false,
+                timeout_ms: 10_000,
+                max_output_bytes: 65_536
+            })
+        );
+        for arguments in [
+            &["--target", "native", "--max-steps", "10"][..],
+            &["--target", "native", "--max-bytes", "10"][..],
+            &["--native-timeout-ms", "10"][..],
+            &["--target", "native", "--target", "native"][..],
+            &["--target", "wasm"][..],
+            &["--target", "native", "--native-timeout-ms", "0"][..],
+            &["--target", "native", "--native-timeout-ms", "600001"][..],
+            &["--target", "native", "--native-max-output-bytes", "1048577"][..],
+        ] {
+            assert!(parse_test(&strings(arguments)).is_err());
+        }
+        assert!(parse_run(&strings(&["--target", "native"])).is_err());
+    }
+    #[test]
+    fn native_diagnostic_timing_requires_explicit_native_json_selection() {
+        let options = parse_test(&strings(&[
+            "--target",
+            "native",
+            "--json",
+            "--native-timing",
+            "--native-timeout-ms",
+            "100",
+        ]))
+        .unwrap();
+        let limits = options.native_test.unwrap();
+        assert!(limits.diagnostic_timing);
+        assert_eq!(limits.timeout_ms, 100);
+        for arguments in [
+            &["--native-timing", "--json"][..],
+            &["--target", "native", "--native-timing"][..],
+            &["--target", "interpreter", "--json", "--native-timing"][..],
+            &[
+                "--target",
+                "native",
+                "--json",
+                "--native-timing",
+                "--native-timing",
+            ][..],
+        ] {
+            assert!(parse_test(&strings(arguments)).is_err());
+        }
+        assert!(parse_run(&strings(&["--json", "--native-timing"])).is_err());
+    }
+}

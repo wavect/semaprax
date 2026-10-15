@@ -1,0 +1,842 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "source_basis": "0ccaeef55025e50dd7566273b1e70bae8f3e3dfa",
+  "prior_metadata": "e4b90221df31aa994641d4748d539ec16ea814cb",
+  "prior_packets": [
+    {
+      "packet": "docs/evidence/loan-candidate-inventory-reuse/exact-source-inverses.json",
+      "active_packet": "docs/evidence/loan-candidate-inventory-reuse/exact-source-inverses.json",
+      "rows": 8,
+      "sha256": "94cc7f70e8cb2cb200526edfa0f5b4550b6c2c8b1d6b12361ddbce8dd7115d65",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/borrowed-generic-membership-index-39c6/whole-source-inverses.json",
+      "active_packet": "docs/evidence/borrowed-generic-membership-index-39c6/whole-source-inverses.json",
+      "rows": 4,
+      "sha256": "d1dfd6197c74f18c0d80f2d0fca8ff21cf2445b5acfafda489a77424f403b36c",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/loan-inner-stages-829/exact-source-inverses.json",
+      "active_packet": "docs/evidence/loan-inner-stages-829/exact-source-inverses.json",
+      "rows": 9,
+      "sha256": "afc99a64f323c6dde427bc22024579296e70dcd4d0dd731bec7b3b348b5c2551",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/paid-live-pending-reuse-3c351/whole-source-inverses.json",
+      "active_packet": "docs/evidence/paid-live-pending-reuse-3c351/whole-source-inverses.json",
+      "rows": 3,
+      "sha256": "af58658a9a26fc099ce6c2e64b4cd5183df3ce1d6ca9615f2c19ce0c8d2d53fb",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/exit-status-directory-reuse/exact-source-inverses.json",
+      "active_packet": "docs/evidence/exit-status-directory-reuse/exact-source-inverses.json",
+      "rows": 10,
+      "sha256": "b32e6f0d31c3b9442a4a883dc6e37d4eb771268bc05b6d93ddb598d86e9c5519",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/factored-closure-index/exact-source-inverses.json",
+      "active_packet": "docs/evidence/factored-closure-index/exact-source-inverses.json",
+      "rows": 9,
+      "sha256": "a6c5c74180de7d730fa67ae1fd0de8a2b7f27b6173a9716afa34de7df59beedd",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/paid-cfg-child-scratch/exact-source-inverses.json",
+      "active_packet": "docs/evidence/paid-cfg-child-scratch/exact-source-inverses.json",
+      "rows": 5,
+      "sha256": "e333d2031edb8f13c61d7df30d06eb4209944cab6c0154715b963a178e35ff50",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/referenced-edge-ownership-proof/exact-source-inverses.json",
+      "active_packet": "docs/evidence/referenced-edge-ownership-proof/exact-source-inverses.json",
+      "rows": 4,
+      "sha256": "37ad317fbf75310b1f4faa58b63ec081da84a3d361e3731fd6c3a53d8de9672a",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/prefix-certified-expression-lookup/exact-source-inverses.json",
+      "active_packet": "docs/evidence/prefix-certified-expression-lookup/exact-source-inverses.json",
+      "rows": 3,
+      "sha256": "86770dca8d0e0efdb49729626f9a7b7186b1d9d7b3e92c0acd856e2913b37682",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/provider-proof-backing-714177/whole-source-inverses.json",
+      "active_packet": "docs/evidence/provider-proof-backing-714177/whole-source-inverses.json",
+      "rows": 17,
+      "sha256": "76023783b493b4a5a887270001a4944bdd94bb54f712cca71eb6db954e760ae3",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/factored-continuation-receiving/exact-source-inverses.json",
+      "active_packet": "docs/evidence/factored-continuation-receiving/exact-source-inverses.json",
+      "rows": 11,
+      "sha256": "cc1dc3ebf71e013fddf17501828e93418acd0c294d83d4e49d3ee29db1298fb6",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/receiving-transitive-results-816/exact-source-inverses.json",
+      "active_packet": "docs/evidence/receiving-transitive-results-816/exact-source-inverses.json",
+      "rows": 9,
+      "sha256": "5928c0b8b67402bd0282b52d8f3b742d676b808dac5bbea6263cc751abf7edb2",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/dense-loan-live-scratch/exact-source-inverses.json",
+      "active_packet": "docs/evidence/dense-loan-live-scratch/exact-source-inverses.json",
+      "rows": 15,
+      "sha256": "ab517ed5a99e1f257d1b73d6d8ee39919bba1fdf18718f6267d63573d0b7c795",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/borrowed-generic-type-rewrite-141387/whole-source-inverses.json",
+      "active_packet": "docs/evidence/borrowed-generic-type-rewrite-141387/whole-source-inverses.json",
+      "rows": 3,
+      "sha256": "4717cfcf13d18a9958f10fdc4ce43b154da89852f2c66fd9c02634d01b7ed7e4",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/exit-prefix-reference-proof/exact-source-inverses.json",
+      "active_packet": "docs/evidence/exit-prefix-reference-proof/exact-source-inverses.json",
+      "rows": 4,
+      "sha256": "3dad4ad86f620e5293e86fa03ac7fbde28a75e588a0e5dd26416567089008f3b",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/lifecycle-inline-active-path/whole-source-inverses.json",
+      "active_packet": "docs/evidence/lifecycle-inline-active-path/whole-source-inverses.json",
+      "rows": 3,
+      "sha256": "de34a7d186ed6068a4685b63960f8d7c36da5547682f26486ca6567887a49ca3",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/status-fact-borrow-reuse/exact-source-inverses.json",
+      "active_packet": "docs/evidence/status-fact-borrow-reuse/exact-source-inverses.json",
+      "rows": 5,
+      "sha256": "41f45c874531cf091ad059bc6600250a3602d5d57e3e7522bd2510a17a722bec",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/status-prefix-insertion/exact-source-inverses.json",
+      "active_packet": "docs/evidence/status-prefix-insertion/exact-source-inverses.json",
+      "rows": 11,
+      "sha256": "592981ed5832494660d40ba0201c93c5d3d64e04743f09698a1d9b8ce63e3691",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/loan-endpoint-ordered-union-827/exact-source-inverses.json",
+      "active_packet": "docs/evidence/loan-endpoint-ordered-union-827/exact-source-inverses.json",
+      "rows": 6,
+      "sha256": "b7e68e028f3f5b7203e0689f33131cd784be310db1c0820584c300dca9e08a88",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/prelude-extension-reuse-828/exact-source-inverses.json",
+      "active_packet": "docs/evidence/prelude-extension-reuse-828/exact-source-inverses.json",
+      "rows": 18,
+      "sha256": "77fb8000edba9b3cbdfd9cf4bf706f6293906b1659041db7886bd8d245e52c9f",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/nominal-payload-827/exact-source-inverses-activation-v14.json",
+      "active_packet": "docs/evidence/nominal-payload-827/exact-source-inverses-activation-v14.json",
+      "rows": 79,
+      "sha256": "1c39e36dc03c9dc7a44bbce8862c8a22c547711c9ba54f2e04b2306964ec074e",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/nested-byte-build-correction-a33-20261015/whole-source-inverses.json",
+      "active_packet": "docs/evidence/nested-byte-build-correction-a33-20261015/whole-source-inverses.json",
+      "rows": 5,
+      "sha256": "a4ceeba78d92db07f3845cd2dbf9f0bf8635e9006f1d51273be9843e59103bbb",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/factored-epsilon-closure-sharing/exact-source-inverses.json",
+      "active_packet": "docs/evidence/factored-epsilon-closure-sharing/exact-source-inverses.json",
+      "rows": 10,
+      "sha256": "85feb944d693c9cdcdfb40a7d807eddac400bb26c8fb0342094e74d93ae4b9bc",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/nested-byte-traversal-780/final-source-inverses-v1.json",
+      "active_packet": "docs/evidence/nested-byte-traversal-780/final-source-inverses-v1.json",
+      "rows": 41,
+      "sha256": "f92008f3f6f74438b8769b978c4b78eccece25e10423bc2375579f93544c5edf",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/selected-session-static-refusal-781/exact-source-inverses.json",
+      "active_packet": "docs/evidence/selected-session-static-refusal-781/exact-source-inverses.json",
+      "rows": 19,
+      "sha256": "5080ec6ca01d0d3165427f06fe3a2d8413e171d2725fbf8c8f15c07de91d5cce",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/selected-session-compile-correction-8795/exact-source-inverses.json",
+      "active_packet": "docs/evidence/selected-session-compile-correction-8795/exact-source-inverses.json",
+      "rows": 2,
+      "sha256": "f19b2cadaca15eb767cfd40cff96380c62d7b0f90c5186b44c2c9e17a1edd6d4",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/legacy-nominal-sharing-827/exact-source-inverses.json",
+      "active_packet": "docs/evidence/legacy-nominal-sharing-827/exact-source-inverses.json",
+      "rows": 18,
+      "sha256": "98335b571361f43b4d199270a9eb9c5918126e1a4b46a7ceefdaec5e63648e7f",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/projection-explicit-import-correction-a417/exact-source-inverses.json",
+      "active_packet": "docs/evidence/projection-explicit-import-correction-a417/exact-source-inverses.json",
+      "rows": 25,
+      "sha256": "3e0a58657b369348ff195a6035a58ca2cd810e19b41d60877e26aa1e02c5bb9a",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/epsilon-application-census-830/exact-source-inverses.json",
+      "active_packet": "docs/evidence/epsilon-application-census-830/exact-source-inverses.json",
+      "rows": 11,
+      "sha256": "65ffab8f7338b0ed7e14fe4e7b0d1714a8f89444c570e892be729d55a6db97cf",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/status-case-proof-816/exact-source-inverses.json",
+      "active_packet": "docs/evidence/status-case-proof-816/exact-source-inverses.json",
+      "rows": 14,
+      "sha256": "14bd1be6d340aacf404ffdbd129788fb1c5b3dd728df6f6f3bbe4c1121be8e65",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/legacy-final-link-sharing-827/exact-source-inverses.json",
+      "active_packet": "docs/evidence/legacy-final-link-sharing-827/exact-source-inverses.json",
+      "rows": 10,
+      "sha256": "3573c79973943cad5d8386ffbd0da4e5561d8177f7161e1255f4423bc1c1f449",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/legacy-nominal-diagnostic-fixture-correction-a417/exact-source-inverses.json",
+      "active_packet": "docs/evidence/legacy-nominal-diagnostic-fixture-correction-a417/exact-source-inverses.json",
+      "rows": 1,
+      "sha256": "986dd9b93e57ee1561703d82c24296f8ffcac187dce9c8bd85eb676cf67c5c9e",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/singleton-successor-targets-831/exact-source-inverses.json",
+      "active_packet": "docs/evidence/singleton-successor-targets-831/exact-source-inverses.json",
+      "rows": 8,
+      "sha256": "6eb07eec10b2c94202a2e6eb5229a2a6a55dea309331cb47e2981c140ca2d090",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/actual-nested-fixture-guide-correction-a417/exact-source-inverses.json",
+      "active_packet": "docs/evidence/actual-nested-fixture-guide-correction-a417/exact-source-inverses.json",
+      "rows": 2,
+      "sha256": "693e40f56ab9e0b01f4af86e51659649ed20fda3e763e5a41908025df59c0b64",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/nested-byte-lowering-admission-a417/source-inverses.json",
+      "active_packet": "docs/evidence/nested-byte-lowering-admission-a417/source-inverses.json",
+      "rows": 10,
+      "sha256": "f43387b214cc1600faf33a2f3db2149511566e5a4da8e1b804768a6b5c1f81d4",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/integration-status-case-imports-20261015/exact-source-inverses.json",
+      "active_packet": "docs/evidence/integration-status-case-imports-20261015/exact-source-inverses.json",
+      "rows": 3,
+      "sha256": "50f33b9a2e5dd8fdc67724726adf57bd98bce2111aacb74c149ef3cba53753c0",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/ordered-large-integration-20261015/label-source-inverses.json",
+      "active_packet": "docs/evidence/ordered-large-integration-20261015/label-source-inverses.json",
+      "rows": 2,
+      "sha256": "32b9e20d007cfc489c23288ec3e09855df21d22ab716eac1cafc1c855d1a57ac",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/ordered-large-integration-20261015/explicit-import-source-inverses.json",
+      "active_packet": "docs/evidence/ordered-large-integration-20261015/explicit-import-source-inverses.json",
+      "rows": 1,
+      "sha256": "4c0d364b26cfc5bc5be8fa8b0857e213f30a6e4df34bbf1b9a7012dde9bd3c8b",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/codec808-frontier-witness/source-inverses.json",
+      "active_packet": "docs/evidence/codec808-frontier-witness/source-inverses.json",
+      "rows": 2,
+      "sha256": "eb27db01b64ee20a14cfef170b36f66cf7cd1dd58e6df6d3d56c3cc64ac9a52d",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/constructor-inline-failure-825/exact-source-inverses.json",
+      "active_packet": "docs/evidence/constructor-inline-failure-825/exact-source-inverses.json",
+      "rows": 5,
+      "sha256": "7d0b343e4009deace3eff96e2b3b5a07f28646a31632564a49a0e7060c19c29a",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/default-static-error-custody-825/exact-source-inverse.json",
+      "active_packet": "docs/evidence/default-static-error-custody-825/exact-source-inverse.json",
+      "rows": 1,
+      "sha256": "e4dab4cf0852a606ce553e952c36632cca0a06c22b2395ef2725756e9a357a6e",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/ordered-large-integration-20261015/census-visibility-source-inverses.json",
+      "active_packet": "docs/evidence/ordered-large-integration-20261015/census-visibility-source-inverses.json",
+      "rows": 2,
+      "sha256": "32737709ff11117937ce0793c9bd1f8116acc3d41e742be7932bc92ac7d33a58",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/ordered-large-integration-20261015/purity-token-source-inverses.json",
+      "active_packet": "docs/evidence/ordered-large-integration-20261015/purity-token-source-inverses.json",
+      "rows": 3,
+      "sha256": "adc8b77acfac8f691c510a17a6c621414f6c06e9867ad6db7be74ababf91cf16",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/nested-byte-candidate-adoption-780/exact-source-inverses.json",
+      "active_packet": "docs/evidence/nested-byte-candidate-adoption-780/exact-source-inverses.json",
+      "rows": 14,
+      "sha256": "ade0547800854d4070ba1e635ed4bca836b85316c02d75d19f052b7bd269857a",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/legacy-linked-drop-reuse-828f/exact-source-inverses.json",
+      "active_packet": "docs/evidence/legacy-linked-drop-reuse-828f/exact-source-inverses.json",
+      "rows": 10,
+      "sha256": "fdc64a17c3c3353dc3ed4e2b475e88264c6c1038cb77cfeab56b570bd81798e5",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/status-case-counter-828f/exact-source-inverses.json",
+      "active_packet": "docs/evidence/status-case-counter-828f/exact-source-inverses.json",
+      "rows": 9,
+      "sha256": "8c9493c7eb1c0be63d37a33c135bef33e0f37284b212184a99fdc28099476dbb",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/prelude-forecast-286/exact-source-inverses.json",
+      "active_packet": "docs/evidence/prelude-forecast-286/exact-source-inverses.json",
+      "rows": 5,
+      "sha256": "e32bdf58699254c3eaaf406000aab5815bced08959d546c283492ce1e197c8d3",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/prelude-forecast-286/pin-capture/exact-source-inverses.json",
+      "active_packet": "docs/evidence/prelude-forecast-286/pin-capture/exact-source-inverses.json",
+      "rows": 2,
+      "sha256": "04d14712fb00b8d909c5d15766233b6009b6c6fed00ec8a76bd86372b501e9ff",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "active_packet": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "rows": 15,
+      "sha256": "990b4f2d8ae6844b49ee9a0303ea3eae0242d92a9e66c5f0b1839fd08f414599",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/singleton-target-receiving-layers-831/exact-source-inverses.json",
+      "active_packet": "docs/evidence/singleton-target-receiving-layers-831/exact-source-inverses.json",
+      "rows": 10,
+      "sha256": "6c0dd071b680d67845f2e69886064148fd651b43106ce97527aa52554f5ba57b",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/selected-child-refusal-781/exact-source-inverses.json",
+      "active_packet": "docs/evidence/selected-child-refusal-781/exact-source-inverses.json",
+      "rows": 41,
+      "sha256": "2ff3e371c8bfde876ede4f5e7445a26067858e4a0d84610cca94d5b3ccc1240e",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/constructor-compile-correction-7623-20261015/exact-source-inverses.json",
+      "active_packet": "docs/evidence/constructor-compile-correction-7623-20261015/exact-source-inverses.json",
+      "rows": 3,
+      "sha256": "310c7cb40e9be7a5c508f70288509f3594da1751f9b32b7213deb40ba54f1961",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "active_packet": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "rows": 21,
+      "sha256": "9398dabf48abc65f82899954e5cb27ec1e33dc8c1a73b346de18a971c175c000",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/integration-recovery-403d-20261015/correction-source-inverses.json",
+      "active_packet": "docs/evidence/integration-recovery-403d-20261015/correction-source-inverses.json",
+      "rows": 4,
+      "sha256": "84758ed1f42adccc861f393405e4363f8d73efaacfd33ecd724159e81c730bef",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/constructor-visibility-correction-912a-20261015/source-inverses.json",
+      "active_packet": "docs/evidence/constructor-visibility-correction-912a-20261015/source-inverses.json",
+      "rows": 1,
+      "sha256": "8d0fa77a2117720694f06b22b586007f9634886d437fe3e958b4d6cf7a0711d8",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/constructor-test-adapter-correction-17b5-20261015/source-inverses.json",
+      "active_packet": "docs/evidence/constructor-test-adapter-correction-17b5-20261015/source-inverses.json",
+      "rows": 2,
+      "sha256": "31a4fe9e12177347b2f09c11dd8c1822ad9e3fa6aeb828c614137c52ed03f1cf",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/constructor-directory-propagation-825/source-inverses.json",
+      "active_packet": "docs/evidence/constructor-directory-propagation-825/source-inverses.json",
+      "rows": 3,
+      "sha256": "982f3970b1c5b968560d89eb9c0e0ec804b03cda578708a7b604ca326b44d58a",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/constructor-cost-propagation-825/source-inverses.json",
+      "active_packet": "docs/evidence/constructor-cost-propagation-825/source-inverses.json",
+      "rows": 11,
+      "sha256": "79af0853b7a226f652e595492e5c610ab0bf4eaf6f4fd3d30771fcb1d37ac69d",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/constructor-signature-rewrite-825/source-inverses.json",
+      "active_packet": "docs/evidence/constructor-signature-rewrite-825/source-inverses.json",
+      "rows": 7,
+      "sha256": "4eabac3983c6b361a51663692c69d8a75cdd796e7d9cafa463a0375b16ad7823",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/legacy-drop-940-observer-oracle-recovery-20261015/exact-source-inverses.json",
+      "active_packet": "docs/evidence/legacy-drop-940-observer-oracle-recovery-20261015/exact-source-inverses.json",
+      "rows": 4,
+      "sha256": "b570db8d980f13c02bb9abc148c4f2a260c7a801b660241c36e2e5ef6f2f8482",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/selected-call-refusal-781/exact-source-inverses.json",
+      "active_packet": "docs/evidence/selected-call-refusal-781/exact-source-inverses.json",
+      "rows": 18,
+      "sha256": "4afd77bffea2f9c654240a12d9b13507cd5fba82bd6ec1c4248b58d9dc7df5d1",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/ordinary-lexical-return-operands-832/exact-source-inverses.json",
+      "active_packet": "docs/evidence/ordinary-lexical-return-operands-832/exact-source-inverses.json",
+      "rows": 14,
+      "sha256": "cbf4b77b009ab67d5cfbb070081e3883842dca83b4457f6db046d64124dfb1f3",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/private-layout-entry-capacity-834/exact-source-inverses.json",
+      "active_packet": "docs/evidence/private-layout-entry-capacity-834/exact-source-inverses.json",
+      "rows": 9,
+      "sha256": "189c5c2721228a5b15a1763ba00fff9c2348f326cc382a826f95aa0572dfde08",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/owning-corrections-940/exact-source-inverses.json",
+      "active_packet": "docs/evidence/owning-corrections-940/exact-source-inverses.json",
+      "rows": 10,
+      "sha256": "c2383832cfd8bab10f1c3dd6d6566ee68a833a298a9d19963c54d07be484b2e3",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/canonical-comment-comparison-835/source-inverses.json",
+      "active_packet": "docs/evidence/canonical-comment-comparison-835/source-inverses.json",
+      "rows": 3,
+      "sha256": "3db352a8ac8eb5ee4a6443c39cd9874a775f8109a6333587258e29e478d4a68c",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/constructor-large-825-integration-20261015/source-inverses.json",
+      "active_packet": "docs/evidence/constructor-large-825-integration-20261015/source-inverses.json",
+      "rows": 3,
+      "sha256": "3d19b2d71062b07428890abebedd677ab98fc56a957d5ce1d964f38a1cb7c2fc",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/calls-capacity-integration-20261015/source-inverses.json",
+      "active_packet": "docs/evidence/calls-capacity-integration-20261015/source-inverses.json",
+      "rows": 10,
+      "sha256": "a11b386a853d55bb2d5ef9b2a3aa101dfc2b9d569afce618677175775dd4da16",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/compile-correction-e3eb-20261015/source-inverses.json",
+      "active_packet": "docs/evidence/compile-correction-e3eb-20261015/source-inverses.json",
+      "rows": 6,
+      "sha256": "0a97617460d4919ad7805c564fc0447cee2d60726d6476aa8c1a44c58ed2b7ff",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/constructor-declaration-rewrite-825/source-inverses.json",
+      "active_packet": "docs/evidence/constructor-declaration-rewrite-825/source-inverses.json",
+      "rows": 8,
+      "sha256": "04210b335443bab6191c859a2eb28e7713560652eac4f8663513f85ed26a374a",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/registry-census-scratch-833/source-inverses.json",
+      "active_packet": "docs/evidence/registry-census-scratch-833/source-inverses.json",
+      "rows": 5,
+      "sha256": "e0ad5a5ed9f847af6d493358f659ae3c58b89e1d98f50c1b996718c139eb0352",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/record-copy-field-update-836-backends/source-inverses.json",
+      "active_packet": "docs/evidence/record-copy-field-update-836-backends/source-inverses.json",
+      "rows": 13,
+      "sha256": "43fd127dc218d2209db04ad6e4133a5a0307234274559311f15a5210de0b0679",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/record-copy-field-update-836-backend-controls/source-inverses.json",
+      "active_packet": "docs/evidence/record-copy-field-update-836-backend-controls/source-inverses.json",
+      "rows": 4,
+      "sha256": "4e517e60f6e4a49445357d9aca8c6d83766e40453d73d7b218ddd271c81d1820",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/d6bf-capacity-audit-correction-20261015/source-inverses.json",
+      "active_packet": "docs/evidence/d6bf-capacity-audit-correction-20261015/source-inverses.json",
+      "rows": 4,
+      "sha256": "d0932ac0d441e77c6aa4cc41a6fa18269eae480a7eaf6e7f74e3a9ce2b7ec5a4",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/owning-corrections-d6bf-20261015/source-inverses.json",
+      "active_packet": "docs/evidence/owning-corrections-d6bf-20261015/source-inverses.json",
+      "rows": 3,
+      "sha256": "d3e1353a112fd8ac2687daad5402810b3fba4792b78939a907d4f079936a29c9",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/region-entry-receiving-816/exact-source-inverses.json",
+      "active_packet": "docs/evidence/region-entry-receiving-816/exact-source-inverses.json",
+      "rows": 4,
+      "sha256": "be9b6521f5bf67003235a1ebb94469a3bff929ddcbfea01c4119247a5c4476b7",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/scalar-source-guard-adapter-1dee-20261015/source-projections.json",
+      "active_packet": "docs/evidence/scalar-source-guard-adapter-1dee-20261015/source-projections.json",
+      "rows": 3,
+      "sha256": "2ef10fe1ab84357f484712cbec9042fbec120e7b3dde2463215493a975b0f925",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/scalar-source-guard-adapter-1dee-20261015/source-inverses.json",
+      "active_packet": "docs/evidence/scalar-source-guard-adapter-1dee-20261015/source-inverses.json",
+      "rows": 1,
+      "sha256": "c43c8dc16a129be8628ba1c2e11b69fb148dabee3554041ab3154b8cfc61136b",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/source36-current-view-adapter-94c392-20261015/source-projections.json",
+      "active_packet": "docs/evidence/incremental-source-composition-5f1fecd-20261015/derived-packets/source36-current-view-adapter-94c392-20261015/source-projections.json",
+      "rows": 2,
+      "sha256": "a5d7e17f4e07335adc6b98f59b7e4b0a69fb03978b962482f20e089051ac8161",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/source36-current-view-adapter-94c392-20261015/source-inverses.json",
+      "active_packet": "docs/evidence/incremental-source-composition-5f1fecd-20261015/derived-packets/source36-current-view-adapter-94c392-20261015/source-inverses.json",
+      "rows": 7,
+      "sha256": "ce607f5bff924f86927b4d243910f95c35c521dc23db3d2eb332ad0989c13728",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/registry-census-scratch-833/documentation-inverses.json",
+      "active_packet": "docs/evidence/registry-census-scratch-833/documentation-inverses.json",
+      "rows": 2,
+      "sha256": "c4a1ae3adf9a4190d04c64b188c0fb0d871e86e73a7cbc8a8391aa329eff475b",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/canonical-comment-comparison-835/documentation-inverses.json",
+      "active_packet": "docs/evidence/canonical-comment-comparison-835/documentation-inverses.json",
+      "rows": 2,
+      "sha256": "edddf2cb0629d805369e3d59f3f2ee2864031333ad956e0bfcaf515e4ed1079f",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/final-source-composition-e30e017-20261015/opt836-field-update-active-inverses.json",
+      "active_packet": "docs/evidence/final-source-composition-e30e017-20261015/opt836-field-update-active-inverses.json",
+      "rows": 46,
+      "sha256": "996260f1801e9aac671c9537a7e17f730d9ec4fa220a1f3e2bdbcf4eb629593f",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/final-source-composition-e30e017-20261015/opt836-interpreter-review-controls-active-inverses.json",
+      "active_packet": "docs/evidence/final-source-composition-e30e017-20261015/opt836-interpreter-review-controls-active-inverses.json",
+      "rows": 3,
+      "sha256": "39982f3f465bb786618e9483c29736b87217bca5d65444ff544e1b702fb353b2",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/final-source-composition-e30e017-20261015/formatter-active-inverses.json",
+      "active_packet": "docs/evidence/final-source-composition-e30e017-20261015/formatter-active-inverses.json",
+      "rows": 1,
+      "sha256": "08dd42288c1495c041bc864466d4d2bd2e9efa415bffc5694310e8da61b70215",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/current-23e8-mechanical-20261015/source-inverses.json",
+      "active_packet": "docs/evidence/current-23e8-mechanical-20261015/source-inverses.json",
+      "rows": 11,
+      "sha256": "6ac744aa0f3e7a5492e19834564bc174e4cace504cb3dce58746489e51c2968e",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/current-23e8-exact-foreign-diagnostic-20261015/source-inverses.json",
+      "active_packet": "docs/evidence/current-23e8-exact-foreign-diagnostic-20261015/source-inverses.json",
+      "rows": 1,
+      "sha256": "77a1e5e16833137bf5f1dfd9e7330afeac6c9024f92f7bfdacf1f48b57a7505c",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/native-bytes-field-update-compile-correction-23e8-20261015/source-inverses.json",
+      "active_packet": "docs/evidence/native-bytes-field-update-compile-correction-23e8-20261015/source-inverses.json",
+      "rows": 2,
+      "sha256": "514751b55760920d69abebb028cbfdc270dfdb3db163ad1b6acc9d767131d601",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/source36-after-23e8-20261015/source-inverses.json",
+      "active_packet": "docs/evidence/incremental-source-composition-5f1fecd-20261015/derived-packets/source36-after-23e8-20261015/source-inverses.json",
+      "rows": 2,
+      "sha256": "929432f791ec269dc8fd8c3ba81c7b9b57f82c81949e929f9839027704920e5b",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/source36-after-23e8-20261015/source-projections.json",
+      "active_packet": "docs/evidence/incremental-source-composition-5f1fecd-20261015/derived-packets/source36-after-23e8-20261015/source-projections.json",
+      "rows": 4,
+      "sha256": "c6ba9a5e5349b2ed8ab570f0ded07fb8463d101ab3d36bd3347234bd76914fcf",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/field-update-integration-digest-correction-23e8-20261015/source-inverses.json",
+      "active_packet": "docs/evidence/field-update-integration-digest-correction-23e8-20261015/source-inverses.json",
+      "rows": 1,
+      "sha256": "afbeb8d142ff75aaa2e770846dcee1c49a7839310890642439b53d3eb34c981f",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/incremental-source-composition-5f1fecd-20261015/packets/canonical-839-initial/source-inverses.json",
+      "active_packet": "docs/evidence/incremental-source-composition-5f1fecd-20261015/packets/canonical-839-initial/source-inverses.json",
+      "rows": 12,
+      "sha256": "8c1b9de05cc1321c82db2e9e6fa78e3eb0d2dc7b3a23858ff8ae25d4f30967a6",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/incremental-source-composition-5f1fecd-20261015/packets/canonical-839-result-fee/source-inverses.json",
+      "active_packet": "docs/evidence/incremental-source-composition-5f1fecd-20261015/packets/canonical-839-result-fee/source-inverses.json",
+      "rows": 4,
+      "sha256": "c5c92e13e728f9c7ccff007fcb5fb66c287c008d45144da88601c5440cd73502",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/incremental-source-composition-5f1fecd-20261015/packets/weighted-838-checkpoint/source-inverses.json",
+      "active_packet": "docs/evidence/incremental-source-composition-5f1fecd-20261015/packets/weighted-838-checkpoint/source-inverses.json",
+      "rows": 28,
+      "sha256": "bf5043cbb273758a156cdfc996257f4d68fc31fd880ba041cdba7fb2be23baca",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/incremental-source-composition-5f1fecd-20261015/packets/weighted-838-amortized/source-inverses.json",
+      "active_packet": "docs/evidence/incremental-source-composition-5f1fecd-20261015/packets/weighted-838-amortized/source-inverses.json",
+      "rows": 22,
+      "sha256": "c56591b313cf982e95fb8ee10a484c1a4a78520ee0547d9d46e95ab5b536ce27",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/ram-round-warning-corrections-20261015/source-inverses.json",
+      "active_packet": "docs/evidence/ram-round-warning-corrections-20261015/source-inverses.json",
+      "rows": 2,
+      "sha256": "19bd051c9a8ff555c7663639569bcb82354f994b519c20f14bacc43045330a0d",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/source36-after-next-838-839-20261015/source-inverses.json",
+      "active_packet": "docs/evidence/incremental-source-composition-5f1fecd-20261015/derived-packets/source36-after-next-838-839-20261015/source-inverses.json",
+      "rows": 1,
+      "sha256": "5d929d98eae7616cd4d01cc2988faff0b09a706f7c3d285abe704aeedf5351cf",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/source36-after-next-838-839-20261015/source-projections.json",
+      "active_packet": "docs/evidence/incremental-source-composition-5f1fecd-20261015/derived-packets/source36-after-next-838-839-20261015/source-projections.json",
+      "rows": 4,
+      "sha256": "bd6a1b2a34e987257b963b2167a68d4a9f95910c88518e4168c21b3f84d31978",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/source36-main88884-merge-20261015/source-inverses.json",
+      "active_packet": "docs/evidence/incremental-source-composition-5f1fecd-20261015/derived-packets/source36-main88884-merge-20261015/source-inverses.json",
+      "rows": 11,
+      "sha256": "d16d30eb040751e09f7ec055758b135c112e24624132bf50f58a5f12bb766d0d",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/source36-main88884-merge-20261015/ours-projections.json",
+      "active_packet": "docs/evidence/incremental-source-composition-5f1fecd-20261015/derived-packets/source36-main88884-merge-20261015/ours-projections.json",
+      "rows": 10,
+      "sha256": "a58a5a05526cf4ab68e9c176d720b1c20a0e5e6cf83b2290ac940d5848f17a2f",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/source36-main88884-merge-20261015/main-reflow-projections.json",
+      "active_packet": "docs/evidence/incremental-source-composition-5f1fecd-20261015/derived-packets/source36-main88884-merge-20261015/main-reflow-projections.json",
+      "rows": 14,
+      "sha256": "e7df6f7275ef27ac8e4f079d0514b59b9ba046ca0fb57a05fe7b761c1496fb87",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    },
+    {
+      "packet": "docs/evidence/weighted-storage-838-main2b5-adapter-20261015/source-inverses.json",
+      "active_packet": "docs/evidence/weighted-storage-838-main2b5-adapter-20261015/source-inverses.json",
+      "rows": 1,
+      "sha256": "993bdda9767306d6b58542f31bf4ee8783e0ed214dbbbb271527641246a431ac",
+      "source_stage": "e4b90221df31aa994641d4748d539ec16ea814cb"
+    }
+  ],
+  "total_prior_packets": 101,
+  "total_prior_rows": 904,
+  "old_hook_count": 3372,
+  "old_checkpoint_joins": 317,
+  "new_deduplicated_current_joins": 38,
+  "independent_receivers": 53,
+  "independent_receivers_byte_unchanged": 46,
+  "independent_receivers_joined": 7,
+  "starter_bindings": 38,
+  "starter_patch_paths": [
+    32,
+    6
+  ],
+  "next_patch_paths": 66,
+  "held_runtime_rows": 26,
+  "main_reflows": 85,
+  "merge_input_paths": 123,
+  "merge_input_rows": 367,
+  "presence_rows": 2,
+  "protected_held_sha256": "96ecd68d1a6367d8f3fe871d9fc5e14ebca69a02a9d3d263977936a65d844936",
+  "protected_main_json_sha256": "5f3e1db001de0daedb9c9cee4fe0ea63fe4f4c00321188ed5cef526f333cbaf9",
+  "protected_presence_sha256": "3d00424b485ab7c624d08c996dae483878b32be696c37885feb2527db53244fe",
+  "old_runtime_domains_preserved": true,
+  "prior_artifact_count": 2804,
+  "prior_packet_sha256": {
+    "docs/evidence/loan-candidate-inventory-reuse/exact-source-inverses.json": "94cc7f70e8cb2cb200526edfa0f5b4550b6c2c8b1d6b12361ddbce8dd7115d65",
+    "docs/evidence/borrowed-generic-membership-index-39c6/whole-source-inverses.json": "d1dfd6197c74f18c0d80f2d0fca8ff21cf2445b5acfafda489a77424f403b36c",
+    "docs/evidence/loan-inner-stages-829/exact-source-inverses.json": "afc99a64f323c6dde427bc22024579296e70dcd4d0dd731bec7b3b348b5c2551",
+    "docs/evidence/paid-live-pending-reuse-3c351/whole-source-inverses.json": "af58658a9a26fc099ce6c2e64b4cd5183df3ce1d6ca9615f2c19ce0c8d2d53fb",
+    "docs/evidence/exit-status-directory-reuse/exact-source-inverses.json": "b32e6f0d31c3b9442a4a883dc6e37d4eb771268bc05b6d93ddb598d86e9c5519",
+    "docs/evidence/factored-closure-index/exact-source-inverses.json": "a6c5c74180de7d730fa67ae1fd0de8a2b7f27b6173a9716afa34de7df59beedd",
+    "docs/evidence/paid-cfg-child-scratch/exact-source-inverses.json": "e333d2031edb8f13c61d7df30d06eb4209944cab6c0154715b963a178e35ff50",
+    "docs/evidence/referenced-edge-ownership-proof/exact-source-inverses.json": "37ad317fbf75310b1f4faa58b63ec081da84a3d361e3731fd6c3a53d8de9672a",
+    "docs/evidence/prefix-certified-expression-lookup/exact-source-inverses.json": "86770dca8d0e0efdb49729626f9a7b7186b1d9d7b3e92c0acd856e2913b37682",
+    "docs/evidence/provider-proof-backing-714177/whole-source-inverses.json": "76023783b493b4a5a887270001a4944bdd94bb54f712cca71eb6db954e760ae3",
+    "docs/evidence/factored-continuation-receiving/exact-source-inverses.json": "cc1dc3ebf71e013fddf17501828e93418acd0c294d83d4e49d3ee29db1298fb6",
+    "docs/evidence/receiving-transitive-results-816/exact-source-inverses.json": "5928c0b8b67402bd0282b52d8f3b742d676b808dac5bbea6263cc751abf7edb2",
+    "docs/evidence/dense-loan-live-scratch/exact-source-inverses.json": "ab517ed5a99e1f257d1b73d6d8ee39919bba1fdf18718f6267d63573d0b7c795",
+    "docs/evidence/borrowed-generic-type-rewrite-141387/whole-source-inverses.json": "4717cfcf13d18a9958f10fdc4ce43b154da89852f2c66fd9c02634d01b7ed7e4",
+    "docs/evidence/exit-prefix-reference-proof/exact-source-inverses.json": "3dad4ad86f620e5293e86fa03ac7fbde28a75e588a0e5dd26416567089008f3b",
+    "docs/evidence/lifecycle-inline-active-path/whole-source-inverses.json": "de34a7d186ed6068a4685b63960f8d7c36da5547682f26486ca6567887a49ca3",
+    "docs/evidence/status-fact-borrow-reuse/exact-source-inverses.json": "41f45c874531cf091ad059bc6600250a3602d5d57e3e7522bd2510a17a722bec",
+    "docs/evidence/status-prefix-insertion/exact-source-inverses.json": "592981ed5832494660d40ba0201c93c5d3d64e04743f09698a1d9b8ce63e3691",
+    "docs/evidence/loan-endpoint-ordered-union-827/exact-source-inverses.json": "b7e68e028f3f5b7203e0689f33131cd784be310db1c0820584c300dca9e08a88",
+    "docs/evidence/prelude-extension-reuse-828/exact-source-inverses.json": "77fb8000edba9b3cbdfd9cf4bf706f6293906b1659041db7886bd8d245e52c9f",
+    "docs/evidence/nominal-payload-827/exact-source-inverses-activation-v14.json": "1c39e36dc03c9dc7a44bbce8862c8a22c547711c9ba54f2e04b2306964ec074e",
+    "docs/evidence/nested-byte-build-correction-a33-20261015/whole-source-inverses.json": "a4ceeba78d92db07f3845cd2dbf9f0bf8635e9006f1d51273be9843e59103bbb",
+    "docs/evidence/factored-epsilon-closure-sharing/exact-source-inverses.json": "85feb944d693c9cdcdfb40a7d807eddac400bb26c8fb0342094e74d93ae4b9bc",
+    "docs/evidence/nested-byte-traversal-780/final-source-inverses-v1.json": "f92008f3f6f74438b8769b978c4b78eccece25e10423bc2375579f93544c5edf",
+    "docs/evidence/selected-session-static-refusal-781/exact-source-inverses.json": "5080ec6ca01d0d3165427f06fe3a2d8413e171d2725fbf8c8f15c07de91d5cce",
+    "docs/evidence/selected-session-compile-correction-8795/exact-source-inverses.json": "f19b2cadaca15eb767cfd40cff96380c62d7b0f90c5186b44c2c9e17a1edd6d4",
+    "docs/evidence/legacy-nominal-sharing-827/exact-source-inverses.json": "98335b571361f43b4d199270a9eb9c5918126e1a4b46a7ceefdaec5e63648e7f",
+    "docs/evidence/projection-explicit-import-correction-a417/exact-source-inverses.json": "3e0a58657b369348ff195a6035a58ca2cd810e19b41d60877e26aa1e02c5bb9a",
+    "docs/evidence/epsilon-application-census-830/exact-source-inverses.json": "65ffab8f7338b0ed7e14fe4e7b0d1714a8f89444c570e892be729d55a6db97cf",
+    "docs/evidence/status-case-proof-816/exact-source-inverses.json": "14bd1be6d340aacf404ffdbd129788fb1c5b3dd728df6f6f3bbe4c1121be8e65",
+    "docs/evidence/legacy-final-link-sharing-827/exact-source-inverses.json": "3573c79973943cad5d8386ffbd0da4e5561d8177f7161e1255f4423bc1c1f449",
+    "docs/evidence/legacy-nominal-diagnostic-fixture-correction-a417/exact-source-inverses.json": "986dd9b93e57ee1561703d82c24296f8ffcac187dce9c8bd85eb676cf67c5c9e",
+    "docs/evidence/singleton-successor-targets-831/exact-source-inverses.json": "6eb07eec10b2c94202a2e6eb5229a2a6a55dea309331cb47e2981c140ca2d090",
+    "docs/evidence/actual-nested-fixture-guide-correction-a417/exact-source-inverses.json": "693e40f56ab9e0b01f4af86e51659649ed20fda3e763e5a41908025df59c0b64",
+    "docs/evidence/nested-byte-lowering-admission-a417/source-inverses.json": "f43387b214cc1600faf33a2f3db2149511566e5a4da8e1b804768a6b5c1f81d4",
+    "docs/evidence/integration-status-case-imports-20261015/exact-source-inverses.json": "50f33b9a2e5dd8fdc67724726adf57bd98bce2111aacb74c149ef3cba53753c0",
+    "docs/evidence/ordered-large-integration-20261015/label-source-inverses.json": "32b9e20d007cfc489c23288ec3e09855df21d22ab716eac1cafc1c855d1a57ac",
+    "docs/evidence/ordered-large-integration-20261015/explicit-import-source-inverses.json": "4c0d364b26cfc5bc5be8fa8b0857e213f30a6e4df34bbf1b9a7012dde9bd3c8b",
+    "docs/evidence/codec808-frontier-witness/source-inverses.json": "eb27db01b64ee20a14cfef170b36f66cf7cd1dd58e6df6d3d56c3cc64ac9a52d",
+    "docs/evidence/constructor-inline-failure-825/exact-source-inverses.json": "7d0b343e4009deace3eff96e2b3b5a07f28646a31632564a49a0e7060c19c29a",
+    "docs/evidence/default-static-error-custody-825/exact-source-inverse.json": "e4dab4cf0852a606ce553e952c36632cca0a06c22b2395ef2725756e9a357a6e",
+    "docs/evidence/ordered-large-integration-20261015/census-visibility-source-inverses.json": "32737709ff11117937ce0793c9bd1f8116acc3d41e742be7932bc92ac7d33a58",
+    "docs/evidence/ordered-large-integration-20261015/purity-token-source-inverses.json": "adc8b77acfac8f691c510a17a6c621414f6c06e9867ad6db7be74ababf91cf16",
+    "docs/evidence/nested-byte-candidate-adoption-780/exact-source-inverses.json": "ade0547800854d4070ba1e635ed4bca836b85316c02d75d19f052b7bd269857a",
+    "docs/evidence/legacy-linked-drop-reuse-828f/exact-source-inverses.json": "fdc64a17c3c3353dc3ed4e2b475e88264c6c1038cb77cfeab56b570bd81798e5",
+    "docs/evidence/status-case-counter-828f/exact-source-inverses.json": "8c9493c7eb1c0be63d37a33c135bef33e0f37284b212184a99fdc28099476dbb",
+    "docs/evidence/prelude-forecast-286/exact-source-inverses.json": "e32bdf58699254c3eaaf406000aab5815bced08959d546c283492ce1e197c8d3",
+    "docs/evidence/prelude-forecast-286/pin-capture/exact-source-inverses.json": "04d14712fb00b8d909c5d15766233b6009b6c6fed00ec8a76bd86372b501e9ff",
+    "docs/evidence/constructor-report-receiving-825/source-inverses.json": "990b4f2d8ae6844b49ee9a0303ea3eae0242d92a9e66c5f0b1839fd08f414599",
+    "docs/evidence/singleton-target-receiving-layers-831/exact-source-inverses.json": "6c0dd071b680d67845f2e69886064148fd651b43106ce97527aa52554f5ba57b",
+    "docs/evidence/selected-child-refusal-781/exact-source-inverses.json": "2ff3e371c8bfde876ede4f5e7445a26067858e4a0d84610cca94d5b3ccc1240e",
+    "docs/evidence/constructor-compile-correction-7623-20261015/exact-source-inverses.json": "310c7cb40e9be7a5c508f70288509f3594da1751f9b32b7213deb40ba54f1961",
+    "docs/evidence/constructor-typed-propagation-825/source-inverses.json": "9398dabf48abc65f82899954e5cb27ec1e33dc8c1a73b346de18a971c175c000",
+    "docs/evidence/integration-recovery-403d-20261015/correction-source-inverses.json": "84758ed1f42adccc861f393405e4363f8d73efaacfd33ecd724159e81c730bef",
+    "docs/evidence/constructor-visibility-correction-912a-20261015/source-inverses.json": "8d0fa77a2117720694f06b22b586007f9634886d437fe3e958b4d6cf7a0711d8",
+    "docs/evidence/constructor-test-adapter-correction-17b5-20261015/source-inverses.json": "31a4fe9e12177347b2f09c11dd8c1822ad9e3fa6aeb828c614137c52ed03f1cf",
+    "docs/evidence/constructor-directory-propagation-825/source-inverses.json": "982f3970b1c5b968560d89eb9c0e0ec804b03cda578708a7b604ca326b44d58a",
+    "docs/evidence/constructor-cost-propagation-825/source-inverses.json": "79af0853b7a226f652e595492e5c610ab0bf4eaf6f4fd3d30771fcb1d37ac69d",
+    "docs/evidence/constructor-signature-rewrite-825/source-inverses.json": "4eabac3983c6b361a51663692c69d8a75cdd796e7d9cafa463a0375b16ad7823",
+    "docs/evidence/legacy-drop-940-observer-oracle-recovery-20261015/exact-source-inverses.json": "b570db8d980f13c02bb9abc148c4f2a260c7a801b660241c36e2e5ef6f2f8482",
+    "docs/evidence/selected-call-refusal-781/exact-source-inverses.json": "4afd77bffea2f9c654240a12d9b13507cd5fba82bd6ec1c4248b58d9dc7df5d1",
+    "docs/evidence/ordinary-lexical-return-operands-832/exact-source-inverses.json": "cbf4b77b009ab67d5cfbb070081e3883842dca83b4457f6db046d64124dfb1f3",
+    "docs/evidence/private-layout-entry-capacity-834/exact-source-inverses.json": "189c5c2721228a5b15a1763ba00fff9c2348f326cc382a826f95aa0572dfde08",
+    "docs/evidence/owning-corrections-940/exact-source-inverses.json": "c2383832cfd8bab10f1c3dd6d6566ee68a833a298a9d19963c54d07be484b2e3",
+    "docs/evidence/canonical-comment-comparison-835/source-inverses.json": "3db352a8ac8eb5ee4a6443c39cd9874a775f8109a6333587258e29e478d4a68c",
+    "docs/evidence/constructor-large-825-integration-20261015/source-inverses.json": "3d19b2d71062b07428890abebedd677ab98fc56a957d5ce1d964f38a1cb7c2fc",
+    "docs/evidence/calls-capacity-integration-20261015/source-inverses.json": "a11b386a853d55bb2d5ef9b2a3aa101dfc2b9d569afce618677175775dd4da16",
+    "docs/evidence/compile-correction-e3eb-20261015/source-inverses.json": "0a97617460d4919ad7805c564fc0447cee2d60726d6476aa8c1a44c58ed2b7ff",
+    "docs/evidence/constructor-declaration-rewrite-825/source-inverses.json": "04210b335443bab6191c859a2eb28e7713560652eac4f8663513f85ed26a374a",
+    "docs/evidence/registry-census-scratch-833/source-inverses.json": "e0ad5a5ed9f847af6d493358f659ae3c58b89e1d98f50c1b996718c139eb0352",
+    "docs/evidence/record-copy-field-update-836-backends/source-inverses.json": "43fd127dc218d2209db04ad6e4133a5a0307234274559311f15a5210de0b0679",
+    "docs/evidence/record-copy-field-update-836-backend-controls/source-inverses.json": "4e517e60f6e4a49445357d9aca8c6d83766e40453d73d7b218ddd271c81d1820",
+    "docs/evidence/d6bf-capacity-audit-correction-20261015/source-inverses.json": "d0932ac0d441e77c6aa4cc41a6fa18269eae480a7eaf6e7f74e3a9ce2b7ec5a4",
+    "docs/evidence/owning-corrections-d6bf-20261015/source-inverses.json": "d3e1353a112fd8ac2687daad5402810b3fba4792b78939a907d4f079936a29c9",
+    "docs/evidence/region-entry-receiving-816/exact-source-inverses.json": "be9b6521f5bf67003235a1ebb94469a3bff929ddcbfea01c4119247a5c4476b7",
+    "docs/evidence/scalar-source-guard-adapter-1dee-20261015/source-projections.json": "2ef10fe1ab84357f484712cbec9042fbec120e7b3dde2463215493a975b0f925",
+    "docs/evidence/scalar-source-guard-adapter-1dee-20261015/source-inverses.json": "c43c8dc16a129be8628ba1c2e11b69fb148dabee3554041ab3154b8cfc61136b",
+    "docs/evidence/incremental-source-composition-5f1fecd-20261015/derived-packets/source36-current-view-adapter-94c392-20261015/source-projections.json": "a5d7e17f4e07335adc6b98f59b7e4b0a69fb03978b962482f20e089051ac8161",
+    "docs/evidence/incremental-source-composition-5f1fecd-20261015/derived-packets/source36-current-view-adapter-94c392-20261015/source-inverses.json": "ce607f5bff924f86927b4d243910f95c35c521dc23db3d2eb332ad0989c13728",
+    "docs/evidence/registry-census-scratch-833/documentation-inverses.json": "c4a1ae3adf9a4190d04c64b188c0fb0d871e86e73a7cbc8a8391aa329eff475b",
+    "docs/evidence/canonical-comment-comparison-835/documentation-inverses.json": "edddf2cb0629d805369e3d59f3f2ee2864031333ad956e0bfcaf515e4ed1079f",
+    "docs/evidence/final-source-composition-e30e017-20261015/opt836-field-update-active-inverses.json": "996260f1801e9aac671c9537a7e17f730d9ec4fa220a1f3e2bdbcf4eb629593f",
+    "docs/evidence/final-source-composition-e30e017-20261015/opt836-interpreter-review-controls-active-inverses.json": "39982f3f465bb786618e9483c29736b87217bca5d65444ff544e1b702fb353b2",
+    "docs/evidence/final-source-composition-e30e017-20261015/formatter-active-inverses.json": "08dd42288c1495c041bc864466d4d2bd2e9efa415bffc5694310e8da61b70215",
+    "docs/evidence/current-23e8-mechanical-20261015/source-inverses.json": "6ac744aa0f3e7a5492e19834564bc174e4cace504cb3dce58746489e51c2968e",
+    "docs/evidence/current-23e8-exact-foreign-diagnostic-20261015/source-inverses.json": "77a1e5e16833137bf5f1dfd9e7330afeac6c9024f92f7bfdacf1f48b57a7505c",
+    "docs/evidence/native-bytes-field-update-compile-correction-23e8-20261015/source-inverses.json": "514751b55760920d69abebb028cbfdc270dfdb3db163ad1b6acc9d767131d601",
+    "docs/evidence/incremental-source-composition-5f1fecd-20261015/derived-packets/source36-after-23e8-20261015/source-inverses.json": "929432f791ec269dc8fd8c3ba81c7b9b57f82c81949e929f9839027704920e5b",
+    "docs/evidence/incremental-source-composition-5f1fecd-20261015/derived-packets/source36-after-23e8-20261015/source-projections.json": "c6ba9a5e5349b2ed8ab570f0ded07fb8463d101ab3d36bd3347234bd76914fcf",
+    "docs/evidence/field-update-integration-digest-correction-23e8-20261015/source-inverses.json": "afbeb8d142ff75aaa2e770846dcee1c49a7839310890642439b53d3eb34c981f",
+    "docs/evidence/incremental-source-composition-5f1fecd-20261015/packets/canonical-839-initial/source-inverses.json": "8c1b9de05cc1321c82db2e9e6fa78e3eb0d2dc7b3a23858ff8ae25d4f30967a6",
+    "docs/evidence/incremental-source-composition-5f1fecd-20261015/packets/canonical-839-result-fee/source-inverses.json": "c5c92e13e728f9c7ccff007fcb5fb66c287c008d45144da88601c5440cd73502",
+    "docs/evidence/incremental-source-composition-5f1fecd-20261015/packets/weighted-838-checkpoint/source-inverses.json": "bf5043cbb273758a156cdfc996257f4d68fc31fd880ba041cdba7fb2be23baca",
+    "docs/evidence/incremental-source-composition-5f1fecd-20261015/packets/weighted-838-amortized/source-inverses.json": "c56591b313cf982e95fb8ee10a484c1a4a78520ee0547d9d46e95ab5b536ce27",
+    "docs/evidence/ram-round-warning-corrections-20261015/source-inverses.json": "19bd051c9a8ff555c7663639569bcb82354f994b519c20f14bacc43045330a0d",
+    "docs/evidence/incremental-source-composition-5f1fecd-20261015/derived-packets/source36-after-next-838-839-20261015/source-inverses.json": "5d929d98eae7616cd4d01cc2988faff0b09a706f7c3d285abe704aeedf5351cf",
+    "docs/evidence/incremental-source-composition-5f1fecd-20261015/derived-packets/source36-after-next-838-839-20261015/source-projections.json": "bd6a1b2a34e987257b963b2167a68d4a9f95910c88518e4168c21b3f84d31978",
+    "docs/evidence/incremental-source-composition-5f1fecd-20261015/derived-packets/source36-main88884-merge-20261015/source-inverses.json": "d16d30eb040751e09f7ec055758b135c112e24624132bf50f58a5f12bb766d0d",
+    "docs/evidence/incremental-source-composition-5f1fecd-20261015/derived-packets/source36-main88884-merge-20261015/ours-projections.json": "a58a5a05526cf4ab68e9c176d720b1c20a0e5e6cf83b2290ac940d5848f17a2f",
+    "docs/evidence/incremental-source-composition-5f1fecd-20261015/derived-packets/source36-main88884-merge-20261015/main-reflow-projections.json": "e7df6f7275ef27ac8e4f079d0514b59b9ba046ca0fb57a05fe7b761c1496fb87",
+    "docs/evidence/weighted-storage-838-main2b5-adapter-20261015/source-inverses.json": "993bdda9767306d6b58542f31bf4ee8783e0ed214dbbbb271527641246a431ac"
+  },
+  "git_cache_peak_bytes": 16776957
+}

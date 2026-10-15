@@ -1,0 +1,23 @@
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/source-composition-f813-held-20261015/verify_source36.py", line 57, in <module>
+    try:exec(compile(code,'original36-adapted-candidate','exec'),globals())
+        ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "original36-adapted-candidate", line 51, in <module>
+    assert (root/presence_path).read_bytes()==subprocess.check_output(['git','show','f813d2367114ee5c1738fd8239fdd3ae2e89e3fd:'+presence_path],cwd=root)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "original36-adapted-candidate", line 44, in apply
+    code=code.replace("current=apply((root/'src/hir.rs').read_text(),t[start:end],p)","current=apply(ci('src/hir.rs'),t[start:end],p)")
+             ^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/src/cleanup_plan/replay/live_oracle/source_custody/b.rs', "'        }\\n    }\\n}\\n\\n#[cfg(test)]\\npub(crate) use funded::work::checked_moving_string_operands_funded_w'", 0)
+MAIN85 complete source inverses and both explicit CI→presence512 full hashes equal; additional cache zero.
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/source-composition-f813-held-20261015/verify_source36.py", line 57, in <module>
+    try:exec(compile(code,'original36-adapted-candidate','exec'),globals())
+        ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "original36-adapted-candidate", line 51, in <module>
+    assert (root/presence_path).read_bytes()==subprocess.check_output(['git','show','f813d2367114ee5c1738fd8239fdd3ae2e89e3fd:'+presence_path],cwd=root)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "original36-adapted-candidate", line 44, in apply
+    code=code.replace("current=apply((root/'src/hir.rs').read_text(),t[start:end],p)","current=apply(ci('src/hir.rs'),t[start:end],p)")
+             ^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/src/cleanup_plan/replay/live_oracle/source_custody/b.rs', "'        }\\n    }\\n}\\n\\n#[cfg(test)]\\npub(crate) use funded::work::checked_moving_string_operands_funded_w'", 0)

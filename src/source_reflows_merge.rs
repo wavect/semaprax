@@ -40,6 +40,8 @@ fn project(rows: &str, source: &str, current: &str) -> String {
     result
 }
 pub(crate) fn ours(source: &str, current: &str) -> String {
+    let staged = project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-composition-f813-held-20261015/pre-ours.json")), source, current);
+    let current = staged.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -53,9 +55,18 @@ pub(crate) fn main(source: &str, current: &str) -> String {
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/source36-main88884-merge-20261015/main-reflow-projections.json"
+            "/docs/evidence/source-composition-f813-held-20261015/main-projections.json"
         )),
         source,
         current,
     )
+}
+
+pub(crate) fn held(source: &str, current: &str) -> String {
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-composition-f813-held-20261015/held-projections.json")), source, current)
+}
+
+pub(crate) fn weighted(path: &str, current: &str) -> String {
+    if path != "../epsilon_alias/tests.rs" { return current.to_owned(); }
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-composition-f813-held-20261015/weighted-projections.json")), "src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs", current)
 }

@@ -94,8 +94,10 @@ fn complete_prior_report_receiver_and_legacy_move_are_independent() {
     let current = WorkspaceReportFailure::from(new_report);
     assert_eq!(old.reported(), current.reported());
     assert_eq!(old.has_paid_report(), current.has_paid_report());
-    assert_eq!(old.into_legacy_unfunded().as_ptr(), old_pointer);
-    assert_eq!(current.into_legacy_unfunded().as_ptr(), new_pointer);
+    let old_legacy = old.into_legacy_unfunded();
+    let current_legacy = current.into_legacy_unfunded();
+    assert_eq!(old_legacy.as_ptr(), old_pointer);
+    assert_eq!(current_legacy.as_ptr(), new_pointer);
 }
 
 #[test]

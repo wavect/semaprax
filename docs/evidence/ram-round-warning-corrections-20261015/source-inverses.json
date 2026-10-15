@@ -1,0 +1,28 @@
+[
+  {
+    "source": "src/workspace_report/tests/caller.rs",
+    "checkpoint_revision": "96b67bd198a755037457b568366b7f0120d17994",
+    "archive": "docs/evidence/ram-round-warning-corrections-20261015/original/src/workspace_report/tests/caller.rs",
+    "original_sha256": "00296eeb8a8844ad5468e26c0f610da4e3a2e6774a5ecf28a02cedf4cf826d36",
+    "current_sha256": "b5d65b8bb7f989d7f36eb7dd9d8bd8dc05d3800c3d52afe11a68af3a28dfb110",
+    "edits": [
+      {
+        "new": "    let old_legacy = old.into_legacy_unfunded();\n    let current_legacy = current.into_legacy_unfunded();\n    assert_eq!(old_legacy.as_ptr(), old_pointer);\n    assert_eq!(current_legacy.as_ptr(), new_pointer);",
+        "old": "    assert_eq!(old.into_legacy_unfunded().as_ptr(), old_pointer);\n    assert_eq!(current.into_legacy_unfunded().as_ptr(), new_pointer);"
+      }
+    ]
+  },
+  {
+    "source": "src/hir/validation/scope_checkpoint.rs",
+    "checkpoint_revision": "96b67bd198a755037457b568366b7f0120d17994",
+    "archive": "docs/evidence/ram-round-warning-corrections-20261015/original/src/hir/validation/scope_checkpoint.rs",
+    "original_sha256": "b7263b88bb8a3724d6db1b61b295695221b985b20429d3c209729c87502b7022",
+    "current_sha256": "cfab7aafe88941e156aec53c55314c6cba1352e45af1bb8ef60ed42f42f90c98",
+    "edits": [
+      {
+        "new": "#[cfg(test)]\npub(super) fn insert_loan",
+        "old": "#[cfg(test)]\n#[expect(\n    dead_code,\n    reason = \"saved owned-binding loan insertion helper for test-only scope oracles\"\n)]\npub(super) fn insert_loan"
+      }
+    ]
+  }
+]

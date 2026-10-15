@@ -1,0 +1,18 @@
+
+running 1 test
+test workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_uncached_core_old_and_current_include_new_entry_controls_and_all_drop ... 847 complete uncached core old paid=6299403 physical=Metrics { allocations: 48822, reallocations: 11410, allocated: 5374529, freed: 5374529, live: 0, highwater: 233773, invalid: false }; current paid=6234275 physical=Metrics { allocations: 48769, reallocations: 11410, allocated: 5371809, freed: 5371809, live: 0, highwater: 231053, invalid: false }
+
+thread 'workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_uncached_core_old_and_current_include_new_entry_controls_and_all_drop' (11344402) panicked at src/workspace_graph/constructor_failure/../function_alias/before_core/tests.rs:76:9:
+assertion `left == right` failed
+  left: true
+ right: false
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_uncached_core_old_and_current_include_new_entry_controls_and_all_drop
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9168 filtered out; finished in 0.80s
+

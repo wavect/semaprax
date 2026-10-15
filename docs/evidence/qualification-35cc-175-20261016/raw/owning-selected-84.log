@@ -1,0 +1,15 @@
+
+running 1 test
+test core_validation_has_no_resolution_cleanup_build_or_physical_authority ... 
+thread 'core_validation_has_no_resolution_cleanup_build_or_physical_authority' (11327337) panicked at tests/hir_module_boundaries.rs:746:9:
+core HIR validation admitted `std::fs`
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    core_validation_has_no_resolution_cleanup_build_or_physical_authority
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.16s
+

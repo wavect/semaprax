@@ -1,0 +1,12 @@
+
+running 1 test
+test cleanup_plan::replay::structural_control::calls::cursor::tests::selected_cursor_pays_every_growth_and_reuse_permit_and_retains_whole_old_owner ... MAIN27424 selected lookups=0 complete_old677=true charged=30138 work=11 metrics=Metrics { allocations: 3, reallocations: 0, allocated: 21106, freed: 21106, live: 0, highwater: 21106, invalid: false }
+MAIN27424 selected lookups=0 complete_old677=false charged=9602 work=11 metrics=Metrics { allocations: 2, reallocations: 0, allocated: 546, freed: 546, live: 0, highwater: 546, invalid: false }
+MAIN27424 selected lookups=1 complete_old677=true charged=30946 work=23 metrics=Metrics { allocations: 3, reallocations: 0, allocated: 21106, freed: 21106, live: 0, highwater: 21106, invalid: false }
+MAIN27424 selected lookups=1 complete_old677=false charged=11346 work=36 metrics=Metrics { allocations: 3, reallocations: 0, allocated: 626, freed: 626, live: 0, highwater: 626, invalid: false }
+MAIN27424 selected lookups=4 complete_old677=true charged=33370 work=59 metrics=Metrics { allocations: 3, reallocations: 0, allocated: 21106, freed: 21106, live: 0, highwater: 21106, invalid: false }
+MAIN27424 selected lookups=4 complete_old677=false charged=16194 work=105 metrics=Metrics { allocations: 3, reallocations: 0, allocated: 626, freed: 626, live: 0, highwater: 626, invalid: false }
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9168 filtered out; finished in 0.01s
+

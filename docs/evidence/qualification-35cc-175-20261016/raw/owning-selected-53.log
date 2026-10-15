@@ -1,0 +1,17 @@
+
+running 1 test
+test scalar_browser_ci_contract::browser_known_answers_match_authenticated_baseline_and_rename_graphs ... 
+thread 'scalar_browser_ci_contract::browser_known_answers_match_authenticated_baseline_and_rename_graphs' (11249490) panicked at tests/wasm/scalar_browser_ci_contract/historical_builder.rs:44:5:
+assertion `left == right` failed
+  left: Number(4032239)
+ right: 3930276
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    scalar_browser_ci_contract::browser_known_answers_match_authenticated_baseline_and_rename_graphs
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 48 filtered out; finished in 0.07s
+

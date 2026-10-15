@@ -1,0 +1,15 @@
+
+running 1 test
+test owned_leaf_vec::copy_field_update::field_update_import_and_native_store_are_absent_from_the_complete_old_row_oracle ... 
+thread 'owned_leaf_vec::copy_field_update::field_update_import_and_native_store_are_absent_from_the_complete_old_row_oracle' (11243979) panicked at tests/owned_data/owned_leaf_vec/copy_field_update.rs:104:84:
+called `Result::unwrap()` on an `Err` value: [Diagnostic { code: "SPX-T266", severity: Error, message: "borrowed view `bytes_as_slice` requires an exact admitted storage place", path: Some("field-update-before.spx"), span: Some(Span { start: 393, end: 420, line: 10, column: 102 }), help: Some("`bytes_as_slice` borrows from a named `let` binding, not from this expression; bind the owner first: `let owner = …; <view>(owner)`") }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    owned_leaf_vec::copy_field_update::field_update_import_and_native_store_are_absent_from_the_complete_old_row_oracle
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 347 filtered out; finished in 0.14s
+

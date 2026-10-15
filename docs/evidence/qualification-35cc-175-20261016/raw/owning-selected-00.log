@@ -1,0 +1,17 @@
+
+running 1 test
+test cleanup_plan::replay::factored::compact_nodes::before::tests::compact_layout_and_original_label_order_are_actual_and_source_independent ... 
+thread 'cleanup_plan::replay::factored::compact_nodes::before::tests::compact_layout_and_original_label_order_are_actual_and_source_independent' (11211124) panicked at src/cleanup_plan/replay/factored/compact_nodes/before/../tests.rs:18:9:
+assertion `left == right` failed
+  left: 24
+ right: 32
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::factored::compact_nodes::before::tests::compact_layout_and_original_label_order_are_actual_and_source_independent
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9168 filtered out; finished in 0.07s
+

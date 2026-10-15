@@ -1,0 +1,6 @@
+
+running 1 test
+test resolver_cli::help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 190 filtered out; finished in 0.01s
+

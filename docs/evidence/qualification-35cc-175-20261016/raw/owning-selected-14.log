@@ -1,0 +1,7 @@
+
+running 1 test
+test actual_diagnostic_writer_preserves_json_human_streams_status_and_original_bytes ... retained CLI check fixture: /Volumes/Semaprax/lane-prompts/final-35cc-175-qualification-20261015/runtime-tmp/semaprax-check-routing-16952-0
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 8.91s
+

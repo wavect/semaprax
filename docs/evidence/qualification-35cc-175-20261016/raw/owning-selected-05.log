@@ -1,0 +1,15 @@
+
+running 1 test
+test cleanup_plan::replay::factored::compact_nodes::before::tests::nested_floor_keeps_original_first_refusal_and_terminal_retry_fields ... 
+thread 'cleanup_plan::replay::factored::compact_nodes::before::tests::nested_floor_keeps_original_first_refusal_and_terminal_retry_fields' (11212398) panicked at src/cleanup_plan/replay/factored/compact_nodes/before/../tests.rs:389:5:
+assertion failed: a.0.0.0.is_err() && a.0.0.1.is_err() && a.0.1 && a.1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::factored::compact_nodes::before::tests::nested_floor_keeps_original_first_refusal_and_terminal_retry_fields
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9168 filtered out; finished in 0.06s
+

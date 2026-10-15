@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::expression_facts::arena::cursor_tests::shallow_actual_fact_owner_releases_all_backing_and_costs_less_than_the_full_original ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9168 filtered out; finished in 0.01s
+

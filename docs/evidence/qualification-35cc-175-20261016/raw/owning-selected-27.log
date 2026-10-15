@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::expression_facts::capacity::cursor_tests::live_builder_cursor_funding_has_exact_short_and_zero_boundaries ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9168 filtered out; finished in 0.02s
+

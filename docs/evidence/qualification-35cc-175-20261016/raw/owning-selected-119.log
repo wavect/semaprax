@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::identity_resolution::base::cache_billing::tests::first_cached_module_and_later_miss_pay_shared_base_and_extensions_once ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9168 filtered out; finished in 0.02s
+

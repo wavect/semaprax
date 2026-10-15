@@ -1,0 +1,6 @@
+
+running 1 test
+test string_builtin_constructors::every_string_builtin_body_is_replayed_with_exact_selected_identity_and_no_char_literal ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.76s
+

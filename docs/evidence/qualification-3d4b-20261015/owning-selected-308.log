@@ -1,0 +1,15 @@
+
+running 1 test
+test execution_revision::workspace::workspace_execution_retains_historical_generation_across_exact_refresh ... 
+thread 'execution_revision::workspace::workspace_execution_retains_historical_generation_across_exact_refresh' (7747638) panicked at tests/agent_runtime_v1/execution_revision/workspace.rs:366:13:
+exact refresh refused: [Diagnostic { code: "SPX-G577", severity: Error, message: "candidate exact context does not match the separately admitted Project revision", path: None, span: None, help: None }]; warm/cold comparison: {"cold_graph_budget":{"used_builder_bytes":3378531,"used_call_sites":5,"used_callables":7,"used_cross_file_edges":0,"used_declarations":36,"used_dependency_depth":1,"used_manifest_bytes":248,"used_sources":2,"used_total_source_bytes":5708,"used_uses":0},"cold_graph_digest":"sha256:231b4c8e7c143e869049157cba9006efdf703f0c0779591535e1cecce0311a51","graph_equal":false,"manifest_equal":true,"project_revision_equal":true,"sources_equal":true,"warm_graph_budget":{"used_builder_bytes":3382182,"used_call_sites":5,"used_callables":7,"used_cross_file_edges":0,"used_declarations":36,"used_dependency_depth":1,"used_manifest_bytes":248,"used_sources":2,"used_total_source_bytes":5708,"used_uses":0},"warm_graph_digest":"sha256:dc37e5d4ff7c8da5bb13073ff62a693dcf6fed9811d48e5a63a550cbb76819ef","workspace_manifest_equal":true,"workspace_revision_equal":true}
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    execution_revision::workspace::workspace_execution_retains_historical_generation_across_exact_refresh
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 205 filtered out; finished in 3.45s
+

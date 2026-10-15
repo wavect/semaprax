@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::prelude_bundle::tests::initializer_and_receiving_carriers_are_paid_before_any_producer_work ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.00s
+

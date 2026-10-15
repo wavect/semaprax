@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::prelude_bundle::vector_extension::tests::vector_work_owner_foreign_then_restored_preserves_first_raw_detached ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.00s
+

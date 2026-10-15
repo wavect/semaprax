@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::expression_facts::receiving::remaining::tests::complete_exit_receivers_preserve_all_old_fields_and_first_semantic_errors ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.02s
+

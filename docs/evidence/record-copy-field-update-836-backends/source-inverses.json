@@ -195,12 +195,17 @@
     },
     {
       "source": "tests/support/record_copy_field_update.rs",
-      "sha256": "fece5828a9c91f8d9cbdd42348e4919b64d61585550bf0c8c731ecd60e7b92ca",
+      "sha256": "17450bb704f73ec623cec90728172a289552921e40d1bce5c3a7d3e3e3ce41c8",
       "prior_bindings": [
         {
           "sha256": "4c5173b73972b419ffcd6e5c55a6623d862003740cb947157e803c18fe70a635",
           "archive": "docs/evidence/record-copy-field-update-836-backend-controls/original/tests__support__record_copy_field_update.rs",
           "owner": "docs/evidence/record-copy-field-update-836-backend-controls/source-inverses.json"
+        },
+        {
+          "sha256": "fece5828a9c91f8d9cbdd42348e4919b64d61585550bf0c8c731ecd60e7b92ca",
+          "revision": "94c392e9b",
+          "application_basis": "d39fe676a7c1df3323888b25c9481f7bbb65feaa"
         }
       ]
     },

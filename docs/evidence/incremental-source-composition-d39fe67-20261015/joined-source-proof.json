@@ -1,0 +1,20 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "source_basis": "d39fe676a7c1df3323888b25c9481f7bbb65feaa",
+  "command": [
+    "python3",
+    "docs/evidence/incremental-source-composition-d39fe67-20261015/verify_joined.py",
+    "--basis",
+    "d39fe676a7c1df3323888b25c9481f7bbb65feaa"
+  ],
+  "exit_code": 0,
+  "old_hooks_preserved": 3217,
+  "authenticated_added_checkpoint_rows": 46,
+  "unchanged_independent_receivers": 53,
+  "starter_complete_patch_paths": [
+    32,
+    6
+  ],
+  "starter_current_bindings": 38,
+  "capacity834_original_and833_receiving_bound_retained": true
+}

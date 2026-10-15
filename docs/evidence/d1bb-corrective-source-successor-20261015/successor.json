@@ -1,0 +1,18 @@
+{
+  "production_basis": "64222b83381c365c9e4af1e858640b8cf696bfe7",
+  "prior_domain": "d1bb8d4149e9ec96968ffbd8ec26a86d23ea9ae2",
+  "corrective_source_owners": [
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs",
+    "src/cleanup_plan/replay/factored/strategy.rs",
+    "src/cleanup_plan/replay/selected_entry/tests/fact_errors/tree_policy.rs",
+    "src/loan_plan/paid_candidate/retained.rs",
+    "src/source_reflows_merge.rs"
+  ],
+  "assembly_files": [
+    "src/cleanup_plan/replay/selected_entry/tests/fact_errors/tree_policy.rs",
+    "src/source_reflows_merge.rs"
+  ],
+  "new_selectors": 0,
+  "pending_parent_bodies": 310,
+  "source_only": true
+}

@@ -1,0 +1,20 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "basis": "7800b014151b6ce0709c351ccdfd52ae25832e07",
+  "changed_existing_sources": 13,
+  "new_owners": 4,
+  "complete_immediate_receiver": true,
+  "unchanged_independent_owners": 15,
+  "source36_originals": 36,
+  "main_reflows": 85,
+  "presence_rows": 2,
+  "old838_forward_inverse_pairs": 14,
+  "old838_immutable_patch_archive_files": 28,
+  "protected_inputs": {
+    "docs/evidence/held-auth-839/source-inverses.json": "96ecd68d1a6367d8f3fe871d9fc5e14ebca69a02a9d3d263977936a65d844936",
+    "src/source_reflows.json": "5f3e1db001de0daedb9c9cee4fe0ea63fe4f4c00321188ed5cef526f333cbaf9",
+    "src/cleanup_plan/replay/live_oracle/source_custody/presence.json": "3d00424b485ab7c624d08c996dae483878b32be696c37885feb2527db53244fe"
+  },
+  "git_cache_peak_bytes": 2319961,
+  "runtime_qualification_pending": true
+}

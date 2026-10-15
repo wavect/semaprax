@@ -1,0 +1,1 @@
+Actual first preparation refused KeyError: source for warning packet rows whose declared source key is path. The derived preparer now reads that original schema explicitly. No old packet changed and no runtime executed.

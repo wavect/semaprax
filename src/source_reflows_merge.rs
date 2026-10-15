@@ -128,11 +128,23 @@ fn assembled_previous(source: &str, current: &str) -> String {
 // Strict newest input, before the immutable9365 branch domains. No old raw input
 // is accepted as an alternative to its complete current source.
 fn latest_previous(source: &str, current: &str) -> String {
+    let corrected = corrected_previous(source, current);
+    let current = corrected.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main7f-source-successor-20261015/current-to-9365.json")), source, current)
 }
 pub(crate) fn main(source: &str, current: &str) -> String {
     // Authenticate the complete inherited f813 route in its named older view.
     // The live CI consumer keeps the newer87-record main tuple below.
     let _prior = prior_main(source, current);
+    let corrected = corrected_previous(source, current);
+    let current = corrected.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main7f-source-successor-20261015/current-to-main7f.json")), source, current)
+}
+
+// Actual corrective owners authenticate before the immutable d1bb source view.
+fn corrected_previous(source: &str, current: &str) -> String {
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/d1bb-corrective-source-successor-20261015/current-to-d1bb.json")), source, current)
+}
+pub(crate) fn scalar_policy_input(source: &str, current: &str) -> String {
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/d1bb-corrective-source-successor-20261015/scalar-policy-inputs.json")), source, current)
 }

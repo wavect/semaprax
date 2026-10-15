@@ -1,0 +1,24 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "production_basis": "64222b83381c365c9e4af1e858640b8cf696bfe7",
+  "prior_domain": "d1bb8d4149e9ec96968ffbd8ec26a86d23ea9ae2",
+  "strict_corrective_inputs": 5,
+  "strict_stale_negative_controls": 7,
+  "live_main_records": 87,
+  "warning_original_rows": 3,
+  "strategy_original_rows": 1,
+  "scalar_raw_input_transports": 2,
+  "scalar_full_original_inverses": 3,
+  "restored_whole_selected_entry_equality": true,
+  "all_other_assertion_bodies_unchanged": true,
+  "old_runtime_json_and_packets_byte_exact": true,
+  "assembly_files": [
+    "src/cleanup_plan/replay/selected_entry/tests/fact_errors/tree_policy.rs",
+    "src/source_reflows_merge.rs"
+  ],
+  "production_unchanged_by_assembly": true,
+  "new_selectors": 0,
+  "pending_parent_bodies": 310,
+  "git_cache_peak_bytes": 14627550,
+  "runtime_bodies_executed": 0
+}

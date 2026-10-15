@@ -1,0 +1,109 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "assertions_original_bytes": true,
+  "results": [
+    {
+      "label": "d1bb",
+      "source_view": "d1bb8d4149e9ec96968ffbd8ec26a86d23ea9ae2",
+      "original_verifier": "docs/evidence/main7f-source-successor-20261015/verify.py",
+      "original_verifier_sha256": "c662c3eb395afb8f398845d1e1a6d1a29d4edf2b88fac3e062b67f2504dc8b22",
+      "derived_adapter_sha256": "1293db9756cdbafe945c8df8fa50cfc8404c59384aa0ca7f2ae2101f7989adc5",
+      "assertion_code_byte_exact": true,
+      "writes_redirected_to_new_output": {
+        "docs/evidence/main7f-source-successor-20261015/source-proof.json": "85ac50e0ce4e74d258605ea644dc791318ca51f42b3269e6121ef440f4ed2b4d"
+      },
+      "source_only": true,
+      "status": "PASS",
+      "failure": null,
+      "git_cache_peak_bytes": 16771114
+    },
+    {
+      "label": "9365",
+      "source_view": "93650ecbef340264fb09e3be5649cd7962c682ea",
+      "original_verifier": "docs/evidence/final-842-843-source-assembly-20261015/verify.py",
+      "original_verifier_sha256": "2695853ed3250c23fd33d1418b6c1d06c0b0e25947d436b3c7fafa10e873ccdc",
+      "derived_adapter_sha256": "1293db9756cdbafe945c8df8fa50cfc8404c59384aa0ca7f2ae2101f7989adc5",
+      "assertion_code_byte_exact": true,
+      "writes_redirected_to_new_output": {
+        "docs/evidence/final-842-843-source-assembly-20261015/source-proof.json": "cd7b1e46d851784c2cb4c01cfd6553081c08014af6b1d129b091cef26ad2afca"
+      },
+      "source_only": true,
+      "status": "PASS",
+      "failure": null,
+      "git_cache_peak_bytes": 16776712
+    },
+    {
+      "label": "9d",
+      "source_view": "9d4358078f9e2ae7740683c06bbf939284038058",
+      "original_verifier": "docs/evidence/compiler-receiving-fix-7800-20261015/verify.py",
+      "original_verifier_sha256": "733a1543348c67091730c6de382098b16d1ac3db4c1a54efde1de1d1886504d8",
+      "derived_adapter_sha256": "1293db9756cdbafe945c8df8fa50cfc8404c59384aa0ca7f2ae2101f7989adc5",
+      "assertion_code_byte_exact": true,
+      "writes_redirected_to_new_output": {},
+      "source_only": true,
+      "status": "PASS",
+      "failure": null,
+      "git_cache_peak_bytes": 16776712
+    },
+    {
+      "label": "842",
+      "source_view": "8025cd196fd15629cdfb6646fe281fb74f606a04",
+      "original_verifier": "docs/evidence/inline-weighted-successor-842/verify_source.py",
+      "original_verifier_sha256": "bf4513d3715e53be1112a2ec0d94701bc7ad48650395e034d6012aa0dbf0c082",
+      "derived_adapter_sha256": "1293db9756cdbafe945c8df8fa50cfc8404c59384aa0ca7f2ae2101f7989adc5",
+      "assertion_code_byte_exact": true,
+      "writes_redirected_to_new_output": {
+        "docs/evidence/inline-weighted-successor-842/source-inverses.json": "73b32eaf57a0af165fb8377fb1bbdf3a499fe969b159e1e03eee795391c99f95",
+        "docs/evidence/inline-weighted-successor-842/new-source-bindings.json": "b32a9a4efd941a15c0c44472609e3b58ab2fcaf9b5241935ef1ff2929db5eed1",
+        "docs/evidence/inline-weighted-successor-842/prior-guard-execution.log": "e07b0d7475bda23b599aa7ce63ce5262c6e210be273b802b9cb05b709b00d82c",
+        "docs/evidence/inline-weighted-successor-842/source-proof.json": "1916f4dcfe933f5409b958b9717c058bb97210a5fd08a0d7fe6080d9177f84b6"
+      },
+      "source_only": true,
+      "status": "PASS",
+      "failure": null,
+      "git_cache_peak_bytes": 16776712
+    },
+    {
+      "label": "source36-838",
+      "source_view": "7800b014151b6ce0709c351ccdfd52ae25832e07",
+      "original_verifier": "docs/evidence/source-composition-f813-held-20261015/verify_source36.py",
+      "original_verifier_sha256": "0dd7711b9ce1e3646980db5db671e80defca8a62b8375544c52aa72fabe30b71",
+      "derived_adapter_sha256": "1293db9756cdbafe945c8df8fa50cfc8404c59384aa0ca7f2ae2101f7989adc5",
+      "assertion_code_byte_exact": true,
+      "writes_redirected_to_new_output": {},
+      "source_only": true,
+      "status": "PASS",
+      "failure": null,
+      "git_cache_peak_bytes": 16776712
+    },
+    {
+      "label": "838",
+      "source_view": "7800b014151b6ce0709c351ccdfd52ae25832e07",
+      "original_verifier": "docs/evidence/source-composition-f813-held-20261015/verify_838.py",
+      "original_verifier_sha256": "c90122b62533e787252a1fb2cddd1079ab32a7186d2b59581617f57192e792b8",
+      "derived_adapter_sha256": "1293db9756cdbafe945c8df8fa50cfc8404c59384aa0ca7f2ae2101f7989adc5",
+      "assertion_code_byte_exact": true,
+      "writes_redirected_to_new_output": {},
+      "source_only": true,
+      "status": "PASS",
+      "failure": null,
+      "git_cache_peak_bytes": 16776712
+    },
+    {
+      "label": "101-904",
+      "source_view": "7800b014151b6ce0709c351ccdfd52ae25832e07",
+      "original_verifier": "docs/evidence/source-composition-f813-held-20261015/verify_inherited.py",
+      "original_verifier_sha256": "e32b0e031728dea578b95fd51fcc4aea6d35546b75e3557a58e66c3031eb319b",
+      "derived_adapter_sha256": "1293db9756cdbafe945c8df8fa50cfc8404c59384aa0ca7f2ae2101f7989adc5",
+      "assertion_code_byte_exact": true,
+      "writes_redirected_to_new_output": {
+        "docs/evidence/source-composition-f813-held-20261015/inherited-joined-recheck.json": "31c34ef2da33dc162cedbf3a989047bdefe03dfa925e0fca381b4519cc04fa6e"
+      },
+      "source_only": true,
+      "status": "PASS",
+      "failure": null,
+      "git_cache_peak_bytes": 16776712
+    }
+  ],
+  "git_cache_peak_bytes": 16776712
+}

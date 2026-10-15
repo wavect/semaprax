@@ -1,0 +1,62 @@
+{
+  "state": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "base": "d20af8ebf634b63e97fb84fbc5e9fe8242879720",
+  "complete_immediate_rows": 3,
+  "whole_classifier_input_checkpoint": "a6a46a2cde6414611060e195b590377904e5a25e",
+  "all17SourceA_original_full_inverses_equal": true,
+  "SourceA_actual_prefixes_used": true,
+  "SourceA_lines": 1500,
+  "SourceB_and_tail_owner_bytes_unchanged": true,
+  "original_help_normalizations": 47,
+  "positive_current_help_usages": 7,
+  "original_whole_help_pins": [
+    [
+      6628,
+      "0xf7af6dba98e3b6c5"
+    ],
+    [
+      6611,
+      "0x9bf25887156ae19b"
+    ],
+    [
+      6556,
+      "0x40996832a0d0146f"
+    ],
+    [
+      6444,
+      "0x94b0a750eec030eb"
+    ],
+    [
+      6228,
+      "0x98c857a3cc945db2"
+    ],
+    [
+      6186,
+      "0xa3b35e2f0b321ae1"
+    ],
+    [
+      6066,
+      "0xab0d98b4b1a8f9d8"
+    ],
+    [
+      6029,
+      "0xd536df673cb8a1f6"
+    ],
+    [
+      5937,
+      "0xecf80ad53994259f"
+    ],
+    [
+      5802,
+      "0x43481c7a053a9739"
+    ],
+    [
+      5770,
+      "0x3f52e229c16a1830"
+    ]
+  ],
+  "tamper_refusals": 8,
+  "Python_projection_cache_bytes": 0,
+  "new_test_bodies": 0,
+  "runtime_or_gain_claim": false
+}

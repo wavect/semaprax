@@ -1,0 +1,6 @@
+{
+  "new_bodies": 0,
+  "existing_direct_owner": "workspace_graph::identity_resolution::base::cache_billing::tests::cached_prelude_replay_keeps_foreign_core_refusal_sticky",
+  "harness": "semaprax::lib",
+  "execution_performed": false
+}

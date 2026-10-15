@@ -1,0 +1,10 @@
+{
+  "mode": "SOURCE_ONLY_UNEXECUTED_CORRECTION",
+  "basis": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+  "complete_inverse_matches_Git35cc": true,
+  "changed_test_bodies": 2,
+  "production_unchanged": true,
+  "new_test_bodies": 0,
+  "current_sha256": "426cfc4c1ac2c23fc0ecbe8ab3a2879f20a06a0ec35d6b8aa85200ca130d20fd",
+  "before_sha256": "19af35421a90452835f838120d278ba8198fc8b23588cfa9a85e69e385a409de"
+}

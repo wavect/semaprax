@@ -1,0 +1,139 @@
+{
+  "status": "SOURCE_ONLY_TYPE_EQUIVALENCE_NOT_EXECUTED_CLIPPY",
+  "source_basis": "cb9c3a015ed009f72b1e5807ab124585a43a300c",
+  "production_source_changes": [
+    "src/workspace_graph/generic_type_import/receiving.rs",
+    "src/workspace_graph/generic_type_import/parameter_names/receiving.rs"
+  ],
+  "site_count": 14,
+  "sites": [
+    {
+      "source": "src/workspace_graph/generic_type_import/receiving.rs",
+      "original_line": 19,
+      "binding": "ty",
+      "binding_type": "&mut Type",
+      "old": "size_of_val(&ty)",
+      "new": "size_of::<&mut Type>()",
+      "type_equivalence": "size_of_val::<&mut Type>(&ty) receives &T with T = &mut Type; T is Sized, so sizeof_val(&binding) equals size_of::<T>() on every host. References to slices/str retain their full metadata; no referent dereference."
+    },
+    {
+      "source": "src/workspace_graph/generic_type_import/receiving.rs",
+      "original_line": 20,
+      "binding": "parameters",
+      "binding_type": "&BorrowedNames<'_>",
+      "old": "size_of_val(&parameters)",
+      "new": "size_of::<&BorrowedNames<'_>>()",
+      "type_equivalence": "size_of_val::<&BorrowedNames<'_>>(&parameters) receives &T with T = &BorrowedNames<'_>; T is Sized, so sizeof_val(&binding) equals size_of::<T>() on every host. References to slices/str retain their full metadata; no referent dereference."
+    },
+    {
+      "source": "src/workspace_graph/generic_type_import/receiving.rs",
+      "original_line": 21,
+      "binding": "target_module",
+      "binding_type": "&str",
+      "old": "size_of_val(&target_module)",
+      "new": "size_of::<&str>()",
+      "type_equivalence": "size_of_val::<&str>(&target_module) receives &T with T = &str; T is Sized, so sizeof_val(&binding) equals size_of::<T>() on every host. References to slices/str retain their full metadata; no referent dereference."
+    },
+    {
+      "source": "src/workspace_graph/generic_type_import/receiving.rs",
+      "original_line": 22,
+      "binding": "caller",
+      "binding_type": "&Program",
+      "old": "size_of_val(&caller)",
+      "new": "size_of::<&Program>()",
+      "type_equivalence": "size_of_val::<&Program>(&caller) receives &T with T = &Program; T is Sized, so sizeof_val(&binding) equals size_of::<T>() on every host. References to slices/str retain their full metadata; no referent dereference."
+    },
+    {
+      "source": "src/workspace_graph/generic_type_import/receiving.rs",
+      "original_line": 23,
+      "binding": "programs",
+      "binding_type": "&[Program]",
+      "old": "size_of_val(&programs)",
+      "new": "size_of::<&[Program]>()",
+      "type_equivalence": "size_of_val::<&[Program]>(&programs) receives &T with T = &[Program]; T is Sized, so sizeof_val(&binding) equals size_of::<T>() on every host. References to slices/str retain their full metadata; no referent dereference."
+    },
+    {
+      "source": "src/workspace_graph/generic_type_import/receiving.rs",
+      "original_line": 47,
+      "binding": "declaration",
+      "binding_type": "&mut TypeDeclaration",
+      "old": "size_of_val(&declaration)",
+      "new": "size_of::<&mut TypeDeclaration>()",
+      "type_equivalence": "size_of_val::<&mut TypeDeclaration>(&declaration) receives &T with T = &mut TypeDeclaration; T is Sized, so sizeof_val(&binding) equals size_of::<T>() on every host. References to slices/str retain their full metadata; no referent dereference."
+    },
+    {
+      "source": "src/workspace_graph/generic_type_import/receiving.rs",
+      "original_line": 48,
+      "binding": "target_module",
+      "binding_type": "&str",
+      "old": "size_of_val(&target_module)",
+      "new": "size_of::<&str>()",
+      "type_equivalence": "size_of_val::<&str>(&target_module) receives &T with T = &str; T is Sized, so sizeof_val(&binding) equals size_of::<T>() on every host. References to slices/str retain their full metadata; no referent dereference."
+    },
+    {
+      "source": "src/workspace_graph/generic_type_import/receiving.rs",
+      "original_line": 49,
+      "binding": "caller",
+      "binding_type": "&Program",
+      "old": "size_of_val(&caller)",
+      "new": "size_of::<&Program>()",
+      "type_equivalence": "size_of_val::<&Program>(&caller) receives &T with T = &Program; T is Sized, so sizeof_val(&binding) equals size_of::<T>() on every host. References to slices/str retain their full metadata; no referent dereference."
+    },
+    {
+      "source": "src/workspace_graph/generic_type_import/receiving.rs",
+      "original_line": 50,
+      "binding": "programs",
+      "binding_type": "&[Program]",
+      "old": "size_of_val(&programs)",
+      "new": "size_of::<&[Program]>()",
+      "type_equivalence": "size_of_val::<&[Program]>(&programs) receives &T with T = &[Program]; T is Sized, so sizeof_val(&binding) equals size_of::<T>() on every host. References to slices/str retain their full metadata; no referent dereference."
+    },
+    {
+      "source": "src/workspace_graph/generic_type_import/receiving.rs",
+      "original_line": 139,
+      "binding": "declaration",
+      "binding_type": "&mut TypeDeclaration",
+      "old": "size_of_val(&declaration)",
+      "new": "size_of::<&mut TypeDeclaration>()",
+      "type_equivalence": "size_of_val::<&mut TypeDeclaration>(&declaration) receives &T with T = &mut TypeDeclaration; T is Sized, so sizeof_val(&binding) equals size_of::<T>() on every host. References to slices/str retain their full metadata; no referent dereference."
+    },
+    {
+      "source": "src/workspace_graph/generic_type_import/receiving.rs",
+      "original_line": 140,
+      "binding": "target_module",
+      "binding_type": "&str",
+      "old": "size_of_val(&target_module)",
+      "new": "size_of::<&str>()",
+      "type_equivalence": "size_of_val::<&str>(&target_module) receives &T with T = &str; T is Sized, so sizeof_val(&binding) equals size_of::<T>() on every host. References to slices/str retain their full metadata; no referent dereference."
+    },
+    {
+      "source": "src/workspace_graph/generic_type_import/receiving.rs",
+      "original_line": 141,
+      "binding": "caller",
+      "binding_type": "&Program",
+      "old": "size_of_val(&caller)",
+      "new": "size_of::<&Program>()",
+      "type_equivalence": "size_of_val::<&Program>(&caller) receives &T with T = &Program; T is Sized, so sizeof_val(&binding) equals size_of::<T>() on every host. References to slices/str retain their full metadata; no referent dereference."
+    },
+    {
+      "source": "src/workspace_graph/generic_type_import/receiving.rs",
+      "original_line": 142,
+      "binding": "programs",
+      "binding_type": "&[Program]",
+      "old": "size_of_val(&programs)",
+      "new": "size_of::<&[Program]>()",
+      "type_equivalence": "size_of_val::<&[Program]>(&programs) receives &T with T = &[Program]; T is Sized, so sizeof_val(&binding) equals size_of::<T>() on every host. References to slices/str retain their full metadata; no referent dereference."
+    },
+    {
+      "source": "src/workspace_graph/generic_type_import/parameter_names/receiving.rs",
+      "original_line": 29,
+      "binding": "parameters",
+      "binding_type": "&'a [TypeParameterDeclaration]",
+      "old": "size_of_val(&parameters)",
+      "new": "size_of::<&'a [TypeParameterDeclaration]>()",
+      "type_equivalence": "size_of_val::<&'a [TypeParameterDeclaration]>(&parameters) receives &T with T = &'a [TypeParameterDeclaration]; T is Sized, so sizeof_val(&binding) equals size_of::<T>() on every host. References to slices/str retain their full metadata; no referent dereference."
+    }
+  ],
+  "nonreference_layout_control_preserved": "generic_type_import/receiving.rs size_of_val(&layout), with layout:Option<&LayoutClosure>, is unchanged",
+  "new_selectors": []
+}

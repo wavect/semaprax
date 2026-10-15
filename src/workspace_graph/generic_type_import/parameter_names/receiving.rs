@@ -6,7 +6,7 @@ use crate::workspace_graph::constructor_failure::{
     receiving::{Receiver, Setup},
     typed::Failure,
 };
-use std::mem::{size_of, size_of_val};
+use std::mem::size_of;
 
 fn physical(requested: usize, owner: &mut Receiver) -> Failure {
     match owner.physical_request(requested) {
@@ -26,7 +26,7 @@ pub(in crate::workspace_graph::generic_type_import) fn new<'a>(
 ) -> Result<BorrowedNames<'a>, Failure> {
     owner.entry::<BorrowedNames<'a>>()?;
     owner.reserve(
-        size_of_val(&parameters)
+        size_of::<&'a [TypeParameterDeclaration]>()
             + 3 * size_of::<usize>() // count, payload and full request
             + size_of::<Ordinals>()
             + size_of::<Option<usize>>()

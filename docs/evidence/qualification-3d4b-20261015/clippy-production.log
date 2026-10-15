@@ -1,0 +1,135 @@
+    Checking rustls v0.23.46
+    Checking tokio-rustls v0.26.5
+    Checking rustls-platform-verifier v0.7.0
+    Checking hyper-rustls v0.27.9
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+    Checking reqwest v0.13.5
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/generic_type_import/parameter_names/receiving.rs:29:9
+   |
+29 |         size_of_val(&parameters)
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+   = note: `-D clippy::size-of-ref` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::size_of_ref)]`
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/generic_type_import/receiving.rs:19:9
+   |
+19 |         size_of_val(&ty)
+   |         ^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/generic_type_import/receiving.rs:20:15
+   |
+20 |             + size_of_val(&parameters)
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/generic_type_import/receiving.rs:21:15
+   |
+21 |             + size_of_val(&target_module)
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/generic_type_import/receiving.rs:22:15
+   |
+22 |             + size_of_val(&caller)
+   |               ^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/generic_type_import/receiving.rs:23:15
+   |
+23 |             + size_of_val(&programs),
+   |               ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/generic_type_import/receiving.rs:47:9
+   |
+47 |         size_of_val(&declaration)
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/generic_type_import/receiving.rs:48:15
+   |
+48 |             + size_of_val(&target_module)
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/generic_type_import/receiving.rs:49:15
+   |
+49 |             + size_of_val(&caller)
+   |               ^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/generic_type_import/receiving.rs:50:15
+   |
+50 |             + size_of_val(&programs),
+   |               ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/generic_type_import/receiving.rs:139:9
+    |
+139 |         size_of_val(&declaration)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/generic_type_import/receiving.rs:140:15
+    |
+140 |             + size_of_val(&target_module)
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/generic_type_import/receiving.rs:141:15
+    |
+141 |             + size_of_val(&caller)
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/generic_type_import/receiving.rs:142:15
+    |
+142 |             + size_of_val(&programs)
+    |               ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: could not compile `semaprax` (lib) due to 14 previous errors

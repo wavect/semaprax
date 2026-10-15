@@ -1,0 +1,22 @@
+module decimal.tests;
+
+@id("decimal.tests.main")
+fn main() -> i64
+{
+    0
+}
+
+@id("decimal.tests.test_a_refusal")
+fn test_a_refusal() -> i64
+{
+    while true {
+        0
+    }
+    0
+}
+
+@id("decimal.tests.test_z_after")
+fn test_z_after() -> i64
+{
+    0
+}

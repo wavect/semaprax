@@ -1,0 +1,62 @@
+[
+  {
+    "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "sha256": "d764e8d6fbd373a2dbb40953baabf688fb4459562760fd5e1545cb9b73b9e6b0",
+    "lines": 1483
+  },
+  {
+    "path": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+    "sha256": "1d87c88e53860e44af4e07eb2f57ddee8df39cdc7d279f47065c4ceced66cb67",
+    "lines": 1500
+  },
+  {
+    "path": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+    "sha256": "4d534b5433078d8d65ec9f09c7f763614a177cd743aa02465de64c023e509173",
+    "lines": 1384
+  },
+  {
+    "path": "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+    "sha256": "3bd6542c7aa084abfbcad85afbc41bc625c853a839ce79e13b1ea9e21acdff5a",
+    "lines": 41
+  },
+  {
+    "path": "src/cleanup_plan/replay/live_oracle/source_custody/presence.rs",
+    "sha256": "03b4585e17a71796a4daf7fcee5ac9b527b226ffc255e97e41bedc0c5291b987",
+    "lines": 28
+  },
+  {
+    "path": "src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs",
+    "sha256": "0f634bae3a57dff7216527c6cfc4a9391db9532a09000dc41389edd68f1ae3f1",
+    "lines": 8
+  },
+  {
+    "path": "src/cleanup_plan/replay/live_oracle/source_custody.rs",
+    "sha256": "8c9fc655e264eda062eacbf629bbfe337b5d86b940e490d5d7e06b6e10a095ec",
+    "lines": 14
+  },
+  {
+    "path": "src/lib.rs",
+    "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de",
+    "lines": 623
+  },
+  {
+    "path": "src/source_reflows.rs",
+    "sha256": "af2279e4f3d42796e66b1aa418375316ed1615d6bc60bf02a804367f91e4f732",
+    "lines": 129
+  },
+  {
+    "path": "src/source_reflows_merge.rs",
+    "sha256": "ad2ffd15475d61dd305b5d3e3afcb8ba98807d8e597c159ede6f928060985c8a",
+    "lines": 61
+  },
+  {
+    "path": "tests/hir_module_boundaries.rs",
+    "sha256": "055a8f7ddd8b9f5b2d12122154de053a0a6823b75c298580cd4770628c4e8851",
+    "lines": 815
+  },
+  {
+    "path": "tests/workspace/semantic_graph/source_inventory.rs",
+    "sha256": "4a1920f6abdff90036fe9afabe687c091b08a38d4f26a28e2e7c7feb678cbd14",
+    "lines": 658
+  }
+]

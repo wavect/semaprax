@@ -1,0 +1,5972 @@
+//! Public read-only Workspace Semantic Graph over an authenticated managed workspace.
+//! The route holds the shared lock through bounded resolution, canonical rendering, final
+//! authentication, and checked unlock; the CLI prints the API body plus one terminal LF.
+//!
+//! This module exposes no parser, verifier, raw-source constructor, write,
+//! staging, ACTIVE-pivot, backend, or runtime authority.
+#![allow(
+    dead_code,
+    reason = "sealed validation and test-only replay seams remain non-public"
+)]
+mod builder_bytes_report;
+mod callee_inventory;
+mod checked_value_retention;
+#[path = "workspace_graph/import_validation.rs"]
+mod import_validation;
+use checked_value_retention::retained_signature_type_facts;
+mod constructor_failure;
+mod dependency_pruning;
+pub(crate) mod diagnostics;
+mod expected_projection;
+#[cfg(test)]
+pub(crate) mod forecast_observation;
+mod generic_type_import;
+mod identity_resolution;
+mod operation_sidecar;
+mod owned_function_import;
+use callee_inventory::resolved_function_callees;
+mod agent_execution;
+mod indexed_rust;
+mod loan_retention;
+use loan_retention::retained_function_loan_bytes;
+mod native_law;
+mod owned_generics;
+mod package;
+mod paid_view;
+pub(crate) use paid_view::{ReceivingSources, ViewRefusal};
+mod prelude_binding;
+mod project_render;
+mod record_traversal;
+mod retain_module;
+mod retained_validation;
+mod retained_vectors;
+mod session_protocol_decl;
+mod shape_identity;
+pub(crate) mod source_callables;
+mod source_schema;
+mod static_text;
+use retain_module::retain_workspace_module;
+mod checked_retention;
+use crate::project::incremental::checked_hir::ResolvedModuleInput;
+use checked_retention::Retained;
+mod validation;
+use crate::ast::{
+    Expr, ExprKind, Function, ModuleUse, ModuleUseKind, ParamMode, Program, Span, Type,
+    TypeDeclaration, TypeDeclarationKind,
+};
+use crate::bounded_output::staged;
+use crate::diagnostic::Diagnostic;
+use crate::{format, graph, hir, prelude, project::ProjectProfile as P, workspace};
+use diagnostics::{graph_error, limit_error, project_function_error, use_error};
+use expected_projection::{
+    collect_expected_edges, synthetic_program, validate_dependency_dag, verify_resolved_call_edges,
+};
+#[cfg(test)]
+use expected_projection::{dependency_depths, synthetic_builder_bytes};
+use operation_sidecar::build_operation_sidecar;
+pub(crate) use operation_sidecar::project_operation_sidecar;
+use project_render::render_project_graph_json;
+#[cfg(test)]
+use retained_validation::validate_effect_and_capability_edges;
+#[cfg(test)]
+use retained_validation::validate_retained_facts;
+use retained_vectors::{
+    filter_owned_vec, filter_owned_vec_accounted, reserve_workspace_module_carrier,
+};
+use sha2::{Digest, Sha256};
+use shape_identity::{require_retained_shape_fact, top_level_declaration};
+mod type_names;
+use std::cell::Cell;
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
+use type_names::type_contains_name_from;
+use validation::{
+    expected_declaration_facts, validate_stub_signatures_authored, WorkspaceValidationIndex,
+};
+pub(crate) const MAX_FILES: usize = 32;
+const MAX_TOTAL_SOURCE_BYTES: usize = 16 * 1024 * 1024;
+const MAX_DECLARATIONS: usize = 4096;
+const MAX_CALLABLES: usize = 1024;
+const MAX_CALLS: usize = 65_536;
+const MAX_USES: usize = 4096;
+const MAX_CROSS_FILE_EDGES: usize = 65_536;
+const MAX_DEPENDENCY_DEPTH: usize = 16;
+pub(crate) const MAX_BUILDER_BYTES: usize = 64 * 1024 * 1024;
+const MAX_CHANGE_BUILDER_BYTES: usize = 32 * 1024 * 1024;
+const MAX_OUTPUT_BYTES: usize = 16 * 1024 * 1024;
+const MAX_ENTRY_MODULE_BYTES: usize = 16 * 1024 * 1024;
+const WORKSPACE_GRAPH_SCHEMA: &str = "semaprax.workspace-semantic-graph.v1";
+const WORKSPACE_MANIFEST_SCHEMA: &str = "semaprax.workspace-semantic-manifest.v1";
+const ARTIFACT_DIGEST_DOMAIN: &[u8] = b"semaprax.workspace-semantic-graph.artifact-digest.v1\0";
+const PROJECT_GRAPH_SCHEMA: &str = "semaprax.project-semantic-graph.v1";
+const PROJECT_GRAPH_DIGEST_DOMAIN: &[u8] = b"semaprax.project-semantic-graph.artifact-digest.v1\0";
+const PROJECT_GRAPH_NONCLAIMS: [&str; 9] = [
+    "authenticated_declared_project_inputs_not_managed_workspace_state",
+    "no_exclusive_lock_stage_publish_apply_or_commit_authority",
+    "not_patch_evidence_signature_provenance_approval_or_reusable_authorization",
+    "no_target_codegen_artifact_project_test_or_external_execution",
+    "no_generic_resource_interface_ownership_or_lifetime_composition",
+    "no_dynamic_linking_package_registry_network_or_dependency_fetch",
+    "no_incremental_cache_persistence_or_repository_index",
+    "no_create_delete_move_or_source_rewrite",
+    "no_external_consumer_compatibility",
+];
+const NONCLAIMS: [&str; 18] = [
+    "no_exclusive_lock_stage_publish_apply_or_commit_authority",
+    "not_patch_evidence_signature_provenance_approval_or_reusable_authorization",
+    "not_general_formal_proof_or_behavioral_equivalence_certificate",
+    "no_target_codegen_artifact_project_test_or_external_execution",
+    "no_cross_file_impact_review_context_repair_or_patch_generation",
+    "no_cross_file_agent_context_embedding_or_search",
+    "no_generic_cross_file_composition",
+    "no_cross_file_resource_interface_ownership_borrowing_or_lifetime_composition",
+    "no_reexport_wildcard_implicit_or_ambiguous_imports",
+    "no_dynamic_linking_package_registry_network_or_dependency_fetch",
+    "no_raw_working_tree_git_editor_or_unmanaged_file_analysis",
+    "no_create_delete_move_or_flat_materialization",
+    "no_incremental_cache_persistence_or_repository_index",
+    "no_automatic_recovery_rollback_cleanup_or_gc",
+    "no_power_loss_network_nfs_or_overlay_guarantee",
+    "no_acl_xattr_ads_preservation",
+    "no_new_patch_source_graph_cleanup_backend_or_runtime_semantics",
+    "no_external_consumer_compatibility",
+];
+thread_local! {
+    static ACTIVE_BUILDER_LIMIT: Cell<usize> = const { Cell::new(MAX_BUILDER_BYTES) };
+    #[cfg(test)]
+    static CORE_BUILD_ATTEMPTS: Cell<usize> = const { Cell::new(0) };
+}
+// Fixed resolver nodes are bounded by the structural bundles asserted below:
+// every HIR node, cleanup slot, and plan entry derived from one AST node fits
+// in sixteen footprints of that node. Eight further footprints cover the
+// map/tree node bookkeeping retained around each node, so structural source
+// bytes expand by at most 24. Generic materializations are charged as
+// additional complete function trees before applying the factor.
+const HIR_FIXED_EXPANSION_FACTOR: usize = 16;
+const HIR_STRUCTURE_BOOKKEEPING_FACTOR: usize = 8;
+const HIR_STRUCTURE_EXPANSION_FACTOR: usize =
+    HIR_FIXED_EXPANSION_FACTOR + HIR_STRUCTURE_BOOKKEEPING_FACTOR;
+// The resolver retains at most 48 owned copies of any source string across its
+// AST clone, declaration/name/type indexes, resolved HIR, cleanup structures,
+// and validation indexes. String contents therefore expand by 64 to leave
+// sixteen copies for map/tree node bookkeeping; the string headers themselves
+// are structural bytes.
+const HIR_STRING_COPY_FACTOR: usize = 64;
+// A declaration identity at one resolved occurrence is retained by the HIR
+// node, the declaration, type and call indexes, the validation sets, the
+// cleanup inventory, the cleanup-plan projection, and the retained edge set:
+// eight structures, each able to hold it as a map key and as a value, which
+// also covers the transient resolver maps live beside them. The slot count
+// already enumerates the occurrences, so the earlier 64 billed every slot for
+// the whole resolver twice. Workspace Semantic Graph v1 records the evidence.
+const HIR_IDENTITY_COPY_FACTOR: usize = 16;
+const HIR_EXPR_FIXED_BUNDLE: usize = std::mem::size_of::<hir::ResolvedExpr>()
+    + std::mem::size_of::<hir::ResolvedBinding>()
+    + std::mem::size_of::<hir::ResolvedStatement>()
+    + std::mem::size_of::<hir::ResolvedFieldInitializer>()
+    + std::mem::size_of::<hir::ResolvedMatchArm>()
+    + std::mem::size_of::<hir::ResolvedMatchPatternField>()
+    + std::mem::size_of::<hir::ResolvedRecordMatchPatternField>()
+    + std::mem::size_of::<crate::cleanup::CleanupStorageSlot>()
+    + std::mem::size_of::<crate::cleanup::CleanupEntryState>()
+    + std::mem::size_of::<crate::cleanup::CleanupFlag>()
+    + std::mem::size_of::<crate::cleanup::CleanupPlace>()
+    + std::mem::size_of::<crate::cleanup_plan::CleanupSlot>()
+    + std::mem::size_of::<crate::cleanup_plan::CleanupEntryState>()
+    + std::mem::size_of::<crate::cleanup_plan::CleanupTransition>()
+    + std::mem::size_of::<crate::cleanup_plan::CleanupBlock>()
+    + std::mem::size_of::<crate::cleanup_plan::CleanupEdge>()
+    + std::mem::size_of::<crate::cleanup_plan::CleanupRegion>()
+    + crate::loan_plan::REACHABILITY_BYTES_PER_EXPRESSION;
+const HIR_FUNCTION_FIXED_BUNDLE: usize = std::mem::size_of::<hir::ResolvedFunction>()
+    + std::mem::size_of::<hir::ResolvedFunctionTemplate>()
+    + std::mem::size_of::<hir::ResolvedFunctionInstance>()
+    + std::mem::size_of::<crate::cleanup::CleanupInventory>()
+    + std::mem::size_of::<crate::cleanup_plan::CleanupPlan>()
+    + crate::loan_plan::REACHABILITY_FIXED_BYTES;
+const HIR_DECLARATION_FIXED_BUNDLE: usize = std::mem::size_of::<hir::Declaration>() * 12
+    + std::mem::size_of::<hir::ResolvedTypeDeclaration>()
+    + std::mem::size_of::<hir::ResolvedVariantCaseDeclaration>()
+    + std::mem::size_of::<hir::ResolvedFieldDeclaration>()
+    + std::mem::size_of::<hir::ResolvedInterface>()
+    + std::mem::size_of::<hir::ResolvedImport>();
+const _: () = assert!(
+    HIR_EXPR_FIXED_BUNDLE <= HIR_FIXED_EXPANSION_FACTOR * std::mem::size_of::<crate::ast::Expr>()
+);
+const _: () = assert!(
+    HIR_FUNCTION_FIXED_BUNDLE
+        <= HIR_FIXED_EXPANSION_FACTOR * std::mem::size_of::<crate::ast::Function>()
+);
+const _: () = assert!(
+    HIR_DECLARATION_FIXED_BUNDLE
+        <= HIR_FIXED_EXPANSION_FACTOR * std::mem::size_of::<crate::ast::TypeDeclaration>()
+);
+#[derive(Clone)]
+pub(crate) struct WorkspaceSource {
+    pub(crate) path: String,
+    pub(crate) source: String,
+}
+pub(crate) struct WorkspaceGraphBuild {
+    current_sources: Option<current_source::ParsedSources>,
+    hir: ValidatedWorkspaceHir,
+    edges: Vec<WorkspaceEdge>,
+    usage: WorkspaceGraphWorkUsage,
+    change_fingerprints: Option<BTreeMap<String, String>>,
+    change_builder_bytes: usize,
+    operation_sidecar: Option<WorkspaceOperationSidecar>,
+    operation_builder_bytes: usize,
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ProjectGraphSourceFact {
+    pub(crate) path: String,
+    pub(crate) source_graph_schema: String,
+    pub(crate) source_revision: String,
+    pub(crate) source_digest: String,
+}
+pub(crate) struct ProjectSemanticParts {
+    pub(crate) entry_program: hir::ResolvedProgram,
+    pub(crate) web_program: hir::ResolvedProgram,
+    pub(crate) test_program: hir::ResolvedProgram,
+    pub(crate) projection: WorkspaceGraphProjection,
+}
+pub(crate) struct ProjectWebRoots<'a> {
+    pub(crate) stable_ids: &'a [String],
+    pub(crate) profile: crate::project::ProjectProfile,
+    pub(crate) dependency_anchors: bool,
+}
+pub(crate) struct ProjectSemanticGraphArtifact {
+    json: String,
+    digest: String,
+}
+impl ProjectSemanticGraphArtifact {
+    /// Transfer the completed artifact into retained Project state without
+    /// copying its complete JSON or changing any rendering/budget receipt.
+    pub(crate) fn into_parts(self) -> (String, String) {
+        (self.json, self.digest)
+    }
+}
+pub(crate) struct WorkspaceGraphOperationView {
+    pub(crate) graph: WorkspaceGraphChangeView,
+    pub(crate) sidecar: WorkspaceOperationSidecar,
+    pub(crate) builder_bytes: usize,
+    pub(crate) change_builder_bytes: usize,
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WorkspaceOperationOccurrence {
+    pub(crate) path: String,
+    pub(crate) span: Span,
+    pub(crate) owner: Option<String>,
+    pub(crate) shorthand_binding: Option<String>,
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WorkspaceOperationDeclaration {
+    pub(crate) path: String,
+    pub(crate) module: String,
+    pub(crate) id: String,
+    pub(crate) kind: &'static str,
+    pub(crate) explicit: bool,
+    pub(crate) name: String,
+    pub(crate) namespace_owner: Option<String>,
+    pub(crate) span: Span,
+    pub(crate) normalized_fingerprint: String,
+    pub(crate) occurrences: Vec<WorkspaceOperationOccurrence>,
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WorkspaceOperationImport {
+    pub(crate) path: String,
+    pub(crate) kind: &'static str,
+    pub(crate) target_id: String,
+    pub(crate) target_module: String,
+    pub(crate) alias: String,
+    pub(crate) occurrences: Vec<WorkspaceOperationOccurrence>,
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WorkspaceOperationSidecar {
+    pub(crate) declarations: Vec<WorkspaceOperationDeclaration>,
+    pub(crate) imports: Vec<WorkspaceOperationImport>,
+}
+pub(crate) struct WorkspaceGraphChangeView {
+    modules: Vec<WorkspaceGraphChangeModule>,
+    declarations: Vec<WorkspaceGraphChangeDeclaration>,
+    edges: Vec<WorkspaceEdge>,
+    dependency_depths: BTreeMap<String, usize>,
+    shared_prelude_ids: Vec<&'static str>,
+    usage: WorkspaceGraphWorkUsage,
+}
+pub(crate) struct WorkspaceGraphChangeSourceFact {
+    pub(crate) path: String,
+    pub(crate) source_graph_schema: String,
+    pub(crate) source_revision: String,
+    pub(crate) source_digest: String,
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WorkspaceGraphChangeModule {
+    path: String,
+    module: String,
+    source_graph_schema: &'static str,
+    permits: Vec<String>,
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WorkspaceGraphChangeDeclaration {
+    id: String,
+    kind: hir::DeclarationKind,
+    origin: hir::IdentityOrigin,
+    owner: Option<String>,
+    path: Option<String>,
+    module: Option<String>,
+    semantic_fingerprint: String,
+}
+pub(crate) struct AuthenticatedWorkspaceGraphBuild {
+    workspace_revision: String,
+    sources: BTreeMap<String, AuthenticatedSourceFact>,
+    storage: AuthenticatedWorkspaceStorageUsage,
+    graph: WorkspaceGraphBuild,
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct AuthenticatedSourceFact {
+    path: String,
+    source_graph_schema: String,
+    source_revision: String,
+    source_digest: String,
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct AuthenticatedWorkspaceStorageUsage {
+    manifest_bytes: usize,
+    retained_generations: usize,
+    staging_attempts: usize,
+    unexpected_inventory_entries: usize,
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct WorkspaceGraphWorkUsage {
+    managed_files: usize,
+    total_source_bytes: usize,
+    declarations: usize,
+    callables: usize,
+    call_sites: usize,
+    uses: usize,
+    resolved_cross_file_edges: usize,
+    dependency_depth: usize,
+    builder_bytes: usize,
+}
+pub(crate) struct WorkspaceGraphProjection {
+    workspace_revision: String,
+    entry_module: String,
+    modules: Vec<WorkspaceGraphProjectionModule>,
+    declarations: Vec<WorkspaceGraphProjectionDeclaration>,
+    edges: Vec<WorkspaceEdge>,
+    shared_prelude_ids: Vec<&'static str>,
+    usage: WorkspaceGraphProjectionUsage,
+}
+pub struct WorkspaceSemanticGraph {
+    workspace_revision: String,
+    graph_digest: String,
+    entry: WorkspaceSemanticGraphEntry,
+    modules: Vec<WorkspaceSemanticGraphModule>,
+    declarations: Vec<WorkspaceSemanticGraphDeclaration>,
+    edges: Vec<WorkspaceSemanticGraphEdge>,
+    limits: WorkspaceSemanticGraphLimits,
+    budget: WorkspaceSemanticGraphBudget,
+    json: String,
+}
+pub struct WorkspaceSemanticGraphEntry {
+    module: String,
+    path: String,
+}
+pub struct WorkspaceSemanticGraphModule {
+    path: String,
+    module: String,
+    source_graph_schema: String,
+    source_revision: String,
+    source_digest: String,
+    dependency_depth: usize,
+    permits: Vec<String>,
+}
+pub struct WorkspaceSemanticGraphDeclaration {
+    id: String,
+    kind: &'static str,
+    identity_origin: &'static str,
+    owner: Option<String>,
+    path: Option<String>,
+    module: Option<String>,
+}
+pub struct WorkspaceSemanticGraphEdge {
+    caller_path: String,
+    caller: String,
+    target_path: String,
+    target: String,
+    kind: &'static str,
+    site: &'static str,
+    expression: String,
+    ast_path: String,
+    alias: String,
+    ordinal: usize,
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct WorkspaceSemanticGraphLimits {
+    max_managed_files: usize,
+    max_reachable_modules: usize,
+    max_entry_module_bytes: usize,
+    max_total_source_bytes: usize,
+    max_declarations: usize,
+    max_callables: usize,
+    max_call_sites: usize,
+    max_uses: usize,
+    max_resolved_cross_file_edges: usize,
+    max_dependency_depth: usize,
+    max_builder_bytes: usize,
+    max_manifest_bytes: usize,
+    max_output_bytes: usize,
+    max_retained_generations: usize,
+    max_staging_attempts: usize,
+    max_unexpected_inventory_entries: usize,
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct WorkspaceSemanticGraphBudget {
+    used_managed_files: usize,
+    used_reachable_modules: usize,
+    used_entry_module_bytes: usize,
+    used_total_source_bytes: usize,
+    used_declarations: usize,
+    used_callables: usize,
+    used_call_sites: usize,
+    used_uses: usize,
+    used_resolved_cross_file_edges: usize,
+    used_dependency_depth: usize,
+    used_builder_bytes: usize,
+    used_manifest_bytes: usize,
+    used_output_bytes: usize,
+    used_retained_generations: usize,
+    used_staging_attempts: usize,
+    used_unexpected_inventory_entries: usize,
+}
+pub(crate) struct WorkspaceGraphProjectionModule {
+    path: String,
+    module: String,
+    source_graph_schema: String,
+    source_revision: String,
+    source_digest: String,
+    dependency_depth: usize,
+    permits: Vec<String>,
+    types: Vec<hir::ResolvedTypeDeclaration>,
+    interfaces: Vec<hir::ResolvedInterface>,
+    functions: Vec<hir::ResolvedFunction>,
+    function_templates: Vec<hir::ResolvedFunctionTemplate>,
+    function_instances: Vec<hir::ResolvedFunctionInstance>,
+    signature_types: BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
+    /// Canonical facts of this module's own declared session protocols
+    /// (issue #297) and endpoint typestate `follows` bindings (issue #297
+    /// follow-on, R21), in that order. A declaration fact starts
+    /// `{"stable_id":...`; a `follows` binding fact starts `{"function":...`
+    /// -- the two shapes are distinguished by that leading key alone, so no
+    /// extra discriminator field or second `Vec` is needed
+    /// (`render_graph_json` partitions on it).
+    session_protocol_facts: Vec<String>,
+}
+pub(crate) struct WorkspaceGraphProjectionDeclaration {
+    id: String,
+    kind: hir::DeclarationKind,
+    origin: hir::IdentityOrigin,
+    owner: Option<String>,
+    path: Option<String>,
+    module: Option<String>,
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct WorkspaceGraphProjectionUsage {
+    used_managed_files: usize,
+    used_total_source_bytes: usize,
+    used_entry_module_bytes: usize,
+    used_declarations: usize,
+    used_callables: usize,
+    used_call_sites: usize,
+    used_uses: usize,
+    used_resolved_cross_file_edges: usize,
+    used_dependency_depth: usize,
+    used_builder_bytes: usize,
+    used_manifest_bytes: usize,
+    used_output_bytes: usize,
+    used_retained_generations: usize,
+    used_staging_attempts: usize,
+    used_unexpected_inventory_entries: usize,
+    used_reachable_modules: usize,
+}
+struct ValidatedWorkspaceHir {
+    modules: Vec<WorkspaceResolvedModule>,
+    module_paths: BTreeMap<String, String>,
+    dependency_depths: BTreeMap<String, usize>,
+    declarations: BTreeMap<String, WorkspaceDeclarationFact>,
+    shared_prelude_ids: BTreeSet<&'static str>,
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct WorkspaceDeclarationFact {
+    kind: hir::DeclarationKind,
+    origin: hir::IdentityOrigin,
+    owner: Option<String>,
+    path: Option<String>,
+    module: Option<String>,
+}
+fn insert_expected_compiler_declaration(
+    facts: &mut BTreeMap<String, WorkspaceDeclarationFact>,
+    id: &str,
+    kind: hir::DeclarationKind,
+    owner: Option<&str>,
+) -> Result<(), Vec<Diagnostic>> {
+    validation::insert_expected_compiler_declaration(facts, id, kind, owner)
+}
+struct WorkspaceResolvedModule {
+    path: String,
+    module: String,
+    permits: Vec<String>,
+    agents: Retained<hir::ResolvedAgentDeclaration>,
+    types: Retained<hir::ResolvedTypeDeclaration>,
+    interfaces: Vec<hir::ResolvedInterface>,
+    functions: Retained<hir::ResolvedFunction>,
+    function_templates: Retained<hir::ResolvedFunctionTemplate>,
+    function_instances: Vec<hir::ResolvedFunctionInstance>,
+    signature_types: BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
+    /// Canonical facts of this module's own declared session protocols
+    /// (issue #297) and endpoint typestate `follows` bindings (issue #297
+    /// follow-on, R21), in that order, bound by `retain_workspace_module`. A
+    /// declaration fact starts `{"stable_id":...`; a `follows` binding fact
+    /// starts `{"function":...` -- the two shapes are distinguished by that
+    /// leading key alone, so no extra discriminator field or second `Vec` is
+    /// needed (`render_graph_json` partitions on it).
+    session_protocol_facts: Vec<String>,
+    // Only the authored native-law bytes own this schema; the resolved module
+    // is an inert internal carrier with no executable declarations.
+    native_law: bool,
+    static_text: Option<Box<static_text::Inventory>>,
+    scalar_helpers: Option<Box<static_text::scalar_helpers::Inventory>>,
+    record_closure: Option<Box<static_text::record_closure::Inventory>>,
+    record_source_revision: Option<[u8; 32]>,
+    // Live-reconstructed on every retention; never serialized or trusted alone.
+    scalar_lexical: Option<Box<static_text::scalar_lexical::Inventory>>,
+}
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub(crate) struct WorkspaceEdge {
+    caller_path: String,
+    caller: String,
+    target_path: String,
+    target: String,
+    kind: &'static str,
+    site: &'static str,
+    expression: String,
+    ast_path: String,
+    alias: String,
+    ordinal: usize,
+}
+impl WorkspaceGraphProjection {
+    pub(crate) fn workspace_revision(&self) -> &str {
+        &self.workspace_revision
+    }
+    pub(crate) fn entry_module(&self) -> &str {
+        &self.entry_module
+    }
+    pub(crate) fn modules(&self) -> &[WorkspaceGraphProjectionModule] {
+        &self.modules
+    }
+    pub(crate) fn declarations(&self) -> &[WorkspaceGraphProjectionDeclaration] {
+        &self.declarations
+    }
+    pub(crate) fn edges(&self) -> &[WorkspaceEdge] {
+        &self.edges
+    }
+    pub(crate) fn shared_prelude_ids(&self) -> &[&'static str] {
+        &self.shared_prelude_ids
+    }
+    pub(crate) fn usage(&self) -> WorkspaceGraphProjectionUsage {
+        self.usage
+    }
+    #[cfg(test)]
+    pub(crate) fn push_analysis_test_edge(
+        &mut self,
+        caller_path: String,
+        caller: String,
+        target_path: String,
+        target: String,
+        kind: &'static str,
+    ) {
+        self.edges.push(WorkspaceEdge {
+            caller_path,
+            caller,
+            target_path,
+            target,
+            kind,
+            site: "test",
+            expression: "test".to_owned(),
+            ast_path: "test".to_owned(),
+            alias: String::new(),
+            ordinal: self.edges.len(),
+        });
+    }
+}
+impl WorkspaceGraphProjectionModule {
+    /// Compiler-checked facts for exact nominal parameters and returns, including functions
+    /// outside the entry/test closures. Never reconstructed from source labels.
+    pub(crate) fn signature_type_facts(
+        &self,
+        ty: &hir::ResolvedType,
+    ) -> Option<&(hir::DeclarationKind, hir::TypeFacts)> {
+        self.signature_types.get(&ty.identity_key())
+    }
+    /// Exact checked nominal value facts, including body/contract expressions,
+    /// local bindings and nested patterns. This is the same bounded inventory
+    /// as signature facts; a missing entry never implies Copy eligibility.
+    pub(crate) fn value_type_facts(
+        &self,
+        ty: &hir::ResolvedType,
+    ) -> Option<&(hir::DeclarationKind, hir::TypeFacts)> {
+        self.signature_type_facts(ty)
+    }
+    pub(crate) fn path(&self) -> &str {
+        &self.path
+    }
+    pub(crate) fn module(&self) -> &str {
+        &self.module
+    }
+    pub(crate) fn source_graph_schema(&self) -> &str {
+        &self.source_graph_schema
+    }
+    pub(crate) fn source_revision(&self) -> &str {
+        &self.source_revision
+    }
+    pub(crate) fn source_digest(&self) -> &str {
+        &self.source_digest
+    }
+    pub(crate) fn dependency_depth(&self) -> usize {
+        self.dependency_depth
+    }
+    pub(crate) fn permits(&self) -> &[String] {
+        &self.permits
+    }
+    pub(crate) fn types(&self) -> &[hir::ResolvedTypeDeclaration] {
+        &self.types
+    }
+    pub(crate) fn interfaces(&self) -> &[hir::ResolvedInterface] {
+        &self.interfaces
+    }
+    pub(crate) fn functions(&self) -> &[hir::ResolvedFunction] {
+        &self.functions
+    }
+    pub(crate) fn function_templates(&self) -> &[hir::ResolvedFunctionTemplate] {
+        &self.function_templates
+    }
+    pub(crate) fn function_instances(&self) -> &[hir::ResolvedFunctionInstance] {
+        &self.function_instances
+    }
+}
+impl WorkspaceGraphProjectionDeclaration {
+    pub(crate) fn id(&self) -> &str {
+        &self.id
+    }
+    pub(crate) fn kind(&self) -> hir::DeclarationKind {
+        self.kind
+    }
+    pub(crate) fn origin(&self) -> hir::IdentityOrigin {
+        self.origin
+    }
+    pub(crate) fn owner(&self) -> Option<&str> {
+        self.owner.as_deref()
+    }
+    pub(crate) fn path(&self) -> Option<&str> {
+        self.path.as_deref()
+    }
+    pub(crate) fn module(&self) -> Option<&str> {
+        self.module.as_deref()
+    }
+}
+impl WorkspaceGraphProjectionUsage {
+    pub(crate) fn used_managed_files(self) -> usize {
+        self.used_managed_files
+    }
+    pub(crate) fn used_total_source_bytes(self) -> usize {
+        self.used_total_source_bytes
+    }
+    pub(crate) fn used_entry_module_bytes(self) -> usize {
+        self.used_entry_module_bytes
+    }
+    pub(crate) fn used_declarations(self) -> usize {
+        self.used_declarations
+    }
+    pub(crate) fn used_callables(self) -> usize {
+        self.used_callables
+    }
+    pub(crate) fn used_call_sites(self) -> usize {
+        self.used_call_sites
+    }
+    pub(crate) fn used_uses(self) -> usize {
+        self.used_uses
+    }
+    pub(crate) fn used_resolved_cross_file_edges(self) -> usize {
+        self.used_resolved_cross_file_edges
+    }
+    pub(crate) fn used_dependency_depth(self) -> usize {
+        self.used_dependency_depth
+    }
+    pub(crate) fn used_builder_bytes(self) -> usize {
+        self.used_builder_bytes
+    }
+    pub(crate) fn used_manifest_bytes(self) -> usize {
+        self.used_manifest_bytes
+    }
+    pub(crate) fn used_output_bytes(self) -> usize {
+        self.used_output_bytes
+    }
+    pub(crate) fn used_retained_generations(self) -> usize {
+        self.used_retained_generations
+    }
+    pub(crate) fn used_staging_attempts(self) -> usize {
+        self.used_staging_attempts
+    }
+    pub(crate) fn used_unexpected_inventory_entries(self) -> usize {
+        self.used_unexpected_inventory_entries
+    }
+    pub(crate) fn used_reachable_modules(self) -> usize {
+        self.used_reachable_modules
+    }
+}
+impl WorkspaceSemanticGraph {
+    pub fn schema(&self) -> &str {
+        WORKSPACE_GRAPH_SCHEMA
+    }
+    pub fn workspace_manifest_schema(&self) -> &str {
+        WORKSPACE_MANIFEST_SCHEMA
+    }
+    pub fn workspace_revision(&self) -> &str {
+        &self.workspace_revision
+    }
+    pub fn graph_digest(&self) -> &str {
+        &self.graph_digest
+    }
+    pub fn entry(&self) -> &WorkspaceSemanticGraphEntry {
+        &self.entry
+    }
+    pub fn modules(&self) -> &[WorkspaceSemanticGraphModule] {
+        &self.modules
+    }
+    pub fn declarations(&self) -> &[WorkspaceSemanticGraphDeclaration] {
+        &self.declarations
+    }
+    pub fn edges(&self) -> &[WorkspaceSemanticGraphEdge] {
+        &self.edges
+    }
+    pub fn limits(&self) -> WorkspaceSemanticGraphLimits {
+        self.limits
+    }
+    pub fn budget(&self) -> WorkspaceSemanticGraphBudget {
+        self.budget
+    }
+    pub fn nonclaims(&self) -> &'static [&'static str] {
+        &NONCLAIMS
+    }
+    pub fn to_json(&self) -> &str {
+        &self.json
+    }
+}
+impl WorkspaceSemanticGraphEntry {
+    pub fn module(&self) -> &str {
+        &self.module
+    }
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+}
+impl WorkspaceSemanticGraphModule {
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+    pub fn module(&self) -> &str {
+        &self.module
+    }
+    pub fn source_graph_schema(&self) -> &str {
+        &self.source_graph_schema
+    }
+    pub fn source_revision(&self) -> &str {
+        &self.source_revision
+    }
+    pub fn source_digest(&self) -> &str {
+        &self.source_digest
+    }
+    pub fn dependency_depth(&self) -> usize {
+        self.dependency_depth
+    }
+    pub fn permits(&self) -> &[String] {
+        &self.permits
+    }
+}
+
+impl WorkspaceSemanticGraphDeclaration {
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+    pub fn kind(&self) -> &str {
+        self.kind
+    }
+    pub fn identity_origin(&self) -> &str {
+        self.identity_origin
+    }
+    pub fn owner(&self) -> Option<&str> {
+        self.owner.as_deref()
+    }
+    pub fn path(&self) -> Option<&str> {
+        self.path.as_deref()
+    }
+    pub fn module(&self) -> Option<&str> {
+        self.module.as_deref()
+    }
+}
+
+impl WorkspaceSemanticGraphEdge {
+    pub fn caller_path(&self) -> &str {
+        &self.caller_path
+    }
+    pub fn caller(&self) -> &str {
+        &self.caller
+    }
+    pub fn target_path(&self) -> &str {
+        &self.target_path
+    }
+    pub fn target(&self) -> &str {
+        &self.target
+    }
+    pub fn kind(&self) -> &str {
+        self.kind
+    }
+    pub fn site(&self) -> &str {
+        self.site
+    }
+    pub fn expression(&self) -> &str {
+        &self.expression
+    }
+    pub fn ast_path(&self) -> &str {
+        &self.ast_path
+    }
+    pub fn alias(&self) -> &str {
+        &self.alias
+    }
+    pub fn ordinal(&self) -> usize {
+        self.ordinal
+    }
+}
+
+impl WorkspaceSemanticGraphLimits {
+    pub fn max_managed_files(self) -> usize {
+        self.max_managed_files
+    }
+    pub fn max_reachable_modules(self) -> usize {
+        self.max_reachable_modules
+    }
+    pub fn max_entry_module_bytes(self) -> usize {
+        self.max_entry_module_bytes
+    }
+    pub fn max_total_source_bytes(self) -> usize {
+        self.max_total_source_bytes
+    }
+    pub fn max_declarations(self) -> usize {
+        self.max_declarations
+    }
+    pub fn max_callables(self) -> usize {
+        self.max_callables
+    }
+    pub fn max_call_sites(self) -> usize {
+        self.max_call_sites
+    }
+    pub fn max_uses(self) -> usize {
+        self.max_uses
+    }
+    pub fn max_resolved_cross_file_edges(self) -> usize {
+        self.max_resolved_cross_file_edges
+    }
+    pub fn max_dependency_depth(self) -> usize {
+        self.max_dependency_depth
+    }
+    pub fn max_builder_bytes(self) -> usize {
+        self.max_builder_bytes
+    }
+    pub fn max_manifest_bytes(self) -> usize {
+        self.max_manifest_bytes
+    }
+    pub fn max_output_bytes(self) -> usize {
+        self.max_output_bytes
+    }
+    pub fn max_retained_generations(self) -> usize {
+        self.max_retained_generations
+    }
+    pub fn max_staging_attempts(self) -> usize {
+        self.max_staging_attempts
+    }
+    pub fn max_unexpected_inventory_entries(self) -> usize {
+        self.max_unexpected_inventory_entries
+    }
+}
+
+impl WorkspaceSemanticGraphBudget {
+    pub fn used_managed_files(self) -> usize {
+        self.used_managed_files
+    }
+    pub fn used_reachable_modules(self) -> usize {
+        self.used_reachable_modules
+    }
+    pub fn used_entry_module_bytes(self) -> usize {
+        self.used_entry_module_bytes
+    }
+    pub fn used_total_source_bytes(self) -> usize {
+        self.used_total_source_bytes
+    }
+    pub fn used_declarations(self) -> usize {
+        self.used_declarations
+    }
+    pub fn used_callables(self) -> usize {
+        self.used_callables
+    }
+    pub fn used_call_sites(self) -> usize {
+        self.used_call_sites
+    }
+    pub fn used_uses(self) -> usize {
+        self.used_uses
+    }
+    pub fn used_resolved_cross_file_edges(self) -> usize {
+        self.used_resolved_cross_file_edges
+    }
+    pub fn used_dependency_depth(self) -> usize {
+        self.used_dependency_depth
+    }
+    pub fn used_builder_bytes(self) -> usize {
+        self.used_builder_bytes
+    }
+    pub fn used_manifest_bytes(self) -> usize {
+        self.used_manifest_bytes
+    }
+    pub fn used_output_bytes(self) -> usize {
+        self.used_output_bytes
+    }
+    pub fn used_retained_generations(self) -> usize {
+        self.used_retained_generations
+    }
+    pub fn used_staging_attempts(self) -> usize {
+        self.used_staging_attempts
+    }
+    pub fn used_unexpected_inventory_entries(self) -> usize {
+        self.used_unexpected_inventory_entries
+    }
+}
+
+impl WorkspaceEdge {
+    pub(crate) fn caller_path(&self) -> &str {
+        &self.caller_path
+    }
+    pub(crate) fn caller(&self) -> &str {
+        &self.caller
+    }
+
+    pub(crate) fn target_path(&self) -> &str {
+        &self.target_path
+    }
+    pub(crate) fn target(&self) -> &str {
+        &self.target
+    }
+
+    pub(crate) fn kind(&self) -> &str {
+        self.kind
+    }
+    pub(crate) fn site(&self) -> &str {
+        self.site
+    }
+
+    pub(crate) fn expression(&self) -> &str {
+        &self.expression
+    }
+    pub(crate) fn ast_path(&self) -> &str {
+        &self.ast_path
+    }
+
+    pub(crate) fn alias(&self) -> &str {
+        &self.alias
+    }
+    pub(crate) fn ordinal(&self) -> usize {
+        self.ordinal
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct CallOccurrenceKey<'a> {
+    caller_path: &'a str,
+    caller: &'a str,
+    target_path: &'a str,
+    site: &'a str,
+    expression: &'a str,
+    ast_path: &'a str,
+    alias: &'a str,
+    ordinal: usize,
+}
+
+impl<'a> CallOccurrenceKey<'a> {
+    fn from_edge(edge: &'a WorkspaceEdge) -> Self {
+        Self {
+            caller_path: &edge.caller_path,
+            caller: &edge.caller,
+            target_path: &edge.target_path,
+            site: edge.site,
+            expression: &edge.expression,
+            ast_path: &edge.ast_path,
+            alias: &edge.alias,
+            ordinal: edge.ordinal,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum AuthoredKind {
+    Function,
+    Type,
+    Protocol,
+    Other,
+}
+
+struct AuthoredDeclaration<'a> {
+    path: &'a str,
+    module: &'a str,
+    explicit: bool,
+    kind: AuthoredKind,
+    function: Option<&'a Function>,
+    ty: Option<&'a TypeDeclaration>,
+}
+
+pub(crate) fn build_owned(
+    sources: Vec<WorkspaceSource>,
+) -> Result<WorkspaceGraphBuild, Vec<Diagnostic>> {
+    build_owned_with_builder_limit(sources, MAX_BUILDER_BYTES)
+}
+
+pub(crate) use package::{
+    build_package_scalar_sources, PackageWorkspaceImport, PackageWorkspaceModule,
+};
+impl WorkspaceGraphBuild {
+    pub(crate) fn take_current_sources(&mut self) -> Option<current_source::ParsedSources> {
+        self.current_sources.take()
+    }
+    pub(crate) fn contains_module(&self, module: &str) -> bool {
+        self.hir.module_paths.contains_key(module)
+    }
+
+    /// Every checked function of this validated workspace, in module order.
+    pub(crate) fn validated_functions(&self) -> impl Iterator<Item = &hir::ResolvedFunction> {
+        let modules = self.hir.modules.iter();
+        modules.flat_map(|module| module.functions.iter())
+    }
+    /// Consume one validated workspace build into the entry module's complete
+    /// provider closure and link its real scalar function bodies. This is a
+    /// private backend-preparation seam, not a new Workspace authority or a
+    /// general cross-file composition surface.
+    pub(crate) fn linked_scalar_program(
+        &self,
+        entry_module: &str,
+    ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
+        self.linked_project_program(
+            entry_module,
+            crate::project::ProjectProfile::ScalarV1,
+            false,
+        )
+    }
+
+    /// Link an authenticated package's exact public scalar roots.
+    pub(crate) fn linked_package_scalar_exports(
+        &self,
+        root_module: &str,
+        export_ids: &[String],
+    ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
+        validate_entry_module(root_module)?;
+        if export_ids.is_empty() {
+            return Err(vec![graph_error(
+                "SPX-PS504",
+                "package-source root export inventory is empty",
+            )]);
+        }
+        if export_ids
+            .windows(2)
+            .any(|pair| pair[0].as_bytes() >= pair[1].as_bytes())
+        {
+            return Err(vec![graph_error(
+                "SPX-PS503",
+                "package-source root exports are not strictly byte-sorted and unique",
+            )]);
+        }
+
+        let mut available =
+            BTreeMap::<hir::DeclarationId, (&hir::ResolvedFunction, hir::IdentityOrigin)>::new();
+        for module in &self.hir.modules {
+            for function in &module.functions {
+                let Some(fact) = self.hir.declarations.get(function.id.as_str()) else {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "package-source function is absent from declaration facts",
+                    )]);
+                };
+                if fact.kind != hir::DeclarationKind::Function
+                    || fact.path.as_deref() != Some(module.path.as_str())
+                    || fact.module.as_deref() != Some(module.module.as_str())
+                {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "package-source function declaration facts disagree with retained body",
+                    )]);
+                }
+                if available
+                    .insert(function.id.clone(), (function, fact.origin))
+                    .is_some()
+                {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "package-source function identity is duplicated",
+                    )]);
+                }
+            }
+        }
+
+        let mut anchor = None;
+        let mut pending = BTreeSet::new();
+        for export in export_ids {
+            let id = hir::DeclarationId::new(export.clone());
+            let Some(linked) = available.get(&id) else {
+                return Err(vec![graph_error(
+                    "SPX-PS503",
+                    "package-source root export is absent from retained HIR",
+                )]);
+            };
+            let fact = self
+                .hir
+                .declarations
+                .get(linked.0.id.as_str())
+                .expect("available functions have declaration facts");
+            if fact.module.as_deref() != Some(root_module)
+                || fact.origin != hir::IdentityOrigin::Explicit
+            {
+                return Err(vec![graph_error(
+                    "SPX-PS503",
+                    "package-source export is not an explicit root-owned function",
+                )]);
+            }
+            if anchor.is_none()
+                && linked.0.params.is_empty()
+                && linked.0.return_type == hir::ResolvedType::I64
+            {
+                anchor = Some(id.clone());
+            }
+            pending.insert(id);
+        }
+        let anchor = anchor.ok_or_else(|| {
+            vec![graph_error(
+                "SPX-PS504",
+                "package-source exports require a byte-lowest fn() -> i64 HIR anchor",
+            )]
+        })?;
+
+        let mut retained = BTreeSet::new();
+        while let Some(function_id) = pending.pop_first() {
+            let linked = available.get(&function_id).ok_or_else(|| {
+                vec![graph_error(
+                    "SPX-G173",
+                    "package-source call closure names an unauthenticated function",
+                )]
+            })?;
+            if !retained.insert(function_id) {
+                continue;
+            }
+            for callee in resolved_function_callees(linked.0) {
+                if available.contains_key(&callee) && !retained.contains(&callee) {
+                    pending.insert(callee);
+                }
+            }
+        }
+        let functions = retained
+            .into_iter()
+            .map(|id| {
+                available
+                    .get(&id)
+                    .map(|linked| hir::LinkedScalarFunction {
+                        function: (*linked.0).clone(),
+                        origin: linked.1,
+                    })
+                    .ok_or_else(|| {
+                        vec![graph_error(
+                            "SPX-G173",
+                            "package-source retained closure lost an authenticated function",
+                        )]
+                    })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        hir::link_package_scalar_workspace(root_module.to_owned(), anchor, functions)
+            .map_err(|error| vec![error])
+    }
+
+    fn linked_project_program(
+        &self,
+        entry_module: &str,
+        profile: crate::project::ProjectProfile,
+        dependency_anchors: bool,
+    ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
+        if profile.is_owned_api() {
+            let mut linked = self.linked_owned_data_api_program_with_roots(entry_module, &[])?;
+            self.attach_project_agents(&mut linked)?;
+            return Ok(linked);
+        }
+        if let Some(linked) = retained_validation::owned_stream_entry(self, profile, entry_module)?
+        {
+            return Ok(linked);
+        }
+        validate_entry_module(entry_module)?;
+        let Some(entry_path) = self.hir.module_paths.get(entry_module).cloned() else {
+            return Err(vec![graph_error(
+                "SPX-G172",
+                format!(
+                    "Workspace Semantic Graph requested project module `{entry_module}` is absent"
+                ),
+            )]);
+        };
+
+        let authenticated_paths = self
+            .hir
+            .module_paths
+            .values()
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        let mut direct_providers = BTreeMap::<String, BTreeSet<String>>::new();
+        for edge in &self.edges {
+            if !matches!(edge.kind, "function_import" | "type_import") {
+                continue;
+            }
+            if !authenticated_paths.contains(edge.caller_path.as_str())
+                || !authenticated_paths.contains(edge.target_path.as_str())
+            {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "workspace import edge paths disagree with authenticated modules",
+                )]);
+            }
+            direct_providers
+                .entry(edge.caller_path.clone())
+                .or_default()
+                .insert(edge.target_path.clone());
+        }
+        let mut reachable_paths = BTreeSet::from([entry_path.clone()]);
+        let mut pending = BTreeSet::from([entry_path.clone()]);
+        while let Some(path) = pending.pop_first() {
+            if let Some(providers) = direct_providers.get(&path) {
+                for provider in providers {
+                    if reachable_paths.insert(provider.clone()) {
+                        pending.insert(provider.clone());
+                    }
+                }
+            }
+        }
+
+        if self.edges.iter().any(|edge| {
+            reachable_paths.contains(edge.caller_path.as_str())
+                && edge.kind == "type_import"
+                && !((profile == crate::project::ProjectProfile::UsefulDataV1)
+                    && self.hir.modules.iter().any(|module| {
+                        module.path == edge.caller_path
+                            && retained_validation::useful_data_v1_dependency_fallback(module)
+                    }))
+        }) {
+            return Err(vec![graph_error(
+                "SPX-G172",
+                "workspace scalar linker does not admit `use type` imports",
+            )]);
+        }
+
+        // Native Rust callbacks are the only interface the scalar Project
+        // profile retains, and their declared effects are the only authority a
+        // retained module or function may carry.
+        let natives = retained_validation::scalar_native_imports(
+            profile,
+            self.hir
+                .modules
+                .iter()
+                .filter(|module| reachable_paths.contains(module.path.as_str()))
+                .flat_map(|module| &module.interfaces),
+        );
+        let mut functions = Vec::new();
+        let mut types = Vec::new();
+        let mut entrypoints = Vec::new();
+        let mut incompatible_dependency_functions = BTreeSet::new();
+        let mut retained_modules = 0usize;
+        for module in &self.hir.modules {
+            if !reachable_paths.contains(module.path.as_str()) {
+                continue;
+            }
+            retained_modules += 1;
+            let dependency_fallback = profile == crate::project::ProjectProfile::UsefulDataV1
+                && retained_validation::useful_data_v1_dependency_fallback(module);
+            let permits_admitted =
+                retained_validation::permits_admitted(profile, module, entry_module, &natives);
+            let project_shape_admitted = profile.is_owned_api()
+                || matches!(profile, crate::project::ProjectProfile::ScalarV1)
+                || (module.types.is_empty()
+                    && module.interfaces.is_empty()
+                    && module.function_templates.is_empty()
+                    && module.function_instances.is_empty());
+            if !permits_admitted {
+                return Err(vec![project_function_error(
+                    module,
+                    format!(
+                        "workspace module `{}` declares capabilities outside the selected project linker profile",
+                        module.module
+                    ),
+                    None,
+                )]);
+            }
+            if !project_shape_admitted && !dependency_fallback {
+                return Err(vec![project_function_error(
+                    module,
+                    format!(
+                        "workspace module `{}` contains declarations outside the selected project linker profile",
+                        module.module
+                    ),
+                    None,
+                )]);
+            }
+            if profile == crate::project::ProjectProfile::ScalarV1 {
+                types.extend(module.types.iter().cloned());
+            }
+            for function in &module.functions {
+                // A dependency leaves v1 if its signature or body names an
+                // authored type. The linker retains no authored declarations,
+                // including a type mentioned only in the body.
+                if dependency_fallback
+                    && (!hir::useful_data_workspace_return_admitted(&function.return_type)
+                        || function.params.iter().any(|parameter| {
+                            !hir::useful_data_workspace_parameter_admitted(
+                                &parameter.ty,
+                                parameter.ownership,
+                            )
+                        })
+                        || !hir::authored_nominal_declarations(function).is_empty())
+                {
+                    incompatible_dependency_functions.insert(function.id.clone());
+                }
+                let dependency_anchor = dependency_anchors
+                    && module.path.starts_with("dependencies/")
+                    && module.module != entry_module
+                    && function.name == "main";
+                if profile == crate::project::ProjectProfile::ScalarV1
+                    && module.module != entry_module
+                    && function.name == "main"
+                    && !dependency_anchor
+                {
+                    return Err(vec![project_function_error(
+                        module,
+                        format!(
+                            "workspace scalar provider module `{}` may not declare `main`",
+                            module.module
+                        ),
+                        Some(function.span),
+                    )
+                    .with_help(diagnostics::PROVIDER_MAIN_HELP)]);
+                }
+                if dependency_anchor {
+                    continue;
+                }
+                let Some(fact) = self.hir.declarations.get(function.id.as_str()) else {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "workspace scalar function is absent from declaration facts",
+                    )]);
+                };
+                if fact.kind != hir::DeclarationKind::Function
+                    || fact.path.as_deref() != Some(module.path.as_str())
+                    || fact.module.as_deref() != Some(module.module.as_str())
+                {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "workspace scalar function declaration facts disagree with retained body",
+                    )]);
+                }
+                if module.module == entry_module && function.name == "main" {
+                    if !function.params.is_empty() || function.return_type != hir::ResolvedType::I64
+                    {
+                        return Err(vec![project_function_error(
+                            module,
+                            format!(
+                                "workspace scalar module `{entry_module}` function `main` must have the exact signature fn main() -> i64"
+                            ),
+                            Some(function.span),
+                        )]);
+                    }
+                    entrypoints.push((function.id.clone(), fact.origin, function.span));
+                }
+                // Keep pure main and the selected command as distinct roots;
+                // the command linker independently retains its exact closure.
+                if !retained_validation::has_separate_command_root(profile)
+                    || function.effects.is_empty()
+                {
+                    functions.push(hir::LinkedScalarFunction {
+                        function: function.clone(),
+                        origin: fact.origin,
+                    });
+                }
+            }
+        }
+        if retained_modules != reachable_paths.len() {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "workspace scalar provider closure disagrees with retained modules",
+            )]);
+        }
+        if entrypoints.len() != 1 {
+            let module = self
+                .hir
+                .modules
+                .iter()
+                .find(|module| module.module == entry_module)
+                .expect("entry path came from one authenticated module");
+            return Err(vec![project_function_error(
+                module,
+                format!(
+                    "workspace scalar module `{entry_module}` must declare exactly one authored `main` function"
+                ),
+                None,
+            )]);
+        }
+        let (entrypoint, origin, entrypoint_span) =
+            entrypoints.pop().expect("length checked above");
+        if origin != hir::IdentityOrigin::Explicit {
+            let module = self
+                .hir
+                .modules
+                .iter()
+                .find(|module| module.module == entry_module)
+                .expect("entry path came from one authenticated module");
+            return Err(vec![project_function_error(
+                module,
+                format!(
+                    "workspace scalar module `{entry_module}` function `main` must have an explicit identity"
+                ),
+                Some(entrypoint_span),
+            )]);
+        }
+        if !incompatible_dependency_functions.is_empty() {
+            functions = retained_validation::retain_legacy_useful_data_dependency_closure(
+                functions,
+                &incompatible_dependency_functions,
+                resolved_function_callees,
+            )?;
+        }
+        let scalar = if profile == crate::project::ProjectProfile::ScalarV1 {
+            owned_generics::retained_scalar_generics(
+                &self.hir.modules,
+                &self.hir.declarations,
+                &functions,
+                types,
+            )?
+        } else {
+            owned_generics::RetainedScalarParts {
+                types,
+                function_templates: Vec::new(),
+                function_instances: Vec::new(),
+            }
+        };
+        let mut linked = match profile {
+            crate::project::ProjectProfile::ScalarV1 => natives.link(
+                entry_module.to_owned(),
+                entrypoint,
+                functions,
+                scalar,
+                &self.hir.declarations,
+                true,
+            ),
+            crate::project::ProjectProfile::UsefulTextConsumerV1 => {
+                hir::link_useful_text_workspace(entry_module.to_owned(), entrypoint, functions)
+            }
+            crate::project::ProjectProfile::UsefulDataV1
+            | crate::project::ProjectProfile::UsefulDataV2 => {
+                hir::link_useful_data_workspace(entry_module.to_owned(), entrypoint, functions)
+            }
+            crate::project::ProjectProfile::UsefulDataCommandV1 => {
+                hir::link_useful_data_command_workspace(
+                    entry_module.to_owned(),
+                    entrypoint,
+                    functions,
+                )
+            }
+            crate::project::ProjectProfile::UsefulDataCommandV2 => {
+                hir::link_useful_data_command_workspace(
+                    entry_module.to_owned(),
+                    entrypoint,
+                    functions,
+                )
+            }
+            crate::project::ProjectProfile::LanguageCommandIoV1
+            | crate::project::ProjectProfile::StdinStreamCommandIoV1
+            | crate::project::ProjectProfile::StdinStreamCommandIoV2
+            | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
+            | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
+            | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
+            | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
+            | P::StdinStreamCollectionRecordCommandIoV1
+            | P::StdinStreamNestedOutcomeCommandIoV1 => {
+                // The selected command is retained separately from this pure entry.
+                retained_validation::entry_link(
+                    profile,
+                    entry_module.to_owned(),
+                    entrypoint,
+                    functions,
+                )
+            }
+            crate::project::ProjectProfile::LineCommandIoV1 => {
+                hir::link_useful_data_workspace(entry_module.to_owned(), entrypoint, functions)
+            }
+            crate::project::ProjectProfile::NetworkCommandIoV1 => {
+                hir::link_network_entry_workspace(entry_module.to_owned(), entrypoint, functions)
+            }
+            crate::project::ProjectProfile::HttpsCommandIoV1 => {
+                hir::link_https_entry_workspace(entry_module.to_owned(), entrypoint, functions)
+            }
+            crate::project::ProjectProfile::FilesystemIoV1
+            | crate::project::ProjectProfile::FilesystemIoV2
+            | crate::project::ProjectProfile::FilesystemIoV3
+            | crate::project::ProjectProfile::EnvironmentIoV1
+            | crate::project::ProjectProfile::ProcessIoV1
+            | P::SourceCommandV1
+            | P::SourceCommandSelectedFileV1
+            | P::SourceCommandSelectedFileResourceV1
+            | P::SourceCommandResourceOutputV1
+            | crate::project::ProjectProfile::OwnedDataApiV1
+            | crate::project::ProjectProfile::PublicGenericWasmProviderV1
+            | crate::project::ProjectProfile::SourceLocalFutureV1
+            | crate::project::ProjectProfile::SourceLocalFutureIndexedRustV1 => {
+                unreachable!("Project v8 uses the exact function-reachable linker")
+            }
+            crate::project::ProjectProfile::FlatOwnedRecordApiV1 => {
+                unreachable!("Project v9 uses the exact aggregate-aware linker")
+            }
+            crate::project::ProjectProfile::OwnedUtf8ApiV1 => {
+                unreachable!("Project v10 uses the exact function-reachable linker")
+            }
+            crate::project::ProjectProfile::NestedOwnedRecordApiV1 => {
+                unreachable!("Project v11 uses the exact aggregate-aware linker")
+            }
+        }
+        .map_err(|error| vec![error])?;
+        self.attach_project_agents(&mut linked)?;
+        Ok(linked)
+    }
+    fn attach_project_agents(
+        &self,
+        linked: &mut hir::ResolvedProgram,
+    ) -> Result<(), Vec<Diagnostic>> {
+        linked.agents = retained_vectors::project_agents(&self.hir.modules, linked)?;
+        hir::validate(linked).map_err(|error| vec![error])
+    }
+    /// Link the entry closure plus exact persistent additional roots.
+    pub(crate) fn linked_scalar_program_with_roots(
+        &self,
+        entry_module: &str,
+        additional_roots: &[String],
+        profile: crate::project::ProjectProfile,
+        dependency_anchors: bool,
+    ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
+        if profile.is_owned_api() {
+            return self.linked_owned_data_api_program_with_roots(entry_module, additional_roots);
+        }
+        if let Some(linked) = retained_validation::owned_stream_command(
+            self,
+            profile,
+            entry_module,
+            additional_roots,
+            dependency_anchors,
+        )? {
+            return Ok(linked);
+        }
+        let base = self.linked_project_program(entry_module, profile, dependency_anchors)?;
+        if additional_roots.is_empty() {
+            return Ok(base);
+        }
+        let natives = retained_validation::scalar_native_imports(profile, base.interfaces.iter());
+
+        let mut available = BTreeMap::<hir::DeclarationId, hir::LinkedScalarFunction>::new();
+        for module in &self.hir.modules {
+            for function in &module.functions {
+                let Some(fact) = self.hir.declarations.get(function.id.as_str()) else {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "workspace scalar function is absent from declaration facts",
+                    )]);
+                };
+                if fact.kind != hir::DeclarationKind::Function
+                    || fact.path.as_deref() != Some(module.path.as_str())
+                    || fact.module.as_deref() != Some(module.module.as_str())
+                {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "workspace scalar function declaration facts disagree with retained body",
+                    )]);
+                }
+                if available
+                    .insert(
+                        function.id.clone(),
+                        hir::LinkedScalarFunction {
+                            function: function.clone(),
+                            origin: fact.origin,
+                        },
+                    )
+                    .is_some()
+                {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "workspace scalar function identity is duplicated",
+                    )]);
+                }
+            }
+        }
+
+        let web_entrypoint = retained_validation::scalar_web_entrypoint(
+            profile,
+            &available,
+            &base.entrypoint,
+            &additional_roots[0],
+        );
+        let scalar_closure = if profile == crate::project::ProjectProfile::ScalarV1 {
+            Some(owned_generics::select_scalar_generic_roots(
+                &self.hir.modules,
+                &self.hir.declarations,
+                &available,
+                additional_roots,
+                web_entrypoint.clone(),
+            )?)
+        } else {
+            None
+        };
+        let mut retained = if let Some(closure) = &scalar_closure {
+            closure.functions.clone()
+        } else {
+            base.functions
+                .iter()
+                .map(|function| function.id.clone())
+                .collect::<BTreeSet<_>>()
+        };
+        if scalar_closure.is_none() {
+            let mut pending = additional_roots
+                .iter()
+                .map(|root| hir::DeclarationId::new(root.clone()))
+                .collect::<BTreeSet<_>>();
+            pending.insert(web_entrypoint.clone());
+            while let Some(function_id) = pending.pop_first() {
+                let Some(linked) = available.get(&function_id) else {
+                    return Err(vec![Diagnostic::io(
+                        "SPX-W115",
+                        format!(
+                            "selected Project Web export identity `{function_id}` does not name an authenticated function"
+                        ),
+                    )]);
+                };
+                if !retained.insert(function_id.clone()) {
+                    continue;
+                }
+                for callee in resolved_function_callees(&linked.function) {
+                    if available.contains_key(&callee) && !retained.contains(&callee) {
+                        pending.insert(callee);
+                    }
+                }
+            }
+        }
+
+        let functions = retained
+            .into_iter()
+            .map(|id| {
+                available
+                    .get(&id)
+                    .map(|linked| hir::LinkedScalarFunction {
+                        function: linked.function.clone(),
+                        origin: linked.origin,
+                    })
+                    .ok_or_else(|| {
+                        vec![graph_error(
+                            "SPX-G173",
+                            "entry-provider closure names an unauthenticated function",
+                        )]
+                    })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        match profile {
+            crate::project::ProjectProfile::ScalarV1 => {
+                let closure = scalar_closure
+                    .as_ref()
+                    .expect("scalar generic closure was constructed above");
+                let scalar = owned_generics::retained_scalar_parts(
+                    &self.hir.modules,
+                    &self.hir.declarations,
+                    &functions,
+                    closure,
+                    base.types,
+                )?;
+                natives.link(
+                    base.module,
+                    web_entrypoint,
+                    functions,
+                    scalar,
+                    &self.hir.declarations,
+                    false,
+                )
+            }
+            crate::project::ProjectProfile::UsefulTextConsumerV1 => {
+                hir::link_useful_text_workspace(base.module, base.entrypoint, functions)
+            }
+            crate::project::ProjectProfile::UsefulDataV1
+            | crate::project::ProjectProfile::UsefulDataV2 => {
+                hir::link_useful_data_workspace(base.module, base.entrypoint, functions)
+            }
+            crate::project::ProjectProfile::UsefulDataCommandV1 => {
+                hir::link_useful_data_command_workspace(base.module, base.entrypoint, functions)
+            }
+            crate::project::ProjectProfile::UsefulDataCommandV2 => {
+                hir::link_useful_data_command_workspace(base.module, base.entrypoint, functions)
+            }
+            crate::project::ProjectProfile::LanguageCommandIoV1
+            | crate::project::ProjectProfile::StdinStreamCommandIoV1
+            | crate::project::ProjectProfile::StdinStreamCommandIoV2
+            | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
+            | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
+            | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
+            | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
+            | P::StdinStreamCollectionRecordCommandIoV1
+            | P::StdinStreamNestedOutcomeCommandIoV1 => {
+                let [command_id] = additional_roots else {
+                    return Err(vec![graph_error(
+                        "SPX-G172",
+                        "Language Command I/O v1 must select exactly one command identity",
+                    )]);
+                };
+                retained_validation::command_link(
+                    profile,
+                    base.module,
+                    base.entrypoint,
+                    hir::DeclarationId::new(command_id.clone()),
+                    functions,
+                )
+            }
+            crate::project::ProjectProfile::LineCommandIoV1 => {
+                let [command_id] = additional_roots else {
+                    return Err(vec![graph_error(
+                        "SPX-G172",
+                        "Line Command I/O v1 must select exactly one command identity",
+                    )]);
+                };
+                hir::link_line_command_io_workspace(
+                    base.module,
+                    base.entrypoint,
+                    hir::DeclarationId::new(command_id.clone()),
+                    functions,
+                )
+            }
+            crate::project::ProjectProfile::NetworkCommandIoV1 => {
+                let [command_id] = additional_roots else {
+                    return Err(vec![graph_error(
+                        "SPX-G172",
+                        "Network Command I/O v1 must select exactly one command identity",
+                    )]);
+                };
+                hir::link_network_command_io_workspace(
+                    base.module,
+                    base.entrypoint,
+                    hir::DeclarationId::new(command_id.clone()),
+                    functions,
+                )
+            }
+            crate::project::ProjectProfile::HttpsCommandIoV1 => {
+                let [command_id] = additional_roots else {
+                    return Err(vec![graph_error(
+                        "SPX-G172",
+                        "HTTPS Command I/O v1 must select exactly one command identity",
+                    )]);
+                };
+                hir::link_https_command_io_workspace(
+                    base.module,
+                    base.entrypoint,
+                    hir::DeclarationId::new(command_id.clone()),
+                    functions,
+                )
+            }
+            crate::project::ProjectProfile::FilesystemIoV1
+            | crate::project::ProjectProfile::FilesystemIoV2
+            | crate::project::ProjectProfile::FilesystemIoV3
+            | crate::project::ProjectProfile::EnvironmentIoV1
+            | crate::project::ProjectProfile::ProcessIoV1
+            | P::SourceCommandV1
+            | P::SourceCommandSelectedFileV1
+            | P::SourceCommandSelectedFileResourceV1
+            | P::SourceCommandResourceOutputV1
+            | crate::project::ProjectProfile::OwnedDataApiV1
+            | crate::project::ProjectProfile::PublicGenericWasmProviderV1
+            | crate::project::ProjectProfile::SourceLocalFutureV1
+            | crate::project::ProjectProfile::SourceLocalFutureIndexedRustV1 => {
+                unreachable!("Project v8 uses the exact function-reachable linker")
+            }
+            crate::project::ProjectProfile::FlatOwnedRecordApiV1 => {
+                unreachable!("Project v9 uses the exact aggregate-aware linker")
+            }
+            crate::project::ProjectProfile::OwnedUtf8ApiV1 => {
+                unreachable!("Project v10 uses the exact function-reachable linker")
+            }
+            crate::project::ProjectProfile::NestedOwnedRecordApiV1 => {
+                unreachable!("Project v11 uses the exact aggregate-aware linker")
+            }
+        }
+        .map_err(|error| vec![error])
+    }
+    /// Link exactly the union of the Project-v8 entry closure and selected
+    /// public roots. Older Project profiles deliberately retain their frozen
+    /// module-oriented behavior; v8's owned-data runtime must be absent for
+    /// every unrelated function, including one in an otherwise reachable
+    /// module.
+    /// Consume Project Phase A into executable closures and one projection.
+    pub(crate) fn into_project_semantic_parts(
+        self,
+        workspace_revision: &str,
+        source_facts: Vec<ProjectGraphSourceFact>,
+        manifest_bytes: usize,
+        entry_module: &str,
+        test_module: &str,
+        web_roots: ProjectWebRoots<'_>,
+    ) -> Result<ProjectSemanticParts, Vec<Diagnostic>> {
+        self.validate_entire_project_workspace(
+            entry_module,
+            test_module,
+            web_roots.profile,
+            web_roots.stable_ids,
+            web_roots.dependency_anchors,
+        )?;
+        if retained_validation::has_separate_command_root(web_roots.profile) {
+            let [command_id] = web_roots.stable_ids else {
+                return Err(vec![graph_error(
+                    "SPX-G172",
+                    "command I/O profile must select exactly one command identity",
+                )]);
+            };
+            let command = self
+                .hir
+                .modules
+                .iter()
+                .flat_map(|module| module.functions.iter())
+                .find(|function| function.id.as_str() == command_id)
+                .ok_or_else(|| {
+                    vec![graph_error(
+                        "SPX-G172",
+                        "command I/O profile command identity does not name a function",
+                    )]
+                })?;
+            let explicit = self
+                .hir
+                .declarations
+                .get(command.id.as_str())
+                .is_some_and(|fact| fact.origin == hir::IdentityOrigin::Explicit);
+            let (return_type, signature) = match web_roots.profile {
+                crate::project::ProjectProfile::StdinStreamCommandIoV2
+                | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
+                | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
+                | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
+                | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
+                | P::StdinStreamCollectionRecordCommandIoV1
+                | P::StdinStreamNestedOutcomeCommandIoV1 => (hir::ResolvedType::I64, "i64"),
+                _ => (hir::ResolvedType::Bool, "bool"),
+            };
+            if !explicit || !command.params.is_empty() || command.return_type != return_type {
+                return Err(vec![graph_error(
+                    "SPX-G172",
+                    format!(
+                        "command I/O profile command must have an explicit identity and exact signature fn() -> {signature}"
+                    ),
+                )]);
+            }
+        }
+        let entry_program = self.linked_project_program(
+            entry_module,
+            web_roots.profile,
+            web_roots.dependency_anchors,
+        )?;
+        let mut web_program = self.linked_scalar_program_with_roots(
+            entry_module,
+            web_roots.stable_ids,
+            web_roots.profile,
+            web_roots.dependency_anchors,
+        )?;
+        self.attach_project_agents(&mut web_program)?;
+        let test_program = retained_validation::stream_test_program(
+            &self,
+            web_roots.profile,
+            test_module,
+            web_roots.dependency_anchors,
+        )?;
+        let projection = self.into_project_projection(
+            workspace_revision,
+            source_facts,
+            manifest_bytes,
+            entry_module,
+        )?;
+        Ok(ProjectSemanticParts {
+            entry_program,
+            web_program,
+            test_program,
+            projection,
+        })
+    }
+
+    fn into_project_projection(
+        self,
+        workspace_revision: &str,
+        source_facts: Vec<ProjectGraphSourceFact>,
+        manifest_bytes: usize,
+        entry_module: &str,
+    ) -> Result<WorkspaceGraphProjection, Vec<Diagnostic>> {
+        validate_entry_module(entry_module)?;
+        let mut source_facts = source_facts
+            .into_iter()
+            .map(|fact| (fact.path.clone(), fact))
+            .collect::<BTreeMap<_, _>>();
+        if source_facts.len() != self.usage.managed_files {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "project source facts disagree with the Phase-A file inventory",
+            )]);
+        }
+
+        let mut dependency_depths = self.hir.dependency_depths;
+        let mut modules = Vec::with_capacity(self.hir.modules.len());
+        for module in self.hir.modules {
+            let source = source_facts.remove(&module.path).ok_or_else(|| {
+                vec![graph_error(
+                    "SPX-G173",
+                    "project module source fact is absent from the authenticated snapshot",
+                )]
+            })?;
+            let dependency_depth = dependency_depths.remove(&module.module).ok_or_else(|| {
+                vec![graph_error(
+                    "SPX-G173",
+                    "project module dependency depth is absent",
+                )]
+            })?;
+            modules.push(WorkspaceGraphProjectionModule {
+                path: module.path,
+                module: module.module,
+                source_graph_schema: source.source_graph_schema,
+                source_revision: source.source_revision,
+                source_digest: source.source_digest,
+                dependency_depth,
+                permits: module.permits,
+                types: module.types.into_owned(),
+                interfaces: module.interfaces,
+                functions: module.functions.into_owned(),
+                function_templates: module.function_templates.into_owned(),
+                function_instances: module.function_instances,
+                signature_types: module.signature_types,
+                session_protocol_facts: module.session_protocol_facts,
+            });
+        }
+        modules.sort_by(|left, right| left.path.cmp(&right.path));
+        if !source_facts.is_empty() || !dependency_depths.is_empty() {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "project Phase-A facts contain unconsumed source or module entries",
+            )]);
+        }
+
+        let mut declarations = self
+            .hir
+            .declarations
+            .into_iter()
+            .map(|(id, fact)| WorkspaceGraphProjectionDeclaration {
+                id,
+                kind: fact.kind,
+                origin: fact.origin,
+                owner: fact.owner,
+                path: fact.path,
+                module: fact.module,
+            })
+            .collect::<Vec<_>>();
+        declarations.sort_by(|left, right| left.id.cmp(&right.id));
+        let mut edges = self.edges;
+        edges.sort();
+        let work = self.usage;
+        Ok(WorkspaceGraphProjection {
+            workspace_revision: workspace_revision.to_owned(),
+            entry_module: entry_module.to_owned(),
+            usage: WorkspaceGraphProjectionUsage {
+                used_managed_files: work.managed_files,
+                used_total_source_bytes: work.total_source_bytes,
+                used_entry_module_bytes: entry_module.len(),
+                used_declarations: work.declarations,
+                used_callables: work.callables,
+                used_call_sites: work.call_sites,
+                used_uses: work.uses,
+                used_resolved_cross_file_edges: work.resolved_cross_file_edges,
+                used_dependency_depth: work.dependency_depth,
+                used_builder_bytes: work.builder_bytes,
+                used_manifest_bytes: manifest_bytes,
+                used_output_bytes: 0,
+                used_retained_generations: 0,
+                used_staging_attempts: 0,
+                used_unexpected_inventory_entries: 0,
+                used_reachable_modules: modules.len(),
+            },
+            modules,
+            declarations,
+            edges,
+            shared_prelude_ids: self.hir.shared_prelude_ids.into_iter().collect(),
+        })
+    }
+    fn validate_entire_project_workspace(
+        &self,
+        entry_module: &str,
+        test_module: &str,
+        profile: crate::project::ProjectProfile,
+        exports: &[String],
+        dependency_anchors: bool,
+    ) -> Result<(), Vec<Diagnostic>> {
+        validate_entry_module(entry_module)?;
+        validate_entry_module(test_module)?;
+        let modules = &self.hir.modules;
+        retained_validation::reject_unselected_owned_collections(profile, exports, modules)?;
+        let roots = BTreeSet::from([entry_module, test_module]);
+        let natives = retained_validation::scalar_native_imports(
+            profile,
+            self.hir
+                .modules
+                .iter()
+                .flat_map(|module| &module.interfaces),
+        );
+        for module in &self.hir.modules {
+            let dependency_fallback = profile == crate::project::ProjectProfile::UsefulDataV1
+                && retained_validation::useful_data_v1_dependency_fallback(module);
+            let permits_admitted =
+                retained_validation::permits_admitted(profile, module, entry_module, &natives);
+            let project_shape_admitted = profile.is_owned_api()
+                || (profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1
+                    && retained_validation::text_project_shape(module))
+                || (profile == crate::project::ProjectProfile::StdinStreamDataCommandIoV1
+                    && retained_validation::data_project_shape(module))
+                || (matches!(
+                    profile,
+                    crate::project::ProjectProfile::StdinStreamDataCommandIoV2
+                        | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
+                        | P::StdinStreamCollectionRecordCommandIoV1
+                        | P::StdinStreamNestedOutcomeCommandIoV1
+                ) && retained_validation::record_project_shape(module))
+                || matches!(profile, crate::project::ProjectProfile::ScalarV1)
+                || (module.types.is_empty()
+                    && module.interfaces.is_empty()
+                    && module.function_templates.is_empty()
+                    && module.function_instances.is_empty());
+            if !permits_admitted {
+                return Err(vec![project_function_error(
+                    module,
+                    format!(
+                        "workspace module `{}` declares capabilities outside the selected project linker profile",
+                        module.module
+                    ),
+                    None,
+                )]);
+            }
+            if !project_shape_admitted && !dependency_fallback {
+                return Err(vec![project_function_error(
+                    module,
+                    format!(
+                        "workspace module `{}` contains declarations outside the selected project linker profile",
+                        module.module
+                    ),
+                    None,
+                )]);
+            }
+            if !roots.contains(module.module.as_str())
+                && module
+                    .functions
+                    .iter()
+                    .any(|function| function.name == "main")
+                && !(dependency_anchors && module.path.starts_with("dependencies/"))
+            {
+                let function = module
+                    .functions
+                    .iter()
+                    .find(|function| function.name == "main")
+                    .expect("predicate found provider main");
+                return Err(vec![project_function_error(
+                    module,
+                    format!(
+                        "workspace scalar provider module `{}` may not declare `main`",
+                        module.module
+                    ),
+                    Some(function.span),
+                )
+                .with_help(diagnostics::PROVIDER_MAIN_HELP)]);
+            }
+            // Owned-data and v25 text admission are reachability-gated. Irrelevant
+            // verified functions receive no runtime or target authority and
+            // therefore cannot broaden or spuriously reject the exact union
+            // linked below. The retained closure is independently checked by
+            // the owned-data linker and canonical descriptor.
+            if profile.is_owned_api()
+                || profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1
+                || profile == crate::project::ProjectProfile::StdinStreamDataCommandIoV1
+                || profile == crate::project::ProjectProfile::StdinStreamDataCommandIoV2
+                || profile == crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
+                || profile == P::StdinStreamCollectionRecordCommandIoV1
+                || profile == P::StdinStreamNestedOutcomeCommandIoV1
+            {
+                continue;
+            }
+            for function in &module.functions {
+                let class_method = profile == crate::project::ProjectProfile::ScalarV1
+                    && function
+                        .params
+                        .first()
+                        .is_some_and(|parameter| parameter.name == "self")
+                    && self
+                        .hir
+                        .declarations
+                        .get(function.id.as_str())
+                        .is_some_and(|fact| fact.owner.is_some());
+                let admitted_parameter = |parameter: &hir::ResolvedParam| match profile {
+                    crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
+                        hir::stream_text_parameter_admitted(parameter)
+                    }
+                    crate::project::ProjectProfile::StdinStreamDataCommandIoV2
+                    | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
+                    | P::StdinStreamCollectionRecordCommandIoV1
+                    | P::StdinStreamNestedOutcomeCommandIoV1 => false,
+                    crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
+                        hir::stream_data_parameter_admitted(parameter)
+                    }
+                    crate::project::ProjectProfile::StdinStreamCommandIoV1
+                    | crate::project::ProjectProfile::StdinStreamCommandIoV2 => {
+                        retained_validation::stream_parameter_admitted(parameter)
+                    }
+                    crate::project::ProjectProfile::ScalarV1 => {
+                        parameter.ownership == hir::OwnershipMode::Value
+                            && hir::copy_scalar_type(&parameter.ty)
+                    }
+                    crate::project::ProjectProfile::UsefulTextConsumerV1 => matches!(
+                        (&parameter.ty, parameter.ownership),
+                        (
+                            hir::ResolvedType::I64 | hir::ResolvedType::Bool,
+                            hir::OwnershipMode::Value
+                        ) | (hir::ResolvedType::Str, hir::OwnershipMode::Borrow)
+                    ),
+                    crate::project::ProjectProfile::UsefulDataV1
+                    | crate::project::ProjectProfile::UsefulDataV2
+                    | crate::project::ProjectProfile::UsefulDataCommandV1
+                    | crate::project::ProjectProfile::UsefulDataCommandV2
+                    | crate::project::ProjectProfile::LanguageCommandIoV1
+                    | crate::project::ProjectProfile::LineCommandIoV1
+                    | crate::project::ProjectProfile::NetworkCommandIoV1
+                    | crate::project::ProjectProfile::HttpsCommandIoV1
+                    | crate::project::ProjectProfile::FilesystemIoV1
+                    | crate::project::ProjectProfile::FilesystemIoV2
+                    | crate::project::ProjectProfile::FilesystemIoV3
+                    | crate::project::ProjectProfile::EnvironmentIoV1
+                    | crate::project::ProjectProfile::ProcessIoV1
+                    | P::SourceCommandV1
+                    | P::SourceCommandSelectedFileV1
+                    | P::SourceCommandSelectedFileResourceV1
+                    | P::SourceCommandResourceOutputV1
+                    | crate::project::ProjectProfile::OwnedDataApiV1
+                    | crate::project::ProjectProfile::FlatOwnedRecordApiV1
+                    | crate::project::ProjectProfile::OwnedUtf8ApiV1
+                    | crate::project::ProjectProfile::NestedOwnedRecordApiV1
+                    | crate::project::ProjectProfile::PublicGenericWasmProviderV1
+                    | crate::project::ProjectProfile::SourceLocalFutureV1
+                    | crate::project::ProjectProfile::SourceLocalFutureIndexedRustV1 => {
+                        hir::useful_data_workspace_parameter_admitted(
+                            &parameter.ty,
+                            parameter.ownership,
+                        )
+                    }
+                };
+                let admitted_return = match profile {
+                    crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
+                        hir::stream_text_return_admitted(&function.return_type)
+                    }
+                    crate::project::ProjectProfile::StdinStreamDataCommandIoV2
+                    | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
+                    | P::StdinStreamCollectionRecordCommandIoV1
+                    | P::StdinStreamNestedOutcomeCommandIoV1 => false,
+                    crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
+                        hir::stream_text_return_admitted(&function.return_type)
+                    }
+                    crate::project::ProjectProfile::StdinStreamCommandIoV1
+                    | crate::project::ProjectProfile::StdinStreamCommandIoV2 => {
+                        retained_validation::stream_return_admitted(&function.return_type)
+                    }
+                    crate::project::ProjectProfile::ScalarV1 => {
+                        hir::copy_scalar_type(&function.return_type)
+                    }
+                    crate::project::ProjectProfile::UsefulTextConsumerV1 => matches!(
+                        function.return_type,
+                        hir::ResolvedType::I64 | hir::ResolvedType::Bool
+                    ),
+                    crate::project::ProjectProfile::UsefulDataV1
+                    | crate::project::ProjectProfile::UsefulDataV2
+                    | crate::project::ProjectProfile::UsefulDataCommandV1
+                    | crate::project::ProjectProfile::UsefulDataCommandV2
+                    | crate::project::ProjectProfile::LanguageCommandIoV1
+                    | crate::project::ProjectProfile::LineCommandIoV1
+                    | crate::project::ProjectProfile::NetworkCommandIoV1
+                    | crate::project::ProjectProfile::HttpsCommandIoV1 => {
+                        hir::useful_data_workspace_return_admitted(&function.return_type)
+                    }
+                    crate::project::ProjectProfile::FilesystemIoV1
+                    | crate::project::ProjectProfile::FilesystemIoV2
+                    | crate::project::ProjectProfile::FilesystemIoV3
+                    | crate::project::ProjectProfile::EnvironmentIoV1
+                    | crate::project::ProjectProfile::ProcessIoV1
+                    | P::SourceCommandV1
+                    | P::SourceCommandSelectedFileV1
+                    | P::SourceCommandSelectedFileResourceV1
+                    | P::SourceCommandResourceOutputV1
+                    | crate::project::ProjectProfile::OwnedDataApiV1
+                    | crate::project::ProjectProfile::PublicGenericWasmProviderV1
+                    | crate::project::ProjectProfile::SourceLocalFutureV1
+                    | crate::project::ProjectProfile::SourceLocalFutureIndexedRustV1 => {
+                        hir::owned_data_api_workspace_return_admitted(&function.return_type)
+                    }
+                    crate::project::ProjectProfile::FlatOwnedRecordApiV1 => true,
+                    crate::project::ProjectProfile::OwnedUtf8ApiV1 => {
+                        hir::owned_data_api_workspace_return_admitted(&function.return_type)
+                            || function.return_type == hir::ResolvedType::String
+                    }
+                    crate::project::ProjectProfile::NestedOwnedRecordApiV1 => true,
+                };
+                let effects_admitted = retained_validation::project_effects_admitted(
+                    profile,
+                    &function.effects,
+                    &natives,
+                );
+                let signature_admitted = class_method
+                    || (profile == crate::project::ProjectProfile::ScalarV1
+                        && owned_generics::private_signature(&self.hir, module, function))
+                    || (admitted_return && function.params.iter().all(admitted_parameter));
+                if !signature_admitted && !dependency_fallback {
+                    return Err(vec![Diagnostic::error(
+                        "SPX-G174",
+                        format!(
+                            "project function `{}` has a signature outside the selected profile",
+                            function.id
+                        ),
+                        function.span,
+                    )
+                    .at_path(&module.path)
+                    .with_help(diagnostics::PROJECT_SIGNATURE_HELP)]);
+                }
+                if !effects_admitted {
+                    let profile = retained_validation::project_linker_name(profile);
+                    return Err(vec![graph_error(
+                        "SPX-G172",
+                        format!(
+                            "workspace function `{}` is outside the {profile} profile",
+                            function.id
+                        ),
+                    )]);
+                }
+            }
+        }
+        if !retained_validation::project_type_imports_admitted(profile)
+            && self.edges.iter().any(|edge| {
+                edge.kind == "type_import"
+                    && !(profile == crate::project::ProjectProfile::UsefulDataV1
+                        && self.hir.modules.iter().any(|module| {
+                            module.path == edge.caller_path
+                                && retained_validation::useful_data_v1_dependency_fallback(module)
+                        }))
+            })
+        {
+            return Err(vec![graph_error(
+                "SPX-G172",
+                "workspace scalar linker does not admit `use type` imports",
+            )]);
+        }
+        Ok(())
+    }
+
+    fn validate_entire_scalar_workspace(
+        &self,
+        entry_module: &str,
+        test_module: &str,
+    ) -> Result<(), Vec<Diagnostic>> {
+        self.validate_entire_project_workspace(
+            entry_module,
+            test_module,
+            crate::project::ProjectProfile::ScalarV1,
+            &[],
+            false,
+        )
+    }
+
+    pub(crate) fn change_builder_bytes(&self) -> Option<usize> {
+        self.change_fingerprints
+            .as_ref()
+            .map(|_| self.change_builder_bytes)
+    }
+
+    // Legacy pass-through wrappers over the paid view route (`paid_view.rs`):
+    // a paid G410 carrier moves out unchanged; an unpaid replay refusal is
+    // allocated only by the named unfunded boundary, and every other refusal
+    // remains an owned, unfunded Diagnostic. These outward APIs are outside
+    // the qualified contract.
+    #[cfg(test)]
+    pub(crate) fn into_change_view(self) -> Result<WorkspaceGraphChangeView, Vec<Diagnostic>> {
+        self.into_change_view_paid(source_schema::REPORT)
+            .map_err(ViewRefusal::into_legacy)
+    }
+
+    pub(crate) fn into_operation_view(
+        self,
+    ) -> Result<WorkspaceGraphOperationView, Vec<Diagnostic>> {
+        self.into_operation_view_paid(source_schema::REPORT)
+            .map_err(ViewRefusal::into_legacy)
+    }
+
+    // Source-less view: owning tests only. Production receivers pass sources.
+    #[cfg(test)]
+    pub(crate) fn source_graph_schemas(
+        &self,
+    ) -> Result<BTreeMap<String, &'static str>, Vec<Diagnostic>> {
+        self.source_graph_schemas_paid(source_schema::REPORT)
+            .map_err(ViewRefusal::into_legacy)
+    }
+
+    /// The same pass-through view, receiving the caller's exact sources.
+    pub(crate) fn source_graph_schemas_receiving(
+        &self,
+        sources: &dyn ReceivingSources,
+    ) -> Result<BTreeMap<String, &'static str>, Vec<Diagnostic>> {
+        self.source_graph_schemas_receiving_paid(source_schema::REPORT, Some(sources))
+            .map_err(ViewRefusal::into_legacy)
+    }
+}
+
+fn resolved_function_imports(function: &hir::ResolvedFunction) -> BTreeSet<hir::DeclarationId> {
+    fn visit(expression: &hir::ResolvedExpr, imports: &mut BTreeSet<hir::DeclarationId>) {
+        match &expression.kind {
+            hir::ResolvedExprKind::Closure { captures, body, .. } => {
+                for capture in captures {
+                    visit(&capture.value, imports);
+                }
+                visit(body, imports);
+            }
+            hir::ResolvedExprKind::NativeRustImportCall(call) => {
+                imports.insert(call.import.clone());
+                for argument in &call.args {
+                    visit(argument, imports);
+                }
+            }
+            hir::ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => {
+                visit(source, imports);
+                visit(start, imports);
+                visit(end, imports);
+            }
+            hir::ResolvedExprKind::LiteralFormat { args, .. }
+            | hir::ResolvedExprKind::VecFieldRead { args, .. }
+            | hir::ResolvedExprKind::RowLoan { args, .. }
+            | hir::ResolvedExprKind::Call { args, .. }
+            | hir::ResolvedExprKind::HostCommandCall(hir::ResolvedHostCommandCall {
+                args, ..
+            }) => {
+                for argument in args {
+                    visit(argument, imports);
+                }
+            }
+            hir::ResolvedExprKind::Invoke { callable, args } => {
+                visit(callable, imports);
+                for argument in args {
+                    visit(argument, imports);
+                }
+            }
+            hir::ResolvedExprKind::LexicalExit { value: None, .. } => {}
+            hir::ResolvedExprKind::LexicalExit {
+                value: Some(value), ..
+            }
+            | hir::ResolvedExprKind::Unary { value, .. }
+            | hir::ResolvedExprKind::Try { operand: value, .. }
+            | hir::ResolvedExprKind::TryOption { operand: value, .. }
+            | hir::ResolvedExprKind::Project { base: value, .. }
+            | hir::ResolvedExprKind::Upcast { source: value }
+            | hir::ResolvedExprKind::Yield { request: value } => visit(value, imports),
+            hir::ResolvedExprKind::Binary { left, right, .. } => {
+                visit(left, imports);
+                visit(right, imports);
+            }
+            hir::ResolvedExprKind::Block { statements, tail }
+            | hir::ResolvedExprKind::VecConstructor {
+                statements, tail, ..
+            } => {
+                for statement in statements {
+                    for index in 0..statement.child_count() {
+                        if let Some(child) = statement.child(index) {
+                            visit(child, imports);
+                        }
+                    }
+                }
+                visit(tail, imports);
+            }
+            hir::ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                visit(condition, imports);
+                visit(then_branch, imports);
+                visit(else_branch, imports);
+            }
+            hir::ResolvedExprKind::ConstructRecord { fields, .. }
+            | hir::ResolvedExprKind::ConstructVariant { fields, .. } => {
+                for field in fields {
+                    visit(&field.value, imports);
+                }
+            }
+            hir::ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
+                visit(scrutinee, imports);
+                for arm in arms {
+                    if let Some(guard) = &arm.guard {
+                        visit(guard, imports);
+                    }
+                    visit(&arm.value, imports);
+                }
+            }
+            hir::ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                visit(base, imports);
+                for field in fields {
+                    visit(&field.value, imports);
+                }
+            }
+            hir::ResolvedExprKind::Int(_)
+            | hir::ResolvedExprKind::Int32(_)
+            | hir::ResolvedExprKind::Char(_)
+            | hir::ResolvedExprKind::Uint8(_)
+            | hir::ResolvedExprKind::Usize(_)
+            | hir::ResolvedExprKind::Float32(_)
+            | hir::ResolvedExprKind::Float64(_)
+            | hir::ResolvedExprKind::Bool(_)
+            | hir::ResolvedExprKind::String(_)
+            | hir::ResolvedExprKind::BorrowedUtf8Literal(_)
+            | hir::ResolvedExprKind::ArrayU8(_)
+            | hir::ResolvedExprKind::RepeatArrayU8 { .. }
+            | hir::ResolvedExprKind::BorrowPlace { .. }
+            | hir::ResolvedExprKind::Place(_)
+            | hir::ResolvedExprKind::FunctionReference { .. } => {}
+        }
+    }
+
+    let mut imports = BTreeSet::new();
+    for expression in function
+        .requires
+        .iter()
+        .chain(std::iter::once(&function.body))
+        .chain(&function.ensures)
+    {
+        visit(expression, &mut imports);
+    }
+    imports
+}
+
+impl WorkspaceGraphChangeView {
+    pub(crate) const fn used_managed_files(&self) -> usize {
+        self.usage.managed_files
+    }
+    pub(crate) const fn used_total_source_bytes(&self) -> usize {
+        self.usage.total_source_bytes
+    }
+
+    pub(crate) const fn used_builder_bytes(&self) -> usize {
+        self.usage.builder_bytes
+    }
+    pub(crate) fn modules(&self) -> &[WorkspaceGraphChangeModule] {
+        &self.modules
+    }
+
+    pub(crate) fn declarations(&self) -> &[WorkspaceGraphChangeDeclaration] {
+        &self.declarations
+    }
+    pub(crate) fn edges(&self) -> &[WorkspaceEdge] {
+        &self.edges
+    }
+
+    #[cfg(test)]
+    pub(crate) fn extend_change_test_reverse_call_chain(
+        &mut self,
+        prefix: &str,
+        edge_count: usize,
+    ) -> String {
+        let path = self.modules[0].path.clone();
+        let module = self.modules[0].module.clone();
+        for index in 0..=edge_count {
+            self.declarations.push(WorkspaceGraphChangeDeclaration {
+                id: format!("{prefix}.{index}"),
+                kind: hir::DeclarationKind::Function,
+                origin: hir::IdentityOrigin::Automatic,
+                owner: None,
+                path: Some(path.clone()),
+                module: Some(module.clone()),
+                semantic_fingerprint: format!("test:{prefix}:{index}"),
+            });
+        }
+        for index in 0..edge_count {
+            self.edges.push(WorkspaceEdge {
+                caller_path: path.clone(),
+                caller: format!("{prefix}.{}", index + 1),
+                target_path: path.clone(),
+                target: format!("{prefix}.{index}"),
+                kind: "call",
+                site: "body",
+                expression: format!("test-call-{index}"),
+                ast_path: format!("test.chain.{index}"),
+                alias: format!("test_{index}"),
+                ordinal: index,
+            });
+        }
+        format!("{prefix}.0")
+    }
+
+    pub(crate) fn projection_digest(
+        &self,
+        workspace_revision: &str,
+        sources: &[WorkspaceGraphChangeSourceFact],
+        manifest_bytes: usize,
+        retained_generations: usize,
+        staging_attempts: usize,
+        entry_module: &str,
+    ) -> Result<String, Vec<Diagnostic>> {
+        validate_entry_module(entry_module)?;
+        let Some(entry) = self
+            .modules
+            .iter()
+            .find(|module| module.module == entry_module)
+        else {
+            return Err(vec![graph_error(
+                "SPX-G172",
+                format!("Workspace Semantic Graph entry module `{entry_module}` is absent"),
+            )]);
+        };
+        let authenticated_paths = self
+            .modules
+            .iter()
+            .map(|module| module.path.as_str())
+            .collect::<BTreeSet<_>>();
+        let mut providers = BTreeMap::<&str, BTreeSet<&str>>::new();
+        for edge in self
+            .edges
+            .iter()
+            .filter(|edge| matches!(edge.kind, "function_import" | "type_import"))
+        {
+            if !authenticated_paths.contains(edge.caller_path.as_str())
+                || !authenticated_paths.contains(edge.target_path.as_str())
+            {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "workspace change projection import paths disagree",
+                )]);
+            }
+            providers
+                .entry(edge.caller_path.as_str())
+                .or_default()
+                .insert(edge.target_path.as_str());
+        }
+        let mut reachable = BTreeSet::from([entry.path.as_str()]);
+        let mut pending = BTreeSet::from([entry.path.as_str()]);
+        while let Some(path) = pending.pop_first() {
+            if let Some(direct) = providers.get(path) {
+                for provider in direct {
+                    if reachable.insert(provider) {
+                        pending.insert(provider);
+                    }
+                }
+            }
+        }
+        let source_facts = sources
+            .iter()
+            .map(|source| (source.path.as_str(), source))
+            .collect::<BTreeMap<_, _>>();
+        let mut modules = Vec::with_capacity(reachable.len());
+        for module in self
+            .modules
+            .iter()
+            .filter(|module| reachable.contains(module.path.as_str()))
+        {
+            let source = source_facts.get(module.path.as_str()).ok_or_else(|| {
+                vec![graph_error(
+                    "SPX-G173",
+                    "workspace change projection source fact is absent",
+                )]
+            })?;
+            let dependency_depth =
+                *self.dependency_depths.get(&module.module).ok_or_else(|| {
+                    vec![graph_error(
+                        "SPX-G173",
+                        "workspace change projection dependency depth is absent",
+                    )]
+                })?;
+            modules.push(WorkspaceGraphProjectionModule {
+                path: crate::bounded_output::budgeted_clone(&module.path),
+                module: crate::bounded_output::budgeted_clone(&module.module),
+                source_graph_schema: crate::bounded_output::budgeted_clone(
+                    &source.source_graph_schema,
+                ),
+                source_revision: crate::bounded_output::budgeted_clone(&source.source_revision),
+                source_digest: crate::bounded_output::budgeted_clone(&source.source_digest),
+                dependency_depth,
+                permits: module
+                    .permits
+                    .iter()
+                    .map(|permit| crate::bounded_output::budgeted_clone(permit))
+                    .collect(),
+                types: Vec::new(),
+                interfaces: Vec::new(),
+                functions: Vec::new(),
+                function_templates: Vec::new(),
+                function_instances: Vec::new(),
+                signature_types: BTreeMap::new(),
+                session_protocol_facts: Vec::new(),
+            });
+        }
+        modules.sort_by(|left, right| left.path.cmp(&right.path));
+        let mut declarations = self
+            .declarations
+            .iter()
+            .filter(|declaration| {
+                declaration.origin == hir::IdentityOrigin::CompilerOwned
+                    || declaration
+                        .path
+                        .as_deref()
+                        .is_some_and(|path| reachable.contains(path))
+            })
+            .map(|declaration| WorkspaceGraphProjectionDeclaration {
+                id: crate::bounded_output::budgeted_clone(&declaration.id),
+                kind: declaration.kind,
+                origin: declaration.origin,
+                owner: declaration
+                    .owner
+                    .as_deref()
+                    .map(crate::bounded_output::budgeted_clone),
+                path: declaration
+                    .path
+                    .as_deref()
+                    .map(crate::bounded_output::budgeted_clone),
+                module: declaration
+                    .module
+                    .as_deref()
+                    .map(crate::bounded_output::budgeted_clone),
+            })
+            .collect::<Vec<_>>();
+        declarations.sort_by(|left, right| left.id.cmp(&right.id));
+        let mut edges = self
+            .edges
+            .iter()
+            .filter(|edge| reachable.contains(edge.caller_path.as_str()))
+            .map(budgeted_edge_clone)
+            .collect::<Vec<_>>();
+        if edges
+            .iter()
+            .any(|edge| !reachable.contains(edge.target_path.as_str()))
+        {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "workspace change projected edge target escapes provider closure",
+            )]);
+        }
+        edges.sort();
+        let work = self.usage;
+        let projection = WorkspaceGraphProjection {
+            workspace_revision: crate::bounded_output::budgeted_clone(workspace_revision),
+            entry_module: crate::bounded_output::budgeted_clone(entry_module),
+            modules,
+            declarations,
+            edges,
+            shared_prelude_ids: self.shared_prelude_ids.clone(),
+            usage: WorkspaceGraphProjectionUsage {
+                used_managed_files: work.managed_files,
+                used_total_source_bytes: work.total_source_bytes,
+                used_entry_module_bytes: entry_module.len(),
+                used_declarations: work.declarations,
+                used_callables: work.callables,
+                used_call_sites: work.call_sites,
+                used_uses: work.uses,
+                used_resolved_cross_file_edges: work.resolved_cross_file_edges,
+                used_dependency_depth: work.dependency_depth,
+                used_builder_bytes: work.builder_bytes,
+                used_manifest_bytes: manifest_bytes,
+                used_output_bytes: 0,
+                used_retained_generations: retained_generations,
+                used_staging_attempts: staging_attempts,
+                used_unexpected_inventory_entries: 0,
+                used_reachable_modules: reachable.len(),
+            },
+        };
+        semantic_graph_digest_and_output_bytes(&projection, MAX_OUTPUT_BYTES)
+            .map(|(digest, _)| digest)
+    }
+}
+
+impl WorkspaceGraphChangeModule {
+    pub(crate) fn path(&self) -> &str {
+        &self.path
+    }
+    pub(crate) fn module(&self) -> &str {
+        &self.module
+    }
+
+    pub(crate) const fn source_graph_schema(&self) -> &'static str {
+        self.source_graph_schema
+    }
+    pub(crate) fn permits(&self) -> &[String] {
+        &self.permits
+    }
+}
+
+impl WorkspaceGraphChangeDeclaration {
+    pub(crate) fn id(&self) -> &str {
+        &self.id
+    }
+    pub(crate) fn kind(&self) -> hir::DeclarationKind {
+        self.kind
+    }
+
+    pub(crate) fn origin(&self) -> hir::IdentityOrigin {
+        self.origin
+    }
+    pub(crate) fn owner(&self) -> Option<&str> {
+        self.owner.as_deref()
+    }
+
+    pub(crate) fn path(&self) -> Option<&str> {
+        self.path.as_deref()
+    }
+    pub(crate) fn module(&self) -> Option<&str> {
+        self.module.as_deref()
+    }
+
+    pub(crate) fn semantic_fingerprint(&self) -> &str {
+        &self.semantic_fingerprint
+    }
+}
+
+fn build_from_authenticated_authority(
+    authority: &mut workspace::WorkspaceSemanticReadAuthority,
+) -> Result<AuthenticatedWorkspaceGraphBuild, Vec<Diagnostic>> {
+    let workspace_revision = authority.workspace_revision().to_owned();
+    let storage = AuthenticatedWorkspaceStorageUsage {
+        manifest_bytes: authority.manifest_bytes(),
+        retained_generations: authority.retained_generations(),
+        staging_attempts: authority.staging_attempts(),
+        unexpected_inventory_entries: 0,
+    };
+    let mut source_facts = BTreeMap::new();
+    for source in authority.take_sources()? {
+        let path = source.path;
+        source_facts.insert(
+            path.clone(),
+            AuthenticatedSourceFact {
+                path: path.clone(),
+                source_graph_schema: source.source_graph_schema,
+                source_revision: source.source_revision,
+                source_digest: source.source_digest,
+            },
+        );
+    }
+    let graph = authority.take_graph()?;
+    Ok(AuthenticatedWorkspaceGraphBuild {
+        workspace_revision,
+        sources: source_facts,
+        storage,
+        graph,
+    })
+}
+
+pub(crate) fn build_authenticated_projection(
+    root: &Path,
+    entry_module: &str,
+) -> Result<WorkspaceGraphProjection, Vec<Diagnostic>> {
+    with_authenticated_projection(root, entry_module, Ok)
+}
+
+pub fn snapshot(
+    root: &Path,
+    entry_module: &str,
+) -> Result<WorkspaceSemanticGraph, Vec<Diagnostic>> {
+    build_authenticated_semantic_graph_inner(root, entry_module, |_| {})
+}
+
+fn build_authenticated_semantic_graph_inner(
+    root: &Path,
+    entry_module: &str,
+    after_render: impl FnOnce(&WorkspaceSemanticGraph),
+) -> Result<WorkspaceSemanticGraph, Vec<Diagnostic>> {
+    with_authenticated_projection(root, entry_module, |projection| {
+        let graph = render_semantic_graph(projection)?;
+        after_render(&graph);
+        Ok(graph)
+    })
+}
+
+#[cfg(test)]
+fn build_authenticated_semantic_graph_with_hook(
+    root: &Path,
+    entry_module: &str,
+    after_render: impl FnOnce(&WorkspaceSemanticGraph),
+) -> Result<WorkspaceSemanticGraph, Vec<Diagnostic>> {
+    build_authenticated_semantic_graph_inner(root, entry_module, after_render)
+}
+
+fn with_authenticated_projection<T>(
+    root: &Path,
+    entry_module: &str,
+    operation: impl FnOnce(WorkspaceGraphProjection) -> Result<T, Vec<Diagnostic>>,
+) -> Result<T, Vec<Diagnostic>> {
+    let mut authority = workspace::acquire_semantic_read(root)?;
+    let result = validate_entry_module(entry_module)
+        .and_then(|()| build_from_authenticated_authority(&mut authority))
+        .and_then(|build| build.project(entry_module))
+        .and_then(operation);
+    authority.finish(result)
+}
+
+fn with_authenticated_analysis<T>(
+    root: &Path,
+    entry_module: &str,
+    operation: impl FnOnce(crate::workspace_analysis::WorkspaceAnalysis) -> Result<T, Vec<Diagnostic>>,
+) -> Result<T, Vec<Diagnostic>> {
+    with_authenticated_projection(root, entry_module, |projection| {
+        crate::workspace_analysis::WorkspaceAnalysis::build(projection).and_then(operation)
+    })
+}
+
+#[cfg(test)]
+pub(crate) fn build_authenticated_analysis_for_test(
+    root: &Path,
+    entry_module: &str,
+) -> Result<crate::workspace_analysis::WorkspaceAnalysis, Vec<Diagnostic>> {
+    with_authenticated_analysis(root, entry_module, Ok)
+}
+
+pub(crate) fn with_authenticated_context<T>(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    direction: crate::workspace_analysis::WorkspaceAnalysisDirection,
+    depth: usize,
+    max_nodes: usize,
+    operation: impl FnOnce(
+        crate::workspace_analysis::WorkspaceContextFacts,
+    ) -> Result<T, Vec<Diagnostic>>,
+) -> Result<T, Vec<Diagnostic>> {
+    with_authenticated_analysis(root, entry_module, |analysis| {
+        analysis
+            .context(target, direction, depth, max_nodes)
+            .and_then(operation)
+    })
+}
+
+pub(crate) fn with_authenticated_impact<T>(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    depth: usize,
+    max_nodes: usize,
+    operation: impl FnOnce(
+        crate::workspace_analysis::WorkspaceImpactFacts,
+    ) -> Result<T, Vec<Diagnostic>>,
+) -> Result<T, Vec<Diagnostic>> {
+    with_authenticated_analysis(root, entry_module, |analysis| {
+        analysis
+            .impact(target, depth, max_nodes)
+            .and_then(operation)
+    })
+}
+
+pub(crate) fn build_authenticated_context_artifact(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    direction: crate::workspace_analysis::WorkspaceAnalysisDirection,
+    depth: usize,
+    max_bytes: usize,
+    max_nodes: usize,
+) -> Result<crate::workspace_analysis::WorkspaceContextArtifact, Vec<Diagnostic>> {
+    build_authenticated_context_artifact_inner(
+        root,
+        entry_module,
+        target,
+        direction,
+        depth,
+        max_bytes,
+        max_nodes,
+        |_| {},
+    )
+}
+
+#[allow(
+    clippy::too_many_arguments,
+    reason = "closed authenticated Context operation"
+)]
+fn build_authenticated_context_artifact_inner(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    direction: crate::workspace_analysis::WorkspaceAnalysisDirection,
+    depth: usize,
+    max_bytes: usize,
+    max_nodes: usize,
+    after_render: impl FnOnce(&crate::workspace_analysis::WorkspaceContextArtifact),
+) -> Result<crate::workspace_analysis::WorkspaceContextArtifact, Vec<Diagnostic>> {
+    with_authenticated_analysis(root, entry_module, |analysis| {
+        let artifact = analysis.render_context(target, direction, depth, max_bytes, max_nodes)?;
+        after_render(&artifact);
+        Ok(artifact)
+    })
+    .map_err(|diagnostics| {
+        crate::workspace_analysis::map_artifact_diagnostics(
+            crate::workspace_analysis::WorkspaceAnalysisArtifactKind::Context,
+            diagnostics,
+        )
+    })
+}
+
+#[cfg(test)]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "test-only Context final-boundary seam"
+)]
+pub(crate) fn build_authenticated_context_artifact_with_hook(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    direction: crate::workspace_analysis::WorkspaceAnalysisDirection,
+    depth: usize,
+    max_bytes: usize,
+    max_nodes: usize,
+    after_render: impl FnOnce(&crate::workspace_analysis::WorkspaceContextArtifact),
+) -> Result<crate::workspace_analysis::WorkspaceContextArtifact, Vec<Diagnostic>> {
+    build_authenticated_context_artifact_inner(
+        root,
+        entry_module,
+        target,
+        direction,
+        depth,
+        max_bytes,
+        max_nodes,
+        after_render,
+    )
+}
+
+pub(crate) fn build_authenticated_impact_artifact(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    depth: usize,
+    max_bytes: usize,
+    max_nodes: usize,
+) -> Result<crate::workspace_analysis::WorkspaceImpactArtifact, Vec<Diagnostic>> {
+    build_authenticated_impact_artifact_inner(
+        root,
+        entry_module,
+        target,
+        depth,
+        max_bytes,
+        max_nodes,
+        |_| {},
+    )
+}
+
+fn build_authenticated_impact_artifact_inner(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    depth: usize,
+    max_bytes: usize,
+    max_nodes: usize,
+    after_render: impl FnOnce(&crate::workspace_analysis::WorkspaceImpactArtifact),
+) -> Result<crate::workspace_analysis::WorkspaceImpactArtifact, Vec<Diagnostic>> {
+    with_authenticated_analysis(root, entry_module, |analysis| {
+        let artifact = analysis.render_impact(target, depth, max_bytes, max_nodes)?;
+        after_render(&artifact);
+        Ok(artifact)
+    })
+    .map_err(|diagnostics| {
+        crate::workspace_analysis::map_artifact_diagnostics(
+            crate::workspace_analysis::WorkspaceAnalysisArtifactKind::Impact,
+            diagnostics,
+        )
+    })
+}
+
+#[cfg(test)]
+pub(crate) fn build_authenticated_impact_artifact_with_hook(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    depth: usize,
+    max_bytes: usize,
+    max_nodes: usize,
+    after_render: impl FnOnce(&crate::workspace_analysis::WorkspaceImpactArtifact),
+) -> Result<crate::workspace_analysis::WorkspaceImpactArtifact, Vec<Diagnostic>> {
+    build_authenticated_impact_artifact_inner(
+        root,
+        entry_module,
+        target,
+        depth,
+        max_bytes,
+        max_nodes,
+        after_render,
+    )
+}
+
+pub(crate) fn build_authenticated_review_artifact(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+) -> Result<crate::workspace_analysis::WorkspaceReviewArtifact, Vec<Diagnostic>> {
+    build_authenticated_review_artifact_inner(root, entry_module, target, |_| {})
+}
+
+fn build_authenticated_review_artifact_inner(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    after_render: impl FnOnce(&crate::workspace_analysis::WorkspaceReviewArtifact),
+) -> Result<crate::workspace_analysis::WorkspaceReviewArtifact, Vec<Diagnostic>> {
+    with_authenticated_analysis(root, entry_module, |analysis| {
+        let artifact = analysis.render_review(target)?;
+        after_render(&artifact);
+        Ok(artifact)
+    })
+    .map_err(|diagnostics| {
+        crate::workspace_analysis::map_artifact_diagnostics(
+            crate::workspace_analysis::WorkspaceAnalysisArtifactKind::Review,
+            diagnostics,
+        )
+    })
+}
+
+#[cfg(test)]
+pub(crate) fn build_authenticated_review_artifact_with_hook(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    after_render: impl FnOnce(&crate::workspace_analysis::WorkspaceReviewArtifact),
+) -> Result<crate::workspace_analysis::WorkspaceReviewArtifact, Vec<Diagnostic>> {
+    build_authenticated_review_artifact_inner(root, entry_module, target, after_render)
+}
+
+#[cfg(test)]
+fn build_authenticated_projection_with_hook(
+    root: &Path,
+    entry_module: &str,
+    hook: impl FnOnce(),
+) -> Result<WorkspaceGraphProjection, Vec<Diagnostic>> {
+    with_authenticated_projection(root, entry_module, |projection| {
+        hook();
+        Ok(projection)
+    })
+}
+
+impl AuthenticatedWorkspaceGraphBuild {
+    fn project(self, entry_module: &str) -> Result<WorkspaceGraphProjection, Vec<Diagnostic>> {
+        validate_entry_module(entry_module)?;
+        let Some(entry_path) = self.graph.hir.module_paths.get(entry_module).cloned() else {
+            return Err(vec![graph_error(
+                "SPX-G172",
+                format!("Workspace Semantic Graph entry module `{entry_module}` is absent"),
+            )]);
+        };
+
+        let authenticated_paths = self
+            .graph
+            .hir
+            .module_paths
+            .values()
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        let mut direct_providers = BTreeMap::<String, BTreeSet<String>>::new();
+        for edge in &self.graph.edges {
+            if !matches!(edge.kind, "function_import" | "type_import") {
+                continue;
+            }
+            if !authenticated_paths.contains(edge.caller_path.as_str())
+                || !authenticated_paths.contains(edge.target_path.as_str())
+            {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "workspace import edge paths disagree with authenticated modules",
+                )]);
+            }
+            direct_providers
+                .entry(edge.caller_path.clone())
+                .or_default()
+                .insert(edge.target_path.clone());
+        }
+
+        let mut reachable_paths = BTreeSet::from([entry_path.clone()]);
+        let mut pending = BTreeSet::from([entry_path]);
+        while let Some(path) = pending.pop_first() {
+            if let Some(providers) = direct_providers.get(&path) {
+                for provider in providers {
+                    if reachable_paths.insert(provider.clone()) {
+                        pending.insert(provider.clone());
+                    }
+                }
+            }
+        }
+
+        let mut source_facts = self.sources;
+        let mut dependency_depths = self.graph.hir.dependency_depths;
+        let mut modules = Vec::with_capacity(reachable_paths.len());
+        for module in self.graph.hir.modules {
+            if !reachable_paths.contains(module.path.as_str()) {
+                continue;
+            }
+            let source = source_facts.remove(&module.path).ok_or_else(|| {
+                vec![graph_error(
+                    "SPX-G173",
+                    "workspace module source facts disagree with authenticated snapshot paths",
+                )]
+            })?;
+            if source.path != module.path {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "workspace module source path disagrees with authenticated snapshot facts",
+                )]);
+            }
+            let dependency_depth = dependency_depths.remove(&module.module).ok_or_else(|| {
+                vec![graph_error(
+                    "SPX-G173",
+                    "workspace module dependency depth is absent",
+                )]
+            })?;
+            modules.push(WorkspaceGraphProjectionModule {
+                path: module.path,
+                module: module.module,
+                source_graph_schema: source.source_graph_schema,
+                source_revision: source.source_revision,
+                source_digest: source.source_digest,
+                dependency_depth,
+                permits: module.permits,
+                types: module.types.into_owned(),
+                interfaces: module.interfaces,
+                functions: module.functions.into_owned(),
+                function_templates: module.function_templates.into_owned(),
+                function_instances: module.function_instances,
+                signature_types: module.signature_types,
+                session_protocol_facts: module.session_protocol_facts,
+            });
+        }
+        modules.sort_by(|left, right| left.path.cmp(&right.path));
+        if modules.len() != reachable_paths.len() {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "workspace reachable-module closure disagrees with retained modules",
+            )]);
+        }
+
+        let mut declarations = self
+            .graph
+            .hir
+            .declarations
+            .into_iter()
+            .filter_map(|(id, fact)| {
+                let retained = fact.origin == hir::IdentityOrigin::CompilerOwned
+                    || fact
+                        .path
+                        .as_deref()
+                        .is_some_and(|path| reachable_paths.contains(path));
+                retained.then_some(WorkspaceGraphProjectionDeclaration {
+                    id,
+                    kind: fact.kind,
+                    origin: fact.origin,
+                    owner: fact.owner,
+                    path: fact.path,
+                    module: fact.module,
+                })
+            })
+            .collect::<Vec<_>>();
+        declarations.sort_by(|left, right| left.id.cmp(&right.id));
+
+        let mut edges = self
+            .graph
+            .edges
+            .into_iter()
+            .filter(|edge| reachable_paths.contains(edge.caller_path.as_str()))
+            .collect::<Vec<_>>();
+        if edges
+            .iter()
+            .any(|edge| !reachable_paths.contains(edge.target_path.as_str()))
+        {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "workspace projected edge target escapes the provider closure",
+            )]);
+        }
+        edges.sort();
+
+        let work = self.graph.usage;
+        let usage = WorkspaceGraphProjectionUsage {
+            used_managed_files: work.managed_files,
+            used_total_source_bytes: work.total_source_bytes,
+            used_entry_module_bytes: entry_module.len(),
+            used_declarations: work.declarations,
+            used_callables: work.callables,
+            used_call_sites: work.call_sites,
+            used_uses: work.uses,
+            used_resolved_cross_file_edges: work.resolved_cross_file_edges,
+            used_dependency_depth: work.dependency_depth,
+            used_builder_bytes: work.builder_bytes,
+            used_manifest_bytes: self.storage.manifest_bytes,
+            used_output_bytes: 0,
+            used_retained_generations: self.storage.retained_generations,
+            used_staging_attempts: self.storage.staging_attempts,
+            used_unexpected_inventory_entries: self.storage.unexpected_inventory_entries,
+            used_reachable_modules: modules.len(),
+        };
+        Ok(WorkspaceGraphProjection {
+            workspace_revision: self.workspace_revision,
+            entry_module: entry_module.to_owned(),
+            modules,
+            declarations,
+            edges,
+            shared_prelude_ids: self.graph.hir.shared_prelude_ids.into_iter().collect(),
+            usage,
+        })
+    }
+}
+
+pub(crate) fn validate_entry_module(entry_module: &str) -> Result<(), Vec<Diagnostic>> {
+    if entry_module.len() > MAX_ENTRY_MODULE_BYTES {
+        return Err(vec![limit_error(
+            "entry_module_bytes",
+            MAX_ENTRY_MODULE_BYTES,
+        )]);
+    }
+    let canonical = !entry_module.is_empty()
+        && entry_module.split('.').all(|segment| {
+            let mut bytes = segment.bytes();
+            bytes
+                .next()
+                .is_some_and(|byte| byte.is_ascii_alphabetic() || byte == b'_')
+                && bytes.all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
+        });
+    if canonical {
+        Ok(())
+    } else {
+        Err(vec![graph_error(
+            "SPX-G170",
+            format!("Workspace Semantic Graph entry module `{entry_module}` is not canonical"),
+        )])
+    }
+}
+
+fn render_semantic_graph(
+    projection: WorkspaceGraphProjection,
+) -> Result<WorkspaceSemanticGraph, Vec<Diagnostic>> {
+    render_semantic_graph_with_output_limit(projection, MAX_OUTPUT_BYTES)
+}
+
+pub(crate) fn render_project_semantic_graph(
+    projection: &WorkspaceGraphProjection,
+    project_schema: &str,
+    project_name: &str,
+    project_revision: &str,
+    test_module: &str,
+    law_modules: &[crate::assurance_manifest::law_set::LawModule],
+) -> Result<ProjectSemanticGraphArtifact, Vec<Diagnostic>> {
+    validate_render_projection(projection)?;
+    validate_entry_module(test_module)?;
+    if !projection
+        .modules
+        .iter()
+        .any(|module| module.module == test_module)
+    {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "project test module is absent from the complete semantic projection",
+        )]);
+    }
+    let (payload, overflowed) = crate::bounded_output::with_limit(MAX_OUTPUT_BYTES, || {
+        render_project_graph_json(
+            projection,
+            project_schema,
+            project_name,
+            project_revision,
+            test_module,
+            law_modules,
+            None,
+        )
+    });
+    if overflowed {
+        return Err(vec![limit_error("output_bytes", MAX_OUTPUT_BYTES)]);
+    }
+    let digest = project_artifact_digest(PROJECT_GRAPH_DIGEST_DOMAIN, payload.as_bytes());
+    let (json, overflowed) = crate::bounded_output::with_limit(MAX_OUTPUT_BYTES, || {
+        render_project_graph_json(
+            projection,
+            project_schema,
+            project_name,
+            project_revision,
+            test_module,
+            law_modules,
+            Some(&digest),
+        )
+    });
+    if overflowed || json.len() > MAX_OUTPUT_BYTES {
+        return Err(vec![limit_error("output_bytes", MAX_OUTPUT_BYTES)]);
+    }
+    Ok(ProjectSemanticGraphArtifact { json, digest })
+}
+
+fn project_artifact_digest(domain: &[u8], payload: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(domain);
+    hasher.update((payload.len() as u64).to_le_bytes());
+    hasher.update(payload);
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    )
+}
+
+fn render_semantic_graph_with_output_limit(
+    mut projection: WorkspaceGraphProjection,
+    output_limit: usize,
+) -> Result<WorkspaceSemanticGraph, Vec<Diagnostic>> {
+    assert!(
+        output_limit <= MAX_OUTPUT_BYTES,
+        "private Workspace Semantic Graph output limit cannot exceed the production maximum"
+    );
+    validate_render_projection(&projection)?;
+    let (graph_digest, used_output_bytes) =
+        semantic_graph_digest_and_output_bytes(&projection, output_limit)?;
+    let json = bounded_graph_json(
+        &projection,
+        Some(&graph_digest),
+        used_output_bytes,
+        output_limit,
+    )?;
+    if json.len() != used_output_bytes {
+        return Err(render_binding_error());
+    }
+    projection.usage.used_output_bytes = used_output_bytes;
+    Ok(public_semantic_graph(projection, graph_digest, json))
+}
+
+pub(crate) fn projection_graph_binding(
+    projection: &WorkspaceGraphProjection,
+) -> Result<(String, usize), Vec<Diagnostic>> {
+    validate_render_projection(projection)?;
+    semantic_graph_digest_and_output_bytes(projection, MAX_OUTPUT_BYTES)
+}
+
+pub(crate) fn validate_project_projection(
+    projection: &WorkspaceGraphProjection,
+) -> Result<(), Vec<Diagnostic>> {
+    validate_render_projection(projection)
+}
+
+fn semantic_graph_digest_and_output_bytes(
+    projection: &WorkspaceGraphProjection,
+    output_limit: usize,
+) -> Result<(String, usize), Vec<Diagnostic>> {
+    const DIGEST_PLACEHOLDER: &str =
+        "sha256:0000000000000000000000000000000000000000000000000000000000000000";
+    let mut used_output_bytes = 0usize;
+    for _ in 0..20 {
+        let placeholder = bounded_graph_json(
+            projection,
+            Some(DIGEST_PLACEHOLDER),
+            used_output_bytes,
+            output_limit,
+        )?;
+        if placeholder.len() == used_output_bytes {
+            let payload = bounded_graph_json(projection, None, used_output_bytes, output_limit)?;
+            return Ok((artifact_digest(payload.as_bytes()), used_output_bytes));
+        }
+        used_output_bytes = placeholder.len();
+    }
+    Err(render_binding_error())
+}
+
+fn public_semantic_graph(
+    projection: WorkspaceGraphProjection,
+    graph_digest: String,
+    json: String,
+) -> WorkspaceSemanticGraph {
+    let entry_path = projection
+        .modules
+        .iter()
+        .find(|module| module.module == projection.entry_module)
+        .expect("validated projection retains its entry module")
+        .path
+        .clone();
+    let modules = projection
+        .modules
+        .into_iter()
+        .map(|module| WorkspaceSemanticGraphModule {
+            path: module.path,
+            module: module.module,
+            source_graph_schema: module.source_graph_schema,
+            source_revision: module.source_revision,
+            source_digest: module.source_digest,
+            dependency_depth: module.dependency_depth,
+            permits: module.permits,
+        })
+        .collect();
+    let declarations = projection
+        .declarations
+        .into_iter()
+        .map(|declaration| WorkspaceSemanticGraphDeclaration {
+            id: declaration.id,
+            kind: declaration_kind_text(declaration.kind),
+            identity_origin: identity_origin_text(declaration.origin),
+            owner: declaration.owner,
+            path: declaration.path,
+            module: declaration.module,
+        })
+        .collect();
+    let edges = projection
+        .edges
+        .into_iter()
+        .map(|edge| WorkspaceSemanticGraphEdge {
+            caller_path: edge.caller_path,
+            caller: edge.caller,
+            target_path: edge.target_path,
+            target: edge.target,
+            kind: edge.kind,
+            site: edge.site,
+            expression: edge.expression,
+            ast_path: edge.ast_path,
+            alias: edge.alias,
+            ordinal: edge.ordinal,
+        })
+        .collect();
+    let usage = projection.usage;
+    WorkspaceSemanticGraph {
+        workspace_revision: projection.workspace_revision,
+        graph_digest,
+        entry: WorkspaceSemanticGraphEntry {
+            module: projection.entry_module,
+            path: entry_path,
+        },
+        modules,
+        declarations,
+        edges,
+        limits: WorkspaceSemanticGraphLimits {
+            max_managed_files: MAX_FILES,
+            max_reachable_modules: MAX_FILES,
+            max_entry_module_bytes: MAX_ENTRY_MODULE_BYTES,
+            max_total_source_bytes: MAX_TOTAL_SOURCE_BYTES,
+            max_declarations: MAX_DECLARATIONS,
+            max_callables: MAX_CALLABLES,
+            max_call_sites: MAX_CALLS,
+            max_uses: MAX_USES,
+            max_resolved_cross_file_edges: MAX_CROSS_FILE_EDGES,
+            max_dependency_depth: MAX_DEPENDENCY_DEPTH,
+            max_builder_bytes: MAX_BUILDER_BYTES,
+            max_manifest_bytes: 1024 * 1024,
+            max_output_bytes: MAX_OUTPUT_BYTES,
+            max_retained_generations: 32,
+            max_staging_attempts: 32,
+            max_unexpected_inventory_entries: 0,
+        },
+        budget: WorkspaceSemanticGraphBudget {
+            used_managed_files: usage.used_managed_files,
+            used_reachable_modules: usage.used_reachable_modules,
+            used_entry_module_bytes: usage.used_entry_module_bytes,
+            used_total_source_bytes: usage.used_total_source_bytes,
+            used_declarations: usage.used_declarations,
+            used_callables: usage.used_callables,
+            used_call_sites: usage.used_call_sites,
+            used_uses: usage.used_uses,
+            used_resolved_cross_file_edges: usage.used_resolved_cross_file_edges,
+            used_dependency_depth: usage.used_dependency_depth,
+            used_builder_bytes: usage.used_builder_bytes,
+            used_manifest_bytes: usage.used_manifest_bytes,
+            used_output_bytes: usage.used_output_bytes,
+            used_retained_generations: usage.used_retained_generations,
+            used_staging_attempts: usage.used_staging_attempts,
+            used_unexpected_inventory_entries: usage.used_unexpected_inventory_entries,
+        },
+        json,
+    }
+}
+
+fn bounded_graph_json(
+    projection: &WorkspaceGraphProjection,
+    graph_digest: Option<&str>,
+    used_output_bytes: usize,
+    output_limit: usize,
+) -> Result<String, Vec<Diagnostic>> {
+    let (json, overflowed) = crate::bounded_output::with_limit(output_limit, || {
+        render_graph_json(projection, graph_digest, used_output_bytes)
+    });
+    if overflowed || json.len() > output_limit {
+        Err(vec![limit_error("output_bytes", output_limit)])
+    } else {
+        Ok(json)
+    }
+}
+
+fn render_binding_error() -> Vec<Diagnostic> {
+    vec![graph_error(
+        "SPX-G173",
+        "Workspace Semantic Graph rendering or digest binding disagrees",
+    )]
+}
+
+fn render_graph_json(
+    projection: &WorkspaceGraphProjection,
+    graph_digest: Option<&str>,
+    used_output_bytes: usize,
+) -> String {
+    use std::fmt::Write as _;
+
+    let entry = projection
+        .modules
+        .iter()
+        .find(|module| module.module == projection.entry_module)
+        .expect("validated projection has exactly one entry module");
+    let mut output = crate::bounded_output::CappedString::new();
+    // A declaration fact and a `follows` binding fact share one per-module
+    // `Vec` (see `WorkspaceResolvedModule::session_protocol_facts`'s own doc
+    // comment) and are told apart here by their own leading JSON key alone,
+    // costing no extra discriminator or second field.
+    let mut session_protocols: Vec<(String, String, String)> = Vec::new();
+    let mut session_protocol_follows: Vec<(String, String, String)> = Vec::new();
+    for module in &projection.modules {
+        for fact in &module.session_protocol_facts {
+            if fact.starts_with("{\"agent\":") {
+                continue;
+            }
+            let row = (module.module.clone(), module.path.clone(), fact.clone());
+            if fact.starts_with("{\"function\":") {
+                session_protocol_follows.push(row);
+            } else {
+                assert!(
+                    fact.starts_with("{\"stable_id\":"),
+                    "unknown private checked fact tag"
+                );
+                session_protocols.push(row);
+            }
+        }
+    }
+    output.push_str("{\"schema\":");
+    push_json_string(
+        &mut output,
+        indexed_rust::schema(
+            agent_execution::schema(
+                session_protocol_decl::schema(&session_protocols, &session_protocol_follows),
+                &projection.modules,
+            ),
+            &projection.modules,
+            false,
+        ),
+    );
+    output.push_str(",\"workspace_manifest_schema\":");
+    push_json_string(&mut output, WORKSPACE_MANIFEST_SCHEMA);
+    output.push_str(",\"workspace_revision\":");
+    push_json_string(&mut output, &projection.workspace_revision);
+    if let Some(graph_digest) = graph_digest {
+        output.push_str(",\"graph_digest\":");
+        push_json_string(&mut output, graph_digest);
+    }
+    output.push_str(",\"entry\":{\"module\":");
+    push_json_string(&mut output, &projection.entry_module);
+    output.push_str(",\"path\":");
+    push_json_string(&mut output, &entry.path);
+    output.push_str("},\"modules\":[");
+    for (index, module) in projection.modules.iter().enumerate() {
+        if index > 0 {
+            output.push(',');
+        }
+        output.push_str("{\"path\":");
+        push_json_string(&mut output, &module.path);
+        output.push_str(",\"module\":");
+        push_json_string(&mut output, &module.module);
+        output.push_str(",\"source_graph_schema\":");
+        push_json_string(&mut output, &module.source_graph_schema);
+        output.push_str(",\"source_revision\":");
+        push_json_string(&mut output, &module.source_revision);
+        output.push_str(",\"source_digest\":");
+        push_json_string(&mut output, &module.source_digest);
+        write!(
+            output,
+            ",\"dependency_depth\":{},\"permits\":[",
+            module.dependency_depth
+        )
+        .expect("writing to a string cannot fail");
+        for (permit_index, permit) in module.permits.iter().enumerate() {
+            if permit_index > 0 {
+                output.push(',');
+            }
+            push_json_string(&mut output, permit);
+        }
+        output.push_str("]}");
+    }
+    output.push_str("],\"declarations\":[");
+    for (index, declaration) in projection.declarations.iter().enumerate() {
+        if index > 0 {
+            output.push(',');
+        }
+        output.push_str("{\"id\":");
+        push_json_string(&mut output, &declaration.id);
+        output.push_str(",\"kind\":");
+        push_json_string(&mut output, declaration_kind_text(declaration.kind));
+        output.push_str(",\"identity_origin\":");
+        push_json_string(&mut output, identity_origin_text(declaration.origin));
+        output.push_str(",\"owner\":");
+        push_optional_json_string(&mut output, declaration.owner.as_deref());
+        output.push_str(",\"path\":");
+        push_optional_json_string(&mut output, declaration.path.as_deref());
+        output.push_str(",\"module\":");
+        push_optional_json_string(&mut output, declaration.module.as_deref());
+        output.push('}');
+    }
+    output.push_str("],\"edges\":[");
+    for (index, edge) in projection.edges.iter().enumerate() {
+        if index > 0 {
+            output.push(',');
+        }
+        output.push_str("{\"caller_path\":");
+        push_json_string(&mut output, &edge.caller_path);
+        output.push_str(",\"caller\":");
+        push_json_string(&mut output, &edge.caller);
+        output.push_str(",\"target_path\":");
+        push_json_string(&mut output, &edge.target_path);
+        output.push_str(",\"target\":");
+        push_json_string(&mut output, &edge.target);
+        output.push_str(",\"kind\":");
+        push_json_string(&mut output, edge.kind);
+        output.push_str(",\"site\":");
+        push_json_string(&mut output, edge.site);
+        output.push_str(",\"expression\":");
+        push_json_string(&mut output, &edge.expression);
+        output.push_str(",\"ast_path\":");
+        push_json_string(&mut output, &edge.ast_path);
+        output.push_str(",\"alias\":");
+        push_json_string(&mut output, &edge.alias);
+        write!(output, ",\"ordinal\":{}}}", edge.ordinal).expect("writing to a string cannot fail");
+    }
+    output.push_str("],\"limits\":");
+    diagnostics::push_workspace_graph_limits(&mut output);
+    output.push_str(",\"budget\":{");
+    let usage = projection.usage;
+    write!(
+        output,
+        "\"used_managed_files\":{},\"used_reachable_modules\":{},\"used_entry_module_bytes\":{},\"used_total_source_bytes\":{},\"used_declarations\":{},\"used_callables\":{},\"used_call_sites\":{},\"used_uses\":{},\"used_resolved_cross_file_edges\":{},\"used_dependency_depth\":{},\"used_builder_bytes\":{},\"used_manifest_bytes\":{},\"used_output_bytes\":{},\"used_retained_generations\":{},\"used_staging_attempts\":{},\"used_unexpected_inventory_entries\":{}",
+        usage.used_managed_files,
+        usage.used_reachable_modules,
+        usage.used_entry_module_bytes,
+        usage.used_total_source_bytes,
+        usage.used_declarations,
+        usage.used_callables,
+        usage.used_call_sites,
+        usage.used_uses,
+        usage.used_resolved_cross_file_edges,
+        usage.used_dependency_depth,
+        usage.used_builder_bytes,
+        usage.used_manifest_bytes,
+        used_output_bytes,
+        usage.used_retained_generations,
+        usage.used_staging_attempts,
+        usage.used_unexpected_inventory_entries
+    )
+    .expect("writing to a string cannot fail");
+    output.push_str("},\"nonclaims\":[");
+    for (index, nonclaim) in NONCLAIMS.iter().enumerate() {
+        if index > 0 {
+            output.push(',');
+        }
+        push_json_string(&mut output, nonclaim);
+    }
+    output.push(']');
+    output.push_str(&session_protocol_decl::render_trailing(&session_protocols));
+    output.push_str(&session_protocol_decl::render_follows_trailing(
+        &session_protocol_follows,
+    ));
+    output.push_str(&agent_execution::render_trailing(
+        session_protocol_decl::schema(&session_protocols, &session_protocol_follows),
+        &projection.modules,
+    ));
+    indexed_rust::append(&mut output, &projection.modules);
+    output.push('}');
+    output.into_string()
+}
+
+fn push_json_string(output: &mut crate::bounded_output::CappedString, value: &str) {
+    use std::fmt::Write as _;
+
+    output.push('"');
+    for character in value.chars() {
+        match character {
+            '"' => output.push_str("\\\""),
+            '\\' => output.push_str("\\\\"),
+            '\n' => output.push_str("\\n"),
+            '\r' => output.push_str("\\r"),
+            '\t' => output.push_str("\\t"),
+            character if character.is_control() => {
+                write!(output, "\\u{:04x}", character as u32)
+                    .expect("writing to a string cannot fail");
+            }
+            character => output.push(character),
+        }
+    }
+    output.push('"');
+}
+fn push_optional_json_string(
+    output: &mut crate::bounded_output::CappedString,
+    value: Option<&str>,
+) {
+    if let Some(value) = value {
+        push_json_string(output, value);
+    } else {
+        output.push_str("null");
+    }
+}
+fn declaration_kind_text(kind: hir::DeclarationKind) -> &'static str {
+    match kind {
+        hir::DeclarationKind::Resource => "resource",
+        hir::DeclarationKind::ResourceDrop => "resource_drop",
+        hir::DeclarationKind::Record => "record",
+        hir::DeclarationKind::Class => "class",
+        hir::DeclarationKind::Field => "field",
+        hir::DeclarationKind::Variant => "variant",
+        hir::DeclarationKind::VariantCase => "variant_case",
+        hir::DeclarationKind::CaseField => "case_field",
+        hir::DeclarationKind::Interface => "interface",
+        hir::DeclarationKind::Import => "import",
+        hir::DeclarationKind::Function => "function",
+    }
+}
+fn identity_origin_text(origin: hir::IdentityOrigin) -> &'static str {
+    match origin {
+        hir::IdentityOrigin::Explicit => "explicit",
+        hir::IdentityOrigin::Automatic => "automatic",
+        hir::IdentityOrigin::CompilerOwned => "compiler_owned",
+    }
+}
+fn validate_render_projection(
+    projection: &WorkspaceGraphProjection,
+) -> Result<(), Vec<Diagnostic>> {
+    if projection
+        .modules
+        .iter()
+        .filter(|module| module.module == projection.entry_module)
+        .count()
+        != 1
+        || projection.modules.len() != projection.usage.used_reachable_modules
+        || !projection
+            .modules
+            .windows(2)
+            .all(|pair| pair[0].path < pair[1].path)
+        || !projection
+            .declarations
+            .windows(2)
+            .all(|pair| pair[0].id < pair[1].id)
+        || !projection.edges.windows(2).all(|pair| pair[0] < pair[1])
+        || projection.edges.iter().any(|edge| {
+            !matches!(
+                edge.kind,
+                "call"
+                    | "capability_authority"
+                    | "effect_requirement"
+                    | "function_import"
+                    | "type_import"
+                    | "type_reference"
+            ) || !matches!(
+                edge.site,
+                "module" | "type" | "requires" | "body" | "ensures"
+            )
+        })
+    {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "Workspace Semantic Graph rendering or digest binding disagrees",
+        )]);
+    }
+    Ok(())
+}
+fn artifact_digest(payload: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(ARTIFACT_DIGEST_DOMAIN);
+    hasher.update((payload.len() as u64).to_le_bytes());
+    hasher.update(payload);
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    )
+}
+fn build_owned_with_builder_limit(
+    sources: Vec<WorkspaceSource>,
+    builder_limit: usize,
+) -> Result<WorkspaceGraphBuild, Vec<Diagnostic>> {
+    build_owned_retaining_sources_with_builder_limit(sources, builder_limit, None, false)
+        .map(|(build, _)| build)
+}
+pub(crate) fn build_owned_retaining_sources(
+    sources: Vec<WorkspaceSource>,
+) -> Result<(WorkspaceGraphBuild, current_source::SourceFacts), Vec<Diagnostic>> {
+    build_owned_retaining_sources_with_builder_limit(sources, MAX_BUILDER_BYTES, None, false)
+}
+pub(crate) fn build_owned_retaining_sources_for_change(
+    sources: Vec<WorkspaceSource>,
+    change_builder_limit: usize,
+) -> Result<(WorkspaceGraphBuild, current_source::SourceFacts), Vec<Diagnostic>> {
+    assert!(change_builder_limit <= MAX_CHANGE_BUILDER_BYTES);
+    build_owned_retaining_sources_with_builder_limit(
+        sources,
+        MAX_BUILDER_BYTES,
+        Some(change_builder_limit),
+        false,
+    )
+}
+pub(crate) fn build_owned_retaining_sources_for_operations(
+    sources: Vec<WorkspaceSource>,
+    graph_builder_limit: usize,
+    operations_builder_limit: usize,
+) -> Result<(WorkspaceGraphBuild, current_source::SourceFacts), Vec<Diagnostic>> {
+    assert!(
+        operations_builder_limit <= 67_108_864,
+        "private Semantic Workspace Operations builder limit cannot exceed the production maximum"
+    );
+    build_owned_retaining_sources_with_builder_limit(
+        sources,
+        graph_builder_limit,
+        Some(operations_builder_limit),
+        true,
+    )
+}
+fn build_owned_retaining_sources_with_builder_limit(
+    sources: Vec<WorkspaceSource>,
+    builder_limit: usize,
+    change_builder_limit: Option<usize>,
+    retain_operation_programs: bool,
+) -> Result<(WorkspaceGraphBuild, current_source::SourceFacts), Vec<Diagnostic>> {
+    build_owned_retaining_sources_with_frontend_limit(
+        sources,
+        builder_limit,
+        change_builder_limit,
+        retain_operation_programs,
+        None,
+    )
+}
+pub(crate) fn build_owned_retaining_sources_with_frontend(
+    sources: Vec<WorkspaceSource>,
+    frontend: &mut crate::project::incremental::FrontendPass,
+) -> Result<(WorkspaceGraphBuild, current_source::SourceFacts), Vec<Diagnostic>> {
+    build_owned_retaining_sources_with_frontend_limit(
+        sources,
+        MAX_BUILDER_BYTES,
+        None,
+        false,
+        Some(frontend),
+    )
+}
+
+fn build_owned_retaining_sources_with_frontend_limit(
+    sources: Vec<WorkspaceSource>,
+    builder_limit: usize,
+    change_builder_limit: Option<usize>,
+    retain_operation_programs: bool,
+    frontend: Option<&mut crate::project::incremental::FrontendPass>,
+) -> Result<(WorkspaceGraphBuild, current_source::SourceFacts), Vec<Diagnostic>> {
+    assert!(
+        builder_limit <= MAX_BUILDER_BYTES,
+        "private Workspace Semantic Graph builder limit cannot exceed the production maximum"
+    );
+    struct Restore(usize);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            ACTIVE_BUILDER_LIMIT.with(|active| active.set(self.0));
+        }
+    }
+    let previous = ACTIVE_BUILDER_LIMIT.with(|active| active.replace(builder_limit));
+    let restore = Restore(previous);
+    let result = build_owned_inner(
+        sources,
+        change_builder_limit,
+        retain_operation_programs,
+        frontend,
+    );
+    drop(restore);
+    result
+}
+
+fn active_builder_limit() -> usize {
+    ACTIVE_BUILDER_LIMIT.with(Cell::get)
+}
+
+fn build_owned_inner(
+    mut sources: Vec<WorkspaceSource>,
+    change_builder_limit: Option<usize>,
+    retain_operation_programs: bool,
+    mut frontend: Option<&mut crate::project::incremental::FrontendPass>,
+) -> Result<(WorkspaceGraphBuild, current_source::SourceFacts), Vec<Diagnostic>> {
+    let _diagnostics = diagnostics::invocation_scope();
+    if sources.len() < 2 {
+        return Err(vec![graph_error(
+            "SPX-G170",
+            "Workspace Semantic Graph requires 2..32 source files",
+        )]);
+    }
+    if sources.len() > MAX_FILES {
+        return Err(vec![limit_error("files", MAX_FILES)]);
+    }
+    sources.sort_by(|left, right| left.path.cmp(&right.path));
+    let mut seen_paths = BTreeSet::new();
+    let mut source_bytes = 0usize;
+    for source in &sources {
+        workspace::validate_logical_path(&source.path).map_err(|_| {
+            vec![graph_error(
+                "SPX-G170",
+                format!(
+                    "workspace semantic source path `{}` is not canonical",
+                    source.path
+                ),
+            )]
+        })?;
+        if !seen_paths.insert(source.path.clone()) {
+            return Err(vec![graph_error(
+                "SPX-G170",
+                format!("duplicate workspace semantic source path `{}`", source.path),
+            )]);
+        }
+        source_bytes = checked_usage(
+            source_bytes,
+            source.source.len(),
+            "total_source_bytes",
+            MAX_TOTAL_SOURCE_BYTES,
+        )?;
+    }
+    let mut programs = Vec::with_capacity(sources.len());
+    let mut native_law_paths = BTreeSet::new();
+    let mut declarations = 0usize;
+    let mut callables = 0usize;
+    let mut calls = 0usize;
+    let mut uses = 0usize;
+    let mut canonical_bytes = 0usize;
+    for source in &sources {
+        let remaining = active_builder_limit().saturating_sub(canonical_bytes);
+        if let Some((inert, canonical_len)) = native_law::inert_program(source, remaining)? {
+            canonical_bytes = checked_usage(
+                canonical_bytes,
+                canonical_len,
+                "builder_bytes",
+                active_builder_limit(),
+            )?;
+            native_law_paths.insert(source.path.clone());
+            programs.push(inert);
+            continue;
+        }
+        let cached = frontend
+            .as_deref_mut()
+            .and_then(|cache| cache.lookup(&source.path, &source.source));
+        let reused = cached.is_some();
+        let (mut program, comments) = if let Some(program) = cached {
+            (program, None)
+        } else {
+            let (program, comments) =
+                crate::parse_with_comments(&source.source, Path::new(&source.path))
+                    .map_err(|error| vec![error])?;
+            if let Some(frontend) = frontend.as_deref_mut() {
+                frontend.parsed(source.source.len());
+            }
+            (program, Some(comments))
+        };
+        if let Some(frontend) = frontend.as_deref() {
+            crate::project::indexed_rust::bind_program(&mut program, &frontend.indexed_imports)?;
+        }
+        // Check source-local conformance before imported declarations become
+        // synthetic stubs. A stub must never acquire local implementation
+        // authority merely because it has an authenticated imported identity.
+        crate::static_protocol::validate(&program).map_err(|error| vec![error])?;
+        let remaining = active_builder_limit().saturating_sub(canonical_bytes);
+        let canonical_len = if reused {
+            source.source.len()
+        } else {
+            let comments = comments
+                .as_ref()
+                .expect("cold workspace parse retains its exact comments");
+            let (canonical, overflowed) = crate::bounded_output::with_limit(remaining, || {
+                format::comments::canonical_with_comments(&program, comments)
+            });
+            if overflowed {
+                return Err(vec![limit_error("builder_bytes", active_builder_limit())]);
+            }
+            if canonical != source.source {
+                return Err(vec![graph_error(
+                    "SPX-G170",
+                    format!(
+                        "workspace semantic source `{}` is not canonical",
+                        source.path
+                    ),
+                )
+                .with_help(
+                    "Run `semaprax fmt <project-directory-or-manifest>` to canonicalize project source, then retry.",
+                )]);
+            }
+            if let Some(frontend) = frontend.as_deref_mut() {
+                frontend.canonicalized();
+            }
+            canonical.len()
+        };
+        canonical_bytes = checked_usage(
+            canonical_bytes,
+            canonical_len,
+            "builder_bytes",
+            active_builder_limit(),
+        )?;
+        declarations = checked_usage(
+            declarations,
+            declaration_count(&program)
+                .ok_or_else(|| vec![limit_error("declarations", MAX_DECLARATIONS)])?,
+            "declarations",
+            MAX_DECLARATIONS,
+        )?;
+        callables = checked_usage(
+            callables,
+            program.functions.len(),
+            "callables",
+            MAX_CALLABLES,
+        )?;
+        calls = checked_usage(
+            calls,
+            call_count(&program).ok_or_else(|| vec![limit_error("calls", MAX_CALLS)])?,
+            "calls",
+            MAX_CALLS,
+        )?;
+        uses = checked_usage(uses, program.module_uses.len(), "uses", MAX_USES)?;
+        programs.push(program);
+    }
+    crate::static_protocol::validate_workspace(&programs).map_err(|error| vec![error])?;
+    // Every module's own source is parsed, canonical-checked and
+    // static-protocol validated above. Only after that does a bundled
+    // dependency's unreachable surface stop being built into HIR: the
+    // builder charges whole translation units, so a standard-library package
+    // costs its entire declaration set however little of it a consumer can
+    // reach. See `dependency_pruning` for the soundness argument.
+    let pruned_dependency_functions = dependency_pruning::prune(&mut programs, &sources);
+    let module_paths = index_modules(&programs)?;
+    let authored = index_authored(&programs)?;
+    validate_synthetic_main_id_collisions(&programs, &authored)?;
+    let layouts =
+        expected_projection::private_layout::registry::LayoutRegistry::new(&programs, &authored);
+    import_validation::validate_uses_with_registry(
+        &programs,
+        &module_paths,
+        &authored,
+        Some(&layouts),
+    )?;
+    let dependency_depths = validate_dependency_dag(&programs)?;
+    let retention = if frontend
+        .as_deref()
+        .is_some_and(|cache| cache.retains_checked_hir())
+    {
+        expected_projection::cached_exact::Retention::Semantic
+    } else {
+        expected_projection::cached_exact::Retention::Parsed
+    };
+    let (mut resolve_builder_bytes, checked_retention_prebound, allow_uncached_peak, initial_mode) =
+        expected_projection::cached_exact::initial_with_registry(
+            &programs,
+            &authored,
+            frontend.is_none(),
+            retention,
+            Some(&layouts),
+        )?;
+    if let Some(cache) = frontend.as_deref() {
+        cache.checked_retention_prebound(checked_usage(
+            checked_retention_prebound,
+            layouts.receipt(),
+            "builder_bytes",
+            active_builder_limit(),
+        )?)?;
+    }
+    // Each isolated attempt keeps the parent's monotonic debit.
+    let mut retry_allowed = active_builder_limit() == MAX_BUILDER_BYTES
+        && crate::bounded_output::active_remaining().is_none();
+    let mut checkpoint = if retry_allowed {
+        frontend
+            .as_deref()
+            .and_then(|cache| cache.checkpoint_core_attempt())
+    } else {
+        None
+    };
+    retry_allowed &= frontend.is_none() || checkpoint.is_some();
+    let mut core_builder_bytes = 0usize;
+    let mut fallback_mode = initial_mode;
+    let core = loop {
+        #[cfg(test)]
+        CORE_BUILD_ATTEMPTS.with(|attempts| attempts.set(attempts.get() + 1));
+        let compact_layout = (fallback_mode == 6)
+            .then(|| {
+                expected_projection::uncached_peak::uncached_output_layout_with_registry(
+                    &programs,
+                    &authored,
+                    Some(&layouts),
+                )
+            })
+            .transpose()?;
+        let (core, overflowed, consumed, refusal) =
+            crate::bounded_output::with_limit_usage_refusal(active_builder_limit(), || {
+                #[cfg(test)]
+                let _trace = crate::bounded_output::stage_debits::start(
+                    resolve_builder_bytes,
+                    layouts.receipt(),
+                    fallback_mode,
+                );
+                reserve_builder_structure(layouts.receipt())?;
+                staged!(CorePrebound, charge_builder_prebound(resolve_builder_bytes))?;
+                let custody =
+                    custody::SourceCustody::plan(&sources, &programs, &pruned_dependency_functions)
+                        .map_err(|error| match error {
+                            custody::CustodyError::Prepaid(_) => {
+                                vec![limit_error("builder_bytes", active_builder_limit())]
+                            }
+                            _ => vec![graph_error(
+                                "SPX-G173",
+                                "current parsed source custody is inconsistent",
+                            )],
+                        })?;
+                let core = staged!(
+                    ResolvedCore,
+                    build_resolved_core_current(
+                        &programs,
+                        &module_paths,
+                        &dependency_depths,
+                        &authored,
+                        Some(&sources),
+                        frontend.as_deref_mut(),
+                        &layouts,
+                        compact_layout
+                            .as_ref()
+                            .map(|layout| &layout.order[..programs.len()]),
+                    )
+                )?;
+                Ok::<_, Vec<Diagnostic>>((core, custody))
+            });
+        core_builder_bytes = core_builder_bytes.max(consumed);
+        if !overflowed {
+            break core;
+        }
+        // Drop partial trees; retain their debit in the maximum phase receipt.
+        drop(core);
+        if fallback_mode
+            >= if allow_uncached_peak {
+                6
+            } else {
+                expected_projection::cached_exact::MODE
+            }
+            || !retry_allowed
+        {
+            return Err(vec![diagnostics::live_builder_refusal(
+                active_builder_limit(),
+                refusal,
+            )]);
+        }
+        // Mode six replaces an overflowing all-HIR carrier with the bounded
+        // sequential filtered-output/index plus one-full-HIR peak.
+        if fallback_mode == 5 {
+            let (tighter, _) = expected_projection::uncached_output_peak_prebound_with_registry(
+                &programs,
+                &authored,
+                Some(&layouts),
+            )?;
+            resolve_builder_bytes = tighter;
+            fallback_mode = 6;
+            continue;
+        }
+        if let (Some(cache), Some(saved)) = (frontend.as_deref_mut(), checkpoint.take()) {
+            cache.rollback_core_attempt(saved);
+            checkpoint = cache.checkpoint_core_attempt();
+        }
+        let (tighter, total) = if allow_uncached_peak {
+            expected_projection::next_retention_prebound_with_uncached_peak_with_registry(
+                &programs,
+                &authored,
+                resolve_builder_bytes,
+                &mut fallback_mode,
+                true,
+                Some(&layouts),
+            )?
+        } else {
+            expected_projection::cached_exact::next_with_registry(
+                &programs,
+                &authored,
+                resolve_builder_bytes,
+                &mut fallback_mode,
+                retention,
+                Some(&layouts),
+            )?
+        };
+        if let Some(cache) = frontend.as_deref() {
+            cache.checked_retention_prebound(checked_usage(
+                total,
+                layouts.receipt(),
+                "builder_bytes",
+                active_builder_limit(),
+            )?)?;
+        }
+        resolve_builder_bytes = tighter;
+    };
+    drop(layouts);
+    let (core, custody) = core?;
+    let (mut modules, module_paths, dependency_depths, declaration_facts, expected_edges) = core;
+    for module in &mut modules {
+        module.native_law = native_law_paths.contains(&module.path);
+    }
+    let dependency_depth = dependency_depths.values().copied().max().unwrap_or(0);
+    let resolved_cross_file_edges = expected_edges.len();
+    let graph_builder_bytes = canonical_bytes.max(core_builder_bytes);
+    let (change_fingerprints, operation_sidecar, change_builder_bytes, operation_builder_bytes) =
+        if let Some(change_builder_limit) = change_builder_limit {
+            let (result, overflowed, consumed) =
+                crate::bounded_output::with_limit_usage(change_builder_limit, || {
+                    if retain_operation_programs {
+                        reserve_builder_structure(graph_builder_bytes)?;
+                    }
+                    let fingerprints = authenticated_declaration_fingerprints(
+                        &programs,
+                        &sources,
+                        &declaration_facts,
+                    )?;
+                    let sidecar = retain_operation_programs
+                        .then(|| build_operation_sidecar(&programs, &sources, &modules, &authored))
+                        .transpose()?;
+                    Ok::<_, Vec<Diagnostic>>((fingerprints, sidecar))
+                });
+            if overflowed {
+                return Err(vec![limit_error(
+                    "change_builder_bytes",
+                    change_builder_limit,
+                )]);
+            }
+            let (fingerprints, sidecar) = result?;
+            (
+                Some(fingerprints),
+                sidecar,
+                consumed,
+                if retain_operation_programs {
+                    consumed
+                } else {
+                    0
+                },
+            )
+        } else {
+            (None, None, 0, 0)
+        };
+    let shared_prelude_ids = prelude_binding::ids_from_facts(&programs, &declaration_facts);
+    let mut build = WorkspaceGraphBuild {
+        current_sources: None,
+        hir: ValidatedWorkspaceHir {
+            modules,
+            module_paths,
+            dependency_depths,
+            declarations: declaration_facts,
+            shared_prelude_ids,
+        },
+        edges: expected_edges,
+        usage: WorkspaceGraphWorkUsage {
+            managed_files: sources.len(),
+            total_source_bytes: source_bytes,
+            declarations,
+            callables,
+            call_sites: calls,
+            uses,
+            resolved_cross_file_edges,
+            dependency_depth,
+            builder_bytes: graph_builder_bytes,
+        },
+        change_fingerprints,
+        change_builder_bytes,
+        operation_sidecar,
+        operation_builder_bytes,
+    };
+    // Restore before any owning cache publication, exactly as the original
+    // provider/pruning receiver. Both ordinary and checked Project linking use
+    // these actual parsed owners instead of reparsing an equal source later.
+    pruned_dependency_functions.restore(&mut programs);
+    let custody = custody.complete(sources, programs).map_err(|_| {
+        vec![graph_error(
+            "SPX-G173",
+            "current parsed source custody is inconsistent",
+        )]
+    })?;
+    if let Some(frontend) = frontend {
+        frontend.retain_current(&custody, resolve_builder_bytes)?;
+    }
+    let (sources, owners) = custody.into_parts();
+    build.current_sources = Some(owners);
+    Ok((build, sources))
+}
+
+type ResolvedCore = (
+    Vec<WorkspaceResolvedModule>,
+    BTreeMap<String, String>,
+    BTreeMap<String, usize>,
+    BTreeMap<String, WorkspaceDeclarationFact>,
+    Vec<WorkspaceEdge>,
+);
+
+// Native Rust name resolution adds a private declaration-index map, but this
+// Graph route rejects Native Rust imports before resolution. Preserve the
+// frozen no-native workspace accounting bytes rather than charging an empty,
+// backend-private map into existing Graph evidence.
+const GRAPH_ACCOUNTED_RESOLVED_PROGRAM_BYTES: usize = std::mem::size_of::<hir::ResolvedProgram>()
+    - std::mem::size_of::<BTreeMap<String, hir::DeclarationId>>()
+    - std::mem::size_of::<Vec<hir::ResolvedAgentDeclaration>>();
+// Shared Loan Plan v1 is an independently bounded proof sidecar. Preserve the
+// frozen empty-sidecar accounting for legacy workspaces, then charge the full
+// carrier and its owned allocation only when a retained function has a real
+// own-root plan. This keeps evidence independent of incidental Rust layout
+// growth without making nonempty proof data free.
+const GRAPH_ACCOUNTED_RESOLVED_FUNCTION_BYTES: usize = std::mem::size_of::<hir::ResolvedFunction>()
+    - std::mem::size_of::<crate::loan_plan::LoanPlan>();
+const GRAPH_ACCOUNTED_RESOLVED_FUNCTION_INSTANCE_BYTES: usize =
+    std::mem::size_of::<hir::ResolvedFunctionInstance>()
+        - std::mem::size_of::<crate::loan_plan::LoanPlan>();
+
+// Keep the source-authority inputs explicit at this audited construction boundary.
+#[allow(clippy::too_many_arguments)]
+fn build_resolved_core_current(
+    programs: &[Program],
+    module_paths: &BTreeMap<&str, &str>,
+    dependency_depths: &BTreeMap<&str, usize>,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    authenticated_sources: Option<&[WorkspaceSource]>,
+    mut frontend: Option<&mut crate::project::incremental::FrontendPass>,
+    layouts: &expected_projection::private_layout::registry::LayoutRegistry<'_>,
+    compact_order: Option<&[usize]>,
+) -> Result<ResolvedCore, Vec<Diagnostic>> {
+    let retained_output_only = compact_order.is_some();
+    let mut loan_scratch = loan_retention::RetentionScratch::default();
+    let mut expected_edges = Vec::new();
+    for program in programs {
+        staged!(
+            ExpectedEdges,
+            collect_expected_edges(
+                program,
+                programs,
+                module_paths,
+                authored,
+                &mut expected_edges,
+            )
+        )?;
+    }
+    checked_retention::reserve_input_carriers(programs.len())?;
+    // The final uncached attempt uses a compact index and sequential HIR
+    // filtering; earlier receipts retain the complete synthetic HIR vector.
+    let mut validation = retained_output_only
+        .then(|| staged!(CompactValidation, WorkspaceValidationIndex::new(programs)))
+        .transpose()?;
+    let authority = expected_projection::private_layout::authority::invocation::Invocation::new(
+        programs, authored,
+    );
+    let mut synthetic_modules = if retained_output_only {
+        Vec::new()
+    } else {
+        Vec::with_capacity(programs.len())
+    };
+    let mut modules = Vec::new();
+    let mut imported_vec_instances = BTreeMap::new();
+    if retained_output_only {
+        reserve_workspace_module_carrier(programs.len())?;
+        modules = Vec::with_capacity(programs.len());
+    }
+    // Earlier/cached forecasts retain the old inline Program carrier. The
+    // new tagged input adds one reused enclosing header, not one per module.
+    // Sequential uncached retention prices that same carrier in its peak.
+    if !retained_output_only {
+        reserve_builder_structure(expected_projection::borrowed_leaf::input_carrier_delta()?)?;
+    }
+    let mut core_proofs = expected_projection::CoreProviderProofs::new(authored, programs)
+        .map_err(|error| vec![error])?;
+    let mut synthetic_ast_peak = 0usize;
+    let mut selected_static_modules = static_text::SelectedModules::default();
+    for index in 0..programs.len() {
+        let program = &programs[compact_order.map_or(index, |order| order[index])];
+        if retained_output_only {
+            staged!(
+                UncachedSyntheticPeak,
+                expected_projection::uncached_peak::charge_uncached_synthetic_ast_core(
+                    program,
+                    authored,
+                    programs,
+                    &mut synthetic_ast_peak,
+                    Some(layouts),
+                    &mut core_proofs,
+                )
+            )?;
+        }
+        let synthetic = staged!(
+            SyntheticModule,
+            constructor_failure::construct_transient_core(
+                program,
+                authored,
+                programs,
+                layouts,
+                &mut core_proofs,
+            )
+            .map_err(constructor_failure::Failure::into_legacy_unfunded)
+        )?;
+        // Exact stubs/spans and the unconditional prebound govern hits.
+        let cached = staged!(
+            FrontendLookup,
+            frontend.as_deref_mut().and_then(|cache| match &synthetic {
+                expected_projection::borrowed_leaf::Input::Owned(input) =>
+                    cache.checked_module(&program.path, input),
+                expected_projection::borrowed_leaf::Input::Borrowed(input) =>
+                    cache.checked_module_source(&program.path, input),
+            })
+        );
+        let (resolved, static_text) = if let Some((resolved, resolver_bytes, original_loan_bytes)) =
+            cached
+        {
+            let before = crate::bounded_output::active_remaining()
+                .expect("resolved core has a builder budget");
+            let static_text = staged!(CachedValidation, hir::validate_with_static_text(&resolved))
+                .map_err(|error| vec![error])?;
+            let validation_bytes = before.saturating_sub(
+                crate::bounded_output::active_remaining()
+                    .expect("resolved core has a builder budget"),
+            );
+            let residual = resolver_bytes
+                .checked_sub(validation_bytes)
+                .ok_or_else(|| {
+                    vec![graph_error(
+                        "SPX-G257",
+                        "checked module replay accounting exceeds its original resolver work",
+                    )]
+                })?;
+            // Charge only the residual resolver cost after real revalidation.
+            charge_builder_prebound(residual)?;
+            // Preserve proof-capacity charging and the cold-equivalent residual.
+            let loan_residual = original_loan_bytes
+                .checked_sub(resolved_loan_bytes(&resolved)?)
+                .ok_or_else(|| {
+                    vec![graph_error(
+                        "SPX-G257",
+                        "checked module clone exceeds its original loan-plan capacity accounting",
+                    )]
+                })?;
+            charge_builder_prebound(loan_residual)?;
+            (ResolvedModuleInput::Checked(resolved), static_text)
+        } else {
+            let before = crate::bounded_output::active_remaining()
+                .expect("resolved core has a builder budget");
+            // Diagnostics name private layout copies by provider provenance
+            // through a borrowed view of the already held closure; binding it
+            // derives, debits and allocates nothing.
+            let held = layouts.held(program);
+            let private = held
+                .as_deref()
+                .map(|layout| layout.presentation(program, synthetic.source()))
+                .transpose()?
+                .flatten();
+            // Typed receiver: one identity report is acquired on this same
+            // resolved-core ledger before either route, and Setup stays Copy
+            // until this legacy outer adapter.
+            let (resolved, function_costs, reused_functions, static_text) =
+                identity_resolution::resolve_module_with_core(
+                    &mut core_proofs,
+                    frontend.as_deref(),
+                    &program.path,
+                    &synthetic,
+                    private,
+                )
+                .map_err(identity_resolution::ModuleFailure::into_legacy)?;
+            drop(held);
+            let resolver_bytes = before.saturating_sub(
+                crate::bounded_output::active_remaining()
+                    .expect("resolved core has a builder budget"),
+            );
+            let resolved = if let Some(cache) = frontend.as_deref_mut() {
+                staged!(FrontendRetention, {
+                    let loan_bytes = resolved_loan_bytes(&resolved)?;
+                    cache.resolved_module_split(
+                        &program.path,
+                        || synthetic.into_split_key(index),
+                        resolved,
+                        resolver_bytes,
+                        loan_bytes,
+                        function_costs,
+                        reused_functions,
+                    )
+                })?
+            } else {
+                ResolvedModuleInput::Owned(resolved)
+            };
+            (resolved, static_text)
+        };
+        staged!(
+            ResolvedCallEdges,
+            verify_resolved_call_edges(program, &resolved, authored)
+        )?;
+        if let Some(validation) = validation.as_mut() {
+            staged!(
+                AuthoredModuleValidation,
+                validation.record_module_authored(
+                    &program.module,
+                    &resolved,
+                    programs,
+                    authored,
+                    Some(&authority),
+                )
+            )?;
+            let (module, imported_instances) = staged!(
+                RetainedModule,
+                retain_workspace_module(
+                    program,
+                    crate::bounded_output::budgeted_clone(&program.module),
+                    resolved,
+                    programs,
+                    authored,
+                    Some(&mut loan_scratch),
+                    static_text,
+                    authenticated_sources,
+                )
+            )?;
+            staged!(
+                ImportedVecInstances,
+                owned_generics::merge_imported_vec_instances(
+                    &mut imported_vec_instances,
+                    imported_instances,
+                )
+            )?;
+            modules.push(module);
+        } else {
+            selected_static_modules.record(synthetic_modules.len(), programs.len(), static_text)?;
+            synthetic_modules.push((
+                crate::bounded_output::budgeted_clone(&program.module),
+                resolved,
+            ));
+        }
+    }
+    if retained_output_only {
+        modules.sort_unstable_by(|left, right| left.path.cmp(&right.path));
+    }
+    let declarations = if let Some(validation) = validation {
+        staged!(
+            StubSignatures,
+            validation.validate_stub_signatures_authored(programs, authored, Some(&authority))
+        )?;
+        staged!(DeclarationFacts, validation.finish(programs))?
+    } else {
+        staged!(
+            StubSignatures,
+            validate_stub_signatures_authored(
+                programs,
+                &synthetic_modules,
+                authored,
+                Some(&authority)
+            )
+        )?;
+        let declarations = staged!(
+            DeclarationFacts,
+            reconstruct_workspace_declaration_facts_with_authority(
+                &synthetic_modules,
+                programs,
+                authored,
+                Some(&authority)
+            )
+        )?;
+        let programs_by_module = programs
+            .iter()
+            .map(|program| (program.module.as_str(), program))
+            .collect::<BTreeMap<_, _>>();
+        reserve_workspace_module_carrier(synthetic_modules.len())?;
+        modules = Vec::with_capacity(synthetic_modules.len());
+        for (module_index, (module, resolved)) in synthetic_modules.into_iter().enumerate() {
+            let program = programs_by_module
+                .get(module.as_str())
+                .expect("every resolved module has authenticated source");
+            let (module, imported_instances) = staged!(
+                RetainedModule,
+                retain_workspace_module(
+                    program,
+                    module,
+                    resolved,
+                    programs,
+                    authored,
+                    None,
+                    selected_static_modules.contains(module_index),
+                    authenticated_sources,
+                )
+            )?;
+            staged!(
+                ImportedVecInstances,
+                owned_generics::merge_imported_vec_instances(
+                    &mut imported_vec_instances,
+                    imported_instances,
+                )
+            )?;
+            modules.push(module);
+        }
+        declarations
+    };
+    staged!(
+        ImportedVecInstances,
+        owned_generics::attach_imported_vec_instances(&mut modules, imported_vec_instances)
+    )?;
+    staged!(
+        RetainedFacts,
+        retained_validation::validate_core_facts(
+            programs,
+            &modules,
+            &expected_edges,
+            compact_order.is_some(),
+        )
+    )?;
+    staged!(
+        RetainedFacts,
+        validate_retained_declaration_shapes(&modules, &declarations)
+    )?;
+    let owned_module_paths = staged!(
+        CoreDirectories,
+        module_paths
+            .iter()
+            .map(|(module, path)| {
+                (
+                    crate::bounded_output::budgeted_clone(module),
+                    crate::bounded_output::budgeted_clone(path),
+                )
+            })
+            .collect()
+    );
+    if dependency_depths.len() != module_paths.len()
+        || dependency_depths
+            .keys()
+            .any(|module| !module_paths.contains_key(module))
+    {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "workspace dependency-depth keys disagree with authenticated modules",
+        )]);
+    }
+    let owned_dependency_depths = staged!(
+        CoreDirectories,
+        dependency_depths
+            .iter()
+            .map(|(module, depth)| (crate::bounded_output::budgeted_clone(module), *depth))
+            .collect()
+    );
+    Ok((
+        modules,
+        owned_module_paths,
+        owned_dependency_depths,
+        declarations,
+        expected_edges,
+    ))
+}
+
+const MAX_CHECKED_VALUE_VISITS: usize = 1_048_576;
+const MAX_CHECKED_VALUE_DEPTH: usize = 256;
+
+#[derive(Clone, Copy)]
+enum CheckedValueNode<'a> {
+    Type(&'a hir::ResolvedType),
+    Expression(&'a hir::ResolvedExpr),
+    Statement(&'a hir::ResolvedStatement),
+    Binding(&'a hir::ResolvedBinding),
+    Field(&'a hir::ResolvedFieldInitializer),
+    Arm(&'a hir::ResolvedMatchArm),
+    Pattern(&'a hir::ResolvedMatchPattern),
+    RecordField(&'a hir::ResolvedRecordMatchPatternField),
+}
+
+impl<'a> CheckedValueNode<'a> {
+    fn ty(self) -> Option<&'a hir::ResolvedType> {
+        match self {
+            Self::Type(ty) => Some(ty),
+            Self::Expression(expression) => Some(&expression.ty),
+            Self::Binding(binding) => Some(&binding.ty),
+            Self::Pattern(hir::ResolvedMatchPattern::Record { instance, .. }) => Some(instance),
+            Self::RecordField(hir::ResolvedRecordMatchPatternField {
+                pattern: hir::ResolvedRecordMatchFieldPattern::Record { instance, .. },
+                ..
+            }) => Some(instance),
+            _ => None,
+        }
+    }
+
+    fn child(self, index: usize) -> Option<Self> {
+        use hir::ResolvedExprKind as E;
+        use hir::ResolvedMatchPattern as P;
+        use hir::ResolvedRecordMatchFieldPattern as F;
+        use hir::ResolvedStatement as S;
+        match self {
+            Self::Type(_) | Self::Binding(_) => None,
+            Self::Field(field) => (index == 0).then_some(Self::Expression(&field.value)),
+            Self::Statement(statement) => match statement {
+                S::Let { binding, value, .. } | S::Assign { binding, value, .. } => {
+                    [Self::Binding(binding), Self::Expression(value)]
+                        .get(index)
+                        .copied()
+                }
+                S::CopyDiscard { .. }
+                | S::Unsafe { .. }
+                | S::While { .. }
+                | S::LexicalWhile { .. } => statement.child(index).map(Self::Expression),
+            },
+            Self::Arm(arm) => match index {
+                0 => Some(Self::Pattern(&arm.pattern)),
+                1 => Some(Self::Expression(arm.guard.as_deref().unwrap_or(&arm.value))),
+                2 if arm.guard.is_some() => Some(Self::Expression(&arm.value)),
+                _ => None,
+            },
+            Self::Pattern(pattern) => match pattern {
+                P::Variant { fields, .. } => {
+                    fields.get(index).map(|field| Self::Binding(&field.binding))
+                }
+                P::Record { fields, .. } => fields.get(index).map(Self::RecordField),
+                P::Binding(binding) => (index == 0).then_some(Self::Binding(binding)),
+                P::Or(alternatives) => alternatives.get(index).map(Self::Pattern),
+                P::Wildcard | P::Literal(_) => None,
+            },
+            Self::RecordField(field) => match &field.pattern {
+                F::Binding(binding) => (index == 0).then_some(Self::Binding(binding)),
+                F::Record { fields, .. } => fields.get(index).map(Self::RecordField),
+                F::Wildcard => None,
+            },
+            Self::Expression(expression) => match &expression.kind {
+                E::LexicalExit { value, .. } => (index == 0)
+                    .then_some(value.as_deref())
+                    .flatten()
+                    .map(Self::Expression),
+                E::Closure {
+                    parameters,
+                    captures,
+                    body,
+                } => {
+                    if index < parameters.len() {
+                        Some(Self::Binding(&parameters[index]))
+                    } else if index < parameters.len() + captures.len() * 2 {
+                        let offset = index - parameters.len();
+                        if offset.is_multiple_of(2) {
+                            Some(Self::Binding(&captures[offset / 2].binding))
+                        } else {
+                            Some(Self::Expression(&captures[offset / 2].value))
+                        }
+                    } else {
+                        (index == parameters.len() + captures.len() * 2)
+                            .then_some(Self::Expression(body))
+                    }
+                }
+                E::ByteRange {
+                    source, start, end, ..
+                } => [source.as_ref(), start.as_ref(), end.as_ref()]
+                    .get(index)
+                    .copied()
+                    .map(Self::Expression),
+                E::Call { args, .. }
+                | E::LiteralFormat { args, .. }
+                | E::VecFieldRead { args, .. }
+                | E::RowLoan { args, .. } => args.get(index).map(Self::Expression),
+                E::Invoke { callable, args } => {
+                    if index == 0 {
+                        Some(Self::Expression(callable))
+                    } else {
+                        args.get(index - 1).map(Self::Expression)
+                    }
+                }
+                E::NativeRustImportCall(call) => call.args.get(index).map(Self::Expression),
+                E::HostCommandCall(call) => call.args.get(index).map(Self::Expression),
+                E::Unary { value, .. }
+                | E::Project { base: value, .. }
+                | E::Upcast { source: value }
+                | E::Yield { request: value } => (index == 0).then_some(Self::Expression(value)),
+                E::Try {
+                    operand,
+                    residual_type,
+                    ..
+                }
+                | E::TryOption {
+                    operand,
+                    residual_type,
+                    ..
+                } => [Self::Expression(operand), Self::Type(residual_type)]
+                    .get(index)
+                    .copied(),
+                E::Binary { left, right, .. } => [left.as_ref(), right.as_ref()]
+                    .get(index)
+                    .copied()
+                    .map(Self::Expression),
+                E::Block { statements, tail }
+                | E::VecConstructor {
+                    statements, tail, ..
+                } => {
+                    if index < statements.len() {
+                        statements.get(index).map(Self::Statement)
+                    } else {
+                        (index == statements.len()).then_some(Self::Expression(tail))
+                    }
+                }
+                E::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } => [
+                    condition.as_ref(),
+                    then_branch.as_ref(),
+                    else_branch.as_ref(),
+                ]
+                .get(index)
+                .copied()
+                .map(Self::Expression),
+                E::ConstructRecord { fields, .. } | E::ConstructVariant { fields, .. } => {
+                    fields.get(index).map(Self::Field)
+                }
+                E::Match {
+                    scrutinee, arms, ..
+                } => {
+                    if index == 0 {
+                        Some(Self::Expression(scrutinee))
+                    } else {
+                        arms.get(index - 1).map(Self::Arm)
+                    }
+                }
+                E::UpdateRecord { base, fields, .. } => {
+                    if index == 0 {
+                        Some(Self::Expression(base))
+                    } else {
+                        fields.get(index - 1).map(Self::Field)
+                    }
+                }
+                E::Int(_)
+                | E::Int32(_)
+                | E::Char(_)
+                | E::Uint8(_)
+                | E::Usize(_)
+                | E::Float32(_)
+                | E::Float64(_)
+                | E::Bool(_)
+                | E::String(_)
+                | E::BorrowedUtf8Literal(_)
+                | E::ArrayU8(_)
+                | E::RepeatArrayU8 { .. }
+                | E::BorrowPlace { .. }
+                | E::Place(_)
+                | E::FunctionReference { .. } => None,
+            },
+        }
+    }
+}
+
+fn resolved_loan_bytes(program: &hir::ResolvedProgram) -> Result<usize, Vec<Diagnostic>> {
+    program
+        .functions
+        .iter()
+        .map(|function| &function.loan_plan)
+        .chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function.loan_plan),
+        )
+        .try_fold(0usize, |sum, plan| {
+            sum.checked_add(loan_retention::clone_loan_plan_bytes(plan)?)
+                .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])
+        })
+}
+
+fn authenticated_declaration_fingerprints(
+    programs: &[Program],
+    sources: &[WorkspaceSource],
+    declarations: &BTreeMap<String, WorkspaceDeclarationFact>,
+) -> Result<BTreeMap<String, String>, Vec<Diagnostic>> {
+    let sources = sources
+        .iter()
+        .map(|source| (source.path.as_str(), source.source.as_str()))
+        .collect::<BTreeMap<_, _>>();
+    let mut fingerprints = BTreeMap::new();
+    for program in programs {
+        let source = sources.get(program.path.as_str()).ok_or_else(|| {
+            vec![graph_error(
+                "SPX-G173",
+                "workspace declaration fingerprint source is absent",
+            )]
+        })?;
+        for declaration in &program.types {
+            insert_declaration_fingerprint(
+                &mut fingerprints,
+                &declaration.stable_id,
+                "type",
+                declaration.span,
+                source,
+            )?;
+            match &declaration.kind {
+                TypeDeclarationKind::Resource { lifecycles } => {
+                    for lifecycle in lifecycles {
+                        let id = match &lifecycle.stable_id {
+                            Some(id) => id.as_str(),
+                            None => declarations
+                                .iter()
+                                .find(|(_, fact)| {
+                                    fact.kind == hir::DeclarationKind::ResourceDrop
+                                        && fact.owner.as_deref()
+                                            == Some(declaration.stable_id.as_str())
+                                        && fact.path.as_deref() == Some(program.path.as_str())
+                                })
+                                .map(|(id, _)| id.as_str())
+                                .ok_or_else(|| {
+                                    vec![graph_error(
+                                        "SPX-G173",
+                                        "automatic resource-drop fingerprint identity is absent",
+                                    )]
+                                })?,
+                        };
+                        insert_declaration_fingerprint(
+                            &mut fingerprints,
+                            id,
+                            "resource_drop",
+                            lifecycle.span,
+                            source,
+                        )?;
+                    }
+                }
+                TypeDeclarationKind::Record { fields }
+                | TypeDeclarationKind::Class { fields, .. } => {
+                    for field in fields {
+                        insert_declaration_fingerprint(
+                            &mut fingerprints,
+                            &field.stable_id,
+                            "field",
+                            field.span,
+                            source,
+                        )?;
+                    }
+                    if let TypeDeclarationKind::Class { methods, .. } = &declaration.kind {
+                        for method in methods {
+                            insert_declaration_fingerprint(
+                                &mut fingerprints,
+                                &method.stable_id,
+                                "function",
+                                method.span,
+                                source,
+                            )?;
+                        }
+                    }
+                }
+                TypeDeclarationKind::Variant { cases } => {
+                    for case in cases {
+                        insert_declaration_fingerprint(
+                            &mut fingerprints,
+                            &case.stable_id,
+                            "variant_case",
+                            case.span,
+                            source,
+                        )?;
+                        for field in &case.fields {
+                            insert_declaration_fingerprint(
+                                &mut fingerprints,
+                                &field.stable_id,
+                                "case_field",
+                                field.span,
+                                source,
+                            )?;
+                        }
+                    }
+                }
+            }
+        }
+        for interface in &program.interfaces {
+            insert_declaration_fingerprint(
+                &mut fingerprints,
+                &interface.stable_id,
+                "interface",
+                interface.span,
+                source,
+            )?;
+            for import in &interface.imports {
+                insert_declaration_fingerprint(
+                    &mut fingerprints,
+                    &import.stable_id,
+                    "import",
+                    import.span,
+                    source,
+                )?;
+            }
+        }
+        for function in &program.functions {
+            insert_declaration_fingerprint(
+                &mut fingerprints,
+                &function.stable_id,
+                "function",
+                function.span,
+                source,
+            )?;
+        }
+    }
+    let expected = declarations
+        .iter()
+        .filter(|(_, fact)| fact.origin != hir::IdentityOrigin::CompilerOwned)
+        .map(|(id, _)| id.as_str())
+        .collect::<BTreeSet<_>>();
+    if fingerprints.len() != expected.len()
+        || fingerprints
+            .keys()
+            .any(|id| !expected.contains(id.as_str()))
+    {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "workspace declaration semantic fingerprint identities disagree",
+        )]);
+    }
+    Ok(fingerprints)
+}
+
+fn insert_declaration_fingerprint(
+    fingerprints: &mut BTreeMap<String, String>,
+    id: &str,
+    kind: &'static str,
+    span: Span,
+    source: &str,
+) -> Result<(), Vec<Diagnostic>> {
+    let bytes = source.get(span.start..span.end).ok_or_else(|| {
+        vec![graph_error(
+            "SPX-G173",
+            "workspace declaration fingerprint span is outside authenticated source",
+        )]
+    })?;
+    let mut hasher = Sha256::new();
+    hasher.update(b"semaprax.workspace-semantic-change.declaration-fingerprint.v1\0");
+    hasher.update((kind.len() as u64).to_le_bytes());
+    hasher.update(kind.as_bytes());
+    hasher.update((id.len() as u64).to_le_bytes());
+    hasher.update(id.as_bytes());
+    hasher.update((bytes.len() as u64).to_le_bytes());
+    hasher.update(bytes.as_bytes());
+    reserve_builder_structure(std::mem::size_of::<(String, String)>())?;
+    let id = crate::bounded_output::budgeted_clone(id);
+    let fingerprint = crate::bounded_output::budgeted_format(format_args!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    ));
+    if fingerprints.insert(id, fingerprint).is_some() {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "workspace declaration semantic fingerprint identity is duplicated",
+        )]);
+    }
+    Ok(())
+}
+
+fn charge_builder_prebound(bytes: usize) -> Result<(), Vec<Diagnostic>> {
+    reserve_builder_structure(bytes)
+}
+
+fn checked_usage(
+    used: usize,
+    additional: usize,
+    field: &'static str,
+    maximum: usize,
+) -> Result<usize, Vec<Diagnostic>> {
+    let next = used
+        .checked_add(additional)
+        .ok_or_else(|| vec![limit_error(field, maximum)])?;
+    if next > maximum {
+        return Err(vec![limit_error(field, maximum)]);
+    }
+    Ok(next)
+}
+
+fn declaration_count(program: &Program) -> Option<usize> {
+    let mut count = program
+        .functions
+        .len()
+        .checked_add(program.interfaces.len())?;
+    for interface in &program.interfaces {
+        count = count.checked_add(interface.imports.len())?;
+    }
+    for ty in &program.types {
+        count = count.checked_add(1)?;
+        match &ty.kind {
+            TypeDeclarationKind::Resource { lifecycles } => {
+                count = count.checked_add(lifecycles.len())?;
+            }
+            TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
+                count = count.checked_add(fields.len())?
+            }
+            TypeDeclarationKind::Variant { cases } => {
+                count = count.checked_add(cases.len())?;
+                for case in cases {
+                    count = count.checked_add(case.fields.len())?;
+                }
+            }
+        }
+    }
+    Some(count)
+}
+
+fn call_count(program: &Program) -> Option<usize> {
+    let mut count = Some(0usize);
+    for function in &program.functions {
+        for expression in function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+        {
+            expression.visit_calls(&mut |_, _| {
+                count = count.and_then(|value| value.checked_add(1));
+            });
+        }
+    }
+    count
+}
+
+fn index_modules(programs: &[Program]) -> Result<BTreeMap<&str, &str>, Vec<Diagnostic>> {
+    let mut modules = BTreeMap::new();
+    for program in programs {
+        if let Some(existing) = modules.insert(program.module.as_str(), program.path.as_str()) {
+            return Err(vec![graph_error(
+                "SPX-G172",
+                format!(
+                    "workspace module `{}` is declared by both `{existing}` and `{}`",
+                    program.module, program.path
+                ),
+            )]);
+        }
+    }
+    Ok(modules)
+}
+
+fn index_authored(
+    programs: &[Program],
+) -> Result<BTreeMap<&str, AuthoredDeclaration<'_>>, Vec<Diagnostic>> {
+    let mut declarations = BTreeMap::new();
+    for program in programs {
+        for function in &program.functions {
+            insert_authored(
+                &mut declarations,
+                &function.stable_id,
+                AuthoredDeclaration {
+                    path: &program.path,
+                    module: &program.module,
+                    explicit: function.explicit_id,
+                    kind: AuthoredKind::Function,
+                    function: Some(function),
+                    ty: None,
+                },
+            )?;
+        }
+        for ty in &program.types {
+            insert_authored(
+                &mut declarations,
+                &ty.stable_id,
+                AuthoredDeclaration {
+                    path: &program.path,
+                    module: &program.module,
+                    explicit: ty.explicit_id,
+                    kind: AuthoredKind::Type,
+                    function: None,
+                    ty: Some(ty),
+                },
+            )?;
+            match &ty.kind {
+                TypeDeclarationKind::Resource { lifecycles } => {
+                    for lifecycle in lifecycles {
+                        if let Some(id) = &lifecycle.stable_id {
+                            insert_other(&mut declarations, id, program)?;
+                        }
+                    }
+                }
+                TypeDeclarationKind::Record { fields }
+                | TypeDeclarationKind::Class { fields, .. } => {
+                    for field in fields {
+                        insert_other(&mut declarations, &field.stable_id, program)?;
+                    }
+                    if let TypeDeclarationKind::Class { methods, .. } = &ty.kind {
+                        for method in methods {
+                            insert_authored(
+                                &mut declarations,
+                                &method.stable_id,
+                                AuthoredDeclaration {
+                                    path: &program.path,
+                                    module: &program.module,
+                                    explicit: method.explicit_id,
+                                    kind: AuthoredKind::Function,
+                                    function: Some(method),
+                                    ty: None,
+                                },
+                            )?;
+                        }
+                    }
+                }
+                TypeDeclarationKind::Variant { cases } => {
+                    for case in cases {
+                        insert_other(&mut declarations, &case.stable_id, program)?;
+                        for field in &case.fields {
+                            insert_other(&mut declarations, &field.stable_id, program)?;
+                        }
+                    }
+                }
+            }
+        }
+        for interface in &program.interfaces {
+            insert_other(&mut declarations, &interface.stable_id, program)?;
+            for import in &interface.imports {
+                insert_other(&mut declarations, &import.stable_id, program)?;
+            }
+        }
+        for protocol in &program.protocols {
+            insert_authored(
+                &mut declarations,
+                &protocol.stable_id,
+                AuthoredDeclaration {
+                    path: &program.path,
+                    module: &program.module,
+                    explicit: protocol.explicit_id,
+                    kind: AuthoredKind::Protocol,
+                    function: None,
+                    ty: None,
+                },
+            )?;
+            for method in &protocol.methods {
+                insert_other(&mut declarations, &method.stable_id, program)?;
+            }
+        }
+    }
+    Ok(declarations)
+}
+
+fn validate_synthetic_main_id_collisions(
+    programs: &[Program],
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+) -> Result<(), Vec<Diagnostic>> {
+    for program in programs {
+        if program
+            .functions
+            .iter()
+            .any(|function| function.name == "main")
+        {
+            continue;
+        }
+        let generated = crate::bounded_output::budgeted_format(format_args!(
+            "workspace.synthetic.main.{}",
+            program.module
+        ));
+        if authored.contains_key(generated.as_str()) {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "generated workspace synthetic main identity collides with an authored declaration",
+            )]);
+        }
+    }
+    Ok(())
+}
+
+fn insert_other<'a>(
+    declarations: &mut BTreeMap<&'a str, AuthoredDeclaration<'a>>,
+    id: &'a str,
+    program: &'a Program,
+) -> Result<(), Vec<Diagnostic>> {
+    insert_authored(
+        declarations,
+        id,
+        AuthoredDeclaration {
+            path: &program.path,
+            module: &program.module,
+            explicit: true,
+            kind: AuthoredKind::Other,
+            function: None,
+            ty: None,
+        },
+    )
+}
+
+fn insert_authored<'a>(
+    declarations: &mut BTreeMap<&'a str, AuthoredDeclaration<'a>>,
+    id: &'a str,
+    declaration: AuthoredDeclaration<'a>,
+) -> Result<(), Vec<Diagnostic>> {
+    if prelude::is_compiler_owned_id(id) {
+        return Err(vec![graph_error(
+            "SPX-G172",
+            format!("workspace authored identity `{id}` is compiler-owned"),
+        )]);
+    }
+    if let Some(existing) = declarations.insert(id, declaration) {
+        return Err(vec![graph_error(
+            "SPX-G172",
+            format!(
+                "workspace authored identity `{id}` is duplicated by `{}` and `{}`",
+                existing.path, declarations[id].path
+            ),
+        )]);
+    }
+    Ok(())
+}
+
+fn validate_uses(
+    programs: &[Program],
+    modules: &BTreeMap<&str, &str>,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+) -> Result<(), Vec<Diagnostic>> {
+    import_validation::validate_uses_with_registry(programs, modules, authored, None)
+}
+fn signature_type_is_admitted(
+    module: &str,
+    ty: &Type,
+    caller: &Program,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+    visiting: &mut BTreeSet<String>,
+) -> bool {
+    match ty {
+        Type::Never => false,
+        Type::I64
+        | Type::I32
+        | Type::Char
+        | Type::U8
+        | Type::Usize
+        | Type::F32
+        | Type::F64
+        | Type::Bool
+        | Type::String
+        | Type::Str => true,
+        Type::SliceU8
+        | Type::StringMap
+        | Type::ArrayU8(_)
+        | Type::Bytes
+        | Type::OnceFunction
+        | Type::OnceFunctionI64
+        | Type::OnceFunctionI64Pair
+        | Type::MutFunctionI64
+        | Type::Function { .. } => false,
+        Type::Named { name, arguments } if arguments.is_empty() => {
+            let Some(target_id) = resolve_type_id(module, name, programs) else {
+                return false;
+            };
+            let Some(target) = authored.get(target_id.as_str()) else {
+                return false;
+            };
+            caller
+                .module_uses
+                .iter()
+                .any(|item| item.kind == ModuleUseKind::Type && item.persistent_id == target_id)
+                && target.ty.is_some_and(|target_type| {
+                    type_is_admitted(target.module, target_type, authored, programs, visiting)
+                        && exposed_types_are_directly_imported(
+                            caller,
+                            target.module,
+                            target_type,
+                            authored,
+                            programs,
+                            &mut BTreeSet::new(),
+                        )
+                })
+        }
+        Type::Named { .. } => false,
+    }
+}
+
+fn resolve_type_id(module: &str, name: &str, programs: &[Program]) -> Option<String> {
+    let program = programs.iter().find(|item| item.module == module)?;
+    if let Some(local) = program.types.iter().find(|item| item.name == name) {
+        return Some(crate::bounded_output::budgeted_clone(&local.stable_id));
+    }
+    program
+        .module_uses
+        .iter()
+        .find(|item| item.kind == ModuleUseKind::Type && item.alias == name)
+        .map(|item| crate::bounded_output::budgeted_clone(&item.persistent_id))
+}
+
+fn validate_imported_type(
+    caller: &Program,
+    module_use: &ModuleUse,
+    target: &AuthoredDeclaration<'_>,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+) -> Result<(), Vec<Diagnostic>> {
+    let ty = target.ty.expect("type target carries a type");
+    if !ty.invariants().is_empty() {
+        // Record Invariants v1 checks a record's productions inside the module
+        // that declares it; an importer would construct it unchecked.
+        return Err(vec![use_error(
+            caller,
+            module_use,
+            "a record that declares invariants cannot be imported by another module in \
+             Record Invariants v1",
+        )
+        .with_help(
+            "construct and update the record through functions of its own module",
+        )]);
+    }
+    if owned_function_import::text_record_import(caller, target, authored, programs) {
+        return Ok(());
+    }
+    if !generic_type_import::template_is_admitted(ty)?
+        && (!ty.type_parameters.is_empty()
+            || !type_is_admitted(target.module, ty, authored, programs, &mut BTreeSet::new())
+            || !exposed_types_are_directly_imported(
+                caller,
+                target.module,
+                ty,
+                authored,
+                programs,
+                &mut BTreeSet::new(),
+            ))
+    {
+        return owned_function_import::type_refusal(caller, module_use, target, authored, programs);
+    }
+    Ok(())
+}
+
+fn exposed_types_are_directly_imported(
+    caller: &Program,
+    module: &str,
+    declaration: &TypeDeclaration,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+    visiting: &mut BTreeSet<String>,
+) -> bool {
+    if !visiting.insert(crate::bounded_output::budgeted_clone(
+        &declaration.stable_id,
+    )) {
+        return false;
+    }
+    let admitted = match &declaration.kind {
+        TypeDeclarationKind::Resource { .. } => return false,
+        TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
+            fields.iter().all(|field| {
+                exposed_type_reference_is_directly_imported(
+                    caller, module, &field.ty, authored, programs, visiting,
+                )
+            })
+        }
+        TypeDeclarationKind::Variant { cases } => {
+            cases.iter().flat_map(|case| &case.fields).all(|field| {
+                exposed_type_reference_is_directly_imported(
+                    caller, module, &field.ty, authored, programs, visiting,
+                )
+            })
+        }
+    };
+    visiting.remove(&declaration.stable_id);
+    admitted
+}
+
+fn exposed_type_reference_is_directly_imported(
+    caller: &Program,
+    module: &str,
+    ty: &Type,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+    visiting: &mut BTreeSet<String>,
+) -> bool {
+    match ty {
+        Type::Never => false,
+        Type::I64
+        | Type::I32
+        | Type::Char
+        | Type::U8
+        | Type::Usize
+        | Type::F32
+        | Type::F64
+        | Type::Bool
+        | Type::String
+        | Type::Str => true,
+        Type::SliceU8
+        | Type::StringMap
+        | Type::ArrayU8(_)
+        | Type::OnceFunction
+        | Type::OnceFunctionI64
+        | Type::OnceFunctionI64Pair
+        | Type::MutFunctionI64
+        | Type::Function { .. } => false,
+        Type::Bytes => true,
+        Type::Named { name, arguments } if arguments.is_empty() => {
+            let Some(target_id) = resolve_type_id(module, name, programs) else {
+                return false;
+            };
+            let directly_imported = caller
+                .module_uses
+                .iter()
+                .any(|item| item.kind == ModuleUseKind::Type && item.persistent_id == target_id);
+            directly_imported
+                && authored.get(target_id.as_str()).is_some_and(|target| {
+                    target.ty.is_some_and(|nested| {
+                        exposed_types_are_directly_imported(
+                            caller,
+                            target.module,
+                            nested,
+                            authored,
+                            programs,
+                            visiting,
+                        )
+                    })
+                })
+        }
+        Type::Named { .. } => false,
+    }
+}
+
+fn type_is_admitted(
+    module: &str,
+    declaration: &TypeDeclaration,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+    visiting: &mut BTreeSet<String>,
+) -> bool {
+    if !declaration.explicit_id
+        || !visiting.insert(crate::bounded_output::budgeted_clone(
+            &declaration.stable_id,
+        ))
+    {
+        return false;
+    }
+    let valid = match &declaration.kind {
+        TypeDeclarationKind::Resource { .. } => return false,
+        TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
+            fields.iter().all(|field| {
+                type_reference_is_admitted(module, &field.ty, authored, programs, visiting)
+            })
+        }
+        TypeDeclarationKind::Variant { cases } => {
+            cases.iter().flat_map(|case| &case.fields).all(|field| {
+                type_reference_is_admitted(module, &field.ty, authored, programs, visiting)
+            })
+        }
+    };
+    visiting.remove(&declaration.stable_id);
+    valid
+}
+
+use type_names::type_reference_is_admitted;
+
+fn reserve_builder_structure(bytes: usize) -> Result<(), Vec<Diagnostic>> {
+    if crate::bounded_output::reserve_active(bytes) {
+        Ok(())
+    } else {
+        Err(vec![limit_error("builder_bytes", active_builder_limit())])
+    }
+}
+
+fn push_edge(edges: &mut Vec<WorkspaceEdge>, edge: WorkspaceEdge) -> Result<(), Vec<Diagnostic>> {
+    if edges.len() == MAX_CROSS_FILE_EDGES {
+        return Err(vec![limit_error(
+            "resolved_cross_file_edges",
+            MAX_CROSS_FILE_EDGES,
+        )]);
+    }
+    reserve_builder_structure(std::mem::size_of::<WorkspaceEdge>())?;
+    edges.push(edge);
+    Ok(())
+}
+
+fn budgeted_edge_clone(edge: &WorkspaceEdge) -> WorkspaceEdge {
+    WorkspaceEdge {
+        caller_path: crate::bounded_output::budgeted_clone(&edge.caller_path),
+        caller: crate::bounded_output::budgeted_clone(&edge.caller),
+        target_path: crate::bounded_output::budgeted_clone(&edge.target_path),
+        target: crate::bounded_output::budgeted_clone(&edge.target),
+        kind: edge.kind,
+        site: edge.site,
+        expression: crate::bounded_output::budgeted_clone(&edge.expression),
+        ast_path: crate::bounded_output::budgeted_clone(&edge.ast_path),
+        alias: crate::bounded_output::budgeted_clone(&edge.alias),
+        ordinal: edge.ordinal,
+    }
+}
+
+use source_callables::visit_ast_call_sites;
+
+fn workspace_declaration_facts(
+    modules: &[(String, ResolvedModuleInput)],
+    retained_modules: &[WorkspaceResolvedModule],
+    programs: &[Program],
+) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
+    let authored = index_authored(programs)?;
+    let facts = reconstruct_workspace_declaration_facts(modules, programs, &authored)?;
+    validate_retained_declaration_shapes(retained_modules, &facts)?;
+    Ok(facts)
+}
+
+fn reconstruct_workspace_declaration_facts(
+    modules: &[(String, ResolvedModuleInput)],
+    programs: &[Program],
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
+    let authority = expected_projection::private_layout::authority::invocation::Invocation::new(
+        programs, authored,
+    );
+    reconstruct_workspace_declaration_facts_with_authority(
+        modules,
+        programs,
+        authored,
+        Some(&authority),
+    )
+}
+
+fn reconstruct_workspace_declaration_facts_with_authority(
+    modules: &[(String, ResolvedModuleInput)],
+    programs: &[Program],
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    authority: Option<&expected_projection::private_layout::authority::invocation::Invocation<'_>>,
+) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
+    let expected = expected_declaration_facts(programs)?;
+    let resolved_record_iterator = modules
+        .iter()
+        .any(|(_, program)| crate::iterator_ops::resolved_program_uses_record_iterator(program));
+    let expected_compiler = prelude_binding::expected_declaration_facts_for_programs(
+        programs,
+        resolved_record_iterator,
+    )?;
+    let mut actual = BTreeMap::new();
+    for (module, resolved) in modules {
+        let module_uses_record_iterator =
+            crate::iterator_ops::resolved_program_uses_record_iterator(resolved);
+        let source = programs
+            .iter()
+            .find(|program| program.module == *module)
+            .expect("resolved workspace module belongs to authenticated source");
+        let expected_module_compiler = prelude_binding::expected_module_declaration_facts(
+            source,
+            programs,
+            module_uses_record_iterator,
+        )?;
+        let private = match authority {
+            Some(owner) => owner.derive_bound(source, programs, authored)?,
+            None => expected_projection::private_layout::authority::PrivateTypes::derive(
+                source, programs, authored,
+            )?,
+        };
+        let synthetic_main = crate::bounded_output::budgeted_format(format_args!(
+            "workspace.synthetic.main.{module}"
+        ));
+        let synthetic_main_is_allowed = !source
+            .functions
+            .iter()
+            .any(|function| function.name == "main")
+            && !expected.contains_key(synthetic_main.as_str())
+            && !expected_compiler.contains_key(synthetic_main.as_str());
+        let mut compiler = BTreeMap::new();
+        for declaration in resolved.declarations.workspace_declarations() {
+            if declaration.identity_origin == hir::IdentityOrigin::CompilerOwned {
+                let fact = WorkspaceDeclarationFact {
+                    kind: declaration.kind,
+                    origin: declaration.identity_origin,
+                    owner: declaration
+                        .owner
+                        .map(|owner| crate::bounded_output::budgeted_clone(owner.as_str())),
+                    path: None,
+                    module: None,
+                };
+                if compiler
+                    .insert(
+                        crate::bounded_output::budgeted_clone(declaration.id.as_str()),
+                        fact,
+                    )
+                    .is_some()
+                {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "compiler-owned workspace declaration identity is duplicated",
+                    )]);
+                }
+                continue;
+            }
+            let top = top_level_declaration(&resolved.declarations, &declaration);
+            let Some(top_fact) = expected.get(top.as_str()) else {
+                if synthetic_main_is_allowed
+                    && declaration.id.as_str() == synthetic_main.as_str()
+                    && declaration.kind == hir::DeclarationKind::Function
+                    && declaration.identity_origin == hir::IdentityOrigin::Explicit
+                    && declaration.owner.is_none()
+                {
+                    continue;
+                }
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "resolved workspace declaration has an unauthenticated synthetic or rogue root",
+                )]);
+            };
+            if top_fact.module.as_deref() != Some(module.as_str()) {
+                let expected_foreign = expected.get(declaration.id.as_str());
+                if (source
+                    .module_uses
+                    .iter()
+                    .any(|u| u.persistent_id == top.as_str())
+                    || private.contains(top.as_str(), top_fact.module.as_deref())?)
+                    && expected_foreign.is_some_and(|fact| {
+                        fact.kind == declaration.kind
+                            && fact.origin == declaration.identity_origin
+                            && fact.owner.as_deref()
+                                == declaration.owner.as_ref().map(hir::DeclarationId::as_str)
+                            && fact.path == top_fact.path
+                            && fact.module == top_fact.module
+                    })
+                {
+                    continue;
+                }
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "resolved workspace declaration leaks a non-imported foreign authority",
+                )]);
+            }
+            let fact = WorkspaceDeclarationFact {
+                kind: declaration.kind,
+                origin: declaration.identity_origin,
+                owner: declaration
+                    .owner
+                    .map(|owner| crate::bounded_output::budgeted_clone(owner.as_str())),
+                path: top_fact
+                    .path
+                    .as_deref()
+                    .map(crate::bounded_output::budgeted_clone),
+                module: top_fact
+                    .module
+                    .as_deref()
+                    .map(crate::bounded_output::budgeted_clone),
+            };
+            if actual
+                .insert(
+                    crate::bounded_output::budgeted_clone(declaration.id.as_str()),
+                    fact,
+                )
+                .is_some()
+            {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "workspace declaration identity is retained more than once",
+                )]);
+            }
+        }
+        if compiler != expected_module_compiler {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "compiler-owned prelude declaration facts disagree with the independent prelude map",
+            )]);
+        }
+    }
+    if actual != expected {
+        let differing = actual
+            .keys()
+            .chain(expected.keys())
+            .find(|id| actual.get(id.as_str()) != expected.get(id.as_str()))
+            .expect("unequal declaration maps have a differing identity");
+        return Err(vec![graph_error(
+            "SPX-G173",
+            format!(
+                "authored workspace declaration facts disagree with retained HIR at `{differing}`"
+            ),
+        )]);
+    }
+    let compiler_ids = expected_compiler
+        .keys()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    let expected_compiler_ids = prelude_binding::ids(programs, resolved_record_iterator);
+    if compiler_ids != expected_compiler_ids {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "compiler-owned workspace declaration facts disagree with the exact shared prelude",
+        )]);
+    }
+    let mut facts = expected;
+    for (id, fact) in expected_compiler {
+        if facts.insert(id, fact).is_some() {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "compiler-owned and authored workspace declaration identities overlap",
+            )]);
+        }
+    }
+    Ok(facts)
+}
+
+fn validate_retained_declaration_shapes(
+    modules: &[WorkspaceResolvedModule],
+    facts: &BTreeMap<String, WorkspaceDeclarationFact>,
+) -> Result<(), Vec<Diagnostic>> {
+    for module in modules {
+        let mut seen = BTreeSet::new();
+        for declaration in &module.types {
+            let kind = match &declaration.kind {
+                hir::ResolvedTypeDeclarationKind::Resource { .. } => hir::DeclarationKind::Resource,
+                hir::ResolvedTypeDeclarationKind::Record { .. } => hir::DeclarationKind::Record,
+                hir::ResolvedTypeDeclarationKind::Class { .. } => hir::DeclarationKind::Class,
+                hir::ResolvedTypeDeclarationKind::Variant { .. } => hir::DeclarationKind::Variant,
+            };
+            require_retained_shape_fact(
+                facts,
+                module,
+                declaration.id.as_str(),
+                kind,
+                None,
+                &mut seen,
+            )?;
+            match &declaration.kind {
+                hir::ResolvedTypeDeclarationKind::Resource { drop } => {
+                    require_retained_shape_fact(
+                        facts,
+                        module,
+                        drop.id.as_str(),
+                        hir::DeclarationKind::ResourceDrop,
+                        Some(declaration.id.as_str()),
+                        &mut seen,
+                    )?;
+                }
+                hir::ResolvedTypeDeclarationKind::Record { fields }
+                | hir::ResolvedTypeDeclarationKind::Class { fields, .. } => {
+                    for field in fields {
+                        require_retained_shape_fact(
+                            facts,
+                            module,
+                            field.id.as_str(),
+                            hir::DeclarationKind::Field,
+                            Some(declaration.id.as_str()),
+                            &mut seen,
+                        )?;
+                    }
+                    if let hir::ResolvedTypeDeclarationKind::Class { methods, .. } =
+                        &declaration.kind
+                    {
+                        for method in methods {
+                            require_retained_shape_fact(
+                                facts,
+                                module,
+                                method.as_str(),
+                                hir::DeclarationKind::Function,
+                                Some(declaration.id.as_str()),
+                                &mut seen,
+                            )?;
+                        }
+                    }
+                }
+                hir::ResolvedTypeDeclarationKind::Variant { cases } => {
+                    for case in cases {
+                        require_retained_shape_fact(
+                            facts,
+                            module,
+                            case.id.as_str(),
+                            hir::DeclarationKind::VariantCase,
+                            Some(declaration.id.as_str()),
+                            &mut seen,
+                        )?;
+                        for field in &case.fields {
+                            require_retained_shape_fact(
+                                facts,
+                                module,
+                                field.id.as_str(),
+                                hir::DeclarationKind::CaseField,
+                                Some(case.id.as_str()),
+                                &mut seen,
+                            )?;
+                        }
+                    }
+                }
+            }
+        }
+        for interface in &module.interfaces {
+            require_retained_shape_fact(
+                facts,
+                module,
+                interface.id.as_str(),
+                hir::DeclarationKind::Interface,
+                None,
+                &mut seen,
+            )?;
+            for import in &interface.imports {
+                require_retained_shape_fact(
+                    facts,
+                    module,
+                    import.id.as_str(),
+                    hir::DeclarationKind::Import,
+                    Some(interface.id.as_str()),
+                    &mut seen,
+                )?;
+            }
+        }
+        for function in &module.functions {
+            if facts
+                .get(function.id.as_str())
+                .is_some_and(|fact| fact.owner.is_some())
+            {
+                continue;
+            }
+            require_retained_shape_fact(
+                facts,
+                module,
+                function.id.as_str(),
+                hir::DeclarationKind::Function,
+                None,
+                &mut seen,
+            )?;
+        }
+        let mut templates = BTreeSet::new();
+        for template in &module.function_templates {
+            require_retained_shape_fact(
+                facts,
+                module,
+                template.id.as_str(),
+                hir::DeclarationKind::Function,
+                None,
+                &mut seen,
+            )?;
+            if !templates.insert(template.id.as_str()) {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "retained workspace function template is duplicated",
+                )]);
+            }
+        }
+        let mut instances = BTreeSet::new();
+        for instance in &module.function_instances {
+            let fact = facts.get(instance.template.as_str());
+            if !templates.contains(instance.template.as_str())
+                || instance.function.id != instance.template
+                || !fact.is_some_and(|fact| {
+                    fact.kind == hir::DeclarationKind::Function
+                        && fact.module.as_deref() == Some(module.module.as_str())
+                        && fact.path.as_deref() == Some(module.path.as_str())
+                })
+                || !instances.insert(&instance.id)
+            {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "retained workspace function instance/template identity shape disagrees",
+                )]);
+            }
+        }
+        let expected = facts
+            .iter()
+            .filter(|(_, fact)| fact.module.as_deref() == Some(module.module.as_str()))
+            .map(|(id, _)| id.as_str())
+            .collect::<BTreeSet<_>>();
+        if seen != expected {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "retained workspace declaration shapes are not the exact authored set",
+            )]);
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+#[path = "workspace_graph/tests.rs"]
+mod tests;
+
+#[cfg(test)]
+#[path = "workspace_graph/type_proof_tests.rs"]
+mod type_proof_tests;
+
+#[cfg(test)]
+mod test_replay_context;
+#[cfg(test)]
+pub(crate) use test_replay_context::SourceRecordReplayFixture;
+
+#[cfg(test)]
+mod cache_key_original;
+#[cfg(test)]
+use cache_key_original::build_resolved_core;
+
+pub(crate) mod current_source;
+pub(crate) mod custody;

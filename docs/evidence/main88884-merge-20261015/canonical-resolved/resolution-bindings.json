@@ -1,0 +1,43 @@
+{
+  "kind": "source-only external merge candidate; no ROOT changes or runtime execution",
+  "ours": "6e549d1ae",
+  "theirs": "88884d148d9c148eed61bc3265eed955edf19346",
+  "files": [
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "sha256": "389402d61eef71289dcbdbcb90eb1f869927e0b6e2beea1d8126d5e91ac75e60",
+      "bytes": 29039,
+      "lines": 689,
+      "stage_sha256": {
+        "1": "b55215aabaea2198feff1107e7800bb539ebde4940036dee1def58fd0293c3aa",
+        "2": "389402d61eef71289dcbdbcb90eb1f869927e0b6e2beea1d8126d5e91ac75e60",
+        "3": "a3ce7638daaf633d17e121f51028875b733d77e8c38464699c83700588003ca6"
+      },
+      "equals_ours": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs",
+      "sha256": "5798a61ee5a918e6164d86b9e0472eb6e3e1affd729f28f5dad5a0a08eccbfed",
+      "bytes": 14640,
+      "lines": 353,
+      "stage_sha256": {
+        "1": "fcabb688c10edd65fb1810334ccc79e4d2129b9e5814001a1ff8f7b1a1aeb596",
+        "2": "c0a0d61c97561158cc28a05b2ea38b9b2f50a528c120f5a6df5cc034f432e762",
+        "3": "b442f57476b4dea25602a52accf4197ab0c80271ee37d586dd6264200577ef3f"
+      },
+      "equals_ours": false
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs",
+      "sha256": "e76cb7bc0ead79c96b39f3788b532748d3d82fdc1cbdf710ab0bec6c66ac08a9",
+      "bytes": 19380,
+      "lines": 492,
+      "stage_sha256": {
+        "1": "aa79a021262a9a522ce35c697cf6bee82e56a4b904f573393f8b75121d9ef801",
+        "2": "2ae90db459f2b73b33210964066974f64ad98e2a7eb43b496bbb8578cfe48c47",
+        "3": "3de1732062b1e3c93154928ba323f6d192f95b7502d65d49ef20350b27fdc75d"
+      },
+      "equals_ours": false
+    }
+  ]
+}

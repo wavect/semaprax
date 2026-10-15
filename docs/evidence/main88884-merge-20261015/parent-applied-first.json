@@ -1,0 +1,21 @@
+{
+  "files": [
+    "src/hir/resolve_expr.rs",
+    "src/hir/resolve_for.rs",
+    "src/hir/resolve_statement.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs",
+    "src/cleanup_plan/replay.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving.rs",
+    "src/loan_plan.rs",
+    "src/loan_plan/paid_candidate/retained.rs",
+    "src/workspace_report/tests/caller.rs",
+    "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/regions_entry/tests.rs",
+    "src/cleanup_plan/replay/selected_entry/tests/fact_errors/tree_policy.rs",
+    "CHANGELOG.md"
+  ],
+  "source_only": true,
+  "intent": "combinedallchangelog; retainedcertifiedstatusnewowner; mainheldregion_for; fulloursourceguards+mainnonconflicts; reportbothVecowners retained"
+}

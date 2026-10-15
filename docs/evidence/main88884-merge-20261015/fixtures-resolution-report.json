@@ -1,0 +1,116 @@
+{
+  "status": "EXTERNAL_SOURCE_ONLY_NOT_INSTALLED_STAGED_COMPILED_OR_EXECUTED",
+  "root_edits": false,
+  "rows": [
+    {
+      "path": "src/cleanup_plan/renewal_profile.rs",
+      "resolved": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-resolved/src/cleanup_plan/renewal_profile.rs",
+      "sha256": "46f3c87a7d1bd762ea86895c8dada6d980331f1e6cf13e63820a49c254219008",
+      "bytes": 11923,
+      "rationale": "Keep all ours child_refusal/profile_refusal/selected_inline modules and split production-inline/test-only original selected exports. Main only removes an already-removed unused funded import relative to stage1; use its compact formatting of the remaining three explicit funded names. No API/cfg restoration from older main.",
+      "inputs": {
+        "1": {
+          "path": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-inputs/1/src/cleanup_plan/renewal_profile.rs",
+          "sha256": "3ac9020f70d166ee11dd8fe0524053f2bec71caa922659b4e1a14265ad84bd91"
+        },
+        "2": {
+          "path": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-inputs/2/src/cleanup_plan/renewal_profile.rs",
+          "sha256": "18ef035480f7aed64d68d447d19b4c53042097e15712b8d9d66fa6e50e51284b"
+        },
+        "3": {
+          "path": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-inputs/3/src/cleanup_plan/renewal_profile.rs",
+          "sha256": "09e4d32722d3f97b0a7b662f01a14682e591f3c27f7e71b63f383016f1946901"
+        }
+      },
+      "ours_to_resolved_patch": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-diffs/src/cleanup_plan/renewal_profile.rs.patch"
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs",
+      "resolved": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-resolved/src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs",
+      "sha256": "a2e17ced737b4df1b95f03e8642ea07f8fd8b75452ba11d08a3500e900d03641",
+      "bytes": 16233,
+      "rationale": "Keep ours explicit parent and grandparent imports, including ExpressionId/MAX_REPLAY_WORK_UNITS/StatusLane/StatusProducer/StatusSource. Adopt main formatting of observer imports and the existing cached insert assertion only; no glob import or removed assertion.",
+      "inputs": {
+        "1": {
+          "path": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-inputs/1/src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs",
+          "sha256": "e27716cbfa5622514718b578db113ff2ec9a805f62020454aabc97bba637a9c5"
+        },
+        "2": {
+          "path": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-inputs/2/src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs",
+          "sha256": "ed8eb87a70a5e0d57b6781589f796e7344655a07f2908254116c84cb00233b08"
+        },
+        "3": {
+          "path": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-inputs/3/src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs",
+          "sha256": "8e890e5b1cedd801a36a808cee31f647d6fee2fa98896122442bb4a6f52e80c2"
+        }
+      },
+      "ours_to_resolved_patch": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-diffs/src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs.patch"
+    },
+    {
+      "path": "src/hir/declaration_index/leaf_drop_tests.rs",
+      "resolved": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-resolved/src/hir/declaration_index/leaf_drop_tests.rs",
+      "sha256": "1cde0e096101398c7d0f8071d55951d311acfd134bc6f1e5c237bb3f89140054",
+      "bytes": 6461,
+      "rationale": "Keep ours actual current from_verified fixture, separately materialized old_fixture(16), nominal_leaves helper, all three tests and every whole-lifetime/literal-queue assertion. Take main independent old_drop: move ordinary record vectors, assert they have no shared owner, queue each replaced type, iteratively drain nominal arguments. Never use current.clone for old fixture or current recursive disposer as the old queue. Nested depth512 twins and all Drop assertions remain.",
+      "inputs": {
+        "1": {
+          "path": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-inputs/1/src/hir/declaration_index/leaf_drop_tests.rs",
+          "sha256": "3ee21dff87932511910fb328367e4cb6d09c6ca2bc5400cda0668c46c71dbf42"
+        },
+        "2": {
+          "path": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-inputs/2/src/hir/declaration_index/leaf_drop_tests.rs",
+          "sha256": "f2919fb1344f564493273f4ae4d888c2eff906508859bd944509b34acc98814f"
+        },
+        "3": {
+          "path": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-inputs/3/src/hir/declaration_index/leaf_drop_tests.rs",
+          "sha256": "2a7d9a769eda259df9b069819481de60bc7869efa636f5735ba767d292c7dc4a"
+        }
+      },
+      "ours_to_resolved_patch": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-diffs/src/hir/declaration_index/leaf_drop_tests.rs.patch"
+    },
+    {
+      "path": "src/hir/identity_resolution/nominal_tests/legacy.rs",
+      "resolved": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-resolved/src/hir/identity_resolution/nominal_tests/legacy.rs",
+      "sha256": "fd63f0722fe05cbf45bd3881c7cfdc80c53b1870201aa837af1381cc87075a6c",
+      "bytes": 9431,
+      "rationale": "Preserve ours complete record-only SPX-P101 parse-negative receipt, its real legacy.main function recursive-record fixture and all original malformed class/ID cases. Add main exact recursive fixture with real app.main function as a separate fifth resolver case. Both source spellings compare independent original/current six-field diagnostics; neither case substitutes for the parse negative or the other resolver case. No new test body needed.",
+      "inputs": {
+        "1": {
+          "path": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-inputs/1/src/hir/identity_resolution/nominal_tests/legacy.rs",
+          "sha256": "966dc1d356f853ed765c32e8140cbcb4cc6db3d0cc5c270cb4d65463fef558c3"
+        },
+        "2": {
+          "path": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-inputs/2/src/hir/identity_resolution/nominal_tests/legacy.rs",
+          "sha256": "c8f59844679de5f127cc04c7eb5a79017c5aaa998053c5950493b1d8092e5538"
+        },
+        "3": {
+          "path": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-inputs/3/src/hir/identity_resolution/nominal_tests/legacy.rs",
+          "sha256": "d0989a72e7e7dc8132178cb9f86c783e25e8a1af90dca9c6791616a5b46a1fb7"
+        }
+      },
+      "ours_to_resolved_patch": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-diffs/src/hir/identity_resolution/nominal_tests/legacy.rs.patch"
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/borrowed_imports/tests.rs",
+      "resolved": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-resolved/src/workspace_graph/expected_projection/borrowed_imports/tests.rs",
+      "sha256": "94aa760de11d6317cebdc638946b4d2a76d822b7b9249ea8a8789d6c681777e9",
+      "bytes": 23207,
+      "rationale": "Both sides already removed default_expr as unused; use main formatting of the same explicit import set. Keep every remaining ours test/source assertion byte unchanged.",
+      "inputs": {
+        "1": {
+          "path": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-inputs/1/src/workspace_graph/expected_projection/borrowed_imports/tests.rs",
+          "sha256": "bbe1b8e1f84704a72b4c32bae7f806e82581fb8ca0d7391dfa2f6f25b63d6631"
+        },
+        "2": {
+          "path": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-inputs/2/src/workspace_graph/expected_projection/borrowed_imports/tests.rs",
+          "sha256": "faf155a95cce3b8754855e162e6142efe04d37b4def25446ed5b4f29be67e860"
+        },
+        "3": {
+          "path": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-inputs/3/src/workspace_graph/expected_projection/borrowed_imports/tests.rs",
+          "sha256": "94aa760de11d6317cebdc638946b4d2a76d822b7b9249ea8a8789d6c681777e9"
+        }
+      },
+      "ours_to_resolved_patch": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-diffs/src/workspace_graph/expected_projection/borrowed_imports/tests.rs.patch"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 //! Independent full-old algebra and actual allocation/drop controls.
-use super::{Canonicalizer, own_weighted, share_weighted, weighted_successor};
+use super::Canonicalizer;
+use super::before_inline_weighted::{own_weighted, share_weighted, weighted_successor};
 use super::super::{
     Automaton, BTreeMap, Diagnostic, Label, MAX_REPLAY_WORK_UNITS, Rc, ReplayBudget,
     ResolvedFunction, SkeletonTerminal, Weighted, canonical_before, physical_clone,
@@ -76,8 +77,9 @@ fn full_old_receiver_preserves_ids_signatures_work_duplicates_overflow_and_cycle
         assert_eq!(budget.skeleton_remaining, old_budget.skeleton_remaining);
         assert_eq!(&current.ids, old.signatures());
         assert_eq!(current.states.len(), old.states().len());
-        for (state, id) in old.states() {
-            assert_eq!(current.states.get(&Rc::new(state.clone())), Some(id));
+        for ((actual, actual_id), (state, id)) in current.states.iter().zip(old.states()) {
+            assert_eq!(actual.as_slice(), state.as_slice());
+            assert_eq!(actual_id, id);
         }
         ids.push(actual);
     }

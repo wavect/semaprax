@@ -48,7 +48,7 @@ fn held_complete_immediate_receiver_keeps_ids_signatures_overflow_and_every_work
             a.remaining = units; b.remaining = units;
             assert_eq!(old.id(&function, input.clone(), &mut a), current.id(&function, input, &mut b));
             assert_eq!((a.remaining,a.skeleton_remaining),(b.remaining,b.skeleton_remaining));
-            assert_eq!(old.signatures(),&current.ids); assert_eq!(old.states(),&current.states);
+            assert_eq!(old.signatures(),&current.ids); super::inline_weighted::assert_states(&current.states, old.states());
         }
     }
 }

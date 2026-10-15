@@ -39,10 +39,10 @@ fn ordered_complete_old_closures_successors_ids_signatures_and_weighted_overflow
         vec![(roots[3], 0), (roots[1], 7)],
     ] {
         let shared = Rc::new(state.clone());
-        assert_eq!(
-            current.successors(&function, &shared, &mut b),
-            old.successors(&function, &shared, &mut a),
-            "complete weighted target multiplicities and accepted weight",
+        let current_shared = Rc::new(super::super::SmallWeighted::Many(state.clone()));
+        super::super::inline_weighted::assert_successors(
+            &current.successors(&function, &current_shared, &mut b),
+            &old.successors(&function, &shared, &mut a),
         );
         assert_eq!(a.remaining, b.remaining);
         assert_eq!(a.skeleton_remaining, b.skeleton_remaining);
@@ -53,7 +53,7 @@ fn ordered_complete_old_closures_successors_ids_signatures_and_weighted_overflow
         assert_eq!(a.remaining, b.remaining);
         assert_eq!(a.skeleton_remaining, b.skeleton_remaining);
         assert_eq!(&current.ids, old.signatures());
-        assert_eq!(&current.states, old.states());
+        super::super::inline_weighted::assert_states(&current.states, old.states());
     }
     assert_eq!(
         current.id(&function, vec![(roots[6], 1)], &mut b),

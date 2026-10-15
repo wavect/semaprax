@@ -58,7 +58,8 @@ pub(crate) fn ours(source: &str, current: &str) -> String {
 }
 pub(crate) fn main(source: &str, current: &str) -> String {
     let repaired = before_build_fix(source, current);
-    let current = repaired.as_str();
+    let predecessor = inline_weighted_previous(source, repaired.as_str());
+    let current = predecessor.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -71,11 +72,20 @@ pub(crate) fn main(source: &str, current: &str) -> String {
 
 pub(crate) fn held(source: &str, current: &str) -> String {
     let repaired = before_build_fix(source, current);
-    let current = repaired.as_str();
+    let predecessor = inline_weighted_previous(source, repaired.as_str());
+    let current = predecessor.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-composition-f813-held-20261015/held-projections.json")), source, current)
 }
 
 pub(crate) fn weighted(path: &str, current: &str) -> String {
+    if path == "../../../../../../docs/ARCHITECTURE.md" {
+        return inline_weighted_previous("docs/ARCHITECTURE.md", current);
+    }
     if path != "../epsilon_alias/tests.rs" { return current.to_owned(); }
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-composition-f813-held-20261015/weighted-projections.json")), "src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs", current)
+}
+
+// NEXT842 source transport precedes every immutable runtime domain.
+fn inline_weighted_previous(source: &str, current: &str) -> String {
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/inline-weighted-successor-842/source-inverses.json")), source, current)
 }

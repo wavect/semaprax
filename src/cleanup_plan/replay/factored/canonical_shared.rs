@@ -1,6 +1,6 @@
 //! Paid immutable weighted backing for the ordinary canonical receiver.
 //! Frames, open states and completed memo keys share only owned immutable
-//! vectors. Label order, route weights, signature algebra and work debits keep
+//! payloads. Label order, route weights, signature algebra and work debits keep
 //! the complete original receiver in canonical_before.rs as an independent control.
 use super::{
     Automaton, BTreeMap, Diagnostic, Label, Rc, ReplayBudget, ResolvedFunction, Weighted,
@@ -32,7 +32,12 @@ mod scratch_tests;
 mod singleton_target_tests;
 mod successor_targets;
 
-type SharedWeighted = Rc<Weighted>;
+mod inline_weighted;
+#[cfg(test)]
+mod before_inline_weighted;
+use inline_weighted::SmallWeighted;
+
+type SharedWeighted = Rc<SmallWeighted>;
 
 enum CanonicalFrame {
     Enter(SharedWeighted),
@@ -40,19 +45,29 @@ enum CanonicalFrame {
 }
 
 // The caller has already paid the moved vector's complete allocated backing.
-// Rc owns that vector without copying it; its two counters and Vec header are
+// Rc owns that vector without copying it; its counters and full enum header are
 // separately acquired while all preceding owners remain fully charged.
 fn own_weighted(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
     state: Weighted,
 ) -> Result<SharedWeighted, Diagnostic> {
+    if budget.pays_allocations() {
+        budget.reserve_bytes(
+            function,
+            2 * std::mem::size_of::<SmallWeighted>()
+                + std::mem::size_of::<Result<SharedWeighted, Diagnostic>>()
+                + std::mem::size_of::<Result<(), Diagnostic>>(),
+            "factored moved many weighted enum receiving",
+        )?;
+    }
     budget.reserve_bytes(
         function,
-        physical_clone::rc_backing_bytes::<Weighted>(),
+        physical_clone::rc_backing_bytes::<SmallWeighted>(),
         "factored weighted shared header",
     )?;
-    Ok(Rc::new(state))
+    let shared = SmallWeighted::Many(state);
+    Ok(Rc::new(shared))
 }
 
 // Vec's FromIterator growth policy may round 1..3 items up to four slots.
@@ -468,7 +483,6 @@ impl<'a> Canonicalizer<'a> {
                     budget.reserve_bytes(
                         function,
                         2 * std::mem::size_of::<SharedWeighted>()
-                            + std::mem::size_of::<Vec<(usize, u64)>>()
                             + std::mem::size_of::<(usize, u64)>(),
                         "factored inline successor finish receiving",
                     )?;
@@ -480,25 +494,22 @@ impl<'a> Canonicalizer<'a> {
                 )?;
                 let state = match targets {
                     successor_targets::Targets::One { child, weight } => {
-                        budget.reserve_array::<(usize, u64)>(
-                            function,
-                            1,
-                            "factored weighted successor vector",
-                        )?;
                         if budget.pays_allocations() {
                             budget.reserve_bytes(
                                 function,
-                                std::mem::size_of::<[(usize, u64); 1]>(),
-                                "factored one-entry array initializer",
+                                2 * std::mem::size_of::<SmallWeighted>()
+                                    + std::mem::size_of::<[(usize, u64); 1]>()
+                                    + std::mem::size_of::<Result<(), Diagnostic>>(),
+                                "factored inline weighted enum and array receiving",
                             )?;
                         }
-                        let state = Vec::from([(child, weight)]);
                         budget.reserve_bytes(
                             function,
-                            physical_clone::rc_backing_bytes::<Weighted>(),
+                            physical_clone::rc_backing_bytes::<SmallWeighted>(),
                             "factored weighted shared header",
                         )?;
-                        Rc::new(state)
+                        let singleton = SmallWeighted::One([(child, weight)]);
+                        Rc::new(singleton)
                     }
                     successor_targets::Targets::Many(targets) => {
                         // The remaining fallible weighted producer still has
@@ -507,6 +518,7 @@ impl<'a> Canonicalizer<'a> {
                             budget.reserve_bytes(
                                 function,
                                 std::mem::size_of::<BTreeMap<usize, u64>>()
+                                    + std::mem::size_of::<Vec<(usize, u64)>>()
                                     + std::mem::size_of::<Result<SharedWeighted, Diagnostic>>(),
                                 "factored many weighted producer receiving",
                             )?;

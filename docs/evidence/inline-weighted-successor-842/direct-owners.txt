@@ -1,0 +1,14 @@
+lib cleanup_plan::replay::factored::canonical_shared::tests::
+lib cleanup_plan::replay::factored::canonical_shared::scratch_tests::
+lib cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::
+lib cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::
+lib cleanup_plan::replay::factored::canonical_shared::held_auth_tests::
+lib cleanup_plan::replay::factored::canonical_shared::ordered_weights::receiver_tests::
+lib cleanup_plan::replay::factored::canonical_shared::ordered_weights::source::
+lib cleanup_plan::replay::factored::canonical_shared::ordered_weights::amortized_source::
+lib cleanup_plan::replay::physical_budget::authentication::source::
+lib cleanup_plan::replay::live_oracle::source_custody::
+hir_module_boundaries core_validation_has_no_resolution_cleanup_build_or_physical_authority
+workspace semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root
+documentation held_auth_sources::held_authentication_complete_source_owners_and_ordinary_receivers_stay_independent
+semaprax-native-rust-interop-builder implementation::tests::ledger_capacity::hir_capacity_layout_constants_are_bound_to_root_const_assertions

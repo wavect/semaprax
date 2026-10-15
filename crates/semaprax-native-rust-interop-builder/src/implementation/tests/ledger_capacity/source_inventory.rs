@@ -12,7 +12,6 @@ macro_rules! held_call_profile_source_inventory {
         )
     };
 }
-
 // Complete additive source union; original receivers included without slicing.
 macro_rules! fixed_operation_identity_source_inventory {
     () => {
@@ -24,7 +23,6 @@ macro_rules! fixed_operation_identity_source_inventory {
         )
     };
 }
-
 // Shared complete byte-writer/frontier source join for both owning audits.
 // No test bodies, assertions or literal contents are relocated here.
 macro_rules! byte_writer_source_inventory {
@@ -63,7 +61,6 @@ macro_rules! byte_writer_source_inventory {
         )
     };
 }
-
 // Full generic directory implementation and unchanged original test owner.
 macro_rules! generic_values_source_inventory {
     () => {
@@ -84,7 +81,6 @@ macro_rules! generic_values_source_inventory {
         )
     };
 }
-
 // Complete original loan scratch source join, plus private ordered carrier.
 macro_rules! loan_cfg_source_inventory {
     () => {
@@ -216,6 +212,10 @@ macro_rules! loan_cfg_source_inventory {
         include_str!("../../../../../src/loan_plan/paid_plan/retained_before_dense.rs"),
         include_str!("../../../../../src/loan_plan/funded_flat/before_dense.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/source.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/source.rs"),
@@ -258,7 +258,6 @@ macro_rules! loan_cfg_source_inventory {
         )
     };
 }
-
 // Full static diagnostic and ordinary scope/frontier owners, including old tests.
 macro_rules! diagnostic_source_inventory {
     () => {

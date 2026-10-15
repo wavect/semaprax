@@ -1,0 +1,100 @@
+[
+  {
+    "owner": "amortized_source.rs",
+    "include_path": "../ordered_weights.rs",
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs",
+    "old": "docs/evidence/weighted-storage-838/amortized/src__cleanup_plan__replay__factored__canonical_shared__ordered_weights.rs.before.txt",
+    "patch": "docs/evidence/weighted-storage-838/amortized/src__cleanup_plan__replay__factored__canonical_shared__ordered_weights.rs.patch.txt"
+  },
+  {
+    "owner": "amortized_source.rs",
+    "include_path": "tests.rs",
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs",
+    "old": "docs/evidence/weighted-storage-838/amortized/src__cleanup_plan__replay__factored__canonical_shared__ordered_weights__tests.rs.before.txt",
+    "patch": "docs/evidence/weighted-storage-838/amortized/src__cleanup_plan__replay__factored__canonical_shared__ordered_weights__tests.rs.patch.txt"
+  },
+  {
+    "owner": "amortized_source.rs",
+    "include_path": "../../canonical_shared.rs",
+    "source": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "old": "docs/evidence/weighted-storage-838/amortized/src__cleanup_plan__replay__factored__canonical_shared.rs.before.txt",
+    "patch": "docs/evidence/weighted-storage-838/amortized/src__cleanup_plan__replay__factored__canonical_shared.rs.patch.txt"
+  },
+  {
+    "owner": "amortized_source.rs",
+    "include_path": "source.rs",
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/source.rs",
+    "old": "docs/evidence/weighted-storage-838/amortized/src__cleanup_plan__replay__factored__canonical_shared__ordered_weights__source.rs.before.txt",
+    "patch": "docs/evidence/weighted-storage-838/amortized/src__cleanup_plan__replay__factored__canonical_shared__ordered_weights__source.rs.patch.txt"
+  },
+  {
+    "owner": "amortized_source.rs",
+    "include_path": "../../../../../../tests/hir_module_boundaries.rs",
+    "source": "tests/hir_module_boundaries.rs",
+    "old": "docs/evidence/weighted-storage-838/amortized/tests__hir_module_boundaries.rs.before.txt",
+    "patch": "docs/evidence/weighted-storage-838/amortized/tests__hir_module_boundaries.rs.patch.txt"
+  },
+  {
+    "owner": "amortized_source.rs",
+    "include_path": "../../../../../../tests/workspace/semantic_graph/source_inventory.rs",
+    "source": "tests/workspace/semantic_graph/source_inventory.rs",
+    "old": "docs/evidence/weighted-storage-838/amortized/tests__workspace__semantic_graph__source_inventory.rs.before.txt",
+    "patch": "docs/evidence/weighted-storage-838/amortized/tests__workspace__semantic_graph__source_inventory.rs.patch.txt"
+  },
+  {
+    "owner": "amortized_source.rs",
+    "include_path": "../../../../../../docs/evidence/weighted-storage-838/README.md",
+    "source": "docs/evidence/weighted-storage-838/README.md",
+    "old": "docs/evidence/weighted-storage-838/amortized/docs__evidence__weighted-storage-838__README.md.before.txt",
+    "patch": "docs/evidence/weighted-storage-838/amortized/docs__evidence__weighted-storage-838__README.md.patch.txt"
+  },
+  {
+    "owner": "source.rs",
+    "include_path": "../../canonical_shared.rs",
+    "source": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "old": "docs/evidence/weighted-storage-838/src__cleanup_plan__replay__factored__canonical_shared.rs.before.txt",
+    "patch": "docs/evidence/weighted-storage-838/src__cleanup_plan__replay__factored__canonical_shared.rs.patch.txt"
+  },
+  {
+    "owner": "source.rs",
+    "include_path": "../epsilon_alias/tests.rs",
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs",
+    "old": "docs/evidence/weighted-storage-838/src__cleanup_plan__replay__factored__canonical_shared__epsilon_alias__tests.rs.before.txt",
+    "patch": "docs/evidence/weighted-storage-838/src__cleanup_plan__replay__factored__canonical_shared__epsilon_alias__tests.rs.patch.txt"
+  },
+  {
+    "owner": "source.rs",
+    "include_path": "../scratch_tests.rs",
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+    "old": "docs/evidence/weighted-storage-838/src__cleanup_plan__replay__factored__canonical_shared__scratch_tests.rs.before.txt",
+    "patch": "docs/evidence/weighted-storage-838/src__cleanup_plan__replay__factored__canonical_shared__scratch_tests.rs.patch.txt"
+  },
+  {
+    "owner": "source.rs",
+    "include_path": "../../../../../../tests/hir_module_boundaries.rs",
+    "source": "tests/hir_module_boundaries.rs",
+    "old": "docs/evidence/weighted-storage-838/tests__hir_module_boundaries.rs.before.txt",
+    "patch": "docs/evidence/weighted-storage-838/tests__hir_module_boundaries.rs.patch.txt"
+  },
+  {
+    "owner": "source.rs",
+    "include_path": "../../../../../../tests/workspace/semantic_graph/source_inventory.rs",
+    "source": "tests/workspace/semantic_graph/source_inventory.rs",
+    "old": "docs/evidence/weighted-storage-838/tests__workspace__semantic_graph__source_inventory.rs.before.txt",
+    "patch": "docs/evidence/weighted-storage-838/tests__workspace__semantic_graph__source_inventory.rs.patch.txt"
+  },
+  {
+    "owner": "source.rs",
+    "include_path": "../../../../../../docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md",
+    "source": "docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md",
+    "old": "docs/evidence/weighted-storage-838/docs__RFC-0003-CLEANUP-AND-RESOURCE-ABI.md.before.txt",
+    "patch": "docs/evidence/weighted-storage-838/docs__RFC-0003-CLEANUP-AND-RESOURCE-ABI.md.patch.txt"
+  },
+  {
+    "owner": "source.rs",
+    "include_path": "../../../../../../docs/ARCHITECTURE.md",
+    "source": "docs/ARCHITECTURE.md",
+    "old": "docs/evidence/weighted-storage-838/docs__ARCHITECTURE.md.before.txt",
+    "patch": "docs/evidence/weighted-storage-838/docs__ARCHITECTURE.md.patch.txt"
+  }
+]

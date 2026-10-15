@@ -1,0 +1,114 @@
+[
+  {
+    "path": "docs/evidence/weighted-storage-838/amortized/src__cleanup_plan__replay__factored__canonical_shared__ordered_weights.rs.before.txt",
+    "sha256": "195a09cd496a7cb0a8f0e036f18d6d95ffa7ac7dd49e8bb4222be913380f74a1"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/amortized/src__cleanup_plan__replay__factored__canonical_shared__ordered_weights.rs.patch.txt",
+    "sha256": "6ff48c064787d6090b1f03054570127f447ca86ff9e23e388844a5f0f8ab5d01"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/amortized/src__cleanup_plan__replay__factored__canonical_shared__ordered_weights__tests.rs.before.txt",
+    "sha256": "adf998d1a530d0c7ed2f589199c84badbcd8c9cbb1f70165fa57257088bc04aa"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/amortized/src__cleanup_plan__replay__factored__canonical_shared__ordered_weights__tests.rs.patch.txt",
+    "sha256": "623cb8b16c4f9a70088006b8fa618aa98ad0edb9450eeac754b72e8bca258c4a"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/amortized/src__cleanup_plan__replay__factored__canonical_shared.rs.before.txt",
+    "sha256": "8e16fc99b1af76b4ca32c9c2f6d2d476dd5ae18f7bcd097c8f3ecaf7afb599d3"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/amortized/src__cleanup_plan__replay__factored__canonical_shared.rs.patch.txt",
+    "sha256": "e32a9b877bbe42ca83419d1e2228944f354b008d2a3db3101ce24ce6e1173e46"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/amortized/src__cleanup_plan__replay__factored__canonical_shared__ordered_weights__source.rs.before.txt",
+    "sha256": "d75619f389886dc74cbacd480a2f36ddb9087f143f94c63bd796fbcc04eb3d53"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/amortized/src__cleanup_plan__replay__factored__canonical_shared__ordered_weights__source.rs.patch.txt",
+    "sha256": "05912ca65599d6741300d7c2e9620b553603b0b79e10fced6743df06033852a2"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/amortized/tests__hir_module_boundaries.rs.before.txt",
+    "sha256": "e2d959e63858a89c362bf06e02881ea74d2be66e8cf208c51dc6209b78012ccc"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/amortized/tests__hir_module_boundaries.rs.patch.txt",
+    "sha256": "efa270fae5b58ff7f16bc001f1d1d400ec56cb1f29d1edbe042287ef781e4a6a"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/amortized/tests__workspace__semantic_graph__source_inventory.rs.before.txt",
+    "sha256": "174072e8858e9dd5897ccbec79e2f1f6b8bb5db3987e1edbc50bcf945c3fd189"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/amortized/tests__workspace__semantic_graph__source_inventory.rs.patch.txt",
+    "sha256": "5ff606a800ba82a5c26502f94e86a853ef18e59d4d9a78703af2d1720e4d93b4"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/amortized/docs__evidence__weighted-storage-838__README.md.before.txt",
+    "sha256": "13b9c4dba09b67071b0df2d34ed0308478c5c8ab6bcf1a8697c4423d95bb617c"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/amortized/docs__evidence__weighted-storage-838__README.md.patch.txt",
+    "sha256": "a00ac3f3d90018dfea167d7b2442b1b9305d9902a25a1bd1c93d31db303091d6"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/src__cleanup_plan__replay__factored__canonical_shared.rs.before.txt",
+    "sha256": "2e7463bcf7c671851ee4e4d1a24fbb750af84629817ace1f7b0e71b922f2d4e2"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/src__cleanup_plan__replay__factored__canonical_shared.rs.patch.txt",
+    "sha256": "a1346078fe9e531b5fd80e0941ccd1e6d455c26f6e68a5c26e542870925fff33"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/src__cleanup_plan__replay__factored__canonical_shared__epsilon_alias__tests.rs.before.txt",
+    "sha256": "11abc761286f674b735ee402534238259c54a4a699c146eef5f35501bcd08977"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/src__cleanup_plan__replay__factored__canonical_shared__epsilon_alias__tests.rs.patch.txt",
+    "sha256": "c7fdf443506c6014cab3f9cc9ede62f42ae33bb7708dde67e3f65459aa74cf36"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/src__cleanup_plan__replay__factored__canonical_shared__scratch_tests.rs.before.txt",
+    "sha256": "aa47d575ef0479b78676004a2cf6794aaee9a728d5136ce576be28b863394991"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/src__cleanup_plan__replay__factored__canonical_shared__scratch_tests.rs.patch.txt",
+    "sha256": "7f143ff3bfba53cdbe535fdaf1d41b9d3328af83b02465e6c4da26bf1e9700c2"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/tests__hir_module_boundaries.rs.before.txt",
+    "sha256": "0e690413b19da6dcd383e602a753d194af92f4b52d991ba9e9c782ae252ce7a6"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/tests__hir_module_boundaries.rs.patch.txt",
+    "sha256": "33d89b0c9c2a89232e6cba1a6aeaec3fcdb7f7caa19e5ecef3ff709ceef4fd6e"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/tests__workspace__semantic_graph__source_inventory.rs.before.txt",
+    "sha256": "2eb2ba244ab33eb6862a745f06a50ea96225aa8e4940a78ce386e035ef43a423"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/tests__workspace__semantic_graph__source_inventory.rs.patch.txt",
+    "sha256": "357c25de173f347017fdb4a508b15b01ca74bebc1a68cc8bb15b1905aee5f68a"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/docs__RFC-0003-CLEANUP-AND-RESOURCE-ABI.md.before.txt",
+    "sha256": "b246de41461dd01cbfff846dc90036a91510a680c817fc96c633d790e1f14dce"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/docs__RFC-0003-CLEANUP-AND-RESOURCE-ABI.md.patch.txt",
+    "sha256": "fe4d72e3516d42c2c4d67bf654e98a460fb325ec92cf8b2b4a666638de78b1ff"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/docs__ARCHITECTURE.md.before.txt",
+    "sha256": "7797e2fe572f91a959ca77b46e3af1b852e2495042a751d0ba99c55fe9598718"
+  },
+  {
+    "path": "docs/evidence/weighted-storage-838/docs__ARCHITECTURE.md.patch.txt",
+    "sha256": "391b7f5e852e55c553af176f76bbc8be9b1202bedab7797f13cccfa91f997e46"
+  }
+]

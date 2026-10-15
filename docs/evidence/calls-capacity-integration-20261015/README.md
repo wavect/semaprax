@@ -13,3 +13,9 @@ Recheck source custody from ROOT with:
 `python3 docs/evidence/calls-capacity-integration-20261015/verify_retained_branches.py`
 
 Parent owns actual build/47 explicit controls plus3 here/new registered definitions/failed20, required language/backend gates, actual pins, push and qualified issue decisions. No broad rerun of the prior116 passing owners is requested. #781/#832/#834/#835 remain open until actual qualification and push justify narrower claims.
+
+## Lossless bounded archive storage
+
+The495 new `conflict-inputs` payloads are stored as deterministic gzip (mtime0, no filename), with all complete decompressed bytes retained. `compressed-storage-index.json` adds the original path, uncompressed SHA256/size, compressed SHA256/size and original immutable Git blob ID for every payload. Existing retained side manifests and their SHA claims are unchanged. The immediate old verifier is also retained in gzip with both hashes/Git identity, and `verifier-storage-inverse.json` binds its complete restoration.
+
+The new verifier uses one persistent Git batch stream and no global raw/decoded blob cache. Payload/Git identity is compared in1MiB chunks; semantic inverse checks hold one JSON manifest and one source/archive blob at a time. It compares the complete2079-row identity list to the unchanged previous proof. `compressed-retained-branches-proof.json` records the actual sizes and bounded storage checks. Production, existing original archives and all67 active inverse hooks stay frozen. No Rust/Cargo execution.

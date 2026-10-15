@@ -35,6 +35,7 @@ pub(crate) struct Trace {
     owner: usize,
     operation: Option<Operation>,
     pub(crate) first_operation_refusal: Option<OperationRefusal>,
+    pub(crate) first_site: Option<super::ReservationSite>,
     pub(crate) initial: usize,
     pub(crate) consumed: usize,
     pub(crate) prebound: usize,
@@ -47,6 +48,7 @@ impl Trace {
         owner: 0,
         operation: None,
         first_operation_refusal: None,
+        first_site: None,
         initial: 0,
         consumed: 0,
         prebound: 0,
@@ -151,6 +153,8 @@ impl Drop for Guard {
         let mut trace = CURRENT.with(|current| current.replace(self.previous));
         let budget = active().expect("core trace settles before its ledger");
         assert_eq!(trace.owner, Rc::as_ptr(&budget) as usize);
+        // Static first-site evidence only, after the existing exact owner check.
+        trace.first_site = budget.first_site.get();
         trace.consumed = trace.initial - budget.remaining.get();
         assert_eq!(
             trace.sum(),

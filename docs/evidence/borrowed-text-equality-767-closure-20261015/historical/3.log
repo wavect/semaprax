@@ -1,0 +1,6 @@
+
+running 1 test
+test owned_leaf_vec::string_slots::borrowed_and_owned_slot_views_share_nul_utf8_storage_and_expire_before_owned_calls ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 313 filtered out; finished in 9.18s
+

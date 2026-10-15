@@ -1,0 +1,44 @@
+{
+  "source_subject": "654846173bb90874779dfee44ab0832c03715e84",
+  "source_tree": "3609c8da904ffbac2c4ee9c42a0d9b8c2a1c5d1f",
+  "build_receipt_sha256": "0b5a26762c5e88636f180206d64eb1e4d968c1ba1f208e9ea9b1d9e59683c9e4",
+  "build_metadata_sha256": "0157d77fb03020bd0835f2518fdb06ab03aa9a6fba620c9d2b4357484429035c",
+  "executable": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/target/final-batch-20261010/debug/deps/language-63abefdf82f4560b",
+  "executable_sha256": "9b0db4ed259d7d9246aaa8e5d62b0481fc8577b2a37697efacaf33dd7b4e03a4",
+  "selectors": [
+    "borrowed_str_equality::borrowed_str_equality_source_graph_and_hostile_modes",
+    "borrowed_str_equality::borrowed_str_equality_interpreter_native_bytes_and_late_failure",
+    "borrowed_str_equality::borrowed_str_equality_public_text_validates_both_roots_before_entry"
+  ],
+  "no_whole_current_source_equality_claim": true,
+  "controller_sha256": "2230b5528c2e2f9d4fa5a1fd5ee9e4ff6e488e977b284ac6c4ce06b3419611da",
+  "guard": {
+    "observation_helper_path": "/Volumes/Semaprax/lane-prompts/pin-consumer-d8fad-seven-20261015/drivers/semaprax_pressure_observation_v3.py",
+    "observation_helper_sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+    "phase_monitor_path": "/Volumes/Semaprax/lane-prompts/pin-consumer-d8fad-seven-20261015/drivers/observed_phase.py",
+    "phase_monitor_sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+  },
+  "no_cargo": true,
+  "no_current_999fa_whole_compiler_qualification": true,
+  "backend_availability": [
+    {
+      "command": [
+        "clang",
+        "--version"
+      ],
+      "returncode": 0,
+      "stdout": "Apple clang version 21.0.0 (clang-2100.1.1.101)\nTarget: arm64-apple-darwin25.5.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "returncode": 0,
+      "stdout": "v24.3.0\n",
+      "stderr": ""
+    }
+  ],
+  "backend_PATH": "/Users/kevin/.nvm/versions/node/v24.3.0/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+}

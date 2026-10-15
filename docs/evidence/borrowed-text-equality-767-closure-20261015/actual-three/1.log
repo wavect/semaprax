@@ -1,0 +1,6 @@
+
+running 1 test
+test borrowed_str_equality::borrowed_str_equality_interpreter_native_bytes_and_late_failure ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 848 filtered out; finished in 3.81s
+

@@ -112,6 +112,12 @@ fn assert_complete_report_equality(
     }
 }
 
+fn admitted_caller(source: &str, value: i64) -> String {
+    let constructor = format!("Point {{ value: {value} }}");
+    assert_eq!(source.matches(&constructor).count(), 1);
+    source.replacen(&constructor, &value.to_string(), 1)
+}
+
 fn admitted_fixture(label: &str) -> Fixture {
     let serial = SERIAL.fetch_add(1, Ordering::Relaxed);
     let root = std::env::temp_dir().join(format!(
@@ -120,20 +126,24 @@ fn admitted_fixture(label: &str) -> Fixture {
     ));
     std::fs::create_dir(&root).unwrap();
     // The same record/field identities, effects and return value are retained.
-    // Irrefutable Copy extraction stays in the existing v13 evidence family.
+    // The record stays local; scalar cross-module arguments avoid the missing
+    // imported-type lookup which conservatively selects v74.
     let old = provider();
     let body = "{ value.value }";
     assert_eq!(old.matches(body).count(), 1);
-    let provider = old.replacen(
+    assert_eq!(old.matches("value: Point").count(), 1);
+    let provider = old.replacen("value: Point", "value: i64", 1).replacen(
         body,
-        "{ match value { Point { value: field } => field, } }",
+        "{ let point = Point { value: value }; match point { Point { value: field } => field, } }",
         1,
     );
+    let consumer = admitted_caller(consumer(), 3);
+    let entry = admitted_caller(entry(), 1);
     for (path, source) in [
         ("a/provider.spx", provider.as_str()),
-        ("m/consumer.spx", consumer()),
+        ("m/consumer.spx", consumer.as_str()),
         ("n/island.spx", island()),
-        ("z/entry.spx", entry()),
+        ("z/entry.spx", entry.as_str()),
     ] {
         write_source(&root, path, source);
     }
@@ -156,7 +166,12 @@ fn admitted_fixture(label: &str) -> Fixture {
         );
     }
     let proposal = root.join("structural-change.json");
-    std::fs::write(&proposal, proposal_source(&root)).unwrap();
+    let old_proposal = proposal_source(&root);
+    let old_entry = json(&canonical(entry_replacement(), "z/entry.spx"));
+    let replacement = admitted_caller(entry_replacement(), 2);
+    let new_entry = json(&canonical(&replacement, "z/entry.spx"));
+    assert_eq!(old_proposal.matches(&old_entry).count(), 1);
+    std::fs::write(&proposal, old_proposal.replacen(&old_entry, &new_entry, 1)).unwrap();
     Fixture { root, proposal }
 }
 

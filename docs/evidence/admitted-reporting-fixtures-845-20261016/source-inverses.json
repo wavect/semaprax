@@ -1,0 +1,81 @@
+{
+  "base": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+  "rows": [
+    {
+      "source": "tests/workspace/semantic_change/reporting.rs",
+      "before_sha256": "181a95f73ed21f195bff18477d963f8f766089c77363cfe9795c6b779e2b9df4",
+      "current_sha256": "584dd162b3568bc2cd1eb4b17d62c66d2dc87cfdab43048a7243f28c876a1e4d",
+      "before_file": "semantic_change.before.rs.txt",
+      "edits": [
+        {
+          "current": "// Keep the record local: imported nominal expression types are conservatively\n// classified as v74 when the per-module type directory cannot authenticate them.\n// Scalar call arguments preserve values; local Copy extraction selects v13.\n",
+          "previous": "// An irrefutable Copy record pattern has the same field result and uses the\n// existing Graph v13 family, avoiding a projected-loan Graph outside Change v1.\n"
+        },
+        {
+          "current": "    let signature = format!(\"value: {record}\");\n    assert_eq!(source.matches(&signature).count(), 1);\n    source.replacen(&signature, \"value: i64\", 1).replacen(\n",
+          "previous": "    source.replacen(\n"
+        },
+        {
+          "current": "        &format!(\"{{ let point = {record} {{ value: value }}; match point {{ {record} {{ value: field }} => {result}, }} }}\"),\n",
+          "previous": "        &format!(\"{{ match value {{ {record} {{ value: field }} => {result}, }} }}\"),\n"
+        },
+        {
+          "current": "}\n\nfn admitted_caller(source: &str, record: &str, value: i64) -> String {\n    let constructor = format!(\"{record} {{ value: {value} }}\");\n    assert_eq!(source.matches(&constructor).count(), 1);\n    source.replacen(&constructor, &value.to_string(), 1)\n",
+          "previous": ""
+        },
+        {
+          "current": "    let consumer = admitted_caller(consumer_source(), \"Point\", 3);\n    let entry = admitted_caller(entry_base(), \"Point\", 1);\n",
+          "previous": ""
+        },
+        {
+          "current": "        (\"m/consumer.spx\", consumer.as_str()),\n        (\"z/entry.spx\", entry.as_str()),\n",
+          "previous": "        (\"m/consumer.spx\", consumer_source()),\n        (\"z/entry.spx\", entry_base()),\n"
+        },
+        {
+          "current": "    let old_entry = json(&canonical(entry_candidate(), \"z/entry.spx\"));\n    let entry_candidate = admitted_caller(entry_candidate(), \"Metric\", 2);\n    let new_entry = json(&canonical(&entry_candidate, \"z/entry.spx\"));\n    assert_eq!(old_proposal.matches(&old_entry).count(), 1);\n    let old_proposal = old_proposal.replacen(&old_entry, &new_entry, 1);\n",
+          "previous": ""
+        }
+      ]
+    },
+    {
+      "source": "tests/workspace/semantic_structural_change/reporting.rs",
+      "before_sha256": "b3da6f9bf25a735c876c90671ccbfc015740f49b003f54e9c65de5bde2266e9d",
+      "current_sha256": "12a26fafee8a217474d2219f8b3ae9ec0aa71b494a8bc9ef496f1332e92997bf",
+      "before_file": "semantic_structural_change.before.rs.txt",
+      "edits": [
+        {
+          "current": "fn admitted_caller(source: &str, value: i64) -> String {\n    let constructor = format!(\"Point {{ value: {value} }}\");\n    assert_eq!(source.matches(&constructor).count(), 1);\n    source.replacen(&constructor, &value.to_string(), 1)\n}\n\n",
+          "previous": ""
+        },
+        {
+          "current": "    // The record stays local; scalar cross-module arguments avoid the missing\n    // imported-type lookup which conservatively selects v74.\n",
+          "previous": "    // Irrefutable Copy extraction stays in the existing v13 evidence family.\n"
+        },
+        {
+          "current": "    assert_eq!(old.matches(\"value: Point\").count(), 1);\n    let provider = old.replacen(\"value: Point\", \"value: i64\", 1).replacen(\n",
+          "previous": "    let provider = old.replacen(\n"
+        },
+        {
+          "current": "        \"{ let point = Point { value: value }; match point { Point { value: field } => field, } }\",\n",
+          "previous": "        \"{ match value { Point { value: field } => field, } }\",\n"
+        },
+        {
+          "current": "    let consumer = admitted_caller(consumer(), 3);\n    let entry = admitted_caller(entry(), 1);\n",
+          "previous": ""
+        },
+        {
+          "current": "        (\"m/consumer.spx\", consumer.as_str()),\n",
+          "previous": "        (\"m/consumer.spx\", consumer()),\n"
+        },
+        {
+          "current": "        (\"z/entry.spx\", entry.as_str()),\n",
+          "previous": "        (\"z/entry.spx\", entry()),\n"
+        },
+        {
+          "current": "    let old_proposal = proposal_source(&root);\n    let old_entry = json(&canonical(entry_replacement(), \"z/entry.spx\"));\n    let replacement = admitted_caller(entry_replacement(), 2);\n    let new_entry = json(&canonical(&replacement, \"z/entry.spx\"));\n    assert_eq!(old_proposal.matches(&old_entry).count(), 1);\n    std::fs::write(&proposal, old_proposal.replacen(&old_entry, &new_entry, 1)).unwrap();\n",
+          "previous": "    std::fs::write(&proposal, proposal_source(&root)).unwrap();\n"
+        }
+      ]
+    }
+  ]
+}

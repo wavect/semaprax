@@ -1,0 +1,11 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "source_basis": "7c10b8eae5c590b9c3114f13f206cc014762b38f",
+  "original_sha256": "78c6bfedd01a582a93788c427223e79e134c894e3d3767b99683e6137c9a6b19",
+  "current_sha256": "9f93d0a5b2eb84ccd0e2da828c410fda3949ef9082ade4543c13525f1f43e891",
+  "complete_inverse_restores_git_original": true,
+  "producer_implementation_unchanged": true,
+  "old_wrong_fixture_preserved_complete": true,
+  "failed_log_sha256": "185ab5f5c837af02ce6da9f4f97f8f5bc5889750adfd3bbe5e60f3ca7b48c459",
+  "new_selector_count": 0
+}

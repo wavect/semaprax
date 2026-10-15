@@ -70,9 +70,30 @@ fn held_closure_two_roots_reuse_one_owner_and_count_actual_inner_misses() {
             assert_eq!(producer_count() - before, 1);
             // One unit invocation filled multiple memo entries: frequency is the
             // producer boundary, never the number of inserted entries.
-            assert!(current.closures.contains_key(&sink));
+            assert!(!current.closures.contains_key(&sink));
             assert!(current.closures.contains_key(&roots[0]));
             assert!(current.closures.contains_key(&roots[3]));
+            // The initial closure follows epsilon edges, not roots[0]'s move
+            // to sink. Query that still-cold sink explicitly, then prove reuse.
+            let count = producer_count();
+            let value = current
+                .closure_with_receiving(&function, sink, &mut budget, &mut receiving)
+                .unwrap()
+                .unwrap();
+            assert_eq!(producer_count(), count + 1);
+            assert_eq!(value.len(), 1);
+            assert_eq!(value.get(&sink), Some(&1));
+            drop(value);
+            let work = budget.remaining;
+            let allocated = current_metrics().allocated;
+            drop(
+                current
+                    .closure_with_receiving(&function, sink, &mut budget, &mut receiving)
+                    .unwrap(),
+            );
+            assert_eq!(producer_count(), count + 1);
+            assert_eq!(budget.remaining, work - 1);
+            assert_eq!(current_metrics().allocated, allocated);
             for root in [roots[4], roots[5]] {
                 budget
                     .reserve_array::<(usize, u64)>(&function, 1, "held closure test root")
@@ -85,6 +106,28 @@ fn held_closure_two_roots_reuse_one_owner_and_count_actual_inner_misses() {
                 );
                 assert_eq!(owner, std::ptr::from_ref(&receiving));
             }
+            // LoopLatch is disconnected from both comparison roots. A fresh
+            // query must invoke the producer once; its retry must invoke none.
+            assert!(!current.closures.contains_key(&roots[2]));
+            let count = producer_count();
+            let value = current
+                .closure_with_receiving(&function, roots[2], &mut budget, &mut receiving)
+                .unwrap()
+                .unwrap();
+            assert_eq!(producer_count(), count + 1);
+            assert_eq!(value.len(), 1);
+            assert_eq!(value.get(&roots[2]), Some(&1));
+            drop(value);
+            let work = budget.remaining;
+            let allocated = current_metrics().allocated;
+            drop(
+                current
+                    .closure_with_receiving(&function, roots[2], &mut budget, &mut receiving)
+                    .unwrap(),
+            );
+            assert_eq!(producer_count(), count + 1);
+            assert_eq!(budget.remaining, work - 1);
+            assert_eq!(current_metrics().allocated, allocated);
             let count = producer_count();
             let work = budget.remaining;
             let allocated = current_metrics().allocated;

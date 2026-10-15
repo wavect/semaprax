@@ -1,0 +1,8 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "complete_immediate_sources": 1,
+  "replacements": 2,
+  "source_before_sha256": "fece5828a9c91f8d9cbdd42348e4919b64d61585550bf0c8c731ecd60e7b92ca",
+  "source_after_sha256": "17450bb704f73ec623cec90728172a289552921e40d1bce5c3a7d3e3e3ce41c8",
+  "execution_performed": false
+}

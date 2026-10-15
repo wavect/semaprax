@@ -194,6 +194,7 @@ fn unsupported_consumers_name_the_exact_blocker_before_admission() {
         (Consumer::PublicCopyOut, "public bridge"),
         (Consumer::ProviderDrop, "public bridge"),
         (Consumer::OwnedLeafVec, "16-byte"),
+        (Consumer::VecOwnedLeafOnly, "owned-leaf Vec operation"),
         (Consumer::SelectedFusedRow, "separate private domain"),
         (Consumer::ReservedArena, "distinct private profile"),
         (Consumer::ImportedCall, "imported and foreign"),
@@ -234,11 +235,16 @@ fn every_byte_and_bytes_vec_operation_is_classified() {
         "SortBy",
         "StrAt",
         "UniqueBy",
+        "UpdateField",
     ]
     .into_iter()
     .map(str::to_owned)
     .collect();
     assert_eq!(refused, expected);
+    assert_eq!(
+        Consumer::from_bytes_vec_op(crate::vec_ops::VecOp::UpdateField),
+        Consumer::VecOwnedLeafOnly
+    );
 }
 
 /// Drift gate: every production source naming the ordinary carrier or its

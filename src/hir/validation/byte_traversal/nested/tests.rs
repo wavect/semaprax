@@ -224,31 +224,46 @@ fn nested_byte_census_uses_exact_owner_and_first_refusal_on_foreign_then_restore
         .root;
     drop(fixture);
     for warm in [false, true] {
-        let ((((), metrics), remaining), refused, used, first) =
+        let ((((), metrics), remaining, external_setup), refused, used, first) =
             with_limit_usage_refusal(usize::MAX, || {
                 let mut slot = Slot::new(&program, sum).unwrap();
                 if warm {
                     assert!(slot.region(&program, sum, root).unwrap().is_some());
                 }
                 let remaining = crate::bounded_output::active_remaining().unwrap();
-                (
-                    measure(|| {
+                // Keep complete child-ledger setup/Drop observed separately;
+                // the whole operation below includes exactly this external input.
+                let (((), setup_refused, setup_used, setup_first), setup) =
+                    measure(|| with_limit_usage_refusal(0, || ()));
+                assert!(!setup_refused && setup_used == 0 && setup_first.is_none());
+                assert_eq!(setup.allocations, 1);
+                assert_eq!(setup.live, 0);
+                assert_eq!(setup.allocated, setup.freed);
+                assert!(!setup.invalid);
+                let observed = measure(|| {
                         let (error, child_refused, child_used, child_first) =
                             with_limit_usage_refusal(0, || {
-                                slot.region(&program, sum, root).err().unwrap()
+                                let before = current_metrics().allocated;
+                                let error = slot.region(&program, sum, root).err().unwrap();
+                                assert_eq!(current_metrics().allocated, before);
+                                error
                             });
                         assert!(!child_refused);
                         assert_eq!(child_used, 0);
                         assert_eq!(child_first, None);
                         assert!(error.message.contains("detached"));
                         drop(error);
+                        let before = current_metrics().allocated;
                         let restored = slot.region(&program, sum, root).err().unwrap();
                         assert!(restored.message.contains("detached"));
                         drop(restored);
                         drop(slot);
-                    }),
-                    remaining,
-                )
+                        assert_eq!(current_metrics().allocated, before);
+                    });
+                assert_eq!((observed.1.allocations, observed.1.allocated),
+                    (setup.allocations, setup.allocated));
+                assert_eq!(observed.1.allocated - setup.allocated, 0);
+                (observed, remaining, setup.allocated)
             });
         assert!(refused);
         assert_eq!(
@@ -262,7 +277,7 @@ fn nested_byte_census_uses_exact_owner_and_first_refusal_on_foreign_then_restore
         );
         assert_eq!(used, usize::MAX - remaining);
         assert!(!metrics.invalid);
-        assert_eq!(metrics.allocated, 0);
+        assert_eq!(metrics.allocated - external_setup, 0);
     }
 }
 

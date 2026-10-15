@@ -65,6 +65,14 @@ mod tests {
             + size_of::<Result<Ancestry<'_>, crate::diagnostic::Diagnostic>>();
         let handle_bytes = size_of::<crate::hir::resolver_scope::Scope<'_>>();
         let expected = state_bytes + 2 * handle_bytes;
+        let (((), setup_refused, setup_used, setup_first), setup) =
+            measure(|| with_limit_usage_refusal(0, || ()));
+        assert!(!setup_refused && setup_used == 0 && setup_first.is_none());
+        assert_eq!(setup.allocations, 1);
+        assert_eq!(setup.live, 0);
+        assert_eq!(setup.allocated, setup.freed);
+        assert!(!setup.invalid);
+        eprintln!("ancestry external ledger setup/full Drop: {setup:?}; receiver observations follow separately");
         for limit in [
             0,
             state_bytes - 1,
@@ -72,8 +80,7 @@ mod tests {
             expected - 1,
             expected,
         ] {
-            let ((result, refused, used, first), metrics) = measure(|| {
-                with_limit_usage_refusal(limit, || {
+            let operation = || {
                     let mut state = Ancestry::acquire()?;
                     assert!(state.entry().is_none());
                     super::reserve_scope()?;
@@ -87,8 +94,21 @@ mod tests {
                     state.leave(0);
                     assert!(state.entry().is_none());
                     Ok::<_, crate::diagnostic::Diagnostic>(())
-                })
-            });
+            };
+            // Retain the complete external setup + compiler + final Drop
+            // observation, independently of the already-created-ledger scope.
+            let ((whole_result, whole_refused, whole_used, whole_first), whole) =
+                measure(|| with_limit_usage_refusal(limit, operation));
+            assert_eq!((whole.allocations, whole.allocated, whole.live),
+                (setup.allocations, setup.allocated, 0));
+            assert_eq!(whole.allocated, whole.freed);
+            assert!(!whole.invalid);
+            // The zero-heap claim is only the complete compiler receiver inside
+            // the real caller-owned invocation ledger, never ledger creation.
+            let ((result, metrics), refused, used, first) =
+                with_limit_usage_refusal(limit, || measure(operation));
+            assert_eq!((&result, refused, used, first),
+                (&whole_result, whole_refused, whole_used, whole_first));
             assert_eq!(result.is_ok(), limit == expected);
             assert_eq!(refused, limit < expected);
             assert_eq!(first.is_some(), limit < expected);
@@ -107,8 +127,8 @@ mod tests {
                 (0, 0, 0)
             );
         }
-        let ((_, refused, _, first), metrics) = measure(|| {
-            with_limit_usage_refusal(0, || {
+        let ((_, metrics), refused, _, first) = with_limit_usage_refusal(0, || {
+            measure(|| {
                 assert!(Ancestry::acquire().is_err());
                 assert!(super::reserve_scope().is_err());
                 assert!(Ancestry::acquire().is_err());

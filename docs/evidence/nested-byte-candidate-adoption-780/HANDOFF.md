@@ -1,0 +1,9 @@
+# #780 connected candidate adoption
+
+Private basis: 828f258503ec98c6cc9b1b59d307ad604bcf681d. This packet is source-ready only. It corrects actual ordinary and retained candidate calls that still used the strict contextless v1 helper before the already-contextual plan builders could execute. Both use one paid lazy slot after unchanged complete discovery/alias passes. The strict v1 helper and original paid candidates remain unchanged; saved_planner now explicitly binds a byte-exact complete original candidate body instead of accidentally sharing the newly changed root.
+
+The connected funded classifier zero-authenticates its actual owner before choosing typed physical/semantic output. No text-based conversion, borrowed quota, refund, cap or work credit is used. The raw original child-ledger refusal remains first. No paid invocation or proof is reactivated outside its caller.
+
+Three new owning bodies and required existing owners are in pending-selectors.json. Whole old/current source/cache/plan and six-field strict rejection controls, full funded acquire/result/Drop exact-short-zero controls, and classifier semantic/physical/foreign controls await execution. Additional actual 828f ancestry setup and unreachable fixture failures are corrected without removing their full observations, cases or assertions. The first P209 was Break span152; the original Return fixture independently selects span155.
+
+Fourteen whole old-source/empty archives and exact inverse rows cover every authored source/doc change. All existing original proofs are retained. Current shared 43/431 source chains and all36 complete source reconstruction sections pass source-only; joined purity and owning module limits pass. These are not Rust execution receipts. Raw bounded review and conditional disposition are retained. No application fit, net savings, or #780 closure claim is made.

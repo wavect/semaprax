@@ -1,0 +1,57 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED",
+  "required_existing_packet": "docs/evidence/nested-byte-traversal-780/pending-selectors.json",
+  "required_existing": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "loan_plan::paid_candidate::retained::tests::complete_old_and_retained_plans_diagnostics_allocation_and_drop_match"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "loan_plan::paid_candidate::retained::tests::actual_retained_work_and_byte_routes_have_exact_short_zero_and_sticky_boundaries"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::resolve_expr::byte_ancestry::tests::nested_byte_ancestry_prepays_controls_and_unwinds_outermost_scope_without_allocating"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::resolve_statement::nested_byte_tests::nested_byte_actual_resolver_keeps_ancestry_local_and_entry_scope_fixed"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::validation::byte_traversal::nested::tests::nested_byte_census_uses_exact_owner_and_first_refusal_on_foreign_then_restored_scope"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::validation::byte_traversal::nested::tests::nested_byte_census_funds_exact_short_zero_every_frontier_sticky_and_complete_drop"
+    }
+  ],
+  "retain_all_current_failed_nested_owners": true,
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "loan_plan::paid_candidate::retained::nested_tests::actual_ordinary_and_funded_candidates_replay_nested_bytes_before_plan_selection",
+      "source": "src/loan_plan/paid_candidate/retained/nested_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "loan_plan::paid_candidate::retained::nested_tests::actual_nested_candidate_whole_receiver_exact_short_zero_and_selected_refusal_drop",
+      "source": "src/loan_plan/paid_candidate/retained/nested_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "loan_plan::paid_candidate::retained::nested_tests::actual_classifier_preserves_full_semantics_and_original_child_refusal_and_foreign_first",
+      "source": "src/loan_plan/paid_candidate/retained/nested_tests.rs"
+    }
+  ]
+}

@@ -104,6 +104,8 @@ macro_rules! loan_cfg_source_inventory {
         include_str!("../../../../../src/loan_plan/paid_candidate/retained.rs"),
         include_str!("../../../../../src/loan_plan/paid_candidate/retained/inventory.rs"),
         include_str!("../../../../../src/loan_plan/paid_candidate/retained/tests.rs"),
+        include_str!("../../../../../src/loan_plan/paid_candidate/retained/nested_tests.rs"),
+        include_str!("../../../../../src/loan_plan/nested_candidate_before.rs"),
         include_str!("../../../../../src/loan_plan/paid_plan.rs"),
         include_str!("../../../../../src/loan_plan/paid_plan/retained.rs"),
         include_str!("../../../../../src/loan_plan/funded_flat.rs"),

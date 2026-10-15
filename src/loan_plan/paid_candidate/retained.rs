@@ -77,6 +77,7 @@ pub(in crate::loan_plan) fn inspect<'a, 'p>(
             return Ok(Some(Inventory { program, function, payer, aliases, bound, ownership }));
         }};
     }
+    let mut byte_census = crate::hir::ByteTraversalSlot::new(program, function)?;
     let provisional = provisional_result::root(function);
     let mut root_ownership = cfg_directory::Map::<ValueId, bool>::new(payer)?;
     discovery.reset()?;
@@ -89,7 +90,7 @@ pub(in crate::loan_plan) fn inspect<'a, 'p>(
             }
         }
         // A borrowed byte traversal freezes its view's ultimate owner.
-        if let Some(region) = crate::hir::byte_traversal_region(expression)? {
+        if let Some(region) = byte_census.region(program, function, expression)? {
             if let Some(place) = storage::expression_place(region.view, Some(payer))? {
                 if ultimate_root_is_own(
                     &place.root,
@@ -209,3 +210,6 @@ pub(in crate::loan_plan) fn before_inventory_source(path: &str, source: &str) ->
     }
     restored
 }
+
+#[cfg(test)]
+mod nested_tests;

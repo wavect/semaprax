@@ -1,0 +1,31 @@
+{
+  "status": "SOURCE_ONLY_NO_COMPILER_OR_RUNTIME",
+  "own_full_inverses": 14,
+  "unchanged_strict_full_sources": [
+    {
+      "source": "src/loan_plan/saved_planner/draft.rs",
+      "sha256": "ddc046fb2231ff401b798f3aba10b71b4e4ad04a5e836f36759e99665ae20c10"
+    },
+    {
+      "source": "src/loan_plan/paid_candidate_before.rs",
+      "sha256": "2171767962fc58bd699165f3023910712146871fadc6b2bc6077a02d7374bbbe"
+    },
+    {
+      "source": "src/loan_plan/paid_candidate_legacy.rs",
+      "sha256": "e8d0ffd75cf955ca449290094d4d3f4482fd13a4859ed1ca5e5cc898acc8cc17"
+    },
+    {
+      "source": "src/hir/validation/byte_traversal/before_nested.rs",
+      "sha256": "8379c4bf8925f5ee546fece298844bbdf5a52b67c3031f23935ec450729f968d"
+    },
+    {
+      "source": "src/hir/validation/byte_traversal.rs",
+      "sha256": "0d71a63bfe68e872a57d7ce42c0862b87dfcea6203ac412e9d34b1346cb2bbec"
+    }
+  ],
+  "complete_original_candidate_body_byte_equal": true,
+  "saved_planner_all_original_bytes_equal_after_only_explicit_original_candidate_import": true,
+  "fixture_paths_resolve": true,
+  "new_registered_test_bodies": 3,
+  "source_basis": "828f258503ec98c6cc9b1b59d307ad604bcf681d"
+}

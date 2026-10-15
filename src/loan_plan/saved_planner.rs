@@ -23,6 +23,7 @@
 //! validation authority.
 
 use super::*;
+use super::nested_candidate_before::has_own_root_candidate;
 
 mod cfg_build;
 mod draft;

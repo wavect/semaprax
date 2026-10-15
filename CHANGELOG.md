@@ -1221,6 +1221,8 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Source correction for #780: ordinary and retained loan candidate discovery use the paid contextual byte slot before plan selection; preserve complete strict v1 candidate controls, typed child-ledger refusal, external setup observations and unreachable-fixture diagnostics. Executable qualification remains pending.
+
 - Source-only nested record-pattern validation now streams exact binding paths
   from its existing depth-first continuation indices, removing owned root/field/
   record labels without another directory or quota. The complete old receiver

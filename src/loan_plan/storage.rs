@@ -57,6 +57,9 @@ pub(super) fn classify<T>(
     result: Result<T, Diagnostic>,
     payer: &CfgReservation,
 ) -> Result<T, PlannerError> {
+    // A separately paid census may select refusal on this exact live ledger.
+    // Authenticate/latch it before semantic rendering; never classify by text.
+    let _ = payer.reserve(0);
     if let Some(reason) = payer.first() {
         return Err(PlannerError::Physical(reason));
     }

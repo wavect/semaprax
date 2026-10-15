@@ -1,0 +1,30 @@
+{
+  "status": "PASS_SOURCE_ONLY_UNEXECUTED",
+  "basis": "d6bf8151942190a956eb57350fa8b8892a8c68e5",
+  "immediate_complete_changed_Rust_originals": 3,
+  "local_region_metadata_originals": 1,
+  "full_region_current_to_immutable_be2aa_to_original_rows": 4,
+  "all_old_region_hooks_fields_archives_preserved": true,
+  "all_other_history_metadata_composed": false,
+  "production_and_complete_independent_drivers_receivers_unchanged": [
+    "src/cleanup_plan/replay/selected_entry.rs",
+    "src/cleanup_plan/replay/scalar_replay.rs",
+    "src/cleanup_plan/replay/scalar_replay_tree.rs",
+    "src/cleanup_plan/replay/lexical_replay.rs",
+    "src/cleanup_plan/replay/lexical_replay/before_operands.rs",
+    "src/cleanup_plan/replay/lexical_replay/ordinary.rs",
+    "src/cleanup_plan/replay/structural_control/blocks.rs",
+    "src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs",
+    "src/cleanup_plan/replay/structural_control/calls_before_receipt.rs",
+    "src/cleanup_plan/replay/structural_control/call_receiving.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/return_operands.rs",
+    "src/cleanup_plan/replay/lexical_replay/operand_tests.rs",
+    "src/cleanup_plan/replay/semantic_refusal/tests.rs"
+  ],
+  "selected_call_controls": "independent full eleven-field layout plus actual complete old/current block owner seams; separate Context seams; absolute driver totals retained",
+  "ordinary_832_controls": "independent fourteen-field layout + inspected ExitFacts + actual standalone Directory operation work/bytes; selected path explicitly excluded",
+  "return_fixture": "actual lexical while/conditional returns and exact authored stable ID; original exact/short/zero/sticky/Drop assertions retained",
+  "cargo": "UNEXECUTED",
+  "rust_tests": "UNEXECUTED",
+  "clippy": "UNEXECUTED"
+}

@@ -4,8 +4,20 @@ use crate::bounded_output::{active_remaining, with_limit_usage_refusal};
 use crate::test_allocation_observer::{current_metrics, measure};
 fn program() -> ResolvedProgram {
     crate::hir::resolve(&crate::check(
-        "module operands.owner; @id(\"main:é\") fn main()->i64 {if false {return 7;}; return 9;}",
+        "module operands.owner; @id(\"main:é\") fn main()->i64 {let mut n=0;while n<3 {n=n+1;if n==1 {return 7;};0} return 9;}",
         "operand-owner.spx").unwrap()).unwrap()
+}
+fn function(program: &ResolvedProgram) -> &ResolvedFunction {
+    let function = program
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == "main:é")
+        .unwrap();
+    assert!(
+        function.cleanup_plan.lexical_control.is_some(),
+        "actual lexical loop fixture"
+    );
+    function
 }
 fn controls() -> usize {
     std::mem::size_of::<(
@@ -28,7 +40,7 @@ fn controls() -> usize {
 #[test]
 fn exact_one_short_zero_bytes_and_work_pay_actual_controls_and_first_node_through_drop() {
     let p = program();
-    let f = &p.functions[0];
+    let f = function(&p);
     let mut scan = ReplayBudget::new();
     let mut facts = lexical_hir::collect(f, &mut scan).unwrap();
     facts
@@ -87,7 +99,7 @@ fn exact_one_short_zero_bytes_and_work_pay_actual_controls_and_first_node_throug
 #[test]
 fn duplicate_ids_borrow_exact_input_and_spare_reuse_authenticates_sticky_failure() {
     let p = program();
-    let f = &p.functions[0];
+    let f = function(&p);
     let mut scan = ReplayBudget::new();
     let mut facts = lexical_hir::collect(f, &mut scan).unwrap();
     facts.exits.truncate(1);
@@ -126,7 +138,7 @@ fn duplicate_ids_borrow_exact_input_and_spare_reuse_authenticates_sticky_failure
 #[test]
 fn foreign_function_facts_budget_and_restored_nested_owner_never_reuse_backing() {
     let p = program();
-    let f = &p.functions[0];
+    let f = function(&p);
     let foreign = f.clone();
     let mut scan = ReplayBudget::new();
     let facts = lexical_hir::collect(f, &mut scan).unwrap();
@@ -171,7 +183,7 @@ fn foreign_function_facts_budget_and_restored_nested_owner_never_reuse_backing()
 #[test]
 fn expired_original_active_owner_cannot_restore_an_inventory_after_scope_exit() {
     let p = program();
-    let f = &p.functions[0];
+    let f = function(&p);
     let mut scan = ReplayBudget::new();
     let facts = lexical_hir::collect(f, &mut scan).unwrap();
     let (_, observed) = measure(|| {
@@ -194,7 +206,7 @@ fn expired_original_active_owner_cannot_restore_an_inventory_after_scope_exit() 
 #[test]
 fn empty_and_duplicate_absolute_frontiers_follow_actual_control_node_and_comparison_work() {
     let p = program();
-    let f = &p.functions[0];
+    let f = function(&p);
     let mut scan = ReplayBudget::new();
     let mut facts = lexical_hir::collect(f, &mut scan).unwrap();
     facts.exits.truncate(1);
@@ -240,4 +252,66 @@ fn empty_and_duplicate_absolute_frontiers_follow_actual_control_node_and_compari
         assert_eq!(used, expected_bytes);
         facts.exits.extend(rows);
     }
+}
+
+#[test]
+fn ordinary_operand_producer_costs_are_controls_plus_fact_visits_and_actual_directory_operations() {
+    let p = program();
+    let f = function(&p);
+    let mut scan = ReplayBudget::new();
+    let facts = lexical_hir::collect(f, &mut scan).unwrap();
+    assert!(facts
+        .exits
+        .iter()
+        .any(|exit| exit.kind == LexicalExitKind::Return && exit.value.is_some()));
+    let mut observations = Vec::new();
+    for actual_producer in [false, true] {
+        let ((usage, metrics), refused, _, first) = with_limit_usage_refusal(usize::MAX, || {
+            measure(|| {
+                let mut budget = ReplayBudget::new();
+                assert!(!budget.selected() && budget.pays_allocations());
+                // Both sides acquire their real builder setup before the seam.
+                budget.prepare_builder(f).unwrap();
+                let before_work = budget.remaining;
+                let before_bytes = active_remaining().unwrap();
+                if actual_producer {
+                    let index = ReturnOperands::new::<Diagnostic>(f, &facts, &mut budget).unwrap();
+                    assert_eq!(index.ids.len(), 2);
+                    drop(index);
+                } else {
+                    // Independently execute only the real directory operations
+                    // over the same borrowed operands, in the same fact order.
+                    let mut directory = Directory::new(
+                        f,
+                        &mut budget,
+                        "independent ordinary operand directory seam",
+                    )
+                    .unwrap();
+                    for exit in &facts.exits {
+                        if let (LexicalExitKind::Return, Some(value)) = (exit.kind, exit.value) {
+                            directory.insert(f, &value.id, &mut budget).unwrap();
+                        }
+                    }
+                    assert_eq!(directory.len(), 2);
+                    drop(directory);
+                }
+                let usage = (
+                    before_work - budget.remaining,
+                    before_bytes - active_remaining().unwrap(),
+                );
+                drop(budget);
+                usage
+            })
+        });
+        assert!(!refused && first.is_none());
+        assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
+        observations.push(usage);
+    }
+    let directory = observations[0];
+    let producer = observations[1];
+    // Fourteen actual receiving/initializer fields, one inspected ExitFact each,
+    // and the independently executed relocation/comparison/AVL/node charges.
+    assert_eq!(producer.0, 14 + facts.exits.len() + directory.0);
+    assert_eq!(producer.1, controls() + directory.1);
+    eprintln!("#832 ordinary producer={producer:?} directory_only={directory:?} controls_bytes={} initializer_work=14 fact_visits={}; old/current whole driver frontiers are exercised by lexical_replay::operand_tests", controls(), facts.exits.len());
 }

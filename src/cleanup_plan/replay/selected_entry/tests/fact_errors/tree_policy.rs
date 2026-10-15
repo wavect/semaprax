@@ -153,11 +153,15 @@ fn complete_tree_and_both_arena_policies_keep_full_scalar_corpus_ids_and_verdict
         let tree = success(Route::Tree, &context, function, usize::MAX, None);
         let legacy = success(Route::LegacyArena, &context, function, usize::MAX, None);
         let paid = success(Route::SelectedArena, &context, function, usize::MAX, None);
-        assert_eq!(
+        let (old_seams, new_seams) = compare_driver_usage(
             (legacy.remaining, legacy.reserved),
-            (paid.remaining, paid.reserved)
+            (paid.remaining, paid.reserved),
+            &context,
+            function,
+            false,
+            true,
         );
-        assert_eq!(legacy.work, paid.work);
+        assert_eq!(legacy.work + new_seams, paid.work + old_seams);
         different |= (tree.remaining, tree.reserved) != (legacy.remaining, legacy.reserved);
     }
     assert!(

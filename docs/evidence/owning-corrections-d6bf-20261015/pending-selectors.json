@@ -1,0 +1,17 @@
+{
+  "status": "UNEXECUTED",
+  "exact_changed_or_shared_fixture_selectors": [
+    "cleanup_plan::replay::selected_entry::tests::fact_errors::paid_fact_semantic_receipt_keeps_exact_shared_ids_and_driver_verdicts",
+    "cleanup_plan::replay::selected_entry::tests::fact_errors::tree_policy::complete_tree_and_both_arena_policies_keep_full_scalar_corpus_ids_and_verdicts",
+    "cleanup_plan::replay::expression_facts::receiving::regions_entry::tests::complete_region_entry_and_four_variant_source_projections_restore_full_originals",
+    "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::exact_one_short_zero_bytes_and_work_pay_actual_controls_and_first_node_through_drop",
+    "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::duplicate_ids_borrow_exact_input_and_spare_reuse_authenticates_sticky_failure",
+    "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::foreign_function_facts_budget_and_restored_nested_owner_never_reuse_backing",
+    "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::expired_original_active_owner_cannot_restore_an_inventory_after_scope_exit",
+    "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::empty_and_duplicate_absolute_frontiers_follow_actual_control_node_and_comparison_work",
+    "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::ordinary_operand_producer_costs_are_controls_plus_fact_visits_and_actual_directory_operations"
+  ],
+  "exact_direct_existing_control": "cleanup_plan::replay::lexical_replay::operand_tests::full_old_and_current_ordinary_lexical_callers_keep_success_and_first_diagnostic_fields",
+  "basis": "d6bf8151942190a956eb57350fa8b8892a8c68e5",
+  "not_requested": "No whole modules or old86 blanket rerun"
+}

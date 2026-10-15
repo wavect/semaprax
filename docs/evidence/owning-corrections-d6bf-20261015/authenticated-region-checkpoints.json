@@ -1,0 +1,34 @@
+[
+  {
+    "source": "src/cleanup_plan/replay.rs",
+    "checkpoint_revision": "be2aa97d4b6ec5e93d58814b243bc0cdc85f78e5",
+    "checkpoint_sha256": "42449fd46e19cb668a435fbea806724c8c7a67e39557eddbb2b67be638aa91e4",
+    "current_sha256": "085573e471b9b245fe2aa9199fc2c4979bc4297a84c0364fbd6c8dc3711df383",
+    "preserved_old_hooks": 5,
+    "original_sha256": "c8d431255448d27c65ea17d8e76bde7a9e18e75ad733acd7512a778f6cb1125e"
+  },
+  {
+    "source": "src/cleanup_plan/replay/lexical_replay.rs",
+    "checkpoint_revision": "be2aa97d4b6ec5e93d58814b243bc0cdc85f78e5",
+    "checkpoint_sha256": "3560d28ecefd32dfefd1c7ae1db2d847e84b3e44fe1c02c23e7e7568c3013288",
+    "current_sha256": "d0f2b7fcfc3815f0c1207c064d8bcb14d4323dff614d953988b962138ff975d0",
+    "preserved_old_hooks": 2,
+    "original_sha256": "322c6b1a60d53abb09d0a148bcc67271989567b07c965db09591d615d782ed96"
+  },
+  {
+    "source": "src/cleanup_plan/replay/expression_facts/receiving.rs",
+    "checkpoint_revision": "be2aa97d4b6ec5e93d58814b243bc0cdc85f78e5",
+    "checkpoint_sha256": "be13817153b96635c9169b7ddd872ac2e32df3db263452574b11ced2c3091055",
+    "current_sha256": "7599f862f1489b42bece389200acb61f65d01310b4b2cc45af64392dccf84ba0",
+    "preserved_old_hooks": 3,
+    "original_sha256": "0f2576a1e32af73ddb3bae7c7db7bede6a28eab41f781b2ff06e98a369c6370c"
+  },
+  {
+    "source": "src/cleanup_plan/replay/expression_facts/receiving/directory.rs",
+    "checkpoint_revision": "be2aa97d4b6ec5e93d58814b243bc0cdc85f78e5",
+    "checkpoint_sha256": "a5d9e5fa66faf99fd0853a3322c04fcf8e3e3a48ebe26ed6d6c4fcc923623c14",
+    "current_sha256": "d161622003e500b3b9197c0f463b88eee388d9447c5a87ba75f464d3aa2a59cc",
+    "preserved_old_hooks": 1,
+    "original_sha256": "520431488c88d2ae1018245426677b0ab5ba13d7378509f23c1b4725c1e8b0d7"
+  }
+]

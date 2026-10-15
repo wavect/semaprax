@@ -57,7 +57,7 @@ fn inline_targets_complete_immediate_receiver_keeps_states_signatures_and_every_
                 assert_eq!(budget.remaining, old_budget.remaining);
                 assert_eq!(budget.skeleton_remaining, old_budget.skeleton_remaining);
                 assert_eq!(&current.ids, old.signatures());
-                assert_eq!(&current.states, old.states());
+                super::inline_weighted::assert_states(&current.states, old.states());
                 for state in current.states.keys() {
                     if state.len() == 1 {
                         assert_eq!(state.capacity(), 1);

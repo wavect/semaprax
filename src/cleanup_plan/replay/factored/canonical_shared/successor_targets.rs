@@ -1,8 +1,10 @@
 //! A label starts with one target; only a second distinct child owns a tree.
 #[cfg(test)]
-use super::{
-    own_weighted, weighted_successor, Diagnostic, ReplayBudget, ResolvedFunction, SharedWeighted,
-};
+use super::{Diagnostic, ReplayBudget, ResolvedFunction};
+#[cfg(test)]
+use super::before_inline_weighted::{own_weighted, weighted_successor};
+#[cfg(test)]
+type SharedWeighted = std::rc::Rc<Vec<(usize, u64)>>;
 use std::collections::BTreeMap;
 #[cfg(test)]
 use std::mem::size_of;

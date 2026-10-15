@@ -161,7 +161,13 @@ Numeric keys never index directory capacity. Published closures are immutable;
 a unit-singleton closed state borrows its authenticated closure, while general
 weighted states retain a separate paid arena. The original weighted traversal,
 checked arithmetic and exposed work requests remain unchanged. State/signature
-dictionaries and persistent successor payloads keep their preceding storage.
+dictionaries keep their preceding trees. Persistent singleton successor states
+use `canonical_shared/inline_weighted.rs`: One and Many keys compare their exact
+ordered contents. One keeps its paid tuple inline in the shared allocation;
+moved roots and general successors retain their fully paid Vec backing. Enum
+receivers and the actual shared layout are acquired before construction. The
+complete immediate receiver is `before_inline_weighted.rs`; qualification and
+any physical benefit remain pending.
 The complete immediate BTree receiver is retained in `before_ordered.rs`; full
 source inverses and allocation-free comparison adapters preserve older controls.
 This source-only draft's focused qualification is pending.

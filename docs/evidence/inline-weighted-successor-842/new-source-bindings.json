@@ -1,0 +1,26 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs",
+    "new_file": true,
+    "current_sha256": "ee5a2e14326357df2e5359c8da6a99e93274ac3b89b668c8aea719fc511d726b",
+    "bytes": 28741
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs",
+    "new_file": true,
+    "current_sha256": "ba2cbe772ecabcd29f519778201f842609f045294ef514ead976b737ec157b50",
+    "bytes": 2408
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs",
+    "new_file": true,
+    "current_sha256": "32fc3e8d9cc41c9f64d8fa2f07ebc1e819448dc355b13500b773430588195ed8",
+    "bytes": 13093
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/source.rs",
+    "new_file": true,
+    "current_sha256": "894c9fbe3bf8d7346096a69c8db670d308c6d7b40a64374482e8763ae8594426",
+    "bytes": 5015
+  }
+]

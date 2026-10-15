@@ -1,0 +1,39 @@
+{
+  "status": "SOURCE_READY_QUALIFICATION_PENDING",
+  "basis": "7800b014151b6ce0709c351ccdfd52ae25832e07",
+  "source_sha256": {
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": "726b2584827bf5e5ee3f2a25a5db6dc14e6c5cd4ced936adad326756c97f402f",
+    "docs/ARCHITECTURE.md": "54b90e3354bbcd9bd45abccb26ec1559268142285a37819e171933ea26a4a36e",
+    "src/cleanup_plan/replay/factored/canonical_shared.rs": "5d85624e66bfcdc3e964beb8c473dfc436b4a19540138f558b6ddd25179eac4f",
+    "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs": "55cd8ad7cd22c5dd66e7d797a9b1461be57ea4fde1214e66fc667f0f5d5b727b",
+    "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/receiver_tests.rs": "fcfe6d05ab69a4aeefcd4281e5a941108cfbca73f6f85883120181c18eb1f074",
+    "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs": "d5054407b2b56f0d06d1809036eda0005b936e004ef72fc1fa5104bb8dcdda45",
+    "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs": "c4c006a456f6d1a9a370e52d720aa4d679e499b6e25a8253b614bb44875b78e7",
+    "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs": "8f6d967b8a223247b9578e8c7411788c2aa703d7a77ec5368ded5f0b3bc35748",
+    "src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs": "08a7690413f287030f0574828ba25e97581960b654c50fc22c1013112b62b024",
+    "src/cleanup_plan/replay/factored/canonical_shared/tests.rs": "1db768b7b77e8857bd76f1f2f0c8ba53e6225a11b09b8d1a796a67b980dee63f",
+    "src/source_reflows_merge.rs": "f4ee41a3c6424508ce7cb6f76935b838d6b456c69bc2cc38766f518c132026a5",
+    "tests/hir_module_boundaries.rs": "e8f3825fbc8eca0c33db32aea59005d9566b389e76aacfa06b5f9db0c6e99182",
+    "tests/workspace/semantic_graph/source_inventory.rs": "0bd0714b8e205e9df78536d74cef9d812566644ac1a2c517f9db9394e26f3173",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs": "ee5a2e14326357df2e5359c8da6a99e93274ac3b89b668c8aea719fc511d726b",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs": "ba2cbe772ecabcd29f519778201f842609f045294ef514ead976b737ec157b50",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs": "32fc3e8d9cc41c9f64d8fa2f07ebc1e819448dc355b13500b773430588195ed8",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/source.rs": "894c9fbe3bf8d7346096a69c8db670d308c6d7b40a64374482e8763ae8594426"
+  },
+  "new_test_selectors": [
+    "cleanup_plan::replay::factored::canonical_shared::inline_weighted::tests::inline_weighted_content_eq_ord_and_state_keys_ignore_one_many_shape",
+    "cleanup_plan::replay::factored::canonical_shared::inline_weighted::tests::inline_weighted_immediate_complete_receiver_preserves_verdict_work_ids_and_every_state",
+    "cleanup_plan::replay::factored::canonical_shared::inline_weighted::tests::inline_weighted_real_successors_accumulate_promote_and_keep_one_representation_only_for_one_target",
+    "cleanup_plan::replay::factored::canonical_shared::inline_weighted::tests::inline_weighted_every_work_cut_cycle_and_multiply_or_add_overflow_keep_complete_old_diagnostics",
+    "cleanup_plan::replay::factored::canonical_shared::inline_weighted::tests::inline_weighted_real_allocations_debit_peak_and_drop_include_many_header_and_singleton_backing",
+    "cleanup_plan::replay::factored::canonical_shared::inline_weighted::tests::inline_weighted_last_shared_owner_keeps_backing_live_until_drop_and_preserves_copy_work",
+    "cleanup_plan::replay::factored::canonical_shared::inline_weighted::tests::inline_weighted_moved_many_exact_enum_controls_and_actual_rc_layout_precede_construction",
+    "cleanup_plan::replay::factored::canonical_shared::inline_weighted::tests::inline_weighted_promoted_many_overflow_precedes_later_cyclic_label",
+    "cleanup_plan::replay::factored::canonical_shared::inline_weighted::source::inline_weighted_complete_source_inverses_and_immediate_receiver_are_exact",
+    "cleanup_plan::replay::factored::canonical_shared::inline_weighted::source::inline_weighted_every_new_owner_remains_in_all_three_full_source_audits"
+  ],
+  "old_runtime_metadata_modified": false,
+  "production_changed_only": "canonical_shared.rs + new inline_weighted.rs",
+  "memo_retained_physical_budget_unchanged": true,
+  "source_only": true
+}

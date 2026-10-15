@@ -61,7 +61,7 @@ fn singleton_targets_complete_before_receiver_keeps_widths_repeats_signatures_an
                 assert_eq!(budget.remaining, old_budget.remaining);
                 assert_eq!(budget.skeleton_remaining, old_budget.skeleton_remaining);
                 assert_eq!(&current.ids, old.signatures());
-                assert_eq!(&current.states, old.states());
+                super::inline_weighted::assert_states(&current.states, old.states());
             }
         }
     }

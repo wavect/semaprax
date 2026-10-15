@@ -6,9 +6,9 @@ use crate::ast::{ModuleUse, Program, Span};
 use crate::diagnostic::Diagnostic;
 
 use super::{
-    WorkspaceResolvedModule, MAX_BUILDER_BYTES, MAX_CALLABLES, MAX_CALLS, MAX_CROSS_FILE_EDGES,
-    MAX_DECLARATIONS, MAX_DEPENDENCY_DEPTH, MAX_ENTRY_MODULE_BYTES, MAX_FILES, MAX_OUTPUT_BYTES,
-    MAX_TOTAL_SOURCE_BYTES, MAX_USES,
+    MAX_BUILDER_BYTES, MAX_CALLABLES, MAX_CALLS, MAX_CROSS_FILE_EDGES, MAX_DECLARATIONS,
+    MAX_DEPENDENCY_DEPTH, MAX_ENTRY_MODULE_BYTES, MAX_FILES, MAX_OUTPUT_BYTES,
+    MAX_TOTAL_SOURCE_BYTES, MAX_USES, WorkspaceResolvedModule,
 };
 
 pub(super) const PROVIDER_MAIN_HELP: &str = "`entry` in semaprax.toml must name the module that declares `main`; every other listed source is a provider module and declares no `main`";
@@ -210,6 +210,16 @@ pub(super) fn complete_sequential_precharge(forecast: usize) {
 /// itself stays byte-identical, because nested workspace routes remap a
 /// `builder_bytes` refusal by comparing it exactly.
 fn builder_bytes_help(maximum: usize) -> String {
+    crate::bounded_output::budgeted_format(format_args!("{}", BorrowedBuilderHelp(maximum)))
+}
+/// Borrow report content only; this is never a budget or publication owner.
+pub(super) struct BorrowedBuilderHelp(pub(super) usize);
+impl std::fmt::Display for BorrowedBuilderHelp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write_builder_bytes_help(self.0, f)
+    }
+}
+fn write_builder_bytes_help(maximum: usize, output: &mut dyn std::fmt::Write) -> std::fmt::Result {
     let precharge = BUILDER_PHASE.with(Cell::get) == BuilderPhase::Precharge;
     let modules = PRECHARGE_MODULES.with(Cell::get);
     let forecast = PRECHARGE_BYTES.with(Cell::get);
@@ -218,9 +228,9 @@ fn builder_bytes_help(maximum: usize) -> String {
         PRECHARGE_PENDING.with(|pending| {
             let pending = pending.borrow();
     if let (true, Some(path)) = (precharge, pending.as_ref()) {
-        return crate::bounded_output::budgeted_format(format_args!(
+        return write!(output,
             "the static admission pre-charge refused before the graph builder ran, while forecasting module `{path}` on its own: that one module does not fit the {maximum}-byte budget, which already carries {forecast} bytes for {modules} earlier module(s). Splitting `{path}` into several modules cannot reduce the forecast, because the pre-charge sums every reachable module; reducing its admitted source can."
-        ));
+        );
     }
     PRECHARGE_SEQUENTIAL.with(|sequential| {
         let sequential = sequential.borrow();
@@ -233,28 +243,28 @@ fn builder_bytes_help(maximum: usize) -> String {
             resolving,
         } = step;
         return if *resolving {
-            crate::bounded_output::budgeted_format(format_args!(
+            write!(output,
                 "the static admission pre-charge refused before the graph builder ran, in its final sequential uncached forecast: {earlier} earlier module(s) retain {retained} bytes of filtered output, and resolving `{path}` adds its complete {additional}-byte forecast, which exceeds the {maximum}-byte budget. Each complete module forecast is charged only while that module resolves; reducing the admitted source of `{path}` or the output retained by earlier modules can reduce this peak."
-            ))
+            )
         } else {
-            crate::bounded_output::budgeted_format(format_args!(
+            write!(output,
                 "the static admission pre-charge refused before the graph builder ran, in its final sequential uncached forecast: {earlier} earlier module(s) retain {retained} bytes of filtered output, and `{path}` retains {additional} more bytes, which exceeds the {maximum}-byte budget. Retained output sums every reachable module, so splitting one module into several cannot reduce it; removing a dependency or reducing total reachable source can."
-            ))
+            )
         };
     }
     match (precharge, dominant.as_ref()) {
-        (true, Some((path, bytes))) => crate::bounded_output::budgeted_format(format_args!(
+        (true, Some((path, bytes))) => write!(output,
             "the static admission pre-charge refused before the graph builder ran: forecasting {modules} reachable module(s) already reaches {forecast} bytes of the {maximum}-byte budget, and `{path}` alone forecasts {bytes} bytes of retained resolver state. The pre-charge sums every reachable module, so splitting one module into several cannot reduce it; removing a dependency or reducing total reachable source can."
-        )),
-        (true, None) => crate::bounded_output::budgeted_format(format_args!(
+        ),
+        (true, None) => write!(output,
             "the static admission pre-charge refused before the graph builder ran, and before any single module was fully costed against the {maximum}-byte budget."
-        )),
-        (false, Some((path, bytes))) => crate::bounded_output::budgeted_format(format_args!(
+        ),
+        (false, Some((path, bytes))) => write!(output,
             "live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast {forecast} bytes for {modules} module(s) and fit within {maximum}, with `{path}` the largest at {bytes} bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound."
-        )),
-        (false, None) => crate::bounded_output::budgeted_format(format_args!(
+        ),
+        (false, None) => write!(output,
             "live graph construction, not the static admission pre-charge, exceeded the {maximum}-byte budget while allocating workspace graph structure."
-        )),
+        ),
     }
     })
         })
@@ -270,7 +280,10 @@ pub(super) fn live_builder_refusal(
     let evidence = match refusal {
         Some(refusal) => crate::bounded_output::budgeted_format(format_args!(
             "resolved-core phase first sticky ledger refusal: requested {} bytes with {} remaining and {} reserved floor. Authenticated internal stage: {}. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.",
-            refusal.requested, refusal.remaining, refusal.floor, refusal.stage.map_or("unknown", |stage| stage.label()),
+            refusal.requested,
+            refusal.remaining,
+            refusal.floor,
+            refusal.stage.map_or("unknown", |stage| stage.label()),
         )),
         None => crate::bounded_output::budgeted_format(format_args!(
             "resolved-core phase refused; the first reservation and exact inner operation are unknown."
@@ -298,3 +311,6 @@ pub(super) use invocation::enter as invocation_scope;
 
 #[cfg(test)]
 mod borrowed_help_tests;
+
+#[cfg(test)]
+pub(super) mod constructor_report_before;

@@ -79,3 +79,6 @@ pub(super) fn construct_transient_core<'a>(
 }
 
 pub(super) mod receiving;
+
+pub(super) mod report;
+pub(super) mod attempt;

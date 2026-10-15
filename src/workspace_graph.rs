@@ -4119,36 +4119,42 @@ fn build_owned_inner(
                     layouts.receipt(),
                     fallback_mode,
                 );
-                reserve_builder_structure(layouts.receipt())?;
-                staged!(CorePrebound, charge_builder_prebound(resolve_builder_bytes))?;
-                let custody =
-                    custody::SourceCustody::plan(&sources, &programs, &pruned_dependency_functions)
-                        .map_err(|error| match error {
-                            custody::CustodyError::Prepaid(_) => {
-                                vec![limit_error("builder_bytes", active_builder_limit())]
-                            }
-                            _ => vec![graph_error(
-                                "SPX-G173",
-                                "current parsed source custody is inconsistent",
-                            )],
-                        })?;
-                let core = staged!(
-                    ResolvedCore,
-                    build_resolved_core_current(
+                constructor_failure::attempt::run(active_builder_limit(), || {
+                    constructor_failure::attempt::reserve(layouts.receipt())?;
+                    staged!(CorePrebound, constructor_failure::attempt::reserve(resolve_builder_bytes))?;
+                    let custody = custody::SourceCustody::plan(
+                        &sources,
                         &programs,
-                        &module_paths,
-                        &dependency_depths,
-                        &authored,
-                        Some(&sources),
-                        frontend.as_deref_mut(),
-                        &layouts,
-                        compact_layout
-                            .as_ref()
-                            .map(|layout| &layout.order[..programs.len()]),
+                        &pruned_dependency_functions,
                     )
-                )?;
-                Ok::<_, constructor_failure::receiving::CoreFailure>((core, custody))
+                    .map_err(|error| match error {
+                        custody::CustodyError::Prepaid(_) => {
+                            vec![limit_error("builder_bytes", active_builder_limit())]
+                        }
+                        _ => vec![graph_error(
+                            "SPX-G173",
+                            "current parsed source custody is inconsistent",
+                        )],
+                    })?;
+                    let core = staged!(
+                        ResolvedCore,
+                        build_resolved_core_current(
+                            &programs,
+                            &module_paths,
+                            &dependency_depths,
+                            &authored,
+                            Some(&sources),
+                            frontend.as_deref_mut(),
+                            &layouts,
+                            compact_layout
+                                .as_ref()
+                                .map(|layout| &layout.order[..programs.len()]),
+                        )
+                    )?;
+                    Ok::<_, constructor_failure::receiving::CoreFailure>((core, custody))
+                })
             });
+        let (core, paid_refusal) = core.into_parts();
         core_builder_bytes = core_builder_bytes.max(consumed);
         if !overflowed {
             break core;
@@ -4163,10 +4169,12 @@ fn build_owned_inner(
             }
             || !retry_allowed
         {
-            return Err(vec![diagnostics::live_builder_refusal(
-                active_builder_limit(),
-                refusal,
-            )]);
+            return Err(paid_refusal.unwrap_or_else(|| {
+                vec![diagnostics::live_builder_refusal(
+                    active_builder_limit(),
+                    refusal,
+                )]
+            }));
         }
         // Mode six replaces an overflowing all-HIR carrier with the bounded
         // sequential filtered-output/index plus one-full-HIR peak.
@@ -4214,7 +4222,8 @@ fn build_owned_inner(
         resolve_builder_bytes = tighter;
     };
     drop(layouts);
-    let (core, custody) = core.map_err(constructor_failure::receiving::CoreFailure::into_legacy_unfunded)?;
+    let (core, custody) =
+        core.map_err(constructor_failure::receiving::CoreFailure::into_legacy_unfunded)?;
     let (mut modules, module_paths, dependency_depths, declaration_facts, expected_edges) = core;
     for module in &mut modules {
         module.native_law = native_law_paths.contains(&module.path);

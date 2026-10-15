@@ -1,0 +1,275 @@
+Review this distinct825 future source patch for concrete accounting, Rust typing, affine authority, first-error/report parity. Tools disabled. No execution claimed. Setup is Copy enum NoOwner/Budget{maximum}/Allocation/Capacity/Detached/Arithmetic; CoreFailure carries typed Setup or original primary. ClassifierLedger clones existing Rc only; current() checks exact ACTIVE pointer and poisons captured owner on mismatch; first_refusal() reads captured Option<Copy receipt>. Fixed old borrowed help uses only existing TLS content, no allocations. stages::longest enumerates all39 current labels plus unknown. Actual root: with_limit_usage_refusal(limit,||run(limit,||original_core())), then into_parts after restore; on final overflow moves publication, None uses explicit legacy fallback. No quota/credit/refund. Review ONLY this seam; legacy helper/setup/noowner/public API residuals stay open.
+
+REPORT
+//! Prepaid dynamic final-refusal publication on the original core ledger.
+use super::receiving::Setup;
+use crate::bounded_output::{
+    active_remaining, reserve_active_required, ClassifierLedger, ReservationRefusal,
+};
+use crate::diagnostic::Diagnostic;
+use crate::workspace_graph::diagnostics::BorrowedBuilderHelp;
+use std::fmt::{self, Write};
+use std::mem::size_of;
+mod stages;
+
+pub(super) struct Owner {
+    ledger: ClassifierLedger,
+    report: Vec<Diagnostic>,
+    message: String,
+    help: String,
+    detached: bool,
+}
+pub(super) struct Published {
+    report: Vec<Diagnostic>,
+    ledger: ClassifierLedger,
+}
+pub(super) struct Unpublished {
+    pub(super) owner: Owner,
+    pub(super) refusal: Setup,
+}
+struct Count(usize);
+impl Write for Count {
+    fn write_str(&mut self, value: &str) -> fmt::Result {
+        self.0 = self.0.checked_add(value.len()).ok_or(fmt::Error)?;
+        Ok(())
+    }
+}
+struct Fixed<'a>(&'a mut String);
+impl Write for Fixed<'_> {
+    fn write_str(&mut self, value: &str) -> fmt::Result {
+        if value.len() > self.0.capacity() - self.0.len() {
+            return Err(fmt::Error);
+        }
+        self.0.push_str(value);
+        Ok(())
+    }
+}
+fn message(out: &mut dyn Write, maximum: usize) -> fmt::Result {
+    write!(
+        out,
+        "Workspace Semantic Graph `builder_bytes` exceeds {maximum}"
+    )
+}
+fn fields(
+    out: &mut dyn Write,
+    requested: usize,
+    remaining: usize,
+    floor: usize,
+    stage: &str,
+) -> fmt::Result {
+    write!(
+        out,
+        "resolved-core phase first sticky ledger refusal: requested {} bytes with {} remaining and {} reserved floor. Authenticated internal stage: {}. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.",
+        requested, remaining, floor, stage
+    )
+}
+fn evidence(out: &mut dyn Write, first: Option<ReservationRefusal>) -> fmt::Result {
+    match first {
+        Some(first)=>fields(out,first.requested,first.remaining,first.floor,first.stage.map_or("unknown",|stage|stage.label())),
+        None=>out.write_str("resolved-core phase refused; the first reservation and exact inner operation are unknown."),
+    }
+}
+fn counted(write: impl FnOnce(&mut dyn Write) -> fmt::Result) -> Result<usize, Setup> {
+    let mut out = Count(0);
+    write(&mut out).map_err(|_| Setup::Arithmetic)?;
+    Ok(out.0)
+}
+fn budget() -> Setup {
+    Setup::Budget {
+        maximum: super::super::active_builder_limit(),
+    }
+}
+fn reserve(bytes: usize) -> Result<(), Setup> {
+    if reserve_active_required(bytes) {
+        Ok(())
+    } else {
+        Err(budget())
+    }
+}
+impl Owner {
+    pub(super) fn control_bytes(extra: usize) -> Option<usize> {
+        [
+            size_of::<Self>(),
+            size_of::<Result<Self, Setup>>(),
+            size_of::<Option<Self>>(),
+            size_of::<Published>(),
+            size_of::<Unpublished>(),
+            size_of::<Result<Published, Unpublished>>(),
+            size_of::<Vec<Diagnostic>>(),
+            size_of::<Diagnostic>(),
+            size_of::<Option<ReservationRefusal>>(),
+            size_of::<fmt::Result>(),
+            2 * size_of::<String>(),
+            4 * size_of::<Count>(),
+            size_of::<Fixed<'_>>(),
+            size_of::<Result<usize, Setup>>(),
+            extra,
+        ]
+        .into_iter()
+        .try_fold(0usize, usize::checked_add)
+    }
+    pub(super) fn acquire(maximum: usize, extra_controls: usize) -> Result<Self, Setup> {
+        if active_remaining().is_none() {
+            return Err(Setup::NoOwner);
+        }
+        reserve(Self::control_bytes(extra_controls).ok_or(Setup::Arithmetic)?)?;
+        let message_len = counted(|out| message(out, maximum))?;
+        let base_len = counted(|out| write!(out, "{}", BorrowedBuilderHelp(maximum)))?;
+        // This is a finite CAPACITY bound, not a claimed live payload length.
+        // All three actual fields have usize representations; no receipt is
+        // synthesized and no value is inserted into a ledger for this count.
+        let suffix_max =
+            counted(|out| fields(out, usize::MAX, usize::MAX, usize::MAX, stages::longest()))?
+                .max(counted(|out| evidence(out, None))?);
+        let help_capacity = base_len
+            .checked_add(usize::from(base_len != 0))
+            .and_then(|n| n.checked_add(suffix_max))
+            .ok_or(Setup::Arithmetic)?;
+        let backing = message_len
+            .checked_add(help_capacity)
+            .and_then(|n| n.checked_add(size_of::<Diagnostic>()))
+            .ok_or(Setup::Arithmetic)?;
+        reserve(backing)?;
+        let ledger = ClassifierLedger::capture();
+        let mut report = Vec::new();
+        let mut text = String::new();
+        let mut help = String::new();
+        report.try_reserve_exact(1).map_err(|_| Setup::Allocation)?;
+        text.try_reserve_exact(message_len)
+            .map_err(|_| Setup::Allocation)?;
+        help.try_reserve_exact(help_capacity)
+            .map_err(|_| Setup::Allocation)?;
+        let excess = report
+            .capacity()
+            .saturating_sub(1)
+            .checked_mul(size_of::<Diagnostic>())
+            .and_then(|n| n.checked_add(text.capacity().saturating_sub(message_len)))
+            .and_then(|n| n.checked_add(help.capacity().saturating_sub(help_capacity)))
+            .ok_or(Setup::Arithmetic)?;
+        if excess != 0 {
+            reserve(excess)?;
+            return Err(Setup::Capacity);
+        }
+        message(&mut Fixed(&mut text), maximum).map_err(|_| Setup::Capacity)?;
+        write!(&mut Fixed(&mut help), "{}", BorrowedBuilderHelp(maximum))
+            .map_err(|_| Setup::Capacity)?;
+        Ok(Self {
+            ledger,
+            report,
+            message: text,
+            help,
+            detached: false,
+        })
+    }
+    pub(super) fn seal(mut self) -> Result<Published, Unpublished> {
+        if self.detached || !self.ledger.current() {
+            self.detached = true;
+            return Err(Unpublished {
+                owner: self,
+                refusal: Setup::Detached,
+            });
+        }
+        let first = self.ledger.first_refusal();
+        let result = (|| {
+            if !self.help.is_empty() {
+                Fixed(&mut self.help).write_char(' ')?;
+            }
+            evidence(&mut Fixed(&mut self.help), first)
+        })();
+        if result.is_err() {
+            return Err(Unpublished {
+                owner: self,
+                refusal: Setup::Capacity,
+            });
+        }
+        self.report
+            .push(Diagnostic::io("SPX-G171", self.message).with_help(self.help));
+        Ok(Published {
+            report: self.report,
+            ledger: self.ledger,
+        })
+    }
+}
+impl Published {
+    pub(super) fn into_report(self) -> Vec<Diagnostic> {
+        drop(self.ledger);
+        self.report
+    }
+}
+
+#[cfg(test)]
+mod tests;
+
+ATTEMPT
+//! Actual existing core child attempt, with an owned final-refusal sidecar.
+use super::{
+    receiving::{CoreFailure, Setup},
+    report::{Owner, Published, Unpublished},
+};
+use crate::bounded_output::active_refused;
+use crate::diagnostic::Diagnostic;
+use std::mem::size_of;
+pub(super) struct Attempt<T> {
+    result: Result<T, CoreFailure>,
+    publication: Option<Result<Published, Unpublished>>,
+}
+pub(super) fn run<T>(
+    maximum: usize,
+    operation: impl FnOnce() -> Result<T, CoreFailure>,
+) -> Attempt<T> {
+    let controls = size_of::<Attempt<T>>()
+        .checked_add(size_of::<Result<T, CoreFailure>>())
+        .and_then(|bytes| {
+            bytes.checked_add(size_of::<(Result<T, CoreFailure>, Option<Vec<Diagnostic>>)>())
+        })
+        .ok_or(Setup::Arithmetic);
+    let owner = match controls.and_then(|bytes| Owner::acquire(maximum, bytes)) {
+        Ok(owner) => owner,
+        Err(failure) => {
+            return Attempt {
+                result: Err(CoreFailure::Setup(failure)),
+                publication: None,
+            };
+        }
+    };
+    let result = operation();
+    // The first receipt is sealed BEFORE with_limit restores the child. A
+    // successful/no-sticky attempt drops real unused storage with no refund.
+    let publication = if active_refused() {
+        Some(owner.seal())
+    } else {
+        drop(owner);
+        None
+    };
+    Attempt {
+        result,
+        publication,
+    }
+}
+impl<T> Attempt<T> {
+    pub(super) fn into_parts(self) -> (Result<T, CoreFailure>, Option<Vec<Diagnostic>>) {
+        let publication = self.publication.and_then(|publication| match publication {
+            Ok(published) => Some(published.into_report()),
+            // Secondary publication failure never substitutes for the primary
+            // result/receipt. The explicit old public fallback remains real.
+            Err(unpublished) => {
+                drop(unpublished.owner);
+                let _reason = unpublished.refusal;
+                None
+            }
+        });
+        (self.result, publication)
+    }
+}
+
+/// Typed refusal at the actual attempt boundary: no diagnostic construction
+/// follows a failed ledger reservation. Original helpers keep their legacy API.
+pub(super) fn reserve(bytes: usize) -> Result<(), CoreFailure> {
+    if crate::bounded_output::reserve_active_required(bytes) {
+        Ok(())
+    } else {
+        Err(CoreFailure::Setup(Setup::Budget {
+            maximum: super::super::active_builder_limit(),
+        }))
+    }
+}

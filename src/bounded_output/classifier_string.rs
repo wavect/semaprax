@@ -201,6 +201,13 @@ impl ClassifierLedger {
     pub(crate) fn capture() -> Self {
         Self(active())
     }
+    /// Immutable diagnostic data from this held invocation. It grants neither
+    /// permission to spend nor authority to publish under another ACTIVE owner.
+    pub(crate) fn first_refusal(&self) -> Option<super::ReservationRefusal> {
+        self.0
+            .as_ref()
+            .and_then(|budget| budget.first_refusal.get())
+    }
     pub(crate) fn current(&self) -> bool {
         let current = active();
         let same = match (&self.0, current) {

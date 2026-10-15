@@ -1,0 +1,97 @@
+//! Complete old report formatter bodies; only imports/visibility adapted.
+use super::{Diagnostic, graph_error, BuilderPhase, SequentialRefusal, BUILDER_PHASE, PRECHARGE_MODULES, PRECHARGE_BYTES, PRECHARGE_DOMINANT, PRECHARGE_PENDING, PRECHARGE_SEQUENTIAL};
+use std::cell::Cell;
+pub(in crate::workspace_graph) fn limit_error(field: &'static str, maximum: usize) -> Diagnostic {
+    let error = graph_error(
+        "SPX-G171",
+        crate::bounded_output::budgeted_format(format_args!(
+            "Workspace Semantic Graph `{field}` exceeds {maximum}"
+        )),
+    );
+    if field != "builder_bytes" {
+        return error;
+    }
+    let help = builder_bytes_help(maximum);
+    if help.is_empty() {
+        return error;
+    }
+    error.with_help(help)
+}
+pub(in crate::workspace_graph) fn builder_bytes_help(maximum: usize) -> String {
+    let precharge = BUILDER_PHASE.with(Cell::get) == BuilderPhase::Precharge;
+    let modules = PRECHARGE_MODULES.with(Cell::get);
+    let forecast = PRECHARGE_BYTES.with(Cell::get);
+    PRECHARGE_DOMINANT.with(|dominant| {
+        let dominant = dominant.borrow();
+        PRECHARGE_PENDING.with(|pending| {
+            let pending = pending.borrow();
+    if let (true, Some(path)) = (precharge, pending.as_ref()) {
+        return crate::bounded_output::budgeted_format(format_args!(
+            "the static admission pre-charge refused before the graph builder ran, while forecasting module `{path}` on its own: that one module does not fit the {maximum}-byte budget, which already carries {forecast} bytes for {modules} earlier module(s). Splitting `{path}` into several modules cannot reduce the forecast, because the pre-charge sums every reachable module; reducing its admitted source can."
+        ));
+    }
+    PRECHARGE_SEQUENTIAL.with(|sequential| {
+        let sequential = sequential.borrow();
+    if let (true, Some(step)) = (precharge, sequential.as_ref()) {
+        let SequentialRefusal {
+            path,
+            earlier,
+            retained,
+            additional,
+            resolving,
+        } = step;
+        return if *resolving {
+            crate::bounded_output::budgeted_format(format_args!(
+                "the static admission pre-charge refused before the graph builder ran, in its final sequential uncached forecast: {earlier} earlier module(s) retain {retained} bytes of filtered output, and resolving `{path}` adds its complete {additional}-byte forecast, which exceeds the {maximum}-byte budget. Each complete module forecast is charged only while that module resolves; reducing the admitted source of `{path}` or the output retained by earlier modules can reduce this peak."
+            ))
+        } else {
+            crate::bounded_output::budgeted_format(format_args!(
+                "the static admission pre-charge refused before the graph builder ran, in its final sequential uncached forecast: {earlier} earlier module(s) retain {retained} bytes of filtered output, and `{path}` retains {additional} more bytes, which exceeds the {maximum}-byte budget. Retained output sums every reachable module, so splitting one module into several cannot reduce it; removing a dependency or reducing total reachable source can."
+            ))
+        };
+    }
+    match (precharge, dominant.as_ref()) {
+        (true, Some((path, bytes))) => crate::bounded_output::budgeted_format(format_args!(
+            "the static admission pre-charge refused before the graph builder ran: forecasting {modules} reachable module(s) already reaches {forecast} bytes of the {maximum}-byte budget, and `{path}` alone forecasts {bytes} bytes of retained resolver state. The pre-charge sums every reachable module, so splitting one module into several cannot reduce it; removing a dependency or reducing total reachable source can."
+        )),
+        (true, None) => crate::bounded_output::budgeted_format(format_args!(
+            "the static admission pre-charge refused before the graph builder ran, and before any single module was fully costed against the {maximum}-byte budget."
+        )),
+        (false, Some((path, bytes))) => crate::bounded_output::budgeted_format(format_args!(
+            "live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast {forecast} bytes for {modules} module(s) and fit within {maximum}, with `{path}` the largest at {bytes} bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound."
+        )),
+        (false, None) => crate::bounded_output::budgeted_format(format_args!(
+            "live graph construction, not the static admission pre-charge, exceeded the {maximum}-byte budget while allocating workspace graph structure."
+        )),
+    }
+    })
+        })
+    })
+}
+pub(in crate::workspace_graph) fn live_builder_refusal(
+    maximum: usize,
+    refusal: Option<crate::bounded_output::ReservationRefusal>,
+) -> Diagnostic {
+    let diagnostic = limit_error("builder_bytes", maximum);
+    let evidence = match refusal {
+        Some(refusal) => crate::bounded_output::budgeted_format(format_args!(
+            "resolved-core phase first sticky ledger refusal: requested {} bytes with {} remaining and {} reserved floor. Authenticated internal stage: {}. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.",
+            refusal.requested, refusal.remaining, refusal.floor, refusal.stage.map_or("unknown", |stage| stage.label()),
+        )),
+        None => crate::bounded_output::budgeted_format(format_args!(
+            "resolved-core phase refused; the first reservation and exact inner operation are unknown."
+        )),
+    };
+    if evidence.is_empty() {
+        return diagnostic;
+    }
+    let help = match diagnostic.help.as_deref() {
+        Some(help) => crate::bounded_output::budgeted_format(format_args!("{help} {evidence}")),
+        None => evidence,
+    };
+    if help.is_empty() {
+        diagnostic
+    } else {
+        diagnostic.with_help(help)
+    }
+}

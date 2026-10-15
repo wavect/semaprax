@@ -1,0 +1,21 @@
+{
+  "execution": "UNEXECUTED; parent integration batch only",
+  "exact_selectors": [
+    "workspace_graph::expected_projection::private_layout::capacity_tests::callback_occurrences_bound_exact_full_identity_inserts_on_sparse_dense_duplicate_and_imported_closures",
+    "workspace_graph::expected_projection::private_layout::capacity_tests::actual_cold_reservation_allocation_peak_and_full_drop_are_compared_without_baseline_padding",
+    "workspace_graph::expected_projection::private_layout::capacity_tests::physical_and_work_exact_short_zero_frontiers_preserve_old_order_and_honest_new_acceptance",
+    "workspace_graph::expected_projection::private_layout::capacity_tests::malformed_complete_receivers_keep_all_six_diagnostic_fields_and_priority",
+    "workspace_graph::expected_projection::private_layout::capacity_tests::source::complete_old_receiver_source_and_all_new_joined_sources_stay_exact",
+    "workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_census_keeps_all_original_raw_fields_order_and_teardown_formulas",
+    "workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_cost_every_byte_frontier_and_retry_allocate_nothing_after_refusal",
+    "workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_logical_cost_cap_has_no_invented_receipt_and_foreign_stays_detached",
+    "workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_cost_complete_originals_live_callers_and_all_source_inverses_are_bound",
+    "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_identity_borrows_exact_original_local_import_and_static_prelude_bytes",
+    "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_rewrite_matches_complete_old_success_refusals_and_all_six_json_fields",
+    "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_rewrite_every_byte_frontier_keeps_first_setup_and_no_later_allocation",
+    "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_rewrite_foreign_and_restored_owner_cannot_replace_or_mutate_the_source",
+    "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_rewrite_complete_old_helpers_live_callers_and_whole_source_inverses_are_bound",
+    "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root"
+  ],
+  "production_clippy": "Required after integration; all 62 prior lint diagnostics archived"
+}

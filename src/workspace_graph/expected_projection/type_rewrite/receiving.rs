@@ -20,10 +20,10 @@ fn identity<'p>(
 ) -> Result<Option<&'p str>, Setup> {
     owner.reserve(
         size_of::<Result<Option<&str>, Setup>>()
-            + size_of_val(&module)
-            + size_of_val(&name)
-            + size_of_val(&programs)
-            + size_of_val(&owner),
+            + size_of::<&str>()
+            + size_of::<&str>()
+            + size_of::<&[Program]>()
+            + size_of::<&mut Receiver>(),
     )?;
     let Some(program) = programs.iter().find(|item| item.module == module) else {
         return Ok(None);
@@ -48,10 +48,10 @@ fn vector_element<'t>(
 ) -> Result<Option<&'t Type>, Failure> {
     owner.entry::<Option<&Type>>()?;
     owner.reserve(
-        size_of_val(&ty)
-            + size_of_val(&module)
-            + size_of_val(&caller)
-            + size_of_val(&programs)
+        size_of::<&Type>()
+            + size_of::<&str>()
+            + size_of::<&Program>()
+            + size_of::<&[Program]>()
             + size_of_val(&layout),
     )?;
     let Type::Named { name, arguments } = ty else {
@@ -103,7 +103,7 @@ fn vector_element<'t>(
 fn missing(id: &str, owner: &mut Receiver) -> Result<Diagnostic, Failure> {
     owner.entry::<Diagnostic>()?;
     owner.reserve(
-        size_of_val(&id)
+        size_of::<&str>()
             + size_of::<Diagnostic>()
             + 2 * size_of::<&str>()
             + size_of::<String>()
@@ -138,10 +138,10 @@ pub(in crate::workspace_graph) fn rewrite_with_layout(
 ) -> Result<(), Failure> {
     owner.entry::<()>()?;
     owner.reserve(
-        size_of_val(&ty)
-            + size_of_val(&target_module)
-            + size_of_val(&caller)
-            + size_of_val(&programs)
+        size_of::<&mut Type>()
+            + size_of::<&str>()
+            + size_of::<&Program>()
+            + size_of::<&[Program]>()
             + size_of_val(&layout),
     )?;
     if vector_element(ty, target_module, caller, programs, layout, owner)?.is_some() {
@@ -196,7 +196,10 @@ pub(in crate::workspace_graph) fn rewrite_with_layout(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        identity, missing, rewrite_with_layout, vector_element, Failure, Program, Receiver, Setup,
+        Type,
+    };
     use crate::bounded_output::with_limit_usage_refusal;
     use crate::test_allocation_observer::{current_metrics, measure};
     const LIMIT: usize = 8 * 1024 * 1024;

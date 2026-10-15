@@ -1,0 +1,848 @@
+{
+  "source_subject": "23e8f1d0a67cb2657bb4cdc963a2a2828c523c7c",
+  "exit_code": 101,
+  "wall_seconds": 191.83944875000452,
+  "build_finished_phases": [
+    false
+  ],
+  "production_compilation_passed": false,
+  "executed_test_bodies": 0,
+  "compiler_errors": 5,
+  "errors": [
+    {
+      "code": {
+        "code": "E0583",
+        "explanation": "A file wasn't found for an out-of-line module.\n\nErroneous code example:\n\n```compile_fail,E0583\nmod file_that_doesnt_exist; // error: file not found for module\n\nfn main() {}\n```\n\nPlease be sure that a file corresponding to the module exists. If you\nwant to use a module named `file_that_doesnt_exist`, you need to have a file\nnamed `file_that_doesnt_exist.rs` or `file_that_doesnt_exist/mod.rs` in the\nsame directory.\n"
+      },
+      "message": "file not found for module `tests`",
+      "spans": [
+        {
+          "byte_end": 6193,
+          "byte_start": 6183,
+          "column_end": 11,
+          "column_start": 1,
+          "expansion": null,
+          "file_name": "src/workspace_graph/generic_type_import/receiving.rs",
+          "is_primary": true,
+          "label": null,
+          "line_end": 194,
+          "line_start": 194,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 11,
+              "highlight_start": 1,
+              "text": "mod tests;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": {
+        "code": "E0277",
+        "explanation": "You tried to use a type which doesn't implement some trait in a place which\nexpected that trait.\n\nErroneous code example:\n\n```compile_fail,E0277\n// here we declare the Foo trait with a bar method\ntrait Foo {\n    fn bar(&self);\n}\n\n// we now declare a function which takes an object implementing the Foo trait\nfn some_func<T: Foo>(foo: T) {\n    foo.bar();\n}\n\nfn main() {\n    // we now call the method with the i32 type, which doesn't implement\n    // the Foo trait\n    some_func(5i32); // error: the trait bound `i32 : Foo` is not satisfied\n}\n```\n\nIn order to fix this error, verify that the type you're using does implement\nthe trait. Example:\n\n```\ntrait Foo {\n    fn bar(&self);\n}\n\n// we implement the trait on the i32 type\nimpl Foo for i32 {\n    fn bar(&self) {}\n}\n\nfn some_func<T: Foo>(foo: T) {\n    foo.bar(); // we can now use this method since i32 implements the\n               // Foo trait\n}\n\nfn main() {\n    some_func(5i32); // ok!\n}\n```\n\nOr in a generic context, an erroneous code example would look like:\n\n```compile_fail,E0277\nfn some_func<T>(foo: T) {\n    println!(\"{:?}\", foo); // error: the trait `core::fmt::Debug` is not\n                           //        implemented for the type `T`\n}\n\nfn main() {\n    // We now call the method with the i32 type,\n    // which *does* implement the Debug trait.\n    some_func(5i32);\n}\n```\n\nNote that the error here is in the definition of the generic function. Although\nwe only call it with a parameter that does implement `Debug`, the compiler\nstill rejects the function. It must work with all possible input types. In\norder to make this example compile, we need to restrict the generic type we're\naccepting:\n\n```\nuse std::fmt;\n\n// Restrict the input type to types that implement Debug.\nfn some_func<T: fmt::Debug>(foo: T) {\n    println!(\"{:?}\", foo);\n}\n\nfn main() {\n    // Calling the method is still fine, as i32 implements Debug.\n    some_func(5i32);\n\n    // This would fail to compile now:\n    // struct WithoutDebug;\n    // some_func(WithoutDebug);\n}\n```\n\nRust only looks at the signature of the called function, as such it must\nalready specify all requirements that will be used for every type parameter.\n"
+      },
+      "message": "the trait bound `Array<u8, UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>>: LowerHex` is not satisfied",
+      "spans": [
+        {
+          "byte_end": 754,
+          "byte_start": 720,
+          "column_end": 66,
+          "column_start": 32,
+          "expansion": {
+            "def_site_span": {
+              "byte_end": 0,
+              "byte_start": 0,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/lib.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 1,
+              "line_start": 1,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            },
+            "macro_decl_name": "desugaring of format string literal",
+            "span": {
+              "byte_end": 4524,
+              "byte_start": 4484,
+              "column_end": 73,
+              "column_start": 33,
+              "expansion": {
+                "def_site_span": {
+                  "byte_end": 35077,
+                  "byte_start": 35053,
+                  "column_end": 29,
+                  "column_start": 5,
+                  "expansion": null,
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 996,
+                  "line_start": 996,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                },
+                "macro_decl_name": "$crate::__export::format_args!",
+                "span": {
+                  "byte_end": 4524,
+                  "byte_start": 4484,
+                  "column_end": 73,
+                  "column_start": 33,
+                  "expansion": {
+                    "def_site_span": {
+                      "byte_end": 4389,
+                      "byte_start": 4370,
+                      "column_end": 20,
+                      "column_start": 1,
+                      "expansion": null,
+                      "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 111,
+                      "line_start": 111,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": []
+                    },
+                    "macro_decl_name": "format!",
+                    "span": {
+                      "byte_end": 755,
+                      "byte_start": 704,
+                      "column_end": 67,
+                      "column_start": 16,
+                      "expansion": null,
+                      "file_name": "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 14,
+                      "line_start": 14,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": [
+                        {
+                          "highlight_end": 67,
+                          "highlight_start": 16,
+                          "text": "    assert_eq!(format!(\"{:x}\", Sha256::digest(current.as_bytes())), row[\"current_sha256\"]);"
+                        }
+                      ]
+                    }
+                  },
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 114,
+                  "line_start": 114,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                }
+              },
+              "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 114,
+              "line_start": 114,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            }
+          },
+          "file_name": "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+          "is_primary": true,
+          "label": "the trait `std::fmt::LowerHex` is not implemented for `Array<u8, UInt<UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>, ...>>`",
+          "line_end": 14,
+          "line_start": 14,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 66,
+              "highlight_start": 32,
+              "text": "    assert_eq!(format!(\"{:x}\", Sha256::digest(current.as_bytes())), row[\"current_sha256\"]);"
+            }
+          ]
+        },
+        {
+          "byte_end": 717,
+          "byte_start": 713,
+          "column_end": 29,
+          "column_start": 25,
+          "expansion": {
+            "def_site_span": {
+              "byte_end": 0,
+              "byte_start": 0,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/lib.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 1,
+              "line_start": 1,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            },
+            "macro_decl_name": "desugaring of format string literal",
+            "span": {
+              "byte_end": 4524,
+              "byte_start": 4484,
+              "column_end": 73,
+              "column_start": 33,
+              "expansion": {
+                "def_site_span": {
+                  "byte_end": 35077,
+                  "byte_start": 35053,
+                  "column_end": 29,
+                  "column_start": 5,
+                  "expansion": null,
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 996,
+                  "line_start": 996,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                },
+                "macro_decl_name": "$crate::__export::format_args!",
+                "span": {
+                  "byte_end": 4524,
+                  "byte_start": 4484,
+                  "column_end": 73,
+                  "column_start": 33,
+                  "expansion": {
+                    "def_site_span": {
+                      "byte_end": 4389,
+                      "byte_start": 4370,
+                      "column_end": 20,
+                      "column_start": 1,
+                      "expansion": null,
+                      "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 111,
+                      "line_start": 111,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": []
+                    },
+                    "macro_decl_name": "format!",
+                    "span": {
+                      "byte_end": 755,
+                      "byte_start": 704,
+                      "column_end": 67,
+                      "column_start": 16,
+                      "expansion": null,
+                      "file_name": "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 14,
+                      "line_start": 14,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": [
+                        {
+                          "highlight_end": 67,
+                          "highlight_start": 16,
+                          "text": "    assert_eq!(format!(\"{:x}\", Sha256::digest(current.as_bytes())), row[\"current_sha256\"]);"
+                        }
+                      ]
+                    }
+                  },
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 114,
+                  "line_start": 114,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                }
+              },
+              "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 114,
+              "line_start": 114,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            }
+          },
+          "file_name": "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+          "is_primary": false,
+          "label": "required by this formatting parameter",
+          "line_end": 14,
+          "line_start": 14,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 29,
+              "highlight_start": 25,
+              "text": "    assert_eq!(format!(\"{:x}\", Sha256::digest(current.as_bytes())), row[\"current_sha256\"]);"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": {
+        "code": "E0277",
+        "explanation": "You tried to use a type which doesn't implement some trait in a place which\nexpected that trait.\n\nErroneous code example:\n\n```compile_fail,E0277\n// here we declare the Foo trait with a bar method\ntrait Foo {\n    fn bar(&self);\n}\n\n// we now declare a function which takes an object implementing the Foo trait\nfn some_func<T: Foo>(foo: T) {\n    foo.bar();\n}\n\nfn main() {\n    // we now call the method with the i32 type, which doesn't implement\n    // the Foo trait\n    some_func(5i32); // error: the trait bound `i32 : Foo` is not satisfied\n}\n```\n\nIn order to fix this error, verify that the type you're using does implement\nthe trait. Example:\n\n```\ntrait Foo {\n    fn bar(&self);\n}\n\n// we implement the trait on the i32 type\nimpl Foo for i32 {\n    fn bar(&self) {}\n}\n\nfn some_func<T: Foo>(foo: T) {\n    foo.bar(); // we can now use this method since i32 implements the\n               // Foo trait\n}\n\nfn main() {\n    some_func(5i32); // ok!\n}\n```\n\nOr in a generic context, an erroneous code example would look like:\n\n```compile_fail,E0277\nfn some_func<T>(foo: T) {\n    println!(\"{:?}\", foo); // error: the trait `core::fmt::Debug` is not\n                           //        implemented for the type `T`\n}\n\nfn main() {\n    // We now call the method with the i32 type,\n    // which *does* implement the Debug trait.\n    some_func(5i32);\n}\n```\n\nNote that the error here is in the definition of the generic function. Although\nwe only call it with a parameter that does implement `Debug`, the compiler\nstill rejects the function. It must work with all possible input types. In\norder to make this example compile, we need to restrict the generic type we're\naccepting:\n\n```\nuse std::fmt;\n\n// Restrict the input type to types that implement Debug.\nfn some_func<T: fmt::Debug>(foo: T) {\n    println!(\"{:?}\", foo);\n}\n\nfn main() {\n    // Calling the method is still fine, as i32 implements Debug.\n    some_func(5i32);\n\n    // This would fail to compile now:\n    // struct WithoutDebug;\n    // some_func(WithoutDebug);\n}\n```\n\nRust only looks at the signature of the called function, as such it must\nalready specify all requirements that will be used for every type parameter.\n"
+      },
+      "message": "the trait bound `Array<u8, UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>>: LowerHex` is not satisfied",
+      "spans": [
+        {
+          "byte_end": 1254,
+          "byte_start": 1218,
+          "column_end": 68,
+          "column_start": 32,
+          "expansion": {
+            "def_site_span": {
+              "byte_end": 0,
+              "byte_start": 0,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/lib.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 1,
+              "line_start": 1,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            },
+            "macro_decl_name": "desugaring of format string literal",
+            "span": {
+              "byte_end": 4524,
+              "byte_start": 4484,
+              "column_end": 73,
+              "column_start": 33,
+              "expansion": {
+                "def_site_span": {
+                  "byte_end": 35077,
+                  "byte_start": 35053,
+                  "column_end": 29,
+                  "column_start": 5,
+                  "expansion": null,
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 996,
+                  "line_start": 996,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                },
+                "macro_decl_name": "$crate::__export::format_args!",
+                "span": {
+                  "byte_end": 4524,
+                  "byte_start": 4484,
+                  "column_end": 73,
+                  "column_start": 33,
+                  "expansion": {
+                    "def_site_span": {
+                      "byte_end": 4389,
+                      "byte_start": 4370,
+                      "column_end": 20,
+                      "column_start": 1,
+                      "expansion": null,
+                      "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 111,
+                      "line_start": 111,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": []
+                    },
+                    "macro_decl_name": "format!",
+                    "span": {
+                      "byte_end": 1255,
+                      "byte_start": 1202,
+                      "column_end": 69,
+                      "column_start": 16,
+                      "expansion": null,
+                      "file_name": "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 22,
+                      "line_start": 22,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": [
+                        {
+                          "highlight_end": 69,
+                          "highlight_start": 16,
+                          "text": "    assert_eq!(format!(\"{:x}\", Sha256::digest(projected.as_bytes())), row[\"original_sha256\"]);"
+                        }
+                      ]
+                    }
+                  },
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 114,
+                  "line_start": 114,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                }
+              },
+              "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 114,
+              "line_start": 114,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            }
+          },
+          "file_name": "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+          "is_primary": true,
+          "label": "the trait `std::fmt::LowerHex` is not implemented for `Array<u8, UInt<UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>, ...>>`",
+          "line_end": 22,
+          "line_start": 22,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 68,
+              "highlight_start": 32,
+              "text": "    assert_eq!(format!(\"{:x}\", Sha256::digest(projected.as_bytes())), row[\"original_sha256\"]);"
+            }
+          ]
+        },
+        {
+          "byte_end": 1215,
+          "byte_start": 1211,
+          "column_end": 29,
+          "column_start": 25,
+          "expansion": {
+            "def_site_span": {
+              "byte_end": 0,
+              "byte_start": 0,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/lib.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 1,
+              "line_start": 1,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            },
+            "macro_decl_name": "desugaring of format string literal",
+            "span": {
+              "byte_end": 4524,
+              "byte_start": 4484,
+              "column_end": 73,
+              "column_start": 33,
+              "expansion": {
+                "def_site_span": {
+                  "byte_end": 35077,
+                  "byte_start": 35053,
+                  "column_end": 29,
+                  "column_start": 5,
+                  "expansion": null,
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 996,
+                  "line_start": 996,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                },
+                "macro_decl_name": "$crate::__export::format_args!",
+                "span": {
+                  "byte_end": 4524,
+                  "byte_start": 4484,
+                  "column_end": 73,
+                  "column_start": 33,
+                  "expansion": {
+                    "def_site_span": {
+                      "byte_end": 4389,
+                      "byte_start": 4370,
+                      "column_end": 20,
+                      "column_start": 1,
+                      "expansion": null,
+                      "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 111,
+                      "line_start": 111,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": []
+                    },
+                    "macro_decl_name": "format!",
+                    "span": {
+                      "byte_end": 1255,
+                      "byte_start": 1202,
+                      "column_end": 69,
+                      "column_start": 16,
+                      "expansion": null,
+                      "file_name": "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 22,
+                      "line_start": 22,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": [
+                        {
+                          "highlight_end": 69,
+                          "highlight_start": 16,
+                          "text": "    assert_eq!(format!(\"{:x}\", Sha256::digest(projected.as_bytes())), row[\"original_sha256\"]);"
+                        }
+                      ]
+                    }
+                  },
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 114,
+                  "line_start": 114,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                }
+              },
+              "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 114,
+              "line_start": 114,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            }
+          },
+          "file_name": "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+          "is_primary": false,
+          "label": "required by this formatting parameter",
+          "line_end": 22,
+          "line_start": 22,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 29,
+              "highlight_start": 25,
+              "text": "    assert_eq!(format!(\"{:x}\", Sha256::digest(projected.as_bytes())), row[\"original_sha256\"]);"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": {
+        "code": "E0277",
+        "explanation": "You tried to use a type which doesn't implement some trait in a place which\nexpected that trait.\n\nErroneous code example:\n\n```compile_fail,E0277\n// here we declare the Foo trait with a bar method\ntrait Foo {\n    fn bar(&self);\n}\n\n// we now declare a function which takes an object implementing the Foo trait\nfn some_func<T: Foo>(foo: T) {\n    foo.bar();\n}\n\nfn main() {\n    // we now call the method with the i32 type, which doesn't implement\n    // the Foo trait\n    some_func(5i32); // error: the trait bound `i32 : Foo` is not satisfied\n}\n```\n\nIn order to fix this error, verify that the type you're using does implement\nthe trait. Example:\n\n```\ntrait Foo {\n    fn bar(&self);\n}\n\n// we implement the trait on the i32 type\nimpl Foo for i32 {\n    fn bar(&self) {}\n}\n\nfn some_func<T: Foo>(foo: T) {\n    foo.bar(); // we can now use this method since i32 implements the\n               // Foo trait\n}\n\nfn main() {\n    some_func(5i32); // ok!\n}\n```\n\nOr in a generic context, an erroneous code example would look like:\n\n```compile_fail,E0277\nfn some_func<T>(foo: T) {\n    println!(\"{:?}\", foo); // error: the trait `core::fmt::Debug` is not\n                           //        implemented for the type `T`\n}\n\nfn main() {\n    // We now call the method with the i32 type,\n    // which *does* implement the Debug trait.\n    some_func(5i32);\n}\n```\n\nNote that the error here is in the definition of the generic function. Although\nwe only call it with a parameter that does implement `Debug`, the compiler\nstill rejects the function. It must work with all possible input types. In\norder to make this example compile, we need to restrict the generic type we're\naccepting:\n\n```\nuse std::fmt;\n\n// Restrict the input type to types that implement Debug.\nfn some_func<T: fmt::Debug>(foo: T) {\n    println!(\"{:?}\", foo);\n}\n\nfn main() {\n    // Calling the method is still fine, as i32 implements Debug.\n    some_func(5i32);\n\n    // This would fail to compile now:\n    // struct WithoutDebug;\n    // some_func(WithoutDebug);\n}\n```\n\nRust only looks at the signature of the called function, as such it must\nalready specify all requirements that will be used for every type parameter.\n"
+      },
+      "message": "the trait bound `Array<u8, UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>>: LowerHex` is not satisfied",
+      "spans": [
+        {
+          "byte_end": 17256,
+          "byte_start": 17224,
+          "column_end": 61,
+          "column_start": 29,
+          "expansion": {
+            "def_site_span": {
+              "byte_end": 0,
+              "byte_start": 0,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/lib.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 1,
+              "line_start": 1,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            },
+            "macro_decl_name": "desugaring of format string literal",
+            "span": {
+              "byte_end": 4524,
+              "byte_start": 4484,
+              "column_end": 73,
+              "column_start": 33,
+              "expansion": {
+                "def_site_span": {
+                  "byte_end": 35077,
+                  "byte_start": 35053,
+                  "column_end": 29,
+                  "column_start": 5,
+                  "expansion": null,
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 996,
+                  "line_start": 996,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                },
+                "macro_decl_name": "$crate::__export::format_args!",
+                "span": {
+                  "byte_end": 4524,
+                  "byte_start": 4484,
+                  "column_end": 73,
+                  "column_start": 33,
+                  "expansion": {
+                    "def_site_span": {
+                      "byte_end": 4389,
+                      "byte_start": 4370,
+                      "column_end": 20,
+                      "column_start": 1,
+                      "expansion": null,
+                      "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 111,
+                      "line_start": 111,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": []
+                    },
+                    "macro_decl_name": "format!",
+                    "span": {
+                      "byte_end": 17257,
+                      "byte_start": 17208,
+                      "column_end": 62,
+                      "column_start": 13,
+                      "expansion": null,
+                      "file_name": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 401,
+                      "line_start": 401,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": [
+                        {
+                          "highlight_end": 62,
+                          "highlight_start": 13,
+                          "text": "            format!(\"{:x}\", Sha256::digest(bytes.as_bytes())),"
+                        }
+                      ]
+                    }
+                  },
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 114,
+                  "line_start": 114,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                }
+              },
+              "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 114,
+              "line_start": 114,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            }
+          },
+          "file_name": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+          "is_primary": true,
+          "label": "the trait `std::fmt::LowerHex` is not implemented for `Array<u8, UInt<UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>, ...>>`",
+          "line_end": 401,
+          "line_start": 401,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 61,
+              "highlight_start": 29,
+              "text": "            format!(\"{:x}\", Sha256::digest(bytes.as_bytes())),"
+            }
+          ]
+        },
+        {
+          "byte_end": 17221,
+          "byte_start": 17217,
+          "column_end": 26,
+          "column_start": 22,
+          "expansion": {
+            "def_site_span": {
+              "byte_end": 0,
+              "byte_start": 0,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/lib.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 1,
+              "line_start": 1,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            },
+            "macro_decl_name": "desugaring of format string literal",
+            "span": {
+              "byte_end": 4524,
+              "byte_start": 4484,
+              "column_end": 73,
+              "column_start": 33,
+              "expansion": {
+                "def_site_span": {
+                  "byte_end": 35077,
+                  "byte_start": 35053,
+                  "column_end": 29,
+                  "column_start": 5,
+                  "expansion": null,
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 996,
+                  "line_start": 996,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                },
+                "macro_decl_name": "$crate::__export::format_args!",
+                "span": {
+                  "byte_end": 4524,
+                  "byte_start": 4484,
+                  "column_end": 73,
+                  "column_start": 33,
+                  "expansion": {
+                    "def_site_span": {
+                      "byte_end": 4389,
+                      "byte_start": 4370,
+                      "column_end": 20,
+                      "column_start": 1,
+                      "expansion": null,
+                      "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 111,
+                      "line_start": 111,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": []
+                    },
+                    "macro_decl_name": "format!",
+                    "span": {
+                      "byte_end": 17257,
+                      "byte_start": 17208,
+                      "column_end": 62,
+                      "column_start": 13,
+                      "expansion": null,
+                      "file_name": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 401,
+                      "line_start": 401,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": [
+                        {
+                          "highlight_end": 62,
+                          "highlight_start": 13,
+                          "text": "            format!(\"{:x}\", Sha256::digest(bytes.as_bytes())),"
+                        }
+                      ]
+                    }
+                  },
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 114,
+                  "line_start": 114,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                }
+              },
+              "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 114,
+              "line_start": 114,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            }
+          },
+          "file_name": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+          "is_primary": false,
+          "label": "required by this formatting parameter",
+          "line_end": 401,
+          "line_start": 401,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 26,
+              "highlight_start": 22,
+              "text": "            format!(\"{:x}\", Sha256::digest(bytes.as_bytes())),"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": {
+        "code": "E0004",
+        "explanation": "This error indicates that the compiler cannot guarantee a matching pattern for\none or more possible inputs to a match expression. Guaranteed matches are\nrequired in order to assign values to match expressions, or alternatively,\ndetermine the flow of execution.\n\nErroneous code example:\n\n```compile_fail,E0004\nenum Terminator {\n    HastaLaVistaBaby,\n    TalkToMyHand,\n}\n\nlet x = Terminator::HastaLaVistaBaby;\n\nmatch x { // error: non-exhaustive patterns: `HastaLaVistaBaby` not covered\n    Terminator::TalkToMyHand => {}\n}\n```\n\nIf you encounter this error you must alter your patterns so that every possible\nvalue of the input type is matched. For types with a small number of variants\n(like enums) you should probably cover all cases explicitly. Alternatively, the\nunderscore `_` wildcard pattern can be added after all other patterns to match\n\"anything else\". Example:\n\n```\nenum Terminator {\n    HastaLaVistaBaby,\n    TalkToMyHand,\n}\n\nlet x = Terminator::HastaLaVistaBaby;\n\nmatch x {\n    Terminator::TalkToMyHand => {}\n    Terminator::HastaLaVistaBaby => {}\n}\n\n// or:\n\nmatch x {\n    Terminator::TalkToMyHand => {}\n    _ => {}\n}\n```\n"
+      },
+      "message": "non-exhaustive patterns: `vec_ops::VecOp::UpdateField` not covered",
+      "spans": [
+        {
+          "byte_end": 7572,
+          "byte_start": 7570,
+          "column_end": 17,
+          "column_start": 15,
+          "expansion": null,
+          "file_name": "src/codegen/native_shared_bytes/closure.rs",
+          "is_primary": true,
+          "label": "pattern `vec_ops::VecOp::UpdateField` not covered",
+          "line_end": 178,
+          "line_start": 178,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 17,
+              "highlight_start": 15,
+              "text": "        match op {"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "full_suite": false,
+  "raw_sha256": {
+    "owning-build-result.json": "39d7cf57e6ea44355e428a260c7ea911dda4ae713265df9c9d149efefe5d79a1",
+    "owning-build.jsonl": "b5f9beb176b87ebb656f2c60649c476eeab9f3f080ef87f7bd4d9de6dc232c24",
+    "owning-build.log": "0b7c10d2f32a3e990ac947708d7078ccd9c35f0ba31bed3f0e187eacd6f3b7ae",
+    "expected-counts.json": "b9738fcd1fa0621937fbd1d444669fc687e45ec605094ecd82db5fa24e07d754",
+    "compilation-manifest.json": "b9738fcd1fa0621937fbd1d444669fc687e45ec605094ecd82db5fa24e07d754",
+    "preparation-receipt.json": "d5b1a7d2a56587e69e093a1775fedd519bbc695c61082815a1bb959a688c0455",
+    "memory-samples.jsonl": "62f2897422e884056d3bcb80c73297771c63509e2530873d5da1869c7a3a241a"
+  }
+}

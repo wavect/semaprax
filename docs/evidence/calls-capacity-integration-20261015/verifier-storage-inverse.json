@@ -1,0 +1,10 @@
+{
+  "source": "docs/evidence/calls-capacity-integration-20261015/verify_retained_branches.py",
+  "current_sha256": "8fc2e0d83c7e8236f971901f6ce5d4eb1b360806a3471c2d83135224ab7a2a6c",
+  "previous_uncompressed_sha256": "56c8a52a96222602b275be02fd2081484fb13fd381627becc48e5d3b9067e3ee",
+  "previous_git_blob_id": "368b95105296511a35da7315e7779fdc332e6e1a",
+  "previous_git_revision": "cb7aeb1a12e11306ebf01ac08abca4008f6fa792",
+  "previous_payload": "docs/evidence/calls-capacity-integration-20261015/archive-storage-before/verify_retained_branches.py.gz",
+  "previous_compressed_sha256": "7918974e8f4bcad3b86d6c7c2b6e0f4fd5c03cd1091ecd81a09c2d20b6d95d22",
+  "inverse": "replace entire current verifier with complete gzip-decompressed previous_payload; exact original Git and both SHA identities are verified by current verifier"
+}

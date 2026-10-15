@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::validation::scope_checkpoint::transaction_tests::every_rotation_shape_unique_shared_and_mixed_retains_full_coarse_and_map_verdicts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7917 filtered out; finished in 0.04s
+

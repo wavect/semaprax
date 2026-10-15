@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::validation::scope_checkpoint::fresh_tests::full_clear_true_mixed_and_shared_baselines_match_complete_old_copy_every_field ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7917 filtered out; finished in 0.78s
+

@@ -1,0 +1,20 @@
+
+running 1 test
+test hir::validation::function_scope::tests::production_chain_validator_drop_is_complete_on_postvalidation_unwind ... 
+thread 'hir::validation::function_scope::tests::production_chain_validator_drop_is_complete_on_postvalidation_unwind' (30946063) panicked at src/hir/validation/function_scope/tests.rs:184:21:
+injected after complete production function chain
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'hir::validation::function_scope::tests::production_chain_validator_drop_is_complete_on_postvalidation_unwind' (30946063) panicked at src/hir/validation/function_scope/tests.rs:191:9:
+assertion `left == right` failed
+  left: 64
+ right: 0
+FAILED
+
+failures:
+
+failures:
+    hir::validation::function_scope::tests::production_chain_validator_drop_is_complete_on_postvalidation_unwind
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7754 filtered out; finished in 0.06s
+

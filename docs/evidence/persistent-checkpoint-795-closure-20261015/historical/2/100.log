@@ -1,0 +1,16 @@
+
+running 1 test
+test hir::validation::generic_template::values::checkpoint_tests::whole_insertion_and_snapshot_receivers_report_actual_cost_without_owned_payload_conflation ... generic_values count=0 forks=0 borrowed_bytes=0 borrowed_requests=0 owned_bytes=0 current_bytes=0 current_requests=0 current_highwater=0 paid=32
+generic_values count=0 forks=64 borrowed_bytes=0 borrowed_requests=0 owned_bytes=0 current_bytes=0 current_requests=0 current_highwater=0 paid=2080
+generic_values count=1 forks=0 borrowed_bytes=368 borrowed_requests=1 owned_bytes=1000 current_bytes=72 current_requests=1 current_highwater=72 paid=160
+generic_values count=1 forks=64 borrowed_bytes=23920 borrowed_requests=65 owned_bytes=89576 current_bytes=4680 current_requests=65 current_highwater=144 paid=10400
+generic_values count=2 forks=0 borrowed_bytes=368 borrowed_requests=1 owned_bytes=1192 current_bytes=144 current_requests=2 current_highwater=144 paid=288
+generic_values count=2 forks=64 borrowed_bytes=23920 borrowed_requests=65 owned_bytes=102056 current_bytes=7056 current_requests=98 current_highwater=288 paid=14624
+generic_values count=17 forks=0 borrowed_bytes=1200 borrowed_requests=3 owned_bytes=5784 current_bytes=1224 current_requests=17 current_highwater=1224 paid=2208
+generic_values count=17 forks=64 borrowed_bytes=78000 borrowed_requests=195 owned_bytes=400536 current_bytes=16992 current_requests=236 current_highwater=1584 paid=32288
+generic_values count=128 forks=0 borrowed_bytes=8016 borrowed_requests=21 owned_bytes=41832 current_bytes=9216 current_requests=128 current_highwater=9216 paid=16416
+generic_values count=128 forks=64 borrowed_bytes=521040 borrowed_requests=1365 owned_bytes=2743656 current_bytes=36936 current_requests=513 current_highwater=9720 paid=67744
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7917 filtered out; finished in 0.10s
+

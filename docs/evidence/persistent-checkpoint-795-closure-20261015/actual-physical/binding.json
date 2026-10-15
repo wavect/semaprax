@@ -1,0 +1,58 @@
+{
+  "source_subject": "d8fadfb7cd5ece54504cda542575e5a154d3657c",
+  "source_tree": "72ea16ced4d014737244fc21c058b94ec2cff9f8",
+  "build_receipt_sha256": "e839a0b7b38796c55cbe8fd78671640dbe9c1baf17e651794a12281456243588",
+  "build_metadata_sha256": "de57f1b9b06270739a4f1bbd583dfe80f6b2607cb61a77e4e8f12de9e96926f9",
+  "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04",
+  "executable_sha256": "17d553295d19f4249bd42812ac7c004560f48e7a77a08ffd3d5efb7e12393c3a",
+  "selectors": [
+    "hir::validation::function_scope::tests::production_chain_observes_actual_backing_debits_complete_drop_and_exact_short_sticky"
+  ],
+  "ownership_cut_equal_to_6444": [
+    {
+      "path": "src/hir/validation.rs",
+      "tree_listing_sha256": "0fdf35440b35ca1774a4e58a7d156076c15fe5d3cbe6040c417e43bd2aece2b8"
+    },
+    {
+      "path": "src/hir/validation/contract_owners.rs",
+      "tree_listing_sha256": "2b4d4d61ff7df49ab4ad5719cfa5d314fb29fae7c03b82a057e4164779baa332"
+    },
+    {
+      "path": "src/hir/validation/contract_owners",
+      "tree_listing_sha256": "2f0755871c4d573da08fd618df568b08a9037bbb9b3261e035cdc2d4944ac45e"
+    },
+    {
+      "path": "src/hir/validation/scope_checkpoint.rs",
+      "tree_listing_sha256": "39a76822ffda5ce203e9417a5afaf3b39c0cfe4385cc7c92ac1fd670b4136a45"
+    },
+    {
+      "path": "src/hir/validation/scope_checkpoint",
+      "tree_listing_sha256": "427cf92314afe1b412861b3eb225f6a27b44a9ea46eee4d74e21a684b1d1dd4f"
+    },
+    {
+      "path": "src/hir/validation/function_scope.rs",
+      "tree_listing_sha256": "f516df5015ab47d52857122bdb0f9811d34e0626bfd68e4011c0aaf62772b715"
+    },
+    {
+      "path": "src/hir/validation/function_scope",
+      "tree_listing_sha256": "efdb8f3a527da1d10a47638a00a7d15dd4af40f1aa6834686830ea55305b7bdd"
+    },
+    {
+      "path": "src/hir/validation/generic_template/values.rs",
+      "tree_listing_sha256": "a4f1067df040ae9226116aac240af34580aa32e30ab67960e85dce1e358fd520"
+    },
+    {
+      "path": "src/hir/validation/generic_template/values",
+      "tree_listing_sha256": "c38b943dc995b4c98ccd4841ee8631685f4fe23bb7741e5da510600eb513b12f"
+    }
+  ],
+  "controller_sha256": "9341a4f7b74b78dd637f39f7c77f0fab7644cf56f304ab45acfca01b155c14d0",
+  "guard": {
+    "observation_helper_path": "/Volumes/Semaprax/lane-prompts/pin-consumer-d8fad-seven-20261015/drivers/semaprax_pressure_observation_v3.py",
+    "observation_helper_sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+    "phase_monitor_path": "/Volumes/Semaprax/lane-prompts/pin-consumer-d8fad-seven-20261015/drivers/observed_phase.py",
+    "phase_monitor_sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+  },
+  "no_cargo": true,
+  "no_current_6444_whole_compiler_qualification": true
+}

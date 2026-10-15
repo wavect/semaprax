@@ -1,0 +1,10 @@
+    Checking semaprax-native-rust-interop-platform-sys v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-native-rust-interop-platform-sys)
+    Checking semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+    Checking semaprax-native-rust-interop-platform v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-native-rust-interop-platform)
+    Checking semaprax-native-rust-owned-data-package v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-native-rust-owned-data-package)
+    Checking semaprax-rust-api-index v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-rust-api-index)
+    Checking semaprax-decision-core v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-decision-core)
+    Checking semaprax-harness v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-harness)
+    Checking semaprax-native-rust-interop v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-native-rust-interop-builder)
+    Checking semaprax-toolchain v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-toolchain)
+    Finished `dev` profile [unoptimized] target(s) in 1m 06s

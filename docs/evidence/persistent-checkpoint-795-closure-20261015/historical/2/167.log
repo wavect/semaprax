@@ -1,0 +1,15 @@
+
+running 1 test
+test hir::validation::function_scope::tests::production_chain_observes_actual_backing_debits_complete_drop_and_exact_short_sticky ... 
+thread 'hir::validation::function_scope::tests::production_chain_observes_actual_backing_debits_complete_drop_and_exact_short_sticky' (737470) panicked at src/hir/validation/function_scope/tests.rs:157:13:
+function token.consume: actual Metrics { allocations: 21, reallocations: 1, allocated: 2770, freed: 2770, live: 0, highwater: 1544, invalid: false }, paid 1960
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    hir::validation::function_scope::tests::production_chain_observes_actual_backing_debits_complete_drop_and_exact_short_sticky
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7917 filtered out; finished in 0.08s
+

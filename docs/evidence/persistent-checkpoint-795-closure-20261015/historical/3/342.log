@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::validation::function_scope::lifecycle::completed::tests::complete_generic_arguments_unknown_metadata_and_equal_ids_stay_independent ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8696 filtered out; finished in 0.02s
+

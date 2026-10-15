@@ -1,0 +1,13 @@
+{
+  "mode": "SOURCE_ONLY_NO_CARGO_OR_RUST_TESTS",
+  "basis": "d719ea241120655b618ca85a185d5fe5c575a2bf",
+  "MAIN": "d6caf6979364b91c51f481fd02fb1e5417bc3ca5",
+  "complete_current_to_d719_rows": 11,
+  "MAIN_receiver_files_exact": 3,
+  "MAIN_test_file_exact_except_two_existing_compact_node_accessors": true,
+  "original90_runtime_files_unchanged": true,
+  "compiler_fixes_exactly_two_sites": true,
+  "audit_includes": 3,
+  "interop_lines": 1500,
+  "compiled_outer_table_bytes": 21891
+}

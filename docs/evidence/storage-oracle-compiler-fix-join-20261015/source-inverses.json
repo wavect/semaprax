@@ -1,0 +1,161 @@
+[
+  {
+    "source": "CHANGELOG.md",
+    "checkpoint_revision": "d719ea241120655b618ca85a185d5fe5c575a2bf",
+    "archive": "docs/evidence/storage-oracle-compiler-fix-join-20261015/before/CHANGELOG.md",
+    "current_sha256": "85066a17fe77fd075799ba43ae895662ac8c171ffb614cccaddfde351db55243",
+    "original_sha256": "daef907c28494cebc94963ef17ff1ac2d19116df7152c4e6ea616502af05f726",
+    "edits": [
+      {
+        "new": "\n- Author the sealed initial builder-report policy and actual typed CLI propagation (#845), provider-bound borrowed function aliases on the closed uncached route (#847), and a separate cached-prelude report acquisition observer (#796). Preserve original compatibility receivers, source assertions and unfunded output boundaries; executable qualification remains pending.\n- Propagate sticky builder refusals through the storage-backed test comparison hook while retaining the full original receiver, funded disagreement assertions, and exact physical-budget and allocation controls.\n\n- Keep the reserved string-builtin source refusal and an independent G235 lookalike-producer rebase control; use a portable auxiliary fixture path, and transport the complete frozen builder fixture through pinned formatting without changing its runtime assertions.\n\n",
+        "old": "\n- Author the sealed initial builder-report policy and actual typed CLI propagation (#845), provider-bound borrowed function aliases on the closed uncached route (#847), and a separate cached-prelude report acquisition observer (#796). Preserve original compatibility receivers, source assertions and unfunded output boundaries; executable qualification remains pending.\n- Keep the reserved string-builtin source refusal and an independent G235 lookalike-producer rebase control; use a portable auxiliary fixture path, and transport the complete frozen builder fixture through pinned formatting without changing its runtime assertions.\n\n"
+      }
+    ]
+  },
+  {
+    "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "checkpoint_revision": "d719ea241120655b618ca85a185d5fe5c575a2bf",
+    "archive": "docs/evidence/storage-oracle-compiler-fix-join-20261015/before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "current_sha256": "592a6ab828e9e569a51cfce6a8854e6ae71c3f751fc312159404c6bec4fca7c4",
+    "original_sha256": "b7e4a1d11b3237c940dd4fa9e1210672fb656577f9c61878daf52f20e6329bf9",
+    "edits": [
+      {
+        "new": "        include_str!(\"../../../../../src/hir/prelude_bundle/invocation.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/continuation_storage/paid_receiving.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/factored/continuation_receiver.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/continuation_receiver/before.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/factored/continuation_receiver/tests.rs\"),\n        include_str!(\"../../../../../src/hir/prelude_bundle/extension_work.rs\"),\n",
+        "old": "        include_str!(\"../../../../../src/hir/prelude_bundle/invocation.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/continuation_storage/paid_receiving.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/factored/continuation_receiver.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/factored/continuation_receiver/tests.rs\"),\n        include_str!(\"../../../../../src/hir/prelude_bundle/extension_work.rs\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/continuation_receiver.rs",
+    "checkpoint_revision": "d719ea241120655b618ca85a185d5fe5c575a2bf",
+    "archive": "docs/evidence/storage-oracle-compiler-fix-join-20261015/before/src/cleanup_plan/replay/factored/continuation_receiver.rs",
+    "current_sha256": "b6d48fd5125b0ab91d8bae0ded52561d43a3f8fe27d36a4e79c15b29f879a4d7",
+    "original_sha256": "c946aa0786e0ec977aeb233ad8b12cf186076d2e3352dcad201377bb18f7a7ca",
+    "edits": [
+      {
+        "new": "    function: &'hir ResolvedFunction,\n    storage: &mut continuation_storage::Storage<'hir>,\n) -> Result<(), Diagnostic> {\n    let saved = SKELETON_MATERIALIZATIONS.with(Cell::get);\n    let mut enumerating = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n",
+        "old": "    function: &'hir ResolvedFunction,\n    storage: &mut continuation_storage::Storage<'hir>,\n) {\n    let saved = SKELETON_MATERIALIZATIONS.with(Cell::get);\n    let mut enumerating = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n"
+      },
+      {
+        "new": "        let mut factored = ReplayBudget::with_skeleton_limit(0);\n        let verdict =\n            match compare_with_index_storage(program, function, &mut factored, None, Some(storage))\n            {\n                // A refused ledger cannot finance a verdict. Preserve the exact\n                // error and let the caller report its sticky builder refusal.\n                Err(error) if crate::bounded_output::active_refused() => {\n                    SKELETON_MATERIALIZATIONS.with(|count| count.set(saved));\n                    return Err(error);\n                }\n                verdict => verdict,\n            };\n        assert!(\n            matches!(verdict, Ok(Some(true))),\n",
+        "old": "        let mut factored = ReplayBudget::with_skeleton_limit(0);\n        let verdict =\n            compare_with_index_storage(program, function, &mut factored, None, Some(storage));\n        assert!(\n            matches!(verdict, Ok(Some(true))),\n"
+      },
+      {
+        "new": "    }\n    SKELETON_MATERIALIZATIONS.with(|count| count.set(saved));\n    Ok(())\n}\n#[cfg(test)]\nmod before;\n#[cfg(test)]\nmod tests;\n",
+        "old": "    }\n    SKELETON_MATERIALIZATIONS.with(|count| count.set(saved));\n}\n#[cfg(test)]\nmod tests;\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/continuation_receiver/tests.rs",
+    "checkpoint_revision": "d719ea241120655b618ca85a185d5fe5c575a2bf",
+    "archive": "docs/evidence/storage-oracle-compiler-fix-join-20261015/before/src/cleanup_plan/replay/factored/continuation_receiver/tests.rs",
+    "current_sha256": "19b309e3221ad38ab4d89c0151186a0affed0f977882827c444ce9fb06849f39",
+    "original_sha256": "8de86c67759c8ee3363ddfab6521a4af5281503802d47cdb76b109c98f1b15bd",
+    "edits": [
+      {
+        "new": "    crate::hir::resolve(&crate::check(SOURCE, \"continuation-receiving.spx\").unwrap()).unwrap()\n}\n\n#[test]\nfn complete_storage_backed_comparison_pairs_keep_the_original_funded_verdict() {\n    let program = program();\n    let (((), allocation), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {\n        measure(|| {\n            for function in &program.functions {\n                let mut old_budget = ReplayBudget::new();\n                let mut budget = ReplayBudget::new();\n                let mut old =\n                    continuation_storage::Storage::for_program(&program, &mut old_budget).unwrap();\n                let mut current =\n                    continuation_storage::Storage::for_program(&program, &mut budget).unwrap();\n                assert!(old.has_receiving_owner() && current.has_receiving_owner());\n                old.authenticate(&program, function, &mut old_budget)\n                    .unwrap();\n                current\n                    .authenticate(&program, function, &mut budget)\n                    .unwrap();\n                let saved = SKELETON_MATERIALIZATIONS.with(Cell::get);\n                before::cross_check(&program, function, &mut old);\n                assert_eq!(SKELETON_MATERIALIZATIONS.with(Cell::get), saved);\n                super::cross_check(&program, function, &mut current).unwrap();\n                assert_eq!(SKELETON_MATERIALIZATIONS.with(Cell::get), saved);\n                drop(old);\n                drop(current);\n                drop(old_budget);\n                drop(budget);\n            }\n        })\n    });\n    assert!(!refused && first.is_none());\n    assert!(!allocation.invalid && allocation.live == 0);\n    assert_eq!(allocation.allocated, allocation.freed);\n    assert!(allocation.allocated <= paid);\n}\n\n#[test]\nfn complete_cross_check_returns_refusal_at_zero_and_one_short_without_losing_the_counter() {\n    let program = program();\n    let observe = |limit| {\n        with_limit_usage_refusal(limit, || {\n            measure(|| {\n                let function = &program.functions[0];\n                let saved = SKELETON_MATERIALIZATIONS.with(Cell::get);\n                let mut budget = ReplayBudget::new();\n                let mut storage =\n                    match continuation_storage::Storage::for_program(&program, &mut budget) {\n                        Ok(storage) => storage,\n                        Err(error) => {\n                            assert_eq!(error.code, \"SPX-H006\");\n                            assert!(crate::bounded_output::active_refused());\n                            drop(error);\n                            return false;\n                        }\n                    };\n                assert!(storage.has_receiving_owner());\n                let result = oracle_hook::cross_check_with_storage(\n                    &program,\n                    function,\n                    &mut budget,\n                    Some(&mut storage),\n                );\n                assert_eq!(SKELETON_MATERIALIZATIONS.with(Cell::get), saved);\n                if let Err(error) = &result {\n                    assert_eq!(error.code, \"SPX-H006\");\n                    assert!(crate::bounded_output::active_refused());\n                    assert_eq!(\n                        (error.path.as_ref(), error.span, error.help.as_ref()),\n                        (None, None, None)\n                    );\n                }\n                let success = result.is_ok();\n                drop(result);\n                drop(storage);\n                drop(budget);\n                success\n            })\n        })\n    };\n    let ((success, allocation), refused, exact, first) = observe(usize::MAX);\n    assert!(success && !refused && first.is_none());\n    assert!(!allocation.invalid && allocation.live == 0);\n    assert_eq!(allocation.allocated, allocation.freed);\n    assert!(allocation.allocated <= exact);\n    assert!(exact > 0);\n    for limit in [0, exact - 1, exact] {\n        let ((success, allocation), refused, paid, first) = observe(limit);\n        assert!(!allocation.invalid && allocation.live == 0);\n        assert_eq!(allocation.allocated, allocation.freed);\n        assert!(allocation.allocated <= paid);\n        if limit == exact {\n            assert!(success && !refused && first.is_none());\n            assert_eq!(paid, exact);\n        } else {\n            assert!(!success && refused && first.is_some());\n            if limit == 0 {\n                assert_eq!(allocation.allocated, 0);\n            }\n        }\n    }\n}\n\n#[test]\nfn whole_original_and_current_comparison_pairs_execute_with_paid_last_drop() {\n",
+        "old": "    crate::hir::resolve(&crate::check(SOURCE, \"continuation-receiving.spx\").unwrap()).unwrap()\n}\n#[test]\nfn whole_original_and_current_comparison_pairs_execute_with_paid_last_drop() {\n"
+      },
+      {
+        "new": "    }\n}\n\n#[test]\nfn complete_prior_receiver_and_funded_disagreement_assertion_remain_byte_exact() {\n    use sha2::{Digest, Sha256};\n    let original = include_str!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/docs/evidence/storage-oracle-refusal-v1/continuation_receiver.before.rs.txt\"\n    ));\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))\n        ),\n        \"c946aa0786e0ec977aeb233ad8b12cf186076d2e3352dcad201377bb18f7a7ca\"\n    );\n    let before = include_str!(\"before.rs\");\n    assert_eq!(\n        before,\n        original.strip_suffix(\"#[cfg(test)]\\nmod tests;\\n\").unwrap()\n    );\n    let changes = [\n        (\") -> Result<(), Diagnostic> {\", \") {\"),\n        (\"        let verdict =\\n            match compare_with_index_storage(program, function, &mut factored, None, Some(storage))\\n            {\\n                // A refused ledger cannot finance a verdict. Preserve the exact\\n                // error and let the caller report its sticky builder refusal.\\n                Err(error) if crate::bounded_output::active_refused() => {\\n                    SKELETON_MATERIALIZATIONS.with(|count| count.set(saved));\\n                    return Err(error);\\n                }\\n                verdict => verdict,\\n            };\\n\", \"        let verdict =\\n            compare_with_index_storage(program, function, &mut factored, None, Some(storage));\\n\"),\n        (\"    Ok(())\\n\", \"\"),\n        (\"#[cfg(test)]\\nmod before;\\n\", \"\"),\n\n    ];\n    let mut restored = include_str!(\"../continuation_receiver.rs\").to_owned();\n    for (new, previous) in changes {\n        assert_eq!(restored.matches(new).count(), 1);\n        restored = restored.replacen(new, previous, 1);\n    }\n    assert_eq!(restored, original);\n}\n",
+        "old": "    }\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/oracle_hook.rs",
+    "checkpoint_revision": "d719ea241120655b618ca85a185d5fe5c575a2bf",
+    "archive": "docs/evidence/storage-oracle-compiler-fix-join-20261015/before/src/cleanup_plan/replay/factored/oracle_hook.rs",
+    "current_sha256": "0126d25150ca4b96f11995293fc9043d23fc8fff2008485e9560abe5c85cb7ae",
+    "original_sha256": "aefe0d06e3f7a6b4ae36bc11160a9c7aed2bd9b30b6041308f619ada3266f707",
+    "edits": [
+      {
+        "new": "            Some(storage) if storage.has_receiving_owner() => {\n                storage.authenticate(program, function, budget)?;\n                super::continuation_receiver::cross_check(program, function, storage)?;\n            }\n            _ => super::cross_check(program, function),\n",
+        "old": "            Some(storage) if storage.has_receiving_owner() => {\n                storage.authenticate(program, function, budget)?;\n                super::continuation_receiver::cross_check(program, function, storage);\n            }\n            _ => super::cross_check(program, function),\n"
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "checkpoint_revision": "d719ea241120655b618ca85a185d5fe5c575a2bf",
+    "archive": "docs/evidence/storage-oracle-compiler-fix-join-20261015/before/src/source_reflows_merge.rs",
+    "current_sha256": "fe78ac928143881546bd5ea7e84dd8c2821fbf65de68c4bb06291ee85c247d12",
+    "original_sha256": "10a4aa0727aeb7dc30cba67aab8418b2a1c2bbe91bce0ae5069215292cb87bfc",
+    "edits": [
+      {
+        "new": "}\nfn main83_physical_input(source: &str, current: &str) -> String {\n    let joined = before_storage_oracle_join(source, current);\n    let current = joined.as_str();\n    project(\n        include_str!(concat!(\n",
+        "old": "}\nfn main83_physical_input(source: &str, current: &str) -> String {\n    project(\n        include_str!(concat!(\n"
+      },
+      {
+        "new": "    )\n}\n\n// Full post-compiler-fix inputs precede the immutable MAIN83 and older domains.\nfn before_storage_oracle_join(source: &str, current: &str) -> String {\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/storage-oracle-compiler-fix-join-20261015/current-to-d719.json\"\n        )),\n        source,\n        current,\n    )\n}\n",
+        "old": "    )\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs",
+    "checkpoint_revision": "d719ea241120655b618ca85a185d5fe5c575a2bf",
+    "archive": "docs/evidence/storage-oracle-compiler-fix-join-20261015/before/src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs",
+    "current_sha256": "b2191c03d4dd66a071d943fe235bb743bc00032340b4928a3313faed1b9bc570",
+    "original_sha256": "3b8484243fe918fddb053d078eece28a55b33dfa737d10f87f6b8b71110a9b03",
+    "edits": [
+      {
+        "new": "        }\n        drop((owning, old_key, invocation, identity_owner));\n        drop((actual, expected, layout, view, owner));\n        drop(registry);\n    });\n    assert!(!refused && first.is_none());\n",
+        "old": "        }\n        drop((owning, old_key, invocation, identity_owner));\n        drop((actual, expected, layout, view, owner, registry));\n    });\n    assert!(!refused && first.is_none());\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "checkpoint_revision": "d719ea241120655b618ca85a185d5fe5c575a2bf",
+    "archive": "docs/evidence/storage-oracle-compiler-fix-join-20261015/before/src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "current_sha256": "fb3a784a0aaad104bf580d3677d7e22078c59539a2a7c9f55d3129e39183aa79",
+    "original_sha256": "51e119aef00399eece1536e6d9c4a3a91b876d5d768821fb9134bbe02746d680",
+    "edits": [
+      {
+        "new": "                    };\n                    let ((), refused, old, first) = with_limit_usage_refusal(LIMIT, || {\n                        crate::workspace_graph::expected_projection::borrowed_imports::pay_default_teardown(&ty, &index).unwrap();\n                    });\n                    assert!(!refused && first.is_none());\n",
+        "old": "                    };\n                    let ((), refused, old, first) = with_limit_usage_refusal(LIMIT, || {\n                        super::super::super::pay_default_teardown(&ty, &index).unwrap();\n                    });\n                    assert!(!refused && first.is_none());\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/tests/builder_limits.rs",
+    "checkpoint_revision": "d719ea241120655b618ca85a185d5fe5c575a2bf",
+    "archive": "docs/evidence/storage-oracle-compiler-fix-join-20261015/before/src/workspace_graph/tests/builder_limits.rs",
+    "current_sha256": "c1f40dbe6d396e0bac776028d029b7d3cc938293857a86750aa9f4a03e3a17ed",
+    "original_sha256": "26db2741bfaef01783a9bb8de52a93de9dfe022252f13f0a122b7670920ecd5c",
+    "edits": [
+      {
+        "new": "        \"fixture must exceed twenty-one kilobytes, got {bytes}\"\n    );\n    if let Err(error) = build_owned_with_builder_limit(sources, MAX_BUILDER_BYTES) {\n        panic!(\"the unchanged twenty-one-kilobyte fixture exceeds its builder budget: {error:?}\");\n    }\n}\n\n",
+        "old": "        \"fixture must exceed twenty-one kilobytes, got {bytes}\"\n    );\n    assert!(build_owned_with_builder_limit(sources, MAX_BUILDER_BYTES).is_ok());\n}\n\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "checkpoint_revision": "d719ea241120655b618ca85a185d5fe5c575a2bf",
+    "archive": "docs/evidence/storage-oracle-compiler-fix-join-20261015/before/tests/hir_module_boundaries.rs",
+    "current_sha256": "c734d06bed91edcfa41c8b960fc4e06f703c7f8cc8b74a25c52edbfe5b86d97f",
+    "original_sha256": "18b25eb3261f239384f55d31c05284194fb4b4af2e0cfe92c64e920478cbd71b",
+    "edits": [
+      {
+        "new": "        include_str!(\"../src/hir/prelude_bundle/invocation.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/continuation_storage/paid_receiving.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/continuation_receiver.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/continuation_receiver/before.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/continuation_receiver/tests.rs\"),\n        include_str!(\"../src/hir/prelude_bundle/extension_work.rs\"),\n",
+        "old": "        include_str!(\"../src/hir/prelude_bundle/invocation.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/continuation_storage/paid_receiving.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/continuation_receiver.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/continuation_receiver/tests.rs\"),\n        include_str!(\"../src/hir/prelude_bundle/extension_work.rs\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph/source_inventory.rs",
+    "checkpoint_revision": "d719ea241120655b618ca85a185d5fe5c575a2bf",
+    "archive": "docs/evidence/storage-oracle-compiler-fix-join-20261015/before/tests/workspace/semantic_graph/source_inventory.rs",
+    "current_sha256": "b0dc376ee6c6b04a84e24e3054ffcbc915af715aaa45ade202b23c46d421b6bf",
+    "original_sha256": "003ec33a4f97aaca8414f78d8c31722c70d7502e5b7162375be4edd281dc953e",
+    "edits": [
+      {
+        "new": "        include_str!(\"../../src/hir/prelude_bundle/invocation.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/continuation_storage/paid_receiving.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/factored/continuation_receiver.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/continuation_receiver/before.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/factored/continuation_receiver/tests.rs\"),\n        include_str!(\"../../src/hir/prelude_bundle/extension_work.rs\"),\n",
+        "old": "        include_str!(\"../../src/hir/prelude_bundle/invocation.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/continuation_storage/paid_receiving.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/factored/continuation_receiver.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/factored/continuation_receiver/tests.rs\"),\n        include_str!(\"../../src/hir/prelude_bundle/extension_work.rs\"),\n"
+      }
+    ]
+  }
+]

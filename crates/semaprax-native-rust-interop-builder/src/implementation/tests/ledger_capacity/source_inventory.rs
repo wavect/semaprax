@@ -427,7 +427,7 @@ macro_rules! hir_resolver_source_inventory {
         include_str!("../../../../../src/hir/prelude_bundle/fixed_work.rs"),
         include_str!("../../../../../src/hir/prelude_bundle/invocation.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/continuation_storage/paid_receiving.rs"),
-        include_str!("../../../../../src/cleanup_plan/replay/factored/continuation_receiver.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/factored/continuation_receiver.rs"), include_str!("../../../../../src/cleanup_plan/replay/factored/continuation_receiver/before.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/factored/continuation_receiver/tests.rs"),
         include_str!("../../../../../src/hir/prelude_bundle/extension_work.rs"),
         include_str!("../../../../../src/hir/prelude_bundle/extension_model.rs"),

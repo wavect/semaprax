@@ -774,10 +774,24 @@ pub(crate) fn main83_retry_fixture_input(source: &str, current: &str) -> String 
     formatted
 }
 fn main83_physical_input(source: &str, current: &str) -> String {
+    let joined = before_storage_oracle_join(source, current);
+    let current = joined.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/main83-source-join-20261015/current-to-4f5b.json"
+        )),
+        source,
+        current,
+    )
+}
+
+// Full post-compiler-fix inputs precede the immutable MAIN83 and older domains.
+fn before_storage_oracle_join(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/storage-oracle-compiler-fix-join-20261015/current-to-d719.json"
         )),
         source,
         current,

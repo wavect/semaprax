@@ -19,6 +19,13 @@ pub(in crate::workspace_graph) fn run<T>(
         .and_then(|bytes| {
             bytes.checked_add(size_of::<(Result<T, CoreFailure>, Option<Vec<Diagnostic>>)>())
         })
+        // Separate outer match receivers are real controls, in addition to
+        // the inner &mut CoreFailure argument paid by the report owner.
+        .and_then(|bytes| bytes.checked_add(size_of::<&Result<T, CoreFailure>>()))
+        .and_then(|bytes| bytes.checked_add(size_of::<&mut Result<T, CoreFailure>>()))
+        .and_then(|bytes| bytes.checked_add(size_of::<&Setup>()))
+        // The copied *setup initializer and seal_setup's by-value receiver.
+        .and_then(|bytes| bytes.checked_add(2 * size_of::<Setup>()))
         .ok_or(Setup::Arithmetic);
     let owner = match controls.and_then(|bytes| Owner::acquire(maximum, bytes)) {
         Ok(owner) => owner,

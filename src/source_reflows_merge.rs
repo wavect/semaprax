@@ -413,6 +413,24 @@ fn before_f045(source: &str, current: &str) -> String {
 
 // Preserve the complete frozen9b domains independently of the newer MAIN proof.
 fn before_main927(source: &str, current: &str) -> String {
+    let main_view = assembly_main927_input(source, current);
+    let hex_view = project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/main927-hex-starter-assembly-20261015/view-hex.json"
+        )),
+        source,
+        current,
+    );
+    let hex_previous = facade_hex_previous(source, &hex_view);
+    let previous = main927_previous(source, &main_view);
+    assert_eq!(
+        previous, hex_previous,
+        "complete independent predecessor: {source}"
+    );
+    previous
+}
+fn main927_previous(source: &str, current: &str) -> String {
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -424,6 +442,8 @@ fn before_main927(source: &str, current: &str) -> String {
 }
 // Only these named inputs may enter MAIN's unchanged semantic source proofs.
 pub(crate) fn main927_input(source: &str, current: &str) -> String {
+    let view = assembly_main927_input(source, current);
+    let current = view.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -440,6 +460,18 @@ fn facade_hex_previous(source: &str, current: &str) -> String {
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/workspace-facade-hex-fix-9b-20261015/current-to-9b.json"
+        )),
+        source,
+        current,
+    )
+}
+
+// Independent complete branch inputs; neither branch is fed the other's view.
+fn assembly_main927_input(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/main927-hex-starter-assembly-20261015/view-main927.json"
         )),
         source,
         current,

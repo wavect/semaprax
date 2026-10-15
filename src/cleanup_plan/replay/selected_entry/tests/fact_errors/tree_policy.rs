@@ -324,6 +324,8 @@ fn complete_original_tree_receiver_child_and_existing_usage_assertions_stay_byte
     )))
     .unwrap();
     fn view(records: &serde_json::Value, source: &str, current: &str) -> String {
+        let staged = crate::source_reflows_merge::scalar_policy_input(source, current);
+        let current = staged.as_str();
         let row = records
             .as_array()
             .unwrap()

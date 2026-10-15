@@ -1,0 +1,643 @@
+{
+  "source_subject": "9b174d852798c99ce2d14b8170ec05e6c0f94b88",
+  "exit_code": 101,
+  "executed_test_bodies": 0,
+  "wall_seconds": 462.47538741600874,
+  "passed_build_commands": [
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "build",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ]
+  ],
+  "failed_build_commands": [
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--test",
+      "agent_runtime_v1",
+      "--test",
+      "documentation",
+      "--test",
+      "hir_module_boundaries",
+      "--test",
+      "image_transport_v5",
+      "--test",
+      "native",
+      "--test",
+      "project",
+      "--test",
+      "workspace",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ]
+  ],
+  "compiler_errors": [
+    {
+      "rendered": "error[E0277]: the trait bound `Array<u8, UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>>: LowerHex` is not satisfied\n    --> tests/workspace/semantic_graph.rs:1340:25\n     |\n1340 |         format!(\"{:x}\", Sha256::digest(current.as_bytes())),\n     |                  ----   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `LowerHex` is not implemented for `Array<u8, UInt<UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>, ...>>`\n     |                  |\n     |                  required by this formatting parameter\n     |\n     = help: the following other types implement trait `LowerHex`:\n               &T\n               &mut T\n               Saturating<T>\n               SegmentFlags\n               SymbolFlags\n               WasmFeatures\n               Wrapping<T>\n               bytes::bytes::Bytes\n             and 75 others\n     = note: the full name for the type has been written to '/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/workspace-8366ecd210e1cdc5.long-type-4846975886394002549.txt'\n     = note: consider using `--verbose` to print the full type name to the console\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "the following other types implement trait `LowerHex`:\n  &T\n  &mut T\n  Saturating<T>\n  SegmentFlags\n  SymbolFlags\n  WasmFeatures\n  Wrapping<T>\n  bytes::bytes::Bytes\nand 75 others",
+          "rendered": null,
+          "spans": []
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "note",
+          "message": "the full name for the type has been written to '/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/workspace-8366ecd210e1cdc5.long-type-4846975886394002549.txt'",
+          "rendered": null,
+          "spans": []
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "note",
+          "message": "consider using `--verbose` to print the full type name to the console",
+          "rendered": null,
+          "spans": []
+        }
+      ],
+      "level": "error",
+      "message": "the trait bound `Array<u8, UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>>: LowerHex` is not satisfied",
+      "spans": [
+        {
+          "byte_end": 51628,
+          "byte_start": 51594,
+          "column_end": 59,
+          "column_start": 25,
+          "expansion": {
+            "def_site_span": {
+              "byte_end": 0,
+              "byte_start": 0,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "tests/workspace.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 1,
+              "line_start": 1,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            },
+            "macro_decl_name": "desugaring of format string literal",
+            "span": {
+              "byte_end": 4524,
+              "byte_start": 4484,
+              "column_end": 73,
+              "column_start": 33,
+              "expansion": {
+                "def_site_span": {
+                  "byte_end": 35077,
+                  "byte_start": 35053,
+                  "column_end": 29,
+                  "column_start": 5,
+                  "expansion": null,
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 996,
+                  "line_start": 996,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                },
+                "macro_decl_name": "$crate::__export::format_args!",
+                "span": {
+                  "byte_end": 4524,
+                  "byte_start": 4484,
+                  "column_end": 73,
+                  "column_start": 33,
+                  "expansion": {
+                    "def_site_span": {
+                      "byte_end": 4389,
+                      "byte_start": 4370,
+                      "column_end": 20,
+                      "column_start": 1,
+                      "expansion": null,
+                      "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 111,
+                      "line_start": 111,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": []
+                    },
+                    "macro_decl_name": "format!",
+                    "span": {
+                      "byte_end": 51629,
+                      "byte_start": 51578,
+                      "column_end": 60,
+                      "column_start": 9,
+                      "expansion": null,
+                      "file_name": "tests/workspace/semantic_graph.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 1340,
+                      "line_start": 1340,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": [
+                        {
+                          "highlight_end": 60,
+                          "highlight_start": 9,
+                          "text": "        format!(\"{:x}\", Sha256::digest(current.as_bytes())),"
+                        }
+                      ]
+                    }
+                  },
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 114,
+                  "line_start": 114,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                }
+              },
+              "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 114,
+              "line_start": 114,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            }
+          },
+          "file_name": "tests/workspace/semantic_graph.rs",
+          "is_primary": true,
+          "label": "the trait `LowerHex` is not implemented for `Array<u8, UInt<UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>, ...>>`",
+          "line_end": 1340,
+          "line_start": 1340,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 59,
+              "highlight_start": 25,
+              "text": "        format!(\"{:x}\", Sha256::digest(current.as_bytes())),"
+            }
+          ]
+        },
+        {
+          "byte_end": 51591,
+          "byte_start": 51587,
+          "column_end": 22,
+          "column_start": 18,
+          "expansion": {
+            "def_site_span": {
+              "byte_end": 0,
+              "byte_start": 0,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "tests/workspace.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 1,
+              "line_start": 1,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            },
+            "macro_decl_name": "desugaring of format string literal",
+            "span": {
+              "byte_end": 4524,
+              "byte_start": 4484,
+              "column_end": 73,
+              "column_start": 33,
+              "expansion": {
+                "def_site_span": {
+                  "byte_end": 35077,
+                  "byte_start": 35053,
+                  "column_end": 29,
+                  "column_start": 5,
+                  "expansion": null,
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 996,
+                  "line_start": 996,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                },
+                "macro_decl_name": "$crate::__export::format_args!",
+                "span": {
+                  "byte_end": 4524,
+                  "byte_start": 4484,
+                  "column_end": 73,
+                  "column_start": 33,
+                  "expansion": {
+                    "def_site_span": {
+                      "byte_end": 4389,
+                      "byte_start": 4370,
+                      "column_end": 20,
+                      "column_start": 1,
+                      "expansion": null,
+                      "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 111,
+                      "line_start": 111,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": []
+                    },
+                    "macro_decl_name": "format!",
+                    "span": {
+                      "byte_end": 51629,
+                      "byte_start": 51578,
+                      "column_end": 60,
+                      "column_start": 9,
+                      "expansion": null,
+                      "file_name": "tests/workspace/semantic_graph.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 1340,
+                      "line_start": 1340,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": [
+                        {
+                          "highlight_end": 60,
+                          "highlight_start": 9,
+                          "text": "        format!(\"{:x}\", Sha256::digest(current.as_bytes())),"
+                        }
+                      ]
+                    }
+                  },
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 114,
+                  "line_start": 114,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                }
+              },
+              "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 114,
+              "line_start": 114,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            }
+          },
+          "file_name": "tests/workspace/semantic_graph.rs",
+          "is_primary": false,
+          "label": "required by this formatting parameter",
+          "line_end": 1340,
+          "line_start": 1340,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 22,
+              "highlight_start": 18,
+              "text": "        format!(\"{:x}\", Sha256::digest(current.as_bytes())),"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0277",
+        "explanation": "You tried to use a type which doesn't implement some trait in a place which\nexpected that trait.\n\nErroneous code example:\n\n```compile_fail,E0277\n// here we declare the Foo trait with a bar method\ntrait Foo {\n    fn bar(&self);\n}\n\n// we now declare a function which takes an object implementing the Foo trait\nfn some_func<T: Foo>(foo: T) {\n    foo.bar();\n}\n\nfn main() {\n    // we now call the method with the i32 type, which doesn't implement\n    // the Foo trait\n    some_func(5i32); // error: the trait bound `i32 : Foo` is not satisfied\n}\n```\n\nIn order to fix this error, verify that the type you're using does implement\nthe trait. Example:\n\n```\ntrait Foo {\n    fn bar(&self);\n}\n\n// we implement the trait on the i32 type\nimpl Foo for i32 {\n    fn bar(&self) {}\n}\n\nfn some_func<T: Foo>(foo: T) {\n    foo.bar(); // we can now use this method since i32 implements the\n               // Foo trait\n}\n\nfn main() {\n    some_func(5i32); // ok!\n}\n```\n\nOr in a generic context, an erroneous code example would look like:\n\n```compile_fail,E0277\nfn some_func<T>(foo: T) {\n    println!(\"{:?}\", foo); // error: the trait `core::fmt::Debug` is not\n                           //        implemented for the type `T`\n}\n\nfn main() {\n    // We now call the method with the i32 type,\n    // which *does* implement the Debug trait.\n    some_func(5i32);\n}\n```\n\nNote that the error here is in the definition of the generic function. Although\nwe only call it with a parameter that does implement `Debug`, the compiler\nstill rejects the function. It must work with all possible input types. In\norder to make this example compile, we need to restrict the generic type we're\naccepting:\n\n```\nuse std::fmt;\n\n// Restrict the input type to types that implement Debug.\nfn some_func<T: fmt::Debug>(foo: T) {\n    println!(\"{:?}\", foo);\n}\n\nfn main() {\n    // Calling the method is still fine, as i32 implements Debug.\n    some_func(5i32);\n\n    // This would fail to compile now:\n    // struct WithoutDebug;\n    // some_func(WithoutDebug);\n}\n```\n\nRust only looks at the signature of the called function, as such it must\nalready specify all requirements that will be used for every type parameter.\n"
+      }
+    },
+    {
+      "rendered": "error[E0277]: the trait bound `Array<u8, UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>>: LowerHex` is not satisfied\n    --> tests/workspace/semantic_graph.rs:1346:25\n     |\n1346 |         format!(\"{:x}\", Sha256::digest(original.as_bytes())),\n     |                  ----   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `LowerHex` is not implemented for `Array<u8, UInt<UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>, ...>>`\n     |                  |\n     |                  required by this formatting parameter\n     |\n     = help: the following other types implement trait `LowerHex`:\n               &T\n               &mut T\n               Saturating<T>\n               SegmentFlags\n               SymbolFlags\n               WasmFeatures\n               Wrapping<T>\n               bytes::bytes::Bytes\n             and 75 others\n     = note: the full name for the type has been written to '/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/workspace-8366ecd210e1cdc5.long-type-4846975886394002549.txt'\n     = note: consider using `--verbose` to print the full type name to the console\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "the following other types implement trait `LowerHex`:\n  &T\n  &mut T\n  Saturating<T>\n  SegmentFlags\n  SymbolFlags\n  WasmFeatures\n  Wrapping<T>\n  bytes::bytes::Bytes\nand 75 others",
+          "rendered": null,
+          "spans": []
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "note",
+          "message": "the full name for the type has been written to '/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/workspace-8366ecd210e1cdc5.long-type-4846975886394002549.txt'",
+          "rendered": null,
+          "spans": []
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "note",
+          "message": "consider using `--verbose` to print the full type name to the console",
+          "rendered": null,
+          "spans": []
+        }
+      ],
+      "level": "error",
+      "message": "the trait bound `Array<u8, UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>>: LowerHex` is not satisfied",
+      "spans": [
+        {
+          "byte_end": 51871,
+          "byte_start": 51836,
+          "column_end": 60,
+          "column_start": 25,
+          "expansion": {
+            "def_site_span": {
+              "byte_end": 0,
+              "byte_start": 0,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "tests/workspace.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 1,
+              "line_start": 1,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            },
+            "macro_decl_name": "desugaring of format string literal",
+            "span": {
+              "byte_end": 4524,
+              "byte_start": 4484,
+              "column_end": 73,
+              "column_start": 33,
+              "expansion": {
+                "def_site_span": {
+                  "byte_end": 35077,
+                  "byte_start": 35053,
+                  "column_end": 29,
+                  "column_start": 5,
+                  "expansion": null,
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 996,
+                  "line_start": 996,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                },
+                "macro_decl_name": "$crate::__export::format_args!",
+                "span": {
+                  "byte_end": 4524,
+                  "byte_start": 4484,
+                  "column_end": 73,
+                  "column_start": 33,
+                  "expansion": {
+                    "def_site_span": {
+                      "byte_end": 4389,
+                      "byte_start": 4370,
+                      "column_end": 20,
+                      "column_start": 1,
+                      "expansion": null,
+                      "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 111,
+                      "line_start": 111,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": []
+                    },
+                    "macro_decl_name": "format!",
+                    "span": {
+                      "byte_end": 51872,
+                      "byte_start": 51820,
+                      "column_end": 61,
+                      "column_start": 9,
+                      "expansion": null,
+                      "file_name": "tests/workspace/semantic_graph.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 1346,
+                      "line_start": 1346,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": [
+                        {
+                          "highlight_end": 61,
+                          "highlight_start": 9,
+                          "text": "        format!(\"{:x}\", Sha256::digest(original.as_bytes())),"
+                        }
+                      ]
+                    }
+                  },
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 114,
+                  "line_start": 114,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                }
+              },
+              "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 114,
+              "line_start": 114,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            }
+          },
+          "file_name": "tests/workspace/semantic_graph.rs",
+          "is_primary": true,
+          "label": "the trait `LowerHex` is not implemented for `Array<u8, UInt<UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>, ...>>`",
+          "line_end": 1346,
+          "line_start": 1346,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 60,
+              "highlight_start": 25,
+              "text": "        format!(\"{:x}\", Sha256::digest(original.as_bytes())),"
+            }
+          ]
+        },
+        {
+          "byte_end": 51833,
+          "byte_start": 51829,
+          "column_end": 22,
+          "column_start": 18,
+          "expansion": {
+            "def_site_span": {
+              "byte_end": 0,
+              "byte_start": 0,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "tests/workspace.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 1,
+              "line_start": 1,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            },
+            "macro_decl_name": "desugaring of format string literal",
+            "span": {
+              "byte_end": 4524,
+              "byte_start": 4484,
+              "column_end": 73,
+              "column_start": 33,
+              "expansion": {
+                "def_site_span": {
+                  "byte_end": 35077,
+                  "byte_start": 35053,
+                  "column_end": 29,
+                  "column_start": 5,
+                  "expansion": null,
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 996,
+                  "line_start": 996,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                },
+                "macro_decl_name": "$crate::__export::format_args!",
+                "span": {
+                  "byte_end": 4524,
+                  "byte_start": 4484,
+                  "column_end": 73,
+                  "column_start": 33,
+                  "expansion": {
+                    "def_site_span": {
+                      "byte_end": 4389,
+                      "byte_start": 4370,
+                      "column_end": 20,
+                      "column_start": 1,
+                      "expansion": null,
+                      "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 111,
+                      "line_start": 111,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": []
+                    },
+                    "macro_decl_name": "format!",
+                    "span": {
+                      "byte_end": 51872,
+                      "byte_start": 51820,
+                      "column_end": 61,
+                      "column_start": 9,
+                      "expansion": null,
+                      "file_name": "tests/workspace/semantic_graph.rs",
+                      "is_primary": false,
+                      "label": null,
+                      "line_end": 1346,
+                      "line_start": 1346,
+                      "suggested_replacement": null,
+                      "suggestion_applicability": null,
+                      "text": [
+                        {
+                          "highlight_end": 61,
+                          "highlight_start": 9,
+                          "text": "        format!(\"{:x}\", Sha256::digest(original.as_bytes())),"
+                        }
+                      ]
+                    }
+                  },
+                  "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+                  "is_primary": false,
+                  "label": null,
+                  "line_end": 114,
+                  "line_start": 114,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": []
+                }
+              },
+              "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/macros.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 114,
+              "line_start": 114,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            }
+          },
+          "file_name": "tests/workspace/semantic_graph.rs",
+          "is_primary": false,
+          "label": "required by this formatting parameter",
+          "line_end": 1346,
+          "line_start": 1346,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 22,
+              "highlight_start": 18,
+              "text": "        format!(\"{:x}\", Sha256::digest(original.as_bytes())),"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0277",
+        "explanation": "You tried to use a type which doesn't implement some trait in a place which\nexpected that trait.\n\nErroneous code example:\n\n```compile_fail,E0277\n// here we declare the Foo trait with a bar method\ntrait Foo {\n    fn bar(&self);\n}\n\n// we now declare a function which takes an object implementing the Foo trait\nfn some_func<T: Foo>(foo: T) {\n    foo.bar();\n}\n\nfn main() {\n    // we now call the method with the i32 type, which doesn't implement\n    // the Foo trait\n    some_func(5i32); // error: the trait bound `i32 : Foo` is not satisfied\n}\n```\n\nIn order to fix this error, verify that the type you're using does implement\nthe trait. Example:\n\n```\ntrait Foo {\n    fn bar(&self);\n}\n\n// we implement the trait on the i32 type\nimpl Foo for i32 {\n    fn bar(&self) {}\n}\n\nfn some_func<T: Foo>(foo: T) {\n    foo.bar(); // we can now use this method since i32 implements the\n               // Foo trait\n}\n\nfn main() {\n    some_func(5i32); // ok!\n}\n```\n\nOr in a generic context, an erroneous code example would look like:\n\n```compile_fail,E0277\nfn some_func<T>(foo: T) {\n    println!(\"{:?}\", foo); // error: the trait `core::fmt::Debug` is not\n                           //        implemented for the type `T`\n}\n\nfn main() {\n    // We now call the method with the i32 type,\n    // which *does* implement the Debug trait.\n    some_func(5i32);\n}\n```\n\nNote that the error here is in the definition of the generic function. Although\nwe only call it with a parameter that does implement `Debug`, the compiler\nstill rejects the function. It must work with all possible input types. In\norder to make this example compile, we need to restrict the generic type we're\naccepting:\n\n```\nuse std::fmt;\n\n// Restrict the input type to types that implement Debug.\nfn some_func<T: fmt::Debug>(foo: T) {\n    println!(\"{:?}\", foo);\n}\n\nfn main() {\n    // Calling the method is still fine, as i32 implements Debug.\n    some_func(5i32);\n\n    // This would fail to compile now:\n    // struct WithoutDebug;\n    // some_func(WithoutDebug);\n}\n```\n\nRust only looks at the signature of the called function, as such it must\nalready specify all requirements that will be used for every type parameter.\n"
+      }
+    }
+  ],
+  "classification": "Unit harness and production library compiled; batched integration compilation failed at two new test-helper LowerHex expressions. No runtime or Clippy outcome exists for this source. No resource interruption. Keep earlier completed ae91 89/6 qualification separate. Fixes are unqualified until the next consolidated source batch executes.",
+  "planned_runtime_owners": 128,
+  "receipts": 20
+}

@@ -1,0 +1,1381 @@
+{
+  "status": "STATIC_SCOPE_PROPOSAL_NOT_REGISTERED_NOT_EXECUTED",
+  "main_source_basis": "f0455caf96706a0545e754957fcc903434a7f880",
+  "ae91_source_correction_commit": "052667a21687a73e2d9af415171663c783d415a9",
+  "test_fix_commit": "9abf17c1e",
+  "counts": {
+    "main19plus6": 25,
+    "ae91_failures_unique_addition": 5,
+    "changed9ab_and_weighted_bodies_already_in6failures": 6,
+    "affected_source_guards_unique_addition": 8,
+    "production_consumer_complements": 2,
+    "deduplicated_exact_owners": 128,
+    "832_834_unique_addition": 28,
+    "838_839_843_unique_addition": 46,
+    "canonical_fixture_unique_addition": 3,
+    "strict163_unique_addition": 1,
+    "affected_838_839_app_diagnostic_unique_addition": 10
+  },
+  "literal_selectors": [
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::atomic_body_control_clone_preserves_complete_key_and_work_in_both_measurement_orders",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::atomic_control_exact_short_zero_and_every_request_frontier_remain_sticky",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::absent_compound_and_residual_results_and_other_payers_keep_the_original_route",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::absent_statuses_and_scalar_or_absent_return_keep_exact_false_publication",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::selected_admission_with_an_active_builder_still_cannot_select_the_ordinary_constructor",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::empty_renewals::tests::empty_renewal_branch_clone_preserves_every_field_work_and_complete_drop",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::empty_renewals::tests::empty_renewal_clone_exact_short_zero_and_each_request_frontier_remain_sticky",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::empty_renewals::tests::atomic_type_clone_omits_only_the_absent_census_cursor_and_preserves_all_tags",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::empty_renewals::tests::nonempty_and_selected_or_unobserved_renewal_routes_keep_the_original_receiver",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "source_reflows::approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors",
+      "source_path": "src/source_reflows.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum",
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "source_reflows::a_changed_current_byte_is_refused_before_an_inverse_can_hide_it",
+      "source_path": "src/source_reflows.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum",
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:image_transport_v5",
+      "selector": "builtin_calls::constructor_schemas_preserve_builtin_alternatives_with_numeric_string_operations_added",
+      "source_path": "tests/image_transport_v5/builtin_calls.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum",
+        "verified actual module tests/image_transport_v5.rs18\u201319; Cargo automatic test target image_transport_v5"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:image_transport_v5",
+      "selector": "builtin_calls::builtin_hole_fill_and_apply_intent_have_exact_library_candidate_identity_without_source_writes",
+      "source_path": "tests/image_transport_v5/builtin_calls.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum",
+        "verified actual module tests/image_transport_v5.rs18\u201319; Cargo automatic test target image_transport_v5"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:image_transport_v5",
+      "selector": "builtin_calls::builtin_constructor_does_not_grant_candidate_preparation_to_a_readonly_host",
+      "source_path": "tests/image_transport_v5/builtin_calls.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum",
+        "verified actual module tests/image_transport_v5.rs18\u201319; Cargo automatic test target image_transport_v5"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:hir_module_boundaries",
+      "selector": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+      "source_path": "tests/hir_module_boundaries.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:hir_module_boundaries",
+      "selector": "oracle_source_inventory::complete_independent_cleanup_oracles_remain_registered_and_source_bound",
+      "source_path": "tests/hir_module_boundaries/oracle_source_inventory.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "source_path": "tests/workspace/semantic_graph.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum",
+        "one of6actualae91failures; same6bodieschangedin9ab+weighted4"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax-native-rust-interop",
+      "target": "lib",
+      "selector": "implementation::tests::ledger_capacity::hir_capacity_layout_constants_are_bound_to_root_const_assertions",
+      "source_path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:agent_runtime_v1",
+      "selector": "execution_revision::workspace::workspace_execution_retains_historical_generation_across_exact_refresh",
+      "source_path": "tests/agent_runtime_v1/execution_revision/workspace.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "hir::resolve_for::bytes::tests::a_manual_while_cannot_create_byte_traversal_ancestry",
+      "source_path": "src/hir/resolve_for/bytes/tests.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "hir::validation::iterative_while_admission_tests::exact_512_nested_indexed_matches_validate_on_a_low_stack",
+      "source_path": "src/hir/validation/iterative_while_admission_tests.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "hir::resolve_statement::text_reference::full_current_expression_entry_is_exact_original_plus_test_dispatch",
+      "source_path": "src/hir/resolve_statement/text_reference.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::regions_entry::tests::complete_region_entry_and_four_variant_source_projections_restore_full_originals",
+      "source_path": "src/cleanup_plan/replay/expression_facts/receiving/regions_entry/tests.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::ordinary_dag::frontier_tests::independent_original_type_drop_builders_and_complete_receiver_are_byte_locked",
+      "source_path": "src/cleanup_plan/replay/skeleton_work/ordinary_dag/frontier_tests.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "hir::ids::fixed_operation_tests::full_original_operation_sources_and_receivers_have_only_declared_identity_hooks",
+      "source_path": "src/hir/ids/fixed_operation_tests.rs",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_foreign_restored_owner_keeps_unchanged_ast_and_sticky_detachment",
+      "source_path": "src/workspace_graph/generic_type_import/receiving/tests.rs",
+      "reasons": [
+        "one of6actualae91failures; same6bodieschangedin9ab+weighted4"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::complete_old_registry_census_derivation_and_current_scratch_sources_remain_bound",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+      "reasons": [
+        "one of6actualae91failures; same6bodieschangedin9ab+weighted4"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::amortized_source::ordered_amortized_checkpoint_full_sources_and_inverses_are_exact",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs",
+      "reasons": [
+        "one of6actualae91failures; same6bodieschangedin9ab+weighted4",
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard",
+        "explicit closure #838 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_foreign_function_budget_nested_and_expired_slot_are_sticky_without_query",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "reasons": [
+        "one of6actualae91failures; same6bodieschangedin9ab+weighted4",
+        "explicit closure #843 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::cold_canonical::tests::complete_old_commented_formatter_preflight_sources_and_all_current_children_remain_exact",
+      "source_path": "src/workspace_graph/cold_canonical/tests.rs",
+      "reasons": [
+        "one of6actualae91failures; same6bodieschangedin9ab+weighted4"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_complete_old_receivers_actual_callers_and_full_source_inverses_stay_bound",
+      "source_path": "src/workspace_graph/generic_type_import/receiving/tests.rs",
+      "reasons": [
+        "affected complete-source guard after actual combined helper/testsource changes"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "source_path": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "reasons": [
+        "affected complete-source guard after actual combined helper/testsource changes",
+        "explicit closure #832 owning control",
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::b::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "source_path": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "reasons": [
+        "affected complete-source guard after actual combined helper/testsource changes",
+        "explicit closure #832 owning control",
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::presence_tests::merged_current_ci_reflow_and_presence512_complete_inputs_remain_exact",
+      "source_path": "src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs",
+      "reasons": [
+        "affected complete-source guard after actual combined helper/testsource changes",
+        "explicit closure #832 owning control",
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::inline_weighted::source::inline_weighted_complete_source_inverses_and_immediate_receiver_are_exact",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/source.rs",
+      "reasons": [
+        "affected complete-source guard after actual combined helper/testsource changes"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::inline_weighted::source::inline_weighted_every_new_owner_remains_in_all_three_full_source_audits",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/source.rs",
+      "reasons": [
+        "affected complete-source guard after actual combined helper/testsource changes",
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::source::held_closure_every_source_and_full_immediate_inverse_are_exact",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/source.rs",
+      "reasons": [
+        "affected complete-source guard after actual combined helper/testsource changes",
+        "explicit closure #843 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::source::held_closure_complete_old_canonical_and_caller_are_independent_byte_exact_bodies",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/source.rs",
+      "reasons": [
+        "affected complete-source guard after actual combined helper/testsource changes",
+        "explicit closure #843 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::lexical_replay::operand_tests::full_old_and_current_ordinary_lexical_callers_keep_success_and_first_diagnostic_fields",
+      "source_path": "src/cleanup_plan/replay/lexical_replay/operand_tests.rs",
+      "reasons": [
+        "actual ActiveBuilder ordinary caller reaches validate_path_states; full verdict/6field/work/allocationDrop control, no claim of branch-frequency instrumentation",
+        "explicit closure #832 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::identical_branch_arms_replay_the_producer_join_and_refuse_either_repaired_order",
+      "source_path": "src/cleanup_plan/replay/path_join/branch_join/tests.rs",
+      "reasons": [
+        "canonical join consumer opposing order success+forgeries; unobserved control complements5new paid atomic constructor owners, not itself active-selection frequency evidence"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::lexical_replay::operand_tests::no_owner_ordinary_caller_remains_the_complete_original_route",
+      "source_path": "src/cleanup_plan/replay/lexical_replay/operand_tests.rs",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::lexical_replay::operand_tests::source::whole_old_lexical_caller_and_all_new_inventory_sources_remain_bound",
+      "source_path": "src/cleanup_plan/replay/lexical_replay/operand_tests/source.rs",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::exact_one_short_zero_bytes_and_work_pay_actual_controls_and_first_node_through_drop",
+      "source_path": "src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::duplicate_ids_borrow_exact_input_and_spare_reuse_authenticates_sticky_failure",
+      "source_path": "src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::foreign_function_facts_budget_and_restored_nested_owner_never_reuse_backing",
+      "source_path": "src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::expired_original_active_owner_cannot_restore_an_inventory_after_scope_exit",
+      "source_path": "src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::empty_and_duplicate_absolute_frontiers_follow_actual_control_node_and_comparison_work",
+      "source_path": "src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::ordinary_operand_producer_costs_are_controls_plus_fact_visits_and_actual_directory_operations",
+      "source_path": "src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::remaining::tests::complete_exit_receivers_preserve_all_old_fields_and_first_semantic_errors",
+      "source_path": "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "project::incremental::cold_source_tests::explicit_owner_siblings_match_legacy_selective_routes_and_body_reuse",
+      "source_path": "src/project/incremental/cold_source_tests.rs",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_cost_complete_originals_live_callers_and_all_source_inverses_are_bound",
+      "source_path": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+      "reasons": [
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::physical_budget::authentication::source::held_full_current_sources_and_immediate_inverses_authenticate_every_byte",
+      "source_path": "src/cleanup_plan/replay/physical_budget/authentication/source.rs",
+      "reasons": [
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard",
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:documentation",
+      "selector": "held_auth_sources::held_authentication_complete_source_owners_and_ordinary_receivers_stay_independent",
+      "source_path": "tests/documentation/held_auth_sources.rs",
+      "reasons": [
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard",
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::callback_occurrences_bound_exact_full_identity_inserts_on_sparse_dense_duplicate_and_imported_closures",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/capacity_tests.rs",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::actual_cold_reservation_allocation_peak_and_full_drop_are_compared_without_baseline_padding",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/capacity_tests.rs",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::physical_and_work_exact_short_zero_frontiers_preserve_old_order_and_honest_new_acceptance",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/capacity_tests.rs",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::malformed_complete_receivers_keep_all_six_diagnostic_fields_and_priority",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/capacity_tests.rs",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::owner_controls::cold_registry_exact_short_zero_and_foreign_restored_contexts_keep_receipts_sticky",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/capacity_tests/owner_controls.rs",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::owner_controls::same_required_derived_bytes_preserve_nested_parent_floor_and_full_drop",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/capacity_tests/owner_controls.rs",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::owner_controls::unchanged_signature_owner_rejects_foreign_type_then_cannot_recover_after_restoration",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/capacity_tests/owner_controls.rs",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::source::complete_old_receiver_source_and_all_new_joined_sources_stay_exact",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::function_tests::decoded_ready_wire_and_cleanup_match_complete_imports_with_private_descendants_omitted",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/function_tests.rs",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::tests::invocation_reuses_exact_closure_across_import_forecasts_stubs_and_retry_modes",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/registry/tests.rs",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::tests::preparation_has_exact_one_short_overlap_and_sticky_context_refusal",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/registry/tests.rs",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::tests::fallible_sort_matches_independent_order_and_stops_at_exact_work_boundary",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/registry/tests.rs",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::tests::two_callers_share_one_derivation_query_ledger_and_sticky_refusal",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/registry/tests.rs",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::tests::held_presentation_borrows_without_allocation_and_pays_shared_work",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/registry/tests.rs",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::tests::held_presentation_work_is_exact_one_short_and_sticky",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/registry/tests.rs",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::receiver_tests::ordered_complete_old_closures_successors_ids_signatures_and_weighted_overflow_match",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/receiver_tests.rs",
+      "reasons": [
+        "explicit closure #838 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::receiver_tests::ordered_complete_old_each_exposed_work_frontier_preserves_first_diagnostic_and_overflow",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/receiver_tests.rs",
+      "reasons": [
+        "explicit closure #838 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::receiver_tests::ordered_full_receiver_actual_reservation_allocation_peak_and_every_exit_drop",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/receiver_tests.rs",
+      "reasons": [
+        "explicit closure #838 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::source::ordered_complete_immediate_sources_round_trip_in_both_directions",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/source.rs",
+      "reasons": [
+        "explicit closure #838 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::source::ordered_full_old_receiver_and_alias_adaptation_are_exact",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/source.rs",
+      "reasons": [
+        "explicit closure #838 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_arena_all_rotations_numeric_extremes_and_dense_permutations_match_btree",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs",
+      "reasons": [
+        "explicit closure #838 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_arena_each_growth_zero_exact_short_keeps_actual_allocation_separate_and_drops",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs",
+      "reasons": [
+        "explicit closure #838 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_growth_receiving_and_initializers_are_paid_then_warm_insertion_constructs_no_result",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs",
+      "reasons": [
+        "explicit closure #838 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_private_index_growth_refuses_before_allocation_or_mutation",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs",
+      "reasons": [
+        "explicit closure #838 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_cache_receiving_fee_preserves_floor_and_sticky_refusal_without_allocation",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_canonical_physical_zero_exact_short_growth_and_all_exit_drops",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_closure_cached_route_constructs_no_cursor_and_rejects_foreign_authentication",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_closure_same_scope_cache_hit_has_zero_allocation_and_one_work_unit",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_memo_foreign_function_budget_and_restoration_never_touch_foreign_payer",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_complete_old_current_actual_and_reserved_costs_are_separate",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_complete_old_every_work_frontier_and_failure_cleanup",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_complete_old_ids_weights_signatures_work_and_diagnostics",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_every_actual_byte_cut_clears_owners_before_sticky_retry",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_immediate_complete_originals_and_adaptation_are_exact",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_no_owner_route_never_bootstraps_active_zero_payer",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_warm_authentication_pays_the_real_result_at_exact_and_one_short_frontiers",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_warm_authentication_removes_only_real_carriers_at_zero_exact_and_short_frontiers",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_complete_immediate_receiver_keeps_ids_signatures_overflow_and_every_work_frontier",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_immediate_old_and_current_cold_cuts_and_whole_drop_remain_separate",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_foreign_function_budget_nested_and_restored_owner_refuse_without_foreign_debit",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_cached_closure_keeps_original_one_work_unit_and_same_result_without_auth_debit",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_foreign_oracle_never_queries_foreign_or_restored_payer",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_warm_floor_equality_and_first_required_refusal_remain_sticky_after_floor_clear",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_oracle_old_current_actual_warm_requests_are_not_padded_and_whole_owners_drop",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::memo::retained::held_tests::held_first_six_field_diagnostic_moves_once_and_terminal_retry_keeps_empty_sentinel",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/memo/retained/held_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::immediate_old_floor::retained_cache_receiving_fee_preserves_floor_and_sticky_refusal_without_allocation",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::physical_budget::authentication::tests::held_zero_gateway_all_production_payers_preserve_full_diagnostic_first_receipt_floor_and_drop",
+      "source_path": "src/cleanup_plan/replay/physical_budget/authentication/tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::physical_budget::authentication::tests::held_zero_gateway_existing_six_field_slot_is_never_overwritten_or_queried",
+      "source_path": "src/cleanup_plan/replay/physical_budget/authentication/tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::physical_budget::authentication::tests::held_zero_gateway_oracle_exact_attempts_sticky_expired_and_zero_owner_parity",
+      "source_path": "src/cleanup_plan/replay/physical_budget/authentication/tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::physical_budget::authentication::tests::held_zero_gateway_fresh_zero_oracle_never_bootstraps_text_or_active_payer",
+      "source_path": "src/cleanup_plan/replay/physical_budget/authentication/tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::physical_budget::authentication::source::held_complete_old_receivers_and_original_fee_body_are_exact_independent_sources",
+      "source_path": "src/cleanup_plan/replay/physical_budget/authentication/source.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::physical_storage::zero_tests::held_physical_zero_preserves_all_fields_first_refusal_and_enclosing_floor",
+      "source_path": "src/cleanup_plan/replay/physical_storage/zero_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::allocation::oracle::zero_tests::held_oracle_unit_zero_keeps_complete_charge_receipt_counter_overflow_and_expiration",
+      "source_path": "src/cleanup_plan/replay/allocation/oracle/zero_tests.rs",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_full_old_ids_six_fields_work_order_overflow_and_cycles",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "reasons": [
+        "explicit closure #843 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_two_roots_reuse_one_owner_and_count_actual_inner_misses",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "reasons": [
+        "explicit closure #843 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_bootstrap_pays_actual_controls_at_exact_and_one_short",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "reasons": [
+        "explicit closure #843 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_production_sequence_exact_short_and_whole_drop_have_separate_old_domain",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "reasons": [
+        "explicit closure #843 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_failure_publication_moves_all_six_fields_without_success_transport",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "reasons": [
+        "explicit closure #843 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_arithmetic_none_is_not_a_refusal_and_slot_can_receive_again",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "reasons": [
+        "explicit closure #843 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_complete_old_invocation_and_current_caller_keep_checked_verdict_and_work",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "reasons": [
+        "explicit closure #843 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_actual_entries_hide_cached_views_after_foreign_and_restored_slots",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "reasons": [
+        "explicit closure #843 direct owner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax-toolchain",
+      "target": "test:cli_new_project_v1",
+      "selector": "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+      "source_path": "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+      "reasons": [
+        "actual fixture canonical-root b8c46fea fix: affected retained installer owner or unchanged hostile parent/symlink negative control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax-toolchain",
+      "target": "test:cli_new_project_v1",
+      "selector": "application_starter::application_starter_selected_file_declared_native_tests_and_unchanged_cli49",
+      "source_path": "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+      "reasons": [
+        "actual fixture canonical-root b8c46fea fix: affected retained installer owner or unchanged hostile parent/symlink negative control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax-toolchain",
+      "target": "test:cli_new_project_v1",
+      "selector": "new_project::application::tests::starter_plan_and_activation_swap_to_symlink_or_fifo_refuses_before_staging",
+      "source_path": "crates/semaprax-toolchain/src/new_project/application.rs",
+      "reasons": [
+        "actual fixture canonical-root b8c46fea fix: affected retained installer owner or unchanged hostile parent/symlink negative control"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "reasons": [
+        "explicit actualcurrent wholeowner physicalmeasurement; STRICT historical831 inequality retained, expectedmayFAIL, no suppression"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+      "source_path": "src/workspace_graph/tests/builder_limits.rs",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "source_path": "src/workspace_graph/tests/builder_limits.rs",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:native",
+      "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_actual_byte_and_item_plus_one_preflight_never_reserve_output",
+      "source_path": "tests/native/string_settlement/codec_allocation/string_vectors.rs",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:native",
+      "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_reads_and_short_refusal_allocate_nothing_then_copy_final_string_once",
+      "source_path": "tests/native/string_settlement/codec_allocation/string_vectors.rs",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_request_decision_response_keeps_duplicate_unicode_and_boundary_slots",
+      "source_path": "tests/project/standard_library/application_json/nested_response/string_vectors.rs",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_actual_item_and_byte_plus_one_refuse_before_publication",
+      "source_path": "tests/project/standard_library/application_json/nested_response/string_vectors.rs",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_maximum_escaping_exact_output_cap_and_plus_one",
+      "source_path": "tests/project/standard_library/application_json/nested_response/string_vectors.rs",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_plan_receipts_and_live_revision_reject_forged_versions",
+      "source_path": "tests/project/standard_library/application_json/nested_response/string_vectors.rs",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_two_nested_paths_preserve_exact_and_one_short_bytes",
+      "source_path": "tests/project/standard_library/application_json/nested_response/string_vectors.rs",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+      "source_path": "tests/native/string_settlement/codec_allocation/codec808_frontier.rs",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ],
+      "status": "PENDING_FINAL_MERGED_HEAD_STATIC_BINDING_AND_EXECUTION"
+    }
+  ],
+  "prior_actual_receipts": [
+    {
+      "path": "/Volumes/Semaprax/lane-prompts/final-3d4b-310-qualification-20261015/owning-selected-results.json",
+      "sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "complete": true,
+      "executed": 310,
+      "pass": 263,
+      "fail": 47
+    },
+    {
+      "path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-results.json",
+      "sha256": "680062c9896e350da4dc325145047b8bd1b55f290c222b1916a4f78e7b4871af",
+      "source_subject": "ae91fa963ecfe85f4cc830cda85fff2f5bdbe094",
+      "complete": true,
+      "executed": 95,
+      "pass": 89,
+      "fail": 6
+    }
+  ],
+  "historical_failed_observations_count": 53,
+  "status_rule": "All next owner outcomes pending; prior-head PASS/FAIL observations remain tied to their source_subject. Omission is not current PASS. This proposal is not a new harness; parent owns final merged registration, build roles and scoped Clippy.",
+  "remaining_failures": "All47actual3d4b and6actualae91 failures retained in historical-failures.json; omitted owners remain historical failures/unrechecked. In particular strict#163tradeoff and appcap failures are not fixed by this scope.",
+  "closure_extension": {
+    "832": 14,
+    "834": 15,
+    "shared_fullsource_guards": 10,
+    "838": 10,
+    "839": 31,
+    "843": 11,
+    "842": "already closed; only existing2direct sourceguards retained as actual changed source-helper dependencies, no8behavioral rerun",
+    "pin_rule": "No pin moved in these test/source-only corrections. If final real producer pin changes, parent adds ONLY its exact owning consumer and producer evidence; no hand edits."
+  },
+  "known_preserved_gate_failure": {
+    "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+    "issue": 831,
+    "observed_source": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+    "status": "FAIL_UNRESOLVED_NOT_REEXECUTED_OR_SUPPRESSED",
+    "old_reserved": 10829,
+    "current_reserved": 12814,
+    "applicability": "838/839 live bodies do not require a universal lower whole-owner debit; however their preserved-owner README list includes receiving_layer_tests. Do not claim every inherited owning selector passed, or close831. Explicitly disclose this strict inherited metric gate as unsatisfied when assessing838/839.",
+    "next_status": "SELECTED_UNCHANGED_STRICT_ASSERTION_EXPECT_MAY_FAIL"
+  },
+  "workflow": "unmodified next-focused-tooling-v2-20261015/register-generic.py +prepare-generic-round.py; prior-round actualae91 95/6; realproductiondelta intentionally outsideV3closedcorrection scope",
+  "canonical_fixture_commit": "b8c46fea258ade3e0a08fc4851d8273107567aaf",
+  "scope_nonclaims": [
+    "No837closure proposed; actual installer outcomes remain pending.",
+    "No prior3d orae91PASS promoted to currentPASS."
+  ]
+}

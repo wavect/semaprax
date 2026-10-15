@@ -1,0 +1,102 @@
+[
+  {
+    "path": "compilation-manifest.json",
+    "bytes": 705952,
+    "sha256": "54eba9096e2d672fe8402ad2b9518fa68c43212334b597cad04b30a46ce1a532"
+  },
+  {
+    "path": "drivers/build-owning.py",
+    "bytes": 9776,
+    "sha256": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888"
+  },
+  {
+    "path": "drivers/draft_contract.py",
+    "bytes": 1752,
+    "sha256": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1"
+  },
+  {
+    "path": "drivers/observed_phase.py",
+    "bytes": 11471,
+    "sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+  },
+  {
+    "path": "drivers/run-extra-production-clippy.py",
+    "bytes": 6678,
+    "sha256": "47ff9dd51db73eb2b1e6b666c06ad37429d34e2959253179ed14ecb81f2ac8fe"
+  },
+  {
+    "path": "drivers/run-owning-selected.py",
+    "bytes": 10438,
+    "sha256": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450"
+  },
+  {
+    "path": "drivers/run-production-lib-cli-clippy.py",
+    "bytes": 6214,
+    "sha256": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077"
+  },
+  {
+    "path": "drivers/semaprax_pressure_observation_v3.py",
+    "bytes": 10269,
+    "sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b"
+  },
+  {
+    "path": "expected-counts.json",
+    "bytes": 705952,
+    "sha256": "54eba9096e2d672fe8402ad2b9518fa68c43212334b597cad04b30a46ce1a532"
+  },
+  {
+    "path": "historical-failures.json",
+    "bytes": 30547,
+    "sha256": "d6c1199314b01af77e8b40f0dcabb1cb7c18d59c20d44895d4c16b027b9d146a"
+  },
+  {
+    "path": "memory-samples.jsonl",
+    "bytes": 550141,
+    "sha256": "ac2e5347be72263b586e0aaf98b7558bc46fa8b1c3b681d20769e468bed9cb0e"
+  },
+  {
+    "path": "owning-build-progress.json",
+    "bytes": 26005,
+    "sha256": "f30f8a06b48aaa2a6f8c35023ea4880cce3df1185be5851a3e46c6e9d9356242"
+  },
+  {
+    "path": "owning-build-result.json",
+    "bytes": 30151,
+    "sha256": "91063c4ecd5cd86474ea101ce240f95b51b9e98815c1d01cda1391171ca23da0"
+  },
+  {
+    "path": "owning-build.jsonl",
+    "bytes": 712343,
+    "sha256": "f750a3e2c97397832d68016321d0c012b96f82b62b7301a5f1785e8a3b056fc1"
+  },
+  {
+    "path": "owning-build.log",
+    "bytes": 518,
+    "sha256": "5aa018f70b4bf5a2651a6690230c1741ab2d000412bbcd0349f2c922b70ae299"
+  },
+  {
+    "path": "preparation-receipt.json",
+    "bytes": 4942,
+    "sha256": "c0ba8e18e95041c2695a74443122d7199a50d147c16cfb047c8b3d949fe04d74"
+  },
+  {
+    "path": "pressure-guardian-source.py",
+    "bytes": 6400,
+    "sha256": "a4477f43ec63fccb169a9b951c793f62a1cd06352d3a690872cfe1673be58119"
+  },
+  {
+    "path": "pressure-guardian.jsonl",
+    "bytes": 86227,
+    "sha256": "0ccdd9a9f5e5962261cb1a0fdcec20f67ed7016240f906bb80e95b567d2b9c1e"
+  },
+  {
+    "path": "required-app-prior-observations.json",
+    "bytes": 6522,
+    "sha256": "3e5b782cf0cd5fa062780e721881ef6a5379f91220eed6b0337e72d2e8247022"
+  },
+  {
+    "path": "selection-proposal.json",
+    "bytes": 67572,
+    "sha256": "5f3134e9df36918f1aa7e6a5eb311d2db4176d9e89b46518ba7c5994cfc43957"
+  }
+]

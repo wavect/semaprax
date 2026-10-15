@@ -1,0 +1,23 @@
+    Checking semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+error: this `impl` can be derived
+  --> src/cleanup_plan/replay/factored/compact_nodes.rs:16:1
+   |
+16 | / impl Default for Node {
+17 | |     fn default() -> Self {
+18 | |         Self::Empty
+19 | |     }
+20 | | }
+   | |_^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#derivable_impls
+   = note: `-D clippy::derivable-impls` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::derivable_impls)]`
+help: replace the manual implementation with a derive attribute and mark the default variant
+   |
+ 6 + #[derive(Default)]
+ 7 | pub(super) enum Node {
+ 8 ~     #[default]
+ 9 ~     Empty,
+   |
+
+error: could not compile `semaprax` (lib) due to 1 previous error

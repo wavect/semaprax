@@ -1,0 +1,83 @@
+{
+  "schema": "semaprax.prelude-forecast-reviewed-pin-plan.v1",
+  "capture_head": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+  "status": "actual-candidate-plan-requires-wire-review",
+  "edits": [
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "assert_eq!(graph.budget().used_builder_bytes(), 1_452_744);",
+      "after": "assert_eq!(graph.budget().used_builder_bytes(), 1_209_652);",
+      "actual_wire": "public-graph"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:3e8062e2eaac64d660c85c330170c1c0624830cb71fdcaa24beb4b945abb53c1",
+      "after": "sha256:6b5cc543f824f65ea9deaeb9d713176c8c3ba2d77261fe32ed866ebb69c1f6e6",
+      "actual_wire": "public-graph"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:80ad2ae7a3cedc1d45bbf91cb7e70d392333fa67618ce89ffac118d39948d522",
+      "after": "sha256:531c4928f03919cbe391636cb5a3c6e1a81e1e78ef9a6d9b870a662ba4fe64c9",
+      "actual_wire": "context"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:86a997d431146e325ce4a6999a7f5c1a2c6b4023bf4b3842c8295c47c710d9d2",
+      "after": "sha256:3c1ecc805f6e8ce44e8bb5494ab6f8e2e190ea007abd491b4bc5087bae14baa5",
+      "actual_wire": "forward"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:859e2d9bc8ff33b4f5ae871ca834b3fab846da97c87d64676a54f57651a4553e",
+      "after": "sha256:cbe0ef0e127493fff8d09fd7b71902ec3fa411c05655813ba21702c268a86f06",
+      "actual_wire": "capability-context"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:ea49a69a9cb1dc1f3d68523409f9c44d499e23575574a3a11f0fa3df6269a0f2",
+      "after": "sha256:d9aade25e555411d208f04f257dc9ed757c2aab70f9f2f09044d3f7bb3384721",
+      "actual_wire": "type-context"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:9ac1511bc996b50de09bbbf5ca974afe7c7e48eb08969220e6b78d6ab0e9c294",
+      "after": "sha256:0d337f90ce845ad4f6c02930ba578d8002aaf1faee4a150488df961c5a44a2f4",
+      "actual_wire": "impact"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:b83398ebf3a9c8c93d03546bbf00b9bce546c97c875a5191569124b168535e19",
+      "after": "sha256:6e04aedb33f4122be228d6fd36ba8685be17fe9777d366589a8ad00cc81cb98a",
+      "actual_wire": "custom-impact"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:251709a38f343b9dea814d1c85a6ac3e6d902e2d083d2e5a1ca1ded13b61783a",
+      "after": "sha256:3cdd798dc3486d371419879d8d10fd749d366797e590c14d04c06f098fac3518",
+      "actual_wire": "review"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:490729db6aed6475e4c3e63861d61348f5df1d13e965370f2b9ca2c917b6da21",
+      "after": "sha256:856f47d2ea3b179156a8cb48ea7a14a3fd48908472ecd37d7c5547a62b4a34e3",
+      "actual_wire": "capability-review"
+    },
+    {
+      "path": "src/workspace_graph/type_proof_tests.rs",
+      "before": "sha256:4e1ee56ce86deef7105e7f012249b8665311df4dad61cd140a32bcabc7d7cbbf",
+      "after": "sha256:74dd9cc25b0f9f331aa831d6fac0e44f1d51488d6c3a548f3c60b6a86ff8eb04",
+      "actual_wire": "projection-wire"
+    }
+  ],
+  "source_sha256": {
+    "src/workspace_graph/type_proof_tests.rs": "sha256:832a1db2c5e194a1cefe5d4582b721bddec08de06417a02fb183f77074f24c98",
+    "tests/workspace/semantic_graph.rs": "sha256:3790173ca4c942616049f6c57b786fef4475d404e39a2267e35983232af55a72"
+  },
+  "after_sha256": {
+    "src/workspace_graph/type_proof_tests.rs": "sha256:53736e9d12bb60f3c88b86ae48b6476adba4f1d238a3e287c92a608854308fe7",
+    "tests/workspace/semantic_graph.rs": "sha256:6a189614a60a0fe59394cb5484941065ced06d96274cbb85fc0e54cc6a7a8750"
+  },
+  "trusted_build_receipt_sha256": "sha256:90e37876f0737759b03104a0d6d8debff72166dfa2cca0a488a1bdef62ab6ac2",
+  "trusted_producer_receipt_sha256": "sha256:e75a4d95e5f5b2fd262f243788b08e3aa3d7f220ef1643ee376bca1e0d433afa"
+}

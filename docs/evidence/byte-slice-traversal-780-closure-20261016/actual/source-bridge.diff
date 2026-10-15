@@ -1,0 +1,64 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 9ba45213c..884c4d79a 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -2,7 +2,13 @@
+      distinct cold callers; full old receiver retained; qualification pending. -->
+ # Changelog
+ 
++- Author fixed authenticated runtime transport for the test-only source-view helper (#848): preserve all 89 original JSON files (93,590,460 bytes), projection logic, stage order, and source guards, with a separate custody fixture. Join every new loader child into the three audits. Repository fixtures are required at test runtime; executable qualification and measured RAM benefit remain pending.
++
+ - Author the sealed initial builder-report policy and actual typed CLI propagation (#845), provider-bound borrowed function aliases on the closed uncached route (#847), and a separate cached-prelude report acquisition observer (#796). Preserve original compatibility receivers, source assertions and unfunded output boundaries; executable qualification remains pending.
++- Propagate sticky builder refusals through the storage-backed test comparison hook while retaining the full original receiver, funded disagreement assertions, and exact physical-budget and allocation controls.
++
++- Keep the reserved string-builtin source refusal and an independent G235 lookalike-producer rebase control; use a portable auxiliary fixture path, and transport the complete frozen builder fixture through pinned formatting without changing its runtime assertions.
++
+ - Decline optional scalar-helper capture when the complete source hash cannot fit its unchanged work bound, preserving ordinary scalar imports and the full G410 receiving refusal for a missing proof. Retain the large Explorer snapshot regression and independent capture controls.
+ 
+ - Refresh browser graph pins from complete hosted 17104e20c records after paid-scratch bill reductions, retaining every historical graph byte and adding an exact previous-capture reconstruction gate.
+diff --git a/docs/ARCHITECTURE.md b/docs/ARCHITECTURE.md
+index 9925d4521..27351838b 100644
+--- a/docs/ARCHITECTURE.md
++++ b/docs/ARCHITECTURE.md
+@@ -4432,6 +4432,19 @@ Input drift, nonunique edits and predecessor drift fail closed. The source-lock
+ coverage gate recognizes this reader exactly as it recognizes `include_str!`;
+ ordinary authority and implementation audits continue to read current source.
+ 
++The `cfg(test)` source-view helper `source_reflows_merge` delegates fixture transport
++to its private `runtime_json` loader, fixed inventory, and hostile-I/O tests. The
++inventory preserves 89 original repository JSON files (93,590,460 bytes), each
++bound to its compiled path, exact length, and SHA-256; one additional custody
++fixture restores the complete prior helper, three audit roots, and both changed
++documents before the existing historical views. Each load checks one opened
++regular-file handle, exact bounds, EOF, digest, and UTF-8 before parsing. It grants
++no production filesystem authority and uses no discovery or global cache. All
++original projection logic, stage order, JSON bytes, and source assertions remain
++intact; the three source audits include every new child. Test binaries require
++the repository fixtures at runtime. This source-only transport change has no
++measured RAM benefit yet.
++
+ 
+ The bounded generic inference helpers in `source_verify/generic_inference` and
+ `hir/generic_inference` independently unify exact argument types before normal
+diff --git a/tests/hir_module_boundaries.rs b/tests/hir_module_boundaries.rs
+index 2e08b8dda..37263e24a 100644
+--- a/tests/hir_module_boundaries.rs
++++ b/tests/hir_module_boundaries.rs
+@@ -502,7 +502,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
+         include_str!("../src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs"),
+         include_str!("../src/cleanup_plan/replay/live_oracle/source_custody/presence.rs"),
+         include_str!("../src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs"),
+-        include_str!("../src/source_reflows_merge.rs"),
++        include_str!("../src/source_reflows_merge.rs"), include_str!("../src/source_reflows_merge/runtime_json.rs"), include_str!("../src/source_reflows_merge/runtime_json/inventory.rs"), include_str!("../src/source_reflows_merge/runtime_json/tests.rs"),
+         include_str!("../src/cleanup_plan/replay/path_join/storage/empty_renewals.rs"),
+         include_str!("../src/cleanup_plan/replay/path_join/storage/atomic_controls.rs"),
+         include_str!("../src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs"),
+@@ -792,7 +792,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
+         include_str!("../src/hir/prelude_bundle/fixed_work.rs"),
+         include_str!("../src/hir/prelude_bundle/invocation.rs"),
+         include_str!("../src/cleanup_plan/replay/continuation_storage/paid_receiving.rs"),
+-        include_str!("../src/cleanup_plan/replay/factored/continuation_receiver.rs"),
++        include_str!("../src/cleanup_plan/replay/factored/continuation_receiver.rs"), include_str!("../src/cleanup_plan/replay/factored/continuation_receiver/before.rs"),
+         include_str!("../src/cleanup_plan/replay/factored/continuation_receiver/tests.rs"),
+         include_str!("../src/hir/prelude_bundle/extension_work.rs"),
+         include_str!("../src/hir/prelude_bundle/extension_model.rs"),

@@ -1,0 +1,337 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 27c3c9975..9ba45213c 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -2,6 +2,43 @@
+      distinct cold callers; full old receiver retained; qualification pending. -->
+ # Changelog
+ 
++- Author the sealed initial builder-report policy and actual typed CLI propagation (#845), provider-bound borrowed function aliases on the closed uncached route (#847), and a separate cached-prelude report acquisition observer (#796). Preserve original compatibility receivers, source assertions and unfunded output boundaries; executable qualification remains pending.
++- Decline optional scalar-helper capture when the complete source hash cannot fit its unchanged work bound, preserving ordinary scalar imports and the full G410 receiving refusal for a missing proof. Retain the large Explorer snapshot regression and independent capture controls.
++
++- Refresh browser graph pins from complete hosted 17104e20c records after paid-scratch bill reductions, retaining every historical graph byte and adding an exact previous-capture reconstruction gate.
++
++- Reject reached Useful Data v1 dependency signatures at import admission with G172, preserving H006 for body-only authored-type refusals and admission of unreached newer bundled declarations.
++
++- Grow the actual supplemental receiving cursor from two frames under its unchanged 1,028-frame bound, paying complete overlapping replacements and live-frame moves. Retain the full original receiver and shallow reuse gate; expose callers through remaining array and path-join reservation wrappers.
++
++- Cover admitted internal owning-record imports together with exact public-v8 owning-parameter refusal, retaining the original type-import and unsupported-variant cases and no-write checks.
++
++- Refuse an authored owning row-helper parameter with T284 before retained-HIR projection, preserving cold/warm diagnostic parity and G173 for all existing descriptor forgeries.
++
++- Pin mutable command-argument source refusal to its earlier T264 diagnostic and retain the exact H006 immutability guard through an independently validated, tampered Project HIR control.
++
++- Check frozen v11 nested-record String refusal at descriptor derivation and replay, retaining array source refusal and adding an identical Bool-field positive control. Preserve the language's admitted String records.
++
++- Acquire the fixed 129-slot formatter hygiene pattern stack only for actual patterns, retaining the complete original dispatcher and source inverses. Add the unchanged 512-payload resolver source as a canonical-budget regression.
++
++- Preserve every historical CLI-help known answer while checking native-test timing and the four documented JSON-codec/fused-source usage additions; bind the complete new projection before restoring the frozen catalogue.
++
++- Grow structural call lookup scratch at actual depth under its unchanged 514-slot bound, paying complete replacement backing and work. Retain the complete original lookup and receiver controls, and propagate reservation caller coordinates through physical-budget wrappers.
++
++- Bind browser graph pins to the hosted paid-cursor result: both complete graphs retain every prior byte after only the declared 458,408-byte bill reduction and self-digest restoration. Preserve all historical cursor controls.
++
++- Grow the paid expression-fact Arena cursor at actual traversal depth, reserving complete replacement backing and copy work while retaining the original factory, type cursor, depth ceiling, producer controls and preclone payload charges.
++- Author shared borrowed diagnostic rendering for the actual CLI and existing typed human report consumer (#846), preserving the full bounded compatibility route, selected status and independent old renderer. Focused executable qualification remains pending.
++- Correct #836 while-body admission to count the literal field selector only in source, preserving three runtime operands and all existing shape/ownership limits. Restore the backend oracles through authenticated whole-input views; executable qualification remains pending.
++
++- Remove real held-slot and initial weighted-root Result carriers from the direct factored replay path (#831), retaining the complete original constructor fees and strict old receiver independently. Source review and inverse proofs passed; executable qualification and measured gains remain pending.
++
++- Resolve explicitly selected starter plan and command-source paths once from
++  the full host's working directory, retaining all held no-follow reads and
++  prepublication rechecks. Add relative/absolute exact-byte and symlink-refusal
++  controls; source-only until focused qualification.
++- Complete the #841 raw/gzip fixture experiment and restore the exact tested raw-arm default after gzip showed higher observed group RSS (5,930,647,552 versus 5,249,531,904 bytes). Preserve both actual arms, all decoder/source controls and the small artifact-size benefit; order/cache limitations prevent a causal speed claim, and no RAM or token saving is claimed. The integrated raw-default successor remains source-only until focused qualification.
++
+ - Bind fresh application plan/activation reads (#837) to the existing no-follow bounded held regular-file owner, closing inspection/open symlink and FIFO replacement races. Add deterministic pre-open swap controls and small independent typed native-test selector owners. Source-only correction; execution remains pending.
+ 
+ - Author fresh application assembly (#837) from existing replayed codec plans and explicit command profiles through the original held-parent scaffold publisher. Bind canonical source/generation receipts and exact native routes; add an explicit pure typed v31 native-test successor while preserving old profile refusals. Full ShiftSim15/selected-file CLI49 and hostile-publication scenarios are authored; all executable qualification and the source-capacity dependency remain pending.
+@@ -15,6 +52,24 @@
+   executable qualification and physical measurements are pending.
+ 
+ - Qualify the closed named String-transfer v1 scope with all 15 exact a417 owning controls and the five 27ae regenerated-pin/source controls; retain unrelated application-budget failures and frozen public profiles.
++- Refresh both browser graph pins from authenticated hosted compiler records, retaining full current/prior graph wires, exact historical bill reconstruction, and the unchanged original cursor-control helper and hashes. Use the direct error assertion for the unit-valued hidden-law check result to satisfy the pinned Clippy gate.
++
++- Refuse a native-law carrier in ordinary Project file facts unless the manifest selected its law path before workspace preflight; preserve raw Graph retention and add owned, cold, and cached Project regressions.
++
++- Select the application JSON and NDJSON module gates in library-depth CI, keep complete browser graph diagnostics in job logs without artifact coupling, and preserve the scaffold layout error’s frozen-or-tables prefix while listing current guidance.
++
++- Grow canonical expression-statement hygiene scratch with actual traversal depth, prepaying each complete replacement and retaining the original depth limit and full fixed-array receiver controls.
++
++- Initialize reservation caller metadata on the source-acquisition payer. Keep the exact truncated release version in the bounded notice while retaining its changelog link, and extend the frozen CLI-help projection for the admitted current scaffold layout.
++
++- Capture the first refused reservation’s compiler caller without allocating, and append it to outward builder-budget help while preserving numeric receipts, stages, limits and paid-report omission.
++
++- Keep public v8/v9/v11 Wasm owned-String refusal separate from the emitted-body runtime census; select v10 through the replayed descriptor and preserve String-free output and earlier HIR/static-text refusals.
++
++- Separate shared prelude acquisition from checked-module cache bills so a cached first module and later rebuilt provider retain cold-equivalent builder accounting. Preserve full historical root and additive audit-inventory source proofs.
++
++- Prepay a separate atomic-body control-key constructor without a type-walk cursor, preserving the full original control tuple, replay work and every other receiver. Mark generic type spellings as code in five rustdoc comments.
++
+ - Update candidate inventory regressions for the admitted bounded-zeroing builtin, recognize binary-hash receipt readers in harness isolation, and fix two remaining test lint findings.
+ - Give ordinary empty-renewal branch clones a separately prepaid borrowed
+   payload without a renewal-map reference, preserving full state and work while
+diff --git a/docs/ARCHITECTURE.md b/docs/ARCHITECTURE.md
+index c72344c1d..9925d4521 100644
+--- a/docs/ARCHITECTURE.md
++++ b/docs/ARCHITECTURE.md
+@@ -486,6 +486,7 @@ The registry compiler and unpublished toolchain share one compiler library and
+ bounded source, Project, and prepared Rust API context routes;
+ `options.rs` parses bounded command options, `report_options.rs` parses report/analysis options, and
+ `source_execution.rs` owns single-file build, run, and diagnostics.
++`diagnostic/writer.rs` borrows caller output for shared JSON/human rendering; the CLI report path owns its stream lock. Active bounded JSON retains the complete legacy renderer and its logical quote order. Neither writer nor stream lock certifies prepaid report/output storage.
+ `help_dispatch.rs` prints the global and scoped `cli::help` surfaces.
+ The `source_execution.rs` module’s `fused_profile` child dispatches the explicit source-only profile before
+ ordinary checking. Public `fused_source` parses once and lends a private full
+@@ -1011,13 +1012,24 @@ unpriced compatibility boundary. Drop never refuses destruction or grants a
+ budget. `ast/drop_original.rs` compiles the complete prior destructor and its
+ original deep-root owner independently; whole-source and actual free-order
+ controls accompany the unchanged custody receiving observer.
+-`ast/program_source` owns a sealed two-slice compiler input and a concrete
+-presentation identity. `workspace_graph/expected_projection/borrowed_leaf`
++`ast/program_source` owns sealed ordinary and projected declaration views and a
++concrete presentation identity. `workspace_graph/expected_projection/borrowed_leaf`
+ lends authored AST collections for admitted import-free synthetic inputs and
+-owns only their optional scalar main. Imported views own generated aliases and
+-checking bodies while lending immutable authored slices. The source verifier,
++owns only their optional scalar main. The ordinary imported route owns generated
++aliases and checking bodies while lending immutable authored slices. The source verifier,
+ prelude/declaration index and resolver consume that exact input; invariant
+ transformations and semantic cache publication keep genuine owning boundaries.
++`ast/program_source/function_alias.rs` owns provider-bound borrowed function
++views and the projected `DeclSlices` directory. A view requires the exact
++provider member and unchanged function name; pointer identity grants no authority.
++Its `FunctionDirectory` retains one `GeneratedRoots` owner for all generated
++types and fallback functions, including partial-construction teardown.
++`expected_projection/borrowed_imports/typed/alias.rs` owns the ordered import
++walk. The original wrapper classifier still admits the shape, and renamed or
++unsupported aliases retain the owning fallback. The actual core selects this
++transient route only for retained-output uncached construction without a
++frontend; it cannot publish a checked cache key. Existing semantic replay and
++final owning products retain their original boundaries.
+ `expected_projection/borrowed_imports/receiving.rs` owns the actual core import
+ walk, retaining the full standalone producer as an independent receiver. Its
+ `bounded_output/key_directory.rs` affine owner allocates and pays real spare
+@@ -2185,13 +2197,22 @@ passes renewal authority explicitly through the Graph classifiers for that
+ invocation. It retains no additional declaration index. Cleanup selector
+ equivalences are checked before higher Graph selectors can mask a mismatch;
+ frozen from-parts routes without declaration provenance retain their refusal.
+-`workspace_report.rs` retains one affine selected-replay failure, its exact
+-ledger and any paid diagnostic backing; explicit legacy materialization stays
+-an allocating boundary. `semantic_workspace/reporting.rs` owns the additive
+-source-only checked preflight and its independent receiving replay. Its checked
+-manifest/revision view grants no filesystem lock or publication authority.
+-Filesystem preparers and dynamic directory/TLS attribution remain legacy;
+-this source-only route does not qualify those reports as funded. See
++`workspace_report.rs` retains the affine selected-replay failure and its exact
++ledger/backing, an opaque initial report, or a complete unreceived primary and
++failed owner. `workspace_graph/initial_report.rs` and `initial_report/build.rs`
++own the sealed builder error policy: the legacy Vec strategy invokes the
++original lexical renderer once, while the typed strategy records complete
++message/help/evidence/combined-help acceptance on the real active parent before
++invocation restoration. `diagnostics/initial` then moves the existing attribution
++Strings and renders later without consulting TLS or spending that original
++payer again. Initial inline controls and ordinary caller output are explicitly
++unfunded; explicit legacy materialization remains an allocating boundary.
++`semantic_workspace/reporting.rs` owns checked preflight and its independent
++receiving replay; its manifest/revision view grants no filesystem lock or
++publication authority. The actual typed change, structural-change and operations
++callers retain their existing read/commit authorities. Snapshot/base-operations
++compatibility routes and unmatched legacy reports remain explicit boundaries;
++this policy does not certify complete report funding. See
+ [Workspace Report Owner v1](WORKSPACE-REPORT-OWNER-V1.md).
+ `workspace_graph/paid_view.rs` owns the typed change, operation and schema
+ view refusal (`ViewRefusal`). The actual selected lexical replay caller in
+@@ -2386,6 +2407,13 @@ MCP, LSP, editor, watcher, build, execution, commit, or publication route. See
+ [Persistent Incremental Semantic Service
+ v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md).
+ 
++`workspace_graph::identity_resolution::base::cache_billing` separates the
++actual invocation-wide prelude acquisition from each cached module's resolver
++bill. Hits perform full HIR validation before reacquiring their exact current
++prelude through the live core and funded identity owner. The invocation's
++successful-debit counter supplies accounting only; it grants no source,
++reservation or cache authority. Actual debits are never refunded.
++
+ `src/project/workspace_execution.rs` owns the exact SEG-04 binding selector and
+ receipt replay for one retained service generation and its selected
+ ProgramRoot; it accepts no caller-supplied root decoding or authority. Its
+@@ -4845,6 +4873,12 @@ older independent receiver. Exact full-body source projection, literal spill,
+ whole collector Drop and pending qualification controls are recorded in
+ `docs/evidence/cleanup-shape-cursor/HANDOFF.md`.
+ 
++`cleanup_plan/replay/structural_control/calls/cursor.rs` owns the structural
++call lookup's paid continuation storage. It grows at actual depth under the
++original independent 514-slot ceiling. The full signature, parameter, transfer
++and leaf validation receivers remain in `calls.rs`; the complete previous
++lookup owner remains compiled beside its funding and parity controls.
++
+ 
+ `loan_plan/paid_cursor.rs` owns borrowed preorder discovery for the funded
+ candidate receiver. One pure full discovery preflight precedes the complete
+diff --git a/docs/DEVELOPMENT.md b/docs/DEVELOPMENT.md
+index 60b1222f2..841337a62 100644
+--- a/docs/DEVELOPMENT.md
++++ b/docs/DEVELOPMENT.md
+@@ -206,6 +206,17 @@ private toolchain package, whose path dependencies retain exact version pins.
+ The package gate must verify the actual archive; disabling verification is not
+ a packaging fix.
+ 
++Use `semaprax::digest_hex::LowerHex` around SHA-256 digests in integration
++tests, or `crate::digest_hex::LowerHex` within the compiler. The digest array
++does not implement Rust's `LowerHex` formatter directly. Source-audit helpers
++compile in their owning integration harness, separately from the unit binary.
++
++Positive authenticated-source fixtures must contain canonical source. Keep raw
++noncanonical input as a separate negative case, then use the compiler formatter
++for the success fixture. CLI `--json` diagnostics are JSON lines on stdout;
++human diagnostics use stderr. Check the selected diagnostic code in the correct
++channel instead of accepting any unsuccessful exit.
++
+ The quickstart, frame-payload product, and root owned-data/UTF-8 SDK tests
+ share `tests/support/full_toolchain.rs` to build the unpublished CLI locked
+ and offline. The helper selects the unique `semaprax-full` binary from
+diff --git a/src/hir/resolve_for/bytes/tests.rs b/src/hir/resolve_for/bytes/tests.rs
+index c036c5710..d8509d6e4 100644
+--- a/src/hir/resolve_for/bytes/tests.rs
++++ b/src/hir/resolve_for/bytes/tests.rs
+@@ -291,9 +291,17 @@ fn a_manual_while_cannot_create_byte_traversal_ancestry() {
+ "#;
+     let source_errors = crate::check(source, "byte-ancestry.spx").unwrap_err();
+     assert!(source_errors.iter().any(|e| e.code == "SPX-T284"));
+-    // Resolution must enforce the same boundary even without source checking.
+     let parsed = crate::parse(source, "byte-ancestry.spx").unwrap();
+-    let hir_errors = crate::hir::resolve(&parsed).unwrap_err();
+-    assert!(hir_errors.iter().any(|e| e.code == "SPX-H006"
+-        && e.message == "nested for traversal reached bounded-loop HIR admission"));
++    // The public resolver preserves the complete source diagnostic unchanged.
++    assert_eq!(crate::hir::resolve(&parsed).unwrap_err(), source_errors);
++    // Deliberately supply a hostile AST to the private post-verification seam:
++    // HIR admission must independently refuse the invented byte ancestry.
++    let Err(hir_error) = crate::hir::resolve_verified(&parsed, None) else {
++        panic!("manual while invented byte traversal ancestry");
++    };
++    assert_eq!(hir_error.code, "SPX-H006");
++    assert_eq!(
++        hir_error.message,
++        "nested for traversal reached bounded-loop HIR admission"
++    );
+ }
+diff --git a/tests/hir_module_boundaries.rs b/tests/hir_module_boundaries.rs
+index 9233191b7..2e08b8dda 100644
+--- a/tests/hir_module_boundaries.rs
++++ b/tests/hir_module_boundaries.rs
+@@ -434,7 +434,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
+             include_str!("../src/test_allocation_observer.rs"),
+             include_str!("../src/test_allocation_observer/free_order.rs"),
+         ),
+-        include_str!("../src/cleanup_plan/replay/factored/canonical_shared.rs"),
++        include_str!("../src/cleanup_plan/replay/factored/canonical_shared.rs"), include_str!("../src/bounded_output/format_acceptance.rs"), include_str!("../src/bounded_output/format_acceptance/tests.rs"), include_str!("../src/workspace_graph/diagnostics/initial.rs"), include_str!("../src/workspace_graph/diagnostics/initial/context.rs"), include_str!("../src/workspace_graph/diagnostics/initial/tests.rs"), include_str!("../src/workspace_graph/initial_report.rs"), include_str!("../src/workspace_graph/initial_report/before.rs"), include_str!("../src/workspace_graph/initial_report/before_mappers.rs"), include_str!("../src/workspace_graph/initial_report/build.rs"), include_str!("../src/workspace_graph/initial_report/tests.rs"), include_str!("../src/workspace_report/initial.rs"), include_str!("../src/cleanup_plan/replay/factored/compact_nodes.rs"), include_str!("../src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs"), include_str!("../src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs"), include_str!("../src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs"), include_str!("../src/cleanup_plan/replay/factored/compact_nodes/before/storage.rs"), include_str!("../src/cleanup_plan/replay/factored/compact_nodes/before/strategy.rs"), include_str!("../src/ast/program_source/decl_slices/alias_tests.rs"), include_str!("../src/ast/program_source/decl_slices/before_alias.rs"), include_str!("../src/ast/program_source/function_alias.rs"), include_str!("../src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs"), include_str!("../src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs"), include_str!("../src/workspace_graph/expected_projection/borrowed_imports/typed/before_alias.rs"), include_str!("../src/workspace_graph/function_alias/before_core.rs"), include_str!("../src/workspace_graph/function_alias/before_core/tests.rs"), include_str!("../src/cleanup_plan/replay/factored/compact_nodes/tests.rs"),
+         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs"),
+         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs"),
+         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs"),
+@@ -504,7 +504,9 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
+         include_str!("../src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs"),
+         include_str!("../src/source_reflows_merge.rs"),
+         include_str!("../src/cleanup_plan/replay/path_join/storage/empty_renewals.rs"),
++        include_str!("../src/cleanup_plan/replay/path_join/storage/atomic_controls.rs"),
+         include_str!("../src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs"),
++        include_str!("../src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs"),
+         include_str!("../src/cleanup_plan/replay/expression_facts/receiving/return_operands.rs"),
+         include_str!("../src/cleanup_plan/replay/expression_facts/receiving/return_operands/exits.rs"),
+         include_str!("../src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs"),
+@@ -516,8 +518,8 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
+         include_str!("../src/cleanup_plan/replay/structural_control.rs"),
+         include_str!("../src/cleanup_plan/replay/structural_control/blocks.rs"),
+         include_str!("../src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs"),
+-        include_str!("../src/cleanup_plan/replay/structural_control/call_receiving.rs"),
+-        include_str!("../src/cleanup_plan/replay/structural_control/calls.rs"),
++        include_str!("../src/cleanup_plan/replay/structural_control/call_receiving.rs"), include_str!("../src/cleanup_plan/replay/supplemental/receiving.rs"), include_str!("../src/cleanup_plan/replay/supplemental/receiving/tests.rs"),
++        concat!(include_str!("../src/cleanup_plan/replay/structural_control/calls.rs"), include_str!("../src/cleanup_plan/replay/structural_control/calls/cursor.rs"), include_str!("../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs"), include_str!("../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs"), include_str!("../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs")),
+         include_str!("../src/cleanup_plan/replay/structural_control/calls/custody_tests.rs"),
+         include_str!("../src/cleanup_plan/replay/structural_control/calls/custody_tests/source.rs"),
+         include_str!("../src/cleanup_plan/replay/structural_control/calls_before_receipt.rs"),
+@@ -525,7 +527,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
+         include_str!("../src/cleanup_plan/replay/selected_entry/tests/fact_errors.rs"),
+         include_str!("../src/cleanup_plan/replay/semantic_refusal.rs"),
+         include_str!("../src/cleanup_plan/replay/semantic_refusal/tests.rs"),
+-        include_str!("../src/workspace_graph/expected_projection/private_layout.rs"),
++        include_str!("../src/workspace_graph/expected_projection/private_layout.rs"), include_str!("../src/workspace_graph/expected_projection/private_layout/registry/storage.rs"), include_str!("../src/workspace_graph/expected_projection/private_layout/registry/before_retained.rs"), include_str!("../src/workspace_graph/expected_projection/private_layout/registry/retained_tests.rs"),
+         include_str!("../src/workspace_graph/expected_projection/private_layout/capacity_before.rs"),
+         include_str!("../src/workspace_graph/expected_projection/private_layout/capacity_tests.rs"),
+         include_str!("../src/workspace_graph/expected_projection/private_layout/capacity_tests/owner_controls.rs"),
+@@ -537,6 +539,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
+         include_str!("../src/cleanup_plan/replay/selected_context/child.rs"),
+         include_str!("../src/cleanup_plan/replay/selected_context/child/tests.rs"),
+         include_str!("../src/cleanup_plan/replay/selected_context/child/tests/source.rs"),
++        include_str!("../src/cleanup_plan/replay/selected_context/child/tests/source/compressed_fixture.rs"), include_str!("../src/diagnostic/writer.rs"), include_str!("../src/diagnostic/writer/tests.rs"), include_str!("../src/diagnostic/before_writer.rs"), include_str!("../src/ast/expression_statement/tests.rs"), include_str!("../tests/wasm/scalar_browser_ci_contract/historical_builder.rs"),
+         include_str!("../src/cleanup_plan/replay/selected_context/paid_before_children.rs"),
+         include_str!("../src/hir/lexical_exit/selected_child.rs"),
+         include_str!("../src/loop_calls/byte_writer/resolved/selected_inline.rs"),
+@@ -589,7 +592,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
+         include_str!("../src/cleanup_plan/replay/expression_facts/ordinary_before.rs"),
+         include_str!("../src/cleanup_plan/replay/allocation/tests/ordinary_before.rs"),
+         include_str!("../src/cleanup_plan/replay/allocation/tests/accounting_scope.rs"),
+-        include_str!("../src/cleanup_plan/replay/expression_facts/arena/producer.rs"),
++        concat!(include_str!("../src/cleanup_plan/replay/expression_facts/arena/producer.rs"), include_str!("../src/cleanup_plan/replay/expression_facts/arena/before_cursor.rs"), include_str!("../src/cleanup_plan/replay/expression_facts/arena/producer_before_cursor.rs"), include_str!("../src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs"), include_str!("../src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs")),
+         concat!(include_str!("../src/cleanup_plan/replay/expression_facts/arena.rs"),
+             include_str!("../src/cleanup_plan/replay/expression_facts/arena/prefix.rs"),
+             include_str!("../src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs")),
+@@ -808,6 +811,13 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
+         include_str!("../src/hir/prelude_bundle/work_model.rs"),
+         include_str!("../src/project/incremental/paid_resolution/base.rs"),
+         include_str!("../src/workspace_graph/identity_resolution/base.rs"),
++        include_str!("../src/workspace_graph/identity_resolution/base/cache_billing.rs"),
++        include_str!("../src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs"),
++        include_str!("../src/workspace_graph/identity_resolution/base/cache_billing/tests.rs"),
++        include_str!("../src/workspace_graph/constructor_failure/before_publication.rs"),
++        include_str!("../src/workspace_graph/constructor_failure/before_publication/attempt.rs"),
++        include_str!("../src/workspace_graph/constructor_failure/before_publication/report.rs"),
++        include_str!("../src/workspace_graph/constructor_failure/publication_tests.rs"),
+         include_str!("../src/workspace_graph/identity_resolution/base/tests.rs"),
+         include_str!("../src/workspace_graph/identity_resolution/base/affinity_tests.rs"),
+         include_str!("../src/hir/function_reuse_source.rs"),
+diff --git a/tests/project/semantic_cache.rs b/tests/project/semantic_cache.rs
+index 22ad068b7..a5ddea52e 100644
+--- a/tests/project/semantic_cache.rs
++++ b/tests/project/semantic_cache.rs
+@@ -114,7 +114,7 @@ fn work_split(
+     assert_eq!(report["schema"], "semaprax.project-semantic-cache-work.v1");
+     assert_eq!(
+         report["compiler"]["compatibility"],
+-        "semaprax.project-checked-module-hir.v11"
++        semaprax::project::PROJECT_SEMANTIC_CACHE_COMPATIBILITY
+     );
+     assert_eq!(report["work"]["modules_parsed"], ast_parsed);
+     assert_eq!(report["work"]["canonicalizer_calls"], ast_parsed);
+@@ -579,3 +579,30 @@ mod string_transfer;
+ 
+ #[path = "semantic_cache/copy_discard.rs"]
+ mod copy_discard;
++
++#[test]
++fn same_length_provider_edits_after_a_checked_hit_keep_full_cold_graph_and_image_bytes() {
++    let fixture = Fixture::new();
++    let manifest = fixture.manifest();
++    let mut cache = ProjectFrontendCache::new_with_semantic_cache();
++    let first = cache.build(&manifest, &fixture.sources()).unwrap();
++    work(&first, 4, 0);
++    same(first.revision(), fixture.cold().unwrap());
++    for (from, to) in [
++        ("left + right", "right + left"),
++        ("right + left", "left + right"),
++    ] {
++        let before = fixture.read("src/core.spx");
++        fixture.replace("src/core.spx", from, to);
++        assert_eq!(fixture.read("src/core.spx").len(), before.len());
++        let edited = cache.build(&manifest, &fixture.sources()).unwrap();
++        let report = work_split(&edited, 1, 3, 1, 3);
++        assert_eq!(report["invalidated_sources"], json!(["src/core.spx"]));
++        // The app sorts before its provider and retains an exact checked hit.
++        // A miss after it must not acquire an already-replayed prelude twice.
++        same(edited.revision(), fixture.cold().unwrap());
++        let unchanged = cache.build(&manifest, &fixture.sources()).unwrap();
++        work(&unchanged, 0, 4);
++        same(unchanged.revision(), fixture.cold().unwrap());
++    }
++}

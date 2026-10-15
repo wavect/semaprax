@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::validation::canonical_loans::ownership_tests::complete_active_compatibility_constructor_is_paid_through_drop_exact_short_zero_and_sticky ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.02s
+

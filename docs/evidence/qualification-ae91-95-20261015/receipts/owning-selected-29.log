@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::generic_type_import::parameter_names::tests::spill_backing_is_exact_paid_owned_and_short_zero_refusal_stays_g171_through_drop ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.00s
+

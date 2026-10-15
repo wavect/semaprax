@@ -1,0 +1,7 @@
+
+running 1 test
+test cleanup_plan::replay::expression_facts::receiving::return_operands::tests::ordinary_operand_producer_costs_are_controls_plus_fact_visits_and_actual_directory_operations ... #832 ordinary producer=(96, 1256) directory_only=(80, 144) controls_bytes=1112 initializer_work=14 fact_visits=2; old/current whole driver frontiers are exercised by lexical_replay::operand_tests
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9069 filtered out; finished in 0.01s
+

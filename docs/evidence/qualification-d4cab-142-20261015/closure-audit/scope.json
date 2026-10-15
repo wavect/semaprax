@@ -1,0 +1,228 @@
+{
+  "status": "PENDING_RUNTIME_AND_CLIPPY",
+  "source_subject": "d4cab900edac07fdcc4de0cdcb1bf3daafbef5ef",
+  "selection_manifest_sha256": "917f816e3d5abbac49c82c353d29da15845381f842faa3ab493278416fec146f",
+  "original_conditional_map_sha256": "61ee61dafcea1896804d631446ac6344bbe1679e5f2703334e750d61354876ad",
+  "issues": [
+    {
+      "issue": 832,
+      "positive_required": [
+        "cleanup_plan::replay::lexical_replay::operand_tests::full_old_and_current_ordinary_lexical_callers_keep_success_and_first_diagnostic_fields",
+        "cleanup_plan::replay::lexical_replay::operand_tests::no_owner_ordinary_caller_remains_the_complete_original_route",
+        "cleanup_plan::replay::lexical_replay::operand_tests::source::whole_old_lexical_caller_and_all_new_inventory_sources_remain_bound",
+        "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::exact_one_short_zero_bytes_and_work_pay_actual_controls_and_first_node_through_drop",
+        "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::duplicate_ids_borrow_exact_input_and_spare_reuse_authenticates_sticky_failure",
+        "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::foreign_function_facts_budget_and_restored_nested_owner_never_reuse_backing",
+        "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::expired_original_active_owner_cannot_restore_an_inventory_after_scope_exit",
+        "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::empty_and_duplicate_absolute_frontiers_follow_actual_control_node_and_comparison_work",
+        "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::ordinary_operand_producer_costs_are_controls_plus_fact_visits_and_actual_directory_operations",
+        "cleanup_plan::replay::expression_facts::receiving::remaining::tests::complete_exit_receivers_preserve_all_old_fields_and_first_semantic_errors",
+        "cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+        "cleanup_plan::replay::live_oracle::source_custody::b::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+        "cleanup_plan::replay::live_oracle::source_custody::presence_tests::merged_current_ci_reflow_and_presence512_complete_inputs_remain_exact",
+        "project::incremental::cold_source_tests::explicit_owner_siblings_match_legacy_selective_routes_and_body_reuse"
+      ],
+      "all_selected": true,
+      "measurement_requirements": [
+        {
+          "selector": "cleanup_plan::replay::lexical_replay::operand_tests::full_old_and_current_ordinary_lexical_callers_keep_success_and_first_diagnostic_fields",
+          "extract_prefix": "#832 attack=",
+          "meaning": "old/current absolute work and declared bytes; new honest acquisition work can differ from old"
+        },
+        {
+          "selector": "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::ordinary_operand_producer_costs_are_controls_plus_fact_visits_and_actual_directory_operations",
+          "extract_prefix": "#832 ordinary producer=",
+          "meaning": "producer vs directory controls/fact visits; not whole compiler funding"
+        }
+      ]
+    },
+    {
+      "issue": 834,
+      "positive_required": [
+        "workspace_graph::expected_projection::private_layout::capacity_tests::callback_occurrences_bound_exact_full_identity_inserts_on_sparse_dense_duplicate_and_imported_closures",
+        "workspace_graph::expected_projection::private_layout::capacity_tests::actual_cold_reservation_allocation_peak_and_full_drop_are_compared_without_baseline_padding",
+        "workspace_graph::expected_projection::private_layout::capacity_tests::physical_and_work_exact_short_zero_frontiers_preserve_old_order_and_honest_new_acceptance",
+        "workspace_graph::expected_projection::private_layout::capacity_tests::malformed_complete_receivers_keep_all_six_diagnostic_fields_and_priority",
+        "workspace_graph::expected_projection::private_layout::capacity_tests::owner_controls::cold_registry_exact_short_zero_and_foreign_restored_contexts_keep_receipts_sticky",
+        "workspace_graph::expected_projection::private_layout::capacity_tests::owner_controls::same_required_derived_bytes_preserve_nested_parent_floor_and_full_drop",
+        "workspace_graph::expected_projection::private_layout::capacity_tests::owner_controls::unchanged_signature_owner_rejects_foreign_type_then_cannot_recover_after_restoration",
+        "workspace_graph::expected_projection::private_layout::capacity_tests::source::complete_old_receiver_source_and_all_new_joined_sources_stay_exact",
+        "workspace_graph::expected_projection::private_layout::function_tests::decoded_ready_wire_and_cleanup_match_complete_imports_with_private_descendants_omitted",
+        "workspace_graph::expected_projection::private_layout::registry::tests::invocation_reuses_exact_closure_across_import_forecasts_stubs_and_retry_modes",
+        "workspace_graph::expected_projection::private_layout::registry::tests::preparation_has_exact_one_short_overlap_and_sticky_context_refusal",
+        "workspace_graph::expected_projection::private_layout::registry::tests::fallible_sort_matches_independent_order_and_stops_at_exact_work_boundary",
+        "workspace_graph::expected_projection::private_layout::registry::tests::two_callers_share_one_derivation_query_ledger_and_sticky_refusal",
+        "workspace_graph::expected_projection::private_layout::registry::tests::held_presentation_borrows_without_allocation_and_pays_shared_work",
+        "workspace_graph::expected_projection::private_layout::registry::tests::held_presentation_work_is_exact_one_short_and_sticky"
+      ],
+      "all_selected": true,
+      "measurement_requirements": [
+        {
+          "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::actual_cold_reservation_allocation_peak_and_full_drop_are_compared_without_baseline_padding",
+          "extract_prefix": "#834 ",
+          "meaning": "REQUIRED POSITIVE gate: exact old/current reservation/actual allocation/reallocation/peak/freed/live and removed-entry bytes for every named case"
+        }
+      ]
+    },
+    {
+      "issue": 838,
+      "positive_required": [
+        "cleanup_plan::replay::factored::canonical_shared::ordered_weights::amortized_source::ordered_amortized_checkpoint_full_sources_and_inverses_are_exact",
+        "cleanup_plan::replay::factored::canonical_shared::ordered_weights::receiver_tests::ordered_complete_old_closures_successors_ids_signatures_and_weighted_overflow_match",
+        "cleanup_plan::replay::factored::canonical_shared::ordered_weights::receiver_tests::ordered_complete_old_each_exposed_work_frontier_preserves_first_diagnostic_and_overflow",
+        "cleanup_plan::replay::factored::canonical_shared::ordered_weights::receiver_tests::ordered_full_receiver_actual_reservation_allocation_peak_and_every_exit_drop",
+        "cleanup_plan::replay::factored::canonical_shared::ordered_weights::source::ordered_complete_immediate_sources_round_trip_in_both_directions",
+        "cleanup_plan::replay::factored::canonical_shared::ordered_weights::source::ordered_full_old_receiver_and_alias_adaptation_are_exact",
+        "cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_arena_all_rotations_numeric_extremes_and_dense_permutations_match_btree",
+        "cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_arena_each_growth_zero_exact_short_keeps_actual_allocation_separate_and_drops",
+        "cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_growth_receiving_and_initializers_are_paid_then_warm_insertion_constructs_no_result",
+        "cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_private_index_growth_refuses_before_allocation_or_mutation"
+      ],
+      "all_selected": true,
+      "measurement_requirements": [
+        {
+          "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::receiver_tests::ordered_full_receiver_actual_reservation_allocation_peak_and_every_exit_drop",
+          "extract_prefix": "ordered full old=",
+          "meaning": "per input old/current reservation separately from Metrics; full success/error/cycle Drop; report each state/domain independently"
+        }
+      ]
+    },
+    {
+      "issue": 839,
+      "positive_required": [
+        "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_cache_receiving_fee_preserves_floor_and_sticky_refusal_without_allocation",
+        "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_canonical_physical_zero_exact_short_growth_and_all_exit_drops",
+        "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_closure_cached_route_constructs_no_cursor_and_rejects_foreign_authentication",
+        "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_closure_same_scope_cache_hit_has_zero_allocation_and_one_work_unit",
+        "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_memo_foreign_function_budget_and_restoration_never_touch_foreign_payer",
+        "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_complete_old_current_actual_and_reserved_costs_are_separate",
+        "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_complete_old_every_work_frontier_and_failure_cleanup",
+        "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_complete_old_ids_weights_signatures_work_and_diagnostics",
+        "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_every_actual_byte_cut_clears_owners_before_sticky_retry",
+        "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_immediate_complete_originals_and_adaptation_are_exact",
+        "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_no_owner_route_never_bootstraps_active_zero_payer",
+        "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_warm_authentication_pays_the_real_result_at_exact_and_one_short_frontiers",
+        "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_warm_authentication_removes_only_real_carriers_at_zero_exact_and_short_frontiers",
+        "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_complete_immediate_receiver_keeps_ids_signatures_overflow_and_every_work_frontier",
+        "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_immediate_old_and_current_cold_cuts_and_whole_drop_remain_separate",
+        "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_foreign_function_budget_nested_and_restored_owner_refuse_without_foreign_debit",
+        "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_cached_closure_keeps_original_one_work_unit_and_same_result_without_auth_debit",
+        "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_foreign_oracle_never_queries_foreign_or_restored_payer",
+        "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_warm_floor_equality_and_first_required_refusal_remain_sticky_after_floor_clear",
+        "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_oracle_old_current_actual_warm_requests_are_not_padded_and_whole_owners_drop",
+        "cleanup_plan::replay::factored::canonical_shared::memo::retained::held_tests::held_first_six_field_diagnostic_moves_once_and_terminal_retry_keeps_empty_sentinel",
+        "cleanup_plan::replay::factored::canonical_shared::scratch_tests::immediate_old_floor::retained_cache_receiving_fee_preserves_floor_and_sticky_refusal_without_allocation",
+        "cleanup_plan::replay::physical_budget::authentication::tests::held_zero_gateway_all_production_payers_preserve_full_diagnostic_first_receipt_floor_and_drop",
+        "cleanup_plan::replay::physical_budget::authentication::tests::held_zero_gateway_existing_six_field_slot_is_never_overwritten_or_queried",
+        "cleanup_plan::replay::physical_budget::authentication::tests::held_zero_gateway_oracle_exact_attempts_sticky_expired_and_zero_owner_parity",
+        "cleanup_plan::replay::physical_budget::authentication::tests::held_zero_gateway_fresh_zero_oracle_never_bootstraps_text_or_active_payer",
+        "cleanup_plan::replay::physical_budget::authentication::source::held_full_current_sources_and_immediate_inverses_authenticate_every_byte",
+        "cleanup_plan::replay::physical_budget::authentication::source::held_complete_old_receivers_and_original_fee_body_are_exact_independent_sources",
+        "cleanup_plan::replay::physical_storage::zero_tests::held_physical_zero_preserves_all_fields_first_refusal_and_enclosing_floor",
+        "cleanup_plan::replay::allocation::oracle::zero_tests::held_oracle_unit_zero_keeps_complete_charge_receipt_counter_overflow_and_expiration",
+        "held_auth_sources::held_authentication_complete_source_owners_and_ordinary_receivers_stay_independent"
+      ],
+      "all_selected": true,
+      "measurement_requirements": [
+        {
+          "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_complete_old_current_actual_and_reserved_costs_are_separate",
+          "extract_prefix": "scratch full-old reservation=",
+          "meaning": "complete old scratch vs current composite receiver fixture; current cfgtest id includes later843 bootstrap. Not isolated839 attribution."
+        },
+        {
+          "selector": "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_warm_authentication_removes_only_real_carriers_at_zero_exact_and_short_frontiers",
+          "extract_prefix": null,
+          "meaning": "actual measured paid/request/frontier and no-allocation predicates are asserted; no printed cost tuple. Do not invent numeric tuple from PASS."
+        }
+      ]
+    },
+    {
+      "issue": 843,
+      "positive_required": [
+        "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_full_old_ids_six_fields_work_order_overflow_and_cycles",
+        "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_two_roots_reuse_one_owner_and_count_actual_inner_misses",
+        "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_bootstrap_pays_actual_controls_at_exact_and_one_short",
+        "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_production_sequence_exact_short_and_whole_drop_have_separate_old_domain",
+        "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_failure_publication_moves_all_six_fields_without_success_transport",
+        "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_foreign_function_budget_nested_and_expired_slot_are_sticky_without_query",
+        "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_arithmetic_none_is_not_a_refusal_and_slot_can_receive_again",
+        "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_complete_old_invocation_and_current_caller_keep_checked_verdict_and_work",
+        "cleanup_plan::replay::factored::canonical_shared::closure_receiving::source::held_closure_every_source_and_full_immediate_inverse_are_exact",
+        "cleanup_plan::replay::factored::canonical_shared::closure_receiving::source::held_closure_complete_old_canonical_and_caller_are_independent_byte_exact_bodies",
+        "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_actual_entries_hide_cached_views_after_foreign_and_restored_slots"
+      ],
+      "all_selected": true,
+      "measurement_requirements": [
+        {
+          "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_production_sequence_exact_short_and_whole_drop_have_separate_old_domain",
+          "extract_prefix": null,
+          "meaning": "genuine immediate-old vs held shared-slot two-root comparison; separately measured exact paid frontier and allocated/peak/freed/live predicates, no printed numeric tuples"
+        },
+        {
+          "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_two_roots_reuse_one_owner_and_count_actual_inner_misses",
+          "extract_prefix": null,
+          "meaning": "real producer boundary counts, not memo entries; asserted miss/reuse counts, not application frequency"
+        },
+        {
+          "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+          "extract_prefix": "inline-target-layers width=",
+          "meaning": "REQUIRED MEASUREMENT/DISCLOSURE, whole strict assertion unchanged. Earlier831 baseline vs ONE current cfgtest id request with fresh843 bootstrap. Genuine composite low-miss regression if FAIL; keeps831 OPEN. Does not replace immediate843 two-root comparison and cannot be claimed passed/isolated843gain."
+        }
+      ]
+    }
+  ],
+  "run_disclose_owners": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:native",
+      "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_actual_byte_and_item_plus_one_preflight_never_reserve_output"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:native",
+      "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_reads_and_short_refusal_allocate_nothing_then_copy_final_string_once"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_request_decision_response_keeps_duplicate_unicode_and_boundary_slots"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_actual_item_and_byte_plus_one_refuse_before_publication"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_maximum_escaping_exact_output_cap_and_plus_one"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_plan_receipts_and_live_revision_reject_forged_versions"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_two_nested_paths_preserve_exact_and_one_short_bytes"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure"
+    }
+  ],
+  "application_policy": "832/834 require unchanged app owners executed and failures disclosed;838/839 also require exact native/project808 and builder boundary runs plus honest remaining808failure. These tickets do not promise application cap PASS. #835 literal positive app requirements remain independent, cannot be waived. Actual required app executions must exist even when failed; pending/unexecuted is not disclosure completion.",
+  "831_policy": "Whole #163 strict reservation-gain assertion remains intact. If failed, label actual FAIL and keep831 OPEN; do not infer per843 attribution. A genuine own failed predicate blocks its issue."
+}

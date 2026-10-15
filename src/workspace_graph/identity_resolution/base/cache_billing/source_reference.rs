@@ -1,6 +1,7 @@
 //! Named whole-file proof of the shared-prelude cache-billing integration.
 //! This is separate from formatting-only CI inverses. Every current root byte
-//! is authenticated before undoing only the three declared billing hooks.
+//! is authenticated before undoing the declared failure-call-site hooks
+//! and the three shared-billing hooks.
 use sha2::{Digest, Sha256};
 use std::sync::OnceLock;
 fn digest(source: &str) -> String {
@@ -14,9 +15,49 @@ fn restore(current: &str) -> String {
     let current = merged.as_str();
     assert_eq!(
         digest(current),
-        "3fcd39c7b442be79e1200493893a14f7ad9a00c242e54b40b090c102e3e44561"
+        "811b1dae18de462dedf10c6b683ef6f3ea1c835cc0d92964baa39476c97936e4"
     );
     let mut original = current.to_owned();
+    // Diagnostic metadata does not alter any resolver or billing receiver.
+    const SITE_AFTER_0: &str = r###"            })
+            .transpose()?;
+        let (core, overflowed, consumed, refusal, site) =
+            crate::bounded_output::with_limit_usage_refusal_site(active_builder_limit(), || {
+                #[cfg(test)]
+                let _trace = crate::bounded_output::stage_debits::start(
+"###;
+    const SITE_BEFORE_0: &str = r###"            })
+            .transpose()?;
+        let (core, overflowed, consumed, refusal) =
+            crate::bounded_output::with_limit_usage_refusal(active_builder_limit(), || {
+                #[cfg(test)]
+                let _trace = crate::bounded_output::stage_debits::start(
+"###;
+    assert_eq!(original.matches(SITE_AFTER_0).count(), 1);
+    original = original.replacen(SITE_AFTER_0, SITE_BEFORE_0, 1);
+    const SITE_AFTER_1: &str = r###"            || !retry_allowed
+        {
+            return Err(vec![diagnostics::live_builder_refusal_at(
+                active_builder_limit(),
+                refusal,
+                site,
+            )]);
+        }
+"###;
+    const SITE_BEFORE_1: &str = r###"            || !retry_allowed
+        {
+            return Err(vec![diagnostics::live_builder_refusal(
+                active_builder_limit(),
+                refusal,
+            )]);
+        }
+"###;
+    assert_eq!(original.matches(SITE_AFTER_1).count(), 1);
+    original = original.replacen(SITE_AFTER_1, SITE_BEFORE_1, 1);
+    assert_eq!(
+        digest(&original),
+        "3fcd39c7b442be79e1200493893a14f7ad9a00c242e54b40b090c102e3e44561"
+    );
     const AFTER_0: &str = r###"            })
         );
         let shared_before = core_proofs.base_prelude.selected_bytes();

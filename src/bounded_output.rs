@@ -118,6 +118,7 @@ struct Budget {
     floor: Cell<usize>,
     overflowed: Cell<bool>,
     first_refusal: Cell<Option<ReservationRefusal>>,
+    first_site: Cell<Option<ReservationSite>>,
     stage: Cell<Option<ReservationStage>>,
 }
 
@@ -178,6 +179,7 @@ pub(crate) fn with_limit_usage_refusal<T>(
         floor: Cell::new(0),
         overflowed: Cell::new(false),
         first_refusal: Cell::new(None),
+        first_site: Cell::new(None),
         stage: Cell::new(None),
     });
     let previous = ACTIVE.with(|active| active.replace(Some(Rc::clone(&budget))));
@@ -194,14 +196,37 @@ pub(crate) fn with_limit_usage_refusal<T>(
     (value, overflowed, consumed, refusal)
 }
 
+/// Compiler-owned call-site evidence, never a payer or source identity.
+pub(crate) type ReservationSite = &'static std::panic::Location<'static>;
+
+pub(crate) fn with_limit_usage_refusal_site<T>(
+    limit: usize,
+    operation: impl FnOnce() -> T,
+) -> (
+    T,
+    bool,
+    usize,
+    Option<ReservationRefusal>,
+    Option<ReservationSite>,
+) {
+    let ((value, site), overflowed, consumed, refusal) = with_limit_usage_refusal(limit, || {
+        let value = operation();
+        let site = active().and_then(|budget| budget.first_site.get());
+        (value, site)
+    });
+    (value, overflowed, consumed, refusal, site)
+}
+
 fn active() -> Option<Rc<Budget>> {
     ACTIVE.with(|active| active.borrow().clone())
 }
 
+#[track_caller]
 fn record_refusal(budget: &Budget, length: usize) {
     if budget.first_refusal.get().is_none() {
         #[cfg(test)]
         stage_debits::refusal(budget, length);
+        budget.first_site.set(Some(std::panic::Location::caller()));
         budget.first_refusal.set(Some(ReservationRefusal {
             requested: length,
             remaining: budget.remaining.get(),
@@ -262,6 +287,7 @@ macro_rules! staged {
 }
 pub(crate) use staged;
 
+#[track_caller]
 fn reserve(budget: Option<&Budget>, length: usize) -> bool {
     if budget.is_some_and(|budget| budget.overflowed.get()) {
         return false;
@@ -269,6 +295,7 @@ fn reserve(budget: Option<&Budget>, length: usize) -> bool {
     reserve_optional(budget, length)
 }
 
+#[track_caller]
 fn reserve_optional(budget: Option<&Budget>, length: usize) -> bool {
     let Some(budget) = budget else {
         return true;
@@ -304,6 +331,7 @@ pub(crate) fn reserve_active(length: usize) -> bool {
 
 /// Required work cannot turn a reserved-floor refusal into successful output.
 /// Preserve the ordinary reservation debit while making every refusal sticky.
+#[track_caller]
 pub(crate) fn reserve_active_required(length: usize) -> bool {
     let budget = active();
     if budget
@@ -324,6 +352,7 @@ pub(crate) fn reserve_active_required(length: usize) -> bool {
 
 /// Fail a required allocator frontier without manufacturing another allocation
 /// request. Already selected receipts and actual debits remain unchanged.
+#[track_caller]
 pub(crate) fn refuse_active_required(requested: usize) {
     if let Some(budget) = active() {
         record_refusal(&budget, requested);

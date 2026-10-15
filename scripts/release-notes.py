@@ -59,7 +59,8 @@ def bound_section(section, version, limit=BOUNDED_NOTES_LIMIT):
     return (
         section.encode("utf-8")[:limit].decode("utf-8", errors="ignore").rsplit("\n", 1)[0]
         + "\n\n… (truncated for GitHub's 125,000-byte release-note limit; "
-        f"see [CHANGELOG.md]({REPOSITORY_URL}/blob/v{version}/CHANGELOG.md) for the complete v{version} notes)"
+        f"see CHANGELOG.md for the complete v{version} notes "
+        f"([open changelog]({REPOSITORY_URL}/blob/v{version}/CHANGELOG.md)))"
     )
 
 

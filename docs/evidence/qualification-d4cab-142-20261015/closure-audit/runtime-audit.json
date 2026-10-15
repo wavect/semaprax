@@ -1,0 +1,195 @@
+{
+  "source_subject": "d4cab900edac07fdcc4de0cdcb1bf3daafbef5ef",
+  "complete": true,
+  "total": 142,
+  "pass": 124,
+  "fail": 18,
+  "runtime_receipt_sha256": "39cac179bfa8cced54ce69f095f541b1680358cb9566026a41d81bbb9a30fd7a",
+  "log_binding_count_source_settlement_errors": [],
+  "issues": [
+    {
+      "issue": 832,
+      "required": 14,
+      "pass": 14,
+      "fail": 0
+    },
+    {
+      "issue": 834,
+      "required": 15,
+      "pass": 15,
+      "fail": 0
+    },
+    {
+      "issue": 838,
+      "required": 10,
+      "pass": 10,
+      "fail": 0
+    },
+    {
+      "issue": 839,
+      "required": 31,
+      "pass": 31,
+      "fail": 0
+    },
+    {
+      "issue": 843,
+      "required": 11,
+      "pass": 11,
+      "fail": 0
+    }
+  ],
+  "failures": [
+    {
+      "selector": "cleanup_plan::replay::expression_facts::receiving::regions_entry::tests::complete_region_entry_and_four_variant_source_projections_restore_full_originals",
+      "log": "owning-selected-22.log",
+      "log_sha256": "3974fc1724a8abb8dd273b09a23244efec0eec1b70195d51284df56341b96e27"
+    },
+    {
+      "selector": "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+      "log": "owning-selected-114.log",
+      "log_sha256": "fc7f930fdfdf336617364a6a2d65bfd181df2562ea25e23bc337a5f0de901d4b"
+    },
+    {
+      "selector": "application_starter::application_starter_selected_file_declared_native_tests_and_unchanged_cli49",
+      "log": "owning-selected-115.log",
+      "log_sha256": "ce222c2cf439f1999fb8255e1ce75ec362559b3b37294ef6596e2d71c972d610"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+      "log": "owning-selected-117.log",
+      "log_sha256": "484434e3cabfc512461dc12205913bd729c1f1a89f6f8ecf603912a6bd335e88"
+    },
+    {
+      "selector": "workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+      "log": "owning-selected-118.log",
+      "log_sha256": "9e5ba13473b0d759b8ce1455a1d990b706d9295193bc0ff0338dd7b9bf19a648"
+    },
+    {
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "log": "owning-selected-119.log",
+      "log_sha256": "4080d333f0b3127b846ae788e60ec946b624edd2ce727c7e58597fad400a3067"
+    },
+    {
+      "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_actual_byte_and_item_plus_one_preflight_never_reserve_output",
+      "log": "owning-selected-120.log",
+      "log_sha256": "bbe116d062c22df54090b7ed33380505e6368b0dac47c02d04d4c2ef2464fd1d"
+    },
+    {
+      "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_reads_and_short_refusal_allocate_nothing_then_copy_final_string_once",
+      "log": "owning-selected-121.log",
+      "log_sha256": "eb3e6c9353b29c04600fce269322d9a140ed356faf996f98fda6f5dca8e2999a"
+    },
+    {
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_request_decision_response_keeps_duplicate_unicode_and_boundary_slots",
+      "log": "owning-selected-122.log",
+      "log_sha256": "2c9b36dbd719ff81ca1ca9cfe20e18aca21426e878a381bef1fa5a1e170f1f3c"
+    },
+    {
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_actual_item_and_byte_plus_one_refuse_before_publication",
+      "log": "owning-selected-123.log",
+      "log_sha256": "2a4f68ef5802c5b6899ef5bba6488e90071f9a290312373874ba549cfd0bf8da"
+    },
+    {
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_maximum_escaping_exact_output_cap_and_plus_one",
+      "log": "owning-selected-124.log",
+      "log_sha256": "01a001dd118c04913907511ad7ee7305a00b34212fb02bb2a866322e2377aab1"
+    },
+    {
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_plan_receipts_and_live_revision_reject_forged_versions",
+      "log": "owning-selected-125.log",
+      "log_sha256": "d0455527985541c7529c910051db2a09b95d4aaab5639f2366aa8c1d1ecfadb0"
+    },
+    {
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_two_nested_paths_preserve_exact_and_one_short_bytes",
+      "log": "owning-selected-126.log",
+      "log_sha256": "1a3a910d4e525ec21b72e35749a63b551d281095baa3791735fa54e402298236"
+    },
+    {
+      "selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+      "log": "owning-selected-127.log",
+      "log_sha256": "14d37ab529461404b9db6dd43cd5747908cc7ebe9f42c6b49386667784c84e5d"
+    },
+    {
+      "selector": "workspace_graph::identity_resolution::base::cache_billing::tests::cached_prelude_replay_keeps_foreign_core_refusal_sticky",
+      "log": "owning-selected-129.log",
+      "log_sha256": "cd9f2d056d7ad2ba101d6227241c305d45cd43d8aab02ae0cf82356b514d652c"
+    },
+    {
+      "selector": "semantic_cache::same_length_provider_edits_after_a_checked_hit_keep_full_cold_graph_and_image_bytes",
+      "log": "owning-selected-131.log",
+      "log_sha256": "3e2dd91be45d15005e9336b4e0978c80c39e3a31c23f25c4bf89e9dca0df15f9"
+    },
+    {
+      "selector": "workspace_graph::expected_projection::defaults::inline_tests::complete_inline_sources_and_original_owners_have_exact_whole_file_inverses",
+      "log": "owning-selected-138.log",
+      "log_sha256": "7caa40daefad4c9333ffe9356aa0d6e1d761a2faa0a789ab04eb7f9ab959abde"
+    },
+    {
+      "selector": "workspace_graph::expected_projection::import_stub::core_proofs::tests::complete_original_receivers_and_all_literal_source_inverses_remain_byte_exact",
+      "log": "owning-selected-139.log",
+      "log_sha256": "28362caccc5b66c4d87c831965cd102003fad6071392450218e88def6e0cfb21"
+    }
+  ],
+  "run_disclose": [
+    {
+      "selector": "workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+      "exit_code": 101,
+      "log": "owning-selected-118.log",
+      "log_sha256": "9e5ba13473b0d759b8ce1455a1d990b706d9295193bc0ff0338dd7b9bf19a648"
+    },
+    {
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "exit_code": 101,
+      "log": "owning-selected-119.log",
+      "log_sha256": "4080d333f0b3127b846ae788e60ec946b624edd2ce727c7e58597fad400a3067"
+    },
+    {
+      "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_actual_byte_and_item_plus_one_preflight_never_reserve_output",
+      "exit_code": 101,
+      "log": "owning-selected-120.log",
+      "log_sha256": "bbe116d062c22df54090b7ed33380505e6368b0dac47c02d04d4c2ef2464fd1d"
+    },
+    {
+      "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_reads_and_short_refusal_allocate_nothing_then_copy_final_string_once",
+      "exit_code": 101,
+      "log": "owning-selected-121.log",
+      "log_sha256": "eb3e6c9353b29c04600fce269322d9a140ed356faf996f98fda6f5dca8e2999a"
+    },
+    {
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_request_decision_response_keeps_duplicate_unicode_and_boundary_slots",
+      "exit_code": 101,
+      "log": "owning-selected-122.log",
+      "log_sha256": "2c9b36dbd719ff81ca1ca9cfe20e18aca21426e878a381bef1fa5a1e170f1f3c"
+    },
+    {
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_actual_item_and_byte_plus_one_refuse_before_publication",
+      "exit_code": 101,
+      "log": "owning-selected-123.log",
+      "log_sha256": "2a4f68ef5802c5b6899ef5bba6488e90071f9a290312373874ba549cfd0bf8da"
+    },
+    {
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_maximum_escaping_exact_output_cap_and_plus_one",
+      "exit_code": 101,
+      "log": "owning-selected-124.log",
+      "log_sha256": "01a001dd118c04913907511ad7ee7305a00b34212fb02bb2a866322e2377aab1"
+    },
+    {
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_plan_receipts_and_live_revision_reject_forged_versions",
+      "exit_code": 101,
+      "log": "owning-selected-125.log",
+      "log_sha256": "d0455527985541c7529c910051db2a09b95d4aaab5639f2366aa8c1d1ecfadb0"
+    },
+    {
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_two_nested_paths_preserve_exact_and_one_short_bytes",
+      "exit_code": 101,
+      "log": "owning-selected-126.log",
+      "log_sha256": "1a3a910d4e525ec21b72e35749a63b551d281095baa3791735fa54e402298236"
+    },
+    {
+      "selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+      "exit_code": 101,
+      "log": "owning-selected-127.log",
+      "log_sha256": "14d37ab529461404b9db6dd43cd5747908cc7ebe9f42c6b49386667784c84e5d"
+    }
+  ]
+}

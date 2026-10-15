@@ -221,6 +221,15 @@ append and sealing; it does not identify a particular inner request. The same
 budget, numeric first-sticky receipt, quota/work, restoration and paid help
 omission rules remain authoritative. Test-only operation traces are not
 production attribution, and the exact inner operation remains unknown.
+The same budget also captures the compiler-owned Rust caller location of its
+first sticky reservation. This stores one static reference without allocation
+or backtrace collection. The final attempt captures it before restoration,
+separately from the unchanged numeric receipt. Outward help may append its
+file, line and column; an active report budget retains the earlier omission
+behavior. A caller may be a shared payment bridge, so this location does not
+by itself identify the semantic operation. It grants no source or payer
+authority and never changes a debit, stage, refusal, limit or successful graph.
+
 These quantities describe the cumulative reservation ledger, not a retained
 peak forecast, allocator measurement, or process RSS. The SPX-G171 code,
 message, source immutability, and ceiling are unchanged. Missing evidence is

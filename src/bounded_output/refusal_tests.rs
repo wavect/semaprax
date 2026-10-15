@@ -218,3 +218,70 @@ fn utf8_append_refusal_reports_whole_scalar_bytes_without_false_stage() {
         }
     );
 }
+
+#[test]
+fn compiler_refusal_site_tracks_only_the_first_required_request() {
+    let ((file, line), overflowed, used, refusal, site) = with_limit_usage_refusal_site(7, || {
+        assert!(reserve_active_required(3));
+        let first_line = line!() + 1;
+        assert!(!reserve_active_required(5));
+        assert!(!reserve_active_required(99));
+        (file!(), first_line)
+    });
+    assert!(overflowed);
+    assert_eq!(used, 3);
+    let site = site.unwrap();
+    assert_eq!(site.file(), file);
+    assert_eq!(site.line(), line);
+    assert!(site.column() > 0);
+    assert_eq!(refusal.unwrap().requested, 5);
+    assert_eq!(refusal.unwrap().remaining, 4);
+    assert_eq!(refusal.unwrap().stage, None);
+    let (_, refused, used, refusal, site) = with_limit_usage_refusal_site(7, || {
+        assert!(reserve_active_required(7));
+    });
+    assert!(!refused && refusal.is_none() && site.is_none());
+    assert_eq!(used, 7);
+}
+
+#[test]
+fn compiler_refusal_sites_are_nested_scope_local_without_changing_parent_debits() {
+    let ((child, parent_line), refused, used, refusal, site) =
+        with_limit_usage_refusal_site(10, || {
+            assert!(reserve_active_required(2));
+            let child = with_limit_usage_refusal_site(3, || {
+                assert!(reserve_active_required(1));
+                let line = line!() + 1;
+                assert!(!reserve_active_required(3));
+                line
+            });
+            assert_eq!(active_remaining(), Some(7));
+            let parent_line = line!() + 1;
+            assert!(!reserve_active_required(8));
+            (child, parent_line)
+        });
+    assert!(child.1 && refused);
+    assert_eq!(child.2, 1);
+    assert_eq!(used, 3);
+    assert_eq!(child.3.unwrap().requested, 3);
+    assert_eq!(refusal.unwrap().requested, 8);
+    assert_eq!(child.4.unwrap().line(), child.0);
+    assert_eq!(site.unwrap().line(), parent_line);
+    assert_ne!(site.unwrap().line(), child.4.unwrap().line());
+}
+
+#[test]
+fn compiler_refusal_site_capture_allocates_no_backing_after_refusal() {
+    let (((), metrics), refused, used, refusal, site) = with_limit_usage_refusal_site(0, || {
+        crate::test_allocation_observer::measure(|| {
+            assert!(!reserve_active_required(1));
+            assert!(!reserve_active_required(2));
+        })
+    });
+    assert!(refused && site.is_some());
+    assert_eq!(used, 0);
+    assert_eq!(refusal.unwrap().requested, 1);
+    assert!(!metrics.invalid);
+    assert_eq!(metrics.allocated, 0);
+    assert_eq!(metrics.live, 0);
+}

@@ -1,0 +1,15 @@
+{
+  "source": "src/hir/validation/byte_traversal/nested/check.rs",
+  "archive": "docs/evidence/nested-intervals-module-import-746a/check.rs.before.txt",
+  "before_sha256": "b108350e3f4dc25e0e059eaa175553fc6b3c81930c97c758562095a6bca86d74",
+  "current_sha256": "f43eae1057816d52521acb0bf668fa48950763834e0b6c1aa5eed2d11f76d940",
+  "edits": [
+    {
+      "after": "use super::intervals::{self, Freeze, Kind};",
+      "before": "use super::intervals::{Freeze, Kind};",
+      "count": 1
+    }
+  ],
+  "source_basis": "746a1252a1a65aa52a2f5ab2b88d33aabe4f8000",
+  "reason": "Four actual E0433 references require importing sibling intervals module as well as its two types. No visibility or behavior change. Compiler failure is retained separately by ROOT; zero test bodies ran."
+}

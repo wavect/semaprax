@@ -7,6 +7,41 @@ const SOURCE: &str = r#"module replay.update;
 "#;
 #[test]
 fn coherent_same_type_field_substitution_fails_source_and_cache_replay() {
+    let current_profile = crate::project::PROJECT_SEMANTIC_CACHE_COMPATIBILITY;
+    assert_eq!(current_profile, "semaprax.project-checked-module-hir.v12");
+    let manifest_source = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/examples/calculator-project/semaprax.toml"
+    ));
+    let authored = ProjectManifest::parse(manifest_source)
+        .unwrap()
+        .to_canonical_toml();
+    let context = format!(
+        "{}\0{}\0{}\0{}",
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION"),
+        current_profile,
+        authored
+    );
+    assert_eq!(
+        super::super::manifest(&context)
+            .unwrap()
+            .to_canonical_toml(),
+        authored
+    );
+    let legacy = context.replacen(
+        current_profile,
+        "semaprax.project-checked-module-hir.v11",
+        1,
+    );
+    assert_ne!(legacy, context);
+    let errors = super::super::manifest(&legacy).unwrap_err();
+    assert_eq!(errors.len(), 1);
+    assert_eq!(errors[0].code, "SPX-G255");
+    assert_eq!(
+        errors[0].message,
+        "semantic snapshot compiler context is incompatible"
+    );
     let ast = crate::check(SOURCE, "update.spx").unwrap();
     let canonical = crate::format::canonical(&ast);
     let mut retained = hir::resolve(&ast).unwrap();

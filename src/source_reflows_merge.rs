@@ -538,6 +538,8 @@ fn before_region_status_view(source: &str, current: &str) -> String {
 }
 
 fn before_constructor_complete_views(source: &str, current: &str) -> String {
+    let previous = before_current_main(source, current);
+    let current = previous.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -549,10 +551,35 @@ fn before_constructor_complete_views(source: &str, current: &str) -> String {
 }
 // These two complete manifests describe physical e4b inputs, not CI reflows.
 pub(crate) fn constructor_complete_input(source: &str, current: &str) -> String {
+    let previous = before_current_main(source, current);
+    let current = previous.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/constructor-complete-runtime-views-d4-20261015/runtime-views.json"
+        )),
+        source,
+        current,
+    )
+}
+
+// New MAIN/fixture bytes authenticate into the complete previous private batch.
+fn before_current_main(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/main5ba-future-source-assembly-20261015/current-to-1c.json"
+        )),
+        source,
+        current,
+    )
+}
+// MAIN's refusal-site source proofs retain their actual5ba physical domain.
+pub(crate) fn main_current_input(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/main5ba-future-source-assembly-20261015/current-to-main5ba.json"
         )),
         source,
         current,

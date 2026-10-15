@@ -1,0 +1,14 @@
+[
+  {
+    "source": "src/workspace_graph/identity_resolution/base.rs",
+    "revision": "f0455caf96706a0545e754957fcc903434a7f880",
+    "archive": "docs/evidence/main5ba-future-source-assembly-20261015/ordinary-original/src/workspace_graph/identity_resolution/base.rs",
+    "sha256": "97ef4a205d9e9dbe3d1bf4c48a53a68dd21be3319d007b743556fd7d8a818d73"
+  },
+  {
+    "source": "src/workspace_graph/identity_resolution/base/affinity_tests.rs",
+    "revision": "f0455caf96706a0545e754957fcc903434a7f880",
+    "archive": "docs/evidence/main5ba-future-source-assembly-20261015/ordinary-original/src/workspace_graph/identity_resolution/base/affinity_tests.rs",
+    "sha256": "e0e7749485042d626ee341dbb51edc466f598e857e24b700a1193e168c38b78f"
+  }
+]

@@ -11,7 +11,7 @@ fn digest(source: &str) -> String {
     )
 }
 fn restore(current: &str) -> String {
-    let merged = crate::source_reflows_merge::main927_input("src/workspace_graph.rs", current);
+    let merged = crate::source_reflows_merge::main_current_input("src/workspace_graph.rs", current);
     let current = merged.as_str();
     assert_eq!(
         digest(current),
@@ -175,7 +175,7 @@ pub(in crate::workspace_graph) fn historical_inline_root() -> &'static str {
 /// Later additive audit registrations stay in the actual compiled source union.
 /// Bind that complete current inventory before restoring its older snapshot.
 pub(in crate::workspace_graph) fn historical_inline_inventory(current: &str) -> String {
-    let merged = crate::source_reflows_merge::main927_input(
+    let merged = crate::source_reflows_merge::main_current_input(
         "tests/workspace/semantic_graph/source_inventory.rs",
         current,
     );

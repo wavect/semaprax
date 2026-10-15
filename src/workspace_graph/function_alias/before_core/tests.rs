@@ -1,5 +1,5 @@
 use super::*;
-use crate::bounded_output::with_limit_usage_refusal;
+use crate::bounded_output::with_limit_usage_refusal_site;
 use crate::test_allocation_observer::measure;
 const PROVIDER: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -21,7 +21,7 @@ fn actual_uncached_core_old_and_current_include_new_entry_controls_and_all_drop(
     let depths = expected_projection::validate_dependency_dag(&programs).unwrap();
     let order = [0, 1];
     let observe = |current, limit| {
-        with_limit_usage_refusal(limit, || {
+        with_limit_usage_refusal_site(limit, || {
             measure(|| {
                 let layouts = expected_projection::private_layout::registry::LayoutRegistry::new(
                     &programs, &authored,
@@ -73,7 +73,22 @@ fn actual_uncached_core_old_and_current_include_new_entry_controls_and_all_drop(
     // No inferred 19,422-byte saving, universal improvement or application fit.
     for limit in [0, current.2 - 1, current.2] {
         let result = observe(true, limit);
-        assert_eq!(result.0 .0, limit == current.2);
+        eprintln!(
+            "847 outer probe limit={limit} internal_ok={} overflowed={} paid={} first={:?} site={:?}",
+            result.0 .0, result.1, result.2, result.3, result.4
+        );
+        // The public caller rejects an overflowing phase even when its last
+        // budgeted clone leaves an internal Ok containing an empty string.
+        let accepted = result.0 .0 && !result.1;
+        assert_eq!(accepted, limit == current.2);
+        if limit == current.2 - 1 {
+            assert!(result.1, "the one-short invocation must stay refused");
+        }
+        if limit == current.2 {
+            assert!(!result.1 && result.3.is_none() && result.4.is_none());
+        }
+        // Preserve optional receipt/site evidence as observed. A formatter
+        // error can mark overflow without selecting a reservation receipt.
         let m = result.0 .1;
         assert!(!m.invalid && m.live == 0 && m.allocated == m.freed);
     }

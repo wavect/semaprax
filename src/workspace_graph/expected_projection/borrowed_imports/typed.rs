@@ -62,12 +62,13 @@ pub(in crate::workspace_graph) fn construct_using<'p, 'a>(
         let copy = types.last_mut().expect("inserted type");
         copy.name = owner.text(&import.alias)?;
         owner.reserve(0)?;
-        super::super::super::generic_type_import::rewrite_declaration_with_layout(
+        super::super::super::generic_type_import::receiving::rewrite_declaration_with_layout(
             copy,
             target.module,
             program,
             programs,
             Some(&layout),
+            owner,
         )?;
     }
     // Preserve the independent closure's exact order after explicit aliases.
@@ -80,12 +81,13 @@ pub(in crate::workspace_graph) fn construct_using<'p, 'a>(
         let copy = types.last_mut().expect("inserted private type");
         copy.name = owner.text(&entry.alias)?;
         owner.reserve(0)?;
-        super::super::super::generic_type_import::rewrite_declaration_with_layout(
+        super::super::super::generic_type_import::receiving::rewrite_declaration_with_layout(
             copy,
             entry.module,
             program,
             programs,
             Some(&layout),
+            owner,
         )?;
     }
     let all_count = program

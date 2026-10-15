@@ -99,3 +99,6 @@ impl<'a> BorrowedNames<'a> {
 #[cfg(test)]
 #[path = "parameter_names/tests.rs"]
 mod tests;
+
+#[path = "parameter_names/receiving.rs"]
+pub(super) mod receiving;

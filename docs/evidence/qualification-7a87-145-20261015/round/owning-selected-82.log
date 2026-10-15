@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::expected_projection::private_layout::registry::retained_tests::retained_storage_cold_parent_refusal_is_preowned_cache_path_unchanged_and_restoration_sticky ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9101 filtered out; finished in 0.00s
+

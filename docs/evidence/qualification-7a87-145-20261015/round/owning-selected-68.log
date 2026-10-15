@@ -1,0 +1,27 @@
+
+running 1 test
+test source_reflows::a_changed_current_byte_is_refused_before_an_inverse_can_hide_it ... 
+thread 'source_reflows::a_changed_current_byte_is_refused_before_an_inverse_can_hide_it' (9156932) panicked at src/source_reflows.rs:59:5:
+assertion `left == right` failed: reviewed CI input drifted: src/ast.rs
+  left: "d663f4a8346586469bd75af235153bc16981021a7e281522b500c1fed4cb8f57"
+ right: String("21fde894857274971ff965964224db7a1e726e9d20d3dd883308117ddb7808e5")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'source_reflows::a_changed_current_byte_is_refused_before_an_inverse_can_hide_it' (9156932) panicked at src/source_reflows.rs:77:5:
+assertion `left == right` failed: CI inverse did not preserve the complete predecessor: src/ast.rs
+  left: "39d9c22cb0e8f6cc03b1ec828ee611f8a9455163a1872f6471e8f97f03045438"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+
+thread 'source_reflows::a_changed_current_byte_is_refused_before_an_inverse_can_hide_it' (9156932) panicked at src/source_reflows.rs:168:5:
+assertion `left == right` failed: MAIN927 complete input drifted: src/ast.rs
+  left: "d663f4a8346586469bd75af235153bc16981021a7e281522b500c1fed4cb8f57"
+ right: String("21fde894857274971ff965964224db7a1e726e9d20d3dd883308117ddb7808e5")
+
+thread 'source_reflows::a_changed_current_byte_is_refused_before_an_inverse_can_hide_it' (9156932) panicked at src/source_reflows.rs:185:5:
+assertion `left == right` failed: MAIN927 complete predecessor drifted: src/ast.rs
+  left: "39d9c22cb0e8f6cc03b1ec828ee611f8a9455163a1872f6471e8f97f03045438"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9101 filtered out; finished in 2.50s
+

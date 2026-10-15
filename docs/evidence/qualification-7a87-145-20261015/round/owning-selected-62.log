@@ -1,0 +1,18 @@
+
+running 1 test
+test resolver_cli::help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot ... 
+thread 'resolver_cli::help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot' (9114068) panicked at tests/offline_package/resolver_cli.rs:150:9:
+assertion `left == right` failed: semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] --target native [--native-timeout-ms N] [--native-max-output-bytes N]
+
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    resolver_cli::help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 190 filtered out; finished in 1.58s
+

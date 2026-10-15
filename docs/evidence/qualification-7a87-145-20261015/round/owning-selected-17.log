@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::expected_projection::import_stub::core_proofs::tests::complete_original_receivers_and_all_literal_source_inverses_remain_byte_exact ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9101 filtered out; finished in 2.59s
+

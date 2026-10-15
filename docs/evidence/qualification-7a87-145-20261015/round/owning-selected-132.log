@@ -1,0 +1,9 @@
+
+running 1 test
+test workspace_graph::cold_canonical::tests::whole_cold_preflight_observes_same_cold_setup_reserved_peak_and_complete_drop_without_output_string ... canonical-comment-835 whole-cold count=0 reserved=1187762 old=Metrics { allocations: 1987, reallocations: 241, allocated: 710217, freed: 710217, live: 0, highwater: 179944, invalid: false } current=Metrics { allocations: 1978, reallocations: 234, allocated: 709849, freed: 709849, live: 0, highwater: 179944, invalid: false }
+canonical-comment-835 whole-cold count=1 reserved=1187762 old=Metrics { allocations: 1992, reallocations: 241, allocated: 711013, freed: 711013, live: 0, highwater: 179982, invalid: false } current=Metrics { allocations: 1983, reallocations: 234, allocated: 710645, freed: 710645, live: 0, highwater: 179982, invalid: false }
+canonical-comment-835 whole-cold count=32 reserved=1187762 old=Metrics { allocations: 2064, reallocations: 251, allocated: 722681, freed: 722681, live: 0, highwater: 181160, invalid: false } current=Metrics { allocations: 2051, reallocations: 240, allocated: 718473, freed: 718473, live: 0, highwater: 181160, invalid: false }
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9101 filtered out; finished in 0.84s
+

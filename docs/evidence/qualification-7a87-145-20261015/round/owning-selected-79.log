@@ -1,0 +1,9 @@
+
+running 1 test
+test workspace_graph::expected_projection::private_layout::registry::retained_tests::retained_storage_whole_constructor_to_drop_reports_old_current_bytes_and_real_distinct_savings ... 833 retained cold=0 complete_old=((0, Metrics { allocations: 0, reallocations: 0, allocated: 0, freed: 0, live: 0, highwater: 0, invalid: false }), false, 0, None) current=((0, Metrics { allocations: 0, reallocations: 0, allocated: 0, freed: 0, live: 0, highwater: 0, invalid: false }), false, 0, None)
+833 retained cold=1 complete_old=((34600, Metrics { allocations: 14, reallocations: 0, allocated: 34272, freed: 34272, live: 0, highwater: 34272, invalid: false }), false, 34600, None) current=((37870, Metrics { allocations: 15, reallocations: 0, allocated: 34408, freed: 34408, live: 0, highwater: 34408, invalid: false }), false, 37870, None)
+833 retained cold=4 complete_old=((137143, Metrics { allocations: 41, reallocations: 0, allocated: 50559, freed: 50559, live: 0, highwater: 35991, invalid: false }), false, 137143, None) current=((42049, Metrics { allocations: 33, reallocations: 0, allocated: 36391, freed: 36391, live: 0, highwater: 36215, invalid: false }), false, 42049, None)
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9101 filtered out; finished in 0.00s
+

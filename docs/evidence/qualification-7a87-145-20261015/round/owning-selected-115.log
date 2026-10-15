@@ -1,0 +1,6 @@
+
+running 1 test
+test native_law_v1::hidden_missing_and_misassociated_laws_fail_closed ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 641 filtered out; finished in 0.32s
+

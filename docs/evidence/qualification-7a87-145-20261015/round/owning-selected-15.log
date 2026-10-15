@@ -1,0 +1,6 @@
+
+running 1 test
+test semantic_cache::same_length_provider_edits_after_a_checked_hit_keep_full_cold_graph_and_image_bytes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 641 filtered out; finished in 0.84s
+

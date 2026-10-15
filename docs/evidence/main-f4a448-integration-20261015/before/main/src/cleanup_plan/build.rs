@@ -1,0 +1,6755 @@
+//! Canonical cleanup-plan construction from validated core HIR.
+
+use std::borrow::Cow;
+use std::collections::{BTreeMap, BTreeSet};
+
+use crate::ast::{BinaryOp, UnaryOp};
+use crate::cleanup::{
+    CleanupStorageId as InventoryStorageId, FieldLiveness, FieldLivenessShape, LivenessFlagId,
+};
+use crate::diagnostic::Diagnostic;
+use crate::hir::{
+    DeclarationId, DeclarationKind, ExpressionId, IdentityOrigin, OwnershipMode, Place,
+    PlaceProjection, ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedMatchArm,
+    ResolvedMatchMode, ResolvedMatchPattern, ResolvedProgram, ResolvedStatement, ResolvedType,
+    ResolvedTypeDeclarationKind,
+};
+use crate::prelude;
+
+use super::{
+    BlockId, CallArgumentTransfer, CheckedOperation, CleanupBlock, CleanupEdge, CleanupEntryState,
+    CleanupPlace, CleanupPlan, CleanupRegion, CleanupRegionId, CleanupResultSource, CleanupSlot,
+    CleanupSlotId, CleanupTerminator, CleanupTransition, ConditionalVariantCase,
+    ConditionalVariantEntry, ContractPhase, EdgeCondition, EdgeId, ExitContinuation, ExitTarget,
+    ExitTargetId, FinalizeAction, StagedCopyResultSource, StatusCase, StatusLane, StatusProducer,
+    StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3,
+    CLEANUP_PLAN_SCHEMA_V4,
+};
+
+pub(in crate::cleanup_plan) mod checked_allocation;
+mod lexical_temporary;
+mod owned_frame_finalizers;
+pub(crate) use owned_frame_finalizers::{
+    canonical_conditional_finalizers_for, canonical_finalizers_for,
+};
+mod bounded_box;
+mod bounded_vec;
+#[cfg(test)]
+mod call_parameter_tests;
+mod call_parameters;
+#[cfg(test)]
+mod call_reference;
+mod execution_boundary;
+mod finish_call;
+mod generic_variant;
+mod guarded_variant;
+pub(super) mod helper_index;
+#[cfg(test)]
+mod hostile_tests;
+mod iterator;
+mod lexical_break;
+mod lexical_contract;
+pub(super) mod lexical_control;
+mod lexical_iterator;
+mod lexical_status;
+mod owned_try;
+mod record_destructure;
+mod renewal;
+mod schema;
+mod string_replacement;
+mod strings;
+mod transfer;
+mod type_shape;
+mod while_condition;
+const UNRESOLVED_EXIT: ExitTargetId = ExitTargetId(u32::MAX);
+#[cfg(test)]
+const CLEANUP_EVAL_RESULT_SIZE_CEILING: usize = 192;
+
+#[cfg(test)]
+mod capacity_observation;
+#[cfg(test)]
+use capacity_observation::{
+    lower_capacity_high_water, note_lower_capacity_high_water, reset_lower_capacity_high_water,
+};
+
+#[cfg(test)]
+fn storage_id_owned_capacity(storage: &StorageId) -> usize {
+    match storage {
+        StorageId::Value(id) => id.as_str().len(),
+        StorageId::Temporary(id) => id.as_str().len(),
+        StorageId::CallArgument {
+            call,
+            value_expression,
+            ..
+        } => call.as_str().len() + value_expression.as_str().len(),
+        StorageId::ProvisionalResult => 0,
+    }
+}
+
+#[cfg(test)]
+fn cleanup_place_owned_capacity(place: &CleanupPlace) -> usize {
+    storage_id_owned_capacity(&place.storage)
+        + place.projections.capacity() * std::mem::size_of::<DeclarationId>()
+        + place
+            .projections
+            .iter()
+            .map(|projection| projection.as_str().len())
+            .sum::<usize>()
+}
+
+#[cfg(test)]
+fn status_source_id_owned_capacity(source: &StatusSourceId) -> usize {
+    source.expression.as_str().len()
+}
+
+#[cfg(test)]
+fn field_shape_owned_capacity(shape: &FieldLivenessShape) -> usize {
+    match shape {
+        FieldLivenessShape::NoDrop => 0,
+        FieldLivenessShape::Leaf { lifecycle, .. } => lifecycle.as_str().len(),
+        FieldLivenessShape::Record {
+            declaration,
+            fields,
+        } => {
+            declaration.as_str().len()
+                + fields.capacity() * std::mem::size_of::<FieldLiveness>()
+                + fields
+                    .iter()
+                    .map(|field| {
+                        field.field.as_str().len() + field_shape_owned_capacity(&field.shape)
+                    })
+                    .sum::<usize>()
+        }
+        FieldLivenessShape::Variant { declaration, cases } => {
+            declaration.as_str().len()
+                + cases.capacity() * std::mem::size_of::<crate::cleanup::VariantCaseLiveness>()
+                + cases
+                    .iter()
+                    .map(|case| {
+                        case.case.as_str().len()
+                            + case.fields.capacity() * std::mem::size_of::<FieldLiveness>()
+                            + case
+                                .fields
+                                .iter()
+                                .map(|field| {
+                                    field.field.as_str().len()
+                                        + field_shape_owned_capacity(&field.shape)
+                                })
+                                .sum::<usize>()
+                    })
+                    .sum::<usize>()
+        }
+    }
+}
+
+#[cfg(test)]
+fn cleanup_slot_owned_capacity(slot: &CleanupSlot) -> usize {
+    storage_id_owned_capacity(&slot.storage)
+        + resolved_type_owned_capacity(&slot.ty)
+        + field_shape_owned_capacity(&slot.field_liveness_shape)
+}
+
+#[cfg(test)]
+fn transition_owned_capacity(transition: &CleanupTransition) -> usize {
+    match transition {
+        CleanupTransition::Initialize { at, destination }
+        | CleanupTransition::ReserveRenewal {
+            at,
+            binding: destination,
+        } => at.as_str().len() + cleanup_place_owned_capacity(destination),
+        CleanupTransition::InitializeVariant {
+            at,
+            destination,
+            variant,
+        } => at.as_str().len() + cleanup_place_owned_capacity(destination) + variant.as_str().len(),
+        CleanupTransition::Transfer {
+            at,
+            source,
+            destination,
+        }
+        | CleanupTransition::Renew {
+            at,
+            source,
+            destination,
+        } => {
+            at.as_str().len()
+                + cleanup_place_owned_capacity(source)
+                + cleanup_place_owned_capacity(destination)
+        }
+        CleanupTransition::TransferVariant {
+            at,
+            source,
+            destination,
+            variant,
+        } => {
+            at.as_str().len()
+                + cleanup_place_owned_capacity(source)
+                + cleanup_place_owned_capacity(destination)
+                + variant.as_str().len()
+        }
+        CleanupTransition::AuthenticateVariantCase {
+            at,
+            source,
+            variant,
+            case,
+        } => {
+            at.as_str().len()
+                + cleanup_place_owned_capacity(source)
+                + variant.as_str().len()
+                + case.as_str().len()
+        }
+        CleanupTransition::CallCommit { call, arguments } => {
+            call.as_str().len()
+                + arguments.capacity() * std::mem::size_of::<CallArgumentTransfer>()
+                + arguments
+                    .iter()
+                    .map(|argument| cleanup_place_owned_capacity(&argument.source))
+                    .sum::<usize>()
+        }
+        CleanupTransition::SelectFailure { source } => status_source_id_owned_capacity(source),
+        CleanupTransition::StageCopyResult { source } => match source {
+            StagedCopyResultSource::Body {
+                expression,
+                instance,
+            } => expression.as_str().len() + resolved_type_owned_capacity(instance),
+            StagedCopyResultSource::TryResidual {
+                expression,
+                operand,
+                source_instance,
+                target_instance,
+                result,
+                ok_case,
+                ok_field,
+                err_case,
+                err_field,
+            } => {
+                expression.as_str().len()
+                    + operand.as_str().len()
+                    + resolved_type_owned_capacity(source_instance)
+                    + resolved_type_owned_capacity(target_instance)
+                    + result.as_str().len()
+                    + ok_case.as_str().len()
+                    + ok_field.as_str().len()
+                    + err_case.as_str().len()
+                    + err_field.as_str().len()
+            }
+            StagedCopyResultSource::TryOptionNone {
+                expression,
+                operand,
+                source_instance,
+                target_instance,
+                option,
+                some_case,
+                some_field,
+                none_case,
+            } => {
+                expression.as_str().len()
+                    + operand.as_str().len()
+                    + resolved_type_owned_capacity(source_instance)
+                    + resolved_type_owned_capacity(target_instance)
+                    + option.as_str().len()
+                    + some_case.as_str().len()
+                    + some_field.as_str().len()
+                    + none_case.as_str().len()
+            }
+        },
+    }
+}
+
+#[cfg(test)]
+fn edge_condition_owned_capacity(condition: &EdgeCondition) -> usize {
+    match condition {
+        EdgeCondition::Always => 0,
+        EdgeCondition::BooleanResult(expression, _) => expression.as_str().len(),
+        EdgeCondition::VariantCase {
+            scrutinee, case, ..
+        } => scrutinee.as_str().len() + case.as_str().len(),
+        EdgeCondition::ArmSelected { scrutinee, .. } => scrutinee.as_str().len(),
+        EdgeCondition::StatusZero(source) | EdgeCondition::StatusNonzero(source) => {
+            status_source_id_owned_capacity(source)
+        }
+    }
+}
+
+#[cfg(test)]
+fn exit_continuation_owned_capacity(continuation: &ExitContinuation) -> usize {
+    lexical_control::exit_capacity(continuation)
+}
+
+#[cfg(test)]
+fn builder_nested_capacity(builder: &PlanBuilder<'_>) -> usize {
+    let block_payload = builder.blocks.iter().fold(0usize, |bytes, block| {
+        bytes
+            + block.transitions.capacity() * std::mem::size_of::<CleanupTransition>()
+            + block
+                .transitions
+                .iter()
+                .map(transition_owned_capacity)
+                .sum::<usize>()
+            + match &block.terminator {
+                Some(CleanupTerminator::Branch(edges)) => {
+                    edges.capacity() * std::mem::size_of::<EdgeId>()
+                }
+                Some(CleanupTerminator::Goto(_) | CleanupTerminator::Exit(_)) | None => 0,
+            }
+    });
+    let region_payload = builder.regions.iter().fold(0usize, |bytes, region| {
+        bytes
+            + region.slots.capacity() * std::mem::size_of::<StorageId>()
+            + region
+                .slots
+                .iter()
+                .map(storage_id_owned_capacity)
+                .sum::<usize>()
+    });
+    let exit_payload = builder.exits.iter().fold(0usize, |bytes, exit| {
+        bytes
+            + exit.leaves_regions.capacity() * std::mem::size_of::<CleanupRegionId>()
+            + exit.finalize_in_order.capacity() * std::mem::size_of::<FinalizeAction>()
+            + exit
+                .finalize_in_order
+                .iter()
+                .map(|action| {
+                    cleanup_place_owned_capacity(&action.source)
+                        + action.lifecycle_id.as_str().len()
+                })
+                .sum::<usize>()
+            + exit_continuation_owned_capacity(&exit.continuation)
+    });
+    let status_payload = builder.status_sources.iter().fold(0usize, |bytes, source| {
+        bytes
+            + match &source.producer {
+                StatusProducer::CheckedArithmetic {
+                    normalized_cases, ..
+                } => normalized_cases.capacity() * std::mem::size_of::<StatusCase>(),
+                StatusProducer::PropagatedCall { callee } => callee.as_str().len(),
+                StatusProducer::ContractFalse { .. } | StatusProducer::CheckedAllocation { .. } => {
+                    0
+                }
+            }
+            + status_source_id_owned_capacity(&source.id)
+    });
+    let edge_payload = builder
+        .edges
+        .iter()
+        .map(|edge| edge_condition_owned_capacity(&edge.condition))
+        .sum::<usize>();
+    block_payload
+        + region_payload
+        + exit_payload
+        + status_payload
+        + edge_payload
+        + capacity_observation::helper_backing(builder)
+        + strings::derived_metadata_capacity(builder)
+        + flow_state_owned_capacity(&builder.initial_state)
+        + builder.pending_try_residuals.capacity() * std::mem::size_of::<PendingTryResidual>()
+        + builder
+            .pending_try_residuals
+            .iter()
+            .map(|pending| flow_state_owned_capacity(&pending.state))
+            .sum::<usize>()
+        + builder.slots.capacity() * std::mem::size_of::<CleanupSlot>()
+        + builder
+            .slots
+            .iter()
+            .map(cleanup_slot_owned_capacity)
+            .sum::<usize>()
+        + builder.storage_to_slot.len()
+            * (std::mem::size_of::<(StorageId, CleanupSlotId)>()
+                + std::mem::size_of::<BTreeMap<StorageId, CleanupSlotId>>())
+        + builder
+            .storage_to_slot
+            .keys()
+            .map(storage_id_owned_capacity)
+            .sum::<usize>()
+        + builder.inventory_storage.len()
+            * (std::mem::size_of::<(InventoryStorageId, StorageId)>()
+                + std::mem::size_of::<BTreeMap<InventoryStorageId, StorageId>>())
+        + builder
+            .inventory_storage
+            .values()
+            .map(storage_id_owned_capacity)
+            .sum::<usize>()
+        + builder.leaves.len()
+            * (std::mem::size_of::<(LivenessFlagId, LeafMetadata)>()
+                + std::mem::size_of::<BTreeMap<LivenessFlagId, LeafMetadata>>())
+        + builder
+            .leaves
+            .values()
+            .map(|leaf| cleanup_place_owned_capacity(&leaf.place) + leaf.lifecycle.as_str().len())
+            .sum::<usize>()
+        + builder.entry_state.live_owned_parameters.capacity() * std::mem::size_of::<CleanupPlace>()
+        + builder
+            .entry_state
+            .live_owned_parameters
+            .iter()
+            .map(cleanup_place_owned_capacity)
+            .sum::<usize>()
+        + builder.entry_state.conditional_owned_parameters.capacity()
+            * std::mem::size_of::<ConditionalVariantEntry>()
+        + builder
+            .entry_state
+            .conditional_owned_parameters
+            .iter()
+            .map(|entry| {
+                storage_id_owned_capacity(&entry.storage)
+                    + entry.variant.as_str().len()
+                    + entry.cases.capacity() * std::mem::size_of::<ConditionalVariantCase>()
+                    + entry
+                        .cases
+                        .iter()
+                        .map(|case| {
+                            case.case.as_str().len()
+                                + case.live_places.capacity() * std::mem::size_of::<CleanupPlace>()
+                                + case
+                                    .live_places
+                                    .iter()
+                                    .map(cleanup_place_owned_capacity)
+                                    .sum::<usize>()
+                        })
+                        .sum::<usize>()
+            })
+            .sum::<usize>()
+}
+
+#[cfg(test)]
+fn flow_state_owned_capacity(state: &FlowState) -> usize {
+    capacity_observation::conditional_backing(state)
+        + state.live_order.capacity() * std::mem::size_of::<LivenessFlagId>()
+        + state
+            .renewals
+            .iter()
+            .map(|(at, history)| {
+                at.as_str().len()
+                    + history.owned_capacity()
+                    + std::mem::size_of::<(ExpressionId, super::renewal_history::RenewalHistory)>()
+            })
+            .sum::<usize>()
+}
+
+#[cfg(test)]
+fn eval_result_owned_capacity(result: &EvalResult) -> usize {
+    flow_state_owned_capacity(&result.state).saturating_add(
+        result
+            .owned_source
+            .as_ref()
+            .map_or(0, cleanup_place_owned_capacity),
+    )
+}
+
+#[cfg(test)]
+fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
+    match ty {
+        ResolvedType::Function { parameters, result } => {
+            parameters.capacity() * std::mem::size_of::<ResolvedType>()
+                + std::mem::size_of::<ResolvedType>()
+                + parameters
+                    .iter()
+                    .map(resolved_type_owned_capacity)
+                    .sum::<usize>()
+                + resolved_type_owned_capacity(result)
+        }
+        ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64
+        | ResolvedType::Never
+        | ResolvedType::Unit
+        | ResolvedType::I64
+        | ResolvedType::I32
+        | ResolvedType::Char
+        | ResolvedType::U8
+        | ResolvedType::Usize
+        | ResolvedType::ArrayU8(_)
+        | ResolvedType::F32
+        | ResolvedType::F64
+        | ResolvedType::Bool
+        | ResolvedType::StringMap => 0,
+        ResolvedType::String | ResolvedType::Bytes | ResolvedType::Str | ResolvedType::SliceU8 => 0,
+        ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
+        ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } => {
+            declaration.as_str().len()
+                + arguments.capacity() * std::mem::size_of::<ResolvedType>()
+                + arguments
+                    .iter()
+                    .map(resolved_type_owned_capacity)
+                    .sum::<usize>()
+        }
+    }
+}
+
+#[cfg(test)]
+fn resolved_param_owned_capacity(param: &crate::hir::ResolvedParam) -> usize {
+    param.id.as_str().len() + param.name.capacity() + resolved_type_owned_capacity(&param.ty)
+}
+
+pub(crate) fn build_plan(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+) -> Result<CleanupPlan, Diagnostic> {
+    lexical_control::build_registered_plan(program, function)
+}
+
+#[cfg(test)]
+pub(super) fn assert_expression_lowering_oracle(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+) {
+    let mut iterative = PlanBuilder::new(program, function).unwrap();
+    let mut recursive = iterative.clone();
+    let state = iterative.initial_state.clone();
+    let region = CleanupRegionId(0);
+    let block = BlockId(0);
+    let actual = iterative.lower_expr_iterative(expression, block, state.clone(), region);
+    let expected = recursive.lower_expr_recursive_reference(expression, block, state, region);
+    PlanBuilder::assert_lowering_oracle(&iterative, &recursive, &actual, &expected, expression);
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct FlowState {
+    /// Live flags in semantic initialization order.  A whole-aggregate
+    /// boundary canonicalizes its destination leaves to recursive declaration
+    /// order; an incomplete constructor intentionally retains actual field
+    /// completion order.
+    live_order: Vec<LivenessFlagId>,
+    renewals: BTreeMap<ExpressionId, super::renewal_history::RenewalHistory>,
+    conditional_variants: Vec<ConditionalFlowVariant>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ConditionalFlowVariant {
+    root: CleanupPlace,
+    variant: DeclarationId,
+    cases: Vec<(DeclarationId, Vec<LivenessFlagId>)>,
+}
+
+impl FlowState {
+    fn is_live(&self, flag: LivenessFlagId) -> bool {
+        self.live_order.contains(&flag)
+            || self
+                .conditional_variants
+                .iter()
+                .any(|variant| variant.cases.iter().any(|(_, flags)| flags.contains(&flag)))
+    }
+
+    fn remove(&mut self, flags: &BTreeSet<LivenessFlagId>) {
+        self.live_order.retain(|flag| !flags.contains(flag));
+        self.conditional_variants.retain_mut(|variant| {
+            let carried_payload = variant
+                .cases
+                .iter()
+                .any(|(_, case_flags)| !case_flags.is_empty());
+            for (_, case_flags) in &mut variant.cases {
+                case_flags.retain(|flag| !flags.contains(flag));
+            }
+            // A zero-payload active case is still an initialized owned value.
+            // Retain that case identity until its root is explicitly moved,
+            // consumed, or leaves its cleanup region.
+            if !carried_payload {
+                return true;
+            }
+            variant
+                .cases
+                .iter()
+                .any(|(_, case_flags)| !case_flags.is_empty())
+        });
+    }
+
+    fn append_distinct(&mut self, flags: impl IntoIterator<Item = LivenessFlagId>) {
+        for flag in flags {
+            debug_assert!(!self.is_live(flag));
+            self.live_order.push(flag);
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct EvalResult {
+    block: BlockId,
+    state: FlowState,
+    owned_source: Option<CleanupPlace>,
+}
+
+struct LoweringFlow {
+    block: BlockId,
+    state: FlowState,
+    region: CleanupRegionId,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct PendingTryResidual {
+    block: BlockId,
+    state: FlowState,
+    region: CleanupRegionId,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct OpenBlock {
+    id: BlockId,
+    region: CleanupRegionId,
+    transitions: Vec<CleanupTransition>,
+    terminator: Option<CleanupTerminator>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct LeafMetadata {
+    place: CleanupPlace,
+    lifecycle: DeclarationId,
+}
+
+#[derive(Clone)]
+struct PlanBuilder<'a> {
+    program: &'a ResolvedProgram,
+    function: &'a ResolvedFunction,
+    allocation: Option<super::checked_allocation::Function<'a>>,
+    byte_helpers: helper_index::HelperSites<'a>,
+    ordinary_index: Option<helper_index::ordinary_view::OrdinaryView<'a>>,
+    slots: Vec<CleanupSlot>,
+    storage_to_slot: BTreeMap<StorageId, CleanupSlotId>,
+    inventory_storage: BTreeMap<InventoryStorageId, StorageId>,
+    leaves: BTreeMap<LivenessFlagId, LeafMetadata>,
+    next_flag: u32,
+    status_sources: Vec<StatusSource>,
+    blocks: Vec<OpenBlock>,
+    edges: Vec<CleanupEdge>,
+    regions: Vec<CleanupRegion>,
+    exits: Vec<ExitTarget>,
+    entry_state: CleanupEntryState,
+    initial_state: FlowState,
+    pending_try_residuals: Vec<PendingTryResidual>,
+    lexical: Option<Box<lexical_control::LexicalBuildState>>,
+    schema: &'static str,
+    string_appends: BTreeMap<ExpressionId, ExpressionId>,
+    string_owner_moves: BTreeSet<ExpressionId>,
+    string_condition_reads: BTreeSet<ExpressionId>,
+}
+
+impl<'a> PlanBuilder<'a> {
+    fn seed_entry(&mut self, root: CleanupRegionId) -> Result<(), Diagnostic> {
+        for storage in &self.function.cleanup.entry_state.live_owned_parameters {
+            let plan_storage = self
+                .inventory_storage
+                .get(storage)
+                .cloned()
+                .ok_or_else(|| plan_error("entry state references unknown storage"))?;
+            self.assign_slot(&plan_storage, root)?;
+            let place = CleanupPlace::whole(plan_storage);
+            let flags = self.flags_under(&place);
+            self.initial_state.append_distinct(flags);
+            self.entry_state.live_owned_parameters.push(place);
+        }
+        for conditional in &self
+            .function
+            .cleanup
+            .entry_state
+            .conditional_owned_parameters
+        {
+            let plan_storage = self
+                .inventory_storage
+                .get(&conditional.storage)
+                .cloned()
+                .ok_or_else(|| plan_error("conditional entry references unknown storage"))?;
+            self.assign_slot(&plan_storage, root)?;
+            let mut cases = Vec::with_capacity(conditional.cases.len());
+            let mut flow_cases = Vec::with_capacity(conditional.cases.len());
+            for case in &conditional.cases {
+                let mut live_places = Vec::with_capacity(case.live_flags.len());
+                let mut live_flags = Vec::with_capacity(case.live_flags.len());
+                for flag in &case.live_flags {
+                    let leaf = self.leaves.get(flag).ok_or_else(|| {
+                        plan_error("conditional entry references unknown liveness flag")
+                    })?;
+                    if leaf.place.storage != plan_storage
+                        || leaf.place.projections.first() != Some(&case.case)
+                    {
+                        return Err(plan_error(
+                            "conditional entry case disagrees with its case-qualified leaf",
+                        ));
+                    }
+                    live_places.push(leaf.place.clone());
+                    live_flags.push(*flag);
+                }
+                cases.push(ConditionalVariantCase {
+                    case: case.case.clone(),
+                    live_places,
+                });
+                flow_cases.push((case.case.clone(), live_flags));
+            }
+            self.initial_state
+                .conditional_variants
+                .push(ConditionalFlowVariant {
+                    root: CleanupPlace::whole(plan_storage.clone()),
+                    variant: conditional.variant.clone(),
+                    cases: flow_cases,
+                });
+            self.entry_state
+                .conditional_owned_parameters
+                .push(ConditionalVariantEntry {
+                    storage: plan_storage,
+                    variant: conditional.variant.clone(),
+                    cases,
+                });
+        }
+        if self
+            .storage_to_slot
+            .contains_key(&StorageId::ProvisionalResult)
+        {
+            self.assign_slot(&StorageId::ProvisionalResult, root)?;
+        }
+        Ok(())
+    }
+    fn build(mut self) -> Result<CleanupPlan, Diagnostic> {
+        if let Some(control) = &mut self.lexical {
+            let (sources, seen, work) = lexical_status::declare(self.program, self.function)?;
+            self.status_sources = sources;
+            control.status_normal_visits = seen;
+            control.status_work = work;
+        }
+        let root = CleanupRegionId(0);
+        let mut current = BlockId(0);
+        let mut state = self.initial_state.clone();
+        self.record_function_entry_boundary(current, &state, root)?;
+        for (ordinal, contract) in self.function.requires.iter().enumerate() {
+            let continued = self.lower_contract_expression(
+                contract,
+                current,
+                state,
+                root,
+                ContractPhase::Requires,
+                ordinal,
+            )?;
+            current = continued.0;
+            state = continued.1;
+        }
+        if !self.pending_try_residuals.is_empty() {
+            return Err(plan_error("postfix `?` is invalid in a precondition"));
+        }
+
+        let body = self.lower_root_body(&self.function.body, current, state, root)?;
+        current = body.block;
+        state = body.state;
+        if !self.flow_is_closed(current) {
+            let result_source_expression = self.function.body.id.clone();
+            if let Some(source) = body.owned_source {
+                let destination = CleanupPlace::whole(StorageId::ProvisionalResult);
+                self.transfer(
+                    current,
+                    self.function.body.id.clone(),
+                    source,
+                    destination,
+                    &mut state,
+                    true,
+                )?;
+            }
+
+            if !self.pending_try_residuals.is_empty() {
+                let owned_result = self.result_needs_drop()?;
+                let residuals = std::mem::take(&mut self.pending_try_residuals);
+                let epilogue = self.finish_try_normal_path(
+                    current,
+                    &mut state,
+                    &residuals,
+                    owned_result,
+                    root,
+                )?;
+
+                for residual in residuals {
+                    if !owned_result
+                        && (!residual.state.live_order.is_empty()
+                            || !residual.state.conditional_variants.is_empty())
+                    {
+                        return Err(plan_error(
+                            "postfix `?` residual carries inconsistent live owners",
+                        ));
+                    }
+                    let edge = self.new_edge(residual.block, epilogue, EdgeCondition::Always)?;
+                    let leaves_regions = self
+                        .region_chain(residual.region)
+                        .into_iter()
+                        .take_while(|region| *region != root)
+                        .collect::<Vec<_>>();
+                    if leaves_regions.is_empty() {
+                        self.terminate(residual.block, CleanupTerminator::Goto(edge))?;
+                    } else {
+                        self.emit_exit(
+                            residual.block,
+                            leaves_regions,
+                            Vec::new(),
+                            ExitContinuation::Continue(edge),
+                        )?;
+                    }
+                }
+                current = epilogue;
+            }
+
+            for (ordinal, contract) in self.function.ensures.iter().enumerate() {
+                let continued = self.lower_contract_expression(
+                    contract,
+                    current,
+                    state,
+                    root,
+                    ContractPhase::Ensures,
+                    ordinal,
+                )?;
+                current = continued.0;
+                state = continued.1;
+            }
+            if !self.pending_try_residuals.is_empty() {
+                return Err(plan_error("postfix `?` is invalid in a postcondition"));
+            }
+
+            let result = if self.result_needs_drop()? {
+                CleanupResultSource::Owned {
+                    storage: CleanupPlace::whole(StorageId::ProvisionalResult),
+                }
+            } else {
+                CleanupResultSource::Scalar {
+                    expression: result_source_expression,
+                }
+            };
+            self.finish_success(current, state, root, result)?;
+        }
+        self.finish_terminal_try_paths()?;
+        self.finish_lexical_returns()?;
+
+        #[cfg(test)]
+        note_lower_capacity_high_water(
+            self.blocks.capacity() * std::mem::size_of::<OpenBlock>()
+                + self.edges.capacity() * std::mem::size_of::<CleanupEdge>()
+                + self.regions.capacity() * std::mem::size_of::<CleanupRegion>()
+                + self.exits.capacity() * std::mem::size_of::<ExitTarget>()
+                + self.status_sources.capacity() * std::mem::size_of::<StatusSource>()
+                + builder_nested_capacity(&self),
+        );
+
+        let blocks = self
+            .blocks
+            .into_iter()
+            .map(|block| {
+                Ok(CleanupBlock {
+                    id: block.id,
+                    region: block.region,
+                    transitions: block.transitions,
+                    terminator: block.terminator.ok_or_else(|| {
+                        plan_error(format!("cleanup block {} is unterminated", block.id.0))
+                    })?,
+                })
+            })
+            .collect::<Result<Vec<_>, Diagnostic>>()?;
+        Ok(CleanupPlan {
+            schema: if matches!(
+                self.schema,
+                super::CLEANUP_PLAN_SCHEMA_V15
+                    | super::CLEANUP_PLAN_SCHEMA_V16
+                    | super::CLEANUP_PLAN_SCHEMA_V17
+                    | super::CLEANUP_PLAN_SCHEMA_V18
+                    | super::CLEANUP_PLAN_SCHEMA_V19
+            ) {
+                self.schema
+            } else if self
+                .status_sources
+                .iter()
+                .any(|source| source.id.lane == StatusLane::OwnerAdmission)
+            {
+                super::CLEANUP_PLAN_SCHEMA_V14
+            } else {
+                self.schema
+            },
+            entry: BlockId(0),
+            entry_state: self.entry_state,
+            slots: self.slots,
+            status_sources: self.status_sources,
+            blocks,
+            edges: self.edges,
+            regions: self.regions,
+            exits: self.exits,
+            lexical_control: self.lexical.map(|control| Box::new(control.certificate)),
+        })
+    }
+
+    fn result_needs_drop(&self) -> Result<bool, Diagnostic> {
+        self.needs_drop(&self.function.return_type)
+    }
+
+    fn needs_drop(&self, ty: &ResolvedType) -> Result<bool, Diagnostic> {
+        crate::cleanup::type_needs_resource_cleanup(self.program, ty).map_err(plan_error)
+    }
+
+    fn assign_slot(
+        &mut self,
+        storage: &StorageId,
+        region: CleanupRegionId,
+    ) -> Result<(), Diagnostic> {
+        if !self.storage_to_slot.contains_key(storage) {
+            return Err(plan_error(format!(
+                "cleanup storage `{storage:?}` has no slot"
+            )));
+        }
+        if !bounded_vec::storage_is_placed(&self.regions, storage) {
+            self.regions[region.0 as usize].slots.push(storage.clone());
+        }
+        Ok(())
+    }
+
+    fn add_supplemental_slot(
+        &mut self,
+        storage: StorageId,
+        ty: ResolvedType,
+        region: CleanupRegionId,
+    ) -> Result<(), Diagnostic> {
+        if self.storage_to_slot.contains_key(&storage) {
+            return self.reuse_ensure_slot(&storage, &ty, region);
+        }
+        let index = u32::try_from(self.slots.len())
+            .map_err(|_| plan_error("too many cleanup plan slots"))?;
+        let shape = self.shape_for_type(&ty, &storage, &mut Vec::new())?;
+        if schema::shape_is_nested(&shape)? {
+            schema::promote_v7(&mut self.schema);
+        }
+        self.slots.push(CleanupSlot {
+            id: CleanupSlotId(index),
+            storage: storage.clone(),
+            ty,
+            storage_index: index,
+            field_liveness_shape: shape,
+        });
+        self.storage_to_slot
+            .insert(storage.clone(), CleanupSlotId(index));
+        self.regions[region.0 as usize].slots.push(storage);
+        Ok(())
+    }
+
+    fn flags_under(&self, place: &CleanupPlace) -> Vec<LivenessFlagId> {
+        self.leaves
+            .iter()
+            .filter_map(|(flag, metadata)| {
+                (metadata.place.storage == place.storage
+                    && metadata.place.projections.starts_with(&place.projections))
+                .then_some(*flag)
+            })
+            .collect()
+    }
+
+    fn place_from_hir(&self, place: &Place) -> Result<CleanupPlace, Diagnostic> {
+        let storage = if place.root == self.function.result_id {
+            StorageId::ProvisionalResult
+        } else {
+            StorageId::Value(place.root.clone())
+        };
+        let mut resolved = CleanupPlace::whole(storage);
+        if !self.storage_to_slot.contains_key(&resolved.storage) {
+            return Err(plan_error(format!(
+                "owned place `{}` has no cleanup storage",
+                place.root
+            )));
+        }
+        for projection in &place.projections {
+            match projection {
+                PlaceProjection::Field(field) => resolved.projections.push(field.clone()),
+                PlaceProjection::VariantField { .. } => {
+                    return Err(plan_error(
+                        "variant field reached cleanup planning before variant support",
+                    ));
+                }
+            }
+        }
+        if self.flags_under(&resolved).is_empty() {
+            return Err(plan_error(format!(
+                "owned place `{}` has no droppable leaf",
+                place.root
+            )));
+        }
+        Ok(resolved)
+    }
+
+    fn expression_slot(
+        &mut self,
+        expression: &ResolvedExpr,
+        region: CleanupRegionId,
+    ) -> Result<Option<CleanupPlace>, Diagnostic> {
+        if expression.ownership != OwnershipMode::Own || !self.needs_drop(&expression.ty)? {
+            return Ok(None);
+        }
+        let storage = StorageId::Temporary(expression.id.clone());
+        self.assign_slot(&storage, region)?;
+        Ok(Some(CleanupPlace::whole(storage)))
+    }
+
+    fn binding_slot(
+        &mut self,
+        binding: &crate::hir::ResolvedBinding,
+        region: CleanupRegionId,
+    ) -> Result<Option<CleanupPlace>, Diagnostic> {
+        if binding.ownership != OwnershipMode::Own || !self.needs_drop(&binding.ty)? {
+            return Ok(None);
+        }
+        let storage = StorageId::Value(binding.id.clone());
+        self.assign_slot(&storage, region)?;
+        Ok(Some(CleanupPlace::whole(storage)))
+    }
+
+    fn call_argument_slot(
+        &mut self,
+        call: &ResolvedExpr,
+        parameter_index: usize,
+        value: &ResolvedExpr,
+        region: CleanupRegionId,
+    ) -> Result<CleanupPlace, Diagnostic> {
+        let parameter_index =
+            u32::try_from(parameter_index).map_err(|_| plan_error("too many call arguments"))?;
+        let storage = StorageId::CallArgument {
+            call: call.id.clone(),
+            parameter_index,
+            value_expression: value.id.clone(),
+        };
+        self.add_supplemental_slot(storage.clone(), value.ty.clone(), region)?;
+        Ok(CleanupPlace::whole(storage))
+    }
+
+    fn push_transition(&mut self, block: BlockId, transition: CleanupTransition) {
+        self.blocks[block.0 as usize].transitions.push(transition);
+    }
+
+    fn initialize(
+        &mut self,
+        block: BlockId,
+        at: ExpressionId,
+        destination: CleanupPlace,
+        state: &mut FlowState,
+    ) -> Result<(), Diagnostic> {
+        let flags = self.flags_under(&destination);
+        if flags.iter().any(|flag| state.is_live(*flag)) {
+            return Err(plan_error("cleanup initialization targets a live place"));
+        }
+        state.append_distinct(flags);
+        self.push_transition(block, CleanupTransition::Initialize { at, destination });
+        Ok(())
+    }
+
+    fn initialize_variant(
+        &mut self,
+        block: BlockId,
+        at: ExpressionId,
+        destination: CleanupPlace,
+        variant: DeclarationId,
+        state: &mut FlowState,
+    ) -> Result<(), Diagnostic> {
+        if self
+            .flags_under(&destination)
+            .iter()
+            .any(|flag| state.is_live(*flag))
+        {
+            return Err(plan_error("variant initialization targets a live place"));
+        }
+        let cases = self
+            .program
+            .declarations
+            .variant_cases(&variant)
+            .ok_or_else(|| plan_error("variant initialization has no closed case domain"))?
+            .iter()
+            .map(|case| {
+                let prefix = destination
+                    .projections
+                    .iter()
+                    .chain(std::iter::once(&case.id))
+                    .cloned()
+                    .collect::<Vec<_>>();
+                let flags = self
+                    .flags_under(&destination)
+                    .into_iter()
+                    .filter(|flag| self.leaves[flag].place.projections.starts_with(&prefix))
+                    .collect::<Vec<_>>();
+                (case.id.clone(), flags)
+            })
+            .collect();
+        state.conditional_variants.push(ConditionalFlowVariant {
+            root: destination.clone(),
+            variant: variant.clone(),
+            cases,
+        });
+        self.push_transition(
+            block,
+            CleanupTransition::InitializeVariant {
+                at,
+                destination,
+                variant,
+            },
+        );
+        Ok(())
+    }
+
+    fn seal_constructed_variant(
+        &self,
+        destination: &CleanupPlace,
+        variant: &DeclarationId,
+        case: &DeclarationId,
+        state: &mut FlowState,
+    ) -> Result<(), Diagnostic> {
+        let prefix = destination
+            .projections
+            .iter()
+            .chain(std::iter::once(case))
+            .cloned()
+            .collect::<Vec<_>>();
+        let flags = self
+            .flags_under(destination)
+            .into_iter()
+            .filter(|flag| self.leaves[flag].place.projections.starts_with(&prefix))
+            .collect::<Vec<_>>();
+        if flags.iter().any(|flag| !state.live_order.contains(flag)) {
+            return Err(plan_error(
+                "constructed variant has incomplete active-case payload",
+            ));
+        }
+        let set = flags.iter().copied().collect::<BTreeSet<_>>();
+        state.live_order.retain(|flag| !set.contains(flag));
+        state.conditional_variants.push(ConditionalFlowVariant {
+            root: destination.clone(),
+            variant: variant.clone(),
+            // Keep every tag for a later exhaustive match, but only the
+            // constructed case has a reachable cleanup obligation. A match
+            // edge derives its selected payload inventory when authenticated.
+            cases: self
+                .program
+                .declarations
+                .variant_cases(variant)
+                .ok_or_else(|| plan_error("constructed owning variant has no case domain"))?
+                .iter()
+                .map(|candidate| {
+                    let prefix = destination.projected(candidate.id.clone());
+                    let flags = if candidate.id == *case {
+                        self.flags_under(&prefix)
+                    } else {
+                        Vec::new()
+                    };
+                    (candidate.id.clone(), flags)
+                })
+                .collect(),
+        });
+        Ok(())
+    }
+
+    fn canonicalize_complete_aggregate(
+        &self,
+        place: &CleanupPlace,
+        state: &mut FlowState,
+    ) -> Result<(), Diagnostic> {
+        let flags = self.flags_under(place);
+        if flags.iter().any(|flag| !state.is_live(*flag)) {
+            return Err(plan_error(
+                "cannot normalize an incompletely initialized aggregate",
+            ));
+        }
+        let set = flags.iter().copied().collect::<BTreeSet<_>>();
+        state.remove(&set);
+        state.append_distinct(flags);
+        Ok(())
+    }
+
+    fn new_block(&mut self, region: CleanupRegionId) -> Result<BlockId, Diagnostic> {
+        let index =
+            u32::try_from(self.blocks.len()).map_err(|_| plan_error("too many cleanup blocks"))?;
+        let id = BlockId(index);
+        self.blocks.push(OpenBlock {
+            id,
+            region,
+            transitions: Vec::new(),
+            terminator: None,
+        });
+        Ok(id)
+    }
+
+    fn new_edge(
+        &mut self,
+        from: BlockId,
+        to: BlockId,
+        condition: EdgeCondition,
+    ) -> Result<EdgeId, Diagnostic> {
+        let index =
+            u32::try_from(self.edges.len()).map_err(|_| plan_error("too many cleanup edges"))?;
+        let id = EdgeId(index);
+        self.edges.push(CleanupEdge {
+            id,
+            from,
+            to,
+            condition,
+        });
+        Ok(id)
+    }
+
+    fn terminate(
+        &mut self,
+        block: BlockId,
+        terminator: CleanupTerminator,
+    ) -> Result<(), Diagnostic> {
+        let current = &mut self.blocks[block.0 as usize].terminator;
+        if current.replace(terminator).is_some() {
+            return Err(plan_error(format!(
+                "cleanup block {} has two terminators",
+                block.0
+            )));
+        }
+        Ok(())
+    }
+
+    fn add_status_source(
+        &mut self,
+        id: StatusSourceId,
+        producer: StatusProducer,
+    ) -> Result<(), Diagnostic> {
+        if let Some(control) = &mut self.lexical {
+            let mut found = None;
+            for (index, source) in self.status_sources.iter().enumerate() {
+                let cost = 1usize
+                    .checked_add(source.id.expression.as_str().len())
+                    .ok_or_else(|| plan_error("lexical status lookup work overflow"))?;
+                control.status_work = control
+                    .status_work
+                    .checked_sub(cost)
+                    .ok_or_else(|| plan_error("lexical status lookup work exhausted"))?;
+                if source.id == id {
+                    found = Some(index);
+                    break;
+                }
+            }
+            let index = found
+                .ok_or_else(|| plan_error("CFG status is absent from typed authored inventory"))?;
+            let comparison = match &producer {
+                StatusProducer::PropagatedCall { callee } => callee.as_str().len(),
+                StatusProducer::CheckedArithmetic {
+                    normalized_cases, ..
+                } => normalized_cases.len(),
+                StatusProducer::ContractFalse { .. } => 1,
+                StatusProducer::CheckedAllocation { .. } => 3,
+            };
+            control.status_work = control
+                .status_work
+                .checked_sub(comparison)
+                .ok_or_else(|| plan_error("lexical status producer comparison work exhausted"))?;
+            if self.status_sources[index].producer != producer {
+                return Err(plan_error(
+                    "CFG status producer differs from typed authored inventory",
+                ));
+            }
+            if !control.building_resume {
+                if control.status_normal_visits[index] != 0 {
+                    return Err(plan_error("duplicate normal lexical status visit"));
+                }
+                control.status_normal_visits[index] = 1;
+            }
+            self.note_resume_status(&id);
+            return Ok(());
+        }
+        if let Some(existing) = self.status_sources.iter().find(|source| source.id == id) {
+            if self.lexical.as_ref().is_some_and(|control| {
+                control.building_resume || control.replicated_statuses.contains(&id)
+            }) && existing.producer == producer
+            {
+                return Ok(());
+            }
+            return Err(plan_error(format!(
+                "duplicate cleanup status source for `{}`",
+                id.expression
+            )));
+        }
+        self.note_resume_status(&id);
+        self.status_sources.push(StatusSource { id, producer });
+        Ok(())
+    }
+
+    fn finalizers_for(
+        &self,
+        state: &FlowState,
+        included: impl Fn(&CleanupPlace) -> bool,
+    ) -> Vec<FinalizeAction> {
+        let mut actions = canonical_finalizers_for(
+            &state.live_order,
+            |flag| {
+                let leaf = &self.leaves[&flag];
+                (leaf.place.clone(), leaf.lifecycle.clone())
+            },
+            &included,
+        );
+        for variant in state.conditional_variants.iter().rev() {
+            actions.extend(canonical_conditional_finalizers_for(
+                &variant.root,
+                &variant.variant,
+                &variant.cases,
+                |flag| {
+                    let metadata = &self.leaves[&flag];
+                    (metadata.place.clone(), metadata.lifecycle.clone())
+                },
+                &included,
+            ));
+        }
+        actions
+    }
+
+    fn region_chain(&self, mut region: CleanupRegionId) -> Vec<CleanupRegionId> {
+        let mut chain = Vec::new();
+        loop {
+            chain.push(region);
+            let Some(parent) = self.regions[region.0 as usize].parent else {
+                break;
+            };
+            region = parent;
+        }
+        chain
+    }
+
+    fn emit_exit(
+        &mut self,
+        from: BlockId,
+        leaves_regions: Vec<CleanupRegionId>,
+        finalize_in_order: Vec<FinalizeAction>,
+        continuation: ExitContinuation,
+    ) -> Result<ExitTargetId, Diagnostic> {
+        let index =
+            u32::try_from(self.exits.len()).map_err(|_| plan_error("too many cleanup exits"))?;
+        let id = ExitTargetId(index);
+        self.exits.push(ExitTarget {
+            id,
+            from,
+            leaves_regions,
+            finalize_in_order,
+            continuation,
+        });
+        self.terminate(from, CleanupTerminator::Exit(id))?;
+        Ok(id)
+    }
+
+    fn emit_failure(
+        &mut self,
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+        source: StatusSourceId,
+    ) -> Result<(), Diagnostic> {
+        self.push_transition(
+            block,
+            CleanupTransition::SelectFailure {
+                source: source.clone(),
+            },
+        );
+        let finalizers = self.finalizers_for(&state, |_| true);
+        self.emit_exit(
+            block,
+            self.region_chain(region),
+            finalizers,
+            ExitContinuation::ReturnFailure { source },
+        )?;
+        Ok(())
+    }
+
+    fn split_status(
+        &mut self,
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+        source: StatusSourceId,
+    ) -> Result<(BlockId, FlowState), Diagnostic> {
+        let success = self.new_block(region)?;
+        let failure = self.new_block(region)?;
+        let success_edge =
+            self.new_edge(block, success, EdgeCondition::StatusZero(source.clone()))?;
+        let failure_edge =
+            self.new_edge(block, failure, EdgeCondition::StatusNonzero(source.clone()))?;
+        self.terminate(
+            block,
+            CleanupTerminator::Branch(vec![success_edge, failure_edge]),
+        )?;
+        self.emit_failure(failure, state.clone(), region, source)?;
+        Ok((success, state))
+    }
+
+    fn lower_contract(
+        &mut self,
+        contract: &ResolvedExpr,
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+        phase: ContractPhase,
+        ordinal: usize,
+    ) -> Result<(BlockId, FlowState), Diagnostic> {
+        let source = StatusSourceId {
+            expression: contract.id.clone(),
+            lane: StatusLane::ContractFalse,
+        };
+        self.add_status_source(
+            source.clone(),
+            StatusProducer::ContractFalse {
+                phase,
+                ordinal: u32::try_from(ordinal)
+                    .map_err(|_| plan_error("too many function contracts"))?,
+            },
+        )?;
+        let success = self.new_block(region)?;
+        let failure = self.new_block(region)?;
+        let success_edge = self.new_edge(
+            block,
+            success,
+            EdgeCondition::BooleanResult(contract.id.clone(), true),
+        )?;
+        let failure_edge = self.new_edge(
+            block,
+            failure,
+            EdgeCondition::BooleanResult(contract.id.clone(), false),
+        )?;
+        self.terminate(
+            block,
+            CleanupTerminator::Branch(vec![success_edge, failure_edge]),
+        )?;
+        self.emit_failure(failure, state.clone(), region, source)?;
+        Ok((success, state))
+    }
+
+    fn new_region(&mut self, parent: CleanupRegionId) -> Result<CleanupRegionId, Diagnostic> {
+        if let Some(region) = self.reuse_ensure_region(parent)? {
+            return Ok(region);
+        }
+        let index = u32::try_from(self.regions.len())
+            .map_err(|_| plan_error("too many cleanup regions"))?;
+        let id = CleanupRegionId(index);
+        self.regions.push(CleanupRegion {
+            id,
+            parent: Some(parent),
+            slots: Vec::new(),
+            normal_scope_end: UNRESOLVED_EXIT,
+        });
+        self.retain_ensure_region(id)?;
+        Ok(id)
+    }
+
+    fn exit_scope(
+        &mut self,
+        block: BlockId,
+        mut state: FlowState,
+        region: CleanupRegionId,
+    ) -> Result<(BlockId, FlowState), Diagnostic> {
+        let parent = self.regions[region.0 as usize]
+            .parent
+            .ok_or_else(|| plan_error("cannot continue after root cleanup region"))?;
+        let region_storages = self.regions[region.0 as usize]
+            .slots
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        let finalized_flags = state
+            .live_order
+            .iter()
+            .filter(|flag| region_storages.contains(&self.leaves[flag].place.storage))
+            .copied()
+            .collect::<BTreeSet<_>>();
+        let finalized_conditional = state
+            .conditional_variants
+            .iter()
+            .filter(|variant| region_storages.contains(&variant.root.storage))
+            .flat_map(|variant| {
+                variant
+                    .cases
+                    .iter()
+                    .flat_map(|(_, flags)| flags.iter().copied())
+            })
+            .collect::<BTreeSet<_>>();
+        let finalizers =
+            self.finalizers_for(&state, |place| region_storages.contains(&place.storage));
+        state.remove(&finalized_flags);
+        state.remove(&finalized_conditional);
+        state
+            .conditional_variants
+            .retain(|variant| !region_storages.contains(&variant.root.storage));
+
+        let continuation_block = self.new_block(parent)?;
+        let edge = self.new_edge(block, continuation_block, EdgeCondition::Always)?;
+        let exit = self.emit_exit(
+            block,
+            vec![region],
+            finalizers,
+            ExitContinuation::Continue(edge),
+        )?;
+        self.record_lexical_scope_end(region, exit)?;
+        Ok((continuation_block, state))
+    }
+
+    fn finish_success(
+        &mut self,
+        block: BlockId,
+        state: FlowState,
+        root: CleanupRegionId,
+        result: CleanupResultSource,
+    ) -> Result<(), Diagnostic> {
+        let finalizers = self.finalizers_for(&state, |place| {
+            place.storage != StorageId::ProvisionalResult
+        });
+        let exit = self.emit_exit(
+            block,
+            vec![root],
+            finalizers,
+            ExitContinuation::CommitResult { source: result },
+        )?;
+        self.regions[root.0 as usize].normal_scope_end = exit;
+        if let Some(control) = &mut self.lexical {
+            control.certificate.function_success_exits.push(exit);
+        }
+        Ok(())
+    }
+
+    fn consume_place(
+        &self,
+        place: &CleanupPlace,
+        state: &mut FlowState,
+        at: &ExpressionId,
+    ) -> Result<(), Diagnostic> {
+        if let Some(index) = state
+            .conditional_variants
+            .iter()
+            .position(|variant| variant.root == *place)
+        {
+            state.conditional_variants.remove(index);
+            return Ok(());
+        }
+        let flags = self.flags_under(place);
+        if flags.is_empty() || flags.iter().any(|flag| !state.is_live(*flag)) {
+            return Err(plan_error(format!(
+                "call commit at `{at}` consumes a non-live argument epoch"
+            )));
+        }
+        let consumed = flags.into_iter().collect();
+        for history in state.renewals.values_mut() {
+            history.commit(&consumed);
+        }
+        state.remove(&consumed);
+        Ok(())
+    }
+
+    fn lower_root_body(
+        &mut self,
+        expression: &ResolvedExpr,
+        block: BlockId,
+        state: FlowState,
+        root: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        let ResolvedExprKind::Block { statements, tail } = &expression.kind else {
+            return self.lower_expr(expression, block, state, root);
+        };
+
+        // The function-body lexical scope is the root cleanup region.  Its
+        // locals remain alive through `ensures`; only the final success/failure
+        // epilogue may destroy them.
+        let destination = self.expression_slot(expression, root)?;
+        let mut current = block;
+        let mut current_state = state;
+        for statement in statements {
+            if self.flow_is_closed(current) {
+                return Ok(EvalResult {
+                    block: current,
+                    state: current_state,
+                    owned_source: None,
+                });
+            }
+            // Field Mutation v1 stores replace one scalar Copy field; they
+            // lower their RHS like an initializer and add no cleanup
+            // structure and never transfer into a binding slot.
+            if let ResolvedStatement::Assign {
+                field: Some(_),
+                value,
+                ..
+            } = statement
+            {
+                self.reserve_statement_renewal(statement, current, &mut current_state, root)?;
+                let evaluated = self.lower_expr(value, current, current_state, root)?;
+                current = evaluated.block;
+                current_state = evaluated.state;
+                continue;
+            }
+            let (binding, value) = match statement {
+                ResolvedStatement::CopyDiscard { value, .. } => {
+                    let evaluated = self.lower_expr(value, current, current_state, root)?;
+                    current = evaluated.block;
+                    current_state = evaluated.state;
+                    continue;
+                }
+                ResolvedStatement::Let { binding, value, .. }
+                | ResolvedStatement::Assign { binding, value, .. } => (binding, value),
+                // Unsafe boundaries bind nothing: their ordinary block body
+                // lowers like any nested block expression and owns nothing at
+                // this level.
+                ResolvedStatement::Unsafe { body, .. } => {
+                    let evaluated = self.lower_expr(body, current, current_state, root)?;
+                    current = evaluated.block;
+                    current_state = evaluated.state;
+                    continue;
+                }
+                ResolvedStatement::LexicalWhile {
+                    condition,
+                    body,
+                    latch,
+                    ..
+                } => {
+                    let evaluated = self.lower_lexical_while(
+                        condition,
+                        body,
+                        latch,
+                        current,
+                        current_state,
+                        root,
+                    )?;
+                    current = evaluated.block;
+                    current_state = evaluated.state;
+                    continue;
+                }
+                // Bounded While-Loops v1: linearize one admitted iteration.
+                ResolvedStatement::While {
+                    condition, body, ..
+                } => {
+                    let evaluated =
+                        self.lower_while(condition, body, current, current_state, root)?;
+                    current = evaluated.block;
+                    current_state = evaluated.state;
+                    continue;
+                }
+            };
+            self.reserve_statement_renewal(statement, current, &mut current_state, root)?;
+            let evaluated = self.lower_expr(value, current, current_state, root)?;
+            current = evaluated.block;
+            current_state = evaluated.state;
+            if self.flow_is_closed(current) {
+                return Ok(EvalResult {
+                    block: current,
+                    state: current_state,
+                    owned_source: None,
+                });
+            }
+            if let Some(binding_place) = self.binding_slot(binding, root)? {
+                let source = evaluated.owned_source.ok_or_else(|| {
+                    plan_error(format!(
+                        "owned binding `{}` has no value source",
+                        binding.id
+                    ))
+                })?;
+                self.transfer(
+                    current,
+                    value.id.clone(),
+                    source,
+                    binding_place,
+                    &mut current_state,
+                    true,
+                )?;
+            }
+        }
+        if self.flow_is_closed(current) {
+            return Ok(EvalResult {
+                block: current,
+                state: current_state,
+                owned_source: None,
+            });
+        }
+        let tail = self.lower_expr(tail, current, current_state, root)?;
+        current = tail.block;
+        current_state = tail.state;
+        if self.flow_is_closed(current) {
+            return Ok(EvalResult {
+                block: current,
+                state: current_state,
+                owned_source: None,
+            });
+        }
+        if let Some(destination) = destination.clone() {
+            let source = tail
+                .owned_source
+                .ok_or_else(|| plan_error("owned root block tail has no cleanup source"))?;
+            self.transfer(
+                current,
+                expression.id.clone(),
+                source,
+                destination,
+                &mut current_state,
+                true,
+            )?;
+        }
+        Ok(EvalResult {
+            block: current,
+            state: current_state,
+            owned_source: destination,
+        })
+    }
+
+    fn lower_expr(
+        &mut self,
+        expression: &ResolvedExpr,
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        self.lower_expr_iterative(expression, block, state, region)
+    }
+
+    #[cfg(test)]
+    fn assert_lowering_oracle(
+        actual_builder: &Self,
+        expected_builder: &Self,
+        actual: &Result<EvalResult, Diagnostic>,
+        expected: &Result<EvalResult, Diagnostic>,
+        expression: &ResolvedExpr,
+    ) {
+        match (actual, expected) {
+            (Ok(actual), Ok(expected)) => assert_eq!(
+                actual, expected,
+                "cleanup lowering result differs at {}",
+                expression.id
+            ),
+            (Err(actual), Err(expected)) => {
+                assert_eq!(actual.code, expected.code);
+                assert_eq!(actual.severity, expected.severity);
+                assert_eq!(actual.message, expected.message);
+                assert_eq!(actual.path, expected.path);
+                assert_eq!(actual.span, expected.span);
+                assert_eq!(actual.help, expected.help);
+            }
+            (actual, expected) => panic!(
+                "cleanup lowering outcome differs at {}: actual={actual:?} expected={expected:?}",
+                expression.id
+            ),
+        }
+        assert_eq!(actual_builder.slots, expected_builder.slots);
+        assert_eq!(
+            actual_builder.storage_to_slot,
+            expected_builder.storage_to_slot
+        );
+        assert_eq!(
+            actual_builder.inventory_storage,
+            expected_builder.inventory_storage
+        );
+        assert_eq!(actual_builder.leaves, expected_builder.leaves);
+        assert_eq!(actual_builder.next_flag, expected_builder.next_flag);
+        assert_eq!(
+            actual_builder.status_sources,
+            expected_builder.status_sources
+        );
+        assert_eq!(actual_builder.blocks, expected_builder.blocks);
+        assert_eq!(actual_builder.edges, expected_builder.edges);
+        assert_eq!(actual_builder.regions, expected_builder.regions);
+        assert_eq!(actual_builder.exits, expected_builder.exits);
+        assert_eq!(actual_builder.entry_state, expected_builder.entry_state);
+        assert_eq!(actual_builder.initial_state, expected_builder.initial_state);
+        assert_eq!(
+            actual_builder.pending_try_residuals,
+            expected_builder.pending_try_residuals
+        );
+        assert_eq!(actual_builder.schema, expected_builder.schema);
+    }
+
+    fn lower_expr_iterative(
+        &mut self,
+        expression: &ResolvedExpr,
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        enum Frame<'e> {
+            RestoreRegion(CleanupRegionId),
+            Enter {
+                expression: &'e ResolvedExpr,
+                block: BlockId,
+                state: FlowState,
+            },
+            Unary {
+                expression: &'e ResolvedExpr,
+                op: UnaryOp,
+            },
+            BinaryLeft {
+                expression: &'e ResolvedExpr,
+                op: BinaryOp,
+                right: &'e ResolvedExpr,
+            },
+            BinaryRight {
+                expression: &'e ResolvedExpr,
+                op: BinaryOp,
+            },
+            LazyAfterLeft {
+                operation: BinaryOp,
+                left_id: ExpressionId,
+                right: &'e ResolvedExpr,
+            },
+            LazyAfterRight {
+                left_state: FlowState,
+                skip: BlockId,
+            },
+            IfAfterCondition {
+                expression: &'e ResolvedExpr,
+                then_branch: &'e ResolvedExpr,
+                else_branch: &'e ResolvedExpr,
+            },
+            IfAfterThen {
+                expression: &'e ResolvedExpr,
+                else_branch: &'e ResolvedExpr,
+                else_entry: BlockId,
+                condition_state: FlowState,
+                destination: Option<CleanupPlace>,
+            },
+            IfAfterElse {
+                expression: &'e ResolvedExpr,
+                then_result: EvalResult,
+                destination: Option<CleanupPlace>,
+            },
+            Project {
+                expression: &'e ResolvedExpr,
+                field: &'e DeclarationId,
+            },
+            UpcastAfterSource,
+            NativeNext {
+                args: &'e [ResolvedExpr],
+                index: usize,
+                flow: EvalResult,
+            },
+            NativeAfterArg {
+                args: &'e [ResolvedExpr],
+                index: usize,
+            },
+            HostCommandNext {
+                expression: &'e ResolvedExpr,
+                operation: crate::hir::ResolvedHostCommandOperation,
+                args: &'e [ResolvedExpr],
+                index: usize,
+                flow: EvalResult,
+            },
+            HostCommandAfterArg {
+                expression: &'e ResolvedExpr,
+                operation: crate::hir::ResolvedHostCommandOperation,
+                args: &'e [ResolvedExpr],
+                index: usize,
+            },
+            ByteRangeAfterSource {
+                expression: &'e ResolvedExpr,
+                start: &'e ResolvedExpr,
+                end: &'e ResolvedExpr,
+            },
+            ByteRangeAfterStart {
+                expression: &'e ResolvedExpr,
+                end: &'e ResolvedExpr,
+            },
+            ByteRangeAfterEnd {
+                expression: &'e ResolvedExpr,
+            },
+            CallNext {
+                expression: &'e ResolvedExpr,
+                callee: &'e DeclarationId,
+                args: &'e [ResolvedExpr],
+                params: call_parameters::CallParams<'e>,
+                index: usize,
+                flow: EvalResult,
+                commits: Vec<CallArgumentTransfer>,
+            },
+            CallAfterArg {
+                expression: &'e ResolvedExpr,
+                callee: &'e DeclarationId,
+                args: &'e [ResolvedExpr],
+                params: call_parameters::CallParams<'e>,
+                index: usize,
+                commits: Vec<CallArgumentTransfer>,
+            },
+            BlockNext {
+                expression: &'e ResolvedExpr,
+                statements: &'e [ResolvedStatement],
+                tail: &'e ResolvedExpr,
+                index: usize,
+                flow: EvalResult,
+                child_region: CleanupRegionId,
+                destination: Option<CleanupPlace>,
+            },
+            BlockAfterStatement {
+                expression: &'e ResolvedExpr,
+                statements: &'e [ResolvedStatement],
+                tail: &'e ResolvedExpr,
+                index: usize,
+                child_region: CleanupRegionId,
+                destination: Option<CleanupPlace>,
+            },
+            BlockAfterTail {
+                expression: &'e ResolvedExpr,
+                child_region: CleanupRegionId,
+                destination: Option<CleanupPlace>,
+            },
+            RecordNext {
+                expression: &'e ResolvedExpr,
+                fields: &'e [crate::hir::ResolvedFieldInitializer],
+                index: usize,
+                flow: EvalResult,
+                destination: Option<CleanupPlace>,
+            },
+            RecordAfterField {
+                expression: &'e ResolvedExpr,
+                fields: &'e [crate::hir::ResolvedFieldInitializer],
+                index: usize,
+                destination: Option<CleanupPlace>,
+            },
+            VariantNext {
+                expression: &'e ResolvedExpr,
+                variant: &'e DeclarationId,
+                case: &'e DeclarationId,
+                fields: &'e [crate::hir::ResolvedFieldInitializer],
+                index: usize,
+                flow: EvalResult,
+                destination: Option<CleanupPlace>,
+            },
+            VariantAfterField {
+                expression: &'e ResolvedExpr,
+                variant: &'e DeclarationId,
+                case: &'e DeclarationId,
+                fields: &'e [crate::hir::ResolvedFieldInitializer],
+                index: usize,
+                destination: Option<CleanupPlace>,
+            },
+            TryAfterOperand {
+                expression: &'e ResolvedExpr,
+                operand: &'e ResolvedExpr,
+                result: &'e DeclarationId,
+                ok_case: &'e DeclarationId,
+                ok_field: &'e DeclarationId,
+                err_case: &'e DeclarationId,
+                err_field: &'e DeclarationId,
+                residual_type: &'e ResolvedType,
+            },
+            TryOptionAfterOperand {
+                expression: &'e ResolvedExpr,
+                operand: &'e ResolvedExpr,
+                option: &'e DeclarationId,
+                some_case: &'e DeclarationId,
+                some_field: &'e DeclarationId,
+                none_case: &'e DeclarationId,
+                residual_type: &'e ResolvedType,
+            },
+            MatchAfterScrutinee {
+                expression: &'e ResolvedExpr,
+                mode: ResolvedMatchMode,
+                scrutinee: &'e ResolvedExpr,
+                arms: &'e [ResolvedMatchArm],
+            },
+            MatchRecordAfterArm {
+                arm_region: Option<CleanupRegionId>,
+                destination: Option<CleanupPlace>,
+                result_expression: &'e ResolvedExpr,
+            },
+            MatchNext {
+                expression: &'e ResolvedExpr,
+                mode: ResolvedMatchMode,
+                scrutinee: &'e ResolvedExpr,
+                arms: &'e [ResolvedMatchArm],
+                index: usize,
+                decision: BlockId,
+                branch_state: FlowState,
+                arm_results: Vec<EvalResult>,
+                source: Option<CleanupPlace>,
+            },
+            MatchAfterArm {
+                expression: &'e ResolvedExpr,
+                mode: ResolvedMatchMode,
+                scrutinee: &'e ResolvedExpr,
+                arms: &'e [ResolvedMatchArm],
+                index: usize,
+                decision: BlockId,
+                branch_state: FlowState,
+                arm_results: Vec<EvalResult>,
+                source: Option<CleanupPlace>,
+                arm_region: Option<CleanupRegionId>,
+            },
+            /// Refutable Match v1 decision chain over a Copy-scalar
+            /// scrutinee: one linearized pass whose Boolean joins mirror the
+            /// while model. Owned-liveness equality is fail-closed.
+            ScalarMatchNext {
+                expression: &'e ResolvedExpr,
+                scrutinee: &'e ResolvedExpr,
+                arms: &'e [ResolvedMatchArm],
+                index: usize,
+                decision: BlockId,
+                branch_state: FlowState,
+                arm_results: Vec<EvalResult>,
+                destination: Option<CleanupPlace>,
+            },
+            ScalarMatchAfterGuard {
+                expression: &'e ResolvedExpr,
+                scrutinee: &'e ResolvedExpr,
+                arms: &'e [ResolvedMatchArm],
+                index: usize,
+                decision: BlockId,
+                arm_results: Vec<EvalResult>,
+                destination: Option<CleanupPlace>,
+                guard_region: CleanupRegionId,
+                value_region: Option<CleanupRegionId>,
+                value_entry: BlockId,
+                parent_region: CleanupRegionId,
+            },
+            ScalarMatchAfterArm {
+                expression: &'e ResolvedExpr,
+                scrutinee: &'e ResolvedExpr,
+                arms: &'e [ResolvedMatchArm],
+                index: usize,
+                decision: BlockId,
+                branch_state: FlowState,
+                arm_results: Vec<EvalResult>,
+                destination: Option<CleanupPlace>,
+                value_region: Option<CleanupRegionId>,
+                parent_region: CleanupRegionId,
+            },
+            UpdateAfterBase {
+                expression: &'e ResolvedExpr,
+                record: &'e DeclarationId,
+                fields: &'e [crate::hir::ResolvedFieldInitializer],
+                destination: Option<CleanupPlace>,
+                update_region: CleanupRegionId,
+            },
+            UpdateNext {
+                expression: &'e ResolvedExpr,
+                record: &'e DeclarationId,
+                fields: &'e [crate::hir::ResolvedFieldInitializer],
+                index: usize,
+                flow: EvalResult,
+                destination: Option<CleanupPlace>,
+                update_region: CleanupRegionId,
+                staged_base: Option<CleanupPlace>,
+                replaced: BTreeSet<DeclarationId>,
+            },
+            UpdateAfterField {
+                expression: &'e ResolvedExpr,
+                record: &'e DeclarationId,
+                fields: &'e [crate::hir::ResolvedFieldInitializer],
+                index: usize,
+                destination: Option<CleanupPlace>,
+                update_region: CleanupRegionId,
+                staged_base: Option<CleanupPlace>,
+                replaced: BTreeSet<DeclarationId>,
+            },
+        }
+        const { assert!(std::mem::size_of::<Frame<'static>>() <= 392) };
+        #[cfg(test)]
+        fn frame_owned_capacity(frame: &Frame<'_>) -> usize {
+            let destination = |place: &Option<CleanupPlace>| {
+                place.as_ref().map_or(0, cleanup_place_owned_capacity)
+            };
+            let results = |values: &Vec<EvalResult>| {
+                values.capacity() * std::mem::size_of::<EvalResult>()
+                    + values.iter().map(eval_result_owned_capacity).sum::<usize>()
+            };
+            match frame {
+                Frame::Enter { state, .. }
+                | Frame::LazyAfterRight {
+                    left_state: state, ..
+                } => flow_state_owned_capacity(state),
+                Frame::LazyAfterLeft { left_id, .. } => left_id.as_str().len(),
+                Frame::IfAfterThen {
+                    condition_state,
+                    destination: place,
+                    ..
+                } => flow_state_owned_capacity(condition_state) + destination(place),
+                Frame::IfAfterElse {
+                    then_result,
+                    destination: place,
+                    ..
+                } => eval_result_owned_capacity(then_result) + destination(place),
+                Frame::NativeNext { flow, .. }
+                | Frame::HostCommandNext { flow, .. }
+                | Frame::VariantNext { flow, .. } => eval_result_owned_capacity(flow),
+                Frame::BlockNext {
+                    flow,
+                    destination: place,
+                    ..
+                }
+                | Frame::RecordNext {
+                    flow,
+                    destination: place,
+                    ..
+                } => eval_result_owned_capacity(flow) + destination(place),
+                Frame::CallNext {
+                    params,
+                    flow,
+                    commits,
+                    ..
+                } => {
+                    call_parameters::owned_capacity(params)
+                        + eval_result_owned_capacity(flow)
+                        + commits.capacity() * std::mem::size_of::<CallArgumentTransfer>()
+                        + commits
+                            .iter()
+                            .map(|commit| cleanup_place_owned_capacity(&commit.source))
+                            .sum::<usize>()
+                }
+                Frame::CallAfterArg {
+                    params, commits, ..
+                } => {
+                    call_parameters::owned_capacity(params)
+                        + commits.capacity() * std::mem::size_of::<CallArgumentTransfer>()
+                        + commits
+                            .iter()
+                            .map(|commit| cleanup_place_owned_capacity(&commit.source))
+                            .sum::<usize>()
+                }
+                Frame::MatchNext {
+                    branch_state,
+                    arm_results,
+                    ..
+                }
+                | Frame::MatchAfterArm {
+                    branch_state,
+                    arm_results,
+                    ..
+                } => flow_state_owned_capacity(branch_state) + results(arm_results),
+                Frame::ScalarMatchNext {
+                    branch_state,
+                    arm_results,
+                    destination: place,
+                    ..
+                }
+                | Frame::ScalarMatchAfterArm {
+                    branch_state,
+                    arm_results,
+                    destination: place,
+                    ..
+                } => {
+                    flow_state_owned_capacity(branch_state)
+                        + results(arm_results)
+                        + destination(place)
+                }
+                Frame::ScalarMatchAfterGuard {
+                    arm_results,
+                    destination: place,
+                    ..
+                } => results(arm_results) + destination(place),
+                Frame::UpdateNext {
+                    flow,
+                    destination: place,
+                    staged_base,
+                    replaced,
+                    ..
+                } => {
+                    eval_result_owned_capacity(flow)
+                        + destination(place)
+                        + destination(staged_base)
+                        + replaced.len()
+                            * (std::mem::size_of::<DeclarationId>()
+                                + std::mem::size_of::<BTreeSet<DeclarationId>>())
+                        + replaced.iter().map(|id| id.as_str().len()).sum::<usize>()
+                }
+                Frame::UpdateAfterField {
+                    destination: place,
+                    staged_base,
+                    replaced,
+                    ..
+                } => {
+                    destination(place)
+                        + destination(staged_base)
+                        + replaced.len()
+                            * (std::mem::size_of::<DeclarationId>()
+                                + std::mem::size_of::<BTreeSet<DeclarationId>>())
+                        + replaced.iter().map(|id| id.as_str().len()).sum::<usize>()
+                }
+                Frame::BlockAfterStatement {
+                    destination: place, ..
+                }
+                | Frame::BlockAfterTail {
+                    destination: place, ..
+                }
+                | Frame::RecordAfterField {
+                    destination: place, ..
+                }
+                | Frame::UpdateAfterBase {
+                    destination: place, ..
+                } => destination(place),
+                _ => 0,
+            }
+        }
+        let mut frames = vec![Frame::Enter {
+            expression,
+            block,
+            state,
+        }];
+        let mut results = Vec::new();
+        let mut active_region = region;
+        while let Some(frame) = frames.pop() {
+            #[cfg(test)]
+            note_lower_capacity_high_water(
+                frames.capacity() * std::mem::size_of::<Frame<'_>>()
+                    + results.capacity() * std::mem::size_of::<EvalResult>()
+                    + self.blocks.capacity() * std::mem::size_of::<OpenBlock>()
+                    + self.edges.capacity() * std::mem::size_of::<CleanupEdge>()
+                    + self.regions.capacity() * std::mem::size_of::<CleanupRegion>()
+                    + self.exits.capacity() * std::mem::size_of::<ExitTarget>()
+                    + self.status_sources.capacity() * std::mem::size_of::<StatusSource>()
+                    + builder_nested_capacity(self)
+                    + frames.iter().map(frame_owned_capacity).sum::<usize>()
+                    + frame_owned_capacity(&frame)
+                    + results
+                        .iter()
+                        .map(eval_result_owned_capacity)
+                        .sum::<usize>(),
+            );
+            match frame {
+                Frame::RestoreRegion(restored) => active_region = restored,
+                Frame::Enter {
+                    expression,
+                    block,
+                    state,
+                } if self.owns_string_clone(expression) => {
+                    results.push(self.initialize_string(expression, block, state)?);
+                }
+                Frame::Enter {
+                    expression,
+                    block,
+                    state,
+                } => match &expression.kind {
+                    ResolvedExprKind::LexicalExit { .. } => {
+                        results.push(self.lower_lexical_exit(
+                            expression,
+                            block,
+                            state,
+                            active_region,
+                        )?);
+                    }
+                    ResolvedExprKind::Closure { .. } if !expression.ty.is_once_function() => {
+                        results.push(EvalResult {
+                            block,
+                            state,
+                            owned_source: None,
+                        })
+                    }
+                    ResolvedExprKind::FunctionReference { .. }
+                    | ResolvedExprKind::Int(_)
+                    | ResolvedExprKind::Int32(_)
+                    | ResolvedExprKind::Char(_)
+                    | ResolvedExprKind::Uint8(_)
+                    | ResolvedExprKind::Usize(_)
+                    | ResolvedExprKind::ArrayU8(_)
+                    | ResolvedExprKind::RepeatArrayU8 { .. }
+                    | ResolvedExprKind::Float32(_)
+                    | ResolvedExprKind::Float64(_)
+                    | ResolvedExprKind::Bool(_)
+                    | ResolvedExprKind::String(_)
+                    | ResolvedExprKind::BorrowedUtf8Literal(_) => results.push(EvalResult {
+                        block,
+                        state,
+                        owned_source: None,
+                    }),
+                    ResolvedExprKind::BorrowPlace { .. } => results.push(EvalResult {
+                        block,
+                        state,
+                        owned_source: None,
+                    }),
+                    ResolvedExprKind::ByteRange {
+                        operation,
+                        source,
+                        start,
+                        end,
+                    } => {
+                        if operation.as_str() != crate::byte_ops::RANGE_ID {
+                            return Err(plan_error(
+                                "byte range carries an unknown operation identity",
+                            ));
+                        }
+                        if !schema::includes_v5(self.schema) {
+                            self.schema = CLEANUP_PLAN_SCHEMA_V4;
+                        }
+                        frames.push(Frame::ByteRangeAfterSource {
+                            expression,
+                            start,
+                            end,
+                        });
+                        frames.push(Frame::Enter {
+                            expression: source,
+                            block,
+                            state,
+                        });
+                    }
+                    ResolvedExprKind::Place(place) => {
+                        self.assign_moved_string_slot(expression, block)?;
+                        let owned_source = if !self.string_condition_reads.contains(&expression.id)
+                            && expression.ownership == OwnershipMode::Own
+                            && self.needs_drop(&expression.ty)?
+                        {
+                            Some(self.place_from_hir(place)?)
+                        } else {
+                            None
+                        };
+                        results.push(EvalResult {
+                            block,
+                            state,
+                            owned_source,
+                        });
+                    }
+                    ResolvedExprKind::Unary { op, value } => {
+                        frames.push(Frame::Unary {
+                            expression,
+                            op: *op,
+                        });
+                        frames.push(Frame::Enter {
+                            expression: value,
+                            block,
+                            state,
+                        });
+                    }
+                    ResolvedExprKind::Binary { op, left, right }
+                        if !matches!(op, BinaryOp::And | BinaryOp::Or) =>
+                    {
+                        frames.push(Frame::BinaryLeft {
+                            expression,
+                            op: *op,
+                            right,
+                        });
+                        frames.push(Frame::Enter {
+                            expression: left,
+                            block,
+                            state,
+                        });
+                    }
+                    ResolvedExprKind::Binary { op, left, right }
+                        if matches!(op, BinaryOp::And | BinaryOp::Or) =>
+                    {
+                        frames.push(Frame::LazyAfterLeft {
+                            operation: *op,
+                            left_id: left.id.clone(),
+                            right,
+                        });
+                        frames.push(Frame::Enter {
+                            expression: left,
+                            block,
+                            state,
+                        });
+                    }
+                    ResolvedExprKind::Binary { .. } => {
+                        return Err(plan_error(
+                            "cleanup lowering received an unknown binary operator",
+                        ));
+                    }
+                    ResolvedExprKind::If {
+                        condition,
+                        then_branch,
+                        else_branch,
+                    } => {
+                        frames.push(Frame::IfAfterCondition {
+                            expression,
+                            then_branch,
+                            else_branch,
+                        });
+                        frames.push(Frame::Enter {
+                            expression: condition,
+                            block,
+                            state,
+                        });
+                    }
+                    ResolvedExprKind::Project { base, field } => {
+                        frames.push(Frame::Project { expression, field });
+                        frames.push(Frame::Enter {
+                            expression: base,
+                            block,
+                            state,
+                        });
+                    }
+                    // Class Inheritance v1: an upcast consumes its source, so
+                    // the surrounding transfer moves the source's inherited
+                    // leaves; the child-declared suffix is checked inert at
+                    // resolution and contributes no liveness here.
+                    ResolvedExprKind::Upcast { source } => {
+                        frames.push(Frame::UpcastAfterSource);
+                        frames.push(Frame::Enter {
+                            expression: source,
+                            block,
+                            state,
+                        });
+                    }
+                    // Resumable Effects v1 (issue #204): `yield`'s request
+                    // is an admitted Copy scalar (`hir::resolve_yield`
+                    // enforces this), so it contributes no liveness of its
+                    // own -- transparent in exactly the same way an upcast
+                    // is, reusing the same passthrough frame rather than
+                    // adding a second one.
+                    ResolvedExprKind::Yield { request } => {
+                        frames.push(Frame::UpcastAfterSource);
+                        frames.push(Frame::Enter {
+                            expression: request,
+                            block,
+                            state,
+                        });
+                    }
+                    ResolvedExprKind::NativeRustImportCall(call)
+                        if super::native_rust::owns(expression) =>
+                    {
+                        frames.push(Frame::CallNext {
+                            expression,
+                            callee: &call.import,
+                            args: &call.args,
+                            params: Cow::Owned(super::native_rust::params(
+                                self.program,
+                                &call.import,
+                            )?),
+                            index: 0,
+                            flow: EvalResult {
+                                block,
+                                state,
+                                owned_source: None,
+                            },
+                            commits: Vec::new(),
+                        });
+                    }
+                    ResolvedExprKind::NativeRustImportCall(call) => {
+                        frames.push(Frame::NativeNext {
+                            args: &call.args,
+                            index: 0,
+                            flow: EvalResult {
+                                block,
+                                state,
+                                owned_source: None,
+                            },
+                        })
+                    }
+                    ResolvedExprKind::HostCommandCall(call)
+                        if call.operation
+                            == crate::hir::ResolvedHostCommandOperation::StdinStreamNext =>
+                    {
+                        let (callee, params) = finish_call::stream_next_signature(expression)?;
+                        let params = Cow::Owned(params);
+                        frames.push(Frame::CallNext {
+                            expression,
+                            callee,
+                            args: &call.args,
+                            params,
+                            index: 0,
+                            flow: EvalResult {
+                                block,
+                                state,
+                                owned_source: None,
+                            },
+                            commits: Vec::new(),
+                        });
+                    }
+                    ResolvedExprKind::HostCommandCall(call) => {
+                        frames.push(Frame::HostCommandNext {
+                            expression,
+                            operation: call.operation,
+                            args: &call.args,
+                            index: 0,
+                            flow: EvalResult {
+                                block,
+                                state,
+                                owned_source: None,
+                            },
+                        });
+                    }
+                    ResolvedExprKind::Invoke { .. } | ResolvedExprKind::Closure { .. } => {
+                        let (callee, args, params) =
+                            crate::hir::function_value::cleanup_call(expression)?;
+                        let params = Cow::Owned(params);
+                        frames.push(Frame::CallNext {
+                            expression,
+                            callee,
+                            args,
+                            params,
+                            index: 0,
+                            flow: EvalResult {
+                                block,
+                                state,
+                                owned_source: None,
+                            },
+                            commits: Vec::new(),
+                        });
+                    }
+                    // Row Loan v1 borrows two exact places; neither transfers,
+                    // and the loan owns no storage, status or transition.
+                    ResolvedExprKind::RowLoan { args, .. } => {
+                        super::row_loan::require_places(args)?;
+                        results.push(EvalResult {
+                            block,
+                            state,
+                            owned_source: None,
+                        });
+                    }
+                    ResolvedExprKind::VecFieldRead { args, .. } => {
+                        frames.push(Frame::CallNext {
+                            expression,
+                            callee: crate::vec_field::operation_id(),
+                            args,
+                            params: Cow::Owned(crate::vec_field::resolved_params(args)),
+                            index: 0,
+                            flow: EvalResult {
+                                block,
+                                state,
+                                owned_source: None,
+                            },
+                            commits: Vec::new(),
+                        });
+                    }
+                    ResolvedExprKind::LiteralFormat { args, .. } => {
+                        frames.push(Frame::CallNext {
+                            expression,
+                            callee: crate::literal_format::operation_id(),
+                            args,
+                            params: Cow::Owned(crate::literal_format::resolved_params(args)),
+                            index: 0,
+                            flow: EvalResult {
+                                block,
+                                state,
+                                owned_source: None,
+                            },
+                            commits: Vec::new(),
+                        });
+                    }
+                    ResolvedExprKind::Call {
+                        callee,
+                        instance,
+                        args,
+                        type_arguments,
+                    } => {
+                        let mut authored = None;
+                        let synthetic = if let Some(op) = crate::map_ops::by_id(callee.as_str()) {
+                            if instance.is_some() {
+                                return Err(plan_error(
+                                    "typed collection intrinsic cannot carry a function instance",
+                                ));
+                            }
+                            op.resolved_signature(type_arguments)
+                                .ok_or_else(|| {
+                                    plan_error("invalid typed collection cleanup signature")
+                                })?
+                                .0
+                        } else if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
+                            // Compiler-owned string operations carry their
+                            // reserved identity instead of an authored
+                            // declaration; their synthetic parameters drive the
+                            // ordinary argument transfer machinery.
+                            if instance.is_some() {
+                                return Err(plan_error(format!(
+                                    "string operation call `{}` must be monomorphic",
+                                    expression.id
+                                )));
+                            }
+                            if args.len() != op.arity() {
+                                return Err(plan_error(format!(
+                                    "cleanup call `{}` has inconsistent arity",
+                                    expression.id
+                                )));
+                            }
+                            crate::string_ops::resolved_params(op)
+                        } else if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
+                            if instance.is_some() {
+                                return Err(plan_error(format!(
+                                    "borrowed str operation call `{}` must be monomorphic",
+                                    expression.id
+                                )));
+                            }
+                            if args.len() != op.arity() {
+                                return Err(plan_error(format!(
+                                    "cleanup call `{}` has inconsistent arity",
+                                    expression.id
+                                )));
+                            }
+                            crate::str_ops::resolved_params(op)
+                        } else if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
+                            if instance.is_some() {
+                                return Err(plan_error(format!(
+                                    "borrowed byte operation call `{}` must be monomorphic",
+                                    expression.id
+                                )));
+                            }
+                            if args.len() != op.arity() {
+                                return Err(plan_error(format!(
+                                    "cleanup call `{}` has inconsistent arity",
+                                    expression.id
+                                )));
+                            }
+                            crate::byte_ops::resolved_params(op)
+                        } else if callee.as_str() == crate::stdin_stream_ops::EOF_ID {
+                            bounded_box::stream_eof_params(
+                                instance.is_some(),
+                                args.len(),
+                                type_arguments,
+                            )?
+                        } else if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
+                            if instance.is_some() || args.len() != op.arity() {
+                                return Err(plan_error(format!(
+                                    "cleanup host I/O call `{}` has inconsistent shape",
+                                    expression.id
+                                )));
+                            }
+                            crate::host_io_ops::resolved_params(op)
+                        } else if let Some(op) = crate::list_ops::by_id(callee.as_str()) {
+                            if instance.is_some()
+                                || !type_arguments.is_empty()
+                                || args.len() != op.argument_count()
+                            {
+                                return Err(plan_error(format!(
+                                    "cleanup immutable list call `{}` has inconsistent shape",
+                                    expression.id
+                                )));
+                            }
+                            op.resolved_params()
+                        } else if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
+                            iterator::resolved_params(
+                                &self.program.declarations,
+                                op,
+                                instance.is_some(),
+                                args.len(),
+                                type_arguments,
+                                &expression.id,
+                            )?
+                        } else if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
+                            self.bounded_vec_params(
+                                op,
+                                instance.is_some(),
+                                args.len(),
+                                type_arguments,
+                                &expression.id,
+                            )?
+                        } else if let Some(op) = crate::box_ops::by_id(callee.as_str()) {
+                            bounded_box::resolved_params(
+                                op,
+                                instance.is_some(),
+                                args.len(),
+                                type_arguments,
+                                &expression.id,
+                            )?
+                        } else {
+                            authored = Some(call_parameters::authored(
+                                self.program,
+                                callee,
+                                instance.as_ref(),
+                                args.len(),
+                                &expression.id,
+                            )?);
+                            // Authored signatures stay borrowed; this carrier never allocates.
+                            Vec::new()
+                        };
+                        let params = authored.unwrap_or_else(|| Cow::Owned(synthetic));
+                        frames.push(Frame::CallNext {
+                            expression,
+                            callee,
+                            args,
+                            params,
+                            index: 0,
+                            flow: EvalResult {
+                                block,
+                                state,
+                                owned_source: None,
+                            },
+                            commits: Vec::with_capacity(args.len()),
+                        });
+                    }
+                    ResolvedExprKind::Block { statements, tail }
+                    | ResolvedExprKind::VecConstructor {
+                        statements, tail, ..
+                    } => {
+                        let destination = self.expression_slot(expression, active_region)?;
+                        let child_region = self.new_region(active_region)?;
+                        let entry = self.new_block(child_region)?;
+                        let edge = self.new_edge(block, entry, EdgeCondition::Always)?;
+                        self.terminate(block, CleanupTerminator::Goto(edge))?;
+                        frames.push(Frame::BlockNext {
+                            expression,
+                            statements,
+                            tail,
+                            index: 0,
+                            flow: EvalResult {
+                                block: entry,
+                                state,
+                                owned_source: None,
+                            },
+                            child_region,
+                            destination,
+                        });
+                    }
+                    ResolvedExprKind::ConstructRecord { fields, .. } => {
+                        let destination = self.expression_slot(expression, active_region)?;
+                        frames.push(Frame::RecordNext {
+                            expression,
+                            fields,
+                            index: 0,
+                            flow: EvalResult {
+                                block,
+                                state,
+                                owned_source: None,
+                            },
+                            destination,
+                        });
+                    }
+                    ResolvedExprKind::ConstructVariant {
+                        variant,
+                        case,
+                        fields,
+                    } => {
+                        let destination = self.expression_slot(expression, active_region)?;
+                        frames.push(Frame::VariantNext {
+                            expression,
+                            variant,
+                            case,
+                            fields,
+                            index: 0,
+                            flow: EvalResult {
+                                block,
+                                state,
+                                owned_source: None,
+                            },
+                            destination,
+                        });
+                    }
+                    ResolvedExprKind::Try {
+                        operand,
+                        result,
+                        ok_case,
+                        ok_field,
+                        err_case,
+                        err_field,
+                        residual_type,
+                    } => {
+                        self.check_try_metadata(
+                            expression,
+                            operand,
+                            result,
+                            ok_case,
+                            ok_field,
+                            err_case,
+                            err_field,
+                            residual_type,
+                        )?;
+                        frames.push(Frame::TryAfterOperand {
+                            expression,
+                            operand,
+                            result,
+                            ok_case,
+                            ok_field,
+                            err_case,
+                            err_field,
+                            residual_type,
+                        });
+                        frames.push(Frame::Enter {
+                            expression: operand,
+                            block,
+                            state,
+                        });
+                    }
+                    ResolvedExprKind::TryOption {
+                        operand,
+                        option,
+                        some_case,
+                        some_field,
+                        none_case,
+                        residual_type,
+                    } => {
+                        self.check_try_option_metadata(
+                            expression,
+                            operand,
+                            option,
+                            some_case,
+                            some_field,
+                            none_case,
+                            residual_type,
+                        )?;
+                        frames.push(Frame::TryOptionAfterOperand {
+                            expression,
+                            operand,
+                            option,
+                            some_case,
+                            some_field,
+                            none_case,
+                            residual_type,
+                        });
+                        frames.push(Frame::Enter {
+                            expression: operand,
+                            block,
+                            state,
+                        });
+                    }
+                    ResolvedExprKind::Match {
+                        mode,
+                        scrutinee,
+                        arms,
+                    } => {
+                        if arms.is_empty() {
+                            return Err(plan_error("copy-variant match has no arms"));
+                        }
+                        if *mode == ResolvedMatchMode::Value
+                            && self.needs_drop(&arms[0].value.ty)?
+                            && !matches!(arms[0].value.ty, crate::hir::ResolvedType::String)
+                        {
+                            return Err(plan_error(
+                                "droppable match result reached the copy-only cleanup slice",
+                            ));
+                        }
+                        frames.push(Frame::MatchAfterScrutinee {
+                            expression,
+                            mode: *mode,
+                            scrutinee,
+                            arms,
+                        });
+                        frames.push(Frame::Enter {
+                            expression: scrutinee,
+                            block,
+                            state,
+                        });
+                    }
+                    ResolvedExprKind::UpdateRecord {
+                        base,
+                        record,
+                        fields,
+                    } => {
+                        record_destructure::update::authenticate(self, expression)?;
+                        let destination = self.expression_slot(expression, active_region)?;
+                        let (entry, update_region) = if destination.is_some() {
+                            let update_region = self.new_region(active_region)?;
+                            let entry = self.new_block(update_region)?;
+                            let edge = self.new_edge(block, entry, EdgeCondition::Always)?;
+                            self.terminate(block, CleanupTerminator::Goto(edge))?;
+                            (entry, update_region)
+                        } else {
+                            (block, active_region)
+                        };
+                        frames.push(Frame::UpdateAfterBase {
+                            expression,
+                            record,
+                            fields,
+                            destination,
+                            update_region,
+                        });
+                        if active_region != update_region {
+                            frames.push(Frame::RestoreRegion(active_region));
+                            active_region = update_region;
+                        }
+                        frames.push(Frame::Enter {
+                            expression: base,
+                            block: entry,
+                            state,
+                        });
+                    }
+                },
+                Frame::Unary { expression, op } => {
+                    let mut evaluated = results.pop().expect("unary result retained");
+                    if op == UnaryOp::Neg {
+                        let source = self.checked_source(
+                            expression,
+                            CheckedOperation::Neg,
+                            vec![StatusCase::NegationOverflow],
+                        )?;
+                        let (block, state) = self.split_status(
+                            evaluated.block,
+                            evaluated.state,
+                            active_region,
+                            source,
+                        )?;
+                        evaluated = EvalResult {
+                            block,
+                            state,
+                            owned_source: None,
+                        };
+                    } else {
+                        evaluated.owned_source = None;
+                    }
+                    results.push(evaluated);
+                }
+                Frame::BinaryLeft {
+                    expression,
+                    op,
+                    right,
+                } => {
+                    let left = results.pop().expect("binary left retained");
+                    frames.push(Frame::BinaryRight { expression, op });
+                    frames.push(Frame::Enter {
+                        expression: right,
+                        block: left.block,
+                        state: left.state,
+                    });
+                }
+                Frame::BinaryRight { expression, op } => {
+                    let right = results.pop().expect("binary right retained");
+                    let checked = match op {
+                        BinaryOp::Add => {
+                            Some((CheckedOperation::Add, vec![StatusCase::AddOverflow]))
+                        }
+                        BinaryOp::Sub => {
+                            Some((CheckedOperation::Sub, vec![StatusCase::SubOverflow]))
+                        }
+                        BinaryOp::Mul => {
+                            Some((CheckedOperation::Mul, vec![StatusCase::MulOverflow]))
+                        }
+                        BinaryOp::Div => Some((
+                            CheckedOperation::Div,
+                            vec![StatusCase::DivisionByZero, StatusCase::DivisionOverflow],
+                        )),
+                        BinaryOp::Rem => Some((
+                            CheckedOperation::Rem,
+                            vec![StatusCase::RemainderByZero, StatusCase::RemainderOverflow],
+                        )),
+                        _ => None,
+                    };
+                    let (block, state) = if let Some((operation, cases)) = checked {
+                        let source = self.checked_source(expression, operation, cases)?;
+                        self.split_status(right.block, right.state, active_region, source)?
+                    } else {
+                        (right.block, right.state)
+                    };
+                    results.push(EvalResult {
+                        block,
+                        state,
+                        owned_source: None,
+                    });
+                }
+                Frame::LazyAfterLeft {
+                    operation,
+                    left_id,
+                    right,
+                } => {
+                    let left = results.pop().expect("lazy left result retained");
+                    let evaluate_right_when = operation == BinaryOp::And;
+                    let evaluate = self.new_block(active_region)?;
+                    let skip = self.new_block(active_region)?;
+                    let evaluate_edge = self.new_edge(
+                        left.block,
+                        evaluate,
+                        EdgeCondition::BooleanResult(left_id.clone(), evaluate_right_when),
+                    )?;
+                    let skip_edge = self.new_edge(
+                        left.block,
+                        skip,
+                        EdgeCondition::BooleanResult(left_id, !evaluate_right_when),
+                    )?;
+                    self.terminate(
+                        left.block,
+                        CleanupTerminator::Branch(vec![evaluate_edge, skip_edge]),
+                    )?;
+                    frames.push(Frame::LazyAfterRight {
+                        left_state: left.state.clone(),
+                        skip,
+                    });
+                    frames.push(Frame::Enter {
+                        expression: right,
+                        block: evaluate,
+                        state: left.state,
+                    });
+                }
+                Frame::LazyAfterRight { left_state, skip } => {
+                    let right = results.pop().expect("lazy right result retained");
+                    let state = self.merge_states(&right.state, &left_state)?;
+                    let join = self.new_block(active_region)?;
+                    let evaluated_edge = self.new_edge(right.block, join, EdgeCondition::Always)?;
+                    self.terminate(right.block, CleanupTerminator::Goto(evaluated_edge))?;
+                    let skipped_edge = self.new_edge(skip, join, EdgeCondition::Always)?;
+                    self.terminate(skip, CleanupTerminator::Goto(skipped_edge))?;
+                    results.push(EvalResult {
+                        block: join,
+                        state,
+                        owned_source: None,
+                    });
+                }
+                Frame::IfAfterCondition {
+                    expression,
+                    then_branch,
+                    else_branch,
+                } => {
+                    let condition = results.pop().expect("if condition result retained");
+                    let destination = self.expression_slot(expression, active_region)?;
+                    let then_entry = self.new_block(active_region)?;
+                    let else_entry = self.new_block(active_region)?;
+                    let then_edge = self.new_edge(
+                        condition.block,
+                        then_entry,
+                        EdgeCondition::BooleanResult(condition_id(expression)?, true),
+                    )?;
+                    let else_edge = self.new_edge(
+                        condition.block,
+                        else_entry,
+                        EdgeCondition::BooleanResult(condition_id(expression)?, false),
+                    )?;
+                    self.terminate(
+                        condition.block,
+                        CleanupTerminator::Branch(vec![then_edge, else_edge]),
+                    )?;
+                    frames.push(Frame::IfAfterThen {
+                        expression,
+                        else_branch,
+                        else_entry,
+                        condition_state: condition.state.clone(),
+                        destination,
+                    });
+                    frames.push(Frame::Enter {
+                        expression: then_branch,
+                        block: then_entry,
+                        state: condition.state,
+                    });
+                }
+                Frame::IfAfterThen {
+                    expression,
+                    else_branch,
+                    else_entry,
+                    condition_state,
+                    destination,
+                } => {
+                    let mut then_result = results.pop().expect("then result retained");
+                    if let Some(destination) = destination
+                        .clone()
+                        .filter(|_| !self.flow_is_closed(then_result.block))
+                    {
+                        let source = then_result
+                            .owned_source
+                            .take()
+                            .ok_or_else(|| plan_error("owned then branch has no cleanup source"))?;
+                        self.transfer(
+                            then_result.block,
+                            expression.id.clone(),
+                            source,
+                            destination,
+                            &mut then_result.state,
+                            true,
+                        )?;
+                    }
+                    frames.push(Frame::IfAfterElse {
+                        expression,
+                        then_result,
+                        destination,
+                    });
+                    frames.push(Frame::Enter {
+                        expression: else_branch,
+                        block: else_entry,
+                        state: condition_state,
+                    });
+                }
+                Frame::IfAfterElse {
+                    expression,
+                    then_result,
+                    destination,
+                } => {
+                    let mut else_result = results.pop().expect("else result retained");
+                    if let Some(destination) = destination
+                        .clone()
+                        .filter(|_| !self.flow_is_closed(else_result.block))
+                    {
+                        let source = else_result
+                            .owned_source
+                            .take()
+                            .ok_or_else(|| plan_error("owned else branch has no cleanup source"))?;
+                        self.transfer(
+                            else_result.block,
+                            expression.id.clone(),
+                            source,
+                            destination,
+                            &mut else_result.state,
+                            true,
+                        )?;
+                    }
+                    results.push(self.join_normal_branches(
+                        vec![then_result, else_result],
+                        active_region,
+                        destination,
+                    )?);
+                }
+                // The upcast contributes no liveness of its own; the source
+                // place stays the transfer source for the surrounding move.
+                Frame::UpcastAfterSource { .. } => {
+                    let source = results.pop().expect("upcast source retained");
+                    results.push(source);
+                }
+                Frame::Project { expression, field } => {
+                    let base = results.pop().expect("projection base retained");
+                    let destination = self.expression_slot(expression, active_region)?;
+                    let mut state = base.state;
+                    if let Some(destination) = destination.clone() {
+                        let source = base
+                            .owned_source
+                            .ok_or_else(|| {
+                                plan_error("owned projection base has no cleanup source")
+                            })?
+                            .projected(field.clone());
+                        self.transfer(
+                            base.block,
+                            expression.id.clone(),
+                            source,
+                            destination,
+                            &mut state,
+                            true,
+                        )?;
+                    }
+                    results.push(EvalResult {
+                        block: base.block,
+                        state,
+                        owned_source: destination,
+                    });
+                }
+                Frame::NativeNext { args, index, flow } => {
+                    if index == args.len() {
+                        results.push(flow);
+                    } else {
+                        frames.push(Frame::NativeAfterArg { args, index });
+                        frames.push(Frame::Enter {
+                            expression: &args[index],
+                            block: flow.block,
+                            state: flow.state,
+                        });
+                    }
+                }
+                Frame::NativeAfterArg { args, index } => {
+                    let evaluated = results.pop().expect("native argument result retained");
+                    if evaluated.owned_source.is_some() {
+                        return Err(plan_error(
+                            "native Rust import received a non-scalar argument",
+                        ));
+                    }
+                    frames.push(Frame::NativeNext {
+                        args,
+                        index: index + 1,
+                        flow: evaluated,
+                    });
+                }
+                Frame::HostCommandNext {
+                    expression,
+                    operation,
+                    args,
+                    index,
+                    flow,
+                } => {
+                    if index < args.len() {
+                        frames.push(Frame::HostCommandAfterArg {
+                            expression,
+                            operation,
+                            args,
+                            index,
+                        });
+                        frames.push(Frame::Enter {
+                            expression: &args[index],
+                            block: flow.block,
+                            state: flow.state,
+                        });
+                        continue;
+                    }
+                    results.push(self.finish_host_command(
+                        expression,
+                        operation,
+                        flow,
+                        active_region,
+                    )?);
+                }
+                Frame::HostCommandAfterArg {
+                    expression,
+                    operation,
+                    args,
+                    index,
+                } => {
+                    let evaluated = results
+                        .pop()
+                        .expect("host-command argument result retained");
+                    if evaluated.owned_source.is_some() {
+                        return Err(plan_error(
+                            "host-command operation received an owned argument",
+                        ));
+                    }
+                    frames.push(Frame::HostCommandNext {
+                        expression,
+                        operation,
+                        args,
+                        index: index + 1,
+                        flow: evaluated,
+                    });
+                }
+                Frame::ByteRangeAfterSource {
+                    expression,
+                    start,
+                    end,
+                } => {
+                    let evaluated = results.pop().expect("byte-range source result retained");
+                    if evaluated.owned_source.is_some() {
+                        return Err(plan_error("byte range received an owned source"));
+                    }
+                    frames.push(Frame::ByteRangeAfterStart { expression, end });
+                    frames.push(Frame::Enter {
+                        expression: start,
+                        block: evaluated.block,
+                        state: evaluated.state,
+                    });
+                }
+                Frame::ByteRangeAfterStart { expression, end } => {
+                    let evaluated = results.pop().expect("byte-range start result retained");
+                    if evaluated.owned_source.is_some() {
+                        return Err(plan_error("byte range received an owned start"));
+                    }
+                    frames.push(Frame::ByteRangeAfterEnd { expression });
+                    frames.push(Frame::Enter {
+                        expression: end,
+                        block: evaluated.block,
+                        state: evaluated.state,
+                    });
+                }
+                Frame::ByteRangeAfterEnd { expression } => {
+                    let evaluated = results.pop().expect("byte-range end result retained");
+                    if evaluated.owned_source.is_some() {
+                        return Err(plan_error("byte range received an owned end"));
+                    }
+                    self.push_transition(
+                        evaluated.block,
+                        CleanupTransition::CallCommit {
+                            call: expression.id.clone(),
+                            arguments: Vec::new(),
+                        },
+                    );
+                    let source = StatusSourceId {
+                        expression: expression.id.clone(),
+                        lane: StatusLane::OperationFailure,
+                    };
+                    self.add_status_source(
+                        source.clone(),
+                        StatusProducer::PropagatedCall {
+                            callee: DeclarationId::new(crate::byte_ops::RANGE_ID),
+                        },
+                    )?;
+                    let (block, state) =
+                        self.split_status(evaluated.block, evaluated.state, active_region, source)?;
+                    results.push(EvalResult {
+                        block,
+                        state,
+                        owned_source: None,
+                    });
+                }
+                Frame::CallNext {
+                    expression,
+                    callee,
+                    args,
+                    params,
+                    index,
+                    flow,
+                    commits,
+                } => {
+                    if index == args.len() {
+                        results.push(self.finish_call(
+                            expression,
+                            callee,
+                            flow,
+                            commits,
+                            active_region,
+                        )?);
+                    } else {
+                        let argument = &args[index];
+                        let lend = super::native_rust::lends_string_place(
+                            expression,
+                            argument,
+                            params[index].ownership,
+                        );
+                        frames.push(Frame::CallAfterArg {
+                            expression,
+                            callee,
+                            args,
+                            params,
+                            index,
+                            commits,
+                        });
+                        if lend {
+                            self.expression_slot(argument, active_region)?;
+                            results.push(EvalResult {
+                                block: flow.block,
+                                state: flow.state,
+                                owned_source: None,
+                            });
+                        } else {
+                            frames.push(Frame::Enter {
+                                expression: argument,
+                                block: flow.block,
+                                state: flow.state,
+                            });
+                        }
+                    }
+                }
+                Frame::CallAfterArg {
+                    expression,
+                    callee,
+                    args,
+                    params,
+                    index,
+                    mut commits,
+                } => {
+                    let argument = &args[index];
+                    let evaluated = results.pop().expect("call argument result retained");
+                    let mut state = evaluated.state;
+                    if params[index].ownership == OwnershipMode::Own
+                        && self.needs_drop(&params[index].ty)?
+                    {
+                        let source = evaluated.owned_source.ok_or_else(|| {
+                            plan_error(format!(
+                                "owned call argument {} at `{}` has no cleanup source",
+                                index, expression.id
+                            ))
+                        })?;
+                        let epoch =
+                            self.call_argument_slot(expression, index, argument, active_region)?;
+                        self.transfer(
+                            evaluated.block,
+                            argument.id.clone(),
+                            source,
+                            epoch.clone(),
+                            &mut state,
+                            true,
+                        )?;
+                        commits.push(CallArgumentTransfer {
+                            parameter_index: u32::try_from(index)
+                                .map_err(|_| plan_error("too many call arguments"))?,
+                            source: epoch,
+                        });
+                    }
+                    frames.push(Frame::CallNext {
+                        expression,
+                        callee,
+                        args,
+                        params,
+                        index: index + 1,
+                        flow: EvalResult {
+                            block: evaluated.block,
+                            state,
+                            owned_source: None,
+                        },
+                        commits,
+                    });
+                }
+                Frame::BlockNext {
+                    expression,
+                    statements,
+                    tail,
+                    index,
+                    flow,
+                    child_region,
+                    destination,
+                } => {
+                    if index < statements.len() {
+                        if matches!(
+                            &statements[index],
+                            ResolvedStatement::While { .. }
+                                | ResolvedStatement::LexicalWhile { .. }
+                        ) {
+                            if active_region != child_region {
+                                frames.push(Frame::RestoreRegion(active_region));
+                                active_region = child_region;
+                            }
+                            let evaluated = self.lower_loop_statement(
+                                &statements[index],
+                                flow.block,
+                                flow.state,
+                                child_region,
+                            )?;
+                            frames.push(Frame::BlockAfterStatement {
+                                expression,
+                                statements,
+                                tail,
+                                index,
+                                child_region,
+                                destination,
+                            });
+                            results.push(EvalResult {
+                                block: evaluated.block,
+                                state: evaluated.state,
+                                owned_source: None,
+                            });
+                        } else {
+                            let mut flow = flow;
+                            self.reserve_statement_renewal(
+                                &statements[index],
+                                flow.block,
+                                &mut flow.state,
+                                child_region,
+                            )?;
+                            frames.push(Frame::BlockAfterStatement {
+                                expression,
+                                statements,
+                                tail,
+                                index,
+                                child_region,
+                                destination,
+                            });
+                            if active_region != child_region {
+                                frames.push(Frame::RestoreRegion(active_region));
+                                active_region = child_region;
+                            }
+                            frames.push(Frame::Enter {
+                                expression: statements[index].value(),
+                                block: flow.block,
+                                state: flow.state,
+                            });
+                        }
+                    } else {
+                        frames.push(Frame::BlockAfterTail {
+                            expression,
+                            child_region,
+                            destination,
+                        });
+                        if active_region != child_region {
+                            frames.push(Frame::RestoreRegion(active_region));
+                            active_region = child_region;
+                        }
+                        frames.push(Frame::Enter {
+                            expression: tail,
+                            block: flow.block,
+                            state: flow.state,
+                        });
+                    }
+                }
+                Frame::BlockAfterStatement {
+                    expression,
+                    statements,
+                    tail,
+                    index,
+                    child_region,
+                    destination,
+                } => {
+                    let evaluated = results.pop().expect("block statement result retained");
+                    if self.flow_is_closed(evaluated.block) {
+                        self.mark_abrupt_region(child_region)?;
+                        results.push(evaluated);
+                        continue;
+                    }
+                    let mut state = evaluated.state;
+                    // Field Mutation v1 stores bind nothing: only plain lets
+                    // and whole-binding assignments transfer into slots.
+                    let binds_whole_value = matches!(
+                        &statements[index],
+                        ResolvedStatement::Let { .. }
+                            | ResolvedStatement::Assign { field: None, .. }
+                    );
+                    if binds_whole_value {
+                        if let ResolvedStatement::Let { binding, .. }
+                        | ResolvedStatement::Assign { binding, .. } = &statements[index]
+                        {
+                            if let Some(binding_place) = self.binding_slot(binding, child_region)? {
+                                let value = &statements[index].value();
+                                let source = evaluated.owned_source.ok_or_else(|| {
+                                    plan_error(format!(
+                                        "owned binding `{}` has no cleanup source",
+                                        binding.id
+                                    ))
+                                })?;
+                                self.transfer(
+                                    evaluated.block,
+                                    value.id.clone(),
+                                    source,
+                                    binding_place,
+                                    &mut state,
+                                    true,
+                                )?;
+                            }
+                        }
+                    }
+                    frames.push(Frame::BlockNext {
+                        expression,
+                        statements,
+                        tail,
+                        index: index + 1,
+                        flow: EvalResult {
+                            block: evaluated.block,
+                            state,
+                            owned_source: None,
+                        },
+                        child_region,
+                        destination,
+                    });
+                }
+                Frame::BlockAfterTail {
+                    expression,
+                    child_region,
+                    destination,
+                } => {
+                    let evaluated = results.pop().expect("block tail result retained");
+                    if self.flow_is_closed(evaluated.block) {
+                        self.mark_abrupt_region(child_region)?;
+                        results.push(evaluated);
+                        continue;
+                    }
+                    let mut state = evaluated.state;
+                    if let Some(destination) = destination.clone() {
+                        let source = evaluated
+                            .owned_source
+                            .ok_or_else(|| plan_error("owned block tail has no cleanup source"))?;
+                        self.transfer(
+                            evaluated.block,
+                            expression.id.clone(),
+                            source,
+                            destination,
+                            &mut state,
+                            true,
+                        )?;
+                    }
+                    let (block, state) = self.exit_scope(evaluated.block, state, child_region)?;
+                    self.finish_wrapper_breaks(expression, child_region, block, &state)?;
+                    results.push(EvalResult {
+                        block,
+                        state,
+                        owned_source: destination,
+                    });
+                }
+                Frame::RecordNext {
+                    expression,
+                    fields,
+                    index,
+                    flow,
+                    destination,
+                } => {
+                    if index == fields.len() {
+                        let mut state = flow.state;
+                        if let Some(destination) = &destination {
+                            self.canonicalize_complete_aggregate(destination, &mut state)?;
+                        }
+                        results.push(EvalResult {
+                            block: flow.block,
+                            state,
+                            owned_source: destination,
+                        });
+                    } else {
+                        frames.push(Frame::RecordAfterField {
+                            expression,
+                            fields,
+                            index,
+                            destination,
+                        });
+                        frames.push(Frame::Enter {
+                            expression: &fields[index].value,
+                            block: flow.block,
+                            state: flow.state,
+                        });
+                    }
+                }
+                Frame::RecordAfterField {
+                    expression,
+                    fields,
+                    index,
+                    destination,
+                } => {
+                    let initializer = &fields[index];
+                    let evaluated = results.pop().expect("record field result retained");
+                    let mut state = evaluated.state;
+                    if initializer.value.ownership == OwnershipMode::Own
+                        && self.needs_drop(&initializer.value.ty)?
+                    {
+                        let source = evaluated.owned_source.ok_or_else(|| {
+                            plan_error(format!(
+                                "record field `{}` has no cleanup source",
+                                initializer.field
+                            ))
+                        })?;
+                        let field_destination = destination
+                            .as_ref()
+                            .ok_or_else(|| {
+                                plan_error("droppable record constructor has no cleanup slot")
+                            })?
+                            .projected(initializer.field.clone());
+                        self.transfer(
+                            evaluated.block,
+                            initializer.value.id.clone(),
+                            source,
+                            field_destination,
+                            &mut state,
+                            false,
+                        )?;
+                    }
+                    frames.push(Frame::RecordNext {
+                        expression,
+                        fields,
+                        index: index + 1,
+                        flow: EvalResult {
+                            block: evaluated.block,
+                            state,
+                            owned_source: None,
+                        },
+                        destination,
+                    });
+                }
+                Frame::VariantNext {
+                    expression,
+                    variant,
+                    case,
+                    fields,
+                    index,
+                    flow,
+                    destination,
+                } => {
+                    if index == fields.len() {
+                        let mut state = flow.state;
+                        if let Some(destination) = &destination {
+                            self.seal_constructed_variant(destination, variant, case, &mut state)?;
+                        }
+                        results.push(EvalResult {
+                            block: flow.block,
+                            state,
+                            owned_source: destination,
+                        });
+                    } else {
+                        frames.push(Frame::VariantAfterField {
+                            expression,
+                            variant,
+                            case,
+                            fields,
+                            index,
+                            destination,
+                        });
+                        frames.push(Frame::Enter {
+                            expression: &fields[index].value,
+                            block: flow.block,
+                            state: flow.state,
+                        });
+                    }
+                }
+                Frame::VariantAfterField {
+                    expression,
+                    variant,
+                    case,
+                    fields,
+                    index,
+                    destination,
+                } => {
+                    let evaluated = results.pop().expect("variant field result retained");
+                    let field = &fields[index];
+                    let mut state = evaluated.state;
+                    if field.value.ownership == OwnershipMode::Own
+                        && self.needs_drop(&field.value.ty)?
+                    {
+                        let source = evaluated.owned_source.ok_or_else(|| {
+                            plan_error(format!(
+                                "variant field `{}` has no cleanup source",
+                                field.field
+                            ))
+                        })?;
+                        let field_destination = destination
+                            .as_ref()
+                            .ok_or_else(|| {
+                                plan_error("droppable variant constructor has no cleanup slot")
+                            })?
+                            .projected(case.clone())
+                            .projected(field.field.clone());
+                        self.transfer(
+                            evaluated.block,
+                            field.value.id.clone(),
+                            source,
+                            field_destination,
+                            &mut state,
+                            false,
+                        )?;
+                    }
+                    frames.push(Frame::VariantNext {
+                        expression,
+                        variant,
+                        case,
+                        fields,
+                        index: index + 1,
+                        flow: EvalResult {
+                            block: evaluated.block,
+                            state,
+                            owned_source: None,
+                        },
+                        destination,
+                    });
+                }
+                Frame::TryAfterOperand {
+                    expression,
+                    operand,
+                    result,
+                    ok_case,
+                    ok_field,
+                    err_case,
+                    err_field,
+                    residual_type,
+                } => {
+                    let evaluated = results.pop().expect("try operand result retained");
+                    results.push(self.finish_try(
+                        expression,
+                        operand,
+                        result,
+                        ok_case,
+                        ok_field,
+                        err_case,
+                        err_field,
+                        residual_type,
+                        evaluated,
+                        active_region,
+                    )?);
+                }
+                Frame::TryOptionAfterOperand {
+                    expression,
+                    operand,
+                    option,
+                    some_case,
+                    some_field,
+                    none_case,
+                    residual_type,
+                } => {
+                    let evaluated = results.pop().expect("option try operand result retained");
+                    results.push(self.finish_try_option(
+                        expression,
+                        operand,
+                        option,
+                        some_case,
+                        some_field,
+                        none_case,
+                        residual_type,
+                        evaluated,
+                        active_region,
+                    )?);
+                }
+                Frame::MatchAfterScrutinee {
+                    expression,
+                    mode,
+                    scrutinee,
+                    arms,
+                } => {
+                    if mode != ResolvedMatchMode::Value {
+                        schema::promote_match(&self.program.declarations, &mut self.schema, arms);
+                    }
+                    let scrutinee_result = results.pop().expect("match scrutinee result retained");
+                    if scrutinee_result.owned_source.is_some() && mode == ResolvedMatchMode::Value {
+                        return Err(plan_error(
+                            "droppable match scrutinee reached the copy-only cleanup slice",
+                        ));
+                    }
+                    if crate::hir::is_refutable_match_scalar(&scrutinee.ty) {
+                        let destination = self.expression_slot(expression, active_region)?;
+                        frames.push(Frame::ScalarMatchNext {
+                            expression,
+                            scrutinee,
+                            arms,
+                            index: 0,
+                            decision: scrutinee_result.block,
+                            branch_state: scrutinee_result.state,
+                            arm_results: Vec::with_capacity(arms.len()),
+                            destination,
+                        });
+                        continue;
+                    }
+                    let is_record = match &scrutinee.ty {
+                        ResolvedType::Nominal { declaration, .. } => self
+                            .program
+                            .declarations
+                            .declaration(declaration)
+                            .is_some_and(|item| item.kind == DeclarationKind::Record),
+                        ResolvedType::OnceFunction
+                        | ResolvedType::OnceFunctionI64
+                        | ResolvedType::OnceFunctionI64Pair
+                        | ResolvedType::MutFunctionI64
+                        | ResolvedType::Unit
+                        | ResolvedType::I64
+                        | ResolvedType::I32
+                        | ResolvedType::Char
+                        | ResolvedType::U8
+                        | ResolvedType::Usize
+                        | ResolvedType::ArrayU8(_)
+                        | ResolvedType::F32
+                        | ResolvedType::F64
+                        | ResolvedType::Bool
+                        | ResolvedType::String
+                        | ResolvedType::Bytes
+                        | ResolvedType::Str
+                        | ResolvedType::SliceU8
+                        | ResolvedType::StringMap
+                        | ResolvedType::TypeParameter { .. }
+                        | ResolvedType::Function { .. } => false,
+                        ResolvedType::Never => {
+                            return Err(plan_error(
+                                "match scrutinee cannot have terminal flow type",
+                            ));
+                        }
+                    };
+                    if is_record {
+                        let [arm] = arms else {
+                            return Err(plan_error(
+                                "irrefutable record match must have exactly one arm",
+                            ));
+                        };
+                        if matches!(&arm.pattern, ResolvedMatchPattern::Variant { .. }) {
+                            return Err(plan_error("variant pattern has a record match scrutinee"));
+                        }
+                        let destination = self.expression_slot(expression, active_region)?;
+                        let (entry, state, arm_region) = if mode == ResolvedMatchMode::Value {
+                            (scrutinee_result.block, scrutinee_result.state, None)
+                        } else {
+                            let (entry, state, arm_region) = self.prepare_record_match(
+                                expression,
+                                mode,
+                                arm,
+                                scrutinee_result,
+                                active_region,
+                            )?;
+                            frames.push(Frame::RestoreRegion(active_region));
+                            active_region = arm_region;
+                            (entry, state, Some(arm_region))
+                        };
+                        frames.push(Frame::MatchRecordAfterArm {
+                            arm_region,
+                            destination,
+                            result_expression: &arm.value,
+                        });
+                        frames.push(Frame::Enter {
+                            expression: &arm.value,
+                            block: entry,
+                            state,
+                        });
+                    } else {
+                        // Full structural HIR and inventory still contain Done.
+                        // This CFG is entered only after its exact condition=true.
+                        let first = self.prepare_true_iterator_match(expression, active_region)?;
+                        frames.push(Frame::MatchNext {
+                            expression,
+                            mode,
+                            scrutinee,
+                            arms,
+                            index: first,
+                            decision: scrutinee_result.block,
+                            branch_state: scrutinee_result.state,
+                            arm_results: Vec::with_capacity(arms.len()),
+                            source: scrutinee_result.owned_source,
+                        });
+                    }
+                }
+                Frame::MatchRecordAfterArm {
+                    arm_region,
+                    destination,
+                    result_expression,
+                } => {
+                    let mut result = results.pop().expect("record match arm result retained");
+                    if self.flow_is_closed(result.block) {
+                        // The lexical exit already settled the arm contour and
+                        // terminated this path; it has no normal match join.
+                        if let Some(arm_region) = arm_region {
+                            self.mark_abrupt_region(arm_region)?;
+                        }
+                        results.push(result);
+                        continue;
+                    }
+                    if let Some(destination) = destination.clone() {
+                        let source = result.owned_source.take().ok_or_else(|| {
+                            plan_error("owned record match arm has no cleanup source")
+                        })?;
+                        self.transfer(
+                            result.block,
+                            result_expression.id.clone(),
+                            source,
+                            destination.clone(),
+                            &mut result.state,
+                            true,
+                        )?;
+                    }
+                    if let Some(arm_region) = arm_region {
+                        (result.block, result.state) =
+                            self.exit_scope(result.block, result.state, arm_region)?;
+                    }
+                    result.owned_source = destination;
+                    results.push(result);
+                }
+                Frame::MatchNext {
+                    expression,
+                    mode,
+                    scrutinee,
+                    arms,
+                    index,
+                    mut decision,
+                    branch_state,
+                    arm_results,
+                    source,
+                } => {
+                    if index == arms.len() {
+                        let Some(arm_results) =
+                            self.normal_branch_inventory(arm_results, &mut results)
+                        else {
+                            continue;
+                        };
+                        let mut arm_results = arm_results.into_iter();
+                        let first = arm_results.next().ok_or_else(|| {
+                            plan_error("copy-variant match produced no arm result")
+                        })?;
+                        let mut merged_state = first.state.clone();
+                        let mut completed = vec![first];
+                        for result in arm_results {
+                            merged_state = self.merge_states(&merged_state, &result.state)?;
+                            completed.push(result);
+                        }
+                        let join = self.new_block(active_region)?;
+                        for result in completed {
+                            let edge = self.new_edge(result.block, join, EdgeCondition::Always)?;
+                            self.terminate(result.block, CleanupTerminator::Goto(edge))?;
+                        }
+                        results.push(EvalResult {
+                            block: join,
+                            state: merged_state,
+                            owned_source: generic_variant::destination(
+                                self,
+                                expression,
+                                active_region,
+                            )?,
+                        });
+                    } else {
+                        let arm = &arms[index];
+                        let final_arm = index + 1 == arms.len();
+                        let arm_region = if mode == ResolvedMatchMode::Value {
+                            None
+                        } else {
+                            Some(self.new_region(active_region)?)
+                        };
+                        let mut arm_entry = self.new_block(arm_region.unwrap_or(active_region))?;
+                        if final_arm {
+                            let condition = if mode == ResolvedMatchMode::Value {
+                                EdgeCondition::Always
+                            } else {
+                                let ResolvedMatchPattern::Variant { case, .. } = &arm.pattern
+                                else {
+                                    return Err(plan_error(
+                                        "explicit variant match requires exact final case",
+                                    ));
+                                };
+                                EdgeCondition::VariantCase {
+                                    scrutinee: scrutinee.id.clone(),
+                                    case: case.clone(),
+                                    matches: true,
+                                }
+                            };
+                            let edge = self.new_edge(decision, arm_entry, condition)?;
+                            self.terminate(decision, CleanupTerminator::Goto(edge))?;
+                        } else if matches!(arm.pattern, ResolvedMatchPattern::Wildcard)
+                            && arm.guard.is_some()
+                        {
+                            let edge = self.new_edge(decision, arm_entry, EdgeCondition::Always)?;
+                            self.terminate(decision, CleanupTerminator::Goto(edge))?;
+                            decision = self.new_block(active_region)?;
+                        } else {
+                            let cases = arm.pattern.variant_cases().ok_or_else(|| {
+                                plan_error("wildcard match arm must be the final exhaustive arm")
+                            })?;
+                            for case in cases {
+                                let next_decision = self.new_block(active_region)?;
+                                let selected = self.new_edge(
+                                    decision,
+                                    arm_entry,
+                                    EdgeCondition::VariantCase {
+                                        scrutinee: scrutinee.id.clone(),
+                                        case: case.clone(),
+                                        matches: true,
+                                    },
+                                )?;
+                                let rejected = self.new_edge(
+                                    decision,
+                                    next_decision,
+                                    EdgeCondition::VariantCase {
+                                        scrutinee: scrutinee.id.clone(),
+                                        case: case.clone(),
+                                        matches: false,
+                                    },
+                                )?;
+                                self.terminate(
+                                    decision,
+                                    CleanupTerminator::Branch(vec![selected, rejected]),
+                                )?;
+                                decision = next_decision;
+                            }
+                        }
+                        let arm_state = if let Some(arm_region) = arm_region {
+                            self.prepare_variant_match_arm(
+                                expression,
+                                mode,
+                                arm,
+                                source.as_ref(),
+                                LoweringFlow {
+                                    block: arm_entry,
+                                    state: branch_state.clone(),
+                                    region: arm_region,
+                                },
+                            )?
+                        } else {
+                            branch_state.clone()
+                        };
+                        if let Some(guard) = &arm.guard {
+                            let (guard_entry, guard_region) =
+                                self.begin_variant_guard(guard, arm_entry, active_region)?;
+                            let lowered = self.lower_expr_iterative(
+                                guard,
+                                guard_entry,
+                                arm_state.clone(),
+                                guard_region.unwrap_or(active_region),
+                            )?;
+                            arm_entry = self.finish_variant_guard(
+                                guard,
+                                lowered,
+                                &branch_state,
+                                decision,
+                                active_region,
+                                guard_region,
+                            )?;
+                        }
+                        frames.push(Frame::MatchAfterArm {
+                            expression,
+                            mode,
+                            scrutinee,
+                            arms,
+                            index,
+                            decision,
+                            branch_state: branch_state.clone(),
+                            arm_results,
+                            source,
+                            arm_region,
+                        });
+                        if let Some(arm_region) = arm_region {
+                            frames.push(Frame::RestoreRegion(active_region));
+                            active_region = arm_region;
+                        }
+                        frames.push(Frame::Enter {
+                            expression: &arm.value,
+                            block: arm_entry,
+                            state: arm_state,
+                        });
+                    }
+                }
+                Frame::MatchAfterArm {
+                    expression,
+                    mode,
+                    scrutinee,
+                    arms,
+                    index,
+                    decision,
+                    branch_state,
+                    mut arm_results,
+                    source,
+                    arm_region,
+                } => {
+                    let mut result = results.pop().expect("match arm result retained");
+                    if !self.flow_is_closed(result.block) {
+                        generic_variant::finish_arm(
+                            self,
+                            expression,
+                            &arms[index].value,
+                            &mut result,
+                            active_region,
+                        )?;
+                        if let Some(arm_region) = arm_region {
+                            (result.block, result.state) =
+                                self.exit_scope(result.block, result.state, arm_region)?;
+                        }
+                    } else if let Some(arm_region) = arm_region {
+                        self.mark_abrupt_region(arm_region)?;
+                    }
+                    arm_results.push(result);
+                    frames.push(Frame::MatchNext {
+                        expression,
+                        mode,
+                        scrutinee,
+                        arms,
+                        index: index + 1,
+                        decision,
+                        branch_state,
+                        arm_results,
+                        source,
+                    });
+                }
+                Frame::ScalarMatchNext {
+                    expression,
+                    scrutinee,
+                    arms,
+                    index,
+                    mut decision,
+                    branch_state,
+                    arm_results,
+                    destination,
+                } => {
+                    if index == arms.len() {
+                        let Some(arm_results) =
+                            self.normal_branch_inventory(arm_results, &mut results)
+                        else {
+                            continue;
+                        };
+                        let entry_state = branch_state;
+                        let mut arm_results = arm_results.into_iter();
+                        let first = arm_results
+                            .next()
+                            .ok_or_else(|| plan_error("refutable match produced no arm result"))?;
+                        let mut merged_state = first.state.clone();
+                        let mut completed = vec![first];
+                        for result in arm_results {
+                            merged_state = self.merge_states(&merged_state, &result.state)?;
+                            completed.push(result);
+                        }
+                        // Copy-scalar admission makes every path observe the
+                        // same owned liveness as the decision entry; anything
+                        // else means a non-admitted shape reached lowering.
+                        // Owned droppable results (String, Bytes, Vec, etc.)
+                        // are an explicit exception: a `match i64 { 0 => "yes", _ => "no" }`
+                        // produces an owned value and therefore legitimately
+                        // changes owned liveness even though the scrutinee is Copy.
+                        let direct_single_catchall = arms.len() == 1 && arms[0].guard.is_none();
+                        let is_droppable_result = self.needs_drop(&expression.ty).unwrap_or(false);
+                        if !direct_single_catchall
+                            && !is_droppable_result
+                            && merged_state != entry_state
+                        {
+                            return Err(plan_error(
+                                "refutable match changes owned liveness, which the \
+                                 Refutable Match v1 admission profile forbids",
+                            ));
+                        }
+                        let join = self.new_block(active_region)?;
+                        for result in completed {
+                            let edge = self.new_edge(result.block, join, EdgeCondition::Always)?;
+                            self.terminate(result.block, CleanupTerminator::Goto(edge))?;
+                        }
+                        let owned_source = if self.needs_drop(&expression.ty).unwrap_or(false) {
+                            destination.clone()
+                        } else {
+                            None
+                        };
+                        results.push(EvalResult {
+                            block: join,
+                            state: merged_state,
+                            owned_source,
+                        });
+                    } else {
+                        let arm = &arms[index];
+                        let final_arm = index + 1 == arms.len();
+                        let arm_entry = self.new_block(active_region)?;
+                        // A single unconditional arm has no authenticated selection boundary. Keep it in the parent region; otherwise the backend cannot
+                        // distinguish that synthetic region from a lexical child block.
+                        let direct_single_catchall = arms.len() == 1 && arm.guard.is_none();
+                        let (value_region, value_entry) = if direct_single_catchall {
+                            (None, arm_entry)
+                        } else {
+                            let value_region = self.new_region(active_region)?;
+                            let value_entry = self.new_block(value_region)?;
+                            (Some(value_region), value_entry)
+                        };
+                        if final_arm {
+                            // The resolver guarantees one trailing irrefutable guard-free catch-all, so the final decision falls through unconditionally.
+                            let edge = self.new_edge(decision, arm_entry, EdgeCondition::Always)?;
+                            self.terminate(decision, CleanupTerminator::Goto(edge))?;
+                        } else {
+                            // Every earlier arm — including irrefutable bindings — authenticates as one conditional decision so the plan stays total.
+                            let next_decision = self.new_block(active_region)?;
+                            let selected = self.new_edge(
+                                decision,
+                                arm_entry,
+                                EdgeCondition::ArmSelected {
+                                    scrutinee: scrutinee.id.clone(),
+                                    arm: u32::try_from(index)
+                                        .map_err(|_| plan_error("too many match arms"))?,
+                                    selected: true,
+                                },
+                            )?;
+                            let rejected = self.new_edge(
+                                decision,
+                                next_decision,
+                                EdgeCondition::ArmSelected {
+                                    scrutinee: scrutinee.id.clone(),
+                                    arm: u32::try_from(index)
+                                        .map_err(|_| plan_error("too many match arms"))?,
+                                    selected: false,
+                                },
+                            )?;
+                            self.terminate(
+                                decision,
+                                CleanupTerminator::Branch(vec![selected, rejected]),
+                            )?;
+                            decision = next_decision;
+                        }
+                        if let Some(guard) = &arm.guard {
+                            // The guard's result is Copy, but evaluating it may create owned String temporaries. Its region must end before either Boolean
+                            // edge so neither the selected arm nor the fallthrough inherits guard-local liveness.
+                            let guard_region = self.new_region(active_region)?;
+                            let guard_entry = self.new_block(guard_region)?;
+                            let guard_edge =
+                                self.new_edge(arm_entry, guard_entry, EdgeCondition::Always)?;
+                            self.terminate(arm_entry, CleanupTerminator::Goto(guard_edge))?;
+                            frames.push(Frame::ScalarMatchAfterGuard {
+                                expression,
+                                scrutinee,
+                                arms,
+                                index,
+                                decision,
+                                arm_results,
+                                destination,
+                                guard_region,
+                                value_region,
+                                value_entry,
+                                parent_region: active_region,
+                            });
+                            active_region = guard_region;
+                            frames.push(Frame::Enter {
+                                expression: guard.as_ref(),
+                                block: guard_entry,
+                                state: branch_state,
+                            });
+                        } else {
+                            if !direct_single_catchall {
+                                let value_edge =
+                                    self.new_edge(arm_entry, value_entry, EdgeCondition::Always)?;
+                                self.terminate(arm_entry, CleanupTerminator::Goto(value_edge))?;
+                            }
+                            frames.push(Frame::ScalarMatchAfterArm {
+                                expression,
+                                scrutinee,
+                                arms,
+                                index,
+                                decision,
+                                branch_state: branch_state.clone(),
+                                arm_results,
+                                destination,
+                                value_region,
+                                parent_region: active_region,
+                            });
+                            if let Some(value_region) = value_region {
+                                active_region = value_region;
+                            }
+                            frames.push(Frame::Enter {
+                                expression: &arm.value,
+                                block: value_entry,
+                                state: branch_state,
+                            });
+                        }
+                    }
+                }
+                Frame::ScalarMatchAfterGuard {
+                    expression,
+                    scrutinee,
+                    arms,
+                    index,
+                    decision,
+                    arm_results,
+                    destination,
+                    guard_region,
+                    value_region,
+                    value_entry,
+                    parent_region,
+                } => {
+                    // The guard is an ordinary bool expression evaluated once after the pattern matched; its Boolean join routes to this arm's value or
+                    // falls through to the next decision.
+                    let guard = results.pop().expect("scalar match guard retained");
+                    if guard.owned_source.is_some() {
+                        return Err(plan_error(
+                            "scalar match guard owns a value, which no admitted program can express",
+                        ));
+                    }
+                    let arm = &arms[index];
+                    let Some(guard_expr) = &arm.guard else {
+                        return Err(plan_error("scalar match guard continuation lost its guard"));
+                    };
+                    let (guard_after, guard_state) =
+                        self.exit_scope(guard.block, guard.state, guard_region)?;
+                    let value_region = value_region.ok_or_else(|| {
+                        plan_error("guarded scalar match has no arm cleanup region")
+                    })?;
+                    let true_edge = self.new_edge(
+                        guard_after,
+                        value_entry,
+                        EdgeCondition::BooleanResult(guard_expr.id.clone(), true),
+                    )?;
+                    let false_edge = self.new_edge(
+                        guard_after,
+                        decision,
+                        EdgeCondition::BooleanResult(guard_expr.id.clone(), false),
+                    )?;
+                    self.terminate(
+                        guard_after,
+                        CleanupTerminator::Branch(vec![true_edge, false_edge]),
+                    )?;
+                    frames.push(Frame::ScalarMatchAfterArm {
+                        expression,
+                        scrutinee,
+                        arms,
+                        index,
+                        decision,
+                        branch_state: guard_state.clone(),
+                        arm_results,
+                        destination,
+                        value_region: Some(value_region),
+                        parent_region,
+                    });
+                    active_region = value_region;
+                    frames.push(Frame::Enter {
+                        expression: &arm.value,
+                        block: value_entry,
+                        state: guard_state,
+                    });
+                }
+                Frame::ScalarMatchAfterArm {
+                    expression,
+                    scrutinee,
+                    arms,
+                    index,
+                    decision,
+                    branch_state,
+                    mut arm_results,
+                    destination,
+                    value_region,
+                    parent_region,
+                } => {
+                    let mut result = results.pop().expect("scalar match arm value retained");
+                    if let Some(destination) = destination
+                        .clone()
+                        .filter(|_| !self.flow_is_closed(result.block))
+                    {
+                        let source = result.owned_source.take().ok_or_else(|| {
+                            plan_error("owned scalar match arm has no cleanup source")
+                        })?;
+                        self.transfer(
+                            result.block,
+                            expression.id.clone(),
+                            source,
+                            destination,
+                            &mut result.state,
+                            true,
+                        )?;
+                    }
+                    if let Some(value_region) = value_region {
+                        if self.flow_is_closed(result.block) {
+                            self.mark_abrupt_region(value_region)?;
+                        } else {
+                            (result.block, result.state) =
+                                self.exit_scope(result.block, result.state, value_region)?;
+                        }
+                    }
+                    active_region = parent_region;
+                    arm_results.push(result);
+                    frames.push(Frame::ScalarMatchNext {
+                        expression,
+                        scrutinee,
+                        arms,
+                        index: index + 1,
+                        decision,
+                        branch_state,
+                        arm_results,
+                        destination,
+                    });
+                }
+                Frame::UpdateAfterBase {
+                    expression,
+                    record,
+                    fields,
+                    destination,
+                    update_region,
+                } => {
+                    let mut evaluated = results.pop().expect("update base result retained");
+                    let staged_base = if destination.is_some() {
+                        let ResolvedExprKind::UpdateRecord { base, .. } = &expression.kind else {
+                            unreachable!("update continuation retains update expression");
+                        };
+                        let staged_base =
+                            CleanupPlace::whole(StorageId::Temporary(base.id.clone()));
+                        self.assign_slot(&staged_base.storage, update_region)?;
+                        let base_source = evaluated.owned_source.clone().ok_or_else(|| {
+                            plan_error("owned record update base has no cleanup source")
+                        })?;
+                        if base_source != staged_base {
+                            self.transfer(
+                                evaluated.block,
+                                base.id.clone(),
+                                base_source,
+                                staged_base.clone(),
+                                &mut evaluated.state,
+                                true,
+                            )?;
+                        }
+                        Some(staged_base)
+                    } else {
+                        None
+                    };
+                    frames.push(Frame::UpdateNext {
+                        expression,
+                        record,
+                        fields,
+                        index: 0,
+                        flow: evaluated,
+                        destination,
+                        update_region,
+                        staged_base,
+                        replaced: BTreeSet::new(),
+                    });
+                }
+                Frame::UpdateNext {
+                    expression,
+                    record,
+                    fields,
+                    index,
+                    flow,
+                    destination,
+                    update_region,
+                    staged_base,
+                    replaced,
+                } => {
+                    if index == fields.len() {
+                        if let Some(destination) = destination {
+                            let staged_base =
+                                staged_base.expect("droppable update staged its base");
+                            let declarations = self
+                                .program
+                                .declarations
+                                .record_fields(record)
+                                .ok_or_else(|| {
+                                    plan_error(format!(
+                                        "record update has unknown record `{record}`"
+                                    ))
+                                })?
+                                .to_vec();
+                            let ResolvedType::Nominal {
+                                declaration,
+                                arguments,
+                            } = &expression.ty
+                            else {
+                                return Err(plan_error(
+                                    "record update result is not a nominal instance",
+                                ));
+                            };
+                            if declaration != record {
+                                return Err(plan_error(
+                                    "record update result changes declaration identity",
+                                ));
+                            }
+                            let mut state = flow.state;
+                            for field in declarations {
+                                let field_ty =
+                                    crate::hir::substitute_type(&field.ty, record, arguments)?;
+                                if replaced.contains(&field.id) || !self.needs_drop(&field_ty)? {
+                                    continue;
+                                }
+                                self.transfer(
+                                    flow.block,
+                                    expression.id.clone(),
+                                    staged_base.projected(field.id.clone()),
+                                    destination.projected(field.id),
+                                    &mut state,
+                                    false,
+                                )?;
+                            }
+                            let (block, mut state) =
+                                self.exit_scope(flow.block, state, update_region)?;
+                            self.canonicalize_complete_aggregate(&destination, &mut state)?;
+                            results.push(EvalResult {
+                                block,
+                                state,
+                                owned_source: Some(destination),
+                            });
+                        } else {
+                            results.push(EvalResult {
+                                block: flow.block,
+                                state: flow.state,
+                                owned_source: None,
+                            });
+                        }
+                    } else {
+                        if replaced.contains(&fields[index].field) {
+                            return Err(plan_error(format!(
+                                "record update repeats field `{}`",
+                                fields[index].field
+                            )));
+                        }
+                        frames.push(Frame::UpdateAfterField {
+                            expression,
+                            record,
+                            fields,
+                            index,
+                            destination,
+                            update_region,
+                            staged_base,
+                            replaced,
+                        });
+                        if active_region != update_region {
+                            frames.push(Frame::RestoreRegion(active_region));
+                            active_region = update_region;
+                        }
+                        frames.push(Frame::Enter {
+                            expression: &fields[index].value,
+                            block: flow.block,
+                            state: flow.state,
+                        });
+                    }
+                }
+                Frame::UpdateAfterField {
+                    expression,
+                    record,
+                    fields,
+                    index,
+                    destination,
+                    update_region,
+                    staged_base,
+                    mut replaced,
+                } => {
+                    let initializer = &fields[index];
+                    let inserted = replaced.insert(initializer.field.clone());
+                    debug_assert!(inserted);
+                    let mut evaluated = results.pop().expect("update field result retained");
+                    if let Some(destination) = &destination {
+                        if initializer.value.ownership == OwnershipMode::Own
+                            && self.needs_drop(&initializer.value.ty)?
+                        {
+                            let source = evaluated.owned_source.clone().ok_or_else(|| {
+                                plan_error(format!(
+                                    "record replacement field `{}` has no cleanup source",
+                                    initializer.field
+                                ))
+                            })?;
+                            self.transfer(
+                                evaluated.block,
+                                initializer.value.id.clone(),
+                                source,
+                                destination.projected(initializer.field.clone()),
+                                &mut evaluated.state,
+                                false,
+                            )?;
+                        }
+                    }
+                    frames.push(Frame::UpdateNext {
+                        expression,
+                        record,
+                        fields,
+                        index: index + 1,
+                        flow: evaluated,
+                        destination,
+                        update_region,
+                        staged_base,
+                        replaced,
+                    });
+                }
+            }
+        }
+        if results.len() != 1 {
+            return Err(plan_error(
+                "iterative cleanup lowering lost its root result",
+            ));
+        }
+        results
+            .pop()
+            .ok_or_else(|| plan_error("iterative cleanup lowering produced no result"))
+    }
+
+    #[cfg(test)]
+    fn lower_expr_recursive_reference(
+        &mut self,
+        expression: &ResolvedExpr,
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        if matches!(expression.kind, ResolvedExprKind::Unary { .. }) {
+            let mut unary = Vec::new();
+            let mut leaf = expression;
+            while let ResolvedExprKind::Unary { value, .. } = &leaf.kind {
+                unary.push(leaf);
+                leaf = value;
+            }
+            let mut evaluated = self.lower_expr_recursive_reference(leaf, block, state, region)?;
+            for expression in unary.into_iter().rev() {
+                let ResolvedExprKind::Unary { op, .. } = &expression.kind else {
+                    unreachable!("unary chain contains only unary expressions");
+                };
+                if *op == UnaryOp::Neg {
+                    let source = self.checked_source(
+                        expression,
+                        CheckedOperation::Neg,
+                        vec![StatusCase::NegationOverflow],
+                    )?;
+                    let (block, state) =
+                        self.split_status(evaluated.block, evaluated.state, region, source)?;
+                    evaluated = EvalResult {
+                        block,
+                        state,
+                        owned_source: None,
+                    };
+                } else {
+                    evaluated.owned_source = None;
+                }
+            }
+            return Ok(evaluated);
+        }
+        if self.owns_string_clone(expression) {
+            return self.initialize_string(expression, block, state);
+        }
+        match &expression.kind {
+            ResolvedExprKind::LexicalExit { .. } => Err(plan_error(
+                "legacy recursive cleanup reference does not admit lexical exits",
+            )),
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
+            | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
+            | ResolvedExprKind::BorrowedUtf8Literal(_) => Ok(EvalResult {
+                block,
+                state,
+                owned_source: None,
+            }),
+            ResolvedExprKind::Place(place) => {
+                self.assign_moved_string_slot(expression, block)?;
+                let owned_source = if !self.string_condition_reads.contains(&expression.id)
+                    && expression.ownership == OwnershipMode::Own
+                    && self.needs_drop(&expression.ty)?
+                {
+                    Some(self.place_from_hir(place)?)
+                } else {
+                    None
+                };
+                Ok(EvalResult {
+                    block,
+                    state,
+                    owned_source,
+                })
+            }
+            ResolvedExprKind::BorrowPlace { .. } => Ok(EvalResult {
+                block,
+                state,
+                owned_source: None,
+            }),
+            ResolvedExprKind::ByteRange {
+                operation,
+                source,
+                start,
+                end,
+            } => {
+                if operation.as_str() != crate::byte_ops::RANGE_ID {
+                    return Err(plan_error(
+                        "byte range carries an unknown operation identity",
+                    ));
+                }
+                if !schema::includes_v5(self.schema) {
+                    self.schema = CLEANUP_PLAN_SCHEMA_V4;
+                }
+                let mut evaluated =
+                    self.lower_expr_recursive_reference(source, block, state, region)?;
+                if evaluated.owned_source.is_some() {
+                    return Err(plan_error("byte range received an owned source"));
+                }
+                evaluated = self.lower_expr_recursive_reference(
+                    start,
+                    evaluated.block,
+                    evaluated.state,
+                    region,
+                )?;
+                if evaluated.owned_source.is_some() {
+                    return Err(plan_error("byte range received an owned start"));
+                }
+                evaluated = self.lower_expr_recursive_reference(
+                    end,
+                    evaluated.block,
+                    evaluated.state,
+                    region,
+                )?;
+                if evaluated.owned_source.is_some() {
+                    return Err(plan_error("byte range received an owned end"));
+                }
+                self.push_transition(
+                    evaluated.block,
+                    CleanupTransition::CallCommit {
+                        call: expression.id.clone(),
+                        arguments: Vec::new(),
+                    },
+                );
+                let status = StatusSourceId {
+                    expression: expression.id.clone(),
+                    lane: StatusLane::OperationFailure,
+                };
+                self.add_status_source(
+                    status.clone(),
+                    StatusProducer::PropagatedCall {
+                        callee: DeclarationId::new(crate::byte_ops::RANGE_ID),
+                    },
+                )?;
+                let (block, state) =
+                    self.split_status(evaluated.block, evaluated.state, region, status)?;
+                Ok(EvalResult {
+                    block,
+                    state,
+                    owned_source: None,
+                })
+            }
+            ResolvedExprKind::Closure { .. } if !expression.ty.is_once_function() => {
+                Ok(EvalResult {
+                    block,
+                    state,
+                    owned_source: None,
+                })
+            }
+            ResolvedExprKind::FunctionReference { .. } => Ok(EvalResult {
+                block,
+                state,
+                owned_source: None,
+            }),
+            ResolvedExprKind::Invoke { .. } | ResolvedExprKind::Closure { .. } => {
+                let (callee, args, _) = crate::hir::function_value::cleanup_call(expression)?;
+                self.lower_call(expression, callee, None, args, (block, state, region))
+            }
+            ResolvedExprKind::RowLoan { args, .. } => {
+                super::row_loan::require_places(args)?;
+                Ok(EvalResult {
+                    block,
+                    state,
+                    owned_source: None,
+                })
+            }
+            ResolvedExprKind::VecFieldRead { args, .. } => self.lower_call(
+                expression,
+                crate::vec_field::operation_id(),
+                None,
+                args,
+                (block, state, region),
+            ),
+            ResolvedExprKind::LiteralFormat { args, .. } => self.lower_call(
+                expression,
+                crate::literal_format::operation_id(),
+                None,
+                args,
+                (block, state, region),
+            ),
+            ResolvedExprKind::Call {
+                callee,
+                instance,
+                args,
+                ..
+            } => self.lower_call(
+                expression,
+                callee,
+                instance.as_ref(),
+                args,
+                (block, state, region),
+            ),
+            ResolvedExprKind::NativeRustImportCall(call) => {
+                if super::native_rust::owns(expression) {
+                    self.lower_call(
+                        expression,
+                        &call.import,
+                        None,
+                        &call.args,
+                        (block, state, region),
+                    )
+                } else {
+                    self.lower_scalar_native_reference(&call.args, block, state, region)
+                }
+            }
+            ResolvedExprKind::HostCommandCall(call) => {
+                let callee = DeclarationId::new(crate::command_io_ops::id(call.operation));
+                self.lower_call(
+                    expression,
+                    &callee,
+                    None,
+                    &call.args,
+                    (block, state, region),
+                )
+            }
+            ResolvedExprKind::Unary { .. } => unreachable!("unary chain handled above"),
+            ResolvedExprKind::Binary { op, left, right }
+                if matches!(op, BinaryOp::And | BinaryOp::Or) =>
+            {
+                self.lower_lazy(expression, *op, left, right, block, state, region)
+            }
+            ResolvedExprKind::Binary { op, left, right } => {
+                let left = self.lower_expr_recursive_reference(left, block, state, region)?;
+                let right =
+                    self.lower_expr_recursive_reference(right, left.block, left.state, region)?;
+                let checked = match op {
+                    BinaryOp::Add => Some((CheckedOperation::Add, vec![StatusCase::AddOverflow])),
+                    BinaryOp::Sub => Some((CheckedOperation::Sub, vec![StatusCase::SubOverflow])),
+                    BinaryOp::Mul => Some((CheckedOperation::Mul, vec![StatusCase::MulOverflow])),
+                    BinaryOp::Div => Some((
+                        CheckedOperation::Div,
+                        vec![StatusCase::DivisionByZero, StatusCase::DivisionOverflow],
+                    )),
+                    BinaryOp::Rem => Some((
+                        CheckedOperation::Rem,
+                        vec![StatusCase::RemainderByZero, StatusCase::RemainderOverflow],
+                    )),
+                    BinaryOp::Eq
+                    | BinaryOp::Ne
+                    | BinaryOp::Lt
+                    | BinaryOp::Le
+                    | BinaryOp::Gt
+                    | BinaryOp::Ge
+                    | BinaryOp::And
+                    | BinaryOp::Or => None,
+                };
+                let (block, state) = if let Some((operation, cases)) = checked {
+                    let source = self.checked_source(expression, operation, cases)?;
+                    self.split_status(right.block, right.state, region, source)?
+                } else {
+                    (right.block, right.state)
+                };
+                Ok(EvalResult {
+                    block,
+                    state,
+                    owned_source: None,
+                })
+            }
+            ResolvedExprKind::Block { statements, tail }
+            | ResolvedExprKind::VecConstructor {
+                statements, tail, ..
+            } => self.lower_block(expression, statements, tail, block, state, region),
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => self.lower_if(
+                expression,
+                condition,
+                then_branch,
+                else_branch,
+                block,
+                state,
+                region,
+            ),
+            ResolvedExprKind::ConstructRecord { fields, .. } => {
+                self.lower_record(expression, fields, block, state, region)
+            }
+            ResolvedExprKind::ConstructVariant {
+                variant,
+                case,
+                fields,
+            } => self.lower_variant(
+                expression,
+                variant,
+                case,
+                fields,
+                LoweringFlow {
+                    block,
+                    state,
+                    region,
+                },
+            ),
+            ResolvedExprKind::Try {
+                operand,
+                result,
+                ok_case,
+                ok_field,
+                err_case,
+                err_field,
+                residual_type,
+            } => self.lower_try(
+                expression,
+                operand,
+                result,
+                ok_case,
+                ok_field,
+                err_case,
+                err_field,
+                residual_type,
+                block,
+                state,
+                region,
+            ),
+            ResolvedExprKind::TryOption {
+                operand,
+                option,
+                some_case,
+                some_field,
+                none_case,
+                residual_type,
+            } => self.lower_try_option(
+                expression,
+                operand,
+                option,
+                some_case,
+                some_field,
+                none_case,
+                residual_type,
+                block,
+                state,
+                region,
+            ),
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => self.lower_match(expression, scrutinee, arms, block, state, region),
+            ResolvedExprKind::UpdateRecord { .. } => {
+                self.lower_update_record(expression, block, state, region)
+            }
+            ResolvedExprKind::Project { base, field } => {
+                let base = self.lower_expr_recursive_reference(base, block, state, region)?;
+                let destination = self.expression_slot(expression, region)?;
+                let mut state = base.state;
+                if let Some(destination) = destination.clone() {
+                    let source = base
+                        .owned_source
+                        .ok_or_else(|| plan_error("owned projection base has no cleanup source"))?
+                        .projected(field.clone());
+                    self.transfer(
+                        base.block,
+                        expression.id.clone(),
+                        source,
+                        destination,
+                        &mut state,
+                        true,
+                    )?;
+                }
+                Ok(EvalResult {
+                    block: base.block,
+                    state,
+                    owned_source: destination,
+                })
+            }
+            // Class Inheritance v1: the upcast itself is transparent; its consumed source remains the surrounding transfer's source.
+            ResolvedExprKind::Upcast { source } => {
+                self.lower_expr_recursive_reference(source, block, state, region)
+            }
+            // Resumable Effects v1 (issue #204): transparent, matching the iterative lowering path above.
+            ResolvedExprKind::Yield { request } => {
+                self.lower_expr_recursive_reference(request, block, state, region)
+            }
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[cfg(test)]
+    fn lower_lazy(
+        &mut self,
+        _expression: &ResolvedExpr,
+        operation: BinaryOp,
+        left: &ResolvedExpr,
+        right: &ResolvedExpr,
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        let left_expression_id = left.id.clone();
+        let left = self.lower_expr_recursive_reference(left, block, state, region)?;
+        let evaluate_right_when = operation == BinaryOp::And;
+        let evaluate = self.new_block(region)?;
+        let skip = self.new_block(region)?;
+        let evaluate_edge = self.new_edge(
+            left.block,
+            evaluate,
+            EdgeCondition::BooleanResult(left_expression_id.clone(), evaluate_right_when),
+        )?;
+        let skip_edge = self.new_edge(
+            left.block,
+            skip,
+            EdgeCondition::BooleanResult(left_expression_id, !evaluate_right_when),
+        )?;
+        self.terminate(
+            left.block,
+            CleanupTerminator::Branch(vec![evaluate_edge, skip_edge]),
+        )?;
+
+        let evaluated_right =
+            self.lower_expr_recursive_reference(right, evaluate, left.state.clone(), region)?;
+        let joined_state = self.merge_states(&evaluated_right.state, &left.state)?;
+        let join = self.new_block(region)?;
+        let evaluated_edge = self.new_edge(evaluated_right.block, join, EdgeCondition::Always)?;
+        self.terminate(
+            evaluated_right.block,
+            CleanupTerminator::Goto(evaluated_edge),
+        )?;
+        let skipped_edge = self.new_edge(skip, join, EdgeCondition::Always)?;
+        self.terminate(skip, CleanupTerminator::Goto(skipped_edge))?;
+        Ok(EvalResult {
+            block: join,
+            state: joined_state,
+            owned_source: None,
+        })
+    }
+
+    #[cfg(test)]
+    fn lower_block(
+        &mut self,
+        expression: &ResolvedExpr,
+        statements: &[ResolvedStatement],
+        tail: &ResolvedExpr,
+        block: BlockId,
+        state: FlowState,
+        parent: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        // The block expression's completed value belongs to the surrounding region; locals and intermediate temporaries belong to the child.
+        let destination = self.expression_slot(expression, parent)?;
+        let region = self.new_region(parent)?;
+        let entry = self.new_block(region)?;
+        let edge = self.new_edge(block, entry, EdgeCondition::Always)?;
+        self.terminate(block, CleanupTerminator::Goto(edge))?;
+
+        let mut current = entry;
+        let mut current_state = state;
+        for statement in statements {
+            // Field Mutation v1 stores lower their RHS like an initializer and never transfer into a binding slot.
+            if let ResolvedStatement::Assign {
+                field: Some(_),
+                value,
+                ..
+            } = statement
+            {
+                let evaluated =
+                    self.lower_expr_recursive_reference(value, current, current_state, region)?;
+                current = evaluated.block;
+                current_state = evaluated.state;
+                continue;
+            }
+            let (binding, value) = match statement {
+                ResolvedStatement::CopyDiscard { value, .. } => {
+                    let evaluated =
+                        self.lower_expr_recursive_reference(value, current, current_state, region)?;
+                    current = evaluated.block;
+                    current_state = evaluated.state;
+                    continue;
+                }
+                ResolvedStatement::LexicalWhile { .. } => {
+                    return Err(plan_error(
+                        "legacy recursive cleanup reference does not admit lexical loops",
+                    ));
+                }
+                ResolvedStatement::Let { binding, value, .. }
+                | ResolvedStatement::Assign { binding, value, .. } => (binding, value),
+                // Unsafe boundaries bind nothing: their ordinary block body lowers like any nested block expression.
+                ResolvedStatement::Unsafe { body, .. } => {
+                    let evaluated =
+                        self.lower_expr_recursive_reference(body, current, current_state, region)?;
+                    current = evaluated.block;
+                    current_state = evaluated.state;
+                    continue;
+                }
+                // Bounded While-Loops v1: linearize one admitted iteration.
+                ResolvedStatement::While {
+                    condition, body, ..
+                } => {
+                    let evaluated =
+                        self.lower_while(condition, body, current, current_state, region)?;
+                    current = evaluated.block;
+                    current_state = evaluated.state;
+                    continue;
+                }
+            };
+            self.reserve_statement_renewal(statement, current, &mut current_state, region)?;
+            let evaluated =
+                self.lower_expr_recursive_reference(value, current, current_state, region)?;
+            current = evaluated.block;
+            current_state = evaluated.state;
+            if let Some(binding_place) = self.binding_slot(binding, region)? {
+                let source = evaluated.owned_source.ok_or_else(|| {
+                    plan_error(format!(
+                        "owned binding `{}` has no cleanup source",
+                        binding.id
+                    ))
+                })?;
+                self.transfer(
+                    current,
+                    value.id.clone(),
+                    source,
+                    binding_place,
+                    &mut current_state,
+                    true,
+                )?;
+            }
+        }
+        let evaluated_tail =
+            self.lower_expr_recursive_reference(tail, current, current_state, region)?;
+        current = evaluated_tail.block;
+        current_state = evaluated_tail.state;
+        if let Some(destination) = destination.clone() {
+            let source = evaluated_tail
+                .owned_source
+                .ok_or_else(|| plan_error("owned block tail has no cleanup source"))?;
+            self.transfer(
+                current,
+                expression.id.clone(),
+                source,
+                destination,
+                &mut current_state,
+                true,
+            )?;
+        }
+        let (continuation, state) = self.exit_scope(current, current_state, region)?;
+        Ok(EvalResult {
+            block: continuation,
+            state,
+            owned_source: destination,
+        })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[cfg(test)]
+    fn lower_if(
+        &mut self,
+        expression: &ResolvedExpr,
+        condition: &ResolvedExpr,
+        then_branch: &ResolvedExpr,
+        else_branch: &ResolvedExpr,
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        let destination = self.expression_slot(expression, region)?;
+        let condition = self.lower_expr_recursive_reference(condition, block, state, region)?;
+        let then_entry = self.new_block(region)?;
+        let else_entry = self.new_block(region)?;
+        let then_edge = self.new_edge(
+            condition.block,
+            then_entry,
+            EdgeCondition::BooleanResult(condition_id(expression)?, true),
+        )?;
+        let else_edge = self.new_edge(
+            condition.block,
+            else_entry,
+            EdgeCondition::BooleanResult(condition_id(expression)?, false),
+        )?;
+        self.terminate(
+            condition.block,
+            CleanupTerminator::Branch(vec![then_edge, else_edge]),
+        )?;
+
+        let mut then_result = self.lower_expr_recursive_reference(
+            then_branch,
+            then_entry,
+            condition.state.clone(),
+            region,
+        )?;
+        if let Some(destination) = destination.clone() {
+            let source = then_result
+                .owned_source
+                .take()
+                .ok_or_else(|| plan_error("owned then branch has no cleanup source"))?;
+            self.transfer(
+                then_result.block,
+                expression.id.clone(),
+                source,
+                destination,
+                &mut then_result.state,
+                true,
+            )?;
+        }
+
+        let mut else_result =
+            self.lower_expr_recursive_reference(else_branch, else_entry, condition.state, region)?;
+        if let Some(destination) = destination.clone() {
+            let source = else_result
+                .owned_source
+                .take()
+                .ok_or_else(|| plan_error("owned else branch has no cleanup source"))?;
+            self.transfer(
+                else_result.block,
+                expression.id.clone(),
+                source,
+                destination,
+                &mut else_result.state,
+                true,
+            )?;
+        }
+
+        let state = self.merge_states(&then_result.state, &else_result.state)?;
+        let join = self.new_block(region)?;
+        let then_join = self.new_edge(then_result.block, join, EdgeCondition::Always)?;
+        self.terminate(then_result.block, CleanupTerminator::Goto(then_join))?;
+        let else_join = self.new_edge(else_result.block, join, EdgeCondition::Always)?;
+        self.terminate(else_result.block, CleanupTerminator::Goto(else_join))?;
+        Ok(EvalResult {
+            block: join,
+            state,
+            owned_source: destination,
+        })
+    }
+
+    #[cfg(test)]
+    fn lower_record(
+        &mut self,
+        expression: &ResolvedExpr,
+        fields: &[crate::hir::ResolvedFieldInitializer],
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        let destination = self.expression_slot(expression, region)?;
+        let mut current = block;
+        let mut current_state = state;
+        for initializer in fields {
+            let evaluated = self.lower_expr_recursive_reference(
+                &initializer.value,
+                current,
+                current_state,
+                region,
+            )?;
+            current = evaluated.block;
+            current_state = evaluated.state;
+            if initializer.value.ownership == OwnershipMode::Own
+                && self.needs_drop(&initializer.value.ty)?
+            {
+                let source = evaluated.owned_source.ok_or_else(|| {
+                    plan_error(format!(
+                        "record field `{}` has no cleanup source",
+                        initializer.field
+                    ))
+                })?;
+                let field_destination = destination
+                    .as_ref()
+                    .ok_or_else(|| plan_error("droppable record constructor has no cleanup slot"))?
+                    .projected(initializer.field.clone());
+                self.transfer(
+                    current,
+                    initializer.value.id.clone(),
+                    source,
+                    field_destination,
+                    &mut current_state,
+                    false,
+                )?;
+            }
+        }
+
+        // While construction is partial, `live_order` is actual initializer completion order and failure reverses it.  At the successful whole-aggregate
+        // boundary, history is intentionally normalized to recursive declaration order as specified by cleanup-plan v1.
+        if let Some(destination) = &destination {
+            self.canonicalize_complete_aggregate(destination, &mut current_state)?;
+        }
+        Ok(EvalResult {
+            block: current,
+            state: current_state,
+            owned_source: destination,
+        })
+    }
+
+    #[cfg(test)]
+    fn lower_variant(
+        &mut self,
+        expression: &ResolvedExpr,
+        variant: &DeclarationId,
+        case: &DeclarationId,
+        fields: &[crate::hir::ResolvedFieldInitializer],
+        flow: LoweringFlow,
+    ) -> Result<EvalResult, Diagnostic> {
+        let LoweringFlow {
+            block,
+            state,
+            region,
+        } = flow;
+        let mut evaluated = EvalResult {
+            block,
+            state,
+            owned_source: None,
+        };
+        let destination = self.expression_slot(expression, region)?;
+        for field in fields {
+            evaluated = self.lower_expr_recursive_reference(
+                &field.value,
+                evaluated.block,
+                evaluated.state,
+                region,
+            )?;
+            if field.value.ownership == OwnershipMode::Own && self.needs_drop(&field.value.ty)? {
+                let source = evaluated.owned_source.take().ok_or_else(|| {
+                    plan_error(format!(
+                        "variant field `{}` has no cleanup source",
+                        field.field
+                    ))
+                })?;
+                let field_destination = destination
+                    .as_ref()
+                    .ok_or_else(|| plan_error("droppable variant constructor has no cleanup slot"))?
+                    .projected(case.clone())
+                    .projected(field.field.clone());
+                self.transfer(
+                    evaluated.block,
+                    field.value.id.clone(),
+                    source,
+                    field_destination,
+                    &mut evaluated.state,
+                    false,
+                )?;
+            }
+        }
+        if let Some(destination) = &destination {
+            self.seal_constructed_variant(destination, variant, case, &mut evaluated.state)?;
+        }
+        evaluated.owned_source = destination;
+        Ok(evaluated)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn finish_try(
+        &mut self,
+        expression: &ResolvedExpr,
+        operand: &ResolvedExpr,
+        result: &DeclarationId,
+        ok_case: &DeclarationId,
+        ok_field: &DeclarationId,
+        err_case: &DeclarationId,
+        err_field: &DeclarationId,
+        residual_type: &ResolvedType,
+        evaluated: EvalResult,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        let exact_owned = self.needs_drop(&operand.ty)? && self.needs_drop(residual_type)?;
+        if exact_owned {
+            return self.finish_owned_try(
+                expression,
+                operand,
+                result,
+                ok_case,
+                ok_field,
+                err_case,
+                err_field,
+                residual_type,
+                evaluated,
+                region,
+            );
+        }
+        if evaluated.owned_source.is_some() {
+            return Err(plan_error(
+                "postfix `?` operand reached the Copy slice with cleanup storage",
+            ));
+        }
+        let success = self.new_block(region)?;
+        let residual = self.new_block(region)?;
+        let success_edge = self.new_edge(
+            evaluated.block,
+            success,
+            EdgeCondition::VariantCase {
+                scrutinee: operand.id.clone(),
+                case: ok_case.clone(),
+                matches: true,
+            },
+        )?;
+        let residual_edge = self.new_edge(
+            evaluated.block,
+            residual,
+            EdgeCondition::VariantCase {
+                scrutinee: operand.id.clone(),
+                case: ok_case.clone(),
+                matches: false,
+            },
+        )?;
+        self.terminate(
+            evaluated.block,
+            CleanupTerminator::Branch(vec![success_edge, residual_edge]),
+        )?;
+        self.push_transition(
+            residual,
+            CleanupTransition::StageCopyResult {
+                source: StagedCopyResultSource::TryResidual {
+                    expression: expression.id.clone(),
+                    operand: operand.id.clone(),
+                    source_instance: operand.ty.clone(),
+                    target_instance: residual_type.clone(),
+                    result: result.clone(),
+                    ok_case: ok_case.clone(),
+                    ok_field: ok_field.clone(),
+                    err_case: err_case.clone(),
+                    err_field: err_field.clone(),
+                },
+            },
+        );
+        self.pending_try_residuals.push(PendingTryResidual {
+            block: residual,
+            state: evaluated.state.clone(),
+            region,
+        });
+        Ok(EvalResult {
+            block: success,
+            state: evaluated.state,
+            owned_source: None,
+        })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn check_try_option_metadata(
+        &mut self,
+        expression: &ResolvedExpr,
+        operand: &ResolvedExpr,
+        option: &DeclarationId,
+        some_case: &DeclarationId,
+        some_field: &DeclarationId,
+        none_case: &DeclarationId,
+        residual_type: &ResolvedType,
+    ) -> Result<(), Diagnostic> {
+        if self.schema == CLEANUP_PLAN_SCHEMA_V2 {
+            self.schema = CLEANUP_PLAN_SCHEMA_V3;
+        }
+        if option.as_str() != prelude::OPTION_ID
+            || some_case.as_str() != prelude::OPTION_SOME_ID
+            || some_field.as_str() != prelude::OPTION_SOME_VALUE_ID
+            || none_case.as_str() != prelude::OPTION_NONE_ID
+        {
+            return Err(plan_error(
+                "Option postfix `?` does not authenticate the ordinary Option prelude",
+            ));
+        }
+        for id in [option, some_case, some_field, none_case] {
+            let declaration = self.program.declarations.declaration(id).ok_or_else(|| {
+                plan_error(format!("Option postfix `?` references unknown `{id}`"))
+            })?;
+            if declaration.identity_origin != IdentityOrigin::CompilerOwned {
+                return Err(plan_error(format!(
+                    "Option postfix `?` reference `{id}` is not compiler-owned"
+                )));
+            }
+        }
+        let source_arguments = option_arguments(&operand.ty, option)?;
+        let target_arguments = option_arguments(residual_type, option)?;
+        if source_arguments.len() != 1
+            || target_arguments.len() != 1
+            || source_arguments
+                .iter()
+                .chain(target_arguments.iter())
+                .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+            || expression.ty != source_arguments[0]
+            || residual_type != &self.function.return_type
+        {
+            return Err(plan_error(
+                "Option postfix `?` has inconsistent source, value, residual, or function types",
+            ));
+        }
+        for ty in [&operand.ty, residual_type] {
+            let facts = self
+                .program
+                .declarations
+                .type_facts(ty)
+                .ok_or_else(|| plan_error("Option postfix `?` instance has no type facts"))?;
+            if !facts.copy || !facts.sized || facts.contains_resource || facts.needs_drop {
+                return Err(plan_error(
+                    "Option postfix `?` reached cleanup planning outside the Copy Option slice",
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn finish_try_option(
+        &mut self,
+        expression: &ResolvedExpr,
+        operand: &ResolvedExpr,
+        option: &DeclarationId,
+        some_case: &DeclarationId,
+        some_field: &DeclarationId,
+        none_case: &DeclarationId,
+        residual_type: &ResolvedType,
+        evaluated: EvalResult,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        if evaluated.owned_source.is_some() {
+            return Err(plan_error(
+                "Option postfix `?` operand reached the Copy slice with cleanup storage",
+            ));
+        }
+        let success = self.new_block(region)?;
+        let residual = self.new_block(region)?;
+        let success_edge = self.new_edge(
+            evaluated.block,
+            success,
+            EdgeCondition::VariantCase {
+                scrutinee: operand.id.clone(),
+                case: some_case.clone(),
+                matches: true,
+            },
+        )?;
+        let residual_edge = self.new_edge(
+            evaluated.block,
+            residual,
+            EdgeCondition::VariantCase {
+                scrutinee: operand.id.clone(),
+                case: some_case.clone(),
+                matches: false,
+            },
+        )?;
+        self.terminate(
+            evaluated.block,
+            CleanupTerminator::Branch(vec![success_edge, residual_edge]),
+        )?;
+        self.push_transition(
+            residual,
+            CleanupTransition::StageCopyResult {
+                source: StagedCopyResultSource::TryOptionNone {
+                    expression: expression.id.clone(),
+                    operand: operand.id.clone(),
+                    source_instance: operand.ty.clone(),
+                    target_instance: residual_type.clone(),
+                    option: option.clone(),
+                    some_case: some_case.clone(),
+                    some_field: some_field.clone(),
+                    none_case: none_case.clone(),
+                },
+            },
+        );
+        self.pending_try_residuals.push(PendingTryResidual {
+            block: residual,
+            state: evaluated.state.clone(),
+            region,
+        });
+        Ok(EvalResult {
+            block: success,
+            state: evaluated.state,
+            owned_source: None,
+        })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[cfg(test)]
+    fn lower_try(
+        &mut self,
+        expression: &ResolvedExpr,
+        operand: &ResolvedExpr,
+        result: &DeclarationId,
+        ok_case: &DeclarationId,
+        ok_field: &DeclarationId,
+        err_case: &DeclarationId,
+        err_field: &DeclarationId,
+        residual_type: &ResolvedType,
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        if result.as_str() != prelude::RESULT_ID
+            || ok_case.as_str() != prelude::RESULT_OK_ID
+            || ok_field.as_str() != prelude::RESULT_OK_VALUE_ID
+            || err_case.as_str() != prelude::RESULT_ERR_ID
+            || err_field.as_str() != prelude::RESULT_ERR_ERROR_ID
+        {
+            return Err(plan_error(
+                "postfix `?` does not authenticate the ordinary Result prelude",
+            ));
+        }
+        for id in [result, ok_case, ok_field, err_case, err_field] {
+            let declaration = self
+                .program
+                .declarations
+                .declaration(id)
+                .ok_or_else(|| plan_error(format!("postfix `?` references unknown `{id}`")))?;
+            if declaration.identity_origin != IdentityOrigin::CompilerOwned {
+                return Err(plan_error(format!(
+                    "postfix `?` reference `{id}` is not compiler-owned"
+                )));
+            }
+        }
+        let source_arguments = result_arguments(&operand.ty, result)?;
+        let target_arguments = result_arguments(residual_type, result)?;
+        if source_arguments.len() != 2
+            || target_arguments.len() != 2
+            || source_arguments
+                .iter()
+                .chain(target_arguments.iter())
+                .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+            || expression.ty != source_arguments[0]
+            || source_arguments[1] != target_arguments[1]
+            || residual_type != &self.function.return_type
+        {
+            return Err(plan_error(
+                "postfix `?` has inconsistent source, value, residual, or function types",
+            ));
+        }
+        for ty in [&operand.ty, residual_type] {
+            let facts = self
+                .program
+                .declarations
+                .type_facts(ty)
+                .ok_or_else(|| plan_error("postfix `?` Result instance has no type facts"))?;
+            if !facts.copy || !facts.sized || facts.contains_resource || facts.needs_drop {
+                return Err(plan_error(
+                    "postfix `?` reached cleanup planning outside the Copy Result slice",
+                ));
+            }
+        }
+
+        let evaluated = self.lower_expr_recursive_reference(operand, block, state, region)?;
+        if evaluated.owned_source.is_some() {
+            return Err(plan_error(
+                "postfix `?` operand reached the Copy slice with cleanup storage",
+            ));
+        }
+        let success = self.new_block(region)?;
+        let residual = self.new_block(region)?;
+        let success_edge = self.new_edge(
+            evaluated.block,
+            success,
+            EdgeCondition::VariantCase {
+                scrutinee: operand.id.clone(),
+                case: ok_case.clone(),
+                matches: true,
+            },
+        )?;
+        let residual_edge = self.new_edge(
+            evaluated.block,
+            residual,
+            EdgeCondition::VariantCase {
+                scrutinee: operand.id.clone(),
+                case: ok_case.clone(),
+                matches: false,
+            },
+        )?;
+        self.terminate(
+            evaluated.block,
+            CleanupTerminator::Branch(vec![success_edge, residual_edge]),
+        )?;
+        self.push_transition(
+            residual,
+            CleanupTransition::StageCopyResult {
+                source: StagedCopyResultSource::TryResidual {
+                    expression: expression.id.clone(),
+                    operand: operand.id.clone(),
+                    source_instance: operand.ty.clone(),
+                    target_instance: residual_type.clone(),
+                    result: result.clone(),
+                    ok_case: ok_case.clone(),
+                    ok_field: ok_field.clone(),
+                    err_case: err_case.clone(),
+                    err_field: err_field.clone(),
+                },
+            },
+        );
+        self.pending_try_residuals.push(PendingTryResidual {
+            block: residual,
+            state: evaluated.state.clone(),
+            region,
+        });
+        Ok(EvalResult {
+            block: success,
+            state: evaluated.state,
+            owned_source: None,
+        })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[cfg(test)]
+    fn lower_try_option(
+        &mut self,
+        expression: &ResolvedExpr,
+        operand: &ResolvedExpr,
+        option: &DeclarationId,
+        some_case: &DeclarationId,
+        some_field: &DeclarationId,
+        none_case: &DeclarationId,
+        residual_type: &ResolvedType,
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        if self.schema == CLEANUP_PLAN_SCHEMA_V2 {
+            self.schema = CLEANUP_PLAN_SCHEMA_V3;
+        }
+        if option.as_str() != prelude::OPTION_ID
+            || some_case.as_str() != prelude::OPTION_SOME_ID
+            || some_field.as_str() != prelude::OPTION_SOME_VALUE_ID
+            || none_case.as_str() != prelude::OPTION_NONE_ID
+        {
+            return Err(plan_error(
+                "Option postfix `?` does not authenticate the ordinary Option prelude",
+            ));
+        }
+        for id in [option, some_case, some_field, none_case] {
+            let declaration = self.program.declarations.declaration(id).ok_or_else(|| {
+                plan_error(format!("Option postfix `?` references unknown `{id}`"))
+            })?;
+            if declaration.identity_origin != IdentityOrigin::CompilerOwned {
+                return Err(plan_error(format!(
+                    "Option postfix `?` reference `{id}` is not compiler-owned"
+                )));
+            }
+        }
+        let source_arguments = option_arguments(&operand.ty, option)?;
+        let target_arguments = option_arguments(residual_type, option)?;
+        if source_arguments.len() != 1
+            || target_arguments.len() != 1
+            || source_arguments
+                .iter()
+                .chain(target_arguments.iter())
+                .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+            || expression.ty != source_arguments[0]
+            || residual_type != &self.function.return_type
+        {
+            return Err(plan_error(
+                "Option postfix `?` has inconsistent source, value, residual, or function types",
+            ));
+        }
+        for ty in [&operand.ty, residual_type] {
+            let facts = self
+                .program
+                .declarations
+                .type_facts(ty)
+                .ok_or_else(|| plan_error("Option postfix `?` instance has no type facts"))?;
+            if !facts.copy || !facts.sized || facts.contains_resource || facts.needs_drop {
+                return Err(plan_error(
+                    "Option postfix `?` reached cleanup planning outside the Copy Option slice",
+                ));
+            }
+        }
+
+        let evaluated = self.lower_expr_recursive_reference(operand, block, state, region)?;
+        if evaluated.owned_source.is_some() {
+            return Err(plan_error(
+                "Option postfix `?` operand reached the Copy slice with cleanup storage",
+            ));
+        }
+        let success = self.new_block(region)?;
+        let residual = self.new_block(region)?;
+        let success_edge = self.new_edge(
+            evaluated.block,
+            success,
+            EdgeCondition::VariantCase {
+                scrutinee: operand.id.clone(),
+                case: some_case.clone(),
+                matches: true,
+            },
+        )?;
+        let residual_edge = self.new_edge(
+            evaluated.block,
+            residual,
+            EdgeCondition::VariantCase {
+                scrutinee: operand.id.clone(),
+                case: some_case.clone(),
+                matches: false,
+            },
+        )?;
+        self.terminate(
+            evaluated.block,
+            CleanupTerminator::Branch(vec![success_edge, residual_edge]),
+        )?;
+        self.push_transition(
+            residual,
+            CleanupTransition::StageCopyResult {
+                source: StagedCopyResultSource::TryOptionNone {
+                    expression: expression.id.clone(),
+                    operand: operand.id.clone(),
+                    source_instance: operand.ty.clone(),
+                    target_instance: residual_type.clone(),
+                    option: option.clone(),
+                    some_case: some_case.clone(),
+                    some_field: some_field.clone(),
+                    none_case: none_case.clone(),
+                },
+            },
+        );
+        self.pending_try_residuals.push(PendingTryResidual {
+            block: residual,
+            state: evaluated.state.clone(),
+            region,
+        });
+        Ok(EvalResult {
+            block: success,
+            state: evaluated.state,
+            owned_source: None,
+        })
+    }
+
+    fn prepare_record_match(
+        &mut self,
+        expression: &ResolvedExpr,
+        mode: ResolvedMatchMode,
+        arm: &ResolvedMatchArm,
+        mut evaluated: EvalResult,
+        parent_region: CleanupRegionId,
+    ) -> Result<(BlockId, FlowState, CleanupRegionId), Diagnostic> {
+        if mode != ResolvedMatchMode::Value
+            && !matches!(&arm.pattern, ResolvedMatchPattern::Record { .. })
+        {
+            return Err(plan_error(
+                "explicit record match requires one exact record pattern",
+            ));
+        }
+        let arm_region = self.new_region(parent_region)?;
+        let entry = self.new_block(arm_region)?;
+        let edge = self.new_edge(evaluated.block, entry, EdgeCondition::Always)?;
+        self.terminate(evaluated.block, CleanupTerminator::Goto(edge))?;
+
+        match mode {
+            ResolvedMatchMode::Value => {
+                if evaluated.owned_source.is_some() {
+                    return Err(plan_error("plain record match received an owned source"));
+                }
+            }
+            ResolvedMatchMode::Borrow => {
+                record_destructure::observe_borrow(self, arm)?;
+                let ResolvedExprKind::Match { scrutinee, .. } = &expression.kind else {
+                    return Err(plan_error("borrowed record match is not a match"));
+                };
+                if !matches!(
+                    &scrutinee.kind,
+                    ResolvedExprKind::Place(place) if place.projections.is_empty()
+                ) || !matches!(
+                    scrutinee.ownership,
+                    OwnershipMode::Own | OwnershipMode::Borrow
+                ) {
+                    return Err(plan_error(
+                        "borrowed record match has no authenticated named owner",
+                    ));
+                }
+                evaluated.owned_source = None;
+            }
+            ResolvedMatchMode::Own => {
+                let source = evaluated
+                    .owned_source
+                    .take()
+                    .ok_or_else(|| plan_error("owned record match has no transfer source"))?;
+                record_destructure::transfer_owned(
+                    self,
+                    expression,
+                    entry,
+                    arm_region,
+                    &source,
+                    &mut evaluated.state,
+                    arm,
+                )?;
+            }
+        }
+        Ok((entry, evaluated.state, arm_region))
+    }
+
+    fn prepare_variant_match_arm(
+        &mut self,
+        expression: &ResolvedExpr,
+        mode: ResolvedMatchMode,
+        arm: &ResolvedMatchArm,
+        source: Option<&CleanupPlace>,
+        flow: LoweringFlow,
+    ) -> Result<FlowState, Diagnostic> {
+        let LoweringFlow {
+            block: arm_entry,
+            mut state,
+            region: arm_region,
+        } = flow;
+        let ResolvedMatchPattern::Variant {
+            variant,
+            case,
+            fields,
+        } = &arm.pattern
+        else {
+            return Err(plan_error(
+                "explicit variant match requires exact case patterns",
+            ));
+        };
+        let scrutinee_id = match &expression.kind {
+            ResolvedExprKind::Match { scrutinee, .. } => scrutinee.id.clone(),
+            _ => return Err(plan_error("variant match is not a match expression")),
+        };
+        match mode {
+            ResolvedMatchMode::Value => Ok(state),
+            ResolvedMatchMode::Borrow => {
+                let ResolvedExprKind::Match { scrutinee, .. } = &expression.kind else {
+                    return Err(plan_error("borrowed variant match is not a match"));
+                };
+                if !matches!(
+                    &scrutinee.kind,
+                    ResolvedExprKind::Place(place) if place.projections.is_empty()
+                ) {
+                    return Err(plan_error(
+                        "borrowed variant match has no authenticated named owner",
+                    ));
+                }
+                Ok(state)
+            }
+            ResolvedMatchMode::Own => {
+                let source = source
+                    .ok_or_else(|| plan_error("owned variant match has no transfer source"))?;
+                self.authenticate_variant_case(
+                    arm_entry,
+                    scrutinee_id,
+                    source,
+                    variant,
+                    case,
+                    &mut state,
+                )?;
+                let declared = self
+                    .program
+                    .declarations
+                    .variant_cases(variant)
+                    .and_then(|cases| cases.iter().find(|candidate| candidate.id == *case))
+                    .ok_or_else(|| plan_error("owned variant pattern has a foreign case"))?;
+                let arguments = match &expression.kind {
+                    ResolvedExprKind::Match { scrutinee, .. } => match &scrutinee.ty {
+                        ResolvedType::Nominal { arguments, .. } => arguments,
+                        _ => return Err(plan_error("owned variant scrutinee is not nominal")),
+                    },
+                    _ => return Err(plan_error("owned variant match is not a match")),
+                };
+                for declaration in &declared.fields {
+                    let field_ty =
+                        crate::hir::substitute_type(&declaration.ty, variant, arguments)?;
+                    if !self.needs_drop(&field_ty)? {
+                        continue;
+                    }
+                    let binding = &fields
+                        .iter()
+                        .find(|field| field.field == declaration.id)
+                        .ok_or_else(|| plan_error("owned variant pattern is incomplete"))?
+                        .binding;
+                    let destination = self
+                        .binding_slot(binding, arm_region)?
+                        .ok_or_else(|| plan_error("owned variant binding has no cleanup slot"))?;
+                    self.transfer(
+                        arm_entry,
+                        expression.id.clone(),
+                        source
+                            .projected(case.clone())
+                            .projected(declaration.id.clone()),
+                        destination,
+                        &mut state,
+                        false,
+                    )?;
+                }
+                if self
+                    .flags_under(source)
+                    .iter()
+                    .any(|flag| state.is_live(*flag))
+                {
+                    return Err(plan_error(
+                        "owned variant match left an undisposed source leaf",
+                    ));
+                }
+                Ok(state)
+            }
+        }
+    }
+
+    fn authenticate_variant_case(
+        &mut self,
+        block: BlockId,
+        at: ExpressionId,
+        source: &CleanupPlace,
+        variant: &DeclarationId,
+        case: &DeclarationId,
+        state: &mut FlowState,
+    ) -> Result<(), Diagnostic> {
+        let domain = self
+            .program
+            .declarations
+            .variant_cases(variant)
+            .ok_or_else(|| plan_error("variant authentication has no closed case domain"))?;
+        if !domain.iter().any(|candidate| candidate.id == *case) {
+            return Err(plan_error(
+                "variant authentication references a foreign case",
+            ));
+        }
+        if let Some(index) = state
+            .conditional_variants
+            .iter()
+            .position(|candidate| candidate.root == *source && candidate.variant == *variant)
+        {
+            let conditional = state.conditional_variants.remove(index);
+            let selected = conditional
+                .cases
+                .into_iter()
+                .find_map(|(candidate, flags)| (candidate == *case).then_some(flags))
+                .ok_or_else(|| plan_error("conditional variant state omits selected case"))?;
+            let selected = if selected.is_empty() {
+                self.flags_under(&source.projected(case.clone()))
+            } else {
+                selected
+            };
+            state.append_distinct(selected);
+        } else {
+            let selected_prefix = source
+                .projections
+                .iter()
+                .chain(std::iter::once(case))
+                .cloned()
+                .collect::<Vec<_>>();
+            if self.flags_under(source).iter().any(|flag| {
+                state.is_live(*flag)
+                    && !self.leaves[flag]
+                        .place
+                        .projections
+                        .starts_with(&selected_prefix)
+            }) {
+                return Err(plan_error(
+                    "variant authentication found a live inactive-case leaf",
+                ));
+            }
+        }
+        self.push_transition(
+            block,
+            CleanupTransition::AuthenticateVariantCase {
+                at,
+                source: source.clone(),
+                variant: variant.clone(),
+                case: case.clone(),
+            },
+        );
+        Ok(())
+    }
+
+    #[cfg(test)]
+    fn lower_match(
+        &mut self,
+        expression: &ResolvedExpr,
+        scrutinee: &ResolvedExpr,
+        arms: &[ResolvedMatchArm],
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        let ResolvedExprKind::Match { mode, .. } = &expression.kind else {
+            return Err(plan_error("match oracle received a non-match expression"));
+        };
+        if *mode != ResolvedMatchMode::Value {
+            schema::promote_match(&self.program.declarations, &mut self.schema, arms);
+        }
+        if arms.is_empty() {
+            return Err(plan_error("copy-variant match has no arms"));
+        }
+        if *mode == ResolvedMatchMode::Value
+            && self.needs_drop(&arms[0].value.ty)?
+            && !matches!(arms[0].value.ty, crate::hir::ResolvedType::String)
+        {
+            return Err(plan_error(
+                "droppable match result reached the copy-only cleanup slice",
+            ));
+        }
+
+        let scrutinee_result =
+            self.lower_expr_recursive_reference(scrutinee, block, state, region)?;
+        if scrutinee_result.owned_source.is_some() && *mode == ResolvedMatchMode::Value {
+            return Err(plan_error(
+                "droppable match scrutinee reached the copy-only cleanup slice",
+            ));
+        }
+        // Refutable Match v1: recursive-reference twin of the scalar decision chain.
+        if crate::hir::is_refutable_match_scalar(&scrutinee.ty) {
+            let destination = self.expression_slot(expression, region)?;
+            return self.lower_scalar_match(
+                expression,
+                scrutinee,
+                arms,
+                scrutinee_result.block,
+                scrutinee_result.state,
+                region,
+                destination,
+            );
+        }
+
+        let is_record = match &scrutinee.ty {
+            ResolvedType::Nominal { declaration, .. } => self
+                .program
+                .declarations
+                .declaration(declaration)
+                .is_some_and(|item| item.kind == DeclarationKind::Record),
+            ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
+            | ResolvedType::Unit
+            | ResolvedType::I64
+            | ResolvedType::I32
+            | ResolvedType::Char
+            | ResolvedType::U8
+            | ResolvedType::Usize
+            | ResolvedType::ArrayU8(_)
+            | ResolvedType::F32
+            | ResolvedType::F64
+            | ResolvedType::Bool
+            | ResolvedType::String
+            | ResolvedType::Bytes
+            | ResolvedType::Str
+            | ResolvedType::SliceU8
+            | ResolvedType::StringMap
+            | ResolvedType::TypeParameter { .. }
+            | ResolvedType::Function { .. } => false,
+            ResolvedType::Never => {
+                return Err(plan_error("match scrutinee cannot have terminal flow type"));
+            }
+        };
+        if is_record {
+            let [arm] = arms else {
+                return Err(plan_error(
+                    "irrefutable record match must have exactly one arm",
+                ));
+            };
+            if matches!(&arm.pattern, ResolvedMatchPattern::Variant { .. }) {
+                return Err(plan_error("variant pattern has a record match scrutinee"));
+            }
+            let (entry, state, arm_region) = if *mode == ResolvedMatchMode::Value {
+                (scrutinee_result.block, scrutinee_result.state, None)
+            } else {
+                let (entry, state, arm_region) =
+                    self.prepare_record_match(expression, *mode, arm, scrutinee_result, region)?;
+                (entry, state, Some(arm_region))
+            };
+            let mut result = self.lower_expr_recursive_reference(
+                &arm.value,
+                entry,
+                state,
+                arm_region.unwrap_or(region),
+            )?;
+            if self.flow_is_closed(result.block) {
+                if let Some(arm_region) = arm_region {
+                    self.mark_abrupt_region(arm_region)?;
+                }
+                return Ok(result);
+            }
+            if let Some(source) = result.owned_source.take() {
+                let destination = self.expression_slot(expression, region)?.ok_or_else(|| {
+                    plan_error("owned record match result has no cleanup destination")
+                })?;
+                self.transfer(
+                    result.block,
+                    arm.value.id.clone(),
+                    source,
+                    destination.clone(),
+                    &mut result.state,
+                    true,
+                )?;
+                result.owned_source = Some(destination);
+            }
+            if let Some(arm_region) = arm_region {
+                (result.block, result.state) =
+                    self.exit_scope(result.block, result.state, arm_region)?;
+            }
+            return Ok(result);
+        }
+
+        let mut decision = scrutinee_result.block;
+        let branch_state = scrutinee_result.state;
+        let source = scrutinee_result.owned_source;
+        let mut arm_results = Vec::with_capacity(arms.len());
+        let first = self.prepare_true_iterator_match(expression, region)?;
+        for (index, arm) in arms.iter().enumerate().skip(first) {
+            let final_arm = index + 1 == arms.len();
+            let arm_region = (*mode != ResolvedMatchMode::Value)
+                .then(|| self.new_region(region))
+                .transpose()?;
+            let mut arm_entry = self.new_block(arm_region.unwrap_or(region))?;
+            if final_arm {
+                let condition = if *mode == ResolvedMatchMode::Value {
+                    EdgeCondition::Always
+                } else {
+                    let ResolvedMatchPattern::Variant { case, .. } = &arm.pattern else {
+                        return Err(plan_error(
+                            "explicit variant match requires exact final case",
+                        ));
+                    };
+                    EdgeCondition::VariantCase {
+                        scrutinee: scrutinee.id.clone(),
+                        case: case.clone(),
+                        matches: true,
+                    }
+                };
+                let edge = self.new_edge(decision, arm_entry, condition)?;
+                self.terminate(decision, CleanupTerminator::Goto(edge))?;
+            } else if matches!(arm.pattern, ResolvedMatchPattern::Wildcard) && arm.guard.is_some() {
+                let edge = self.new_edge(decision, arm_entry, EdgeCondition::Always)?;
+                self.terminate(decision, CleanupTerminator::Goto(edge))?;
+                decision = self.new_block(region)?;
+            } else {
+                let cases = arm.pattern.variant_cases().ok_or_else(|| {
+                    plan_error("wildcard match arm must be the final exhaustive arm")
+                })?;
+                for case in cases {
+                    let next_decision = self.new_block(region)?;
+                    let selected = self.new_edge(
+                        decision,
+                        arm_entry,
+                        EdgeCondition::VariantCase {
+                            scrutinee: scrutinee.id.clone(),
+                            case: case.clone(),
+                            matches: true,
+                        },
+                    )?;
+                    let rejected = self.new_edge(
+                        decision,
+                        next_decision,
+                        EdgeCondition::VariantCase {
+                            scrutinee: scrutinee.id.clone(),
+                            case: case.clone(),
+                            matches: false,
+                        },
+                    )?;
+                    self.terminate(
+                        decision,
+                        CleanupTerminator::Branch(vec![selected, rejected]),
+                    )?;
+                    decision = next_decision;
+                }
+            }
+
+            let arm_state = if let Some(arm_region) = arm_region {
+                self.prepare_variant_match_arm(
+                    expression,
+                    *mode,
+                    arm,
+                    source.as_ref(),
+                    LoweringFlow {
+                        block: arm_entry,
+                        state: branch_state.clone(),
+                        region: arm_region,
+                    },
+                )?
+            } else {
+                branch_state.clone()
+            };
+            if let Some(guard) = &arm.guard {
+                let (guard_entry, guard_region) =
+                    self.begin_variant_guard(guard, arm_entry, region)?;
+                let lowered = self.lower_expr_recursive_reference(
+                    guard,
+                    guard_entry,
+                    arm_state.clone(),
+                    guard_region.unwrap_or(region),
+                )?;
+                arm_entry = self.finish_variant_guard(
+                    guard,
+                    lowered,
+                    &branch_state,
+                    decision,
+                    region,
+                    guard_region,
+                )?;
+            }
+            let mut result = self.lower_expr_recursive_reference(
+                &arm.value,
+                arm_entry,
+                arm_state,
+                arm_region.unwrap_or(region),
+            )?;
+            generic_variant::finish_arm(self, expression, &arm.value, &mut result, region)?;
+            if let Some(arm_region) = arm_region {
+                (result.block, result.state) =
+                    self.exit_scope(result.block, result.state, arm_region)?;
+            }
+            arm_results.push(result);
+        }
+
+        let mut merged_state = arm_results[0].state.clone();
+        for result in &arm_results[1..] {
+            merged_state = self.merge_states(&merged_state, &result.state)?;
+        }
+        let join = self.new_block(region)?;
+        for result in arm_results {
+            let edge = self.new_edge(result.block, join, EdgeCondition::Always)?;
+            self.terminate(result.block, CleanupTerminator::Goto(edge))?;
+        }
+        Ok(EvalResult {
+            block: join,
+            state: merged_state,
+            owned_source: generic_variant::destination(self, expression, region)?,
+        })
+    }
+
+    #[cfg(test)]
+    fn lower_update_record(
+        &mut self,
+        expression: &ResolvedExpr,
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        let ResolvedExprKind::UpdateRecord {
+            base,
+            record,
+            fields,
+        } = &expression.kind
+        else {
+            return Err(plan_error(
+                "record-update lowering received another expression",
+            ));
+        };
+        record_destructure::update::authenticate(self, expression)?;
+        let destination = self.expression_slot(expression, region)?;
+
+        // A record without droppable leaves has no cleanup state. Evaluation order still matters, so walk base then replacements in their authored order
+        // and leave physical value movement to the backend layout lane.
+        let Some(destination) = destination else {
+            let mut evaluated = self.lower_expr_recursive_reference(base, block, state, region)?;
+            for initializer in fields {
+                evaluated = self.lower_expr_recursive_reference(
+                    &initializer.value,
+                    evaluated.block,
+                    evaluated.state,
+                    region,
+                )?;
+            }
+            return Ok(EvalResult {
+                block: evaluated.block,
+                state: evaluated.state,
+                owned_source: None,
+            });
+        };
+
+        // The base epoch is isolated so the same reverse cleanup handles both failure and successful disposal of displaced values.  The completed
+        // destination belongs to the parent region and therefore survives the child region's normal exit.
+        let update_region = self.new_region(region)?;
+        let entry = self.new_block(update_region)?;
+        let edge = self.new_edge(block, entry, EdgeCondition::Always)?;
+        self.terminate(block, CleanupTerminator::Goto(edge))?;
+
+        let mut evaluated =
+            self.lower_expr_recursive_reference(base, entry, state, update_region)?;
+        let staged_base = CleanupPlace::whole(StorageId::Temporary(base.id.clone()));
+        self.assign_slot(&staged_base.storage, update_region)?;
+        let base_source = evaluated
+            .owned_source
+            .clone()
+            .ok_or_else(|| plan_error("owned record update base has no cleanup source"))?;
+        if base_source != staged_base {
+            self.transfer(
+                evaluated.block,
+                base.id.clone(),
+                base_source,
+                staged_base.clone(),
+                &mut evaluated.state,
+                true,
+            )?;
+        }
+
+        let mut replaced = BTreeSet::new();
+        for initializer in fields {
+            if !replaced.insert(initializer.field.clone()) {
+                return Err(plan_error(format!(
+                    "record update repeats field `{}`",
+                    initializer.field
+                )));
+            }
+            evaluated = self.lower_expr_recursive_reference(
+                &initializer.value,
+                evaluated.block,
+                evaluated.state,
+                update_region,
+            )?;
+            if initializer.value.ownership == OwnershipMode::Own
+                && self.needs_drop(&initializer.value.ty)?
+            {
+                let source = evaluated.owned_source.clone().ok_or_else(|| {
+                    plan_error(format!(
+                        "record replacement field `{}` has no cleanup source",
+                        initializer.field
+                    ))
+                })?;
+                self.transfer(
+                    evaluated.block,
+                    initializer.value.id.clone(),
+                    source,
+                    destination.projected(initializer.field.clone()),
+                    &mut evaluated.state,
+                    false,
+                )?;
+            }
+        }
+
+        let declarations = self
+            .program
+            .declarations
+            .record_fields(record)
+            .ok_or_else(|| plan_error(format!("record update has unknown record `{record}`")))?
+            .to_vec();
+        let ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } = &expression.ty
+        else {
+            return Err(plan_error("record update result is not a nominal instance"));
+        };
+        if declaration != record {
+            return Err(plan_error(
+                "record update result changes declaration identity",
+            ));
+        }
+        for field in declarations {
+            let field_ty = crate::hir::substitute_type(&field.ty, record, arguments)?;
+            if replaced.contains(&field.id) || !self.needs_drop(&field_ty)? {
+                continue;
+            }
+            self.transfer(
+                evaluated.block,
+                expression.id.clone(),
+                staged_base.projected(field.id.clone()),
+                destination.projected(field.id),
+                &mut evaluated.state,
+                false,
+            )?;
+        }
+
+        let (block, mut state) =
+            self.exit_scope(evaluated.block, evaluated.state, update_region)?;
+        self.canonicalize_complete_aggregate(&destination, &mut state)?;
+        Ok(EvalResult {
+            block,
+            state,
+            owned_source: Some(destination),
+        })
+    }
+}
+
+fn result_arguments<'a>(
+    ty: &'a ResolvedType,
+    result: &DeclarationId,
+) -> Result<&'a [ResolvedType], Diagnostic> {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return Err(plan_error("postfix `?` operand is not a nominal Result"));
+    };
+    if declaration != result {
+        return Err(plan_error(
+            "postfix `?` operand or residual is not the authenticated Result",
+        ));
+    }
+    Ok(arguments)
+}
+
+fn option_arguments<'a>(
+    ty: &'a ResolvedType,
+    option: &DeclarationId,
+) -> Result<&'a [ResolvedType], Diagnostic> {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return Err(plan_error(
+            "Option postfix `?` operand is not a nominal Option",
+        ));
+    };
+    if declaration != option {
+        return Err(plan_error(
+            "Option postfix `?` operand or residual is not the authenticated Option",
+        ));
+    }
+    Ok(arguments)
+}
+
+fn condition_id(expression: &ResolvedExpr) -> Result<ExpressionId, Diagnostic> {
+    let ResolvedExprKind::If { condition, .. } = &expression.kind else {
+        return Err(plan_error(
+            "cleanup if lowering received a non-if expression",
+        ));
+    };
+    Ok(condition.id.clone())
+}
+
+fn plan_error(message: impl Into<String>) -> Diagnostic {
+    Diagnostic::io("SPX-H006", format!("cleanup plan: {}", message.into()))
+}
+
+#[cfg(test)]
+mod iterative_lowering_tests {
+    use std::path::Path;
+
+    use sha2::{Digest, Sha256};
+
+    use super::assert_expression_lowering_oracle;
+    use crate::{hir, parse};
+
+    #[test]
+    fn iterative_lowering_private_frame_sizes_stay_within_capacity_formula() {
+        assert!(
+            std::mem::size_of::<super::EvalResult>() <= super::CLEANUP_EVAL_RESULT_SIZE_CEILING,
+            "EvalResult size {} exceeds its private capacity ceiling {}",
+            std::mem::size_of::<super::EvalResult>(),
+            super::CLEANUP_EVAL_RESULT_SIZE_CEILING,
+        );
+    }
+
+    #[test]
+    fn fallible_byte_range_selects_v4_and_keeps_an_exact_status_source() {
+        let source = r#"
+module test.cleanup_byte_range;
+@id("window.len")
+fn window_len(value: borrow Slice<u8>, start: usize, end: usize) -> usize {
+  byte_len(byte_range(value, start, end))
+}
+@id("main") fn main() -> i64 { 0 }
+"#;
+        let program = hir::resolve(
+            &parse(source, Path::new("cleanup-byte-range.spx")).expect("source parses"),
+        )
+        .expect("source resolves");
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "window.len")
+            .expect("range function is retained");
+        assert_expression_lowering_oracle(&program, function, &function.body);
+        assert_eq!(
+            function.cleanup_plan.schema,
+            crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V4
+        );
+        assert!(function.cleanup_plan.status_sources.iter().any(|source| {
+            matches!(
+                &source.producer,
+                crate::cleanup_plan::StatusProducer::PropagatedCall { callee }
+                    if callee.as_str() == crate::byte_ops::RANGE_ID
+            )
+        }));
+    }
+
+    #[test]
+    fn usize_scalar_match_lowers_through_the_iterative_scalar_chain() {
+        // Regression: the iterative lowering's scalar-match dispatch omitted `Usize` while the recursive reference admitted it, so a `usize` literal match
+        // fell through to variant-arm lowering and refused with "wildcard match arm must be the final exhaustive arm" — a message about arm order, for a
+        // program whose wildcard already was final.
+        let source = r#"
+module test.cleanup_usize_match;
+@id("pick") fn pick(index: usize) -> i64 {
+  match index { 0usize => 10, 1usize => 20, _ => 30, }
+}
+@id("main") fn main() -> i64 { 0 }
+"#;
+        let program =
+            hir::resolve(&parse(source, Path::new("cleanup-usize-match.spx")).expect("parses"))
+                .expect("a usize literal match resolves and lowers");
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "pick")
+            .expect("scalar match function is retained");
+        assert_expression_lowering_oracle(&program, function, &function.body);
+    }
+
+    #[test]
+    fn iterative_lowering_matches_recursive_reference_for_every_resolved_body() {
+        let source = r#"
+module test.cleanup_lowering_oracle;
+permit { host.echo }
+@id("choice")
+variant Choice {
+  @id("choice.a") A { @id("choice.a.v") v: i64, },
+  @id("choice.b") B,
+}
+@id("pair")
+record Pair {
+  @id("pair.a") a: i64,
+  @id("pair.b") b: i64,
+}
+@id("host.echo.interface")
+interface HostEcho permits { host.echo } {
+  @id("host.echo") import rust fn host_echo(value: i64) -> i64
+    effects { host.echo }
+    failure status "host.echo.v1";
+}
+@id("callee") fn callee(a: i64, b: i64) -> i64 { a + b }
+@id("identity") fn identity<T>(value: T) -> T { value }
+@id("option_use") fn option_use(value: Option<i64>) -> Option<bool> {
+  let checked = value?;
+  Option<bool>::Some { value: checked > 0 }
+}
+@id("result_use") fn result_use(value: Result<i64, bool>) -> Result<bool, bool> {
+  let checked = value?;
+  Result<bool, bool>::Ok { value: checked > 0 }
+}
+@id("scalar_usize") fn scalar_usize(index: usize) -> i64 {
+  match index {
+    0usize => 10,
+    1usize | 2usize => 20,
+    _ => 30,
+  }
+}
+@id("scalar_usize_binding") fn scalar_usize_binding(index: usize) -> usize {
+  match index {
+    0usize => 7usize,
+    other => other,
+  }
+}
+@id("scalar_u8") fn scalar_u8(byte: u8) -> i64 {
+  match byte { 0u8 => 1, _ => 2, }
+}
+@id("exercise") fn exercise(flag: bool, choice: Choice, pair: Pair) -> i64
+  uses { host.echo }
+{
+  let x = callee(1, 2);
+  let native = host_echo(identity<i64>(x));
+  let rebuilt = if flag && true { Choice::A { v: Pair { a: native, b: 3 }.a } } else { choice };
+  let y = pair with { b: 4 }.b;
+  match rebuilt { Choice::A { v } => y + v, Choice::B {} => -y, }
+}
+@id("main") fn main() -> i64 { 0 }
+"#;
+        crate::cleanup::reset_capacity_high_water();
+        let program =
+            hir::resolve(&parse(source, Path::new("cleanup-lowering-oracle.spx")).unwrap())
+                .unwrap();
+        super::reset_lower_capacity_high_water();
+        for function in &program.functions {
+            assert_expression_lowering_oracle(&program, function, &function.body);
+        }
+        assert!(super::lower_capacity_high_water() > 0);
+        assert!(crate::cleanup::capacity_high_water() > 0);
+    }
+
+    #[test]
+    fn inventory_and_cleanup_capacity_cover_owned_hostile_families() {
+        let source = include_str!("../../tests/fixtures/native_rust_hir_capacity.spx");
+        let parsed = parse(source, Path::new("native-rust-hir-capacity.spx")).unwrap();
+        let canonical = crate::format::canonical(&parsed);
+        assert_eq!(
+            format!(
+                "sha256:{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(canonical.as_bytes()))
+            ),
+            "sha256:2a012464bb1bdb624a79972d558fe837f6d55a9cd9f40d2ead16bfbba615f316",
+            "shared canonical hostile identity drifted"
+        );
+        crate::cleanup::reset_capacity_high_water();
+        super::reset_lower_capacity_high_water();
+        let resolved = hir::resolve(&parsed).unwrap();
+        assert!(resolved.functions.iter().any(|function| {
+            function.cleanup.slots.iter().any(|slot| {
+                matches!(
+                    slot.origin,
+                    crate::cleanup::CleanupStorageOrigin::ProvisionalResult { .. }
+                )
+            })
+        }));
+        assert!(resolved
+            .functions
+            .iter()
+            .any(|function| function.params.len() == 8));
+        for identity in [
+            "choice.nested",
+            "scalar.nested-wide",
+            "generic.calls",
+            "pair.update",
+            "token.call",
+            "option.use",
+            "result.use",
+            "host.use",
+        ] {
+            assert!(
+                resolved
+                    .functions
+                    .iter()
+                    .any(|function| function.id.as_str() == identity),
+                "hostile family `{identity}` was not resolved"
+            );
+        }
+        assert_eq!(source.matches("generic_identity<").count(), 7);
+        assert_eq!(resolved.function_instances.len(), 2);
+        assert!(
+            resolved
+                .functions
+                .iter()
+                .find(|function| function.id.as_str() == "choice.nested")
+                .unwrap()
+                .cleanup
+                .flags
+                .len()
+                >= 8
+        );
+        assert!(resolved.functions.iter().any(|function| {
+            function
+                .cleanup_plan
+                .blocks
+                .iter()
+                .any(|block| matches!(block.terminator, crate::cleanup_plan::CleanupTerminator::Branch(ref edges) if edges.len() >= 2))
+        }));
+        let transitions = resolved
+            .functions
+            .iter()
+            .flat_map(|function| &function.cleanup_plan.blocks)
+            .flat_map(|block| &block.transitions)
+            .collect::<Vec<_>>();
+        assert!(transitions.iter().any(|transition| matches!(
+            transition,
+            crate::cleanup_plan::CleanupTransition::CallCommit { arguments, .. }
+                if arguments.len() >= 2
+        )));
+        assert!(transitions.iter().any(|transition| matches!(
+            transition,
+            crate::cleanup_plan::CleanupTransition::Transfer { source, destination, .. }
+                if !source.projections.is_empty() || !destination.projections.is_empty()
+        )));
+        assert!(transitions.iter().any(|transition| matches!(
+            transition,
+            crate::cleanup_plan::CleanupTransition::StageCopyResult {
+                source: crate::cleanup_plan::StagedCopyResultSource::TryResidual { .. },
+            }
+        )));
+        assert!(transitions.iter().any(|transition| matches!(
+            transition,
+            crate::cleanup_plan::CleanupTransition::StageCopyResult {
+                source: crate::cleanup_plan::StagedCopyResultSource::TryOptionNone { .. },
+            }
+        )));
+        assert!(resolved
+            .functions
+            .iter()
+            .any(|function| !function.cleanup_plan.status_sources.is_empty()));
+        assert!(resolved.functions.iter().any(|function| {
+            !function.cleanup_plan.regions.is_empty()
+                && !function.cleanup_plan.edges.is_empty()
+                && !function.cleanup_plan.exits.is_empty()
+        }));
+        let actual = [
+            crate::cleanup::capacity_high_water(),
+            super::lower_capacity_high_water(),
+        ];
+        // The 303_665-byte canonical HIR/cleanup/loan corpus is unchanged.
+        // The lowering compatibility census sums separate builder/staged/attached
+        // component maxima; standalone and invocation samples are checked separately.
+        // This aggregate is not simultaneous allocator high-water or process RSS.
+        assert_eq!(
+            actual,
+            [9_224, 443_313],
+            "inventory/lowering owned-capacity high-water pins drifted"
+        );
+        assert!(actual[0] <= 6_492_084);
+        assert!(actual[1] <= 6_821_908);
+    }
+
+    #[test]
+    fn long_identity_cleanup_dag_owned_census_covers_many_deep_roots() {
+        use std::fmt::Write as _;
+
+        fn long_id(family: &str, index: usize) -> String {
+            format!("{family}.{index:03}.{}", "x".repeat(160))
+        }
+
+        let mut source = String::from("module cleanup.long_ids;\n");
+        writeln!(
+            source,
+            "@id(\"{}\") resource R0 {{ @id(\"{}\") drop trivial; }}",
+            long_id("resource", 0),
+            long_id("lifecycle", 0)
+        )
+        .unwrap();
+        for index in 1..514 {
+            writeln!(
+                source,
+                "@id(\"{}\") record R{index} {{ @id(\"{}\") value: R{}, }}",
+                long_id("record", index),
+                long_id("field", index),
+                index - 1
+            )
+            .unwrap();
+        }
+        let parameters = (0..8)
+            .map(|index| format!("p{index}: own R513"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        writeln!(
+            source,
+            "@id(\"{}\") fn consume({parameters}) -> i64 {{ 0 }}",
+            long_id("consume", 0)
+        )
+        .unwrap();
+        source.push_str("@id(\"app.main\") fn main() -> i64 { 0 }\n");
+
+        let parsed = parse(&source, Path::new("cleanup-long-ids.spx")).unwrap();
+        let canonical = crate::format::canonical(&parsed);
+        let canonical_digest = format!(
+            "sha256:{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(canonical.as_bytes()))
+        );
+        assert!(canonical.len() < 1_048_576);
+        crate::cleanup::reset_capacity_high_water();
+        super::reset_lower_capacity_high_water();
+        let resolved = hir::resolve(&parsed).unwrap();
+        let function = resolved
+            .functions
+            .iter()
+            .find(|function| function.name == "consume")
+            .unwrap();
+        assert_eq!(function.params.len(), 8);
+        assert_eq!(function.cleanup.slots.len(), 8);
+        assert_eq!(function.cleanup_plan.slots.len(), 8);
+
+        let mut maximum_shape_depth = 0usize;
+        let mut pending = function
+            .cleanup_plan
+            .slots
+            .iter()
+            .map(|slot| (&slot.field_liveness_shape, 1usize))
+            .collect::<Vec<_>>();
+        while let Some((shape, depth)) = pending.pop() {
+            maximum_shape_depth = maximum_shape_depth.max(depth);
+            if let crate::cleanup::FieldLivenessShape::Record { fields, .. } = shape {
+                pending.extend(fields.iter().map(|field| (&field.shape, depth + 1)));
+            }
+        }
+        assert_eq!(maximum_shape_depth, 514);
+
+        let inventory_owned =
+            crate::private_capacity_contract::cleanup_inventory_owned_capacity(&function.cleanup)
+                .unwrap();
+        let plan_owned =
+            crate::private_capacity_contract::cleanup_plan_owned_capacity(&function.cleanup_plan)
+                .unwrap();
+        let inventory_water = crate::cleanup::capacity_high_water();
+        let lower_water = super::lower_capacity_high_water();
+        assert!(inventory_owned > 8 * 514 * 160);
+        assert!(plan_owned > 8 * 514 * 160);
+        assert!(inventory_water >= inventory_owned);
+        assert!(lower_water >= plan_owned);
+        assert_eq!(canonical_digest.len(), 71);
+    }
+}
+
+#[cfg(test)]
+pub(super) mod phase_measurement;

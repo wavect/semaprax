@@ -1,0 +1,493 @@
+//! Reference-interpreter carrier and evaluation for compiler-owned bounded Vec.
+
+mod field_unique;
+#[cfg(test)]
+mod float_order_probe;
+mod owned_leaf;
+
+use std::sync::Arc;
+
+use crate::conformance::{NormalizedStatus, Retryability, StatusClass};
+use crate::hir::{FunctionInstanceId, ResolvedExpr, ResolvedExprKind, ResolvedType};
+
+use super::{Environment, Evaluator, Flow, Value};
+
+pub(super) fn is_collection_type(ty: &ResolvedType) -> bool {
+    crate::iterator_ops::is_iter(ty)
+        || crate::cleanup::is_owned_bounded_vec_type(ty)
+        || crate::cleanup::is_owned_bounded_box_type(ty)
+}
+
+pub(super) fn instance_is_admitted(
+    program: &crate::hir::ResolvedProgram,
+    instance: &crate::hir::ResolvedFunctionInstance,
+) -> bool {
+    super::resolved_signature_is_admitted(&instance.function, &program.declarations)
+        || (instance.id == FunctionInstanceId::derive(&instance.template, &instance.type_arguments)
+            && instance.function.id == instance.template
+            && program
+                .function_templates
+                .iter()
+                .find(|template| template.id == instance.template)
+                .is_some_and(|template| {
+                    crate::vec_ops::hir_wrapper_in_program(program, template).is_some()
+                        && crate::vec_ops::hir_arguments_are_admitted(
+                            program,
+                            template,
+                            &instance.type_arguments,
+                        )
+                        && crate::hir::is_exact_materialized_function_instance(template, instance)
+                }))
+}
+
+#[derive(Debug, PartialEq)]
+pub(super) struct OwnedVecValue {
+    pub(super) element: ResolvedType,
+    pub(super) values: Vec<Value>,
+    pub(super) capacity: usize,
+    pub(super) generation: u64,
+}
+
+fn scalar_value_matches_type(value: &Value, ty: &ResolvedType) -> bool {
+    matches!(
+        (value, ty),
+        (Value::Int(_), ResolvedType::I64)
+            | (Value::Int32(_), ResolvedType::I32)
+            | (Value::Uint8(_), ResolvedType::U8)
+            | (Value::Usize(_), ResolvedType::Usize)
+            | (Value::Char(_), ResolvedType::Char)
+            | (Value::Float32(_), ResolvedType::F32)
+            | (Value::Float64(_), ResolvedType::F64)
+            | (Value::Bool(_), ResolvedType::Bool)
+            | (Value::Bytes(_), ResolvedType::Bytes)
+            | (Value::String(_), ResolvedType::String)
+    )
+}
+
+/// `true` when one element value is a faithful carrier for `ty` under the
+/// element profiles this interpreter stores per element.
+///
+/// Scalars and `Bytes` keep their existing exact variant check. The
+/// SPX-AI-019 owned-record element additionally re-derives its own
+/// authenticity from `DeclarationIndex` facts on every push: the runtime
+/// record must name the same authored declaration, carry exactly the declared
+/// field identities, and hold a value of the declared type in each. A forged
+/// or mis-typed record carrier therefore cannot enter the vector, and field
+/// selection never consults a display name.
+pub(super) fn element_value_matches_type(
+    declarations: &crate::hir::DeclarationIndex,
+    value: &Value,
+    ty: &ResolvedType,
+) -> bool {
+    if scalar_value_matches_type(value, ty) {
+        return true;
+    }
+    let Value::Record(record) = value else {
+        return false;
+    };
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return false;
+    };
+    if !arguments.is_empty()
+        || record.record != *declaration
+        || !(crate::hir::owned_leaf_collection::runtime_element(declarations, ty)
+            || crate::hir::copy_record_collection::admitted(declarations, ty))
+    {
+        return false;
+    }
+    let Some(fields) = declarations.record_fields(declaration) else {
+        return false;
+    };
+    fields.len() == record.fields.len()
+        && fields.iter().all(|field| {
+            record
+                .fields
+                .get(&field.id)
+                .is_some_and(|value| scalar_value_matches_type(value, &field.ty))
+        })
+}
+
+/// The owned-payload charge one element of `ty` places against
+/// `crate::vec_ops::MAX_OWNED_PAYLOAD_BYTES`, or `None` for an element that
+/// owns nothing.
+///
+/// `Bytes` keeps its existing one-leaf charge. The SPX-AI-019 owned-record
+/// element owns exactly two `Bytes` leaves, so it is charged for both; the
+/// single constant lives in `hir::owned_record_collection` so every target
+/// that later implements this carrier bounds it identically.
+fn owned_payload_bytes_per_element(
+    declarations: &crate::hir::DeclarationIndex,
+    ty: &ResolvedType,
+) -> Option<u64> {
+    if *ty == ResolvedType::Bytes {
+        return Some(crate::vec_ops::OWNED_PAYLOAD_BYTES_PER_ELEMENT);
+    }
+    crate::hir::owned_leaf_collection::layout(declarations, ty)
+        .map(|layout| layout.owned_count as u64 * crate::vec_ops::OWNED_PAYLOAD_BYTES_PER_ELEMENT)
+}
+
+pub(super) fn normalize_vec(code: u32) -> NormalizedStatus {
+    NormalizedStatus::try_new(
+        crate::vec_ops::STATUS_DOMAIN,
+        code,
+        StatusClass::Adapter,
+        Retryability::Known(false),
+    )
+    .expect("compiler-owned bounded Vec status table is valid")
+}
+
+pub(super) fn is_intrinsic_call(
+    callee: &crate::hir::DeclarationId,
+    instance: &Option<FunctionInstanceId>,
+    type_arguments: &[ResolvedType],
+) -> bool {
+    instance.is_none()
+        && crate::vec_ops::by_id(callee.as_str()).is_some()
+        && type_arguments.len() == 1
+}
+
+impl Evaluator<'_> {
+    pub(super) fn evaluate_vec_op(
+        &mut self,
+        expression: &ResolvedExpr,
+        op: crate::vec_ops::VecOp,
+        identity: &str,
+        type_arguments: &[ResolvedType],
+        args: &[ResolvedExpr],
+        environment: &mut Environment,
+        depth: usize,
+    ) -> Result<Value, Flow> {
+        self.charge()?;
+        let declarations = self.declarations;
+        let element = type_arguments
+            .first()
+            .filter(|element| {
+                type_arguments.len() == 1
+                    && crate::hir::owned_leaf_collection::vec_operation_admitted(
+                        declarations,
+                        op,
+                        element,
+                    )
+            })
+            .ok_or(Flow::Guard("invalid compiler-owned bounded Vec type"))?
+            .clone();
+        if op == crate::vec_ops::VecOp::SortBy
+            && crate::vec_ops::sort_keys::replay(declarations, &element, identity).is_none()
+        {
+            return Err(Flow::Guard("forged explicit Vec sort descriptor"));
+        }
+        if op == crate::vec_ops::VecOp::UniqueBy
+            && (crate::vec_ops::field_unique::inspect(expression).is_none()
+                || !crate::vec_ops::field_unique::arguments(args, &element)
+                || crate::vec_ops::field_unique::replay(declarations, &element, identity).is_none())
+        {
+            return Err(Flow::Guard("forged borrowed field uniqueness descriptor"));
+        }
+        let mut values = Vec::with_capacity(args.len());
+        for (index, argument) in args.iter().enumerate() {
+            if index == 0
+                && matches!(
+                    op,
+                    crate::vec_ops::VecOp::Len
+                        | crate::vec_ops::VecOp::Capacity
+                        | crate::vec_ops::VecOp::Get
+                        | crate::vec_ops::VecOp::CloneAt
+                        | crate::vec_ops::VecOp::UniqueBy
+                )
+            {
+                self.charge()?;
+                values.push(self.borrow_nominal_call_argument(environment, argument)?);
+            } else {
+                values.push(self.evaluate(argument, environment, depth)?);
+            }
+        }
+        match op {
+            crate::vec_ops::VecOp::StrAt => Err(Flow::Guard(
+                "String-slot operation requires exact borrowed call dispatch",
+            )),
+            crate::vec_ops::VecOp::CloneAt => self.clone_owned_vec_element(&element, &values),
+            crate::vec_ops::VecOp::SortOwned => self.sort_owned_vec_elements(&element, values),
+            crate::vec_ops::VecOp::SortBy => self.sort_record_vec_by(&element, identity, values),
+            crate::vec_ops::VecOp::UniqueBy => {
+                self.unique_record_vec_by(&element, identity, values)
+            }
+            crate::vec_ops::VecOp::WithCapacity => {
+                let [Value::Usize(capacity)] = values.as_slice() else {
+                    return Err(Flow::Guard(
+                        "ill-typed compiler-owned bounded Vec operation",
+                    ));
+                };
+                let capacity = usize::try_from(*capacity).map_err(|_| {
+                    Flow::Failure(normalize_vec(crate::vec_ops::ALLOCATION_FAILURE_CODE))
+                })?;
+                if capacity
+                    > crate::hir::owned_leaf_collection::capacity(declarations, &element) as usize
+                {
+                    return Err(Flow::Failure(normalize_vec(
+                        crate::vec_ops::ALLOCATION_FAILURE_CODE,
+                    )));
+                }
+                if let Some(per_element) = owned_payload_bytes_per_element(declarations, &element) {
+                    if u64::try_from(capacity)
+                        .ok()
+                        .and_then(|capacity| capacity.checked_mul(per_element))
+                        .is_none_or(|charge| charge > crate::vec_ops::MAX_OWNED_PAYLOAD_BYTES)
+                    {
+                        return Err(Flow::Failure(normalize_vec(
+                            crate::vec_ops::ALLOCATION_FAILURE_CODE,
+                        )));
+                    }
+                }
+                let mut elements = Vec::new();
+                if elements.try_reserve_exact(capacity).is_err() {
+                    return Err(Flow::Failure(normalize_vec(
+                        crate::vec_ops::ALLOCATION_FAILURE_CODE,
+                    )));
+                }
+                Ok(Value::Vec(Arc::new(OwnedVecValue {
+                    element,
+                    values: elements,
+                    capacity,
+                    generation: 1,
+                })))
+            }
+            crate::vec_ops::VecOp::Push => {
+                let mut values = values.into_iter();
+                let (Some(Value::Vec(vector)), Some(value), None) =
+                    (values.next(), values.next(), values.next())
+                else {
+                    return Err(Flow::Guard(
+                        "ill-typed compiler-owned bounded Vec operation",
+                    ));
+                };
+                if vector.element != element
+                    || !element_value_matches_type(declarations, &value, &element)
+                {
+                    return Err(Flow::Guard("forged bounded Vec element type"));
+                }
+                let mut vector = Arc::try_unwrap(vector)
+                    .map_err(|_| Flow::Guard("aliased owned bounded Vec carrier"))?;
+                if vector.values.len() == vector.capacity {
+                    return Err(Flow::Failure(normalize_vec(crate::vec_ops::PUSH_FULL_CODE)));
+                }
+                self.fused.publish(expression, &value)?;
+                vector.values.push(value);
+                vector.generation = vector
+                    .generation
+                    .checked_add(1)
+                    .ok_or(Flow::Guard("bounded Vec generation overflowed"))?;
+                Ok(Value::Vec(Arc::new(vector)))
+            }
+            crate::vec_ops::VecOp::ReserveExact | crate::vec_ops::VecOp::ReserveOwned => {
+                let mut values = values.into_iter();
+                let (Some(Value::Vec(vector)), Some(Value::Usize(additional)), None) =
+                    (values.next(), values.next(), values.next())
+                else {
+                    return Err(Flow::Guard(
+                        "ill-typed compiler-owned bounded Vec operation",
+                    ));
+                };
+                if vector.element != element {
+                    return Err(Flow::Guard("forged bounded Vec element type"));
+                }
+                let target = u64::try_from(vector.values.len())
+                    .ok()
+                    .and_then(|len| len.checked_add(additional))
+                    .map(|required| required.max(vector.capacity as u64))
+                    .filter(|target| {
+                        *target
+                            <= crate::hir::owned_leaf_collection::capacity(declarations, &element)
+                    })
+                    .and_then(|target| usize::try_from(target).ok())
+                    .ok_or_else(|| {
+                        Flow::Failure(normalize_vec(crate::vec_ops::ALLOCATION_FAILURE_CODE))
+                    })?;
+                if element == ResolvedType::Bytes
+                    && u64::try_from(target)
+                        .ok()
+                        .and_then(|capacity| {
+                            capacity.checked_mul(crate::vec_ops::OWNED_PAYLOAD_BYTES_PER_ELEMENT)
+                        })
+                        .is_none_or(|charge| charge > crate::vec_ops::MAX_OWNED_PAYLOAD_BYTES)
+                {
+                    return Err(Flow::Failure(normalize_vec(
+                        crate::vec_ops::ALLOCATION_FAILURE_CODE,
+                    )));
+                }
+                let mut vector = Arc::try_unwrap(vector)
+                    .map_err(|_| Flow::Guard("aliased owned bounded Vec carrier"))?;
+                if target > vector.values.capacity()
+                    && vector
+                        .values
+                        .try_reserve_exact(target - vector.values.len())
+                        .is_err()
+                {
+                    return Err(Flow::Failure(normalize_vec(
+                        crate::vec_ops::ALLOCATION_FAILURE_CODE,
+                    )));
+                }
+                vector.capacity = target;
+                vector.generation = vector
+                    .generation
+                    .checked_add(1)
+                    .ok_or(Flow::Guard("bounded Vec generation overflowed"))?;
+                Ok(Value::Vec(Arc::new(vector)))
+            }
+            crate::vec_ops::VecOp::Set | crate::vec_ops::VecOp::Replace => {
+                let mut values = values.into_iter();
+                let (Some(Value::Vec(vector)), Some(Value::Usize(index)), Some(value), None) =
+                    (values.next(), values.next(), values.next(), values.next())
+                else {
+                    return Err(Flow::Guard(
+                        "ill-typed compiler-owned bounded Vec operation",
+                    ));
+                };
+                if vector.element != element
+                    || !element_value_matches_type(declarations, &value, &element)
+                {
+                    return Err(Flow::Guard("forged bounded Vec element type"));
+                }
+                let index = usize::try_from(index)
+                    .ok()
+                    .filter(|index| *index < vector.values.len())
+                    .ok_or_else(|| {
+                        Flow::Failure(normalize_vec(crate::vec_ops::GET_OUT_OF_BOUNDS_CODE))
+                    })?;
+                let mut vector = Arc::try_unwrap(vector)
+                    .map_err(|_| Flow::Guard("aliased owned bounded Vec carrier"))?;
+                self.fused.preflight_value(&vector.values[index])?;
+                self.fused.settle_value(&mut vector.values[index])?;
+                vector.values[index] = value;
+                vector.generation = vector
+                    .generation
+                    .checked_add(1)
+                    .ok_or(Flow::Guard("bounded Vec generation overflowed"))?;
+                Ok(Value::Vec(Arc::new(vector)))
+            }
+            crate::vec_ops::VecOp::Sort => {
+                let Value::Vec(vector) = values
+                    .into_iter()
+                    .next()
+                    .ok_or(Flow::Guard("missing Vec sort owner"))?
+                else {
+                    return Err(Flow::Guard("invalid Vec sort carrier"));
+                };
+                if vector.element != element
+                    || !(crate::vec_ops::resolved_element_is_admitted(&element)
+                        || crate::hir::copy_record_collection::admitted(declarations, &element))
+                    || vector
+                        .values
+                        .iter()
+                        .any(|v| !element_value_matches_type(declarations, v, &element))
+                {
+                    return Err(Flow::Guard("forged Vec sort element type"));
+                }
+                let mut vector =
+                    Arc::try_unwrap(vector).map_err(|_| Flow::Guard("aliased Vec sort owner"))?;
+                if let Some(fields) =
+                    crate::hir::copy_record_collection::fields(declarations, &element)
+                {
+                    vector.values.sort_by(|a, b| {
+                        let (Value::Record(a), Value::Record(b)) = (a, b) else {
+                            unreachable!("record values authenticated above")
+                        };
+                        fields
+                            .iter()
+                            .map(|field| compare_scalar(&a.fields[&field.id], &b.fields[&field.id]))
+                            .find(|order| !order.is_eq())
+                            .unwrap_or(std::cmp::Ordering::Equal)
+                    });
+                } else {
+                    vector.values.sort_unstable_by(compare_scalar);
+                }
+                vector.generation = vector
+                    .generation
+                    .checked_add(1)
+                    .ok_or(Flow::Guard("Vec sort generation overflowed"))?;
+                Ok(Value::Vec(Arc::new(vector)))
+            }
+            crate::vec_ops::VecOp::Clear => {
+                let [Value::Vec(vector)] = values.as_slice() else {
+                    return Err(Flow::Guard(
+                        "ill-typed compiler-owned bounded Vec operation",
+                    ));
+                };
+                if vector.element != element {
+                    return Err(Flow::Guard("forged bounded Vec element type"));
+                }
+                // The `as_slice()` match above already proved the sole value
+                // is `Value::Vec`; this re-destructures the owned `Value` (an
+                // owned `Vec::into_iter().next()` cannot itself change
+                // variant). Guarded rather than `unreachable!()` per
+                // `docs/OWNED-RECORD-COLLECTION-ELEMENT-V1.md` (backend
+                // hazard): a clean diagnostic, never a panic, if a future
+                // admission widening or refactor ever invalidates that proof.
+                let Value::Vec(vector) = values.into_iter().next().unwrap() else {
+                    return Err(Flow::Guard("validated Vec clear carrier changed variant"));
+                };
+                let mut vector = Arc::try_unwrap(vector)
+                    .map_err(|_| Flow::Guard("aliased owned bounded Vec carrier"))?;
+                for value in &vector.values {
+                    self.fused.preflight_value(value)?;
+                }
+                for value in &mut vector.values {
+                    self.fused.settle_value(value)?;
+                }
+                vector.values.clear();
+                vector.generation = vector
+                    .generation
+                    .checked_add(1)
+                    .ok_or(Flow::Guard("bounded Vec generation overflowed"))?;
+                Ok(Value::Vec(Arc::new(vector)))
+            }
+            crate::vec_ops::VecOp::Len => match values.as_slice() {
+                [Value::Vec(vector)] if vector.element == element => {
+                    Ok(Value::Usize(vector.values.len() as u64))
+                }
+                _ => Err(Flow::Guard(
+                    "ill-typed compiler-owned bounded Vec operation",
+                )),
+            },
+            crate::vec_ops::VecOp::Capacity => match values.as_slice() {
+                [Value::Vec(vector)] if vector.element == element => {
+                    Ok(Value::Usize(vector.capacity as u64))
+                }
+                _ => Err(Flow::Guard(
+                    "ill-typed compiler-owned bounded Vec operation",
+                )),
+            },
+            crate::vec_ops::VecOp::Get => match values.as_slice() {
+                [Value::Vec(vector), Value::Usize(index)] if vector.element == element => {
+                    let value = usize::try_from(*index)
+                        .ok()
+                        .and_then(|index| vector.values.get(index))
+                        .ok_or_else(|| {
+                            Flow::Failure(normalize_vec(crate::vec_ops::GET_OUT_OF_BOUNDS_CODE))
+                        })?;
+                    self.clone_value(value)
+                }
+                _ => Err(Flow::Guard(
+                    "ill-typed compiler-owned bounded Vec operation",
+                )),
+            },
+        }
+    }
+}
+
+fn compare_scalar(a: &Value, b: &Value) -> std::cmp::Ordering {
+    match (a, b) {
+        (Value::Int(a), Value::Int(b)) => a.cmp(b),
+        (Value::Int32(a), Value::Int32(b)) => a.cmp(b),
+        (Value::Uint8(a), Value::Uint8(b)) => a.cmp(b),
+        (Value::Usize(a), Value::Usize(b)) => a.cmp(b),
+        (Value::Char(a), Value::Char(b)) => a.cmp(b),
+        (Value::Float32(a), Value::Float32(b)) => a.total_cmp(b),
+        (Value::Float64(a), Value::Float64(b)) => a.total_cmp(b),
+        (Value::Bool(a), Value::Bool(b)) => a.cmp(b),
+        _ => std::cmp::Ordering::Equal, // only authenticated scalar leaves reach this helper
+    }
+}

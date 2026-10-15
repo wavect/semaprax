@@ -1,0 +1,276 @@
+# SEMAPRAX development documentation
+
+Status: living internal contributor documentation.
+
+Audience: compiler contributors, maintainers, reviewers, and coding agents.
+
+Use this page to find the contract and tests that own a change. New
+contributors should start with [First contribution](FIRST-CONTRIBUTION.md);
+language users should start with the [documentation overview](index.md).
+Private and proof-only references do not describe supported product surfaces.
+
+## Read before changing semantics
+
+Read these owners before changing semantics:
+
+1. [RFC 0001](RFC-0001.md) for the long-term language and toolchain contract.
+2. [Completion matrix](COMPLETION-MATRIX.md) for the affected product rows and
+   their remaining completion gates.
+3. [Architecture](ARCHITECTURE.md) for stage ownership and trust boundaries.
+4. [Quality gates](QUALITY-GATES.md) for baseline and change-specific checks.
+5. The exact versioned specification that owns the changed syntax, protocol,
+   ABI, report, or target profile.
+
+The [roadmap](ROADMAP.md) sequences work; the
+[changelog](https://github.com/wavect/semaprax/blob/main/CHANGELOG.md) records
+history. Neither proves that a feature works.
+
+Additional required references:
+
+| Change area | Owning references |
+| --- | --- |
+| Optional workflow stage instrumentation and observation campaigns | [Workflow Profiling v1](WORKFLOW-PROFILING-V1.md) |
+| Kernel-0 formatter candidate ownership handoff | [Semantic Kernel v1](SEMANTIC-KERNEL-V1.md), [Formatter Authority v1](KERNEL-ZERO-RUNG-TWO-AUTHORITY-V1.md), [Owned Handoff v1](KERNEL-ZERO-RUNG-TWO-OWNED-HANDOFF-V1.md), [Bootstrap v2](KERNEL-ZERO-RUNG-TWO-BOOTSTRAP-V2.md), [Target Recovery v1](KERNEL-ZERO-RUNG-TWO-TARGET-RECOVERY-V1.md), [Accepted-Revision Validation v1](KERNEL-ZERO-ACCEPTED-REVISION-VALIDATION-V1.md) |
+| First-class function values and indirect invocation | [Function Values v1](FUNCTION-VALUES-V1.md), [Function Values v2](FUNCTION-VALUES-V2.md), [Scalar Snapshot Closures v1](CLOSURES-V1.md), [Generic and Loop Closures v2](CLOSURES-V2.md), [Affine callback v1](AFFINE-CALLBACK-V1.md), [Mixed affine callback v2](AFFINE-CALLBACK-V2.md), [RFC 0004](RFC-0004-NATIVE-CALL-SETTLEMENT.md) |
+| Generic argument inference | [Argument Inference v1](GENERIC-ARGUMENT-INFERENCE-V1.md), [Argument Inference v2](GENERIC-ARGUMENT-INFERENCE-V2.md), [Argument Inference v3](GENERIC-ARGUMENT-INFERENCE-V3.md) |
+| Compiler-owned scalar and byte conversions | [Language Ergonomics v1](LANGUAGE-ERGONOMICS-V1.md), [Integer Numeric Profile v2](INTEGER-NUMERIC-PROFILE-V2.md), [Byte Widening v1](BYTE-WIDENING-V1.md), [Byte Conversions v1](BYTE-CONVERSIONS-V1.md) |
+| Records, variants, generics, matching, `Option`, `Result` | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md), [Copy Variant Guards v1](COPY-VARIANT-GUARDS-V1.md), [Standalone Wasm Copy Variant String Settlement v1](WASM-INTERNAL-STRING-COPY-VARIANTS-V1.md) |
+| Standard-library packages under `std/`, their catalogs, tiers, and gates | [Standard Library v1](STANDARD-LIBRARY-V1.md), [Project Manifest v1](PROJECT-MANIFEST-V1.md) |
+| Source-authored `std.format` Writer append operations | [Format Writer v1](FORMAT-WRITER-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md), [IO Cursors v1](IO-CURSORS-V1.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
+| Source-authored `std.log` structured JSON-lines Writer | [Log Writer v1](LOG-WRITER-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md), [Format Writer v1](FORMAT-WRITER-V1.md), [JSON Cursors v1](JSON-CURSORS-V1.md), [IO Cursors v1](IO-CURSORS-V1.md) |
+| Source-authored `std.io` Reader/Writer cursors | [IO Cursors v1](IO-CURSORS-V1.md), [IO Lines v1](IO-LINES-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
+| Source-authored `std.io.lines` line processing | [IO Lines v1](IO-LINES-V1.md), [IO Cursors v1](IO-CURSORS-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md) |
+| Padded Base64 encoding or strict decoding in `std.encoding.base64` | [Base64 v1](BASE64-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md), [IO Cursors v1](IO-CURSORS-V1.md) |
+| Decoded JSON string-token comparison | [JSON Cursors v1](JSON-CURSORS-V1.md), [Bounded JSON Scanner v1](BOUNDED-JSON-SCANNER-V1.md) |
+| Strict whole-document JSON scan and scalar navigation | [Strict JSON Scan v1](STRICT-JSON-SCAN-V1.md), [JSON String Query v1](JSON-STRING-QUERY-V1.md), [Bounded JSON Scanner v1](BOUNDED-JSON-SCANNER-V1.md) |
+| Compiler-owned checked literal formatting | [Checked Literal Format v1](CHECKED-LITERAL-FORMAT-V1.md), [String Operations v1](STRING-OPS-V1.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
+| Source-authored `std.test` byte assertions and failure-bit helpers | [Test Byte Assertions v1](TEST-BYTE-ASSERTIONS-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md), [IO Cursors v1](IO-CURSORS-V1.md) |
+| Bounded streaming standard input, sealed StdinReader, same-owner refill, or immutable chunk loans | [Bounded Standard Input Streaming v1](BOUNDED-STDIN-STREAM-V1.md), [Bounded Stdin Command Exit Status v1](BOUNDED-STDIN-COMMAND-EXIT-V1.md), [Stream Text Command v1](STREAM-TEXT-COMMAND-V1.md), [Stream Data Command v1](STREAM-DATA-COMMAND-V1.md), [Bounded Language Command I/O v1](BOUNDED-LANGUAGE-COMMAND-IO-V1.md), [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md), [Portable Indexed Byte Data v1](PORTABLE-INDEXED-BYTE-DATA-V1.md) |
+| Explicit bounded environment snapshots or source-authored `std.env` wrappers | [Bounded Environment I/O v1](BOUNDED-ENVIRONMENT-IO-V1.md), [Bounded Language Command I/O v1](BOUNDED-LANGUAGE-COMMAND-IO-V1.md), [Capability Manifest v1](CAPABILITY-MANIFEST-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md) |
+| Bounded process execution, explicit tool registries, or `std.process` | [Bounded Process I/O v1](BOUNDED-PROCESS-IO-V1.md), [Project Manifest v18: Process I/O](PROJECT-MANIFEST-V18.md), [Bounded Environment I/O v1](BOUNDED-ENVIRONMENT-IO-V1.md), [Bounded Language Command I/O v1](BOUNDED-LANGUAGE-COMMAND-IO-V1.md), [Capability Manifest v1](CAPABILITY-MANIFEST-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md) |
+| JSON string decoding, decoded-token queries, or JSON Reader/Writer adapters | [JSON String Query v1](JSON-STRING-QUERY-V1.md), [JSON Cursors v1](JSON-CURSORS-V1.md), [Bounded JSON Scanner v1](BOUNDED-JSON-SCANNER-V1.md), [IO Cursors v1](IO-CURSORS-V1.md), [Project Manifest v16](PROJECT-MANIFEST-V16.md) |
+| Source-authored typed `std.path.value` Path records | [Typed Path v1](TYPED-PATH-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md), [IO Cursors v1](IO-CURSORS-V1.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
+| Lexical `std.path.normalize` path normalization | [Path Normalization v1](PATH-NORMALIZATION-V1.md), [Typed Path v1](TYPED-PATH-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md) |
+| Filesystem I/O, `std.fs`, explicit file providers, or the Project filesystem command profile | [Filesystem I/O v1](FILESYSTEM-IO-V1.md), [Filesystem I/O v2](FILESYSTEM-IO-V2.md), [Host Operation Outcome v1](HOST-OPERATION-OUTCOME-V1.md), [Project Manifest v19](PROJECT-MANIFEST-V19.md), [Standard Library v1](STANDARD-LIBRARY-V1.md), [Project Manifest v1](PROJECT-MANIFEST-V1.md), [Typed Path v1](TYPED-PATH-V1.md), [IO Cursors v1](IO-CURSORS-V1.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
+| Owned bounded-vector operations or source `for` traversal | [Owned Bounded Vec v1](OWNED-BOUNDED-VEC-V1.md), [Owned Bounded Vec v2](OWNED-BOUNDED-VEC-V2.md), [Copy Record Collections v1](COPY-RECORD-COLLECTIONS-V1.md) and [Declared Text Collections v1](DECLARED-TEXT-COLLECTIONS-V1.md), [Stream Data Command v2](STREAM-DATA-COMMAND-V2.md), [Owned Bounded Vec For Traversal v1](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md), [Borrowed Byte Slice For Traversal v1](BORROWED-BYTE-SLICE-FOR-TRAVERSAL-V1.md) and [v2](BORROWED-BYTE-SLICE-FOR-TRAVERSAL-V2.md), [While Loops v1](WHILE-LOOPS-V1.md) |
+| Same-owner `Bytes` replacement or cleanup history across branches and loops | [Same-Owner Byte-Buffer Renewal v1](BYTE-BUFFER-RENEWAL-V1.md), [Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md), [v2](OWNED-BOUNDED-BYTE-BUFFER-V2.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
+| Consuming scalar `Iter<T>` / `IterStep<T>` operations, owning iterator payloads, generic iterator operations, `for own` traversal, and same-owner renewal | [Owning Iterators v1](OWNING-ITERATORS-V1.md), [Owning Iterator Payloads v2](OWNING-ITERATOR-PAYLOADS-V2.md), [Owning Iterator Loops v1](OWNING-ITERATOR-LOOPS-V1.md), [Owning Iterator Renewal v1](OWNING-ITERATOR-RENEWAL-V1.md), [Generic Iterator Helpers v1](GENERIC-ITERATORS-V1.md), [Generic Iterator Operations v1](GENERIC-ITERATOR-OPERATIONS-V1.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
+| Compiler-owned Box allocation or authenticated `std.mem` wrappers | [Owned Bounded Box v1](OWNED-BOUNDED-BOX-V1.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md), [Standard Library v1](STANDARD-LIBRARY-V1.md) |
+| Generic owned Result propagation | [Generic Owned Result v1](GENERIC-OWNED-RESULT-V1.md), [Owned Byte Variant Algebra v1](OWNED-BYTE-VARIANT-ALGEBRA-V1.md), [Concrete Generic Owned-Byte Records v1](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md) |
+| Cleanup, resource ownership, callable settlement | [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md), [RFC 0004](RFC-0004-NATIVE-CALL-SETTLEMENT.md) |
+| Immutable borrowing, loan provenance, or path-sensitive loan edges | [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md), [Projected Owned-Byte Field Shared Borrow v1](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md), [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
+| Single-file semantic changes | [Patch v2](SEMANTIC-PATCH-V2.md), [Impact](SEMANTIC-IMPACT-V1.md), [Review](SEMANTIC-REVIEW-V1.md), and the relevant evidence version |
+| Managed multi-file publication | [Workspace Transaction v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md), [Workspace Patch Evidence v1](SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md) |
+| Cross-file semantic analysis or change | [Workspace overview](SEMANTIC-WORKSPACE-V1.md), [graph](WORKSPACE-SEMANTIC-GRAPH-V1.md), [analysis](WORKSPACE-ANALYSIS-V1.md), [change](SEMANTIC-WORKSPACE-CHANGE-V1.md), [operations](SEMANTIC-WORKSPACE-OPERATIONS-V1.md) |
+| Canonical Project-derived semantic workspace revision | [Canonical Semantic Workspace Revision v1](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md), [Project Manifest v1](PROJECT-MANIFEST-V1.md), [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md) |
+| Workspace execution association and retained-generation runtime binding | [Workspace Execution Association v1](WORKSPACE-EXECUTION-ASSOCIATION-V1.md), [Persistent Incremental Semantic Workspace Service v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md), [ProgramRoot v1](PROGRAM-ROOT-V1.md), [Agent Runtime v2](AGENT-RUNTIME-V2.md) |
+| Explicit Project development watching or hot-reload candidate coalescing | [Hot Reload Session v1](HOT-RELOAD-SESSION-V1.md), [Hot Reload Watcher v1](HOT-RELOAD-WATCHER-V1.md), [Project Manifest v1](PROJECT-MANIFEST-V1.md) |
+| Workspace execution migration across retained generations | [Workspace Execution Migration v1](WORKSPACE-EXECUTION-MIGRATION-V1.md), [Workspace Execution Association v1](WORKSPACE-EXECUTION-ASSOCIATION-V1.md), [Agent State Migration v3](AGENT-STATE-MIGRATION-V3.md), [Agent Runtime v2](AGENT-RUNTIME-V2.md) |
+| Durable Agent state migration or recovered seeded execution | [State Migration v2](AGENT-STATE-MIGRATION-V2.md), [Durable State Migration v3](AGENT-STATE-MIGRATION-V3.md), [Operation Checkpoint v2](AGENT-OPERATION-CHECKPOINT-V2.md), [Direct Runtime v2](AGENT-RUNTIME-V2.md) |
+| Checked source-mode migration across retained Projects and source checkpoints | [Source Live Migration v3](SOURCE-LIVE-MIGRATION-V3.md), [Source Live Journal v2](SOURCE-LIVE-JOURNAL-V2.md), [Project Linked Agent Lifecycle v1](PROJECT-LINKED-AGENT-LIFECYCLE-V1.md), [State Migration v2](AGENT-STATE-MIGRATION-V2.md) |
+| Checked source model wait or combined v7 journal | [Source Model Wait v1](SOURCE-MODEL-WAIT-V1.md), [Source Live Journal v2](SOURCE-LIVE-JOURNAL-V2.md), [Resumable Effects v1](RESUMABLE-EFFECTS-V1.md) |
+| Whole owned record suspension and deferred terminal settlement | [Source owned frame v1](SOURCE-OWNED-FRAME-V1.md), [Source Agent owned wait v1](SOURCE-AGENT-OWNED-WAIT-V1.md), [Source Continuations](RESUMABLE-EFFECTS-CONTINUATION-V1.md), [Resumable Effects v1](RESUMABLE-EFFECTS-V1.md) |
+| Cumulative source provider I/O limits and migration carry | [Source Live I/O v5](SOURCE-LIVE-IO-V5.md), [Source Live Journal v2](SOURCE-LIVE-JOURNAL-V2.md), [Source Live Migration v3](SOURCE-LIVE-MIGRATION-V3.md) |
+| Private durable source CLI and physical checkpoint host | [Source Live CLI v1](SOURCE-LIVE-CLI-V1.md), [Source Live Journal v2](SOURCE-LIVE-JOURNAL-V2.md), [Source Live Migration v3](SOURCE-LIVE-MIGRATION-V3.md) |
+| Segmented ProgramRoot projection or runtime-root relationship | [ProgramRoot v1](PROGRAM-ROOT-V1.md), [Canonical Semantic Workspace Revision v1](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md), [Architecture](ARCHITECTURE.md) |
+| ProgramRoot interface/artifact facts or exact Project Lock association | [Interface and artifact facts v1](INTERFACE-ARTIFACT-FACTS-V1.md), [ProgramRoot Dependency Lock Association v1](PROGRAM-ROOT-DEPENDENCY-LOCK-ASSOCIATION-V1.md), [Project Lock v1](PROJECT-LOCK-V1.md), [ProgramRoot v1](PROGRAM-ROOT-V1.md) |
+| Versioned exact ProgramRoot context or selector | [ProgramRoot v2](PROGRAM-ROOT-V2.md), [ProgramRoot v3](PROGRAM-ROOT-V3.md), [Exact Program Context v1](EXACT-PROGRAM-CONTEXT-V1.md), [Exact Program Context v2](EXACT-PROGRAM-CONTEXT-V2.md), [ProgramRoot v1](PROGRAM-ROOT-V1.md), [Persistent Incremental Semantic Workspace Service v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md) |
+| Universal semantic transaction kernel or typed operation | [Universal Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md), [Universal Semantic Transaction v2](UNIVERSAL-SEMANTIC-TRANSACTION-V2.md), [Canonical Semantic Workspace Revision v1](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md), [Project Candidates v1](PROJECT-CANDIDATES-V1.md) |
+| Universal semantic structural diff, transaction rebase, or ordered merge | [Universal Semantic Transaction Composition v1](UNIVERSAL-SEMANTIC-TRANSACTION-COMPOSITION-V1.md), [Universal Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md), [Project Candidate Rebase v1](PROJECT-CANDIDATE-REBASE-V1.md), [Project Candidate Semantic Delta v1](PROJECT-CANDIDATE-SEMANTIC-DELTA-V1.md) |
+| Canonical revision-bound semantic query core or operation catalogue | [Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md), [Persistent Incremental Semantic Workspace Service v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md), [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md), [Workspace Analysis v1](WORKSPACE-ANALYSIS-V1.md), [Universal Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md) |
+| Process-resident incremental semantic workspace service core | [Persistent Incremental Semantic Workspace Service v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md), [Canonical Semantic Workspace Revision v1](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md), [Universal Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md), [Frontend Cache v1](PROJECT-FRONTEND-CACHE-V1.md) |
+| Persistent semantic service JSON-lines/MCP transport or `service` CLI | [Persistent Semantic Workspace Service Transport v1](PERSISTENT-SEMANTIC-SERVICE-TRANSPORT-V1.md), [Persistent Semantic Workspace Service MCP v1](PERSISTENT-SEMANTIC-SERVICE-MCP-V1.md), [Persistent Incremental Semantic Workspace Service v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md), [Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md), [Universal Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md) |
+| One-shot universal semantic query or change-preview CLI | [Universal Semantic Workflow CLI v1](UNIVERSAL-SEMANTIC-WORKFLOW-CLI-V1.md), [Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md), [Universal Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md), [Universal Semantic Transaction v2](UNIVERSAL-SEMANTIC-TRANSACTION-V2.md), [Persistent Incremental Semantic Workspace Service v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md), [CLI Help v4](CLI-HELP-V4.md), [CLI Help v5](CLI-HELP-V5.md) |
+| Read-only checked-type codec suitability explanation | [JSON Codec Suitability Discovery v1](JSON-CODEC-SUITABILITY-V1.md), [Checked-source Application JSON Codecs v1](APPLICATION-JSON-CODECS-V1.md), [CLI Help v5](CLI-HELP-V5.md) |
+| Installed agent guidance, skill selector, or query capability catalogue | [Installed Agent Guidance v1](INSTALLED-AGENT-GUIDANCE-V1.md), [Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md), [Guided CLI Help v4](CLI-HELP-V4.md), [CLI Help v5](CLI-HELP-V5.md) |
+| Installed diagnostic catalogue, explanation, source-token scanner, or `explain` CLI | [Installed Diagnostics v1](INSTALLED-DIAGNOSTICS-V1.md), [Human Diagnostic Locations v1](HUMAN-DIAGNOSTICS-V1.md), [Guided CLI Help v4](CLI-HELP-V4.md), [CLI Help v5](CLI-HELP-V5.md) |
+| Installed or exact-current-source fix planning and `fix --plan` | [Installed Fix Plan v1](INSTALLED-FIX-PLAN-V1.md), [Bounded Diagnostic Repair v1](DIAGNOSTIC-REPAIR-V1.md), [Installed Diagnostics v1](INSTALLED-DIAGNOSTICS-V1.md), [Guided CLI Help v4](CLI-HELP-V4.md), [CLI Help v5](CLI-HELP-V5.md) |
+| Embedded source Agent operation bodies, model-wait helper associations, or execution graph metadata | [Language-native Agent Syntax v1](LANGUAGE-NATIVE-AGENT-SYNTAX-V1.md), [Language-native Agent Lowering v1](LANGUAGE-NATIVE-AGENT-LOWERING-V1.md), [Workspace Semantic Graph v1](WORKSPACE-SEMANTIC-GRAPH-V1.md), [Package Semantic Graph v1](PACKAGE-SEMANTIC-GRAPH-V1.md) |
+| Agent Proposal grammar or generated Runtime v1 final-message compatibility | [Language-native Agent Object v1](LANGUAGE-NATIVE-AGENT-OBJECT-V1.md), [Agent Proposal to Runtime v1 Compatibility v1](AGENT-PROPOSAL-RUNTIME-V1-COMPATIBILITY-V1.md), [Bounded Native Agent Runtime v1](AGENT-RUNTIME-V1.md) |
+| Source-authored `std.agent` helpers and linked Project Agent lifecycle | [Project Linked Agent Lifecycle v1](PROJECT-LINKED-AGENT-LIFECYCLE-V1.md), [Direct Agent Runtime v2](AGENT-RUNTIME-V2.md), [Agent iterative lifecycle v2](AGENT-ITERATIVE-LIFECYCLE-V2.md) |
+| RI-13 linked source-local Future with indexed Rust packages | [Project source-local Future indexed Rust v1](PROJECT-SOURCE-LOCAL-FUTURE-INDEXED-RUST-V1.md), [Source-local Future v1](PROJECT-SOURCE-LOCAL-FUTURE-V1.md), [Native Rust Interoperability v1](NATIVE-RUST-INTEROP-V1.md) |
+| Linked Project Agent state migration and durable recovery | [Project Linked Agent Migration v1](PROJECT-LINKED-AGENT-MIGRATION-V1.md), [Agent State Migration v2](AGENT-STATE-MIGRATION-V2.md), [Durable Agent State Migration v3](AGENT-STATE-MIGRATION-V3.md), [Project Linked Agent Lifecycle v1](PROJECT-LINKED-AGENT-LIFECYCLE-V1.md) |
+| Project daemon rename/workflow | [Project Transport v2](PROJECT-AGENT-TRANSPORT-V2.md), [Rename Transaction v1](PROJECT-RENAME-TRANSACTION-V1.md), [Workflow v1](PROJECT-AGENT-WORKFLOW-V1.md) |
+| `semaprax.toml` layout, tables, or lowering | [Package Manifest v1](PACKAGE-MANIFEST-V1.md), [Package Manifest v2](PACKAGE-MANIFEST-V2.md), and the frozen [Project Manifest v1](PROJECT-MANIFEST-V1.md) profile they lower to |
+| `semaprax.lock` render or verification | [Project Lock v1](PROJECT-LOCK-V1.md) |
+| Resolving manifest `[dependencies]` against a cache | [Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md), [Offline Resolver v2](OFFLINE-PACKAGE-RESOLVER-V2.md) |
+| Linking exact SEMAPRAX subjects or exposing exact Rust crates | [Project Dependencies v1](PROJECT-DEPENDENCIES-V1.md), [Package Manifest v1](PACKAGE-MANIFEST-V1.md), [Native Rust Interoperability v1](NATIVE-RUST-INTEROP-V1.md), and [Native Rust Rich Interoperability v1](NATIVE-RUST-RICH-INTEROP-V1.md) for RI-01 bindings |
+| Native Rust SDK or host integration | [Native Rust Interoperability v1](NATIVE-RUST-INTEROP-V1.md), [Native Rust Rich Interoperability v1](NATIVE-RUST-RICH-INTEROP-V1.md), and [Project Manifest v1](PROJECT-MANIFEST-V1.md) |
+| Deterministic OCI Image Layout / container-deployable-artifact emission | [OCI Deployable Artifact v1](OCI-DEPLOYABLE-ARTIFACT-V1.md), [Project Manifest v1](PROJECT-MANIFEST-V1.md) |
+| Authenticated Project input persistence | [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md), [Project Manifest v1](PROJECT-MANIFEST-V1.md), and the additive manifest profile selected by the subject |
+| Project-wide authenticated assurance evidence or architecture-law obligations | [Project Assurance Manifest v1](PROJECT-ASSURANCE-MANIFEST-V1.md), [Assurance Manifest v1](ASSURANCE-MANIFEST-V1.md), [Architecture Claims v1](ARCHITECTURE-CLAIMS-V1.md), and [Canonical Semantic Workspace Revision v1](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md) |
+| Offline semantic lock snapshot or fixed-inventory publication | [Published Semantic Lock Snapshot v1](OFFLINE-PUBLISHED-SEMANTIC-LOCK-SNAPSHOT-V1.md), [Offline Resolver v1](OFFLINE-PACKAGE-RESOLVER-V1.md), and [Offline Semantic Lock v2](OFFLINE-SEMANTIC-PACKAGE-LOCK-V2.md) |
+
+## Documentation classes
+
+Every document has one primary role:
+
+| Class | Owns | Must not own |
+| --- | --- | --- |
+| Public guide | Concepts, supported workflows, examples, user-facing limits | CI run history, module-level implementation narration |
+| Versioned reference | Exact syntax, schema, ABI, diagnostics, admission, compatibility, non-claims | Project-wide status or roadmap priority |
+| Internal architecture | Stage ownership, data flow, trust and authority boundaries | Feature history or exhaustive test commands |
+| Completion matrix | Current status and the condition for a row to become complete | Historical milestone narration or protocol details |
+| Quality gates | Baseline profiles and how to select required evidence | Product marketing or roadmap sequencing |
+| Roadmap | Ordered outcomes and exit conditions | Claims that an outcome is already implemented |
+| Changelog | Historical repository changes | Current status authority |
+| Private/proof contract | Exact experimental or hosted-test boundary | Public API, stability, or production-support claims |
+
+Stable specification paths remain flat under `docs/` to preserve citations.
+Audience separation is expressed through this guide and the book structure,
+not by moving every established path.
+
+## Change protocol
+
+1. Identify the completion-matrix rows and semantic invariants affected.
+2. Update or add the owning specification before broad implementation prose.
+3. Add a success case and a stable diagnostic regression before or with the
+   implementation.
+4. When syntax carries runtime meaning, update parser, canonical formatter,
+   resolver/HIR, verifier, graph, native backend, and Wasm backend together.
+5. Exercise both projections: canonical source round-trip and semantic graph
+   assertions.
+6. Run the baseline gate plus the owning specification's focused evidence.
+7. Update the completion matrix only if the row's stated gate changes status;
+   record implementation history in the changelog.
+
+## Repository navigation
+
+Use Graft first to find the code owner:
+
+```sh
+graft map
+graft ask '<question or exact symbol>' --source
+```
+
+For an exhaustive search, use `graft grep`; ranked `ask` results are not
+exhaustive. Then use the compiler's semantic tools for checked `.spx` meaning:
+
+```sh
+cargo run --locked -p semaprax -- graph <file>
+cargo run --locked -p semaprax -- context <file> <stable-id> --depth 1
+```
+
+Use `rg`/`rg --files` for bounded source navigation after graph context. See
+[ADR 0001](decisions/0001-graphify.md) before adding another repository-wide
+index.
+
+The [architecture](ARCHITECTURE.md) owns the module map; `AGENTS.md` owns
+operating invariants.
+
+Before splitting a module, check whether a gate binds its text. `rg` the module's
+path across `tests/` and `crates/*/src` for `include_str!` and path reads: a hit
+means a [source-locked contract](ARCHITECTURE.md#source-locked-contracts) whose
+join must follow the code, or it will keep passing while covering less.
+`tests/source_locked_contracts.rs` fails when a reader binds a module root but
+not its submodules, and `tests/module_size.rs` fails when a module grows past its
+recorded size.
+
+## Windows checkouts
+
+Archived evidence under `docs/evidence/` nests a subject digest inside a commit
+digest, and twenty-four of those paths exceed the 260-character limit Windows
+applies by default — the longest reaches 279 characters once a CI runner's
+workspace prefix is added. Git refuses to create them with `Filename too long`
+and the checkout fails before any build starts.
+
+Enable long paths before cloning on Windows:
+
+```sh
+git config --global core.longpaths true
+```
+
+CI does this for every job, guarded by `runner.os == 'Windows'`, in a step that
+runs before `actions/checkout`; the setting has to exist before the clone, not
+after it. Keep new evidence paths short enough that this remains a safety net
+rather than a requirement.
+
+## Verification
+
+The standalone `semaprax` registry package has no private-host dependency.
+The unpublished `crates/semaprax-toolchain` package builds `semaprax-full`
+using the same compiler and CLI driver. `new` and `doctor` are standalone
+routes; use the full toolchain for `build --target rust`; Windows revision-store persistence/loading live in
+its library. Source installs retain the distinct binary name. Tag archives
+package that binary as `semaprax`, alongside `semapraxd`.
+
+Windows Project v8–v10 npm/Web publication also requires `semaprax-full`;
+standalone publication rejects before output effects. The private route requires
+an existing parent and uses held handles, not the legacy CLI parent helper.
+See [Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md).
+
+Do not add private crates to the root package's normal or optional dependency
+closure, including test-only dependencies. Private-host tests belong to the
+private toolchain package, whose path dependencies retain exact version pins.
+The package gate must verify the actual archive; disabling verification is not
+a packaging fix.
+
+The quickstart, frame-payload product, and root owned-data/UTF-8 SDK tests
+share `tests/support/full_toolchain.rs` to build the unpublished CLI locked
+and offline. The helper selects the unique `semaprax-full` binary from
+[Cargo's artifact messages](https://doc.rust-lang.org/cargo/reference/external-tools.html#artifact-messages),
+bound to the expected toolchain manifest and a non-test binary target. It
+requires successful Cargo exit and `build-finished`, then uses the reported
+absolute executable path rather than guessing `target/debug`. A configured
+Cargo target must not cause a stale binary at the guessed path to substitute
+for the reported output. Up-to-date (`fresh: true`) output remains valid under
+Cargo's own freshness decision; this is not independent artifact attestation
+or cross-compilation support.
+
+`tests/full_toolchain_artifact_v1.rs` authors literal-message regressions with
+real pathname witnesses for configured-target output, stale guessed paths,
+duplicate/missing/foreign artifacts, malformed streams and unsuccessful or
+missing completion. The implemented release regression corpus is HOSTED GREEN; they neither compile nor
+execute a toolchain when eventually selected. The existing product tests
+separately own actual Cargo and CLI execution.
+
+On Unix, run the complete gate with:
+
+```sh
+scripts/quality.sh full
+```
+
+For documentation-only changes, the routed gate still checks formatting,
+examples, rustdoc, and local links. See [Quality gates](QUALITY-GATES.md) for
+profiles and change-specific evidence ownership.
+
+Nothing in the remote repository enforces these gates: `main` carries no branch
+protection and no ruleset, so a local run is the only thing standing between a
+change and `main`. [Required CI checks](CI-REQUIRED-CHECKS-V1.md) records that
+configuration, the fail-closed `Release gate` aggregate, and the unapplied
+proposal that would require it.
+
+When several worktrees build on one machine, give each its own target
+directory and keep debug data out of it:
+
+```sh
+export CARGO_TARGET_DIR="$PWD/target/private"
+export CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0
+```
+
+`CARGO_TARGET_DIR` must stay under the worktree it serves; a `target-dir`
+shared with another checkout lets that checkout's build replace this one's
+binaries and fingerprints while its tests run. The `full` profile's
+`--workspace --all-targets` test build links several hundred integration
+binaries and needs well over 10 GB in that directory even with the variables
+above; a `-p semaprax` harness build needs roughly 1 GB. Remove the private
+directory when the work is done.
+
+## Documentation maintenance rules
+
+- Put every document's audience and status within its first 12 lines.
+- Link to the owner of a fact instead of copying its full explanation.
+- Keep exact commands and known-answer digests in the owning versioned
+  reference or test, not in the roadmap or README.
+- Describe a boundary once, then use a short link elsewhere.
+- Use “implemented” only when the completion gate has executable evidence.
+- Describe local, hosted, private, public, and proof-only evidence explicitly;
+  none implies another.
+- Keep local Markdown links resolvable and catalog every document in
+  `SUMMARY.md`; `tests/documentation.rs` enforces links, metadata, and catalog
+  coverage.
+- Byte-locked Markdown source snapshots are registered by exact path, logical
+  original path, and SHA-256 in `tests/documentation/archived-sources.tsv`.
+  The documentation gate authenticates those bytes and resolves their links
+  from the original location; their live originals own metadata and catalog
+  entries. Unregistered evidence Markdown follows the ordinary document rules.

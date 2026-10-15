@@ -1,0 +1,187 @@
+//! Which compiler-owned call defers its owner commit past the status split.
+//!
+//! Most calls transfer their owned arguments at the commit boundary and then
+//! split on the propagated status; after that transition even a nonzero status
+//! cannot restore them, because the callee owns them. Two compiler-owned
+//! operations instead check a bound over arguments the caller has already
+//! staged, and must fail *before* the transfer: `vec_push` at full capacity,
+//! `vec_reserve_exact` beyond the bounded capacity, `vec_set` outside the
+//! initialized length, and `bytes_set`/`bytes_set5`/`bytes_set1_or5_from_slice` outside their buffer interval. Deferring their
+//! commit to the success branch leaves the owner in its canonical call-argument
+//! slot, so ordinary region cleanup destroys it exactly once and no backend has
+//! to invent a destruction of its own.
+
+use crate::hir::DeclarationId;
+
+/// The bounded Vec operation this callee names, and whether the call defers its
+/// owner commit until the propagated status is known to be zero.
+pub(super) fn call_behavior(
+    expression: &crate::hir::ResolvedExpr,
+) -> (Option<crate::vec_ops::VecOp>, bool) {
+    if matches!(&expression.kind, crate::hir::ResolvedExprKind::HostCommandCall(call) if call.operation == crate::hir::ResolvedHostCommandOperation::StdinStreamNext)
+    {
+        return (None, true);
+    }
+    let crate::hir::ResolvedExprKind::Call {
+        callee,
+        type_arguments,
+        ..
+    } = &expression.kind
+    else {
+        return (None, false);
+    };
+    let op = crate::vec_ops::by_id(callee.as_str());
+    let deferred = matches!(
+        op,
+        Some(
+            crate::vec_ops::VecOp::Push
+                | crate::vec_ops::VecOp::ReserveExact
+                | crate::vec_ops::VecOp::Set
+                | crate::vec_ops::VecOp::Replace
+                | crate::vec_ops::VecOp::ReserveOwned
+        )
+    ) || callee.as_str() == crate::iterator_ops::NEXT_ID
+        || (callee.as_str() == crate::iterator_ops::INTO_ITER_ID
+            && matches!(
+                type_arguments.as_slice(),
+                [crate::hir::ResolvedType::Bytes
+                    | crate::hir::ResolvedType::String
+                    | crate::hir::ResolvedType::Nominal { .. }]
+            ))
+        || callee.as_str() == crate::construction_fusion::partition::ID
+        || is_fallible_byte_operation(callee)
+        || (callee.as_str() == crate::box_ops::NEW_ID
+            && matches!(type_arguments.as_slice(), [crate::hir::ResolvedType::Bytes]))
+        || is_map_reopen(callee);
+    (op, deferred)
+}
+
+/// String Collections v1 `map_add`/`map_set` check capacity and overflow
+/// before they take the staged map, so a failed call leaves it in its
+/// call-argument slot for ordinary region cleanup.
+pub(super) fn is_map_reopen(callee: &DeclarationId) -> bool {
+    crate::map_ops::by_id(callee.as_str()).is_some_and(|op| op.reopens())
+        || crate::string_ops::by_id(callee.as_str())
+            .is_some_and(crate::string_ops::StringOp::reopens_map)
+}
+
+/// `true` for a byte operation that is total after HIR admission and therefore
+/// publishes no propagated status at all.
+pub(super) fn is_total_byte_operation(callee: &DeclarationId) -> bool {
+    crate::byte_ops::by_id(callee.as_str()).is_some_and(|op| !op.is_fallible())
+}
+
+pub(super) fn is_infallible_vec_operation(op: Option<crate::vec_ops::VecOp>) -> bool {
+    matches!(
+        op,
+        Some(
+            crate::vec_ops::VecOp::Len
+                | crate::vec_ops::VecOp::Capacity
+                | crate::vec_ops::VecOp::Clear
+                | crate::vec_ops::VecOp::Sort
+                | crate::vec_ops::VecOp::SortOwned
+                | crate::vec_ops::VecOp::SortBy
+        )
+    )
+}
+
+pub(super) fn is_infallible_box_operation(callee: &DeclarationId) -> bool {
+    matches!(
+        crate::box_ops::by_id(callee.as_str()),
+        Some(crate::box_ops::BoxOp::Get | crate::box_ops::BoxOp::IntoInner)
+    )
+}
+
+/// Borrowed UTF-8 byte length reads the authenticated carrier's stored extent.
+/// Runtime root/UTF-8 violations remain invariant failure, not a language
+/// operation status. Keep this fact exact; other Str operations retain their
+/// existing producer model until independently changed.
+pub(super) fn is_total_str_len_bytes(callee: &DeclarationId) -> bool {
+    matches!(
+        crate::str_ops::by_id(callee.as_str()),
+        Some(crate::str_ops::StrOp::LenBytes)
+    )
+}
+
+pub(super) fn expression_is_infallible_compiler_operation(
+    expression: &crate::hir::ResolvedExpr,
+) -> bool {
+    matches!(
+        &expression.kind,
+        crate::hir::ResolvedExprKind::Call { callee, instance: None, .. }
+            if crate::byte_ops::by_id(callee.as_str()).is_some_and(|op| !op.is_fallible())
+                || is_total_str_len_bytes(callee)
+                    || crate::string_ops::take::operand(expression).is_some()
+                || crate::host_io_ops::by_id(callee.as_str()).is_some()
+                || is_infallible_vec_operation(crate::vec_ops::by_id(callee.as_str()))
+                || is_infallible_box_operation(callee)
+                || callee.as_str() == crate::stdin_stream_ops::EOF_ID
+    )
+}
+
+/// These two reads have borrowed parameters and no owner-admission lane.
+/// Retain ordinary child failures; reject malformed shapes conservatively.
+pub(super) fn infallible_borrowed_vector_observer(expression: &crate::hir::ResolvedExpr) -> bool {
+    use crate::hir::{OwnershipMode, ResolvedExprKind, ResolvedType};
+    matches!(&expression.kind, ResolvedExprKind::Call { callee, instance: None, type_arguments, args }
+        if matches!(crate::vec_ops::by_id(callee.as_str()), Some(crate::vec_ops::VecOp::Len | crate::vec_ops::VecOp::Capacity))
+        && type_arguments.len() == 1
+        && matches!(args.as_slice(), [source]
+            if matches!(&source.ty, ResolvedType::Nominal { declaration, arguments }
+                if declaration.as_str() == crate::prelude::VEC_ID && arguments == type_arguments)
+            && matches!(source.ownership, OwnershipMode::Borrow | OwnershipMode::Own))
+        && expression.ty == ResolvedType::Usize && expression.ownership == OwnershipMode::Value)
+}
+
+fn is_fallible_byte_operation(callee: &DeclarationId) -> bool {
+    crate::byte_ops::by_id(callee.as_str()).is_some_and(crate::byte_ops::ByteOp::is_fallible)
+}
+
+#[cfg(test)]
+mod total_len_tests;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn owned_leaf_iterator_allocation_failure_retains_staged_vector() {
+        for element in ["string", "Row", "Bytes", "i64"] {
+            let source = format!(
+                r#"
+module iterator.commit;
+@id("row") record Row {{ @id("row.text") text: string, }}
+@id("app.main") fn main() -> i64 {{
+ let rows = vec_with_capacity<{element}>(0usize);
+ let iterator = vec_into_iter<{element}>(rows);
+ 0
+}}
+"#
+            );
+            let ast = crate::check(&source, "iterator-commit.spx").unwrap();
+            let program = crate::hir::resolve(&ast).unwrap();
+            crate::hir::validate(&program).unwrap();
+            let function = program
+                .functions
+                .iter()
+                .find(|f| f.id.as_str() == "app.main")
+                .unwrap();
+            let mut call = None;
+            crate::hir::function_value::walk(function, |expr| {
+                if matches!(&expr.kind, crate::hir::ResolvedExprKind::Call { callee, .. }
+                    if callee.as_str() == crate::iterator_ops::INTO_ITER_ID)
+                {
+                    call = Some(expr.clone());
+                }
+            });
+            let call = call.unwrap();
+            assert_eq!(call_behavior(&call).1, element != "i64");
+            let retains_vector = function.cleanup_plan.exits.iter().any(|exit|
+                matches!(&exit.continuation, crate::cleanup_plan::ExitContinuation::ReturnFailure { source }
+                    if source.expression == call.id && source.lane == crate::cleanup_plan::StatusLane::OperationFailure)
+                && exit.finalize_in_order.iter().any(|action|
+                    action.lifecycle_id.as_str() == crate::cleanup::VEC_DROP_LIFECYCLE_ID
+                    && matches!(action.source.storage, crate::cleanup_plan::StorageId::CallArgument { .. })));
+            assert_eq!(retains_vector, element != "i64");
+        }
+    }
+}

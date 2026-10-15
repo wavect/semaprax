@@ -94,6 +94,7 @@ impl<'a> Directory<'a> {
         if !helpers.matches_program(program) {
             return admission.refuse(Refusal::Subject);
         }
+        admission.reserve(RecordPresence::transport_controls())?;
         Self::collect_impl(program, function, helpers, None, admission, true)
     }
     #[cfg(test)]
@@ -106,6 +107,7 @@ impl<'a> Directory<'a> {
         if !helpers.matches_program(member.program) {
             return admission.refuse(Refusal::Subject);
         }
+        admission.reserve(RecordPresence::transport_controls())?;
         Self::collect_impl(
             member.program,
             member.function,
@@ -125,6 +127,7 @@ impl<'a> Directory<'a> {
         if !helpers.matches_program(member.program) {
             return admission.refuse(Refusal::Subject);
         }
+        admission.reserve(RecordPresence::shared_transport_controls())?;
         Self::collect_impl(
             member.program,
             member.function,

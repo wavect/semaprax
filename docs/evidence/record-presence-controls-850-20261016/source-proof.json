@@ -1,0 +1,10 @@
+{
+  "mode": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "whole_immediate_inverses": 5,
+  "whole_main269_runtime_inputs": 4,
+  "original_collect_exact": true,
+  "direct_visit_body_exact_main": true,
+  "original_get_auth_work_subject_order_exact": true,
+  "all_original_main_inverses_replayed": true,
+  "no_new_selector": true
+}

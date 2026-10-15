@@ -64,6 +64,9 @@ impl<'a> ModuleIndex<'a> {
             crate::hir::renewal_probes::phase::Probes::new(&program.declarations, &mut admission)
                 .map_err(|_| resolved::census_error())?;
         admission.probes = Some(&probes);
+        admission
+            .reserve(RecordPresence::caller_controls())
+            .map_err(|_| resolved::census_error())?;
         let record_presence = RecordPresence::new(&program.declarations, &mut admission)
             .map_err(|_| resolved::census_error())?;
         if self.sites.is_empty() {

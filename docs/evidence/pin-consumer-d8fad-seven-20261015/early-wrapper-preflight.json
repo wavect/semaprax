@@ -1,0 +1,16 @@
+{
+  "source_subject": "d8fadfb7cd5ece54504cda542575e5a154d3657c",
+  "command": [
+    "python3",
+    "/Volumes/Semaprax/provenance/focused-build-pressure-wrapper-v4-20261015.py",
+    "--round",
+    "/Volumes/Semaprax/lane-prompts/pin-consumer-d8fad-seven-20261015",
+    "--rss-limit-gib",
+    "7"
+  ],
+  "exit_code": 1,
+  "failure": "AssertionError: planned driver not present yet during asynchronous preparation",
+  "heavy_command_started": false,
+  "test_bodies_executed": 0,
+  "scope": "Wrapper admission only; not a Rust build or test result"
+}

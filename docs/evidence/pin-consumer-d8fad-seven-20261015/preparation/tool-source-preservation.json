@@ -1,0 +1,32 @@
+[
+  {
+    "path": "build_order_adapter_proof.py",
+    "original_sha256": "aea6c3e1b70a1ac0da531b1f693cd53b193271d9e1a3b873b3bea98157795164",
+    "successor_sha256": "aea6c3e1b70a1ac0da531b1f693cd53b193271d9e1a3b873b3bea98157795164"
+  },
+  {
+    "path": "pin_only_contract.py",
+    "original_sha256": "da6ae1e312db05c547bffc855cbb311d746580d2a7f0fb966585d702fc9bfa4b",
+    "successor_sha256": "0d4199a40471ded42a3aa2af32e9fb08507ce59015577a7f0091436be6905cd8"
+  },
+  {
+    "path": "register-pin-only-five.py",
+    "original_sha256": "b0466fb3d0e347fea14e436bd05ab232c67dfb5f639ca5bfed4ecae325a5c772",
+    "successor_sha256": "937781a9571a874ec8e43f46d3da7efdfa81aff11f1ff74ab65b54fac62ce754"
+  },
+  {
+    "path": "prepare-pin-only-five.py",
+    "original_sha256": "753591d304afe2b42f166953d948f7ea110ecd1451c77f0566666476c0ef78bc",
+    "successor_sha256": "34a85cab803610394b28a0ebb143c4f308ce8629817c71465223b8302a52b73b"
+  },
+  {
+    "path": "build_order_contract.py",
+    "original_sha256": "930497904b368d3679c82dea937846324fa7eac627553005aa7c9b058ecf76dc",
+    "successor_sha256": "930497904b368d3679c82dea937846324fa7eac627553005aa7c9b058ecf76dc"
+  },
+  {
+    "path": "validate-static-fixtures.py",
+    "original_sha256": "402cc62d4a660c6db58c45fd5688fd17e9c9d1e731162f46871585b4d2a71be7",
+    "successor_sha256": "402cc62d4a660c6db58c45fd5688fd17e9c9d1e731162f46871585b4d2a71be7"
+  }
+]

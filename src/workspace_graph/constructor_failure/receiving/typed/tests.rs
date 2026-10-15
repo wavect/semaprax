@@ -571,6 +571,8 @@ fn typed_constructor_complete_sources_original_helpers_and_live_caller_are_exact
     let records = packet.as_array().unwrap();
     assert_eq!(records.len(), sources.len());
     for (record, (path, current, original)) in records.iter().zip(sources) {
+        let current = crate::source_reflows_merge::setup_typed_input(path, current);
+        let current = current.as_str();
         assert_eq!(record["source"].as_str().unwrap(), path);
         assert_eq!(
             format!(

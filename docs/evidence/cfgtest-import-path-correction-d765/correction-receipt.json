@@ -1,0 +1,1440 @@
+{
+  "status": "SOURCE_ONLY_15_ACTUAL_COMPILE_ERRORS_8_FILES",
+  "basis": "d765f7c7eda572f6ec3c62115e59f0fdef103a80",
+  "raw_build_jsonl": "/Volumes/Semaprax/lane-prompts/large-d765-qualification-20261015/owning-build.jsonl",
+  "raw_build_sha256": "650352f7fd83e55ca8d614ee5de9c2bd3dd77150a3326973eb4a5acea39ff13f",
+  "actual_error_count": 15,
+  "actual_errors": [
+    {
+      "rendered": "error: couldn't read `src/hir/resolve_statement/../../../../tests/fixtures/nested-byte-slice-traversal.spx`: No such file or directory (os error 2)\n   --> src/hir/resolve_statement/nested_byte_tests.rs:126:18\n    |\n126 |     let source = include_str!(\"../../../../tests/fixtures/nested-byte-slice-traversal.spx\");\n    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |\nhelp: there is a file with the same name in a different directory\n    |\n126 -     let source = include_str!(\"../../../../tests/fixtures/nested-byte-slice-traversal.spx\");\n126 +     let source = include_str!(\"../../../tests/fixtures/nested-byte-slice-traversal.spx\");\n    |\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "there is a file with the same name in a different directory",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 4534,
+              "byte_start": 4474,
+              "column_end": 91,
+              "column_start": 31,
+              "expansion": null,
+              "file_name": "src/hir/resolve_statement/nested_byte_tests.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 126,
+              "line_start": 126,
+              "suggested_replacement": "\"../../../tests/fixtures/nested-byte-slice-traversal.spx\"",
+              "suggestion_applicability": "MachineApplicable",
+              "text": [
+                {
+                  "highlight_end": 91,
+                  "highlight_start": 31,
+                  "text": "    let source = include_str!(\"../../../../tests/fixtures/nested-byte-slice-traversal.spx\");"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "level": "error",
+      "message": "couldn't read `src/hir/resolve_statement/../../../../tests/fixtures/nested-byte-slice-traversal.spx`: No such file or directory (os error 2)",
+      "spans": [
+        {
+          "byte_end": 4535,
+          "byte_start": 4461,
+          "column_end": 92,
+          "column_start": 18,
+          "expansion": {
+            "def_site_span": {
+              "byte_end": 47262,
+              "byte_start": 47238,
+              "column_end": 29,
+              "column_start": 5,
+              "expansion": null,
+              "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 1319,
+              "line_start": 1319,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            },
+            "macro_decl_name": "include_str!",
+            "span": {
+              "byte_end": 4535,
+              "byte_start": 4461,
+              "column_end": 92,
+              "column_start": 18,
+              "expansion": null,
+              "file_name": "src/hir/resolve_statement/nested_byte_tests.rs",
+              "is_primary": false,
+              "label": null,
+              "line_end": 126,
+              "line_start": 126,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": [
+                {
+                  "highlight_end": 92,
+                  "highlight_start": 18,
+                  "text": "    let source = include_str!(\"../../../../tests/fixtures/nested-byte-slice-traversal.spx\");"
+                }
+              ]
+            }
+          },
+          "file_name": "src/hir/resolve_statement/nested_byte_tests.rs",
+          "is_primary": true,
+          "label": null,
+          "line_end": 126,
+          "line_start": 126,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 92,
+              "highlight_start": 18,
+              "text": "    let source = include_str!(\"../../../../tests/fixtures/nested-byte-slice-traversal.spx\");"
+            }
+          ]
+        }
+      ],
+      "code": null
+    },
+    {
+      "rendered": "error[E0433]: cannot find module or crate `storage` in this scope\n  --> src/loan_plan/funded_flat/before_dense.rs:79:42\n   |\n79 |             payer.reserve(0).map_err(|_| storage::marker())?;\n   |                                          ^^^^^^^ use of unresolved module or unlinked crate `storage`\n   |\n   = help: if you wanted to use a crate named `storage`, use `cargo add storage` to add it to your `Cargo.toml`\nhelp: consider importing this module\n   |\n 4 + use crate::loan_plan::storage;\n   |\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "if you wanted to use a crate named `storage`, use `cargo add storage` to add it to your `Cargo.toml`",
+          "rendered": null,
+          "spans": []
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "consider importing this module",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 214,
+              "byte_start": 214,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/loan_plan/funded_flat/before_dense.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 4,
+              "line_start": 4,
+              "suggested_replacement": "use crate::loan_plan::storage;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::storage::{PlannerError, classify};"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "level": "error",
+      "message": "cannot find module or crate `storage` in this scope",
+      "spans": [
+        {
+          "byte_end": 3111,
+          "byte_start": 3104,
+          "column_end": 49,
+          "column_start": 42,
+          "expansion": null,
+          "file_name": "src/loan_plan/funded_flat/before_dense.rs",
+          "is_primary": true,
+          "label": "use of unresolved module or unlinked crate `storage`",
+          "line_end": 79,
+          "line_start": 79,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 49,
+              "highlight_start": 42,
+              "text": "            payer.reserve(0).map_err(|_| storage::marker())?;"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      }
+    },
+    {
+      "rendered": "error[E0433]: cannot find module or crate `storage` in this scope\n  --> src/loan_plan/funded_flat/before_dense.rs:84:58\n   |\n84 |                         payer.reserve(bytes).map_err(|_| storage::marker())\n   |                                                          ^^^^^^^ use of unresolved module or unlinked crate `storage`\n   |\n   = help: if you wanted to use a crate named `storage`, use `cargo add storage` to add it to your `Cargo.toml`\nhelp: consider importing this module\n   |\n 4 + use crate::loan_plan::storage;\n   |\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "if you wanted to use a crate named `storage`, use `cargo add storage` to add it to your `Cargo.toml`",
+          "rendered": null,
+          "spans": []
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "consider importing this module",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 214,
+              "byte_start": 214,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/loan_plan/funded_flat/before_dense.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 4,
+              "line_start": 4,
+              "suggested_replacement": "use crate::loan_plan::storage;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::storage::{PlannerError, classify};"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "level": "error",
+      "message": "cannot find module or crate `storage` in this scope",
+      "spans": [
+        {
+          "byte_end": 3406,
+          "byte_start": 3399,
+          "column_end": 65,
+          "column_start": 58,
+          "expansion": null,
+          "file_name": "src/loan_plan/funded_flat/before_dense.rs",
+          "is_primary": true,
+          "label": "use of unresolved module or unlinked crate `storage`",
+          "line_end": 84,
+          "line_start": 84,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 65,
+              "highlight_start": 58,
+              "text": "                        payer.reserve(bytes).map_err(|_| storage::marker())"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      }
+    },
+    {
+      "rendered": "error[E0425]: cannot find value `LOAN_PLAN_SCHEMA_V3` in this scope\n  --> src/loan_plan/paid_live/funded_before.rs:40:31\n   |\n40 |                 plan.schema = LOAN_PLAN_SCHEMA_V3;\n   |                               ^^^^^^^^^^^^^^^^^^^ not found in this scope\n   |\nhelp: consider importing this constant\n   |\n 4 + use crate::loan_plan::LOAN_PLAN_SCHEMA_V3;\n   |\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "consider importing this constant",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 214,
+              "byte_start": 214,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/loan_plan/paid_live/funded_before.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 4,
+              "line_start": 4,
+              "suggested_replacement": "use crate::loan_plan::LOAN_PLAN_SCHEMA_V3;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::before_plan as paid_plan;"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "level": "error",
+      "message": "cannot find value `LOAN_PLAN_SCHEMA_V3` in this scope",
+      "spans": [
+        {
+          "byte_end": 1723,
+          "byte_start": 1704,
+          "column_end": 50,
+          "column_start": 31,
+          "expansion": null,
+          "file_name": "src/loan_plan/paid_live/funded_before.rs",
+          "is_primary": true,
+          "label": "not found in this scope",
+          "line_end": 40,
+          "line_start": 40,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 50,
+              "highlight_start": 31,
+              "text": "                plan.schema = LOAN_PLAN_SCHEMA_V3;"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0425",
+        "explanation": "An unresolved name was used.\n\nErroneous code examples:\n\n```compile_fail,E0425\nsomething_that_doesnt_exist::foo;\n// error: unresolved name `something_that_doesnt_exist::foo`\n\n// or:\n\ntrait Foo {\n    fn bar() {\n        Self; // error: unresolved name `Self`\n    }\n}\n\n// or:\n\nlet x = unknown_variable;  // error: unresolved name `unknown_variable`\n```\n\nPlease verify that the name wasn't misspelled and ensure that the\nidentifier being referred to is valid for the given situation. Example:\n\n```\nenum something_that_does_exist {\n    Foo,\n}\n```\n\nOr:\n\n```\nmod something_that_does_exist {\n    pub static foo : i32 = 0i32;\n}\n\nsomething_that_does_exist::foo; // ok!\n```\n\nOr:\n\n```\nlet unknown_variable = 12u32;\nlet x = unknown_variable; // ok!\n```\n\nIf the item is not defined in the current module, it must be imported using a\n`use` statement, like so:\n\n```\n# mod foo { pub fn bar() {} }\n# fn main() {\nuse foo::bar;\nbar();\n# }\n```\n\nIf the item you are importing is not defined in some super-module of the\ncurrent module, then it must also be declared as public (e.g., `pub fn`).\n"
+      }
+    },
+    {
+      "rendered": "error[E0433]: cannot find module or crate `paid_predicates` in this scope\n  --> src/loan_plan/paid_live/../funded_flat/tests.rs:51:17\n   |\n51 |                 paid_predicates::string_slot(value).unwrap(),\n   |                 ^^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `paid_predicates`\n   |\n   = help: if you wanted to use a crate named `paid_predicates`, use `cargo add paid_predicates` to add it to your `Cargo.toml`\nhelp: consider importing this module\n   |\n 1 + use crate::loan_plan::paid_predicates;\n   |\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "if you wanted to use a crate named `paid_predicates`, use `cargo add paid_predicates` to add it to your `Cargo.toml`",
+          "rendered": null,
+          "spans": []
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "consider importing this module",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 0,
+              "byte_start": 0,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/loan_plan/paid_live/../funded_flat/tests.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 1,
+              "line_start": 1,
+              "suggested_replacement": "use crate::loan_plan::paid_predicates;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::*;"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "level": "error",
+      "message": "cannot find module or crate `paid_predicates` in this scope",
+      "spans": [
+        {
+          "byte_end": 1893,
+          "byte_start": 1878,
+          "column_end": 32,
+          "column_start": 17,
+          "expansion": null,
+          "file_name": "src/loan_plan/paid_live/../funded_flat/tests.rs",
+          "is_primary": true,
+          "label": "use of unresolved module or unlinked crate `paid_predicates`",
+          "line_end": 51,
+          "line_start": 51,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 32,
+              "highlight_start": 17,
+              "text": "                paid_predicates::string_slot(value).unwrap(),"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      }
+    },
+    {
+      "rendered": "error[E0433]: cannot find module or crate `paid_predicates` in this scope\n  --> src/loan_plan/paid_live/../funded_flat/tests.rs:96:17\n   |\n96 |         assert!(paid_predicates::string_slot(&forged).is_none());\n   |                 ^^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `paid_predicates`\n   |\n   = help: if you wanted to use a crate named `paid_predicates`, use `cargo add paid_predicates` to add it to your `Cargo.toml`\nhelp: consider importing this module\n   |\n 1 + use crate::loan_plan::paid_predicates;\n   |\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "if you wanted to use a crate named `paid_predicates`, use `cargo add paid_predicates` to add it to your `Cargo.toml`",
+          "rendered": null,
+          "spans": []
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "consider importing this module",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 0,
+              "byte_start": 0,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/loan_plan/paid_live/../funded_flat/tests.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 1,
+              "line_start": 1,
+              "suggested_replacement": "use crate::loan_plan::paid_predicates;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::*;"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "level": "error",
+      "message": "cannot find module or crate `paid_predicates` in this scope",
+      "spans": [
+        {
+          "byte_end": 3335,
+          "byte_start": 3320,
+          "column_end": 32,
+          "column_start": 17,
+          "expansion": null,
+          "file_name": "src/loan_plan/paid_live/../funded_flat/tests.rs",
+          "is_primary": true,
+          "label": "use of unresolved module or unlinked crate `paid_predicates`",
+          "line_end": 96,
+          "line_start": 96,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 32,
+              "highlight_start": 17,
+              "text": "        assert!(paid_predicates::string_slot(&forged).is_none());"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      }
+    },
+    {
+      "rendered": "error[E0433]: cannot find module or crate `adjacency` in this scope\n   --> src/loan_plan/paid_live/../funded_flat/tests.rs:161:37\n    |\n161 |                     let adjacency = adjacency::Adjacency::build_with_storage(\n    |                                     ^^^^^^^^^ use of unresolved module or unlinked crate `adjacency`\n    |\n    = help: if you wanted to use a crate named `adjacency`, use `cargo add adjacency` to add it to your `Cargo.toml`\nhelp: consider importing this struct\n    |\n  1 + use crate::loan_plan::adjacency::Adjacency;\n    |\nhelp: if you import `Adjacency`, refer to it directly\n    |\n161 -                     let adjacency = adjacency::Adjacency::build_with_storage(\n161 +                     let adjacency = Adjacency::build_with_storage(\n    |\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "if you wanted to use a crate named `adjacency`, use `cargo add adjacency` to add it to your `Cargo.toml`",
+          "rendered": null,
+          "spans": []
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "consider importing this struct",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 0,
+              "byte_start": 0,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/loan_plan/paid_live/../funded_flat/tests.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 1,
+              "line_start": 1,
+              "suggested_replacement": "use crate::loan_plan::adjacency::Adjacency;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::*;"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "if you import `Adjacency`, refer to it directly",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 6256,
+              "byte_start": 6245,
+              "column_end": 48,
+              "column_start": 37,
+              "expansion": null,
+              "file_name": "src/loan_plan/paid_live/../funded_flat/tests.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 161,
+              "line_start": 161,
+              "suggested_replacement": "",
+              "suggestion_applicability": "Unspecified",
+              "text": [
+                {
+                  "highlight_end": 48,
+                  "highlight_start": 37,
+                  "text": "                    let adjacency = adjacency::Adjacency::build_with_storage("
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "level": "error",
+      "message": "cannot find module or crate `adjacency` in this scope",
+      "spans": [
+        {
+          "byte_end": 6254,
+          "byte_start": 6245,
+          "column_end": 46,
+          "column_start": 37,
+          "expansion": null,
+          "file_name": "src/loan_plan/paid_live/../funded_flat/tests.rs",
+          "is_primary": true,
+          "label": "use of unresolved module or unlinked crate `adjacency`",
+          "line_end": 161,
+          "line_start": 161,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 46,
+              "highlight_start": 37,
+              "text": "                    let adjacency = adjacency::Adjacency::build_with_storage("
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      }
+    },
+    {
+      "rendered": "error[E0433]: cannot find module or crate `paid_candidate_before` in this scope\n  --> src/loan_plan/paid_live/../funded_flat/fixture_before.rs:30:12\n   |\n30 |         if paid_candidate_before::inspect(program, function, payer)? {\n   |            ^^^^^^^^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `paid_candidate_before`\n   |\n   = help: if you wanted to use a crate named `paid_candidate_before`, use `cargo add paid_candidate_before` to add it to your `Cargo.toml`\nhelp: consider importing this module\n   |\n 4 + use crate::loan_plan::paid_candidate_before;\n   |\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "if you wanted to use a crate named `paid_candidate_before`, use `cargo add paid_candidate_before` to add it to your `Cargo.toml`",
+          "rendered": null,
+          "spans": []
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "consider importing this module",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 214,
+              "byte_start": 214,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/loan_plan/paid_live/../funded_flat/fixture_before.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 4,
+              "line_start": 4,
+              "suggested_replacement": "use crate::loan_plan::paid_candidate_before;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::storage::{classify, PlannerError};"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "level": "error",
+      "message": "cannot find module or crate `paid_candidate_before` in this scope",
+      "spans": [
+        {
+          "byte_end": 1279,
+          "byte_start": 1258,
+          "column_end": 33,
+          "column_start": 12,
+          "expansion": null,
+          "file_name": "src/loan_plan/paid_live/../funded_flat/fixture_before.rs",
+          "is_primary": true,
+          "label": "use of unresolved module or unlinked crate `paid_candidate_before`",
+          "line_end": 30,
+          "line_start": 30,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 33,
+              "highlight_start": 12,
+              "text": "        if paid_candidate_before::inspect(program, function, payer)? {"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      }
+    },
+    {
+      "rendered": "error[E0425]: cannot find value `LOAN_PLAN_SCHEMA_V3` in this scope\n  --> src/loan_plan/paid_live/../funded_flat/fixture_before.rs:37:31\n   |\n37 |                 plan.schema = LOAN_PLAN_SCHEMA_V3;\n   |                               ^^^^^^^^^^^^^^^^^^^ not found in this scope\n   |\nhelp: consider importing this constant\n   |\n 4 + use crate::loan_plan::LOAN_PLAN_SCHEMA_V3;\n   |\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "consider importing this constant",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 214,
+              "byte_start": 214,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/loan_plan/paid_live/../funded_flat/fixture_before.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 4,
+              "line_start": 4,
+              "suggested_replacement": "use crate::loan_plan::LOAN_PLAN_SCHEMA_V3;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::storage::{classify, PlannerError};"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "level": "error",
+      "message": "cannot find value `LOAN_PLAN_SCHEMA_V3` in this scope",
+      "spans": [
+        {
+          "byte_end": 1628,
+          "byte_start": 1609,
+          "column_end": 50,
+          "column_start": 31,
+          "expansion": null,
+          "file_name": "src/loan_plan/paid_live/../funded_flat/fixture_before.rs",
+          "is_primary": true,
+          "label": "not found in this scope",
+          "line_end": 37,
+          "line_start": 37,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 50,
+              "highlight_start": 31,
+              "text": "                plan.schema = LOAN_PLAN_SCHEMA_V3;"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0425",
+        "explanation": "An unresolved name was used.\n\nErroneous code examples:\n\n```compile_fail,E0425\nsomething_that_doesnt_exist::foo;\n// error: unresolved name `something_that_doesnt_exist::foo`\n\n// or:\n\ntrait Foo {\n    fn bar() {\n        Self; // error: unresolved name `Self`\n    }\n}\n\n// or:\n\nlet x = unknown_variable;  // error: unresolved name `unknown_variable`\n```\n\nPlease verify that the name wasn't misspelled and ensure that the\nidentifier being referred to is valid for the given situation. Example:\n\n```\nenum something_that_does_exist {\n    Foo,\n}\n```\n\nOr:\n\n```\nmod something_that_does_exist {\n    pub static foo : i32 = 0i32;\n}\n\nsomething_that_does_exist::foo; // ok!\n```\n\nOr:\n\n```\nlet unknown_variable = 12u32;\nlet x = unknown_variable; // ok!\n```\n\nIf the item is not defined in the current module, it must be imported using a\n`use` statement, like so:\n\n```\n# mod foo { pub fn bar() {} }\n# fn main() {\nuse foo::bar;\nbar();\n# }\n```\n\nIf the item you are importing is not defined in some super-module of the\ncurrent module, then it must also be declared as public (e.g., `pub fn`).\n"
+      }
+    },
+    {
+      "rendered": "error[E0433]: cannot find module or crate `paid_predicates` in this scope\n  --> src/loan_plan/paid_live/../funded_flat/tests_before.rs:51:17\n   |\n51 |                 paid_predicates::string_slot(value).unwrap(),\n   |                 ^^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `paid_predicates`\n   |\n   = help: if you wanted to use a crate named `paid_predicates`, use `cargo add paid_predicates` to add it to your `Cargo.toml`\nhelp: consider importing this module\n   |\n 1 + use crate::loan_plan::paid_predicates;\n   |\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "if you wanted to use a crate named `paid_predicates`, use `cargo add paid_predicates` to add it to your `Cargo.toml`",
+          "rendered": null,
+          "spans": []
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "consider importing this module",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 0,
+              "byte_start": 0,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/loan_plan/paid_live/../funded_flat/tests_before.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 1,
+              "line_start": 1,
+              "suggested_replacement": "use crate::loan_plan::paid_predicates;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::*;"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "level": "error",
+      "message": "cannot find module or crate `paid_predicates` in this scope",
+      "spans": [
+        {
+          "byte_end": 1893,
+          "byte_start": 1878,
+          "column_end": 32,
+          "column_start": 17,
+          "expansion": null,
+          "file_name": "src/loan_plan/paid_live/../funded_flat/tests_before.rs",
+          "is_primary": true,
+          "label": "use of unresolved module or unlinked crate `paid_predicates`",
+          "line_end": 51,
+          "line_start": 51,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 32,
+              "highlight_start": 17,
+              "text": "                paid_predicates::string_slot(value).unwrap(),"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      }
+    },
+    {
+      "rendered": "error[E0433]: cannot find module or crate `paid_predicates` in this scope\n  --> src/loan_plan/paid_live/../funded_flat/tests_before.rs:96:17\n   |\n96 |         assert!(paid_predicates::string_slot(&forged).is_none());\n   |                 ^^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `paid_predicates`\n   |\n   = help: if you wanted to use a crate named `paid_predicates`, use `cargo add paid_predicates` to add it to your `Cargo.toml`\nhelp: consider importing this module\n   |\n 1 + use crate::loan_plan::paid_predicates;\n   |\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "if you wanted to use a crate named `paid_predicates`, use `cargo add paid_predicates` to add it to your `Cargo.toml`",
+          "rendered": null,
+          "spans": []
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "consider importing this module",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 0,
+              "byte_start": 0,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/loan_plan/paid_live/../funded_flat/tests_before.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 1,
+              "line_start": 1,
+              "suggested_replacement": "use crate::loan_plan::paid_predicates;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::*;"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "level": "error",
+      "message": "cannot find module or crate `paid_predicates` in this scope",
+      "spans": [
+        {
+          "byte_end": 3335,
+          "byte_start": 3320,
+          "column_end": 32,
+          "column_start": 17,
+          "expansion": null,
+          "file_name": "src/loan_plan/paid_live/../funded_flat/tests_before.rs",
+          "is_primary": true,
+          "label": "use of unresolved module or unlinked crate `paid_predicates`",
+          "line_end": 96,
+          "line_start": 96,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 32,
+              "highlight_start": 17,
+              "text": "        assert!(paid_predicates::string_slot(&forged).is_none());"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      }
+    },
+    {
+      "rendered": "error[E0433]: cannot find module or crate `adjacency` in this scope\n   --> src/loan_plan/paid_live/../funded_flat/tests_before.rs:161:37\n    |\n161 |                     let adjacency = adjacency::Adjacency::build_with_storage(\n    |                                     ^^^^^^^^^ use of unresolved module or unlinked crate `adjacency`\n    |\n    = help: if you wanted to use a crate named `adjacency`, use `cargo add adjacency` to add it to your `Cargo.toml`\nhelp: consider importing this struct\n    |\n  1 + use crate::loan_plan::adjacency::Adjacency;\n    |\nhelp: if you import `Adjacency`, refer to it directly\n    |\n161 -                     let adjacency = adjacency::Adjacency::build_with_storage(\n161 +                     let adjacency = Adjacency::build_with_storage(\n    |\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "if you wanted to use a crate named `adjacency`, use `cargo add adjacency` to add it to your `Cargo.toml`",
+          "rendered": null,
+          "spans": []
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "consider importing this struct",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 0,
+              "byte_start": 0,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/loan_plan/paid_live/../funded_flat/tests_before.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 1,
+              "line_start": 1,
+              "suggested_replacement": "use crate::loan_plan::adjacency::Adjacency;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::*;"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "if you import `Adjacency`, refer to it directly",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 6256,
+              "byte_start": 6245,
+              "column_end": 48,
+              "column_start": 37,
+              "expansion": null,
+              "file_name": "src/loan_plan/paid_live/../funded_flat/tests_before.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 161,
+              "line_start": 161,
+              "suggested_replacement": "",
+              "suggestion_applicability": "Unspecified",
+              "text": [
+                {
+                  "highlight_end": 48,
+                  "highlight_start": 37,
+                  "text": "                    let adjacency = adjacency::Adjacency::build_with_storage("
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "level": "error",
+      "message": "cannot find module or crate `adjacency` in this scope",
+      "spans": [
+        {
+          "byte_end": 6254,
+          "byte_start": 6245,
+          "column_end": 46,
+          "column_start": 37,
+          "expansion": null,
+          "file_name": "src/loan_plan/paid_live/../funded_flat/tests_before.rs",
+          "is_primary": true,
+          "label": "use of unresolved module or unlinked crate `adjacency`",
+          "line_end": 161,
+          "line_start": 161,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 46,
+              "highlight_start": 37,
+              "text": "                    let adjacency = adjacency::Adjacency::build_with_storage("
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      }
+    },
+    {
+      "rendered": "error[E0433]: cannot find module or crate `paid_children` in this scope\n  --> src/loan_plan/paid_live/../funded_flat/fixture_receiving.rs:37:9\n   |\n37 |         paid_children::push_children(expression, &mut pending, None).unwrap();\n   |         ^^^^^^^^^^^^^ use of unresolved module or unlinked crate `paid_children`\n   |\n   = help: if you wanted to use a crate named `paid_children`, use `cargo add paid_children` to add it to your `Cargo.toml`\nhelp: consider importing this module\n   |\n 2 + use crate::loan_plan::paid_children;\n   |\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "if you wanted to use a crate named `paid_children`, use `cargo add paid_children` to add it to your `Cargo.toml`",
+          "rendered": null,
+          "spans": []
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "consider importing this module",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 79,
+              "byte_start": 79,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/loan_plan/paid_live/../funded_flat/fixture_receiving.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 2,
+              "line_start": 2,
+              "suggested_replacement": "use crate::loan_plan::paid_children;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::*;"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "level": "error",
+      "message": "cannot find module or crate `paid_children` in this scope",
+      "spans": [
+        {
+          "byte_end": 1487,
+          "byte_start": 1474,
+          "column_end": 22,
+          "column_start": 9,
+          "expansion": null,
+          "file_name": "src/loan_plan/paid_live/../funded_flat/fixture_receiving.rs",
+          "is_primary": true,
+          "label": "use of unresolved module or unlinked crate `paid_children`",
+          "line_end": 37,
+          "line_start": 37,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 22,
+              "highlight_start": 9,
+              "text": "        paid_children::push_children(expression, &mut pending, None).unwrap();"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      }
+    },
+    {
+      "rendered": "error[E0433]: cannot find module or crate `paid_cursor` in this scope\n    --> src/loan_plan/paid_live/../funded_flat/fixture_receiving.rs:51:30\n     |\n  51 |             let mut cursor = paid_cursor::Cursor::new(function, &owner);\n     |                              ^^^^^^^^^^^ use of unresolved module or unlinked crate `paid_cursor`\n     |\n     = help: if you wanted to use a crate named `paid_cursor`, use `cargo add paid_cursor` to add it to your `Cargo.toml`\nnote: these items exist but are inaccessible\n    --> src/cleanup_plan/build/helper_index/attached_capacity.rs:12:1\n     |\n  12 | type Cursor<'a> = [Option<(Node<'a>, usize)>; DEPTH];\n     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `crate::cleanup_plan::phase_measurement::helper_index::attached_capacity::Cursor`: not accessible\n     |\n    ::: src/cleanup_plan/replay/factored/strategy.rs:89:1\n     |\n  89 | struct Cursor {\n     | ^^^^^^^^^^^^^ `crate::cleanup_plan::replay::factored::strategy::Cursor`: not accessible\n     |\n    ::: src/loop_calls/byte_writer/source.rs:73:1\n     |\n  73 | pub(super) struct Cursor<'a> {\n     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `crate::loop_calls::byte_writer::source::Cursor`: not accessible\n     |\n    ::: src/public_generic_type.rs:852:1\n     |\n 852 | struct Cursor<'a> {\n     | ^^^^^^^^^^^^^^^^^ `crate::public_generic_type::Cursor`: not accessible\n     |\n    ::: src/semantic_retention_registry.rs:322:1\n     |\n 322 | struct Cursor {\n     | ^^^^^^^^^^^^^ `crate::semantic_retention_registry::Cursor`: not accessible\n     |\n    ::: src/wit_component.rs:1214:1\n     |\n1214 | struct Cursor<'a> {\n     | ^^^^^^^^^^^^^^^^^ `crate::wit_component::Cursor`: not accessible\n     |\n    ::: src/workspace_graph/prelude_binding/vec_selection.rs:7:1\n     |\n   7 | struct Cursor<'a> {\n     | ^^^^^^^^^^^^^^^^^ `crate::workspace_graph::prelude_binding::vec_selection::Cursor`: not accessible\n     |\n    ::: src/workspace_graph/source_schema/static_text/primitive/helpers/types.rs:4:1\n     |\n   4 | type Cursor<'a> = Option<hir::lexical_exit::ChildCursor<'a>>;\n     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `crate::workspace_graph::source_schema::static_text::primitive::helpers::types::Cursor`: not accessible\nhelp: consider importing one of these structs\n     |\n   2 + use crate::loan_plan::paid_cursor::Cursor;\n     |\n   2 + use std::io::Cursor;\n     |\nhelp: if you import `Cursor`, refer to it directly\n     |\n  51 -             let mut cursor = paid_cursor::Cursor::new(function, &owner);\n  51 +             let mut cursor = Cursor::new(function, &owner);\n     |\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "if you wanted to use a crate named `paid_cursor`, use `cargo add paid_cursor` to add it to your `Cargo.toml`",
+          "rendered": null,
+          "spans": []
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "note",
+          "message": "these items exist but are inaccessible",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 443,
+              "byte_start": 390,
+              "column_end": 54,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/cleanup_plan/build/helper_index/attached_capacity.rs",
+              "is_primary": true,
+              "label": "`crate::cleanup_plan::phase_measurement::helper_index::attached_capacity::Cursor`: not accessible",
+              "line_end": 12,
+              "line_start": 12,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": [
+                {
+                  "highlight_end": 54,
+                  "highlight_start": 1,
+                  "text": "type Cursor<'a> = [Option<(Node<'a>, usize)>; DEPTH];"
+                }
+              ]
+            },
+            {
+              "byte_end": 2764,
+              "byte_start": 2751,
+              "column_end": 14,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/cleanup_plan/replay/factored/strategy.rs",
+              "is_primary": true,
+              "label": "`crate::cleanup_plan::replay::factored::strategy::Cursor`: not accessible",
+              "line_end": 89,
+              "line_start": 89,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": [
+                {
+                  "highlight_end": 14,
+                  "highlight_start": 1,
+                  "text": "struct Cursor {"
+                }
+              ]
+            },
+            {
+              "byte_end": 2152,
+              "byte_start": 2124,
+              "column_end": 29,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/loop_calls/byte_writer/source.rs",
+              "is_primary": true,
+              "label": "`crate::loop_calls::byte_writer::source::Cursor`: not accessible",
+              "line_end": 73,
+              "line_start": 73,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": [
+                {
+                  "highlight_end": 29,
+                  "highlight_start": 1,
+                  "text": "pub(super) struct Cursor<'a> {"
+                }
+              ]
+            },
+            {
+              "byte_end": 31111,
+              "byte_start": 31094,
+              "column_end": 18,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/public_generic_type.rs",
+              "is_primary": true,
+              "label": "`crate::public_generic_type::Cursor`: not accessible",
+              "line_end": 852,
+              "line_start": 852,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": [
+                {
+                  "highlight_end": 18,
+                  "highlight_start": 1,
+                  "text": "struct Cursor<'a> {"
+                }
+              ]
+            },
+            {
+              "byte_end": 9994,
+              "byte_start": 9981,
+              "column_end": 14,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/semantic_retention_registry.rs",
+              "is_primary": true,
+              "label": "`crate::semantic_retention_registry::Cursor`: not accessible",
+              "line_end": 322,
+              "line_start": 322,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": [
+                {
+                  "highlight_end": 14,
+                  "highlight_start": 1,
+                  "text": "struct Cursor {"
+                }
+              ]
+            },
+            {
+              "byte_end": 45547,
+              "byte_start": 45530,
+              "column_end": 18,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/wit_component.rs",
+              "is_primary": true,
+              "label": "`crate::wit_component::Cursor`: not accessible",
+              "line_end": 1214,
+              "line_start": 1214,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": [
+                {
+                  "highlight_end": 18,
+                  "highlight_start": 1,
+                  "text": "struct Cursor<'a> {"
+                }
+              ]
+            },
+            {
+              "byte_end": 279,
+              "byte_start": 262,
+              "column_end": 18,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/workspace_graph/prelude_binding/vec_selection.rs",
+              "is_primary": true,
+              "label": "`crate::workspace_graph::prelude_binding::vec_selection::Cursor`: not accessible",
+              "line_end": 7,
+              "line_start": 7,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": [
+                {
+                  "highlight_end": 18,
+                  "highlight_start": 1,
+                  "text": "struct Cursor<'a> {"
+                }
+              ]
+            },
+            {
+              "byte_end": 227,
+              "byte_start": 166,
+              "column_end": 62,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/workspace_graph/source_schema/static_text/primitive/helpers/types.rs",
+              "is_primary": true,
+              "label": "`crate::workspace_graph::source_schema::static_text::primitive::helpers::types::Cursor`: not accessible",
+              "line_end": 4,
+              "line_start": 4,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": [
+                {
+                  "highlight_end": 62,
+                  "highlight_start": 1,
+                  "text": "type Cursor<'a> = Option<hir::lexical_exit::ChildCursor<'a>>;"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "consider importing one of these structs",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 79,
+              "byte_start": 79,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/loan_plan/paid_live/../funded_flat/fixture_receiving.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 2,
+              "line_start": 2,
+              "suggested_replacement": "use crate::loan_plan::paid_cursor::Cursor;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::*;"
+                }
+              ]
+            },
+            {
+              "byte_end": 79,
+              "byte_start": 79,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/loan_plan/paid_live/../funded_flat/fixture_receiving.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 2,
+              "line_start": 2,
+              "suggested_replacement": "use std::io::Cursor;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::*;"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "if you import `Cursor`, refer to it directly",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 2081,
+              "byte_start": 2068,
+              "column_end": 43,
+              "column_start": 30,
+              "expansion": null,
+              "file_name": "src/loan_plan/paid_live/../funded_flat/fixture_receiving.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 51,
+              "line_start": 51,
+              "suggested_replacement": "",
+              "suggestion_applicability": "Unspecified",
+              "text": [
+                {
+                  "highlight_end": 43,
+                  "highlight_start": 30,
+                  "text": "            let mut cursor = paid_cursor::Cursor::new(function, &owner);"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "level": "error",
+      "message": "cannot find module or crate `paid_cursor` in this scope",
+      "spans": [
+        {
+          "byte_end": 2079,
+          "byte_start": 2068,
+          "column_end": 41,
+          "column_start": 30,
+          "expansion": null,
+          "file_name": "src/loan_plan/paid_live/../funded_flat/fixture_receiving.rs",
+          "is_primary": true,
+          "label": "use of unresolved module or unlinked crate `paid_cursor`",
+          "line_end": 51,
+          "line_start": 51,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 41,
+              "highlight_start": 30,
+              "text": "            let mut cursor = paid_cursor::Cursor::new(function, &owner);"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      }
+    },
+    {
+      "rendered": "error[E0425]: cannot find function `build_plan` in this scope\n  --> src/loan_plan/paid_live/../funded_flat/directories_tests.rs:57:16\n   |\n57 |     assert_eq!(build_plan(program, function).unwrap(), expected);\n   |                ^^^^^^^^^^ not found in this scope\n   |\nhelp: consider importing one of these functions\n   |\n 4 + use crate::cleanup_plan::build_plan;\n   |\n 4 + use crate::loan_plan::build_plan;\n   |\n 4 + use crate::loan_plan::saved_planner::build_plan;\n   |\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "consider importing one of these functions",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 230,
+              "byte_start": 230,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/loan_plan/paid_live/../funded_flat/directories_tests.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 4,
+              "line_start": 4,
+              "suggested_replacement": "use crate::cleanup_plan::build_plan;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::*;"
+                }
+              ]
+            },
+            {
+              "byte_end": 230,
+              "byte_start": 230,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/loan_plan/paid_live/../funded_flat/directories_tests.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 4,
+              "line_start": 4,
+              "suggested_replacement": "use crate::loan_plan::build_plan;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::*;"
+                }
+              ]
+            },
+            {
+              "byte_end": 230,
+              "byte_start": 230,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/loan_plan/paid_live/../funded_flat/directories_tests.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 4,
+              "line_start": 4,
+              "suggested_replacement": "use crate::loan_plan::saved_planner::build_plan;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::*;"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "level": "error",
+      "message": "cannot find function `build_plan` in this scope",
+      "spans": [
+        {
+          "byte_end": 2071,
+          "byte_start": 2061,
+          "column_end": 26,
+          "column_start": 16,
+          "expansion": null,
+          "file_name": "src/loan_plan/paid_live/../funded_flat/directories_tests.rs",
+          "is_primary": true,
+          "label": "not found in this scope",
+          "line_end": 57,
+          "line_start": 57,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 26,
+              "highlight_start": 16,
+              "text": "    assert_eq!(build_plan(program, function).unwrap(), expected);"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0425",
+        "explanation": "An unresolved name was used.\n\nErroneous code examples:\n\n```compile_fail,E0425\nsomething_that_doesnt_exist::foo;\n// error: unresolved name `something_that_doesnt_exist::foo`\n\n// or:\n\ntrait Foo {\n    fn bar() {\n        Self; // error: unresolved name `Self`\n    }\n}\n\n// or:\n\nlet x = unknown_variable;  // error: unresolved name `unknown_variable`\n```\n\nPlease verify that the name wasn't misspelled and ensure that the\nidentifier being referred to is valid for the given situation. Example:\n\n```\nenum something_that_does_exist {\n    Foo,\n}\n```\n\nOr:\n\n```\nmod something_that_does_exist {\n    pub static foo : i32 = 0i32;\n}\n\nsomething_that_does_exist::foo; // ok!\n```\n\nOr:\n\n```\nlet unknown_variable = 12u32;\nlet x = unknown_variable; // ok!\n```\n\nIf the item is not defined in the current module, it must be imported using a\n`use` statement, like so:\n\n```\n# mod foo { pub fn bar() {} }\n# fn main() {\nuse foo::bar;\nbar();\n# }\n```\n\nIf the item you are importing is not defined in some super-module of the\ncurrent module, then it must also be declared as public (e.g., `pub fn`).\n"
+      }
+    }
+  ],
+  "all_eight_previous_sources_reconstruct_exactly": true,
+  "change_scope": "Only one relative include_str path and explicit imports/aliases. The referenced fixture bytes, assertions, control flows, public visibility and old original archives remain unchanged; the fixture path literal is the sole edit inside a function body.",
+  "cargo_or_tests_run": false
+}

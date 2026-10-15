@@ -2,6 +2,7 @@
 //! public planner. Inputs/Budget are outside; owner, discovery, construction,
 //! result receiving and Drop are inside each actual allocator observation.
 use super::*;
+use crate::loan_plan::build_plan;
 use crate::bounded_output::{with_limit_usage, with_limit_usage_refusal};
 use crate::test_allocation_observer::{measure, Metrics};
 

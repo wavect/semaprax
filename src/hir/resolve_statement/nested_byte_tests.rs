@@ -123,7 +123,7 @@ fn nested_byte_lowering_gate_requires_exact_immutable_entry_binding_and_strict_l
 }
 #[test]
 fn nested_byte_source_lowering_bridge_resolves_and_independent_hir_replays() {
-    let source = include_str!("../../../../tests/fixtures/nested-byte-slice-traversal.spx");
+    let source = include_str!("../../../tests/fixtures/nested-byte-slice-traversal.spx");
     let ast = crate::check(source, "nested-byte-slice-traversal.spx").unwrap();
     let hir = crate::hir::resolve(&ast).unwrap();
     crate::hir::validate(&hir).unwrap();

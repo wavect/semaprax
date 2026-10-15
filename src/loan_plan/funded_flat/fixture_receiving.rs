@@ -1,5 +1,6 @@
 //! Real wide authored discovery and the complete original allocation fixture.
 use super::*;
+use crate::loan_plan::{paid_children, paid_cursor};
 use crate::test_allocation_observer::current_metrics;
 
 pub(super) fn wide_source(source: &str, name: &str) -> String {

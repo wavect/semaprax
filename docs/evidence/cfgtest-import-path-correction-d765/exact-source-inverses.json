@@ -1,0 +1,106 @@
+[
+  {
+    "source": "src/hir/resolve_statement/nested_byte_tests.rs",
+    "archive": "docs/evidence/cfgtest-import-path-correction-d765/0.before.txt",
+    "before_sha256": "8de331f399e5868e20a8e91cfaca20b3dcca312444c9409ccc60c71fb859f9f8",
+    "current_sha256": "f78a80a1975935b65c079fcd8d441fa48a892e62259e580503231943d7948245",
+    "edits": [
+      {
+        "after": "../../../tests/fixtures/nested-byte-slice-traversal.spx",
+        "before": "../../../../tests/fixtures/nested-byte-slice-traversal.spx",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "source": "src/loan_plan/funded_flat/before_dense.rs",
+    "archive": "docs/evidence/cfgtest-import-path-correction-d765/1.before.txt",
+    "before_sha256": "97adc1e206be53a8da097440e5464c785819c14413b73064c6e213618546abe0",
+    "current_sha256": "ae103110ccd54984273804bf3089e5faae6239bc970fcbccc0ee1b1d2fac2ddd",
+    "edits": [
+      {
+        "after": "use super::storage::{self, PlannerError, classify};",
+        "before": "use super::storage::{PlannerError, classify};",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "source": "src/loan_plan/paid_live/funded_before.rs",
+    "archive": "docs/evidence/cfgtest-import-path-correction-d765/2.before.txt",
+    "before_sha256": "8acbf4f2aef5cb26524261c8ac27a9d0b6adce6334d43e11eb972fb88ef61401",
+    "current_sha256": "80f3a0569cb01faa2e95a1fe6cb49326cb7ec85051e7017b1a9f81896d01a46d",
+    "edits": [
+      {
+        "after": "use super::before_plan as paid_plan;\nuse crate::loan_plan::LOAN_PLAN_SCHEMA_V3;",
+        "before": "use super::before_plan as paid_plan;",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "source": "src/loan_plan/funded_flat/tests.rs",
+    "archive": "docs/evidence/cfgtest-import-path-correction-d765/3.before.txt",
+    "before_sha256": "e50d3f5d90ba9c650eb8f1d5a7ecc0d385beff021f18f22d04628738ed44100f",
+    "current_sha256": "dde182e61d1f3a3d4710cc0b051ab7166ee7badea1e1ed6ac08ff07b1996de42",
+    "edits": [
+      {
+        "after": "use super::*;\nuse crate::loan_plan::{adjacency, paid_predicates};",
+        "before": "use super::*;",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "source": "src/loan_plan/funded_flat/fixture_before.rs",
+    "archive": "docs/evidence/cfgtest-import-path-correction-d765/4.before.txt",
+    "before_sha256": "91435dda2a19ff54cb13fddcbd670d796bbd69badb470a3479a41ae370748057",
+    "current_sha256": "ddf25f935be7584988dd32b52ec4e737151c2d191cb51c238a5ff24ecfe2b747",
+    "edits": [
+      {
+        "after": "use super::*;\nuse crate::loan_plan::{LOAN_PLAN_SCHEMA_V3, paid_candidate_before};",
+        "before": "use super::*;",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "source": "src/loan_plan/funded_flat/tests_before.rs",
+    "archive": "docs/evidence/cfgtest-import-path-correction-d765/5.before.txt",
+    "before_sha256": "3df0efd03e2a08467722689870682ed3fe33de13289d5ceee1a407187ebc5366",
+    "current_sha256": "7042f68ed62a837708fef80cf97d608e378dc04f4b4e03e230843559f9851d9b",
+    "edits": [
+      {
+        "after": "use super::*;\nuse crate::loan_plan::{adjacency, paid_predicates};",
+        "before": "use super::*;",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "source": "src/loan_plan/funded_flat/fixture_receiving.rs",
+    "archive": "docs/evidence/cfgtest-import-path-correction-d765/6.before.txt",
+    "before_sha256": "db6cac907a9203d6c1c7b421bd32b50d9bfdfc4a3117553a92fdeddb4338f05d",
+    "current_sha256": "6d1ac31f034d88e5fa1c0c526829e719bd421b4746711d2ab7bf1dab31b05fcf",
+    "edits": [
+      {
+        "after": "use super::*;\nuse crate::loan_plan::{paid_children, paid_cursor};",
+        "before": "use super::*;",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "source": "src/loan_plan/funded_flat/directories_tests.rs",
+    "archive": "docs/evidence/cfgtest-import-path-correction-d765/7.before.txt",
+    "before_sha256": "e99b3ae25c4ef88bbeb148b752464bf11749ddab6fb62b2b8f25769ffe2571e1",
+    "current_sha256": "68b40c1f066699bcb9088135efcbfdeb961c9dc06342125378856832c96e67e0",
+    "edits": [
+      {
+        "after": "use super::*;\nuse crate::loan_plan::build_plan;",
+        "before": "use super::*;",
+        "count": 1
+      }
+    ]
+  }
+]

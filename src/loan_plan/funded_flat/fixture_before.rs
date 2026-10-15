@@ -3,6 +3,7 @@
 //! storage protocol; no whole-validator funding claim follows.
 use super::storage::{classify, PlannerError};
 use super::*;
+use crate::loan_plan::{LOAN_PLAN_SCHEMA_V3, paid_candidate_before};
 use crate::bounded_output::cfg_reservation::CfgReservation;
 
 pub(super) fn build(

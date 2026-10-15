@@ -1,4 +1,5 @@
 use super::*;
+use crate::loan_plan::{adjacency, paid_predicates};
 use crate::bounded_output::{with_limit_usage, with_limit_usage_refusal};
 use crate::hir::DeclarationId;
 use crate::test_allocation_observer::measure;

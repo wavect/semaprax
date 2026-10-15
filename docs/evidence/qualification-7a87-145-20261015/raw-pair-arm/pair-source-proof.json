@@ -1,0 +1,32 @@
+{
+  "raw_branch": "codex/opt841-raw-arm-7a87b33115c0",
+  "common_head": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+  "common_tree": "b210e0c5331f4d3c932cbd325d0ebc70612b4ee8",
+  "raw_head": "57e1485ca695771d0f381ce20f4d740ee98f2b86",
+  "raw_tree": "c8f0efc957c1814b6cbf090d234af506b372dfb3",
+  "changed_paths": [
+    "src/cleanup_plan/replay/selected_context/child/tests/source/compressed_fixture.rs"
+  ],
+  "unchanged_tracked_entries": 26978,
+  "single_literal_inverse": true,
+  "helper_before_sha256": "78324c41f888eaf44b59ef2ca91355f018435d0302f50ae114ea2425d4511d87",
+  "helper_after_sha256": "5d987457cc1f7ffd697fb208793199c151e58c8345fe480f156d1255dc6d88b8",
+  "common_manifest_sha256": "5c1a8c9f85de9fd72bf8145f3a5f22df193f7f27ed42945562e2e077bdcfc32b",
+  "raw_manifest_sha256": "02b098fcb53262b878fb885b6f1d04be8dbd4f9f146c3a0ca1bda30278e72e5e",
+  "original_driver_sha256": {
+    "run-owning-selected.py": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450",
+    "draft_contract.py": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1",
+    "run-extra-production-clippy.py": "47ff9dd51db73eb2b1e6b666c06ad37429d34e2959253179ed14ecb81f2ac8fe",
+    "semaprax_pressure_observation_v3.py": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+    "run-production-lib-cli-clippy.py": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077",
+    "build-owning.py": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888",
+    "observed_phase.py": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+  },
+  "derived_build_driver_sha256": "fbb37c7f41c91352bd669447fdb7280c9638e7cdbbad3bfb4bb74789739ae0f5",
+  "guardian_sha256": "a4477f43ec63fccb169a9b951c793f62a1cd06352d3a690872cfe1673be58119",
+  "build_commands": 1,
+  "runtime_selected_bodies": 1,
+  "execution_performed": false,
+  "cache_condition": "Same ROOT private target, serial raw-first; existing dependencies may be warm, five new compression dependencies may compile during raw. Build wall/group RSS NOT cache-controlled causal evidence. Actual rustc/process samples and artifact bytes retained separately.",
+  "prior_history_preserved": true
+}

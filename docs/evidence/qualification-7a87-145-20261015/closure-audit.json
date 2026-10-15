@@ -1,0 +1,1015 @@
+{
+  "source_subject": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+  "runtime_total": 145,
+  "runtime_pass": 120,
+  "runtime_fail": 25,
+  "pins": "PENDING_CAPTURE_AND_REQUIRED_CONSUMER_PROOF",
+  "issues": {
+    "833": {
+      "selected": 30,
+      "pass": 30,
+      "fail": 0,
+      "checks": [
+        {
+          "index_zero_based": 78,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::retained_tests::distinct_cold_storage_keeps_complete_old_layout_work_sites_and_empty_reference_stacks",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-78.log",
+          "log_sha256": "d2e003a4362537abbf8ad9ec2d4ac26b0f2a55f137ca3a5c3c11531e340d8729",
+          "wall_seconds": 1.9265145419922192,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 79,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::retained_tests::retained_storage_whole_constructor_to_drop_reports_old_current_bytes_and_real_distinct_savings",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-79.log",
+          "log_sha256": "196f82324fc2e1e246ccc13c5d546f8bb0a2d1f483d622c8434f0e9e7172b5e4",
+          "wall_seconds": 1.919060709013138,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 80,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::retained_tests::retained_storage_release_late_cold_and_registry_moves_keep_real_generation_custody",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-80.log",
+          "log_sha256": "39ea0515cc8c530c89d5302d01209a17f9bcf4a11fcb7b55780e2380a3a88704",
+          "wall_seconds": 1.9461735419899924,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 81,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::retained_tests::retained_storage_exact_short_zero_bytes_and_work_keep_terminal_receipts",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-81.log",
+          "log_sha256": "7829ed735df2453c7381df7a46473270c69c0c97f66fd0e437a99310ff31accd",
+          "wall_seconds": 1.9140350420057075,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 82,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::retained_tests::retained_storage_cold_parent_refusal_is_preowned_cache_path_unchanged_and_restoration_sticky",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-82.log",
+          "log_sha256": "e7d63160fea4dcdc21705846cd2755af168686a9a9f80dad101b96d14c8dc122",
+          "wall_seconds": 1.9143110410077497,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 83,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::retained_tests::retained_storage_nested_floor_and_malformed_diagnostic_match_complete_old",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-83.log",
+          "log_sha256": "e858129ee2f9c67953111d137cc50d2e1be824b2cd6049363ec2ff5ec62476cb",
+          "wall_seconds": 1.9162821670033736,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 84,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::distinct_census_callers_keep_complete_old_layouts_and_reset_paid_scratch",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-84.log",
+          "log_sha256": "6800cf21be7a9c1a4050833fe49ca1ef8caa62e13b2535bb9b56d08ac7e610b6",
+          "wall_seconds": 1.9163180830073543,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 85,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::census_scratch_release_retains_receipt_and_late_cold_caller_reacquires",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-85.log",
+          "log_sha256": "76916d2c2f73e1d0c3a5a4af2d890bdfb3c40c7369d0300dd99954d452094a09",
+          "wall_seconds": 1.9118569580023177,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 86,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::complete_old_and_reused_census_keep_malformed_diagnostics_and_poisoned_drop",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-86.log",
+          "log_sha256": "182552193e65d0e9d04c2d2824ccc7d8645b5c7e52711ba4066cb78b54f1bd4f",
+          "wall_seconds": 1.9220830830017803,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 87,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::census_registry_exact_short_zero_work_and_byte_limits_keep_sticky_refusal",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-87.log",
+          "log_sha256": "589f8463097b8c165e86d8afc36f46ace43f5b836442a9107e074b0635c2db22",
+          "wall_seconds": 1.9063078749895794,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 88,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::census_scratch_preserves_nested_floors_foreign_and_restored_owner_refusal",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-88.log",
+          "log_sha256": "70b1965a1eda368d8d31ebd33a1cc748897da81fb4f95a3799e36b5ac7e3aaf6",
+          "wall_seconds": 1.970890040989616,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 89,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::distinct_census_registry_observes_actual_allocated_reserved_peak_and_complete_drop",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-89.log",
+          "log_sha256": "302fc1253c22471bb082e7cb15d9509cfaff4d2a1cc6ee5e3cdca829b776c8a8",
+          "wall_seconds": 1.9190464169951156,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 90,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::complete_old_registry_census_derivation_and_current_scratch_sources_remain_bound",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-90.log",
+          "log_sha256": "b5d6a542d828b81de62d7e465a6265c1017b5867e833b994c468a1bcc64c63ab",
+          "wall_seconds": 2.937664583005244,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 91,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::tests::invocation_reuses_exact_closure_across_import_forecasts_stubs_and_retry_modes",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-91.log",
+          "log_sha256": "47630ed270c33e9bfb238b692d0e50ed24a6ec2f5f6de493e69a3f87480fa06a",
+          "wall_seconds": 2.948473833006574,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 92,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::tests::preparation_has_exact_one_short_overlap_and_sticky_context_refusal",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-92.log",
+          "log_sha256": "c957c166ce07ea9d23a09cbce25ec9478f00af5772b1419e1919ec0adc8c2ec3",
+          "wall_seconds": 1.9099647080001887,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 93,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::tests::fallible_sort_matches_independent_order_and_stops_at_exact_work_boundary",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-93.log",
+          "log_sha256": "3d174a8593ad3a1494c18c09a9f5f00c676cc5b899b5cb1e9f3fa4913e423ebe",
+          "wall_seconds": 1.9097738749987911,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 94,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::tests::two_callers_share_one_derivation_query_ledger_and_sticky_refusal",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-94.log",
+          "log_sha256": "34c7b0de83db9a6814356fe86105f98533f445c97437a494354aac59629135a7",
+          "wall_seconds": 1.9112671250040876,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 95,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::tests::held_presentation_borrows_without_allocation_and_pays_shared_work",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-95.log",
+          "log_sha256": "d936197569f0054095174fc7ab2097bd1a0b7028967a55f2885addc952fb987d",
+          "wall_seconds": 1.910297875001561,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 96,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::tests::held_presentation_work_is_exact_one_short_and_sticky",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-96.log",
+          "log_sha256": "eefb5a97a95d4b08ab68b5a11903ef1f235905479d41ef1676a133e6b81cc71c",
+          "wall_seconds": 1.8990480419888627,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 97,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::owner_index::tests::held_signature_sites_match_independent_walk_without_per_query_backing",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-97.log",
+          "log_sha256": "7ad449c814efe6154ddd6b3d8f2004289156ad79a711f0d3d4de8864b3b339f2",
+          "wall_seconds": 1.9319105000031414,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 98,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::owner_index::tests::held_signature_directory_has_exact_one_short_storage_and_shared_lookup_work",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-98.log",
+          "log_sha256": "9657855b1efe5e6fc26dd7025d0dd4dec2089f45bbb83026ad0429d55d6acdfe",
+          "wall_seconds": 1.9137121250096243,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 99,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::owner_index::tests::duplicate_provider_names_and_aliases_remain_identity_distinct_and_layout_drift_rederives",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-99.log",
+          "log_sha256": "c7f1bbbd6013afffe313b21273fb3b2e8cbf74a336b39de8dc0315a3e8285de9",
+          "wall_seconds": 1.9054348339996068,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 100,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::callback_occurrences_bound_exact_full_identity_inserts_on_sparse_dense_duplicate_and_imported_closures",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-100.log",
+          "log_sha256": "9b53037b1dd35f92997ba0e99a973ee95ce50ce196701b9013f1aacbf98261e8",
+          "wall_seconds": 1.90525391700794,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 101,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::actual_cold_reservation_allocation_peak_and_full_drop_are_compared_without_baseline_padding",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-101.log",
+          "log_sha256": "21d12777f5590a84e85623d136967ba00492900c5c2228f22ae73158e9856fd4",
+          "wall_seconds": 1.93306345801102,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 102,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::physical_and_work_exact_short_zero_frontiers_preserve_old_order_and_honest_new_acceptance",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-102.log",
+          "log_sha256": "a6be18d3ff29b8d90dc33f366aeba42f6341c78a0222328b3ded573610cdaedf",
+          "wall_seconds": 1.9136792499921285,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 103,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::malformed_complete_receivers_keep_all_six_diagnostic_fields_and_priority",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-103.log",
+          "log_sha256": "e982dc06576f06ff3dc75cfa2680dd789448de04606176846b0e935ccb4e0e6f",
+          "wall_seconds": 1.912291542001185,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 104,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::owner_controls::cold_registry_exact_short_zero_and_foreign_restored_contexts_keep_receipts_sticky",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-104.log",
+          "log_sha256": "5c2b963bd635668c948919e29b6c792d7ed46a3d04067be4996cde286ee707e1",
+          "wall_seconds": 1.910778040997684,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 105,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::owner_controls::same_required_derived_bytes_preserve_nested_parent_floor_and_full_drop",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-105.log",
+          "log_sha256": "fe56aec05f23941747526fd82b993dfb72b05226851cf666954ae2d5a23f7f65",
+          "wall_seconds": 1.9106699999974808,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 106,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::owner_controls::unchanged_signature_owner_rejects_foreign_type_then_cannot_recover_after_restoration",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-106.log",
+          "log_sha256": "9b02e1f70bfc9a7e1f975aa0e145d96e97cc10e03d06dd62c1b2fbf86e1d9208",
+          "wall_seconds": 1.9131859580083983,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 107,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::expected_projection::private_layout::registry::retained_tests::complete_immediate_sources_and_old_owning_bodies_remain_independent",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-107.log",
+          "log_sha256": "ff84bee69086fba090509205224f09263392f37bcafb423a87432beac07aa65b",
+          "wall_seconds": 1.916790209012106,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        }
+      ]
+    },
+    "835": {
+      "selected": 22,
+      "pass": 20,
+      "fail": 2,
+      "checks": [
+        {
+          "index_zero_based": 126,
+          "harness": "semaprax::lib",
+          "selector": "format::comments::compare::tests::full_commented_comparison_keeps_old_unicode_crlf_trailing_nested_and_noncanonical_bytes",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-126.log",
+          "log_sha256": "40cffcad3b986708178e833adb29a0d346a0b3fca70dfc01a86cff8b65f47f71",
+          "wall_seconds": 1.921393166994676,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 127,
+          "harness": "semaprax::lib",
+          "selector": "format::comments::compare::tests::comparison_accepts_every_later_write_after_mismatch_and_checked_length_overflow",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-127.log",
+          "log_sha256": "db6b2899b4da90c64bf1a058fa1f16c513517bd3788e078508642ca412c45b15",
+          "wall_seconds": 1.9273783340031514,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 128,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::cold_canonical::tests::complete_old_and_comparison_keep_exact_short_zero_sticky_and_nested_formatter_debits",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-128.log",
+          "log_sha256": "cf6daa2597e9dc7abc4a8afcc5e58181f8ed26f09c907ca428b5d9a92144685a",
+          "wall_seconds": 1.928902083003777,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 129,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::cold_canonical::tests::final_string_backing_is_removed_with_actual_allocated_reserved_peak_and_whole_drop_observation",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-129.log",
+          "log_sha256": "0ebd1562e4d99ca3a46358403e7bdea59e85c08eb4b9683cee1328f510808cf1",
+          "wall_seconds": 1.9177255839895224,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 130,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::cold_canonical::tests::whole_cold_preflight_keeps_complete_old_source_graph_diagnostics_and_priority",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-130.log",
+          "log_sha256": "ce1fa1f7ff2901f190dec8f2b6333759d5ae6551f0fe0466e4298af04532e640",
+          "wall_seconds": 1.9285810840083286,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 131,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::cold_canonical::tests::whole_cold_preflight_exact_short_zero_builder_bounds_and_early_mismatch_keep_old_refusal",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-131.log",
+          "log_sha256": "c452705d85da02dbd084dc9dee9ee8faae66071a0884ec8ba6bdbd039ca0f9dd",
+          "wall_seconds": 1.9321154579956783,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 132,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::cold_canonical::tests::whole_cold_preflight_observes_same_cold_setup_reserved_peak_and_complete_drop_without_output_string",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-132.log",
+          "log_sha256": "fbf261599fd94da72d5a43d2c311b6f0f60c62e2962e1bcf78ff31b604e149c6",
+          "wall_seconds": 1.9249905420001596,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 133,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::cold_canonical::tests::complete_old_commented_formatter_preflight_sources_and_all_current_children_remain_exact",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-133.log",
+          "log_sha256": "aa01688f3075bfe2dcc15ed5d667e3871e88d11d88be8028f0bb5e3b90c82a3c",
+          "wall_seconds": 2.9422854999866104,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 134,
+          "harness": "semaprax::lib",
+          "selector": "format::comments::tests::comments_survive_and_formatting_is_idempotent",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-134.log",
+          "log_sha256": "0d37a4e1477910b77affd3cd203f007307774eab4bb8a7f7d24b817544b09f5f",
+          "wall_seconds": 1.91308816599485,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 135,
+          "harness": "semaprax::lib",
+          "selector": "format::comments::tests::nested_blocks_fields_and_methods_keep_their_comments",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-135.log",
+          "log_sha256": "ac80bf5a600bda9af7fd5ef09074b96fc29609c29708acdef3a2b6054df9dfc7",
+          "wall_seconds": 1.941825540998252,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 136,
+          "harness": "semaprax::lib",
+          "selector": "format::comments::tests::variant_case_fields_and_resource_lifecycles_keep_every_comment",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-136.log",
+          "log_sha256": "5e8a7a5232075a23f0ecefd66fb2369bb12a75c599ce00aa52be1200e020037d",
+          "wall_seconds": 1.919836083005066,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 137,
+          "harness": "semaprax::lib",
+          "selector": "format::iterative_tests::expression_blocks_and_empty_match_keep_exact_separators",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-137.log",
+          "log_sha256": "02affdde91c8b3c637b89112ea12153486e7fb2dd6d15239097c37fd741479b4",
+          "wall_seconds": 1.9144026249996386,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 138,
+          "harness": "semaprax::lib",
+          "selector": "format::iterative_tests::unsafe_statement_in_inline_block_stays_parseable",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-138.log",
+          "log_sha256": "80629b02da8721dea733d427412f07646dc013e9587f0c2e3227f83cbe5fc5b1",
+          "wall_seconds": 1.9446398750005756,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 139,
+          "harness": "semaprax::lib",
+          "selector": "format::iterative_tests::statement_if_measurement_accounts_for_erased_normalization_nodes",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-139.log",
+          "log_sha256": "6927f6ccae21280e056bfa5d63fc1b277095a3bd61b517e1b5710d77b9138321",
+          "wall_seconds": 1.9146710000059102,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 140,
+          "harness": "semaprax::projections",
+          "selector": "fmt_comments::fmt_keeps_comments_and_is_idempotent",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-140.log",
+          "log_sha256": "562ce162d4ee06bf4f450bf6326a88333ab1e06a0f96f41624b177e8ea211c29",
+          "wall_seconds": 2.527753542002756,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 141,
+          "harness": "semaprax::projections",
+          "selector": "fmt_comments::comments_do_not_reach_the_semantic_graph",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-141.log",
+          "log_sha256": "cad0e460232fb019bb01d2002b1ff900757f0a881f201d2dc962a787e8c12266",
+          "wall_seconds": 1.4775290840043453,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 142,
+          "harness": "semaprax::projections",
+          "selector": "fmt_comments::fmt_project_failures_write_nothing",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-142.log",
+          "log_sha256": "1603fd1b4ce687931f016c7a122cf4a7cd2db139e7f1389016192adc176b8fc8",
+          "wall_seconds": 1.4838422910106601,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 74,
+          "harness": "semaprax::workspace",
+          "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-74.log",
+          "log_sha256": "66b0619c78cfe6126a33f0610b9f27482c19bb9a9e57fb2a7a93e34f92f5542c",
+          "wall_seconds": 1.5246421659976477,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 4,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+          "exit_code": 101,
+          "summary": [
+            "FAILED",
+            "0",
+            "1",
+            "0"
+          ],
+          "log": "owning-selected-04.log",
+          "log_sha256": "b040f49b79df0e4bb579ff94168b2d92517352b799c3b1515fce5495ba71c89c",
+          "wall_seconds": 80.33851620799396,
+          "policy": "RUN_AND_DISCLOSE"
+        },
+        {
+          "index_zero_based": 5,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+          "exit_code": 101,
+          "summary": [
+            "FAILED",
+            "0",
+            "1",
+            "0"
+          ],
+          "log": "owning-selected-05.log",
+          "log_sha256": "c6effd8656015074cfdb2b179839ab549bd50f532edc880c3fee92f0a607f9f1",
+          "wall_seconds": 3.32843654199678,
+          "policy": "RUN_AND_DISCLOSE"
+        },
+        {
+          "index_zero_based": 143,
+          "harness": "semaprax::lib",
+          "selector": "project::incremental::cold_source_tests::explicit_owner_siblings_match_legacy_selective_routes_and_body_reuse",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-143.log",
+          "log_sha256": "129c943d05ad50f48fa8993cdf9b87cf5804851a0ba3ce414ab12233cbc211d1",
+          "wall_seconds": 1.9132295419985894,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        },
+        {
+          "index_zero_based": 144,
+          "harness": "semaprax::lib",
+          "selector": "project::incremental::checked_hir::tests::lifecycle::actual_cold_warm_cache_core_and_publication_match_owned_receiver_through_drop",
+          "exit_code": 0,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log": "owning-selected-144.log",
+          "log_sha256": "03206851b9584d6444a7770c8a9d9386bc0311f2c24053441478bab48ef78a4e",
+          "wall_seconds": 1.9431812920083757,
+          "policy": "POSITIVE_OWNER_REQUIRED"
+        }
+      ]
+    }
+  },
+  "all_failures": [
+    {
+      "index_zero_based": 1,
+      "selector": "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+      "log": "owning-selected-01.log",
+      "log_sha256": "2c0080a06c145b1723395f125ac347b064755f0ea0b54217fc13636dc1a0bf19"
+    },
+    {
+      "index_zero_based": 2,
+      "selector": "application_starter::application_starter_selected_file_declared_native_tests_and_unchanged_cli49",
+      "log": "owning-selected-02.log",
+      "log_sha256": "48fd99d01a619fc4dfa353c6770f582d4fa80b251ed4752c7fd87e38fc4d6363"
+    },
+    {
+      "index_zero_based": 3,
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+      "log": "owning-selected-03.log",
+      "log_sha256": "787e7773fca244d6e28903299a334e1d673e1e4e95382da0e181050df7297758"
+    },
+    {
+      "index_zero_based": 4,
+      "selector": "workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+      "log": "owning-selected-04.log",
+      "log_sha256": "b040f49b79df0e4bb579ff94168b2d92517352b799c3b1515fce5495ba71c89c"
+    },
+    {
+      "index_zero_based": 5,
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "log": "owning-selected-05.log",
+      "log_sha256": "c6effd8656015074cfdb2b179839ab549bd50f532edc880c3fee92f0a607f9f1"
+    },
+    {
+      "index_zero_based": 6,
+      "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_actual_byte_and_item_plus_one_preflight_never_reserve_output",
+      "log": "owning-selected-06.log",
+      "log_sha256": "56c53177adf01b6eace0287aa28dd64df7f429fa8e5ccf71d2002c0ef8caa480"
+    },
+    {
+      "index_zero_based": 7,
+      "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_reads_and_short_refusal_allocate_nothing_then_copy_final_string_once",
+      "log": "owning-selected-07.log",
+      "log_sha256": "f3717532d8dc00cfb069223e49d09fc56e5e5ef09ebd8ef707c9c7ab4dbc3e92"
+    },
+    {
+      "index_zero_based": 8,
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_request_decision_response_keeps_duplicate_unicode_and_boundary_slots",
+      "log": "owning-selected-08.log",
+      "log_sha256": "d175323daf14f250114af3975d0aaadb657338fad6ed647ab645110f36417e55"
+    },
+    {
+      "index_zero_based": 9,
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_actual_item_and_byte_plus_one_refuse_before_publication",
+      "log": "owning-selected-09.log",
+      "log_sha256": "b3eb00cbfa344a6a2a8e091924933b3941ca310b0a5a3ace94fcc53fa2e22747"
+    },
+    {
+      "index_zero_based": 10,
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_maximum_escaping_exact_output_cap_and_plus_one",
+      "log": "owning-selected-10.log",
+      "log_sha256": "ffbdaa1caf9a53b97857c4a382c119783b7653523795082eaf7162a0377e50d3"
+    },
+    {
+      "index_zero_based": 11,
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_plan_receipts_and_live_revision_reject_forged_versions",
+      "log": "owning-selected-11.log",
+      "log_sha256": "835e4d0b61d240ff7fd6c35c496c933de011ecb754046fbab32b9ac2e9dc87f1"
+    },
+    {
+      "index_zero_based": 12,
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_two_nested_paths_preserve_exact_and_one_short_bytes",
+      "log": "owning-selected-12.log",
+      "log_sha256": "c4a78f90ba4a9d24a3fed8aba6b6b490c1dee696ccfeb9271c0e0e22265a0abe"
+    },
+    {
+      "index_zero_based": 13,
+      "selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+      "log": "owning-selected-13.log",
+      "log_sha256": "6f72db610997b635b5414c2f90726efa494317282e5f5b5bd56ccee66eb63259"
+    },
+    {
+      "index_zero_based": 14,
+      "selector": "workspace_graph::identity_resolution::base::cache_billing::tests::cached_prelude_replay_keeps_foreign_core_refusal_sticky",
+      "log": "owning-selected-14.log",
+      "log_sha256": "2d68d41a97943ed6e883036e3ee6c9ba9164d031de218378cb407913f195d533"
+    },
+    {
+      "index_zero_based": 30,
+      "selector": "owned_leaf_vec::copy_field_update::same_source_interpreter_matches_every_scalar_multi_copy_legacy_and_failure_control",
+      "log": "owning-selected-30.log",
+      "log_sha256": "96d328a242d9c0dd3bc842801cf409435b25e387c539fbe78909d49360f74df9"
+    },
+    {
+      "index_zero_based": 31,
+      "selector": "owned_leaf_collections::copy_field_update::copy_field_updates_preserve_eight_scalar_lanes_owned_leaf_bits_and_zero_store_heap_at_o0_o2",
+      "log": "owning-selected-31.log",
+      "log_sha256": "ab66128070d25399c0454a5cbb6bc645fafe49c9734d327f2031e6bda6e0bf4d"
+    },
+    {
+      "index_zero_based": 33,
+      "selector": "owned_leaf_vec::copy_field_update::wasm_copy_field_updates_keep_all_scalar_lanes_and_owned_identities_without_store_clones_or_drops",
+      "log": "owning-selected-33.log",
+      "log_sha256": "7e34e006301d61e995607608877d4502d3c5630f36eab3eaa71727e9702de878"
+    },
+    {
+      "index_zero_based": 34,
+      "selector": "owned_leaf_vec::copy_field_update::wasm_copy_field_update_index_rhs_and_host_authority_failures_keep_the_single_commit_boundary",
+      "log": "owning-selected-34.log",
+      "log_sha256": "b363d6e0e9d8f131b531973affcee0cf9adf0d129dd4c67960be95b70db5722b"
+    },
+    {
+      "index_zero_based": 35,
+      "selector": "owned_leaf_vec::copy_field_update::field_update_import_and_native_store_are_absent_from_the_complete_old_row_oracle",
+      "log": "owning-selected-35.log",
+      "log_sha256": "42458c2e2496d3a373a1fec64b50cf713f5cda25cfad81b0dd4c9b6985c0bc0a"
+    },
+    {
+      "index_zero_based": 50,
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::unfactored_schedule_retains_original_source_and_factored_admission",
+      "log": "owning-selected-50.log",
+      "log_sha256": "4ff0e1d7513d3e92de281f0754e633aa47d6a346e80f05e9f125fcb22a744ad6"
+    },
+    {
+      "index_zero_based": 52,
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus",
+      "log": "owning-selected-52.log",
+      "log_sha256": "d8a8a3d2185520442945657309d8d268b07691ed707015c587a2beca2ad4ea2b"
+    },
+    {
+      "index_zero_based": 53,
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::typed_vec_constructor_retains_exact_explicit_chain_application_control",
+      "log": "owning-selected-53.log",
+      "log_sha256": "296dfe7783e8a7fda47448fc5510f7feb52ba0612aef94d20b36a49448cfde52"
+    },
+    {
+      "index_zero_based": 62,
+      "selector": "resolver_cli::help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot",
+      "log": "owning-selected-62.log",
+      "log_sha256": "2177ff15fb43f99285f123ce9c97cfa67927c5a771aea40ba8afa1ff75ba2bd6"
+    },
+    {
+      "index_zero_based": 64,
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "log": "owning-selected-64.log",
+      "log_sha256": "57b5d06d7929b0fe469cd92c4b9eeaf6cbfe751c63ffeb37988bf9c1d63cc5b0"
+    },
+    {
+      "index_zero_based": 116,
+      "selector": "scalar_browser_ci_contract::browser_known_answers_match_authenticated_baseline_and_rename_graphs",
+      "log": "owning-selected-116.log",
+      "log_sha256": "8feb17e941d19f27af9cfffcb4bcb130dca9ae6ff3742230a478a041fe5063c5"
+    }
+  ],
+  "receipt_hashes": {
+    "owning-selected-results.json": "6e8f85c6d9d5742e7e4fea362d0b28f66c90b9ed7475f7d18afe3510bb15efe4",
+    "owning-build-result.json": "bb75fb1129932443aa131300a5c10b7abe008bdae7229c2980cd26bed6269806",
+    "clippy-production-result.json": "b878c57cbd5fa7c52b5c88396f129560f71da43ae5078947626df2b3a739ba4b",
+    "clippy-production-toolchain-full-cli-result.json": "b30ff161011e5605f67d360fb743e3a3943136bed799c3e189ad47902bff522b",
+    "compilation-manifest.json": "5c1a8c9f85de9fd72bf8145f3a5f22df193f7f27ed42945562e2e077bdcfc32b",
+    "preparation-receipt.json": "e030ec5491dafbc17d6731fd52d1fd3026e42db0f7bf1a6e026f866112f7dc25"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "status": "SOURCE_ONLY_NEXT_BATCH_UNEXECUTED",
+  "new_test_bodies": 1,
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::direct_bootstrap_exact_short_zero_retains_complete_old_constructor_and_whole_drop",
+      "new_body": true
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_bootstrap_pays_actual_controls_at_exact_and_one_short",
+      "new_body": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+      "new_body": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_successors_every_actual_byte_cut_covers_promotion_finish_and_zero_without_post_error_drop",
+      "new_body": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_complete_immediate_receiver_keeps_states_signatures_and_every_work_frontier",
+      "new_body": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::inline_weighted::tests::inline_weighted_moved_many_exact_enum_controls_and_actual_rc_layout_precede_construction",
+      "new_body": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::source::held_closure_every_source_and_full_immediate_inverse_are_exact",
+      "new_body": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::inline_weighted::source::inline_weighted_complete_source_inverses_and_immediate_receiver_are_exact",
+      "new_body": false
+    }
+  ],
+  "strict163_unchanged": true,
+  "issue831": "OPEN_PENDING_ACTUAL_STRICT_COMPARISON"
+}

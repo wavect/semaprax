@@ -658,6 +658,8 @@ fn before_main66517(source: &str, current: &str) -> String {
 
 // Preserve the complete old runtime input before every inherited source domain.
 fn before_retry_guard(source: &str, current: &str) -> String {
+    let previous = before_direct_carriers831(source, current);
+    let current = previous.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -668,10 +670,24 @@ fn before_retry_guard(source: &str, current: &str) -> String {
     )
 }
 pub(crate) fn retry_fixture_input(source: &str, current: &str) -> String {
+    let previous = before_direct_carriers831(source, current);
+    let current = previous.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/retry-fixture-full-source-view-61f-20261015/runtime-view.json"
+        )),
+        source,
+        current,
+    )
+}
+
+// Every older runtime source guard retains the exact297 physical domain.
+fn before_direct_carriers831(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/direct-canonical-carriers-831-20261015/current-to-297.json"
         )),
         source,
         current,

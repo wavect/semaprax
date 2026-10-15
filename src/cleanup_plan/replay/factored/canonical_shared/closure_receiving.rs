@@ -1,5 +1,5 @@
 //! One invocation-paid success/failure destination for cold closure producers.
-use super::{Diagnostic, Rc, ReplayBudget, ResolvedFunction, ordered_weights};
+use super::{ordered_weights, Diagnostic, Rc, ReplayBudget, ResolvedFunction};
 use crate::bounded_output::classifier_string::ClassifierLedger;
 use std::mem::size_of;
 type Value = Option<Rc<ordered_weights::OrderedWeights>>;
@@ -13,18 +13,42 @@ pub(in crate::cleanup_plan::replay::factored) struct ClosureReceiving {
     ledger: ClassifierLedger,
 }
 impl ClosureReceiving {
-    // Actual aggregate initializer + acquisition Result + receiving owner;
+    // Direct aggregate initializer + receiving owner; no Result<Self> exists.
     // named Option initializers, held Diagnostic receiving and bootstrap Result.
+    pub(in crate::cleanup_plan::replay::factored) const DIRECT_CONTROLS: usize = 2
+        * size_of::<Self>()
+        + size_of::<Option<Diagnostic>>()
+        + size_of::<Diagnostic>()
+        + size_of::<Value>()
+        + size_of::<Result<(), Diagnostic>>();
+    // The complete old Result-returning constructor stays independently usable
+    // by its original controls. Production direct construction makes no such Result.
+    #[cfg(test)]
     pub(super) const CONTROLS: usize = 2 * size_of::<Self>()
         + size_of::<Result<Self, Diagnostic>>()
         + size_of::<Option<Diagnostic>>()
         + size_of::<Diagnostic>()
         + size_of::<Value>()
         + size_of::<Result<(), Diagnostic>>();
+    pub(in crate::cleanup_plan::replay::factored) fn from_prepaid(
+        function: &ResolvedFunction,
+        budget: &ReplayBudget,
+    ) -> Self {
+        Self {
+            value: None,
+            refusal: None,
+            ready: false,
+            failed: false,
+            function: std::ptr::from_ref(function),
+            budget: std::ptr::from_ref(budget),
+            ledger: ClassifierLedger::capture(),
+        }
+    }
     // The unit producer borrows this owner. Its small success argument and
     // take/reset transport remain actual constructors; only the large inner
     // Result disappears. The outer Result and all nested Results still exist.
     pub(super) const PER_MISS_CONTROLS: usize = size_of::<&mut Self>() + 3 * size_of::<Value>();
+    #[cfg(test)]
     pub(in crate::cleanup_plan::replay::factored) fn acquire(
         function: &ResolvedFunction,
         budget: &mut ReplayBudget,

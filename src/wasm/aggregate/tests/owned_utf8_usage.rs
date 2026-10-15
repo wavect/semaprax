@@ -37,10 +37,16 @@ fn scalar_signature_lexical_body_string_selects_existing_owned_literal_storage()
             .params
             .iter()
             .all(|param| param.ty != hir::ResolvedType::String)));
-    let bytes = super::super::emit_owned_data_exports(&program, &[plan()]).unwrap();
+    let frozen = super::super::emit_owned_data_exports(&program, &[plan()], false).unwrap_err();
+    assert_eq!(frozen.code, "SPX-W110");
+    assert_eq!(
+        frozen.message,
+        "owned string literal reached a non-v10 WebAssembly profile"
+    );
+    let bytes = super::super::emit_owned_data_exports(&program, &[plan()], true).unwrap();
     assert_eq!(
         bytes,
-        super::super::emit_owned_data_exports(&program, &[plan()]).unwrap()
+        super::super::emit_owned_data_exports(&program, &[plan()], true).unwrap()
     );
     wasmparser::Validator::new().validate_all(&bytes).unwrap();
     assert!(bytes
@@ -78,7 +84,13 @@ fn exact_function_iterator_counts_contract_strings_without_unselected_body_leaka
         .unwrap();
     assert!(crate::wasm::functions_use_strings([selected]));
     assert!(!crate::wasm::functions_use_strings([plain]));
-    let bytes = super::super::emit_owned_data_exports(&program, &[plan()]).unwrap();
+    let frozen = super::super::emit_owned_data_exports(&program, &[plan()], false).unwrap_err();
+    assert_eq!(frozen.code, "SPX-W110");
+    assert_eq!(
+        frozen.message,
+        "owned string literal reached a non-v10 WebAssembly profile"
+    );
+    let bytes = super::super::emit_owned_data_exports(&program, &[plan()], true).unwrap();
     wasmparser::Validator::new().validate_all(&bytes).unwrap();
     for literal in [b"pre".as_slice(), b"post".as_slice()] {
         assert!(bytes.windows(literal.len()).any(|window| window == literal));
@@ -101,7 +113,13 @@ fn current_generic_and_closure_body_inventory_includes_local_strings() {
     assert!(crate::wasm::functions_use_strings(
         executable.iter().map(|(function, _)| *function)
     ));
-    let bytes = super::super::emit_owned_data_exports(&generic, &[plan()]).unwrap();
+    let frozen = super::super::emit_owned_data_exports(&generic, &[plan()], false).unwrap_err();
+    assert_eq!(frozen.code, "SPX-W110");
+    assert_eq!(
+        frozen.message,
+        "owned string literal reached a non-v10 WebAssembly profile"
+    );
+    let bytes = super::super::emit_owned_data_exports(&generic, &[plan()], true).unwrap();
     wasmparser::Validator::new().validate_all(&bytes).unwrap();
     let owning_closure = r#"module test.utf8_closure;
 @id("selected") fn selected()->i64 {
@@ -121,7 +139,7 @@ fn current_generic_and_closure_body_inventory_includes_local_strings() {
         closure.functions.iter()
     ));
     assert!(!crate::wasm::functions_use_strings(functions.bodies.iter()));
-    let bytes = super::super::emit_owned_data_exports(&closure, &[plan()]).unwrap();
+    let bytes = super::super::emit_owned_data_exports(&closure, &[plan()], true).unwrap();
     wasmparser::Validator::new().validate_all(&bytes).unwrap();
 
     // A structural census must inspect private closure bodies even though the
@@ -159,7 +177,13 @@ fn current_generic_and_closure_body_inventory_includes_local_strings() {
     };
     **body = string_body;
     assert_eq!(
-        super::super::emit_owned_data_exports(&forged, &[plan()])
+        super::super::emit_owned_data_exports(&forged, &[plan()], false)
+            .unwrap_err()
+            .code,
+        "SPX-H006"
+    );
+    assert_eq!(
+        super::super::emit_owned_data_exports(&forged, &[plan()], true)
             .unwrap_err()
             .code,
         "SPX-H006"
@@ -177,7 +201,13 @@ fn local_static_text_still_refuses_public_owned_export_authority() {
         program.functions.iter()
     ));
     assert_eq!(
-        super::super::emit_owned_data_exports(&program, &[plan()])
+        super::super::emit_owned_data_exports(&program, &[plan()], false)
+            .unwrap_err()
+            .code,
+        "SPX-W119"
+    );
+    assert_eq!(
+        super::super::emit_owned_data_exports(&program, &[plan()], true)
             .unwrap_err()
             .code,
         "SPX-W119"

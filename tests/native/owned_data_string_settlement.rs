@@ -204,5 +204,70 @@ fn standalone_descriptor_does_not_widen_project_wasm_string_admission() {
             error.message,
             "owned string literal reached a non-v10 WebAssembly profile"
         );
+        if !flat {
+            // A valid v10 scalar export still needs String runtime storage for
+            // the complete emitted inventory, including an unselected helper.
+            // A UTF-8 result in the plan is therefore not the profile selector.
+            let utf8_source = r#"module guard.utf8;
+@id("call") fn value() -> i64 { 0 }
+@id("text") fn text() -> string { "internal" }
+@id("main") fn main() -> i64 { 0 }
+"#;
+            let utf8_program =
+                semaprax::hir::resolve(&semaprax::check(utf8_source, "guard-utf8.spx").unwrap())
+                    .unwrap();
+            let utf8 = project::derive_public_api_descriptor(
+                &utf8_program,
+                &selected,
+                PublicApiSubject {
+                    project_schema: project::PUBLIC_OWNED_UTF8_PROJECT_SCHEMA,
+                    project_revision: fact,
+                    workspace_revision: fact,
+                    project_graph_digest: fact,
+                },
+            )
+            .unwrap();
+            let bytes =
+                semaprax::wasm::emit_resolved_module_with_owned_data_exports(&utf8_program, &utf8)
+                    .unwrap();
+            wasmparser::Validator::new().validate_all(&bytes).unwrap();
+        }
     }
+}
+
+#[test]
+fn nested_public_bytes_profile_does_not_select_v10_for_an_internal_string() {
+    let source = r#"module guard.nested;
+@id("leaf") record Leaf { @id("leaf.bytes") bytes: Bytes, }
+@id("root") record Root { @id("root.leaf") leaf: Leaf, }
+@id("call") fn value(input: borrow Slice<u8>) -> Root {
+    let kept = "internal";
+    Root { leaf: Leaf { bytes: bytes_copy(input) } }
+}
+@id("main") fn main() -> i64 { 0 }
+"#;
+    let program =
+        semaprax::hir::resolve(&semaprax::check(source, "guard-nested.spx").unwrap()).unwrap();
+    let fact = "sha256:1111111111111111111111111111111111111111111111111111111111111111";
+    let descriptor = semaprax::project::derive_nested_owned_record_api_descriptor(
+        &program,
+        &["call".to_owned()],
+        semaprax::project::PublicApiSubject {
+            project_schema: semaprax::project::NESTED_OWNED_RECORD_PROJECT_SCHEMA,
+            project_revision: fact,
+            workspace_revision: fact,
+            project_graph_digest: fact,
+        },
+    )
+    .unwrap();
+    let error = semaprax::wasm::emit_resolved_module_with_nested_owned_record_exports(
+        &program,
+        &descriptor,
+    )
+    .unwrap_err();
+    assert_eq!(error.code, "SPX-W110");
+    assert_eq!(
+        error.message,
+        "owned string literal reached a non-v10 WebAssembly profile"
+    );
 }

@@ -259,7 +259,11 @@ module test.owned_data_scalars;
             result: super::super::owned_data_exports::ResultLayout::I64,
         },
     ];
-    let bytes = emit_owned_data_exports(&resolved, &plans).unwrap();
+    let bytes = emit_owned_data_exports(&resolved, &plans, false).unwrap();
+    assert_eq!(
+        bytes,
+        emit_owned_data_exports(&resolved, &plans, true).unwrap()
+    );
     let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
     let stem = format!("semaprax-owned-data-scalars-{}-{id}", std::process::id());
     let wasm_path = std::env::temp_dir().join(format!("{stem}.wasm"));

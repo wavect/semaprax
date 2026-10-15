@@ -1,0 +1,133 @@
+{
+  "status": "NOT_ADDED_TO_FROZEN128_NO_RUNTIME",
+  "main": "9279411a0c7e7cf12908457c5fe93289a7b19508",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::identity_resolution::base::cache_billing::tests::first_cached_module_and_later_miss_pay_shared_base_and_extensions_once",
+      "source_path": "src/workspace_graph/identity_resolution/base/cache_billing/tests.rs",
+      "line": 15,
+      "source_sha256": "34429276a4978bd27df8ee7ba3badc66c1e48b0bdcd151c2cdc9393dc0cc5a9f",
+      "status": "SOURCE_ONLY_PENDING_COMBINED_NEXT_REGISTRATION_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::identity_resolution::base::cache_billing::tests::cached_prelude_replay_keeps_foreign_core_refusal_sticky",
+      "source_path": "src/workspace_graph/identity_resolution/base/cache_billing/tests.rs",
+      "line": 83,
+      "source_sha256": "34429276a4978bd27df8ee7ba3badc66c1e48b0bdcd151c2cdc9393dc0cc5a9f",
+      "status": "SOURCE_ONLY_PENDING_COMBINED_NEXT_REGISTRATION_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::identity_resolution::base::cache_billing::source_reference::complete_root_has_only_the_declared_shared_billing_hooks_and_prior_formatting",
+      "source_path": "src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs",
+      "line": 107,
+      "source_sha256": "809389548397e2d0562ae8986a276673cc0cc5bd17f61289e964573f227b5e46",
+      "status": "SOURCE_ONLY_PENDING_COMBINED_NEXT_REGISTRATION_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "semantic_cache::same_length_provider_edits_after_a_checked_hit_keep_full_cold_graph_and_image_bytes",
+      "source_path": "tests/project/semantic_cache.rs",
+      "line": 584,
+      "source_sha256": "9873c4f2040c011a35098776b402ecab3fc5721511525ecd86522a7c94f46162",
+      "status": "SOURCE_ONLY_PENDING_COMBINED_NEXT_REGISTRATION_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:native",
+      "selector": "owned_data_string_settlement::standalone_descriptor_does_not_widen_project_wasm_string_admission",
+      "source_path": "tests/native/owned_data_string_settlement.rs",
+      "line": 154,
+      "source_sha256": "b35de06f072cc033c4a36a7fa77a2364af49c27180e654ed9a3038f77c9edf9c",
+      "status": "SOURCE_ONLY_PENDING_COMBINED_NEXT_REGISTRATION_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:native",
+      "selector": "owned_data_string_settlement::nested_public_bytes_profile_does_not_select_v10_for_an_internal_string",
+      "source_path": "tests/native/owned_data_string_settlement.rs",
+      "line": 239,
+      "source_sha256": "b35de06f072cc033c4a36a7fa77a2364af49c27180e654ed9a3038f77c9edf9c",
+      "status": "SOURCE_ONLY_PENDING_COMBINED_NEXT_REGISTRATION_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "wasm::aggregate::tests::owned_utf8_usage::scalar_signature_lexical_body_string_selects_existing_owned_literal_storage",
+      "source_path": "src/wasm/aggregate/tests/owned_utf8_usage.rs",
+      "line": 18,
+      "source_sha256": "35e68fc318622429221c934d8c2b4d66e6ee28a7438e09c09110563c7d4cf04a",
+      "status": "SOURCE_ONLY_PENDING_COMBINED_NEXT_REGISTRATION_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "wasm::aggregate::tests::owned_utf8_usage::exact_function_iterator_counts_contract_strings_without_unselected_body_leakage",
+      "source_path": "src/wasm/aggregate/tests/owned_utf8_usage.rs",
+      "line": 64,
+      "source_sha256": "35e68fc318622429221c934d8c2b4d66e6ee28a7438e09c09110563c7d4cf04a",
+      "status": "SOURCE_ONLY_PENDING_COMBINED_NEXT_REGISTRATION_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "wasm::aggregate::tests::owned_utf8_usage::current_generic_and_closure_body_inventory_includes_local_strings",
+      "source_path": "src/wasm/aggregate/tests/owned_utf8_usage.rs",
+      "line": 100,
+      "source_sha256": "35e68fc318622429221c934d8c2b4d66e6ee28a7438e09c09110563c7d4cf04a",
+      "status": "SOURCE_ONLY_PENDING_COMBINED_NEXT_REGISTRATION_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "wasm::aggregate::tests::owned_utf8_usage::local_static_text_still_refuses_public_owned_export_authority",
+      "source_path": "src/wasm/aggregate/tests/owned_utf8_usage.rs",
+      "line": 193,
+      "source_sha256": "35e68fc318622429221c934d8c2b4d66e6ee28a7438e09c09110563c7d4cf04a",
+      "status": "SOURCE_ONLY_PENDING_COMBINED_NEXT_REGISTRATION_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors",
+      "source_path": "src/source_reflows.rs",
+      "line": 106,
+      "source_sha256": "5afa8b8762edca88c9be96fd1aa681fe50827f4ff56f80353944322a3bc84d92",
+      "status": "SOURCE_ONLY_PENDING_COMBINED_NEXT_REGISTRATION_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::a_changed_current_byte_is_refused_before_an_inverse_can_hide_it",
+      "source_path": "src/source_reflows.rs",
+      "line": 127,
+      "source_sha256": "5afa8b8762edca88c9be96fd1aa681fe50827f4ff56f80353944322a3bc84d92",
+      "status": "SOURCE_ONLY_PENDING_COMBINED_NEXT_REGISTRATION_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::defaults::inline_tests::complete_inline_sources_and_original_owners_have_exact_whole_file_inverses",
+      "source_path": "src/workspace_graph/expected_projection/defaults/inline_tests.rs",
+      "line": 300,
+      "source_sha256": "8d6290f602d5ab09de127fd0a2eb84f859c8606d8b9cf32340daf06230026a5e",
+      "status": "SOURCE_ONLY_PENDING_COMBINED_NEXT_REGISTRATION_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::import_stub::core_proofs::tests::complete_original_receivers_and_all_literal_source_inverses_remain_byte_exact",
+      "source_path": "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs",
+      "line": 538,
+      "source_sha256": "0a19104b2f1fda01b6ae6c525690cd1be2172185635f6540513465cbfd714333",
+      "status": "SOURCE_ONLY_PENDING_COMBINED_NEXT_REGISTRATION_NOT_EXECUTED"
+    }
+  ],
+  "additional_parent_registration_dependencies": "all3existingauditowners plus string-free wasm aggregate scalar owner (sourcepath tests.rs changed); final exactmodule registration is parentowned"
+}

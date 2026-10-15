@@ -15,6 +15,10 @@
   executable qualification and physical measurements are pending.
 
 - Qualify the closed named String-transfer v1 scope with all 15 exact a417 owning controls and the five 27ae regenerated-pin/source controls; retain unrelated application-budget failures and frozen public profiles.
+- Keep public v8/v9/v11 Wasm owned-String refusal separate from the emitted-body runtime census; select v10 through the replayed descriptor and preserve String-free output and earlier HIR/static-text refusals.
+
+- Separate shared prelude acquisition from checked-module cache bills so a cached first module and later rebuilt provider retain cold-equivalent builder accounting. Preserve full historical root and additive audit-inventory source proofs.
+
 - Prepay a separate atomic-body control-key constructor without a type-walk cursor, preserving the full original control tuple, replay work and every other receiver. Mark generic type spellings as code in five rustdoc comments.
 
 - Update candidate inventory regressions for the admitted bounded-zeroing builtin, recognize binary-hash receipt readers in harness isolation, and fix two remaining test lint findings.

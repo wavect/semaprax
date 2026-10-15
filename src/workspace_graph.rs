@@ -4443,6 +4443,7 @@ fn build_resolved_core_current(
                     cache.checked_module_source(&program.path, input),
             })
         );
+        let shared_before = core_proofs.base_prelude.selected_bytes();
         let (resolved, static_text) = if let Some((resolved, resolver_bytes, original_loan_bytes)) =
             cached
         {
@@ -4450,10 +4451,10 @@ fn build_resolved_core_current(
                 .expect("resolved core has a builder budget");
             let static_text = staged!(CachedValidation, hir::validate_with_static_text(&resolved))
                 .map_err(|error| vec![error])?;
-            let validation_bytes = before.saturating_sub(
-                crate::bounded_output::active_remaining()
-                    .expect("resolved core has a builder budget"),
-            );
+            identity_resolution::replay_cached_prelude(&mut core_proofs, &synthetic)
+                .map_err(identity_resolution::ModuleFailure::into_legacy)?;
+            let validation_bytes =
+                identity_resolution::local_resolution_bytes(before, shared_before, &core_proofs)?;
             let residual = resolver_bytes
                 .checked_sub(validation_bytes)
                 .ok_or_else(|| {
@@ -4500,10 +4501,8 @@ fn build_resolved_core_current(
                 )
                 .map_err(identity_resolution::ModuleFailure::into_legacy)?;
             drop(held);
-            let resolver_bytes = before.saturating_sub(
-                crate::bounded_output::active_remaining()
-                    .expect("resolved core has a builder budget"),
-            );
+            let resolver_bytes =
+                identity_resolution::local_resolution_bytes(before, shared_before, &core_proofs)?;
             let resolved = if let Some(cache) = frontend.as_deref_mut() {
                 staged!(FrontendRetention, {
                     let loan_bytes = resolved_loan_bytes(&resolved)?;

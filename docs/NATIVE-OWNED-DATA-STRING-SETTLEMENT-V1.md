@@ -28,6 +28,14 @@ This is not evidence that the example passes activated Project v8/v9 admission:
 those routes also apply their existing Wasm restrictions. Neither admission is
 widened or silently replaced by the standalone SDK route.
 
+The Wasm adapter explicitly selects owned-UTF-8 lowering from the independently
+replayed descriptor's v10 schema. A census of emitted monomorphic, concrete
+generic and closure bodies supplies runtime storage only after that profile
+selection. It cannot widen v8/v9 or the nested Bytes-only v11 profile merely by finding an internal String. Ordinary
+HIR and static-text refusals retain their earlier order; String-free public
+output remains identical. The v8/v9 refusal and paired v10 body/contract/generic
+controls are authored; current-head compiler verification remains pending.
+
 ## Correction and ownership
 
 `OwnedDataProvider` now selects the same length-delimited String helpers,

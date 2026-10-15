@@ -1,0 +1,14 @@
+{
+  "complete_merge_inputs": 30,
+  "uncompressed_bytes": 22952096,
+  "all_git_blob_ids_and_sha256_verified": true,
+  "stream_chunk_bytes": 1048576,
+  "compiler_or_runtime_qualification": false,
+  "command": [
+    "python3",
+    "docs/evidence/declaration-825-integration-inputs-20261015/verify_archives.py"
+  ],
+  "exit_code": 0,
+  "verifier_sha256": "818c885750fb50540644030a5ef51814343c36e12256915a6862d7219ae229a4",
+  "index_sha256": "bf1f41096416ea497d638deb18d3fdcc99e15517744a54e8c59da4d8a7243c35"
+}

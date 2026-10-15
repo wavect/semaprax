@@ -1,0 +1,17 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "actual_failed_subject": "9b174d852798c99ce2d14b8170ec05e6c0f94b88",
+  "actual_build_exit": 101,
+  "actual_build_wall_seconds": 462.47538741600874,
+  "actual_test_bodies": 0,
+  "exact_full_source_inputs": 2,
+  "all_original_assertions_retained": true,
+  "stable_public_digest_adapter_already_used_in_same_file": true,
+  "complete_frozen_4_57_87_92_93_source_verifier_replayed": true,
+  "protected_packets_unchanged": 61,
+  "source_only_production_changes": 0,
+  "new_test_bodies": 0,
+  "actual_E0277_direct_records": 2,
+  "old_unit_and_production_passes_are_only_subject_9b": true,
+  "unit_recompile_required_because_typed_cost_reads_full_helper": true
+}

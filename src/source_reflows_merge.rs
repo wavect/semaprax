@@ -433,3 +433,15 @@ pub(crate) fn main927_input(source: &str, current: &str) -> String {
         current,
     )
 }
+
+// Compiler-confirmed facade digest correction precedes immutable9b source views.
+fn facade_hex_previous(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/workspace-facade-hex-fix-9b-20261015/current-to-9b.json"
+        )),
+        source,
+        current,
+    )
+}

@@ -1,0 +1,9 @@
+{
+  "source_subject": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+  "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+  "log_sha256": "3f311413d3d7d2e76b3397ee004a5678bf0ac514cb26daa283d0de6487ca50e7",
+  "actual_line": "epsilon-app-census owner=catalog-normalizer-compact-original partial_prefix=true eligible_events=1116 ready_child_entry_events=1116 shared_acquired_events=1116 memo_publication_events=1116 counters_overflowed=false cumulative_events_not_unique_frequency=true",
+  "cumulative_events_not_unique_frequency": true,
+  "partial_prefix": true,
+  "application_result": "G171; not recovered"
+}

@@ -1,0 +1,32 @@
+{
+  "state": "CURRENT_ACTUAL_CAPTURE_REQUIRED_NO_SYNTHETIC_VALUES",
+  "frozen_source_head": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+  "strict_checker_full_head_locked": true,
+  "old_actual_capture": "/Volumes/Semaprax/provenance/final-a417-actual-pin-capture-20261015",
+  "old_actual_capture_head": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+  "old_actual_all10_wire_sha256": {
+    "capability-review.json": "6d503a367d03d11fa4cb37e50f579bc16f0e22c3469f47dbbbd05647c93f1eca",
+    "projection-wire.json": "9215b8decf168cc7692058f59ca949d41e0bc455b7594f5b749b5d544f5b857a",
+    "forward.json": "4b0d89b424ac9058c44093ccbe4a60a0eb3ec584ce5c85bc1378d31dfd0d9080",
+    "context.json": "71855c0574be5fd10adb3b71de33afb4cbae905cc7110a8da68fbe5d09b808f9",
+    "type-context.json": "387c789cb5f6a014ab377ea97138ed9e9869ece09068db7c3889f6acc058bc5a",
+    "impact.json": "ffb6cb3247de03e4409c67f267bc4a77e20949171e79d5a80b40cad9a861ead1",
+    "public-graph.json": "ac4f8cf345ec9b214109e8932a10a6d733408bc7f5d6dd2b68df24d42d811fd6",
+    "capability-context.json": "52b7f0a8f754cacfffe82f7cdbdb851641fdc1ef86f9ee188590436a5bf77896",
+    "review.json": "b14145b8e6975212415b282b2f67e5e38d1e43bea2c8a5f689c003a9883a21ac",
+    "custom-impact.json": "c1d4b519315729c71b590be9926de416136cb0e4bca007c3fb2a90d2996213dc"
+  },
+  "old_source_sha256": {
+    "docs/evidence/prelude-forecast-286/pin-capture/exact-source-inverses.json": "3a5350d8871817a733965e88d7db81823a77abd03257d854ff445837b209774a",
+    "src/workspace_graph/type_proof_tests.rs": "5c3223f7ecac32ed29d90a0c796ed79b1a9f91556afaf3074c5a63a3945c4ab5",
+    "tests/workspace/semantic_graph.rs": "4af44d68c4988c4b042a6e7b08ad5aa6f6e6f726953c0858a9e4e65ca35b497a"
+  },
+  "producer_or_capture_execution": false,
+  "pin_apply_or_root_mutation": false,
+  "adaptation": "Only exact frozen head, previous actual ten wire pins, source snapshots and archive labels adapted. Full binary-role, receipt, exact panic, whole-wire, domain and drift checks retained. No current capture or patch applied.",
+  "template_script_sha256": {
+    "prepare-after-actual-capture.py": "725c235a4ed1d472f45b8bb9de6fdb3bcb7e5d8e26688915d7fbd24a9f5a871a",
+    "archive-actual-and-build-patch.py": "e57becbe3862a7e4bd3104e5505cca0a689b275d315abc4c7c650015fcaaeb42",
+    "strict-a417-capture-only.py": "9785e3cffe52b72e70bd04ecea162a89295804eedb0cdd63bcbfd9b1a0fc43a9"
+  }
+}

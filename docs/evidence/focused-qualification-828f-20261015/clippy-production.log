@@ -1,0 +1,12 @@
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+error: the variable `ordinal` is used as a loop counter
+  --> src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified.rs:36:5
+   |
+36 |     for source in &function.cleanup_plan.status_sources {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using: `for (ordinal, source) in function.cleanup_plan.status_sources.iter().enumerate()`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#explicit_counter_loop
+   = note: `-D clippy::explicit-counter-loop` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::explicit_counter_loop)]`
+
+error: could not compile `semaprax` (lib) due to 1 previous error

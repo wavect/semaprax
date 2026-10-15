@@ -1,0 +1,11 @@
+{
+  "original_capture_round": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015",
+  "original_exit_code": 3,
+  "original_missing": [
+    "projection-wire"
+  ],
+  "root_cause": "producer wrapper selected bin semaprax instead of lib semaprax because both target names match; emitted zero tests, correctly refused missing wire",
+  "correction": "Require exact cargo target kinds for lib and workspace test, unique role; retain same actual frozen build receipt and metadata bytes",
+  "new_compiler_or_build_execution": false,
+  "driver_sha256": "2dc92fddf4b28ca725d540c0f449227d6c5087af7f6a78287067de912a801e76"
+}

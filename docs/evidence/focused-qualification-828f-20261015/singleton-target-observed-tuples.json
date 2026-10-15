@@ -1,0 +1,124 @@
+{
+  "source_subject": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+  "selector": "cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_targets_actual_before_current_reserved_allocated_peak_and_complete_drop",
+  "log_sha256": "55044d67c13ebeb23aa85351eff0677d0d9aa9aa0f0510dbe6ce5e8b253ed63a",
+  "tuples": [
+    {
+      "width": 0,
+      "old_reserved": 1864,
+      "current_reserved": 2064,
+      "old_metrics": {
+        "allocations": 10,
+        "reallocations": 0,
+        "allocated": 976,
+        "freed": 976,
+        "live": 0,
+        "highwater": 960,
+        "invalid": false
+      },
+      "current_metrics": {
+        "allocations": 10,
+        "reallocations": 0,
+        "allocated": 976,
+        "freed": 976,
+        "live": 0,
+        "highwater": 960,
+        "invalid": false
+      }
+    },
+    {
+      "width": 1,
+      "old_reserved": 8584,
+      "current_reserved": 9760,
+      "old_metrics": {
+        "allocations": 34,
+        "reallocations": 2,
+        "allocated": 3984,
+        "freed": 3984,
+        "live": 0,
+        "highwater": 1920,
+        "invalid": false
+      },
+      "current_metrics": {
+        "allocations": 32,
+        "reallocations": 2,
+        "allocated": 3776,
+        "freed": 3776,
+        "live": 0,
+        "highwater": 1920,
+        "invalid": false
+      }
+    },
+    {
+      "width": 2,
+      "old_reserved": 9816,
+      "current_reserved": 11568,
+      "old_metrics": {
+        "allocations": 37,
+        "reallocations": 2,
+        "allocated": 4248,
+        "freed": 4248,
+        "live": 0,
+        "highwater": 2168,
+        "invalid": false
+      },
+      "current_metrics": {
+        "allocations": 36,
+        "reallocations": 2,
+        "allocated": 4232,
+        "freed": 4232,
+        "live": 0,
+        "highwater": 2168,
+        "invalid": false
+      }
+    },
+    {
+      "width": 3,
+      "old_reserved": 11048,
+      "current_reserved": 12800,
+      "old_metrics": {
+        "allocations": 40,
+        "reallocations": 2,
+        "allocated": 4512,
+        "freed": 4512,
+        "live": 0,
+        "highwater": 2416,
+        "invalid": false
+      },
+      "current_metrics": {
+        "allocations": 39,
+        "reallocations": 2,
+        "allocated": 4496,
+        "freed": 4496,
+        "live": 0,
+        "highwater": 2416,
+        "invalid": false
+      }
+    },
+    {
+      "width": 4,
+      "old_reserved": 12280,
+      "current_reserved": 14032,
+      "old_metrics": {
+        "allocations": 43,
+        "reallocations": 2,
+        "allocated": 4776,
+        "freed": 4776,
+        "live": 0,
+        "highwater": 2664,
+        "invalid": false
+      },
+      "current_metrics": {
+        "allocations": 42,
+        "reallocations": 2,
+        "allocated": 4760,
+        "freed": 4760,
+        "live": 0,
+        "highwater": 2664,
+        "invalid": false
+      }
+    }
+  ],
+  "observation": "Less allocated bytes for nonzero widths, unchanged highwater, greater cumulative reservations at every measured width. Not a net application or token improvement.",
+  "no_exclusive_causality_or_universal_savings_claim": true
+}

@@ -1,0 +1,12 @@
+{
+  "source_subject": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+  "actual_wires": 10,
+  "strict_validator_passed": true,
+  "allowed_differences_only": "used_builder_bytes and bound graph/artifact digests",
+  "public_builder_amount_before": 1428092,
+  "public_builder_amount_after": 1433172,
+  "projection_builder_amount_before": 3421375,
+  "projection_builder_amount_after": 3450975,
+  "pin_patch_applied": false,
+  "reason": "Preserve actual source-bound plan. Apply/regenerate once after next production correction batch, avoiding intermediate stale pin churn."
+}

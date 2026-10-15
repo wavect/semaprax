@@ -1,0 +1,9 @@
+{
+  "capture_head": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+  "later_root_head_at_preparation": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+  "build_receipt_sha256": "57006e6499178bb4d8542b7e15f3749675de8500f0c7626c82704064b955fc85",
+  "producer_receipt_sha256": "509fe114fde22bf2b56d441f8eb450eef4c769ff4e7fdf1a3894f1bd87f53a7e",
+  "root": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "capture": "/Volumes/Semaprax/provenance/final-828f-actual-pin-capture-v2-20261015",
+  "round": "/Volumes/Semaprax/lane-prompts/large-828f-pin-capture-v2-20261015"
+}

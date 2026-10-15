@@ -1,0 +1,366 @@
+{
+  "source_subject": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+  "selected": 108,
+  "passed": 85,
+  "failed": 23,
+  "full_suite": false,
+  "static_count_mismatches": 0,
+  "prior_a417_actual_failed_owners_selected": 24,
+  "prior_failed_now_passed": [
+    "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+    "hir::validation::byte_traversal::nested::tests::nested_byte_same_root_release_does_not_allow_outer_move_or_renewal",
+    "byte_slice_for_traversal::byte_for_refusals_and_owner_freeze_are_stable",
+    "cleanup_plan::replay::selected_entry::tests::session_errors::source::selected_session_complete_source_inverses_and_old_layout_definitions_stay_bound",
+    "hir::identity_resolution::nominal_tests::legacy::legacy_postpass_keeps_full_original_diagnostics_before_any_canonicalization",
+    "cli_driver::cli::help::tests::language_reference_and_exact_topics_are_bounded_repository_sections"
+  ],
+  "failed_selectors": [
+    {
+      "harness": "semaprax::lib",
+      "selector": "workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 64.71301058300014,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-00.log",
+      "log_sha256": "deb4ab50e679d4f20f54ed1bfe607346ac11b0bb80175925329e9c9c6d0749d4",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 1.7635841250012163,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-01.log",
+      "log_sha256": "3f311413d3d7d2e76b3397ee004a5678bf0ac514cb26daa283d0de6487ca50e7",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 1.7560061249969294,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-02.log",
+      "log_sha256": "81495e7769f2a84b44c4c0bdde51bdf696ca836e0b2e9519c068be9b73d30486",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::workspace",
+      "selector": "semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 1.4756590420001885,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-03.log",
+      "log_sha256": "a8079fa2ca9dd5f98f9cb9da8db8108cc85ae91f5873ba0f337e7036f40b71f5",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::workspace",
+      "selector": "semantic_graph::public_workspace_analysis_api_cli_kats_and_locking_are_exact",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 10.865074957997422,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-04.log",
+      "log_sha256": "058abf2cb365812b8611121c45ea54927c3c7c0a7eed90847d63868e3189d493",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::native",
+      "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_actual_byte_and_item_plus_one_preflight_never_reserve_output",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 2.4395506250002654,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-06.log",
+      "log_sha256": "729f9a02b7d4b1e2bc6b4b9d6d60358b85f176c8368ad1938bffe88bacf7a57c",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::native",
+      "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_reads_and_short_refusal_allocate_nothing_then_copy_final_string_once",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 2.435977291999734,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-07.log",
+      "log_sha256": "02c846cb89c19e4a9fdf3492c57fcde77d444e1b88763184fb0cc83c1e15392f",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_request_decision_response_keeps_duplicate_unicode_and_boundary_slots",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 2.4945753749998403,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-08.log",
+      "log_sha256": "118de522799ae4d2f6803b86206a1bb16f6a58ac29add4d049873b616244d193",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_actual_item_and_byte_plus_one_refuse_before_publication",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 2.471423416995094,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-09.log",
+      "log_sha256": "ab1fe9b197ebfab6c2e27a0a62a101e69ad3deb512a290135c7d953fa977f575",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_maximum_escaping_exact_output_cap_and_plus_one",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 2.4779523750039516,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-10.log",
+      "log_sha256": "3c8f00d5ccd981de5db8072c80901c7480efb07167efea3c6fc2d971a2d588c8",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_plan_receipts_and_live_revision_reject_forged_versions",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 2.5127169999977923,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-11.log",
+      "log_sha256": "7b519295ea3852ffd5ef555d1726896c216a227c1f444424cb420a617b4ead59",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_two_nested_paths_preserve_exact_and_one_short_bytes",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 2.4857672920043115,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-12.log",
+      "log_sha256": "c3620af2f54286266c57f6bbee0a22113f43c23c437dd5cc760093783c7d1eef",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "hir::validation::byte_traversal::nested::tests::nested_byte_full_source_hir_graph_and_cache_replay_preserves_v1_receiver_independence",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 1.746774250001181,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-13.log",
+      "log_sha256": "7ccadcd7c0ca7d7a664ad922883b97264e7c7b18c303110f805138706f8eaddd",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "hir::validation::byte_traversal::nested::tests::nested_byte_ancestor_freezes_cover_every_inner_subtree_and_same_root_after_inner_exit",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 1.756448249994719,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-14.log",
+      "log_sha256": "82a12dc70a9714731d1abd8b657ae0445f63ba9a9c5bb8b3396b821f8e7de417",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "hir::validation::byte_traversal::nested::tests::nested_byte_census_uses_exact_owner_and_first_refusal_on_foreign_then_restored_scope",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 1.753294541995274,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-15.log",
+      "log_sha256": "7574ea4065aea1c6cc96cd8bf5cade692fc82f612bd6cf99e8aad326b21908d2",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "hir::validation::byte_traversal::nested::tests::nested_byte_census_funds_exact_short_zero_every_frontier_sticky_and_complete_drop",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 1.754388374996779,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-16.log",
+      "log_sha256": "842bb9fe2c75070c1d6c8fc1807b423bd3d32f0c95e64bc1de62f1016b3fe004",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "hir::validation::byte_traversal::nested::tests::nested_byte_while_bridge_and_inner_only_exits_replay_exact_nearest_targets",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 1.7509723749972181,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-17.log",
+      "log_sha256": "d54ef5bae471cfe91b1945549577dc0d5feb8e9a866da2404f39b1464b0cff61",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::useful_data",
+      "selector": "byte_slice_for_runtime::nested::nested_byte_traversal_matches_manual_loop_on_interpreter_native_and_wasm",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 1.4309619999985443,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-19.log",
+      "log_sha256": "addac0ccbd1f87aa373a7dbf0a4c17aa154329e08000e1363731ae09abe409c9",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_case_coordinates_and_detached_children_drop_512_without_new_backing",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 1.7561890409997432,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-42.log",
+      "log_sha256": "ee04994ce56bdeb3da829ba976615758a3f82d5e801d678fc1dc6f9a90713b61",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "hir::resolve_expr::byte_ancestry::tests::nested_byte_ancestry_prepays_controls_and_unwinds_outermost_scope_without_allocating",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 1.7597148749991902,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-62.log",
+      "log_sha256": "f6c669716498be897e92cc682169416befd5793e847c4fc07793011b6537e5f6",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "hir::resolve_statement::nested_byte_tests::nested_byte_source_lowering_bridge_resolves_and_independent_hir_replays",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 1.7912756250007078,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-65.log",
+      "log_sha256": "ab0ce7d99c439d29dd853f82fcb1aa1e05120133efd40dd56f97afbfbbfcf8d0",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "hir::resolve_statement::nested_byte_tests::nested_byte_actual_resolver_keeps_ancestry_local_and_entry_scope_fixed",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 1.768353332998231,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-66.log",
+      "log_sha256": "ef7bcb6bd2fc01eb6c33b65dba4096206b54d0cb63da5274f13ac0d195e9728a",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+      "exit_code": 101,
+      "resource_refusal": null,
+      "wall_seconds": 3.8314063330035424,
+      "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-95.log",
+      "log_sha256": "3deb87fb0773490554afd966de9a6c9b593c2b3a4929f982c6eece21785ad8ee",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ]
+    }
+  ],
+  "not_comparable_as_a_campaign_score_to_prior_148": true,
+  "no_live_token_or_app_recovery_claim": true
+}

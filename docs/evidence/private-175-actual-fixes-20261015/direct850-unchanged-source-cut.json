@@ -1,0 +1,26 @@
+{
+  "checkpoint": "1ef1100ef089b0ea4ff589de73f861bef1e1c635",
+  "mode": "FULL_SOURCE_GIT_EQUALITY_NO_NEW_PROJECTION_REQUIRED",
+  "inputs": [
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/consuming.rs",
+      "sha256": "5621537e690fb5fdd0325964147e4840bfbbfd479238bf501c8eb7b677c94861"
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/mod.rs",
+      "sha256": "fe66614ad571ad4f537dc57d471d2850f15b093769259d67d814c0c99ccd3533"
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/record_presence.rs",
+      "sha256": "0d2df070cb4ce3494feb5e383b621ea58082eb0c84ea862181c090dddf78d001"
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/record_presence/tests.rs",
+      "sha256": "eb7b354b482a176b2576405130f4e43bc593ee570dd19809cf042b70bb811ddd"
+    },
+    {
+      "source": "src/loop_calls/byte_writer/module_index/ordinary.rs",
+      "sha256": "0c0d8f77c073ee56d5ee578bd102c28bd862d405a748a76950052cad7f3ce1fe"
+    }
+  ]
+}

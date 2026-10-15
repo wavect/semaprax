@@ -1,0 +1,68 @@
+[
+  {
+    "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "checkpoint_revision": "82fea031ac7c23c1fea988e0f8f8bf466a87c311",
+    "archive": "docs/evidence/private-175-actual-fixes-20261015/checkpoint-82fea/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "sha256": "d85a3a3b1d35ee684337416bb89a031e9f684854b073021d00182e32ecad386a"
+  },
+  {
+    "source": "src/bounded_output/classifier_string.rs",
+    "checkpoint_revision": "82fea031ac7c23c1fea988e0f8f8bf466a87c311",
+    "archive": "docs/evidence/private-175-actual-fixes-20261015/checkpoint-82fea/src/bounded_output/classifier_string.rs",
+    "sha256": "88389f912f0bd6c275a8cee2bec309210bb0c575c7b449547606d8449dfdb9cc"
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join.rs",
+    "checkpoint_revision": "82fea031ac7c23c1fea988e0f8f8bf466a87c311",
+    "archive": "docs/evidence/private-175-actual-fixes-20261015/checkpoint-82fea/src/cleanup_plan/replay/path_join.rs",
+    "sha256": "cd17e0f8fe87c8a0c604e46b7efaa1c2f1857ca6e08e0a31ec579ee5190e5c24"
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/before_receiving.rs",
+    "checkpoint_revision": "82fea031ac7c23c1fea988e0f8f8bf466a87c311",
+    "archive": "docs/evidence/private-175-actual-fixes-20261015/checkpoint-82fea/src/cleanup_plan/replay/path_join/before_receiving.rs",
+    "sha256": "2a4387842a5127a370f33a247c5c3110e4c05ea952ebcc89da9500f6aa924de5"
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+    "checkpoint_revision": "82fea031ac7c23c1fea988e0f8f8bf466a87c311",
+    "archive": "docs/evidence/private-175-actual-fixes-20261015/checkpoint-82fea/src/cleanup_plan/replay/path_join/boxed_states.rs",
+    "sha256": "34fd1fbfa2ba214f1b9f5ffaa05045effb5d790cc438efe6357d1a9d278569db"
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/boxed_states/before.rs",
+    "checkpoint_revision": "82fea031ac7c23c1fea988e0f8f8bf466a87c311",
+    "archive": "docs/evidence/private-175-actual-fixes-20261015/checkpoint-82fea/src/cleanup_plan/replay/path_join/boxed_states/before.rs",
+    "sha256": "92eb5301c8b8d9d9fa0bd19a329f7e0727ce9b24c34b8fd6fa4d0c85ad1b2575"
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs",
+    "checkpoint_revision": "82fea031ac7c23c1fea988e0f8f8bf466a87c311",
+    "archive": "docs/evidence/private-175-actual-fixes-20261015/checkpoint-82fea/src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs",
+    "sha256": "8a4b4e790189d0980e3025051db5fe531adf61a72866b7ace874ef245fdca148"
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/receiver_tests.rs",
+    "checkpoint_revision": "82fea031ac7c23c1fea988e0f8f8bf466a87c311",
+    "archive": "docs/evidence/private-175-actual-fixes-20261015/checkpoint-82fea/src/cleanup_plan/replay/path_join/receiver_tests.rs",
+    "sha256": "b988e44e6a1b1c4fb5a8353ae1377717b4613bc1982ac1e5a056099439008dda"
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "checkpoint_revision": "82fea031ac7c23c1fea988e0f8f8bf466a87c311",
+    "archive": "docs/evidence/private-175-actual-fixes-20261015/checkpoint-82fea/src/source_reflows_merge.rs",
+    "sha256": "6806a52467889cdeb8912f20406151eaf88448d0f1bf80aaabe52bb4d8c3dc2a"
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "checkpoint_revision": "82fea031ac7c23c1fea988e0f8f8bf466a87c311",
+    "archive": "docs/evidence/private-175-actual-fixes-20261015/checkpoint-82fea/tests/hir_module_boundaries.rs",
+    "sha256": "1d33cd9d936fabced7f6473c19473eb8237533a0f914afcfe1eeddca604d8ff2"
+  },
+  {
+    "source": "tests/workspace/semantic_graph/source_inventory.rs",
+    "checkpoint_revision": "82fea031ac7c23c1fea988e0f8f8bf466a87c311",
+    "archive": "docs/evidence/private-175-actual-fixes-20261015/checkpoint-82fea/tests/workspace/semantic_graph/source_inventory.rs",
+    "sha256": "5e7e8f8ee73d1c8727524d8ead32464d17625283fbb6d917bc5b36ffb8cec30b"
+  }
+]

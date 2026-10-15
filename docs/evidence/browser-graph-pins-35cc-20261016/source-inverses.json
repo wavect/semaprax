@@ -1,0 +1,61 @@
+{
+  "base": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+  "rows": [
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract.rs",
+      "current_sha256": "edc7963894937fc560afd392a71c0039cd8c687eec489b2e44bea82f46b17a03",
+      "previous_sha256": "2e5e392cb33e2eb998093b21c29c2cab4decb8e85e99bbbaf27ca0a6fb50f9d5",
+      "previous_file": "tests__wasm__scalar_browser_ci_contract.rs.before.txt",
+      "edits": [
+        {
+          "current": "                previous_digests.push(historical_builder::current_digest(revision.semantic_graph()));\n",
+          "previous": "                previous_digests.push(historical_builder::digest(revision.semantic_graph()));\n"
+        }
+      ]
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "current_sha256": "2edfb578b4c93e6632ffd40221ea80f96f43489fff536c94b82c26110adbc3ef",
+      "previous_sha256": "791302195066b0306ead01d0e8e25d579eb2b4dede7ca93901c3c8740e229115",
+      "previous_file": "tests__wasm__scalar_browser_ci_contract__historical_builder.rs.before.txt",
+      "edits": [
+        {
+          "current": "const CURRENT: [&str; 2] = [\n    include_str!(\"../../../docs/evidence/browser-graph-pins-35cc-20261016/actual-capture/calculator-baseline.json\"),\n    include_str!(\"../../../docs/evidence/browser-graph-pins-35cc-20261016/actual-capture/calculator-renamed.json\"),\n];\n\n/// Restore only the actual new bill and self-digest, authenticate every other\n/// byte against the complete previous capture, then run the original bridge.\npub(super) fn current_digest(graph: &str) -> String {\n    let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();\n    assert_eq!(\n        graph_digest(graph),\n        parsed[\"graph_digest\"].as_str().unwrap()\n    );\n    assert_eq!(parsed[\"budget\"][\"used_builder_bytes\"], 4_032_239);\n    let previous = CAPTURED\n        .iter()\n        .map(|wire| wire.strip_suffix('\\n').unwrap())\n        .find(|wire| {\n            serde_json::from_str::<serde_json::Value>(wire).unwrap()[\"workspace_revision\"]\n                == parsed[\"workspace_revision\"]\n        })\n        .expect(\"complete previous baseline or renamed browser wire\");\n    let prior: serde_json::Value = serde_json::from_str(previous).unwrap();\n    assert_eq!(\n        graph_digest(previous),\n        prior[\"graph_digest\"].as_str().unwrap()\n    );\n    assert_eq!(prior[\"budget\"][\"used_builder_bytes\"], 3_930_276);\n    let field = \"\\\"used_builder_bytes\\\":4032239\";\n    assert_eq!(graph.matches(field).count(), 1);\n    let restored = graph.replacen(field, \"\\\"used_builder_bytes\\\":3930276\", 1);\n    let field = format!(\"\\\"graph_digest\\\":{}\", parsed[\"graph_digest\"]);\n    assert_eq!(restored.matches(&field).count(), 1);\n    let restored = restored.replacen(\n        &field,\n        &format!(\"\\\"graph_digest\\\":{}\", prior[\"graph_digest\"]),\n        1,\n    );\n    assert_eq!(\n        restored, previous,\n        \"complete immediate previous browser wire\"\n    );\n    digest(&restored)\n}\n\nfn prior_runner(current: &str) -> String {\n    let mut previous = current.to_owned();\n    let note = \"// Actual local 35cc compiler records include the complete current builder bill.\\n// The Rust browser contract retains every complete historical wire and cursor\\n// control; docs/evidence/browser-graph-pins-35cc-20261016 binds this capture.\";\n    assert_eq!(previous.matches(note).count(), 1);\n    previous = previous.replacen(note, \"// Exact hosted compiler records from 268cb0523, including the complete current\\n// builder bill. The Rust browser contract retains full historical wire and\\n// cursor controls; docs/evidence/browser-graph-pins-268cb0523 binds this capture.\", 1);\n    assert_eq!(\n        previous\n            .matches(\"sha256:82b22b0f2c49b594045bef876d491bb182df03a734b34b9a7430464e0c38f347\")\n            .count(),\n        1\n    );\n    previous = previous.replacen(\n        \"sha256:82b22b0f2c49b594045bef876d491bb182df03a734b34b9a7430464e0c38f347\",\n        \"sha256:dcd4f20c52e9b8cc52ac7695f4ef7f0668a4bb5d7c735434ede9e0c0361ee363\",\n        1,\n    );\n    assert_eq!(\n        previous\n            .matches(\"sha256:d47fc1d22cb152e19f9f99e64ff2d675babb111a75c9d4aaac639d032729abcf\")\n            .count(),\n        1\n    );\n    previous = previous.replacen(\n        \"sha256:d47fc1d22cb152e19f9f99e64ff2d675babb111a75c9d4aaac639d032729abcf\",\n        \"sha256:322b05af9bab447a12c7f9f2cda2ef3f7b2959ced4b68af04a716aa54b127122\",\n        1,\n    );\n    previous\n}\n\nfn prior_contract(current: &str) -> String {\n    let current_call =\n        \"previous_digests.push(historical_builder::current_digest(revision.semantic_graph()));\";\n    assert_eq!(current.matches(current_call).count(), 1);\n    current.replacen(\n        current_call,\n        \"previous_digests.push(historical_builder::digest(revision.semantic_graph()));\",\n        1,\n    )\n}\n\n",
+          "previous": ""
+        },
+        {
+          "current": "    for (wire, expected) in CURRENT.into_iter().zip(original) {\n        let graph = wire.strip_suffix('\\n').unwrap();\n        assert_eq!(current_digest(graph), expected);\n        assert!(runner.contains(&graph_digest(graph)));\n    }\n    let runner = prior_runner(runner);\n",
+          "previous": ""
+        },
+        {
+          "current": "    for captured in CURRENT {\n        let graph = captured.strip_suffix('\\n').unwrap();\n        let field = \"\\\"used_call_sites\\\":10\";\n        assert_eq!(graph.matches(field).count(), 1);\n        let changed = graph.replacen(field, \"\\\"used_call_sites\\\":11\", 1);\n        let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();\n        let changed = changed.replacen(\n            &format!(\"\\\"graph_digest\\\":{}\", parsed[\"graph_digest\"]),\n            &format!(\"\\\"graph_digest\\\":\\\"{}\\\"\", graph_digest(&changed)),\n            1,\n        );\n        assert!(std::panic::catch_unwind(|| current_digest(&changed)).is_err());\n    }\n",
+          "previous": ""
+        },
+        {
+          "current": "    let current = prior_contract(current);\n",
+          "previous": ""
+        }
+      ]
+    },
+    {
+      "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+      "current_sha256": "873c7e40a692eebcc5e4bd468f66cc866b09eff146000aea4d30706b7b5aa4fe",
+      "previous_sha256": "159681fd79461fd624409c26e533a73a3797eb207b37f1fa3f04c41f94dc3f55",
+      "previous_file": "platform-tests__wasm-scalar-browser-v1__test-fixtures.mjs.before.txt",
+      "edits": [
+        {
+          "current": "// Actual local 35cc compiler records include the complete current builder bill.\n// The Rust browser contract retains every complete historical wire and cursor\n// control; docs/evidence/browser-graph-pins-35cc-20261016 binds this capture.\n",
+          "previous": "// Exact hosted compiler records from 268cb0523, including the complete current\n// builder bill. The Rust browser contract retains full historical wire and\n// cursor controls; docs/evidence/browser-graph-pins-268cb0523 binds this capture.\n"
+        },
+        {
+          "current": "    project_graph_digest: \"sha256:82b22b0f2c49b594045bef876d491bb182df03a734b34b9a7430464e0c38f347\",\n",
+          "previous": "    project_graph_digest: \"sha256:dcd4f20c52e9b8cc52ac7695f4ef7f0668a4bb5d7c735434ede9e0c0361ee363\",\n"
+        },
+        {
+          "current": "    project_graph_digest: \"sha256:d47fc1d22cb152e19f9f99e64ff2d675babb111a75c9d4aaac639d032729abcf\",\n",
+          "previous": "    project_graph_digest: \"sha256:322b05af9bab447a12c7f9f2cda2ef3f7b2959ced4b68af04a716aa54b127122\",\n"
+        }
+      ]
+    }
+  ]
+}

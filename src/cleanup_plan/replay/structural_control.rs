@@ -4,12 +4,19 @@
 use super::*;
 mod blocks;
 #[cfg(test)]
+mod blocks_before_receipt;
+#[cfg(test)]
 mod borrowed_branch;
 #[cfg(test)]
 pub(in crate::cleanup_plan::replay) mod borrowed_ids;
+pub(super) mod call_receiving;
 mod calls;
+#[cfg(test)]
+mod calls_before_receipt;
 mod cfg;
-pub(super) use blocks::validate_blocks_and_edges;
+pub(super) use blocks::validate_blocks_and_edges_paid;
+#[cfg(test)]
+pub(super) use blocks_before_receipt::validate_blocks_and_edges;
 mod entry;
 mod exits;
 pub(super) use cfg::validate_ordinary as validate_ordinary_cfg;

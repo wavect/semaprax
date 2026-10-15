@@ -1,0 +1,42 @@
+{
+  "head": "154cf86a3c4328448be6f2db65d588f06a5b7439",
+  "prompt_bytes": 9996,
+  "sources": [
+    {
+      "source": "src/cleanup_plan/replay/structural_control/calls.rs",
+      "start": 166,
+      "end": 244,
+      "whole_source_sha256": "90dec4afdeb5b935ee824a7d58855dfdbf27610121bd0fb458808a8de71b19ee"
+    },
+    {
+      "source": "src/cleanup_plan/replay/structural_control/blocks.rs",
+      "start": 223,
+      "end": 245,
+      "whole_source_sha256": "04b3b312866bde5572832a8a753cd963edcef45ec6f7dbcc5c2023bbba40928e"
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_replay.rs",
+      "start": 28,
+      "end": 58,
+      "whole_source_sha256": "3560d28ecefd32dfefd1c7ae1db2d847e84b3e44fe1c02c23e7e7568c3013288"
+    },
+    {
+      "source": "src/cleanup_plan/replay/semantic_refusal.rs",
+      "start": 5,
+      "end": 25,
+      "whole_source_sha256": "d51e7c1c6e5e84c6be8a1d27db2eb0f2979f523a50cae7c085e37d049d21f952"
+    },
+    {
+      "source": "src/cleanup_plan/replay/semantic_refusal.rs",
+      "start": 101,
+      "end": 126,
+      "whole_source_sha256": "d51e7c1c6e5e84c6be8a1d27db2eb0f2979f523a50cae7c085e37d049d21f952"
+    },
+    {
+      "source": "src/hir/ids.rs",
+      "start": 15,
+      "end": 35,
+      "whole_source_sha256": "afbbd5de9f56e15dc761c6b01ae591db9472efc4664effcb5c5093833dcfa569"
+    }
+  ]
+}

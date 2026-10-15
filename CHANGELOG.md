@@ -1,5 +1,7 @@
 # Changelog
 
+- Author selected call-local refusal custody (#781): nineteen fixed reasons and the exact unknown-callee handle reach the paid engine through selected block replay; retain complete old receivers and prepaid success/failure controls. Source-only checkpoint; Rust qualification and whole-issue closure remain pending.
+
 - Qualify the closed named String-transfer v1 scope with all 15 exact a417 owning controls and the five 27ae regenerated-pin/source controls; retain unrelated application-budget failures and frozen public profiles.
 
 - Add bounded authoring-card keyword/identity discovery from the existing route and card inventory, preserving library-only search. Executable qualification and live efficiency measurement remain pending.

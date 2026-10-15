@@ -160,7 +160,6 @@ pub(super) fn call_facts_inner(
     }
     Ok(Some(owned))
 }
-#[cfg(test)]
 pub(in crate::cleanup_plan::replay) fn call_facts(
     program: &dyn ReplayContext,
     function: &ResolvedFunction,

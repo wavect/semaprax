@@ -1,0 +1,15 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "basis": "7623acd670f0a25a21ed8c00c190b517e78c8945",
+  "whole_original_rows_reconstructed": 18,
+  "complete_old_calls_and_blocks": "byte_exact_after_visibility_import_adapters",
+  "complete_source_joins": 3,
+  "finite_call_labels": 19,
+  "dynamic_labels": 1,
+  "borrowed_controls_precede_child": "source_asserted",
+  "affected_modules_at_most_1500_lines": true,
+  "rust_compilation": "UNEXECUTED",
+  "rust_tests": "UNEXECUTED",
+  "runtime": "UNEXECUTED",
+  "whole_781": "OPEN"
+}

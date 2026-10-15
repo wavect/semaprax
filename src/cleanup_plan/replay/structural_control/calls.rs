@@ -1,4 +1,5 @@
 //! Borrowed call signatures and one precharged current-HIR lookup cursor.
+use super::call_receiving::{Kind, Policy};
 use super::*;
 use crate::cleanup_plan::CallArgumentTransfer;
 use crate::hir::lexical_exit::ChildCursor;
@@ -7,10 +8,11 @@ pub(super) struct CallCursor<'a> {
     frames: Vec<Option<ChildCursor<'a>>>,
 }
 impl<'a> CallCursor<'a> {
-    pub(super) fn new(
+    pub(super) fn new<E: Policy>(
         function: &ResolvedFunction,
         budget: &mut ReplayBudget,
-    ) -> Result<Self, Diagnostic> {
+    ) -> Result<Self, E> {
+        let permit = E::enter::<Self>(function, budget)?;
         let capacity = 514;
         budget.reserve_array::<Option<ChildCursor<'_>>>(
             function,
@@ -20,22 +22,23 @@ impl<'a> CallCursor<'a> {
         let mut frames = Vec::new();
         frames
             .try_reserve_exact(capacity)
-            .map_err(|_| replay_error(function, "structural call cursor allocation refused"))?;
+            .map_err(|_| E::static_error(&permit, Kind::StructuralCallCursorAllocationRefused))?;
         if frames.capacity() != capacity {
-            return Err(replay_error(
-                function,
-                "structural call cursor capacity differs from reservation",
+            return Err(E::static_error(
+                &permit,
+                Kind::StructuralCallCursorCapacityDiffersFromReservation,
             ));
         }
         frames.resize(capacity, None);
         Ok(Self { frames })
     }
-    fn find(
+    fn find<E: Policy>(
         &mut self,
         function: &'a ResolvedFunction,
         id: &ExpressionId,
         budget: &mut ReplayBudget,
-    ) -> Result<&'a ResolvedExpr, Diagnostic> {
+    ) -> Result<&'a ResolvedExpr, E> {
+        let permit = E::enter::<&ResolvedExpr>(function, budget)?;
         for root in function
             .requires
             .iter()
@@ -55,9 +58,9 @@ impl<'a> CallCursor<'a> {
                 }
                 if let Some(child) = frame.next() {
                     if depth == self.frames.len() {
-                        return Err(replay_error(
-                            function,
-                            "structural call lookup depth exceeds bound",
+                        return Err(E::static_error(
+                            &permit,
+                            Kind::StructuralCallLookupDepthExceedsBound,
                         ));
                     }
                     self.frames[depth] = Some(ChildCursor::new(child));
@@ -68,7 +71,7 @@ impl<'a> CallCursor<'a> {
                 }
             }
         }
-        Err(replay_error(function, "call commit expression is absent"))
+        Err(E::static_error(&permit, Kind::CallCommitExpressionIsAbsent))
     }
 }
 
@@ -166,23 +169,22 @@ fn needs_drop(
     crate::cleanup::selected_inventory_needs_drop_in(program, ty)
 }
 
-fn signature<'a>(
+fn signature<'a, E: Policy>(
     program: &'a dyn ReplayContext,
     function: &ResolvedFunction,
     fact: &CallFact<'_>,
     expression: &'a ResolvedExpr,
     budget: &mut ReplayBudget,
-) -> Result<Signature<'a>, Diagnostic> {
+) -> Result<Signature<'a>, E> {
+    let permit = E::enter::<Signature<'a>>(function, budget)?;
     if matches!(expression.kind, ResolvedExprKind::VecFieldRead { .. }) {
-        super::super::selected_profile::collections::field(program, function, expression, budget)?;
+        E::field(program, function, expression, budget)?;
         let ResolvedExprKind::VecFieldRead { args, .. } = &expression.kind else {
             unreachable!()
         };
         return Ok(Signature::Field(args));
     }
-    if let Some(owned) = super::super::selected_profile::collections::call_facts(
-        program, function, expression, budget,
-    )? {
+    if let Some(owned) = E::call_facts(program, function, expression, budget)? {
         let ResolvedExprKind::Call {
             callee,
             type_arguments,
@@ -200,9 +202,9 @@ fn signature<'a>(
         ));
     }
     if fact.instance.is_some() || !fact.type_arguments.is_empty() {
-        return Err(replay_error(
-            function,
-            "selected call commit does not support generic calls",
+        return Err(E::static_error(
+            &permit,
+            Kind::SelectedCallCommitDoesNotSupportGenericCalls,
         ));
     }
     if let Some(op) = crate::byte_ops::by_id(fact.callee.as_str()) {
@@ -210,10 +212,9 @@ fn signature<'a>(
     }
     if let Some(op) = crate::string_ops::by_id(fact.callee.as_str()) {
         if op == crate::string_ops::StringOp::Take {
-            super::super::selected_profile::string_transfer::operand(function, expression, budget)?
-                .ok_or_else(|| {
-                    replay_error(function, "selected String transfer call identity differs")
-                })?;
+            E::string_operand(function, expression, budget)?.ok_or_else(|| {
+                E::static_error(&permit, Kind::SelectedStringTransferCallIdentityDiffers)
+            })?;
         }
         return Ok(Signature::String(op));
     }
@@ -225,24 +226,19 @@ fn signature<'a>(
         program.functions().len(),
         "structural current callee lookup",
     )?;
-    let target = program
-        .resolve_call_target(&fact.callee, None)
-        .ok_or_else(|| {
-            replay_error(
-                function,
-                format_args!("call commit has unknown callee `{}`", fact.callee),
-            )
-        })?;
+    let Some(target) = program.resolve_call_target(&fact.callee, None) else {
+        return Err(E::missing_callee(&permit, &fact.callee));
+    };
     if !target.effects.is_empty() || target.yields.is_some() {
-        return Err(replay_error(
-            function,
-            "selected call commit does not support effectful callees",
+        return Err(E::static_error(
+            &permit,
+            Kind::SelectedCallCommitDoesNotSupportEffectfulCallees,
         ));
     }
     Ok(Signature::Function(target))
 }
 #[allow(clippy::too_many_arguments)]
-pub(super) fn validate<'a>(
+pub(super) fn validate<'a, E: Policy>(
     program: &dyn ReplayContext,
     function: &'a ResolvedFunction,
     call: &ExpressionId,
@@ -252,7 +248,10 @@ pub(super) fn validate<'a>(
     leaves: &Leaves,
     cursor: Option<&mut CallCursor<'a>>,
     budget: &mut ReplayBudget,
-) -> Result<(), Diagnostic> {
+) -> Result<(), E> {
+    let permit = E::enter::<()>(function, budget)?;
+    #[cfg(test)]
+    E::borrowed_controls(function, budget)?;
     #[cfg(test)]
     let borrowed = program.borrowed_helper_lease(function);
     #[cfg(test)]
@@ -264,13 +263,13 @@ pub(super) fn validate<'a>(
     let expression = match &held {
         Some((expression, _)) => *expression,
         None => cursor
-            .ok_or_else(|| replay_error(function, "selected call lacks its lookup cursor"))?
-            .find(function, call, budget)?,
+            .ok_or_else(|| E::static_error(&permit, Kind::SelectedCallLacksItsLookupCursor))?
+            .find::<E>(function, call, budget)?,
     };
     #[cfg(not(test))]
     let expression = cursor
-        .ok_or_else(|| replay_error(function, "selected call lacks its lookup cursor"))?
-        .find(function, call, budget)?;
+        .ok_or_else(|| E::static_error(&permit, Kind::SelectedCallLacksItsLookupCursor))?
+        .find::<E>(function, call, budget)?;
     let (callee, type_arguments, instance, args) = match &expression.kind {
         ResolvedExprKind::Call {
             callee,
@@ -290,10 +289,10 @@ pub(super) fn validate<'a>(
             args.as_slice(),
         ),
         _ => {
-            return Err(replay_error(
-                function,
-                "call commit does not name a selected ordinary call",
-            ))
+            return Err(E::static_error(
+                &permit,
+                Kind::CallCommitDoesNotNameASelectedOrdinaryCall,
+            ));
         }
     };
     #[cfg(test)]
@@ -335,15 +334,15 @@ pub(super) fn validate<'a>(
             .zip(&fact.arguments)
             .all(|(arg, id)| &arg.id == id);
     if !agrees {
-        return Err(replay_error(
-            function,
-            "call commit facts disagree with current typed call",
+        return Err(E::static_error(
+            &permit,
+            Kind::CallCommitFactsDisagreeWithCurrentTypedCall,
         ));
     }
     #[cfg(test)]
     let signature = match &held {
         Some((_, call)) => {
-            use schema::borrowed::{operands::Builtin, Call};
+            use schema::borrowed::{Call, operands::Builtin};
             match call {
                 Call::User(target) => Signature::Function(target),
                 Call::Builtin(Builtin::FromU8) => {
@@ -354,14 +353,14 @@ pub(super) fn validate<'a>(
                 Call::Builtin(Builtin::Str(op)) => Signature::Str(*op),
             }
         }
-        None => signature(program, function, fact, expression, budget)?,
+        None => signature::<E>(program, function, fact, expression, budget)?,
     };
     #[cfg(not(test))]
-    let signature = signature(program, function, fact, expression, budget)?;
+    let signature = signature::<E>(program, function, fact, expression, budget)?;
     if signature.len() != fact.arguments.len() {
-        return Err(replay_error(
-            function,
-            "call commit callee signature has inconsistent arity",
+        return Err(E::static_error(
+            &permit,
+            Kind::CallCommitCalleeSignatureHasInconsistentArity,
         ));
     }
     let mut actual = arguments.iter();
@@ -386,29 +385,29 @@ pub(super) fn validate<'a>(
                 OwnershipMode::Shared => false,
             }
         {
-            return Err(replay_error(
-                function,
-                "call commit argument disagrees with exact parameter type or ownership",
+            return Err(E::static_error(
+                &permit,
+                Kind::CallCommitArgumentDisagreesWithExactParameterTypeOrOwnership,
             ));
         }
         if mode == OwnershipMode::Own && drop {
             let expected = u32::try_from(index)
-                .map_err(|_| replay_error(function, "too many call parameters"))?;
+                .map_err(|_| E::static_error(&permit, Kind::TooManyCallParameters))?;
             if actual
                 .next()
                 .is_none_or(|arg| arg.parameter_index != expected)
             {
-                return Err(replay_error(
-                    function,
-                    "call commit does not contain every and only owned droppable parameter",
+                return Err(E::static_error(
+                    &permit,
+                    Kind::CallCommitDoesNotContainEveryAndOnlyOwnedDroppableParameter,
                 ));
             }
         }
     }
     if actual.next().is_some() {
-        return Err(replay_error(
-            function,
-            "call commit does not contain every and only owned droppable parameter",
+        return Err(E::static_error(
+            &permit,
+            Kind::CallCommitDoesNotContainEveryAndOnlyOwnedDroppableParameter,
         ));
     }
     let mut previous = None;
@@ -416,32 +415,31 @@ pub(super) fn validate<'a>(
     for argument in arguments {
         budget.charge(function, 1, "structural call epochs")?;
         if previous.is_some_and(|value| value >= argument.parameter_index) {
-            return Err(replay_error(
-                function,
-                "call-commit parameters are not in strict signature order",
+            return Err(E::static_error(
+                &permit,
+                Kind::CallCommitParametersAreNotInStrictSignatureOrder,
             ));
         }
         previous = Some(argument.parameter_index);
-        let index = usize::try_from(argument.parameter_index).map_err(|_| {
-            replay_error(function, "call-commit parameter index does not fit usize")
-        })?;
+        let index = usize::try_from(argument.parameter_index)
+            .map_err(|_| E::static_error(&permit, Kind::CallCommitParameterIndexDoesNotFitUsize))?;
         let expected = fact.arguments.get(index).ok_or_else(|| {
-            replay_error(function, "call-commit parameter index exceeds call arity")
+            E::static_error(&permit, Kind::CallCommitParameterIndexExceedsCallArity)
         })?;
         if !matches!(&argument.source.storage,StorageId::CallArgument{call:storage_call,parameter_index,value_expression} if storage_call==call && parameter_index==&argument.parameter_index && value_expression==expected && argument.source.projections.is_empty())
         {
-            return Err(replay_error(
-                function,
-                "call commit does not consume its matching whole argument epoch",
+            return Err(E::static_error(
+                &permit,
+                Kind::CallCommitDoesNotConsumeItsMatchingWholeArgumentEpoch,
             ));
         }
         for flag in
             path_join::storage::validate_place(function, &argument.source, storage, leaves, budget)?
         {
             if consumed.contains(&flag) {
-                return Err(replay_error(
-                    function,
-                    "atomic call commit consumes overlapping argument epochs",
+                return Err(E::static_error(
+                    &permit,
+                    Kind::AtomicCallCommitConsumesOverlappingArgumentEpochs,
                 ));
             }
             budget.reserve_btree_node::<LivenessFlagId, ()>(
@@ -453,3 +451,6 @@ pub(super) fn validate<'a>(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod custody_tests;

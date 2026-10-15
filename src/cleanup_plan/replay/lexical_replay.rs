@@ -39,7 +39,7 @@ pub(super) fn validate_paid(
     )
 }
 
-fn validate_core<'hir, E: semantic_refusal::Error>(
+fn validate_core<'hir, E: structural_control::call_receiving::Policy>(
     program: &dyn crate::cleanup::ReplayContext,
     function: &'hir ResolvedFunction,
     budget: &mut ReplayBudget,
@@ -81,7 +81,7 @@ fn validate_core<'hir, E: semantic_refusal::Error>(
                 "selected replay lacks its independently rebuilt renewal lease",
             )
         })?;
-        structural_control::validate_blocks_and_edges(
+        structural_control::validate_blocks_and_edges_paid::<E>(
             program,
             function,
             &expression_facts,

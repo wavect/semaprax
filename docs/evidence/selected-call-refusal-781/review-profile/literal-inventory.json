@@ -1,0 +1,25 @@
+{
+  "basis": "7623acd670f0a25a21ed8c00c190b517e78c8945",
+  "static": {
+    "structural call cursor allocation refused": "StructuralCallCursorAllocationRefused",
+    "structural call cursor capacity differs from reservation": "StructuralCallCursorCapacityDiffersFromReservation",
+    "structural call lookup depth exceeds bound": "StructuralCallLookupDepthExceedsBound",
+    "call commit expression is absent": "CallCommitExpressionIsAbsent",
+    "selected call commit does not support generic calls": "SelectedCallCommitDoesNotSupportGenericCalls",
+    "selected String transfer call identity differs": "SelectedStringTransferCallIdentityDiffers",
+    "selected call commit does not support effectful callees": "SelectedCallCommitDoesNotSupportEffectfulCallees",
+    "selected call lacks its lookup cursor": "SelectedCallLacksItsLookupCursor",
+    "call commit does not name a selected ordinary call": "CallCommitDoesNotNameASelectedOrdinaryCall",
+    "call commit facts disagree with current typed call": "CallCommitFactsDisagreeWithCurrentTypedCall",
+    "call commit callee signature has inconsistent arity": "CallCommitCalleeSignatureHasInconsistentArity",
+    "call commit argument disagrees with exact parameter type or ownership": "CallCommitArgumentDisagreesWithExactParameterTypeOrOwnership",
+    "too many call parameters": "TooManyCallParameters",
+    "call commit does not contain every and only owned droppable parameter": "CallCommitDoesNotContainEveryAndOnlyOwnedDroppableParameter",
+    "call-commit parameters are not in strict signature order": "CallCommitParametersAreNotInStrictSignatureOrder",
+    "call-commit parameter index does not fit usize": "CallCommitParameterIndexDoesNotFitUsize",
+    "call-commit parameter index exceeds call arity": "CallCommitParameterIndexExceedsCallArity",
+    "call commit does not consume its matching whole argument epoch": "CallCommitDoesNotConsumeItsMatchingWholeArgumentEpoch",
+    "atomic call commit consumes overlapping argument epochs": "AtomicCallCommitConsumesOverlappingArgumentEpochs"
+  },
+  "dynamic": "call commit has unknown callee `{callee}`"
+}

@@ -73,3 +73,35 @@ Arbitrary child Diagnostics, including renewal census and work failures, retain
 the original owned route. Detailed legacy rendering remains explicitly allocating.
 The complete source packet, residuals and pending owners live in
 `docs/evidence/selected-session-static-refusal-781/`.
+
+## Selected call-local custody (#781; source only)
+
+Selected lexical/scalar replay now forwards closed call-local refusals through
+the block validator to the existing EngineError/Session report boundary. The
+call validator, signature helper and HIR cursor retain nineteen finite reasons;
+the unknown-callee reason retains the exact immutable DeclarationId handle at
+the original failed target lookup. It performs no later ExpressionId lookup
+and renders no message backing in the typed producer. The retained identity
+confers no source, payer, or admission authority.
+
+Each new call/cursor/signature/block receiving boundary pays its actual full
+permit, atom, receipt, error, optional and Result controls before child entry,
+including success. Guarded borrowed-call lookup pays its actual lease and
+call-result receiving tuple before invocation. All original lookup, cursor,
+parameter and epoch work remains independent; no fees are folded into old work,
+no quota is increased and no credit is returned. Capacity errors and explicit
+legacy/no-owner routes retain their existing channel.
+
+Complete preceding call and block bodies remain independently compiled test
+receivers. The source packet binds all original bytes, all three full source
+audits and complete preceding Atom/Receipt/EngineError layout definitions.
+Authored controls cover all finite text, full six-field diagnostic parity,
+Unicode/NUL/long callee identity, both last-handle Drop orders, competing block
+errors and exact/short/zero physical/work boundaries. Same-host layout equality
+and all Rust execution remain UNEXECUTED.
+
+Nested needs_drop and guarded borrowed child Diagnostics remain explicit Owned
+residuals. Existing block-local and earlier lexical/profile Diagnostics are
+also outside this cut. Whole #781 remains OPEN. The ordinary lexical
+return-operand inventory tracked by #832 is unchanged. The packet lives in
+`docs/evidence/selected-call-refusal-781/`.

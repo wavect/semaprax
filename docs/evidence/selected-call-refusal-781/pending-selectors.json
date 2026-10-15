@@ -1,0 +1,33 @@
+{
+  "state": "UNEXECUTED",
+  "library_selectors": [
+    "cleanup_plan::replay::structural_control::calls::custody_tests::",
+    "cleanup_plan::replay::structural_control::blocks::tests::",
+    "cleanup_plan::replay::structural_control::blocks_before_receipt::tests::",
+    "cleanup_plan::replay::selected_entry::tests::session_errors::",
+    "cleanup_plan::replay::semantic_refusal::tests::",
+    "cleanup_plan::replay::selected_context::child::tests::",
+    "cleanup_plan::replay::selected_profile::paid_children::tests::",
+    "cleanup_plan::replay::live_oracle::source_custody::"
+  ],
+  "integration_harnesses": [
+    "hir_module_boundaries",
+    "workspace semantic_graph",
+    "module_size"
+  ],
+  "additional_requirements": [
+    "same-host complete layout equality must actually run",
+    "consolidated production and cfg(test) build",
+    "Clippy for affected configurations",
+    "real owner and report publication controls",
+    "exact integration source inverse composition"
+  ],
+  "issue_781": "OPEN",
+  "residuals": [
+    "needs_drop child Diagnostic",
+    "guarded borrowed helper child Diagnostics",
+    "earlier lexical and selected-profile Diagnostics",
+    "remaining block-local Diagnostic families",
+    "ordinary lexical return-operand inventory #832 unchanged"
+  ]
+}

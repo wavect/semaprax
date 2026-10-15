@@ -312,3 +312,67 @@ fn selected_session_atom_keeps_every_success_receiving_layout_equal_to_complete_
 }
 
 mod source;
+
+#[test]
+fn selected_call_dynamic_receipt_keeps_the_same_session_report_and_ledger_through_drop() {
+    use crate::cleanup_plan::replay::structural_control::call_receiving::{Kind, Permit, Policy};
+    type Engine = expression_facts::errors::EngineError;
+    let program = fixture();
+    let context = primitive_fixture::Context::new(&program);
+    let function = &program.functions[0];
+    let callee = crate::hir::DeclarationId::new("missing:é\0雪");
+    let bytes = std::mem::size_of::<(
+        Permit<'static, Engine>,
+        Kind,
+        crate::hir::DeclarationId,
+        semantic_refusal::Atom,
+        semantic_refusal::Receipt,
+        Engine,
+        Option<Engine>,
+        Result<(), Engine>,
+        Result<(), Engine>,
+        Result<Permit<'static, Engine>, Engine>,
+        &'static Permit<'static, Engine>,
+    )>();
+    let (base, overflow, _) = crate::bounded_output::with_limit_usage(usize::MAX, || {
+        acquire(&context, function, usize::MAX).usage().1
+    });
+    assert!(!overflow);
+    for (extra, semantic) in [(0, false), (bytes - 1, false), (bytes, true)] {
+        let ((), overflow, _) = crate::bounded_output::with_limit_usage(usize::MAX, || {
+            let (_, observed) = measure(|| {
+                let mut owner = acquire(&context, function, base + extra);
+                let backing = owner.report.as_ref().unwrap().backing();
+                let ledger = owner.budget.physical.as_deref().unwrap() as *const _;
+                let before = current_metrics();
+                let error = match <Engine as Policy>::enter::<()>(function, &mut owner.budget) {
+                    Ok(permit) => <Engine as Policy>::missing_callee(&permit, &callee),
+                    Err(error) => error,
+                };
+                assert_eq!(matches!(&error, Engine::Structural(_)), semantic);
+                assert_eq!(current_metrics().allocations, before.allocations);
+                let mut refusal = owner.into_failed_preparation().refuse_engine(error);
+                assert_eq!(refusal.report().unwrap().as_ptr(), backing.0);
+                assert_eq!(refusal.report().unwrap()[0].message.as_ptr(), backing.1);
+                assert_eq!(refusal.ledger_mut().unwrap() as *const _, ledger);
+                if semantic {
+                    let receipt = refusal.structural_receipt().unwrap();
+                    assert_eq!(receipt.stage(), "selected call");
+                    assert_eq!(
+                        receipt.call_callee().unwrap().as_str().as_ptr(),
+                        callee.as_str().as_ptr()
+                    );
+                }
+                let first = refusal.ledger_mut().unwrap().reserve(0).unwrap_err();
+                assert_eq!(refusal.ledger_mut().unwrap().reserve(1).unwrap_err(), first);
+                assert_eq!(refusal.ledger_mut().unwrap().reserve(0).unwrap_err(), first);
+                drop(refusal.into_report(FORM).ok().unwrap());
+                assert_eq!(current_metrics().allocations, before.allocations);
+            });
+            assert!(!observed.invalid);
+            assert_eq!(observed.live, 0);
+            assert_eq!(observed.allocated, observed.freed);
+        });
+        assert!(!overflow);
+    }
+}

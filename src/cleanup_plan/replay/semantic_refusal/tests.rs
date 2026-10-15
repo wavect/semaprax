@@ -67,6 +67,8 @@ fn sealed_atoms_keep_saved_detailed_text_and_allocate_no_identity_payload() {
 // Complete independent original adapter, including every owning message arm.
 fn complete_original_legacy(receipt: Receipt, function: &ResolvedFunction) -> Diagnostic {
     let message = match receipt.atom {
+        Atom::SelectedCall(kind) => kind.detail().to_owned(),
+        Atom::UnknownCallCallee(callee) => format!("call commit has unknown callee `{callee}`"),
         Atom::SelectedSession(detail) => detail.to_owned(),
         Atom::SelectedChild(reason) => {
             let message = if reason.prefixed() {

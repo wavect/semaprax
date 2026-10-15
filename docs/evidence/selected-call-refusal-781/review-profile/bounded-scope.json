@@ -1,0 +1,50 @@
+{
+  "status": "bounded source inventory, no implementation or execution",
+  "head": "154cf86a3c4328448be6f2db65d588f06a5b7439",
+  "file": "/Volumes/Semaprax/worktrees/selected-child-refusal-781-ef0cb-20261015/src/cleanup_plan/replay/structural_control/calls.rs",
+  "full_source_sha256": "90dec4afdeb5b935ee824a7d58855dfdbf27610121bd0fb458808a8de71b19ee",
+  "static_literals": [
+    "structural call cursor allocation refused",
+    "structural call cursor capacity differs from reservation",
+    "structural call lookup depth exceeds bound",
+    "call commit expression is absent",
+    "selected call commit does not support generic calls",
+    "selected String transfer call identity differs",
+    "selected call commit does not support effectful callees",
+    "selected call lacks its lookup cursor",
+    "call commit does not name a selected ordinary call",
+    "call commit facts disagree with current typed call",
+    "call commit callee signature has inconsistent arity",
+    "call commit argument disagrees with exact parameter type or ownership",
+    "too many call parameters",
+    "call commit does not contain every and only owned droppable parameter",
+    "call-commit parameters are not in strict signature order",
+    "call-commit parameter index does not fit usize",
+    "call-commit parameter index exceeds call arity",
+    "call commit does not consume its matching whole argument epoch",
+    "atomic call commit consumes overlapping argument epochs"
+  ],
+  "dynamic_sites": [
+    {
+      "line": 232,
+      "format": "call commit has unknown callee `{}`",
+      "operand": "actual fact.callee immutable DeclarationId; caller first matches actual call fields"
+    }
+  ],
+  "flow": [
+    "selected_entry.rs288 validate_paid -> Context::new_paid then lexical_replay::validate_paid",
+    "lexical_replay.rs28 -> validate_core<EngineError>",
+    "lexical_replay.rs89 selected blocks currently returns Diagnostic",
+    "structural_control/blocks.rs238 calls::validate currently returns Diagnostic",
+    "structural_control/calls.rs166 signature currently returns Diagnostic",
+    "EngineError::From<Diagnostic> retains Owned at generic receiver"
+  ],
+  "boundaries": [
+    "Full calls::validate and signature plus selected blocks typed forwarding",
+    "Legacy Diagnostic bodies independent complete receiver",
+    "Nested cursor/needs_drop/borrowed helper dynamic Diagnostics remain explicit if not separately adopted",
+    "No workspace_graph constructors/default/report files",
+    "No claim malformed call reaches authenticated public outer source route"
+  ],
+  "no_cargo": true
+}

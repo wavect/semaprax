@@ -1,8 +1,9 @@
 //! Selected primitive block/edge replay. Legacy validation remains unchanged.
+use super::call_receiving::Policy;
 use super::*;
 
 #[allow(clippy::too_many_arguments)]
-pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(
+pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges_paid<E: Policy>(
     program: &dyn ReplayContext,
     function: &ResolvedFunction,
     expressions: &dyn expression_facts::Lookup,
@@ -10,7 +11,8 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(
     leaves: &Leaves,
     renewals: &crate::cleanup_plan::ReplayRenewalBindings<'_>,
     budget: &mut ReplayBudget,
-) -> Result<(), Diagnostic> {
+) -> Result<(), E> {
+    let _receiving = E::enter::<()>(function, budget)?;
     let plan = &function.cleanup_plan;
     let mut statuses = BTreeSet::new();
     #[cfg(test)]
@@ -44,7 +46,8 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(
             return Err(replay_error(
                 function,
                 "cleanup edge has a non-contiguous ID or unknown endpoint",
-            ));
+            )
+            .into());
         }
         match &edge.condition {
             EdgeCondition::Always => {}
@@ -95,7 +98,8 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(
             return Err(replay_error(
                 function,
                 "cleanup block has a non-contiguous ID or unknown region",
-            ));
+            )
+            .into());
         }
         let mut selected = None;
         for transition in &block.transitions {
@@ -154,7 +158,8 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(
                         return Err(replay_error(
                             function,
                             "cleanup transfer has incompatible structural places",
-                        ));
+                        )
+                        .into());
                     }
                     for flag in &source_flags {
                         budget.charge(
@@ -166,7 +171,8 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(
                             return Err(replay_error(
                                 function,
                                 "cleanup transfer has incompatible structural places",
-                            ));
+                            )
+                            .into());
                         }
                     }
                 }
@@ -176,14 +182,16 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(
                     return Err(replay_error(
                         function,
                         "selected structural replay does not support conditional variant ownership",
-                    ));
+                    )
+                    .into());
                 }
                 CleanupTransition::CallCommit { call, arguments } => {
                     let Some(Some(fact)) = expressions.fact(function, call, budget)? else {
                         return Err(replay_error(
                             function,
                             "call commit does not name a call expression",
-                        ));
+                        )
+                        .into());
                     };
                     #[cfg(test)]
                     let inserted = match &mut borrowed_commits {
@@ -213,19 +221,18 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(
                         committed_calls.insert(call)
                     };
                     if !inserted && plan.lexical_control.is_none() {
-                        return Err(replay_error(
-                            function,
-                            "call has more than one atomic commit",
-                        ));
+                        return Err(
+                            replay_error(function, "call has more than one atomic commit").into(),
+                        );
                     }
                     #[cfg(test)]
                     let needs_cursor = !expressions.is_metered();
                     #[cfg(not(test))]
                     let needs_cursor = true;
                     if needs_cursor && cursor.is_none() {
-                        cursor = Some(calls::CallCursor::new(function, budget)?);
+                        cursor = Some(calls::CallCursor::new::<E>(function, budget)?);
                     }
-                    calls::validate(
+                    calls::validate::<E>(
                         program,
                         function,
                         call,
@@ -250,7 +257,8 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(
                         return Err(replay_error(
                             function,
                             "cleanup block selects more than one failure status",
-                        ));
+                        )
+                        .into());
                     }
                 }
                 CleanupTransition::StageCopyResult { source } => {
@@ -260,7 +268,8 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(
                         return Err(replay_error(
                             function,
                             "selected structural replay does not support residual staging",
-                        ));
+                        )
+                        .into());
                     };
                     #[cfg(test)]
                     if expressions.is_metered() {
@@ -287,7 +296,8 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(
                         return Err(replay_error(
                             function,
                             "body Copy-result stage names another expression",
-                        ));
+                        )
+                        .into());
                     }
                 }
             }
@@ -307,7 +317,7 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(
                         EdgeCondition::VariantCase { matches: true, .. }
                     ))
                 {
-                    return Err(replay_error(function, "goto edge is conditional"));
+                    return Err(replay_error(function, "goto edge is conditional").into());
                 }
             }
             CleanupTerminator::Branch(edges) => {
@@ -315,7 +325,8 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(
                     return Err(replay_error(
                         function,
                         "cleanup branch must own exactly two distinct edges",
-                    ));
+                    )
+                    .into());
                 }
                 for edge in edges {
                     owned_edge(function, block.id, *edge, &mut referenced_edges, budget)?;
@@ -351,7 +362,8 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(
                     return Err(replay_error(
                         function,
                         "cleanup block references an unknown or repeated exit",
-                    ));
+                    )
+                    .into());
                 }
                 budget.reserve_btree_node::<crate::cleanup_plan::ExitTargetId, ()>(
                     function,
@@ -359,10 +371,9 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(
                 )?;
                 referenced_exits.insert(*exit);
                 if plan.exits[exit.0 as usize].from != block.id {
-                    return Err(replay_error(
-                        function,
-                        "cleanup exit is owned by the wrong block",
-                    ));
+                    return Err(
+                        replay_error(function, "cleanup exit is owned by the wrong block").into(),
+                    );
                 }
             }
         }
@@ -388,7 +399,8 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(
                     return Err(replay_error(
                         function,
                         "cleanup plan does not contain exactly one atomic commit for every call",
-                    ));
+                    )
+                    .into());
                 }
             }
         }
@@ -403,7 +415,8 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(
             return Err(replay_error(
                 function,
                 "cleanup plan does not contain exactly one atomic commit for every call",
-            ));
+            )
+            .into());
         }
     }
     Ok(())
@@ -488,7 +501,7 @@ mod tests {
         let expressions = expression_facts::expression_facts_with_reservation(function, physical)?;
         let storage = structural_maps::validate_slots(function, &mut budget)?;
         let leaves = structural_maps::collect_leaves(function, &mut budget)?;
-        validate_blocks_and_edges(
+        validate_blocks_and_edges_paid::<Diagnostic>(
             program,
             function,
             &expressions,
@@ -558,12 +571,12 @@ mod tests {
                 })
                 .expect("actual branch");
             if wrong_owner {
-                function.cleanup_plan.edges[pair.1 .0 as usize].from = BlockId(u32::MAX);
+                function.cleanup_plan.edges[pair.1.0 as usize].from = BlockId(u32::MAX);
             } else {
-                let condition = function.cleanup_plan.edges[pair.1 .0 as usize]
+                let condition = function.cleanup_plan.edges[pair.1.0 as usize]
                     .condition
                     .clone();
-                function.cleanup_plan.edges[pair.2 .0 as usize].condition = condition;
+                function.cleanup_plan.edges[pair.2.0 as usize].condition = condition;
             }
             assert!(run(&forged, usize::MAX).is_err());
         }

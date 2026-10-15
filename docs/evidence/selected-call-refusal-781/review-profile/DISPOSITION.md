@@ -1,0 +1,9 @@
+# Proposal review disposition
+
+Single tools-disabled Sonnet process completed95.4111s, peak321929216 bytes, exit0; list cost$0.1351909, actualbilling unavailable. Full argv/prompt/raw preserved. No retry.
+
+Accepted: actual unknown-callee formatted diagnostic is narrow existing custody gap; typed forwarding must span calls and enclosing selected blocks to reach Session; clone only the existing immutable callee handle at original lookup-None point; retain full old bodies and fee/first-error/Drop controls. Check global Atom/Receipt/EngineError/result/optional layouts against complete same-host old definitions, including success. Prepay new actual controls before cursor/signature/validation entry. Avoid dynamic ok_or_else closure at missing target. Last-handle retention and both Drop orders require observation. No wholeSession allocation-freedom claim.
+
+Rejected: re-derive callee from an ExpressionId later; this adds lookup/work and risks stale/foreign HIR substitutions instead of self-contained original diagnostic identity. Rejected suggested folding new receipt fee into existing lookup charge and no success prepayment assumption: original units stay intact and actual new full uncovered controls must be charged before construction. Rejected speculation that fixed-label diagnostics are already covered by the outward fixed report; message backing is separate and actual finite labels must have typed data or real producer payment. Those are proposal findings, not final-source approval.
+
+Implementation scope approved by parent: complete selected call-local nineteen static labels plus one dynamic authored callee site, actual blocks/lexical/scalar typed forwarding; nested needs_drop/borrowed children stay explicit Owned residuals. Constructor/default/report825 disjoint. Whole781 OPEN.

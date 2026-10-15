@@ -4,6 +4,8 @@
 use super::*;
 #[derive(Debug)]
 pub(super) enum Atom {
+    SelectedCall(structural_control::call_receiving::Kind),
+    UnknownCallCallee(DeclarationId),
     SelectedSession(&'static str),
     SelectedChild(crate::cleanup_plan::renewal_profile::child_refusal::Refusal),
     RepeatedStatus(ExpressionId),
@@ -34,11 +36,18 @@ impl Receipt {
             atom: Atom::SelectedSession(detail),
         }
     }
-    pub(super) fn selected_child(function:&ResolvedFunction,reason:crate::cleanup_plan::renewal_profile::child_refusal::Refusal)->Self {
-        Self {source:function.body.id.clone(),atom:Atom::SelectedChild(reason)}
+    pub(super) fn selected_child(
+        function: &ResolvedFunction,
+        reason: crate::cleanup_plan::renewal_profile::child_refusal::Refusal,
+    ) -> Self {
+        Self {
+            source: function.body.id.clone(),
+            atom: Atom::SelectedChild(reason),
+        }
     }
     pub(super) fn stage(&self) -> &'static str {
         match &self.atom {
+            Atom::SelectedCall(_) | Atom::UnknownCallCallee(_) => "selected call",
             Atom::SelectedSession(_) => "selected session",
             Atom::SelectedChild(_) => "selected child",
             _ => "structural replay",
@@ -48,9 +57,18 @@ impl Receipt {
     pub(super) fn legacy(self, function: &ResolvedFunction) -> Diagnostic {
         // Branch-local calls: no `fmt::Arguments` escapes its own statement.
         match self.atom {
+            Atom::SelectedCall(kind) => replay_error(function, kind.detail()),
+            Atom::UnknownCallCallee(callee) => replay_error(
+                function,
+                format_args!("call commit has unknown callee `{callee}`"),
+            ),
             Atom::SelectedSession(detail) => replay_error(function, detail),
             Atom::SelectedChild(reason) => {
-                if reason.prefixed(){replay_error(function,reason.detail())}else{reason.legacy()}
+                if reason.prefixed() {
+                    replay_error(function, reason.detail())
+                } else {
+                    reason.legacy()
+                }
             }
             Atom::RepeatedStatus(id) => replay_error(
                 function,
@@ -92,6 +110,13 @@ impl Receipt {
                 function,
                 format_args!("cleanup storage `{storage:?}` is repeated"),
             ),
+        }
+    }
+    #[cfg(test)]
+    pub(super) fn call_callee(&self) -> Option<&DeclarationId> {
+        match &self.atom {
+            Atom::UnknownCallCallee(id) => Some(id),
+            _ => None,
         }
     }
     #[cfg(test)]

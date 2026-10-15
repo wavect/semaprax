@@ -1,0 +1,215 @@
+Bounded source-only review. Tools disabled; do not execute anything. Issue781 OPEN, no Rust qualification. DISTINCT later Session path, separate from finite Context42 checkpoint now integrating. Source-sharing authorized.
+Actual production route: Session::validate_paid -> lexical_replay::validate_paid -> validate_core<EngineError> -> structural_control::blocks -> calls::validate -> signature. Dynamic unknown-callee error currently formats authored fact.callee into Diagnostic; From<Diagnostic> later becomes Owned. Existing paid fixed report cannot retrofund that String. Original full receiver/all6 fields/error order/work/Drop/caps must remain.
+Proposal: private closed CallRefusal with UnknownCallee(DeclarationId) plus exact finite call/signature-local variants, Atom::SelectedCall using existing Structural receipt. Existing EngineError variants unchanged. At selected call entry on actual ReplayBudget, prepay full actual CallRefusal/Receipt/EngineError/Options and Signature, validate and enclosing blocks Result receiving controls BEFORE all outcomes (success included), with actual initializer work. No post-sticky debit. Clone actual fact.callee immutable Arc/static handle only at original lookup-None point; no new text or backing. Rendering remains explicit legacy detailed bridge or current fixed paid-report transfer. Handle retention never certifies original backing paid/source authority.
+Genericize calls and enclosing selected blocks error forwarding so typed data actually reaches Session; Legacy policy retains complete old independent call/block bodies. Other unmigrated dynamic children stay explicit Owned, no relabel. Selected collection/string-transfer children may reuse existing typed finite Context twins; needs_drop and cursor child errors remain separately explicit residual unless audited. Preserve all old lookups/check/charge order; only new full controls/initializer fees added, never discount old headers, reset quota, use ambient payer or increase cap. Use analogous prepaid Context Permit call-local shape, never posterror allocation.
+Audit questions: Is this real bounded custody gap and forwarding scope enough? Identify success-result/carrier enlargement, temporary/control/closure, lifetime/first-failure pitfalls. Old actual EngineError/Result/Option layout owner must still assert complete old/current (no portable ABI assumption); if enlarged, success receiving overlap needs actual upfront payment. Any smaller safe connected design? What minimal full old/current Unicode/NUL/long callee, competing failure, exact/short/zero, sticky and wholeDrop tests are essential? Distinguish fact/inference. No blanket approval or runtime claim.
+
+ACTUAL src/cleanup_plan/replay/structural_control/calls.rs:166-244
+    crate::cleanup::selected_inventory_needs_drop_in(program, ty)
+}
+
+fn signature<'a>(
+    program: &'a dyn ReplayContext,
+    function: &ResolvedFunction,
+    fact: &CallFact<'_>,
+    expression: &'a ResolvedExpr,
+    budget: &mut ReplayBudget,
+) -> Result<Signature<'a>, Diagnostic> {
+    if matches!(expression.kind, ResolvedExprKind::VecFieldRead { .. }) {
+        super::super::selected_profile::collections::field(program, function, expression, budget)?;
+        let ResolvedExprKind::VecFieldRead { args, .. } = &expression.kind else {
+            unreachable!()
+        };
+        return Ok(Signature::Field(args));
+    }
+    if let Some(owned) = super::super::selected_profile::collections::call_facts(
+        program, function, expression, budget,
+    )? {
+        let ResolvedExprKind::Call {
+            callee,
+            type_arguments,
+            args,
+            ..
+        } = &expression.kind
+        else {
+            unreachable!()
+        };
+        return Ok(Signature::Vector(
+            crate::vec_ops::by_id(callee.as_str()).expect("authenticated Vec operation"),
+            owned,
+            &type_arguments[0],
+            args,
+        ));
+    }
+    if fact.instance.is_some() || !fact.type_arguments.is_empty() {
+        return Err(replay_error(
+            function,
+            "selected call commit does not support generic calls",
+        ));
+    }
+    if let Some(op) = crate::byte_ops::by_id(fact.callee.as_str()) {
+        return Ok(Signature::Byte(op));
+    }
+    if let Some(op) = crate::string_ops::by_id(fact.callee.as_str()) {
+        if op == crate::string_ops::StringOp::Take {
+            super::super::selected_profile::string_transfer::operand(function, expression, budget)?
+                .ok_or_else(|| {
+                    replay_error(function, "selected String transfer call identity differs")
+                })?;
+        }
+        return Ok(Signature::String(op));
+    }
+    if let Some(op) = crate::str_ops::by_id(fact.callee.as_str()) {
+        return Ok(Signature::Str(op));
+    }
+    budget.charge(
+        function,
+        program.functions().len(),
+        "structural current callee lookup",
+    )?;
+    let target = program
+        .resolve_call_target(&fact.callee, None)
+        .ok_or_else(|| {
+            replay_error(
+                function,
+                format_args!("call commit has unknown callee `{}`", fact.callee),
+            )
+        })?;
+    if !target.effects.is_empty() || target.yields.is_some() {
+        return Err(replay_error(
+            function,
+            "selected call commit does not support effectful callees",
+        ));
+    }
+    Ok(Signature::Function(target))
+}
+#[allow(clippy::too_many_arguments)]
+
+ACTUAL src/cleanup_plan/replay/structural_control/blocks.rs:223-245
+                    #[cfg(not(test))]
+                    let needs_cursor = true;
+                    if needs_cursor && cursor.is_none() {
+                        cursor = Some(calls::CallCursor::new(function, budget)?);
+                    }
+                    calls::validate(
+                        program,
+                        function,
+                        call,
+                        fact,
+                        arguments,
+                        storage,
+                        leaves,
+                        cursor.as_mut(),
+                        budget,
+                    )?;
+                }
+                CleanupTransition::SelectFailure { source } => {
+                    require_status_received(
+                        function,
+                        &statuses,
+                        source,
+                        #[cfg(test)]
+
+ACTUAL src/cleanup_plan/replay/lexical_replay.rs:28-58
+pub(super) fn validate_paid(
+    program: &dyn crate::cleanup::ReplayContext,
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<(), expression_facts::errors::EngineError> {
+    validate_core(
+        program,
+        function,
+        budget,
+        None,
+        expression_facts::paid_arena,
+    )
+}
+
+fn validate_core<'hir, E: semantic_refusal::Error>(
+    program: &dyn crate::cleanup::ReplayContext,
+    function: &'hir ResolvedFunction,
+    budget: &mut ReplayBudget,
+    helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'_>>,
+    build_facts: impl FnOnce(
+        &'hir ResolvedFunction,
+        &mut ReplayBudget,
+    ) -> Result<expression_facts::Facts<'hir>, E>,
+) -> Result<(), E> {
+    let plan = &function.cleanup_plan;
+    selected_profile::validate(program, function, budget)?;
+    let owner = selected_owner::owner(program, function, budget)?;
+    crate::hir::lexical_exit::validate_function(program, function, &owner)?;
+    // The lexical resource plan was deferred before enumerating path refusal.
+    // Bound structure now, but construct no plan automaton until every exact
+    // lexical/certificate/ownership check below has authenticated its meaning.
+
+ACTUAL src/cleanup_plan/replay/semantic_refusal.rs:5-25
+#[derive(Debug)]
+pub(super) enum Atom {
+    SelectedSession(&'static str),
+    SelectedChild(crate::cleanup_plan::renewal_profile::child_refusal::Refusal),
+    RepeatedStatus(ExpressionId),
+    UnknownStatus(ExpressionId),
+    NoncontiguousSlot(usize),
+    RepeatedStorage(StorageId),
+    DeadCallFlag(ExpressionId, LivenessFlagId),
+    RepeatedCallFlag(ExpressionId, LivenessFlagId),
+    RepeatedVariantEpoch(ExpressionId),
+    MismatchedFailure(ExpressionId),
+}
+#[derive(Debug)]
+pub(crate) struct Receipt {
+    #[cfg_attr(
+        not(test),
+        allow(
+            dead_code,
+            reason = "shared source anchor retained with the semantic receipt"
+        )
+
+ACTUAL src/cleanup_plan/replay/semantic_refusal.rs:101-126
+}
+pub(super) trait Error: From<Diagnostic> {
+    fn structural(function: &ResolvedFunction, atom: Atom) -> Self;
+}
+impl Error for Diagnostic {
+    fn structural(function: &ResolvedFunction, atom: Atom) -> Self {
+        Receipt {
+            source: function.body.id.clone(),
+            atom,
+        }
+        .legacy(function)
+    }
+}
+impl Error for expression_facts::errors::EngineError {
+    fn structural(function: &ResolvedFunction, atom: Atom) -> Self {
+        Self::Structural(Receipt {
+            source: function.body.id.clone(),
+            atom,
+        })
+    }
+}
+#[cfg(test)]
+mod tests;
+
+ACTUAL src/hir/ids.rs:15-35
+
+/// A valid declaration identity. Every value holds real text: either a fixed
+/// compiler constant borrowed for the process lifetime, or one immutable
+/// exact-length shared backing that every clone references. There is no
+/// refused, empty-sentinel or cached-fingerprint state. A funded construction
+/// that is refused returns `Err` from its constructor, so a refusal never
+/// reaches HIR, maps, comparison or the cache wire.
+///
+/// Equality, order, hash, `Borrow<str>`, display, debug and the cache wire are
+/// exactly those of the owned text. Neither the variant nor the pointer is
+/// consulted, so a compiler identity, a shared identity and a clone of either
+/// are interchangeable values with no authority beyond their bytes.
+#[derive(Clone)]
+pub struct DeclarationId(DeclarationText);
+
+#[derive(Clone)]
+enum DeclarationText {
+    CompilerStatic(&'static str),
+    Shared(Arc<str>),
+}
+

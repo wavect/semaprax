@@ -304,17 +304,15 @@ fn complete_inline_sources_and_original_owners_have_exact_whole_file_inverses() 
         "/docs/evidence/constructor-inline-failure-825/exact-source-inverses.json"
     )))
     .unwrap();
-    let inventory =
-        crate::workspace_graph::identity_resolution::historical_inline_inventory(include_str!(concat!(
+    let owners = [
+        include_str!("../../../workspace_graph.rs"),
+        include_str!("../defaults.rs"),
+        include_str!("../import_stub.rs"),
+        include_str!("../borrowed_imports.rs"),
+        include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/tests/workspace/semantic_graph/source_inventory.rs"
-        )));
-    let owners = [
-        crate::workspace_graph::identity_resolution::historical_inline_root(),
-        ci_str!("../defaults.rs"),
-        ci_str!("../import_stub.rs"),
-        ci_str!("../borrowed_imports.rs"),
-        inventory.as_str(),
+        )),
     ];
     let originals = [
         ci_str!(concat!(
@@ -341,6 +339,10 @@ fn complete_inline_sources_and_original_owners_have_exact_whole_file_inverses() 
     let records = proof["owners"].as_array().unwrap();
     assert_eq!(records.len(), owners.len());
     for ((record, current), original) in records.iter().zip(owners).zip(originals) {
+        let current = crate::source_reflows_merge::constructor_complete_input(
+            record["source"].as_str().unwrap(), current,
+        );
+        let current = current.as_str();
         let mut restored = current.to_owned();
         for edit in record["edits"].as_array().unwrap().iter().rev() {
             let after = edit["after"].as_str().unwrap();
@@ -357,13 +359,16 @@ fn complete_inline_sources_and_original_owners_have_exact_whole_file_inverses() 
         );
     }
     let children = [
-        ci_str!("../../constructor_failure.rs"),
-        ci_str!("inline.rs"),
-        ci_str!("inline_fields.rs"),
-        ci_str!("../borrowed_imports/inline.rs"),
-        ci_str!("inline_tests.rs"),
+        include_str!("../../constructor_failure.rs"),
+        include_str!("inline.rs"),
+        include_str!("inline_fields.rs"),
+        include_str!("../borrowed_imports/inline.rs"),
+        include_str!("inline_tests.rs"),
     ];
     for (record, source) in proof["children"].as_array().unwrap().iter().zip(children) {
+        let source = crate::source_reflows_merge::constructor_complete_input(
+            record["source"].as_str().unwrap(), source,
+        );
         assert_eq!(
             format!(
                 "{:x}",

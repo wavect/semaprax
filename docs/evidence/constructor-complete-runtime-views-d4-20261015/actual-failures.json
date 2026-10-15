@@ -1,0 +1,16 @@
+[
+  {
+    "source_subject": "d4cab900edac07fdcc4de0cdcb1bf3daafbef5ef",
+    "actual_owner_index": 139,
+    "exit_code": 101,
+    "log": "actual-d4-owner139-failure.log",
+    "log_sha256": "7caa40daefad4c9333ffe9356aa0d6e1d761a2faa0a789ab04eb7f9ab959abde"
+  },
+  {
+    "source_subject": "d4cab900edac07fdcc4de0cdcb1bf3daafbef5ef",
+    "actual_owner_index": 140,
+    "exit_code": 101,
+    "log": "actual-d4-owner140-failure.log",
+    "log_sha256": "28362caccc5b66c4d87c831965cd102003fad6071392450218e88def6e0cfb21"
+  }
+]

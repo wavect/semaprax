@@ -1,0 +1,17 @@
+
+running 1 test
+test workspace_graph::expected_projection::import_stub::core_proofs::tests::complete_original_receivers_and_all_literal_source_inverses_remain_byte_exact ... 
+thread 'workspace_graph::expected_projection::import_stub::core_proofs::tests::complete_original_receivers_and_all_literal_source_inverses_remain_byte_exact' (8362407) panicked at src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs:578:9:
+assertion `left == right` failed
+  left: "d502d7866f094fd83942598b1949791160c4fad1218d7bc79ffb5e678880fb0b"
+ right: "104f71d5a46ea1188b7182f88505e5de68a441ca1c6e8b8025c9cf1969dc806f"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::expected_projection::import_stub::core_proofs::tests::complete_original_receivers_and_all_literal_source_inverses_remain_byte_exact
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9069 filtered out; finished in 1.69s
+

@@ -1,0 +1,54 @@
+{
+  "schema": "source36-current-view-adapter.v1",
+  "execution": "source-only; no Rust executed",
+  "whole_source_identities": [
+    {
+      "manifest": "source-projections.json",
+      "source": "src/cleanup_plan/replay.rs",
+      "complete_original_equal": true
+    },
+    {
+      "manifest": "source-projections.json",
+      "source": "tests/hir_module_boundaries.rs",
+      "complete_original_equal": true
+    },
+    {
+      "manifest": "source-inverses.json",
+      "source": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "complete_original_equal": true
+    },
+    {
+      "manifest": "source-inverses.json",
+      "source": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "complete_original_equal": true
+    },
+    {
+      "manifest": "source-inverses.json",
+      "source": "src/cleanup_plan/replay/live_oracle/source_custody.rs",
+      "complete_original_equal": true
+    },
+    {
+      "manifest": "source-inverses.json",
+      "source": "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+      "complete_original_equal": true
+    },
+    {
+      "manifest": "source-inverses.json",
+      "source": "tests/hir_module_boundaries.rs",
+      "complete_original_equal": true
+    },
+    {
+      "manifest": "source-inverses.json",
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "complete_original_equal": true
+    },
+    {
+      "manifest": "source-inverses.json",
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "complete_original_equal": true
+    }
+  ],
+  "all_original_undo_and_assertion_bytes_preserved": true,
+  "source_a_lines": 1500,
+  "old_source36_runner_unchanged": true
+}

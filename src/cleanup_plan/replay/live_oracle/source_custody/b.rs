@@ -1089,7 +1089,7 @@ fn one_mib_ledger_preserves_first_cursor_refusal_and_sticky_retries() {
         );
     }
     {
-        let mut current = include_str!("../../../../../tests/hir_module_boundaries.rs").to_owned();
+        let mut current = super::current_view::project("tests/hir_module_boundaries.rs", include_str!("../../../../../tests/hir_module_boundaries.rs"));
         // 832: complete old/current ordinary lexical inventory source union.
         undo(&mut current,"        include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving/return_operands.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving/return_operands/exits.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/lexical_replay.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/lexical_replay/before_operands.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/lexical_replay/operand_tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/lexical_replay/operand_tests/source.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/lexical_replay/ordinary.rs\"),\n","");
         // 781: retain every complete old/new selected-call source in the audit.

@@ -129,6 +129,7 @@ macro_rules! semantic_graph_root_source_inventory {
                 concat!(
                     concat!(
                     concat!(concat!(concat!(include_str!("../../src/workspace_graph.rs"),
+        include_str!("../../src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs"),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving.rs"),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory.rs"),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/return_operands.rs"),

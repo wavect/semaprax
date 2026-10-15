@@ -155,6 +155,7 @@ macro_rules! loan_cfg_source_inventory {
             include_str!("../../../../../src/loan_plan/paid_plan_legacy.rs"),
             include_str!("../../../../../src/loan_plan/traversal/paid_legacy.rs"),
             include_str!("../../../../../src/cleanup_plan/replay/selected_context/paid.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/return_operands.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/return_operands/exits.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs"),

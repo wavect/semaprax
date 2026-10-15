@@ -468,6 +468,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/loan_plan/paid_candidate/retained/nested_tests.rs"),
         include_str!("../src/loan_plan/nested_candidate_before.rs"),
         include_str!("../src/cleanup_plan/replay/selected_context/paid.rs"),
+        include_str!("../src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs"),
         include_str!("../src/cleanup_plan/replay/expression_facts/receiving/return_operands.rs"),
         include_str!("../src/cleanup_plan/replay/expression_facts/receiving/return_operands/exits.rs"),
         include_str!("../src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs"),

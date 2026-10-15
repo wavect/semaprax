@@ -156,7 +156,7 @@ fn inline_weighted_real_allocations_debit_peak_and_drop_include_many_header_and_
             assert_eq!(result.is_ok(), bytes == admission + current);
             assert!(!metrics.invalid && metrics.live == 0);
             assert_eq!(metrics.allocated, metrics.freed);
-            drop(result);
+            let _ = result;
         }
     }
 }

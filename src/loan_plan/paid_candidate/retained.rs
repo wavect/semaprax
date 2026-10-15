@@ -69,7 +69,7 @@ pub(in crate::loan_plan) fn inspect<'a, 'p>(
         }
     }
 
-    let mut byte_census = crate::hir::ByteTraversalSlot::new(program, function)?;
+    let byte_census = crate::hir::ByteTraversalSlot::new(program, function)?;
     // One expansion governs all five positive branches, so every initializer
     // and its affine consuming/receiving carriers have the same full payment.
     macro_rules! retain {

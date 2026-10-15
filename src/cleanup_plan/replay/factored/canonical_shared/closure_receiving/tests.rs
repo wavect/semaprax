@@ -557,3 +557,71 @@ fn held_closure_actual_entries_hide_cached_views_after_foreign_and_restored_slot
         }
     }
 }
+
+#[test]
+fn direct_bootstrap_exact_short_zero_retains_complete_old_constructor_and_whole_drop() {
+    let function = fixture();
+    let direct = 2 * size_of::<ClosureReceiving>()
+        + size_of::<Option<Diagnostic>>()
+        + size_of::<Diagnostic>()
+        + size_of::<Value>()
+        + size_of::<Result<(), Diagnostic>>();
+    assert_eq!(ClosureReceiving::DIRECT_CONTROLS, direct);
+    assert_eq!(
+        ClosureReceiving::CONTROLS,
+        direct + size_of::<Result<ClosureReceiving, Diagnostic>>()
+    );
+    let baseline = ReplayBudget::with_physical(&function, 1 << 20).unwrap();
+    let admission = baseline.physical.as_ref().unwrap().charged();
+    drop(baseline);
+    for old in [true, false] {
+        let exact = if old {
+            direct + size_of::<Result<ClosureReceiving, Diagnostic>>()
+        } else {
+            direct
+        };
+        for available in [0, exact - 1, exact] {
+            let ((success, paid), allocation) = measure(|| {
+                // Budget acquisition, slot initialization, refusal and both Drops
+                // remain inside the same real observation for each complete arm.
+                let mut budget =
+                    ReplayBudget::with_physical(&function, admission + available).unwrap();
+                let outcome = (|| -> Result<(), Diagnostic> {
+                    let mut receiving = if old {
+                        ClosureReceiving::acquire(&function, &mut budget)?
+                    } else {
+                        if budget.pays_allocations() {
+                            budget.reserve_bytes(
+                                &function,
+                                ClosureReceiving::DIRECT_CONTROLS,
+                                "factored held closure invocation controls",
+                            )?;
+                        }
+                        ClosureReceiving::from_prepaid(&function, &budget)
+                    };
+                    assert!(receiving.valid(&function, &budget));
+                    receiving.begin();
+                    receiving.complete(None);
+                    assert!(
+                        receiving.ready && receiving.refusal.is_none() && receiving.value.is_none()
+                    );
+                    drop(receiving);
+                    Ok(())
+                })();
+                let success = outcome.is_ok();
+                if let Err(error) = &outcome {
+                    assert_eq!(error.code, "SPX-H006");
+                }
+                let paid = budget.physical.as_ref().unwrap().charged();
+                drop(outcome);
+                drop(budget);
+                (success, paid)
+            });
+            assert_eq!(success, available == exact);
+            assert_eq!(paid, admission + if success { exact } else { 0 });
+            assert!(!allocation.invalid && allocation.live == 0);
+            assert_eq!(allocation.allocated, allocation.freed);
+            assert!(allocation.allocated <= paid && allocation.highwater <= paid);
+        }
+    }
+}

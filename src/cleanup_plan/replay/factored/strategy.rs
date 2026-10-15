@@ -323,8 +323,16 @@ pub(in crate::cleanup_plan::replay) fn validate_authenticated(
                 plan_root,
             } = &candidate.built;
             let mut canonical = canonical_shared::Canonicalizer::new(automaton, *sink);
-            let mut receiving =
-                canonical_shared::closure_receiving::ClosureReceiving::acquire(function, budget)?;
+            if budget.pays_allocations() {
+                budget.reserve_bytes(
+                    function,
+                    canonical_shared::closure_receiving::ClosureReceiving::DIRECT_CONTROLS,
+                    "factored held closure invocation controls",
+                )?;
+            }
+            let mut receiving = canonical_shared::closure_receiving::ClosureReceiving::from_prepaid(
+                function, budget,
+            );
             budget.reserve_array::<(usize, u64)>(function, 1, "lexical HIR weighted root")?;
             let hir =
                 canonical.id_with_receiving(function, vec![(*hir_root, 1)], budget, &mut receiving);

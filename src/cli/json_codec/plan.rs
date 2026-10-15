@@ -1,43 +1,13 @@
 //! Bounded plan decoding and one no-overwrite bundle publication.
 use super::*;
 use semaprax::project::{derive_json_codec_plan, JsonCodecPlanEntry};
-use serde::Deserialize;
 use std::io::Read as _;
 
 const USAGE: &str = "json-codec <project> --plan <plan-json> --output <new-bundle>";
 const MAX_PLAN_BYTES: u64 = 16_384;
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Plan {
-    schema: String,
-    #[serde(default)]
-    expected_project_revision: Option<String>,
-    entries: Vec<Entry>,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Entry {
-    source: String,
-    record: String,
-    profile: String,
-    #[serde(default)]
-    max_string_bytes: Option<usize>,
-    #[serde(default)]
-    max_array_items: Option<usize>,
-}
-
-fn decode(bytes: &[u8]) -> Result<Plan, Diagnostic> {
-    if bytes.len() > MAX_PLAN_BYTES as usize {
-        return Err(error("codec plan exceeds 16384 bytes"));
-    }
-    let plan: Plan =
-        serde_json::from_slice(bytes).map_err(|_| error("invalid closed codec plan JSON"))?;
-    if plan.schema != "semaprax.json-codec-plan.v1" || !(1..=8).contains(&plan.entries.len()) {
-        return Err(error("codec plan requires schema v1 and 1..8 entries"));
-    }
-    Ok(plan)
+fn decode(bytes: &[u8]) -> Result<(Option<String>, Vec<JsonCodecPlanEntry>), Diagnostic> {
+    semaprax::project::decode_json_codec_plan(bytes)
 }
 
 pub(super) fn run(args: &[String], report: impl Fn(&[Diagnostic]) -> u8) -> Result<(), u8> {
@@ -66,29 +36,11 @@ pub(super) fn run(args: &[String], report: impl Fn(&[Diagnostic]) -> u8) -> Resu
     fs::File::open(input)
         .and_then(|f| f.take(MAX_PLAN_BYTES + 1).read_to_end(&mut bytes))
         .map_err(|e| report(&[error(format!("cannot read codec plan: {e}"))]))?;
-    let plan = decode(&bytes).map_err(|e| report(&[e]))?;
-    let mut entries = Vec::new();
-    for entry in &plan.entries {
-        let bytes = entry.max_string_bytes.map(|n| n.to_string());
-        let items = entry.max_array_items.map(|n| n.to_string());
-        let selector = if entry.profile == "flat-scalars.v1" {
-            None
-        } else {
-            Some(entry.profile.as_str())
-        };
-        let profile = profile::parse(selector, bytes.as_deref(), items.as_deref())
-            .ok_or_else(|| report(&[error("invalid codec member profile or bounds")]))?;
-        entries.push(JsonCodecPlanEntry {
-            source_path: entry.source.clone(),
-            record_id: entry.record.clone(),
-            profile,
-        });
-    }
+    let (expected_revision, entries) = decode(&bytes).map_err(|e| report(&[e]))?;
     let project = super::super::project::resolve_positional(PathBuf::from(&args[0]));
     let bundle = semaprax::project::with_authenticated_project(&project, |snapshot| {
         let revision = snapshot.retain_revision();
-        if plan
-            .expected_project_revision
+        if expected_revision
             .as_deref()
             .is_some_and(|expected| expected != revision.project_revision())
         {

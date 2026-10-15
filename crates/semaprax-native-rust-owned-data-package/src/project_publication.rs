@@ -4,6 +4,8 @@
 //! crate can reuse the safe cross-platform handle-relative platform facade
 //! without acquiring raw platform authority or introducing unsafe code.
 
+mod application;
+
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 
@@ -41,6 +43,7 @@ enum SourceInventory {
     Library(platform::PreparedDiscardInventory<3>),
     Service(platform::PreparedDiscardInventory<3>),
     SourceCommandFileText(platform::PreparedDiscardInventory<2>),
+    Application(Box<dyn application::ApplicationFiles>),
 }
 
 enum RootInventory {
@@ -154,6 +157,20 @@ impl NewProjectAuthority {
             stage_name,
             TemplateInventory::SourceCommandFileText,
         )
+    }
+
+    /// Explicit fresh application inventory. No receipt or capsule grants this authority.
+    pub fn create_application(
+        parent: &Path,
+        output: &OsStr,
+        stage: &OsStr,
+        paths: &[String],
+    ) -> Result<Self, NewProjectAuthorityError> {
+        let files = application::inventory(paths)?;
+        let mut authority =
+            Self::create_for_template(parent, output, stage, TemplateInventory::Calculator)?;
+        authority.source_files = SourceInventory::Application(files);
+        Ok(authority)
     }
 
     fn create_for_template(
@@ -323,13 +340,54 @@ impl NewProjectAuthority {
             ("src/tests.spx", SourceInventory::SourceCommandFileText(files)) => {
                 platform::write_file_new_prepared(source, files, "tests.spx", bytes, 0o600)
             }
+            (path, SourceInventory::Application(files)) => files.write(
+                source,
+                path.strip_prefix("src/")
+                    .ok_or(NewProjectAuthorityError::Invalid)?,
+                bytes,
+            ),
             _ => return Err(NewProjectAuthorityError::Invalid),
         }
         .map_err(map_create)
     }
 
     pub fn authenticate(&self, files: &[(&str, &[u8])]) -> Result<(), NewProjectAuthorityError> {
+        if let SourceInventory::Application(source_files) = &self.source_files {
+            if files.len() < 4 || files[..3].iter().map(|(name, _)| *name).ne(ROOT_NAMES) {
+                return Err(NewProjectAuthorityError::Invalid);
+            }
+            let source = self
+                .source
+                .as_ref()
+                .ok_or(NewProjectAuthorityError::Changed)?;
+            for (name, bytes) in &files[..3] {
+                authenticate_file(self.root.file(name)?, bytes)?;
+            }
+            source_files.authenticate(source, &files[3..], false)?;
+            let mut scan = platform::prepare_inventory_entries_exact(
+                [
+                    OsStr::new("README.md"),
+                    OsStr::new("AGENTS.md"),
+                    OsStr::new("semaprax.toml"),
+                    OsStr::new("src"),
+                ],
+                3,
+            )
+            .map_err(map_invalid)?;
+            return platform::inventory_entries_exact_prepared(
+                &mut scan,
+                &self.stage,
+                [
+                    self.root.file("README.md")?,
+                    self.root.file("AGENTS.md")?,
+                    self.root.file("semaprax.toml")?,
+                ],
+                [source],
+            )
+            .map_err(map_changed);
+        }
         let expected_names: &[&str] = match &self.source_files {
+            SourceInventory::Application(_) => unreachable!("handled above"),
             SourceInventory::Calculator(_) => &[
                 "README.md",
                 "AGENTS.md",
@@ -381,6 +439,7 @@ impl NewProjectAuthority {
         authenticate_file(self.root.file("AGENTS.md")?, files[1].1)?;
         authenticate_file(self.root.file("semaprax.toml")?, files[2].1)?;
         match &self.source_files {
+            SourceInventory::Application(_) => unreachable!("handled above"),
             SourceInventory::Calculator(source_files) | SourceInventory::Service(source_files) => {
                 authenticate_file(
                     source_files.file("app.spx").map_err(map_changed)?,
@@ -427,6 +486,7 @@ impl NewProjectAuthority {
             }
         }
         match &self.source_files {
+            SourceInventory::Application(_) => unreachable!("handled above"),
             SourceInventory::Calculator(source_files) | SourceInventory::Service(source_files) => {
                 let mut source_scan =
                     platform::prepare_inventory_exact(source_files).map_err(map_invalid)?;
@@ -535,6 +595,7 @@ impl NewProjectAuthority {
     ) -> Result<(), NewProjectAuthorityError> {
         self.authenticate(files)?;
         match &mut self.source_files {
+            SourceInventory::Application(files) => files.settle(),
             SourceInventory::Calculator(source_files) => source_files.settle_for_publish(),
             SourceInventory::Library(source_files) => source_files.settle_for_publish(),
             SourceInventory::Service(source_files) => source_files.settle_for_publish(),
@@ -593,6 +654,9 @@ impl NewProjectAuthority {
         let agents = hold_matching(&self.stage, OsStr::new("AGENTS.md"), files[1].1)?;
         let manifest = hold_matching(&self.stage, OsStr::new("semaprax.toml"), files[2].1)?;
         match &self.source_files {
+            SourceInventory::Application(source_files) => {
+                source_files.authenticate(source, &files[3..], true)?
+            }
             SourceInventory::Calculator(_) | SourceInventory::Service(_) => {
                 let app = hold_matching(source, OsStr::new("app.spx"), files[3].1)?;
                 let core = hold_matching(source, OsStr::new("core.spx"), files[4].1)?;
@@ -760,6 +824,9 @@ impl Drop for NewProjectAuthority {
         }
         if self.source.as_ref().is_some_and(|source| {
             match &self.source_files {
+                SourceInventory::Application(files) => {
+                    files.discard(&self.stage, source, &self.source_name)
+                }
                 SourceInventory::Calculator(source_files) => {
                     platform::discard_owned_stage_prepared(
                         &self.stage,

@@ -1,3 +1,6 @@
+#[path = "cli_new_project_v1/application_starter.rs"]
+mod application_starter;
+
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};

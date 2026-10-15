@@ -1,7 +1,7 @@
 //! Complete multi-codec candidates stay bound to one authored Project revision.
 use super::*;
 
-fn paired_fixture(label: &str) -> std::path::PathBuf {
+pub(super) fn paired_fixture(label: &str) -> std::path::PathBuf {
     let root = fixture(label, SCHEMA);
     let manifest = MANIFEST.replace(
         "\"src/schema.spx\",",
@@ -32,7 +32,7 @@ fn entries() -> Vec<project::JsonCodecPlanEntry> {
 // Bundled dependency paths are semantic workspace identities, not files below
 // the fixture root. Independently read the exact compiler-bundled file mapping
 // (standard_dependencies.rs PACKAGES), before deriving any receipt.
-fn paired_originals(root: &std::path::Path) -> std::collections::BTreeMap<String, String> {
+pub(super) fn paired_originals(root: &std::path::Path) -> std::collections::BTreeMap<String, String> {
     let mut originals = std::collections::BTreeMap::new();
     for path in [
         "src/schema.spx",

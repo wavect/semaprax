@@ -164,7 +164,11 @@ fn native_rust_interop_implementation_crates_are_unpublished_and_quarantined() {
     assert!(!root_main.contains("native-rust-interop"));
 
     let builder = read("crates/semaprax-native-rust-interop-builder/src/lib.rs");
-    let platform = read("crates/semaprax-native-rust-interop-platform/src/lib.rs");
+    let platform = [
+        read("crates/semaprax-native-rust-interop-platform/src/lib.rs"),
+        read("crates/semaprax-native-rust-interop-platform/src/inventory_names.rs"),
+    ]
+    .join("\n");
     let (sys_common, _, _, _, sys) = read_platform_sys_sources();
     assert!(builder.contains("#![forbid(unsafe_code)]"));
     assert!(platform.contains("#![forbid(unsafe_code)]"));
@@ -424,7 +428,11 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
 
     let (_, _, windows_source, sys_tests, sys) = read_platform_sys_sources();
     let sys_evidence = [sys.as_str(), sys_tests.as_str()].concat();
-    let platform_source = read("crates/semaprax-native-rust-interop-platform/src/lib.rs");
+    let platform_source = [
+        read("crates/semaprax-native-rust-interop-platform/src/lib.rs"),
+        read("crates/semaprax-native-rust-interop-platform/src/inventory_names.rs"),
+    ]
+    .join("\n");
     assert!(sys.contains("\"-O0\""));
     assert!(sys.contains("\"-O2\""));
     let windows = windows_source.as_str();
@@ -984,7 +992,11 @@ fn public_sdk_minimal_failure_diagnostic_locks_exact_monotonic_phase_c_boundarie
 
 #[test]
 fn private_platform_cleanup_surface_is_exact_inventory_only() {
-    let facade = read("crates/semaprax-native-rust-interop-platform/src/lib.rs");
+    let facade = [
+        read("crates/semaprax-native-rust-interop-platform/src/lib.rs"),
+        read("crates/semaprax-native-rust-interop-platform/src/inventory_names.rs"),
+    ]
+    .join("\n");
     let (_, _, _, _, sys) = read_platform_sys_sources();
     assert_contains_all(
         "safe exact-inventory cleanup facade",

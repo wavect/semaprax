@@ -17,6 +17,8 @@ mod nested_response;
 mod owned;
 #[path = "application_json/plan.rs"]
 mod plan;
+#[path = "application_json/starter.rs"]
+mod starter;
 #[path = "application_json/stream.rs"]
 mod stream;
 #[path = "application_json/stream_native.rs"]

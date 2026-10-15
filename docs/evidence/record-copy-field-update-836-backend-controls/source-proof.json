@@ -1,0 +1,50 @@
+{
+  "basis": "186854fff7cc556ac1852019f39420094adc9996",
+  "status": "SOURCE_ONLY_UNEXECUTED",
+  "fix_full_sources": 4,
+  "new_full_children": [
+    {
+      "source": "tests/cleanup_backends/owned_leaf_collections/copy_field_update_boundary.rs",
+      "sha256": "796162aa312f4c726c2350629590df1617de7bc891bc6c5db3e5bd3f13043fab"
+    },
+    {
+      "source": "tests/cleanup_backends/owned_leaf_collections/copy_field_update_boundary.c",
+      "sha256": "ed71cb13f87cb7421afc93b4056793375d8a7cd2bc70d443903c44561df1b214"
+    }
+  ],
+  "original_13_immediate_archives_and_all_original_inverse_edits_preserved": true,
+  "original_five_test_bodies_preserved_with_only_additive_multiCopy_calls": true,
+  "all_original_production_backend_bytes_unchanged": [
+    "src/codegen/native_emit/expression/vec_ops.rs",
+    "src/codegen/native_emit/expression/vec_ops/owned_payload.rs",
+    "src/codegen/native_emit/expression/vec_ops/record_payload.rs",
+    "src/codegen/native_vec.rs",
+    "src/codegen/native_vec/owned_leaf.rs",
+    "src/wasm/aggregate.rs",
+    "src/wasm/aggregate/vec_field.rs",
+    "src/wasm/aggregate/vec_owned_leaf.rs",
+    "src/wasm/aggregate/vec_owned_payload.rs",
+    "src/wasm/aggregate/vec_record_payload.rs",
+    "src/codegen/native_emit/expression/vec_ops/field_update.rs",
+    "src/codegen/native_vec/field_update.c",
+    "src/wasm/aggregate/vec_owned_leaf/field_update.rs"
+  ],
+  "exact_native_and_wasm_float_patterns_per_type": 12,
+  "new_unrelated_Copy_fields": [
+    "i64 marker",
+    "f32 minus",
+    "f64 nan"
+  ],
+  "all_unrelated_raw_words_and_owned_leaves_checked": true,
+  "native_hostile_cases": 8,
+  "native_hostile_no_store_result_status_generation_or_heap_change_before_original_owner_Drop": true,
+  "same_source_public_interpreter_corpus_authored": true,
+  "interpreter_private_alias_generation_and_payload_controls_dependency": "ad673fb8f9c1a4584c483b341ffa554665fc0661",
+  "registered_new_owning_bodies": 3,
+  "retained_exact_owning_bodies": 10,
+  "module_budget_violations": [],
+  "actual_results": null,
+  "float_bit_contract": "Exact scalar-word payloads at trusted actual native/private-host boundaries; no invented source bitcast or arbitrary source NaN-payload claim",
+  "global_custody": "No mass composition; original Source36/other packets untouched",
+  "gain_claim": false
+}

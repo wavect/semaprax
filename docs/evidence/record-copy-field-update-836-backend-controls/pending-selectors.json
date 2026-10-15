@@ -1,0 +1,482 @@
+{
+  "basis": "186854fff7cc556ac1852019f39420094adc9996",
+  "status": "SOURCE_AUTHORED_UNEXECUTED",
+  "new": 3,
+  "required_existing": 10,
+  "original_five_owning_tests_retained": true,
+  "checks": [
+    {
+      "package": "semaprax",
+      "harness": "test:cleanup_backends",
+      "selector": "owned_leaf_collections::copy_field_update::boundary::exact_native_float_payloads_unrelated_copy_words_and_hostile_carriers_preserve_precommit_and_drop",
+      "source": "tests/cleanup_backends/owned_leaf_collections/copy_field_update_boundary.rs",
+      "source_sha256": "796162aa312f4c726c2350629590df1617de7bc891bc6c5db3e5bd3f13043fab",
+      "source_binding": {
+        "source_path": "tests/cleanup_backends/owned_leaf_collections/copy_field_update_boundary.rs",
+        "line": 6,
+        "name": "exact_native_float_payloads_unrelated_copy_words_and_hostile_carriers_preserve_precommit_and_drop",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/cleanup_backends.rs",
+            "line": 89,
+            "module": "owned_leaf_collections",
+            "attributes": [
+              "#[path = \"cleanup_backends/owned_leaf_collections.rs\"]"
+            ]
+          },
+          {
+            "source_path": "tests/cleanup_backends/owned_leaf_collections.rs",
+            "line": 7,
+            "module": "copy_field_update",
+            "attributes": [
+              "#[path = \"owned_leaf_collections/copy_field_update.rs\"]"
+            ]
+          },
+          {
+            "source_path": "tests/cleanup_backends/owned_leaf_collections/copy_field_update.rs",
+            "line": 170,
+            "module": "boundary",
+            "attributes": [
+              "#[path = \"copy_field_update_boundary.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "796162aa312f4c726c2350629590df1617de7bc891bc6c5db3e5bd3f13043fab",
+        "ignored": false
+      },
+      "role": "new",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:owned_data",
+      "selector": "owned_leaf_vec::copy_field_update::wasm_exact_float_payload_matrix_preserves_every_unrelated_copy_word_and_complete_drop",
+      "source": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
+      "source_sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c",
+      "source_binding": {
+        "source_path": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
+        "line": 129,
+        "name": "wasm_exact_float_payload_matrix_preserves_every_unrelated_copy_word_and_complete_drop",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/owned_data.rs",
+            "line": 73,
+            "module": "owned_leaf_vec",
+            "attributes": [
+              "#[path = \"owned_data/owned_leaf_vec.rs\"]"
+            ]
+          },
+          {
+            "source_path": "tests/owned_data/owned_leaf_vec.rs",
+            "line": 9,
+            "module": "copy_field_update",
+            "attributes": [
+              "#[path = \"owned_leaf_vec/copy_field_update.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c",
+        "ignored": false
+      },
+      "role": "new",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:owned_data",
+      "selector": "owned_leaf_vec::copy_field_update::same_source_interpreter_matches_every_scalar_multi_copy_legacy_and_failure_control",
+      "source": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
+      "source_sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c",
+      "source_binding": {
+        "source_path": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
+        "line": 140,
+        "name": "same_source_interpreter_matches_every_scalar_multi_copy_legacy_and_failure_control",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/owned_data.rs",
+            "line": 73,
+            "module": "owned_leaf_vec",
+            "attributes": [
+              "#[path = \"owned_data/owned_leaf_vec.rs\"]"
+            ]
+          },
+          {
+            "source_path": "tests/owned_data/owned_leaf_vec.rs",
+            "line": 9,
+            "module": "copy_field_update",
+            "attributes": [
+              "#[path = \"owned_leaf_vec/copy_field_update.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c",
+        "ignored": false
+      },
+      "role": "new",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:cleanup_backends",
+      "selector": "owned_leaf_collections::copy_field_update::copy_field_updates_preserve_eight_scalar_lanes_owned_leaf_bits_and_zero_store_heap_at_o0_o2",
+      "source": "tests/cleanup_backends/owned_leaf_collections/copy_field_update.rs",
+      "source_sha256": "b385f28f7d6862a3ca7209cd54fea521d6281ba728cb29c8e60e58c18b1b0974",
+      "source_binding": {
+        "source_path": "tests/cleanup_backends/owned_leaf_collections/copy_field_update.rs",
+        "line": 116,
+        "name": "copy_field_updates_preserve_eight_scalar_lanes_owned_leaf_bits_and_zero_store_heap_at_o0_o2",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/cleanup_backends.rs",
+            "line": 89,
+            "module": "owned_leaf_collections",
+            "attributes": [
+              "#[path = \"cleanup_backends/owned_leaf_collections.rs\"]"
+            ]
+          },
+          {
+            "source_path": "tests/cleanup_backends/owned_leaf_collections.rs",
+            "line": 7,
+            "module": "copy_field_update",
+            "attributes": [
+              "#[path = \"owned_leaf_collections/copy_field_update.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "b385f28f7d6862a3ca7209cd54fea521d6281ba728cb29c8e60e58c18b1b0974",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:cleanup_backends",
+      "selector": "owned_leaf_collections::copy_field_update::copy_field_update_index_and_rhs_failures_select_once_before_commit_and_drop_all_native_owners",
+      "source": "tests/cleanup_backends/owned_leaf_collections/copy_field_update.rs",
+      "source_sha256": "b385f28f7d6862a3ca7209cd54fea521d6281ba728cb29c8e60e58c18b1b0974",
+      "source_binding": {
+        "source_path": "tests/cleanup_backends/owned_leaf_collections/copy_field_update.rs",
+        "line": 137,
+        "name": "copy_field_update_index_and_rhs_failures_select_once_before_commit_and_drop_all_native_owners",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/cleanup_backends.rs",
+            "line": 89,
+            "module": "owned_leaf_collections",
+            "attributes": [
+              "#[path = \"cleanup_backends/owned_leaf_collections.rs\"]"
+            ]
+          },
+          {
+            "source_path": "tests/cleanup_backends/owned_leaf_collections.rs",
+            "line": 7,
+            "module": "copy_field_update",
+            "attributes": [
+              "#[path = \"owned_leaf_collections/copy_field_update.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "b385f28f7d6862a3ca7209cd54fea521d6281ba728cb29c8e60e58c18b1b0974",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:owned_data",
+      "selector": "owned_leaf_vec::copy_field_update::wasm_copy_field_updates_keep_all_scalar_lanes_and_owned_identities_without_store_clones_or_drops",
+      "source": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
+      "source_sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c",
+      "source_binding": {
+        "source_path": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
+        "line": 35,
+        "name": "wasm_copy_field_updates_keep_all_scalar_lanes_and_owned_identities_without_store_clones_or_drops",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/owned_data.rs",
+            "line": 73,
+            "module": "owned_leaf_vec",
+            "attributes": [
+              "#[path = \"owned_data/owned_leaf_vec.rs\"]"
+            ]
+          },
+          {
+            "source_path": "tests/owned_data/owned_leaf_vec.rs",
+            "line": 9,
+            "module": "copy_field_update",
+            "attributes": [
+              "#[path = \"owned_leaf_vec/copy_field_update.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:owned_data",
+      "selector": "owned_leaf_vec::copy_field_update::wasm_copy_field_update_index_rhs_and_host_authority_failures_keep_the_single_commit_boundary",
+      "source": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
+      "source_sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c",
+      "source_binding": {
+        "source_path": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
+        "line": 66,
+        "name": "wasm_copy_field_update_index_rhs_and_host_authority_failures_keep_the_single_commit_boundary",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/owned_data.rs",
+            "line": 73,
+            "module": "owned_leaf_vec",
+            "attributes": [
+              "#[path = \"owned_data/owned_leaf_vec.rs\"]"
+            ]
+          },
+          {
+            "source_path": "tests/owned_data/owned_leaf_vec.rs",
+            "line": 9,
+            "module": "copy_field_update",
+            "attributes": [
+              "#[path = \"owned_leaf_vec/copy_field_update.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:owned_data",
+      "selector": "owned_leaf_vec::copy_field_update::field_update_import_and_native_store_are_absent_from_the_complete_old_row_oracle",
+      "source": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
+      "source_sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c",
+      "source_binding": {
+        "source_path": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
+        "line": 102,
+        "name": "field_update_import_and_native_store_are_absent_from_the_complete_old_row_oracle",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/owned_data.rs",
+            "line": 73,
+            "module": "owned_leaf_vec",
+            "attributes": [
+              "#[path = \"owned_data/owned_leaf_vec.rs\"]"
+            ]
+          },
+          {
+            "source_path": "tests/owned_data/owned_leaf_vec.rs",
+            "line": 9,
+            "module": "copy_field_update",
+            "attributes": [
+              "#[path = \"owned_leaf_vec/copy_field_update.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:cleanup_backends",
+      "selector": "owned_leaf_collections::shared_owned_leaf_fixture_settles_at_o0_and_o2",
+      "source": "tests/cleanup_backends/owned_leaf_collections.rs",
+      "source_sha256": "3fa8a7ab60d9e26926b448c775c548d4c42687243cecdd0a6d63871d0b5f9a78",
+      "source_binding": {
+        "source_path": "tests/cleanup_backends/owned_leaf_collections.rs",
+        "line": 31,
+        "name": "shared_owned_leaf_fixture_settles_at_o0_and_o2",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/cleanup_backends.rs",
+            "line": 89,
+            "module": "owned_leaf_collections",
+            "attributes": [
+              "#[path = \"cleanup_backends/owned_leaf_collections.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "3fa8a7ab60d9e26926b448c775c548d4c42687243cecdd0a6d63871d0b5f9a78",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:cleanup_backends",
+      "selector": "owned_leaf_collections::cloned_record_remains_independent_after_clear_and_replacement",
+      "source": "tests/cleanup_backends/owned_leaf_collections.rs",
+      "source_sha256": "3fa8a7ab60d9e26926b448c775c548d4c42687243cecdd0a6d63871d0b5f9a78",
+      "source_binding": {
+        "source_path": "tests/cleanup_backends/owned_leaf_collections.rs",
+        "line": 116,
+        "name": "cloned_record_remains_independent_after_clear_and_replacement",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/cleanup_backends.rs",
+            "line": 89,
+            "module": "owned_leaf_collections",
+            "attributes": [
+              "#[path = \"cleanup_backends/owned_leaf_collections.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "3fa8a7ab60d9e26926b448c775c548d4c42687243cecdd0a6d63871d0b5f9a78",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:owned_data",
+      "selector": "owned_leaf_vec::field_reads::every_copy_field_shape_retains_its_scalar_bits",
+      "source": "tests/owned_data/owned_leaf_vec/field_reads.rs",
+      "source_sha256": "8bc0648d6f51ddd2a3c017485dccaddedc3e7eb0448fc02e1e4ff7c712448049",
+      "source_binding": {
+        "source_path": "tests/owned_data/owned_leaf_vec/field_reads.rs",
+        "line": 35,
+        "name": "every_copy_field_shape_retains_its_scalar_bits",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/owned_data.rs",
+            "line": 73,
+            "module": "owned_leaf_vec",
+            "attributes": [
+              "#[path = \"owned_data/owned_leaf_vec.rs\"]"
+            ]
+          },
+          {
+            "source_path": "tests/owned_data/owned_leaf_vec.rs",
+            "line": 7,
+            "module": "field_reads",
+            "attributes": [
+              "#[path = \"owned_leaf_vec/field_reads.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "8bc0648d6f51ddd2a3c017485dccaddedc3e7eb0448fc02e1e4ff7c712448049",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:owned_data",
+      "selector": "owned_leaf_vec::field_reads::legacy_tag10_permuted_fields_are_bound_at_construction",
+      "source": "tests/owned_data/owned_leaf_vec/field_reads.rs",
+      "source_sha256": "8bc0648d6f51ddd2a3c017485dccaddedc3e7eb0448fc02e1e4ff7c712448049",
+      "source_binding": {
+        "source_path": "tests/owned_data/owned_leaf_vec/field_reads.rs",
+        "line": 68,
+        "name": "legacy_tag10_permuted_fields_are_bound_at_construction",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/owned_data.rs",
+            "line": 73,
+            "module": "owned_leaf_vec",
+            "attributes": [
+              "#[path = \"owned_data/owned_leaf_vec.rs\"]"
+            ]
+          },
+          {
+            "source_path": "tests/owned_data/owned_leaf_vec.rs",
+            "line": 7,
+            "module": "field_reads",
+            "attributes": [
+              "#[path = \"owned_leaf_vec/field_reads.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "8bc0648d6f51ddd2a3c017485dccaddedc3e7eb0448fc02e1e4ff7c712448049",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:owned_data",
+      "selector": "owned_leaf_vec::field_reads::index_refusal_and_index_evaluation_failure_keep_source_cleanup",
+      "source": "tests/owned_data/owned_leaf_vec/field_reads.rs",
+      "source_sha256": "8bc0648d6f51ddd2a3c017485dccaddedc3e7eb0448fc02e1e4ff7c712448049",
+      "source_binding": {
+        "source_path": "tests/owned_data/owned_leaf_vec/field_reads.rs",
+        "line": 111,
+        "name": "index_refusal_and_index_evaluation_failure_keep_source_cleanup",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/owned_data.rs",
+            "line": 73,
+            "module": "owned_leaf_vec",
+            "attributes": [
+              "#[path = \"owned_data/owned_leaf_vec.rs\"]"
+            ]
+          },
+          {
+            "source_path": "tests/owned_data/owned_leaf_vec.rs",
+            "line": 7,
+            "module": "field_reads",
+            "attributes": [
+              "#[path = \"owned_leaf_vec/field_reads.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "8bc0648d6f51ddd2a3c017485dccaddedc3e7eb0448fc02e1e4ff7c712448049",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    }
+  ]
+}

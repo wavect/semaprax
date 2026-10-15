@@ -1,0 +1,112 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "workspace_graph::constructor_failure::publication_tests::preowned_setup_whole_old_current_all_six_fields_and_full_drop_match",
+    "source_path": "src/workspace_graph/constructor_failure/publication_tests.rs",
+    "source_sha256": "e4a3848d005761bf258574cd1cd5a3e9a216c6d5ccfc233c1503643acf7e2c4f",
+    "line": 25,
+    "reasons": [
+      "bounded825 setup publication owner"
+    ]
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "workspace_graph::constructor_failure::publication_tests::preowned_setup_public_conversion_after_restore_allocates_nothing_and_never_queries_foreign_payer",
+    "source_path": "src/workspace_graph/constructor_failure/publication_tests.rs",
+    "source_sha256": "e4a3848d005761bf258574cd1cd5a3e9a216c6d5ccfc233c1503643acf7e2c4f",
+    "line": 57,
+    "reasons": [
+      "bounded825 setup publication owner"
+    ]
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "workspace_graph::constructor_failure::publication_tests::preowned_setup_exact_short_zero_and_sticky_keep_primary_and_do_not_enter_core",
+    "source_path": "src/workspace_graph/constructor_failure/publication_tests.rs",
+    "source_sha256": "e4a3848d005761bf258574cd1cd5a3e9a216c6d5ccfc233c1503643acf7e2c4f",
+    "line": 83,
+    "reasons": [
+      "bounded825 setup publication owner"
+    ]
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "workspace_graph::constructor_failure::publication_tests::preowned_setup_foreign_restored_and_floor_paths_keep_affine_authority",
+    "source_path": "src/workspace_graph/constructor_failure/publication_tests.rs",
+    "source_sha256": "e4a3848d005761bf258574cd1cd5a3e9a216c6d5ccfc233c1503643acf7e2c4f",
+    "line": 144,
+    "reasons": [
+      "bounded825 setup publication owner"
+    ]
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "workspace_graph::constructor_failure::publication_tests::preowned_setup_dynamic_budget_and_legacy_many_remain_explicit_residuals",
+    "source_path": "src/workspace_graph/constructor_failure/publication_tests.rs",
+    "source_sha256": "e4a3848d005761bf258574cd1cd5a3e9a216c6d5ccfc233c1503643acf7e2c4f",
+    "line": 186,
+    "reasons": [
+      "bounded825 setup publication owner"
+    ]
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "workspace_graph::constructor_failure::publication_tests::preowned_setup_complete_old_public_conversions_and_compiled_report_attempt_remain_exact",
+    "source_path": "src/workspace_graph/constructor_failure/publication_tests.rs",
+    "source_sha256": "e4a3848d005761bf258574cd1cd5a3e9a216c6d5ccfc233c1503643acf7e2c4f",
+    "line": 228,
+    "reasons": [
+      "bounded825 setup publication owner"
+    ]
+  },
+  {
+    "package": "semaprax-toolchain",
+    "kind": "test:cli_new_project_v1",
+    "selector": "application_starter::application_starter_relative_selected_inputs_keep_exact_bytes_and_no_follow",
+    "source_path": "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+    "source_sha256": "0f3486608379f907bb744ce03e54573a33001c3f463aaa06dcfe038d8af3e991",
+    "line": 54,
+    "reasons": [
+      "relative selected input owning/held-reader regression"
+    ]
+  },
+  {
+    "package": "semaprax-toolchain",
+    "kind": "test:cli_new_project_v1",
+    "selector": "new_project::application::tests::starter_unknown_duplicate_and_incomplete_profiles_refuse_before_input_reads",
+    "source_path": "crates/semaprax-toolchain/src/new_project/application.rs",
+    "source_sha256": "9c43ceebfa9b90d008d77db9ac052737d66f2b4b29b6710453f0e1e7fd0373c9",
+    "line": 324,
+    "reasons": [
+      "relative selected input owning/held-reader regression"
+    ]
+  },
+  {
+    "package": "semaprax-toolchain",
+    "kind": "test:cli_new_project_v1",
+    "selector": "new_project::application::tests::starter_input_held_regular_reader_preserves_exact_bytes_and_bounds",
+    "source_path": "crates/semaprax-toolchain/src/new_project/application.rs",
+    "source_sha256": "9c43ceebfa9b90d008d77db9ac052737d66f2b4b29b6710453f0e1e7fd0373c9",
+    "line": 426,
+    "reasons": [
+      "relative selected input owning/held-reader regression"
+    ]
+  },
+  {
+    "package": "semaprax-toolchain",
+    "kind": "test:cli_new_project_v1",
+    "selector": "new_project::application::tests::starter_initial_symlink_and_existing_destination_preserve_originals",
+    "source_path": "crates/semaprax-toolchain/src/new_project/application.rs",
+    "source_sha256": "9c43ceebfa9b90d008d77db9ac052737d66f2b4b29b6710453f0e1e7fd0373c9",
+    "line": 438,
+    "reasons": [
+      "relative selected input owning/held-reader regression"
+    ]
+  }
+]

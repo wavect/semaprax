@@ -1,0 +1,10 @@
+{
+  "source_basis": "d4cab900edac07fdcc4de0cdcb1bf3daafbef5ef",
+  "branches": {
+    "d4": "d4cab900edac07fdcc4de0cdcb1bf3daafbef5ef",
+    "825": "1935e72caf374264ee2de9d376bd1378792eb843"
+  },
+  "relative_fix": "14f7fb1835bcec441bb66fb8ffd97f9e280679da",
+  "typed_original_manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+  "typed_original_manifest_sha256": "9398dabf48abc65f82899954e5cb27ec1e33dc8c1a73b346de18a971c175c000"
+}

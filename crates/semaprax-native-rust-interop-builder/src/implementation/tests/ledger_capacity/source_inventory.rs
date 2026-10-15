@@ -448,7 +448,7 @@ macro_rules! hir_resolver_source_inventory {
         include_str!("../../../../../src/workspace_graph/identity_resolution/base.rs"),
         include_str!("../../../../../src/workspace_graph/identity_resolution/base/cache_billing.rs"),
         include_str!("../../../../../src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs"),
-        include_str!("../../../../../src/workspace_graph/identity_resolution/base/cache_billing/tests.rs"),
+        include_str!("../../../../../src/workspace_graph/identity_resolution/base/cache_billing/tests.rs"), include_str!("../../../../../src/workspace_graph/constructor_failure/before_publication.rs"), include_str!("../../../../../src/workspace_graph/constructor_failure/before_publication/attempt.rs"), include_str!("../../../../../src/workspace_graph/constructor_failure/before_publication/report.rs"), include_str!("../../../../../src/workspace_graph/constructor_failure/publication_tests.rs"),
         include_str!("../../../../../src/workspace_graph/identity_resolution/base/tests.rs"),
         include_str!("../../../../../src/workspace_graph/identity_resolution/base/affinity_tests.rs"),
             include_str!("../../../../../src/hir/funded.rs"),

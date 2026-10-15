@@ -413,6 +413,8 @@ fn before_f045(source: &str, current: &str) -> String {
 
 // Preserve the complete frozen9b domains independently of the newer MAIN proof.
 fn before_main927(source: &str, current: &str) -> String {
+    let previous = before_setup825(source, current);
+    let current = previous.as_str();
     let main_view = assembly_main927_input(source, current);
     let hex_view = project(
         include_str!(concat!(
@@ -442,6 +444,8 @@ fn main927_previous(source: &str, current: &str) -> String {
 }
 // Only these named inputs may enter MAIN's unchanged semantic source proofs.
 pub(crate) fn main927_input(source: &str, current: &str) -> String {
+    let previous = before_setup825(source, current);
+    let current = previous.as_str();
     let view = assembly_main927_input(source, current);
     let current = view.as_str();
     project(
@@ -472,6 +476,29 @@ fn assembly_main927_input(source: &str, current: &str) -> String {
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/main927-hex-starter-assembly-20261015/view-main927.json"
+        )),
+        source,
+        current,
+    )
+}
+
+// Authenticated physical successor for the bounded preowned-setup/starter batch.
+fn before_setup825(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/setup825-relative-starter-assembly-20261015/view-d4.json"
+        )),
+        source,
+        current,
+    )
+}
+// Preserve the complete immutable typed825 runtime manifest's own exact domain.
+pub(crate) fn setup_typed_input(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/setup825-relative-starter-assembly-20261015/view-typed825.json"
         )),
         source,
         current,

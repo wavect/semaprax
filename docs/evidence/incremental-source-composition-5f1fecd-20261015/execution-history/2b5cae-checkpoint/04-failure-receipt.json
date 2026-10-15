@@ -1,0 +1,61 @@
+{
+  "status": "ACTUAL_METADATA_PROOF_FAILED_NO_RUNTIME",
+  "command": "compose.py --basis 2b5cae170e13b16c4a5f57a619b302405e2934a6",
+  "reason": "actual immutable staged Source36 view JSON was recomposed for raw-current input after MAIN adapter already preprojected it",
+  "restored_exact_source36_packets": [
+    {
+      "path": "docs/evidence/source36-current-view-adapter-94c392-20261015/source-projections.json",
+      "basis_sha256": "a72d22f40acc63e6cacdb19500640a8aa08b5f59fe5cd79173d60cb839e315ae",
+      "failed_composed_sha256": "a5d7e17f4e07335adc6b98f59b7e4b0a69fb03978b962482f20e089051ac8161",
+      "changed_in_failed_pass": true
+    },
+    {
+      "path": "docs/evidence/source36-current-view-adapter-94c392-20261015/source-inverses.json",
+      "basis_sha256": "d529fd3ac38f9a11d39e1cac5d894052020384512407d01d51b82f43b95e13c2",
+      "failed_composed_sha256": "ce607f5bff924f86927b4d243910f95c35c521dc23db3d2eb332ad0989c13728",
+      "changed_in_failed_pass": true
+    },
+    {
+      "path": "docs/evidence/source36-after-23e8-20261015/source-inverses.json",
+      "basis_sha256": "c91a0fa8f1726d8d4d6a29b820865401361057df69a18e23c27c9ffe3e6f0e7b",
+      "failed_composed_sha256": "929432f791ec269dc8fd8c3ba81c7b9b57f82c81949e929f9839027704920e5b",
+      "changed_in_failed_pass": true
+    },
+    {
+      "path": "docs/evidence/source36-after-23e8-20261015/source-projections.json",
+      "basis_sha256": "8133be469de9b9f646e9de68f129979c2ebc0e261affa353ecab320577802cdd",
+      "failed_composed_sha256": "c6ba9a5e5349b2ed8ab570f0ded07fb8463d101ab3d36bd3347234bd76914fcf",
+      "changed_in_failed_pass": true
+    },
+    {
+      "path": "docs/evidence/source36-after-next-838-839-20261015/source-inverses.json",
+      "basis_sha256": "873251dae8ba0613814a3e4329cedd2851acc4c356aaee3ff4f40b493c778258",
+      "failed_composed_sha256": "5d929d98eae7616cd4d01cc2988faff0b09a706f7c3d285abe704aeedf5351cf",
+      "changed_in_failed_pass": true
+    },
+    {
+      "path": "docs/evidence/source36-after-next-838-839-20261015/source-projections.json",
+      "basis_sha256": "1738b3ef404a72d8c829a179e9d3baa595d887bd77f01c62eeff63b04a6f76f4",
+      "failed_composed_sha256": "bd6a1b2a34e987257b963b2167a68d4a9f95910c88518e4168c21b3f84d31978",
+      "changed_in_failed_pass": true
+    },
+    {
+      "path": "docs/evidence/source36-main88884-merge-20261015/source-inverses.json",
+      "basis_sha256": "d16d30eb040751e09f7ec055758b135c112e24624132bf50f58a5f12bb766d0d",
+      "failed_composed_sha256": "d16d30eb040751e09f7ec055758b135c112e24624132bf50f58a5f12bb766d0d",
+      "changed_in_failed_pass": false
+    },
+    {
+      "path": "docs/evidence/source36-main88884-merge-20261015/ours-projections.json",
+      "basis_sha256": "a58a5a05526cf4ab68e9c176d720b1c20a0e5e6cf83b2290ac940d5848f17a2f",
+      "failed_composed_sha256": "a58a5a05526cf4ab68e9c176d720b1c20a0e5e6cf83b2290ac940d5848f17a2f",
+      "changed_in_failed_pass": false
+    },
+    {
+      "path": "docs/evidence/source36-main88884-merge-20261015/main-reflow-projections.json",
+      "basis_sha256": "e7df6f7275ef27ac8e4f079d0514b59b9ba046ca0fb57a05fe7b761c1496fb87",
+      "failed_composed_sha256": "e7df6f7275ef27ac8e4f079d0514b59b9ba046ca0fb57a05fe7b761c1496fb87",
+      "changed_in_failed_pass": false
+    }
+  ]
+}

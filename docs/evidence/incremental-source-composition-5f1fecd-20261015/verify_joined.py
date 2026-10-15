@@ -71,7 +71,7 @@ try:
     independent_joins = {(r["packet"], r["source"]): r for r in proof["new_source_prior_bindings"]}
     for packet in proof["packets"]:
         name = packet["packet"]
-        now = read(name)
+        now = read(packet.get("active_packet", name))
         if name in seeds:
             info = seeds[name]
             assert digest(ROOT / info["seed"]) == info["seed_sha256"]
@@ -131,6 +131,9 @@ try:
         assert digest(ROOT / source) == expected, source
     for source, expected in oldproof["preserved_prior_proofs_and_scripts"].items():
         assert digest(ROOT / source) == expected, (source, "immutable prior proof/archive/script")
+    for source, expected in proof["protected_runtime_stage_packets"].items():
+        assert (ROOT / source).read_bytes() == blob(BASE, source)
+        assert digest(ROOT / source) == expected
     for source, expected in proof["source_inputs"].items():
         assert digest(ROOT / source) == expected
     frozen = ["*.rs", "*.spx", "Cargo.toml", "Cargo.lock", "**/Cargo.toml", "**/Cargo.lock", ".cargo/*"]

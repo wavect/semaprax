@@ -1,0 +1,89 @@
+{
+  "status": "HISTORICAL_METADATA_CHECKPOINT_ONLY_RUNTIME_LITERAL_ADAPTER_PENDING",
+  "source_basis": "2b5cae170e13b16c4a5f57a619b302405e2934a6",
+  "actual_initial_composition": "FAILED_AFTER_METADATA_STAGING_SOURCE36_DOMAIN_MISMATCH",
+  "corrected_composition": {
+    "packets": 100,
+    "rows": 903,
+    "full_current_to_prior_joins": 316,
+    "cache_peak_bytes": 16776828
+  },
+  "corrected_verify_only": {
+    "passed": true,
+    "cache_peak_bytes": 539804
+  },
+  "joined": {
+    "passed": true,
+    "old_hooks_preserved": 3371,
+    "independent_receivers": 53,
+    "byte_unchanged": 46,
+    "complete_current_to_old_joins": 7,
+    "starter_bindings": 38,
+    "starter_patch_paths": [
+      32,
+      6
+    ],
+    "new_stage_patch_paths": 66,
+    "cache_peak_bytes": 16775080
+  },
+  "literal_source_probe": {
+    "matching": 9,
+    "guard_drift": 6,
+    "distinct_838_sources_with_drift": 4,
+    "runtime_executed": false
+  },
+  "further_checks_after_parent_pause": "none",
+  "no_runtime_claim": true,
+  "logs": [
+    {
+      "file": "01-prepare-next.log",
+      "sha256": "cecbe87032617132257df707d607ccba8533eec5cf98701ec1c9691fd7da6840",
+      "bytes": 53
+    },
+    {
+      "file": "02-starter-bindings.log",
+      "sha256": "199fb643530a398ef95de6620c86961bcf0c7fb3d1286b00b460dfb2e30b20a9",
+      "bytes": 72
+    },
+    {
+      "file": "03-receiver-bindings.log",
+      "sha256": "6080f2583311e1ab6aa219683f417b08e404988d0a2d58d5bae01ece9391a8e3",
+      "bytes": 127
+    },
+    {
+      "file": "04-compose.log",
+      "sha256": "87418bc2a4901714bac9c81d1df5402601bb48bbd9ac559ab8ac7e6a7a48a1ba",
+      "bytes": 1498
+    },
+    {
+      "file": "04-failure-receipt.json",
+      "sha256": "7ae98e67888e47e956cf8782b89814159e7c6bf2dee793f3ceb55a44390c57e0",
+      "bytes": 3290
+    },
+    {
+      "file": "04b-compose-protected-source36.log",
+      "sha256": "bb7ba58eb9ac15dc8295556374f742a716c5f0519a1b6085b7dd40ab26adbc60",
+      "bytes": 116
+    },
+    {
+      "file": "04c-compose-protected-all-runtime-domains.log",
+      "sha256": "bb7ba58eb9ac15dc8295556374f742a716c5f0519a1b6085b7dd40ab26adbc60",
+      "bytes": 116
+    },
+    {
+      "file": "05-verify-only.log",
+      "sha256": "a3bd7d6134405f8f55a273d27bb92951dda47b96b7cc1294c0778f809d54a388",
+      "bytes": 115
+    },
+    {
+      "file": "06-joined-2b5-checkpoint.log",
+      "sha256": "4ec0065c9a514570e1f3e66a753b8ff5ca83a17ce1230444ec67d24fb16a81b2",
+      "bytes": 2520
+    },
+    {
+      "file": "07-literal-guard-inputs.log",
+      "sha256": "be1f3e40e8b8d90fa1bc2ea794c70cd917a2248f2d8d1208466938e055f11484",
+      "bytes": 70
+    }
+  ]
+}

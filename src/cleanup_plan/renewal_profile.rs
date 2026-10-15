@@ -11,7 +11,7 @@ use crate::hir::ResolvedProgram;
 use crate::hir::{ExpressionId, ResolvedBinding, ResolvedFunction};
 #[cfg(test)]
 pub(crate) use funded::{
-    binding_with_index_funded, bindings_funded, bindings_with_index_funded,
+    binding_with_index_funded, bindings_funded,
     bindings_with_index_funded_with_work,
 };
 #[cfg(test)]

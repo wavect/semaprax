@@ -1,0 +1,305 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED_MECHANICAL_CORRECTION",
+  "base_commit": "23e8f1d0a67cb2657bb4cdc963a2a2828c523c7c",
+  "actual_prior_diagnostics": [
+    {
+      "level": "error",
+      "code": "E0583",
+      "message": "file not found for module `tests`",
+      "spans": [
+        {
+          "file": "src/workspace_graph/generic_type_import/receiving.rs",
+          "line": 194
+        }
+      ]
+    },
+    {
+      "level": "warning",
+      "code": "unused_imports",
+      "message": "unused import: `bindings_with_index_funded`",
+      "spans": [
+        {
+          "file": "src/cleanup_plan/renewal_profile.rs",
+          "line": 14
+        }
+      ]
+    },
+    {
+      "level": "warning",
+      "code": "unused_imports",
+      "message": "unused import: `validate_status_sources_retained`",
+      "spans": [
+        {
+          "file": "src/cleanup_plan/replay/expression_facts/receiving.rs",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "level": "warning",
+      "code": "unused_imports",
+      "message": "unused imports: `condition_reads_funded` and `needs_cleanup_funded`",
+      "spans": [
+        {
+          "file": "src/string_ops/conditions.rs",
+          "line": 18
+        },
+        {
+          "file": "src/string_ops/conditions.rs",
+          "line": 18
+        }
+      ]
+    },
+    {
+      "level": "warning",
+      "code": "unused_imports",
+      "message": "unused imports: `condition_reads_funded_with_work` and `needs_cleanup_funded_with_work`",
+      "spans": [
+        {
+          "file": "src/string_ops/conditions.rs",
+          "line": 123
+        },
+        {
+          "file": "src/string_ops/conditions.rs",
+          "line": 124
+        }
+      ]
+    },
+    {
+      "level": "warning",
+      "code": "unused_imports",
+      "message": "unused imports: `is_same_owner_concat_hir_funded` and `same_owner_concat_appends_funded`",
+      "spans": [
+        {
+          "file": "src/string_ops.rs",
+          "line": 88
+        },
+        {
+          "file": "src/string_ops.rs",
+          "line": 88
+        }
+      ]
+    },
+    {
+      "level": "warning",
+      "code": "unused_imports",
+      "message": "unused imports: `is_same_owner_concat_hir_funded_with_work` and `same_owner_concat_appends_funded_with_work`",
+      "spans": [
+        {
+          "file": "src/string_ops.rs",
+          "line": 1231
+        },
+        {
+          "file": "src/string_ops.rs",
+          "line": 1231
+        }
+      ]
+    },
+    {
+      "level": "warning",
+      "code": "unused_imports",
+      "message": "unused import: `default_expr`",
+      "spans": [
+        {
+          "file": "src/workspace_graph/expected_projection/borrowed_imports/tests.rs",
+          "line": 2
+        }
+      ]
+    },
+    {
+      "level": "error",
+      "code": "E0277",
+      "message": "the trait bound `Array<u8, UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>>: LowerHex` is not satisfied",
+      "spans": [
+        {
+          "file": "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+          "line": 14
+        }
+      ]
+    },
+    {
+      "level": "error",
+      "code": "E0277",
+      "message": "the trait bound `Array<u8, UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>>: LowerHex` is not satisfied",
+      "spans": [
+        {
+          "file": "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+          "line": 22
+        }
+      ]
+    },
+    {
+      "level": "error",
+      "code": "E0277",
+      "message": "the trait bound `Array<u8, UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>>: LowerHex` is not satisfied",
+      "spans": [
+        {
+          "file": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+          "line": 401
+        }
+      ]
+    },
+    {
+      "level": "warning",
+      "code": "unused_imports",
+      "message": "unused import: `crate::ast::program_source::ProgramSource`",
+      "spans": [
+        {
+          "file": "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
+          "line": 228
+        }
+      ]
+    },
+    {
+      "level": "warning",
+      "code": "unused_variables",
+      "message": "unused variable: `expected`",
+      "spans": [
+        {
+          "file": "src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs",
+          "line": 146
+        }
+      ]
+    },
+    {
+      "level": "error",
+      "code": "E0004",
+      "message": "non-exhaustive patterns: `vec_ops::VecOp::UpdateField` not covered",
+      "spans": [
+        {
+          "file": "src/codegen/native_shared_bytes/closure.rs",
+          "line": 178
+        }
+      ]
+    }
+  ],
+  "actual_prior_build_jsonl_sha256": "b5f9beb176b87ebb656f2c60649c476eeab9f3f080ef87f7bd4d9de6dc232c24",
+  "four_reported_mechanical_errors_corrected": [
+    "E0583 receiving tests explicit path",
+    "E0277 current_view current SHA LowerHex",
+    "E0277 current_view projected SHA LowerHex",
+    "E0277 scratch_tests SHA LowerHex"
+  ],
+  "additional_module_path": "Explicit new_project/application.rs for both ordinary full CLI and custom-path integration module; preserves all six application unit bodies.",
+  "warnings": "Nine actual warnings addressed by removing only unused imports/re-exports or renaming one unused expected local to _expected, retaining its initializer/Drop. No function body or assertion removed.",
+  "parent_owned_semantic_error": "native_shared_bytes/closure.rs UpdateField match remains outside this mechanical commit",
+  "source_records": [
+    {
+      "source": "crates/semaprax-toolchain/src/new_project.rs",
+      "original_sha256": "abf548c5c0029b254a210e125021bcc363c4794cd896fdcb83112bce0ee49cbf",
+      "current_sha256": "f4ebc2d7fc69a68ce5ea1a2da4a6eb3c2074bb15a9a2de41c80b8a56c3cc0a69",
+      "original_bytes": 16996,
+      "current_bytes": 17035,
+      "original_lines": 511,
+      "current_lines": 512,
+      "complete_original": "docs/evidence/current-23e8-mechanical-20261015/original/crates__semaprax-toolchain__src__new_project.rs.before"
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile.rs",
+      "original_sha256": "a9891330c86d3aad8891bf89a7b0c96c85118d7ad11c721e0da472e9a1a1ecc0",
+      "current_sha256": "18ef035480f7aed64d68d447d19b4c53042097e15712b8d9d66fa6e50e51284b",
+      "original_bytes": 11955,
+      "current_bytes": 11927,
+      "original_lines": 307,
+      "current_lines": 307,
+      "complete_original": "docs/evidence/current-23e8-mechanical-20261015/original/src__cleanup_plan__renewal_profile.rs.before"
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving.rs",
+      "original_sha256": "7599f862f1489b42bece389200acb61f65d01310b4b2cc45af64392dccf84ba0",
+      "current_sha256": "f70ab3b3b2e51941b2bf99f8082092641fd3c9887b1434a696fee406e7328b28",
+      "original_bytes": 27710,
+      "current_bytes": 27674,
+      "original_lines": 636,
+      "current_lines": 636,
+      "complete_original": "docs/evidence/current-23e8-mechanical-20261015/original/src__cleanup_plan__replay__expression_facts__receiving.rs.before"
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs",
+      "original_sha256": "1ddc657d7e14d2c1f7193071a93178077eed90a10cc70162a82ae8fce18e3d69",
+      "current_sha256": "ca425c4dab37107989b992de1d5a0fe50259a2f5d5323952aadd597736d8631a",
+      "original_bytes": 13786,
+      "current_bytes": 13787,
+      "original_lines": 317,
+      "current_lines": 317,
+      "complete_original": "docs/evidence/current-23e8-mechanical-20261015/original/src__cleanup_plan__replay__expression_facts__receiving__return_operands__tests.rs.before"
+    },
+    {
+      "source": "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+      "original_sha256": "312fdc08b1f33fd26e68369b89882fa740c08f604ebf0c795740bd2f90734c2f",
+      "current_sha256": "32413485187d51f698fab15ca5438cd20d522a854235ce59e8c08360fa03e222",
+      "original_bytes": 1298,
+      "current_bytes": 1468,
+      "original_lines": 24,
+      "current_lines": 36,
+      "complete_original": "docs/evidence/current-23e8-mechanical-20261015/original/src__cleanup_plan__replay__live_oracle__source_custody__current_view.rs.before"
+    },
+    {
+      "source": "src/string_ops.rs",
+      "original_sha256": "ab18f5187d195771e732c34df7a882d4de1a54467957c438e34f1307ce2d1e52",
+      "current_sha256": "41153b10341d40cf3e88091bf803c33c327f2c47249d78310754b768edb3cfa4",
+      "original_bytes": 54006,
+      "current_bytes": 53826,
+      "original_lines": 1288,
+      "current_lines": 1282,
+      "complete_original": "docs/evidence/current-23e8-mechanical-20261015/original/src__string_ops.rs.before"
+    },
+    {
+      "source": "src/string_ops/conditions.rs",
+      "original_sha256": "555625d9d7b8150080f006b0563e19952353a85180c7b4297e90c951100cdcb8",
+      "current_sha256": "81c4813bec9f7f35f23bb6460312e87f17090b31f4507e87e2d693d13aa49280",
+      "original_bytes": 5716,
+      "current_bytes": 5589,
+      "original_lines": 167,
+      "current_lines": 164,
+      "complete_original": "docs/evidence/current-23e8-mechanical-20261015/original/src__string_ops__conditions.rs.before"
+    },
+    {
+      "source": "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
+      "original_sha256": "1d7a125305ea461083caa3adcb5c2bb9a9b4bbb241e0a30204f2cea9ce8df566",
+      "current_sha256": "fe9d40ff1cad07cfe6db43a12c07c0b489ca8f0dc262c51813d561f8cc6cdb28",
+      "original_bytes": 25220,
+      "current_bytes": 25169,
+      "original_lines": 604,
+      "current_lines": 603,
+      "complete_original": "docs/evidence/current-23e8-mechanical-20261015/original/src__workspace_graph__constructor_failure__receiving__typed__tests.rs.before"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/tests.rs",
+      "original_sha256": "bbe1b8e1f84704a72b4c32bae7f806e82581fb8ca0d7391dfa2f6f25b63d6631",
+      "current_sha256": "faf155a95cce3b8754855e162e6142efe04d37b4def25446ed5b4f29be67e860",
+      "original_bytes": 23221,
+      "current_bytes": 23207,
+      "original_lines": 516,
+      "current_lines": 516,
+      "complete_original": "docs/evidence/current-23e8-mechanical-20261015/original/src__workspace_graph__expected_projection__borrowed_imports__tests.rs.before"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+      "original_sha256": "ba6c1913332dd3c33f921cd334807f926e51c344a90472dcd576703d84b44d05",
+      "current_sha256": "c5b5041220d5806ce4ac7076caa32f3dce3fdbb9cdbef583e79e95a3e6b92856",
+      "original_bytes": 17322,
+      "current_bytes": 17397,
+      "original_lines": 405,
+      "current_lines": 408,
+      "complete_original": "docs/evidence/current-23e8-mechanical-20261015/original/src__workspace_graph__expected_projection__private_layout__registry__scratch_tests.rs.before"
+    },
+    {
+      "source": "src/workspace_graph/generic_type_import/receiving.rs",
+      "original_sha256": "6e63d58dbddb48aabbd937ec9137fb9fee7b747bd99854d94f9dd40a46e953a1",
+      "current_sha256": "1d7f0b2253be075ab39fe2373fa4b1ad6d2fdb2f029c066cfe1931dae7c9e5ce",
+      "original_bytes": 6194,
+      "current_bytes": 6225,
+      "original_lines": 194,
+      "current_lines": 195,
+      "complete_original": "docs/evidence/current-23e8-mechanical-20261015/original/src__workspace_graph__generic_type_import__receiving.rs.before"
+    }
+  ],
+  "inverse_sha256": "85b584e8eb11a1dc196e486b8c635d6ade90ca0d77bb38513084a0518f35cb69",
+  "source_inverses_sha256": "b19acc6ab7fb9e683f83a617bd76d8b622291dbc6248978f19fe89d73c5ced92",
+  "cargo_build_tests_clippy_c_node_claude_execution": false,
+  "old84_metadata_mutated": false,
+  "global_composition_performed": false,
+  "git_diff_check": "passed",
+  "source_custody_a_rs_changed": false
+}

@@ -398,7 +398,10 @@ fn complete_old_registry_census_derivation_and_current_scratch_sources_remain_bo
             .find(|row| row["source"] == path)
             .unwrap();
         assert_eq!(
-            format!("{:x}", Sha256::digest(bytes.as_bytes())),
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(bytes.as_bytes()))
+            ),
             row["sha256"].as_str().unwrap()
         );
     }

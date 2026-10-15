@@ -84,10 +84,7 @@
 mod concat_funded;
 pub(crate) mod conditions;
 #[cfg(test)]
-pub(crate) use concat_funded::{
-    is_same_owner_concat_hir_funded, same_owner_concat_appends_funded,
-    same_owner_concat_operands_funded,
-};
+pub(crate) use concat_funded::same_owner_concat_operands_funded;
 pub(crate) mod take;
 
 #[cfg(test)]
@@ -1227,10 +1224,7 @@ pub(crate) fn program_uses_operation(
 }
 
 #[cfg(test)]
-pub(crate) use concat_funded::work::{
-    is_same_owner_concat_hir_funded_with_work, same_owner_concat_appends_funded_with_work,
-    same_owner_concat_operands_funded_with_work,
-};
+pub(crate) use concat_funded::work::same_owner_concat_operands_funded_with_work;
 
 #[cfg(test)]
 pub(crate) fn by_id_with_work<E>(

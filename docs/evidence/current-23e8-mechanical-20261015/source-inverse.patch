@@ -1,0 +1,183 @@
+diff --git b/crates/semaprax-toolchain/src/new_project.rs a/crates/semaprax-toolchain/src/new_project.rs
+index c751c784e..b2bfb4e25 100644
+--- b/crates/semaprax-toolchain/src/new_project.rs
++++ a/crates/semaprax-toolchain/src/new_project.rs
+@@ -1,4 +1,3 @@
+-#[path = "new_project/application.rs"]
+ mod application;
+ #[path = "new_project/templates.rs"]
+ mod templates;
+diff --git b/src/cleanup_plan/renewal_profile.rs a/src/cleanup_plan/renewal_profile.rs
+index 8316fda36..3f13463e8 100644
+--- b/src/cleanup_plan/renewal_profile.rs
++++ a/src/cleanup_plan/renewal_profile.rs
+@@ -11,7 +11,7 @@ use crate::hir::ResolvedProgram;
+ use crate::hir::{ExpressionId, ResolvedBinding, ResolvedFunction};
+ #[cfg(test)]
+ pub(crate) use funded::{
+-    binding_with_index_funded, bindings_funded,
++    binding_with_index_funded, bindings_funded, bindings_with_index_funded,
+     bindings_with_index_funded_with_work,
+ };
+ #[cfg(test)]
+diff --git b/src/cleanup_plan/replay/expression_facts/receiving.rs a/src/cleanup_plan/replay/expression_facts/receiving.rs
+index be6defae3..926e477c8 100644
+--- b/src/cleanup_plan/replay/expression_facts/receiving.rs
++++ a/src/cleanup_plan/replay/expression_facts/receiving.rs
+@@ -4,7 +4,7 @@ mod directory;
+ mod helpers;
+ mod retained;
+ #[cfg(test)]
+-pub(in crate::cleanup_plan::replay) use retained::before_status_retention;
++pub(in crate::cleanup_plan::replay) use retained::{before_status_retention, validate_status_sources_retained};
+ pub(in crate::cleanup_plan::replay) use retained::{
+     validate_blocks_and_edges_retained, validate_exits_retained,
+     validate_status_sources_certified, StatusCases,
+diff --git b/src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs a/src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs
+index f47101662..0041a88fd 100644
+--- b/src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs
++++ a/src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs
+@@ -143,7 +143,7 @@ fn foreign_function_facts_budget_and_restored_nested_owner_never_reuse_backing()
+     let mut scan = ReplayBudget::new();
+     let facts = lexical_hir::collect(f, &mut scan).unwrap();
+     let other_facts = lexical_hir::collect(f, &mut scan).unwrap();
+-    let _expected = Diagnostic::io_static(
++    let expected = Diagnostic::io_static(
+         "SPX-H006",
+         "ordinary lexical return operands lost their owner",
+     );
+diff --git b/src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs a/src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs
+index 47363624b..a115f6b81 100644
+--- b/src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs
++++ a/src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs
+@@ -11,13 +11,7 @@ pub(super) fn project(source: &str, current: &str) -> String {
+     let matching: Vec<_> = rows.iter().filter(|row| row["source"] == source).collect();
+     assert_eq!(matching.len(), 1, "unique authenticated source view");
+     let row = matching[0];
+-    assert_eq!(
+-        format!(
+-            "{:x}",
+-            crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+-        ),
+-        row["current_sha256"]
+-    );
++    assert_eq!(format!("{:x}", Sha256::digest(current.as_bytes())), row["current_sha256"]);
+     let mut projected = current.to_owned();
+     for edit in row["edits"].as_array().expect("complete source inverse") {
+         let new = edit["new"].as_str().expect("current source bytes");
+@@ -25,12 +19,6 @@ pub(super) fn project(source: &str, current: &str) -> String {
+         assert_eq!(projected.matches(new).count(), 1, "unique complete inverse");
+         projected = projected.replacen(new, old, 1);
+     }
+-    assert_eq!(
+-        format!(
+-            "{:x}",
+-            crate::digest_hex::LowerHex(Sha256::digest(projected.as_bytes()))
+-        ),
+-        row["original_sha256"]
+-    );
++    assert_eq!(format!("{:x}", Sha256::digest(projected.as_bytes())), row["original_sha256"]);
+     projected
+ }
+diff --git b/src/string_ops.rs a/src/string_ops.rs
+index 7f5754b70..a4ac674eb 100644
+--- b/src/string_ops.rs
++++ a/src/string_ops.rs
+@@ -84,7 +84,10 @@
+ mod concat_funded;
+ pub(crate) mod conditions;
+ #[cfg(test)]
+-pub(crate) use concat_funded::same_owner_concat_operands_funded;
++pub(crate) use concat_funded::{
++    is_same_owner_concat_hir_funded, same_owner_concat_appends_funded,
++    same_owner_concat_operands_funded,
++};
+ pub(crate) mod take;
+ 
+ #[cfg(test)]
+@@ -1224,7 +1227,10 @@ pub(crate) fn program_uses_operation(
+ }
+ 
+ #[cfg(test)]
+-pub(crate) use concat_funded::work::same_owner_concat_operands_funded_with_work;
++pub(crate) use concat_funded::work::{
++    is_same_owner_concat_hir_funded_with_work, same_owner_concat_appends_funded_with_work,
++    same_owner_concat_operands_funded_with_work,
++};
+ 
+ #[cfg(test)]
+ pub(crate) fn by_id_with_work<E>(
+diff --git b/src/string_ops/conditions.rs a/src/string_ops/conditions.rs
+index bfba46495..4d96b0ac6 100644
+--- b/src/string_ops/conditions.rs
++++ a/src/string_ops/conditions.rs
+@@ -15,7 +15,7 @@ use crate::hir::{
+ #[cfg(test)]
+ mod funded;
+ #[cfg(test)]
+-pub(crate) use funded::function_reads_funded;
++pub(crate) use funded::{condition_reads_funded, function_reads_funded, needs_cleanup_funded};
+ 
+ fn is_condition_read(op: super::StringOp) -> bool {
+     matches!(
+@@ -119,7 +119,10 @@ pub(crate) fn needs_cleanup(condition: &ResolvedExpr) -> bool {
+ }
+ 
+ #[cfg(test)]
+-pub(crate) use funded::work::function_reads_funded_with_work;
++pub(crate) use funded::work::{
++    condition_reads_funded_with_work, function_reads_funded_with_work,
++    needs_cleanup_funded_with_work,
++};
+ 
+ #[cfg(test)]
+ pub(crate) fn resolved_operands_with_work<'a, E>(
+diff --git b/src/workspace_graph/constructor_failure/receiving/typed/tests.rs a/src/workspace_graph/constructor_failure/receiving/typed/tests.rs
+index 13b1f9dea..bf6619d31 100644
+--- b/src/workspace_graph/constructor_failure/receiving/typed/tests.rs
++++ a/src/workspace_graph/constructor_failure/receiving/typed/tests.rs
+@@ -225,6 +225,7 @@ fn typed_static_defaults_and_stub_forwarding_keep_complete_old_six_fields_and_va
+ }
+ #[test]
+ fn typed_core_overlay_matches_complete_old_success_and_late_semantic_failure_through_drop() {
++    use crate::ast::program_source::ProgramSource;
+     use crate::workspace_graph::expected_projection::{CoreProviderProofs, private_layout};
+     let mut programs = [
+         "module typed.app; use function @id(\"helper\") from typed.provider as increment; @id(\"main\") fn main()->i64 {increment(41)}",
+diff --git b/src/workspace_graph/expected_projection/borrowed_imports/tests.rs a/src/workspace_graph/expected_projection/borrowed_imports/tests.rs
+index 980838b9e..ad4dd2acf 100644
+--- b/src/workspace_graph/expected_projection/borrowed_imports/tests.rs
++++ a/src/workspace_graph/expected_projection/borrowed_imports/tests.rs
+@@ -1,5 +1,5 @@
+ use super::super::{
+-    active_builder_limit, budgeted_format, graph_error, import_stub, limit_error,
++    active_builder_limit, budgeted_format, default_expr, graph_error, import_stub, limit_error,
+     private_layout, type_rewrite, AuthoredDeclaration,
+ };
+ use super::{construct, eligible, reserve_builder_structure, LayoutRegistry};
+diff --git b/src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs a/src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs
+index 032f7e2bb..289ba0adb 100644
+--- b/src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs
++++ a/src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs
+@@ -398,10 +398,7 @@ fn complete_old_registry_census_derivation_and_current_scratch_sources_remain_bo
+             .find(|row| row["source"] == path)
+             .unwrap();
+         assert_eq!(
+-            format!(
+-                "{:x}",
+-                crate::digest_hex::LowerHex(Sha256::digest(bytes.as_bytes()))
+-            ),
++            format!("{:x}", Sha256::digest(bytes.as_bytes())),
+             row["sha256"].as_str().unwrap()
+         );
+     }
+diff --git b/src/workspace_graph/generic_type_import/receiving.rs a/src/workspace_graph/generic_type_import/receiving.rs
+index 31b69686c..1f79883b9 100644
+--- b/src/workspace_graph/generic_type_import/receiving.rs
++++ a/src/workspace_graph/generic_type_import/receiving.rs
+@@ -191,5 +191,4 @@ pub(in crate::workspace_graph) fn rewrite_declaration_with_layout(
+ }
+ 
+ #[cfg(test)]
+-#[path = "receiving/tests.rs"]
+ mod tests;

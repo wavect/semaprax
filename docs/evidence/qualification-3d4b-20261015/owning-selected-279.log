@@ -1,0 +1,17 @@
+
+running 1 test
+test cleanup_plan::replay::lexical_replay::operand_tests::source::whole_old_lexical_caller_and_all_new_inventory_sources_remain_bound ... 
+thread 'cleanup_plan::replay::lexical_replay::operand_tests::source::whole_old_lexical_caller_and_all_new_inventory_sources_remain_bound' (7734403) panicked at src/cleanup_plan/replay/lexical_replay/operand_tests/source.rs:90:13:
+assertion `left == right` failed: crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::lexical_replay::operand_tests::source::whole_old_lexical_caller_and_all_new_inventory_sources_remain_bound
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.07s
+

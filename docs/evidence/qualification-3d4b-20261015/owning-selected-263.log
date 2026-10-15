@@ -1,0 +1,6 @@
+
+running 1 test
+test bounded_output::identity_reservation::base_prelude::tests::foreign_then_restored_byte_owner_keeps_exact_first_inline_error_without_requery ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.00s
+

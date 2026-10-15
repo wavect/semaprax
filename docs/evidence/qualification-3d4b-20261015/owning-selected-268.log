@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::prelude_bundle::vector_extension::tests::matching_foreign_ast_never_acquires_or_substitutes_extension_authority ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.03s
+

@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::identity_resolution::base::tests::actual_base_receiver_retains_one_payload_across_fresh_borrowed_and_selective_full_old_controls ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.01s
+

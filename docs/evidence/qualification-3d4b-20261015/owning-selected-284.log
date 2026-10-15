@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::expected_projection::private_layout::function_tests::decoded_ready_wire_and_cleanup_match_complete_imports_with_private_descendants_omitted ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 8.73s
+

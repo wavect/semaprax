@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::prelude_bundle::tests::logical_declaration_export_has_exact_remaining_length_and_generic_merge_keeps_base_values ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.01s
+

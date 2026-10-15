@@ -1,0 +1,14 @@
+diff --git a/src/workspace_graph.rs b/src/workspace_graph.rs
+index 65fc0121a..896a94edc 100644
+--- a/src/workspace_graph.rs
++++ b/src/workspace_graph.rs
+@@ -4157,6 +4157,9 @@ fn build_owned_inner(
+                     Ok::<_, constructor_failure::receiving::CoreFailure>((core, custody))
+                 })
+             });
++        if overflowed {
++            eprintln!("[PRIVATE-REFUSAL-OBSERVER] mode={fallback_mode} refusal={refusal:?} site={site:?}");
++        }
+         let (core, paid_refusal) = core.into_parts();
+         core_builder_bytes = core_builder_bytes.max(consumed);
+         if !overflowed {

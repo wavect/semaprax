@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::skeleton_work::ordinary_dag::frontier_tests::independent_original_type_drop_builders_and_complete_receiver_are_byte_locked ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9069 filtered out; finished in 0.06s
+

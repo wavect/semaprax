@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::physical_budget::authentication::tests::held_zero_gateway_fresh_zero_oracle_never_bootstraps_text_or_active_payer ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9069 filtered out; finished in 0.01s
+

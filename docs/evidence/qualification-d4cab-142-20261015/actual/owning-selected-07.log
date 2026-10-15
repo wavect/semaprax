@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::path_join::storage::empty_renewals::tests::atomic_type_clone_omits_only_the_absent_census_cursor_and_preserves_all_tags ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9069 filtered out; finished in 0.01s
+

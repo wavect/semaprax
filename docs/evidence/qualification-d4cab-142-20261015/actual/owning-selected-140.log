@@ -1,0 +1,6 @@
+
+running 1 test
+test wasm::aggregate::tests::owned_data_scalar_wrappers_publish_exact_width_and_preserve_foreign_sentinels ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9069 filtered out; finished in 0.08s
+

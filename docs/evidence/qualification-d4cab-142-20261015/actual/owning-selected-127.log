@@ -1,0 +1,19 @@
+
+running 1 test
+test workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure ... 
+thread 'workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure' (8357267) panicked at src/cleanup_plan/replay/factored/continuation_receiver.rs:20:9:
+factored skeleton comparison disagrees with enumeration for `std.data.json.doc.next_state`: Err("cleanup plan for function `std.data.json.doc.next_state` failed independent replay: cleanup replay physical reservation exhausted during factored automaton nodes")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+OPT808 actual preparation policy_is_request/phase: Some((true, "prepare"))
+OPT808 actual unchanged native preparation maximum core trace: Some(Trace { owner: 36927397072, operation: None, first_operation_refusal: Some(OperationRefusal { operation: Some(CleanupReplay), requested: 12288, remaining: 2771, floor: 0, stage: Some(HirValidation) }), initial: 67108864, consumed: 67106093, prebound: 23899710, layouts: 0, mode: 1, debits: [8645, 11996, 0, 0, 0, 0, 0, 0, 0, 23899710, 25436, 0, 0, 0, 0, 0, 0, 2399, 0, 128739, 113560, 672, 0, 0, 0, 48414, 0, 42806494, 892, 59136, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] })
+OPT808 actual unchanged native preparation final core trace: Some(Trace { owner: 36927397072, operation: None, first_operation_refusal: Some(OperationRefusal { operation: Some(CleanupReplay), requested: 12288, remaining: 2771, floor: 0, stage: Some(HirValidation) }), initial: 67108864, consumed: 67106093, prebound: 23899710, layouts: 0, mode: 1, debits: [8645, 11996, 0, 0, 0, 0, 0, 0, 0, 23899710, 25436, 0, 0, 0, 0, 0, 0, 2399, 0, 128739, 113560, 672, 0, 0, 0, 48414, 0, 42806494, 892, 59136, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] })
+OPT808 preserved original panic String: Some("factored skeleton comparison disagrees with enumeration for `std.data.json.doc.next_state`: Err(\"cleanup plan for function `std.data.json.doc.next_state` failed independent replay: cleanup replay physical reservation exhausted during factored automaton nodes\")")
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9069 filtered out; finished in 1.36s
+

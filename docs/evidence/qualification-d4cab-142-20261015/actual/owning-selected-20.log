@@ -1,0 +1,11 @@
+
+running 1 test
+test hir::validation::iterative_while_admission_tests::exact_512_nested_indexed_matches_validate_on_a_low_stack ... indexed-depth: constructor
+indexed-depth: constructor complete
+indexed-depth: baseline
+indexed-depth: nested
+indexed-depth: nested complete
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9069 filtered out; finished in 0.01s
+

@@ -1,0 +1,11 @@
+
+running 1 test
+test cleanup_plan::replay::lexical_replay::operand_tests::full_old_and_current_ordinary_lexical_callers_keep_success_and_first_diagnostic_fields ... #832 attack=0 old_work=17858 current_work=18328 old_declared_bytes=780703 current_declared_bytes=781959
+#832 attack=1 old_work=15100 current_work=15570 old_declared_bytes=82383 current_declared_bytes=83639
+#832 attack=2 old_work=14813 current_work=14931 old_declared_bytes=77108 current_declared_bytes=78364
+#832 attack=3 old_work=14689 current_work=14785 old_declared_bytes=75527 current_declared_bytes=76783
+#832 attack=4 old_work=14689 current_work=14785 old_declared_bytes=75527 current_declared_bytes=76783
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9069 filtered out; finished in 0.01s
+

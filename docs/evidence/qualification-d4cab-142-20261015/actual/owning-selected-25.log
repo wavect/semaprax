@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::generic_type_import::receiving::tests::typed_declaration_foreign_restored_owner_keeps_unchanged_ast_and_sticky_detachment ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9069 filtered out; finished in 0.02s
+

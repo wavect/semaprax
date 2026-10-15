@@ -164,20 +164,22 @@ pub(in crate::workspace_graph) fn construct_using<'p, 'a>(
         }
         let function = functions.last_mut().expect("inserted signature");
         for param in &mut function.params {
-            type_rewrite::rewrite_with_layout(
+            type_rewrite::receiving::rewrite_with_layout(
                 &mut param.ty,
                 target.module,
                 program,
                 programs,
                 Some(&layout),
+                owner,
             )?;
         }
-        type_rewrite::rewrite_with_layout(
+        type_rewrite::receiving::rewrite_with_layout(
             &mut function.return_type,
             target.module,
             program,
             programs,
             Some(&layout),
+            owner,
         )?;
         if recursive {
             pay_default_teardown(&function.return_type, &type_index, owner)?;

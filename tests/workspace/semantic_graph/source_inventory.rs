@@ -597,6 +597,9 @@ macro_rules! semantic_graph_projection_child_source_inventory {
         )
     };
     (type_rewrite) => {
-        include_str!("../../src/workspace_graph/expected_projection/type_rewrite.rs")
+        concat!(
+            include_str!("../../src/workspace_graph/expected_projection/type_rewrite.rs"),
+            include_str!("../../src/workspace_graph/expected_projection/type_rewrite/receiving.rs")
+        )
     };
 }

@@ -122,3 +122,39 @@ outside this actual constructor chain, alias/type rewriting, provider-internal
 producers, checked overlay count arithmetic and public/no-owner compatibility
 remain real residuals. No savings, runtime, application-fit, full-constructor
 funding or OPT825 closure is claimed.
+
+
+## Typed imported-signature rewriting successor
+
+Actual typed overlay parameter and return signatures now borrow the original
+Receiver through an independent rewriting successor. Identity lookup retains
+provider/local/type-import/prelude priority but borrows exact source-held or
+static identity bytes instead of creating intermediate owned identity Strings.
+All original vector element, record shape, explicit import and held private-layout
+alias checks remain. No borrowed identity supplies new import or layout authority.
+The entire previous type-rewrite and resolve_type_id helpers remain independently
+compiled, with complete immediate source custody and inverse joins.
+
+Returned controls, actual borrowed argument layouts, Diagnostic/String
+initializers and exact dynamic message backing are paid before acquisition.
+Alias replacement acquires its whole text successfully before changing the
+isolated synthetic type. The existing original receiver preserves captured max,
+first Setup and current/foreign/restored identity; a failed required reservation
+produces no helper Diagnostic or error Vec. A missing-import message uses exact
+paid String capacity and cannot grow; all six original Diagnostic fields and
+message bytes, including UTF8/NUL identities, remain represented. New charges
+are cumulative; no old fee credit, refund, cap or work-unit change exists.
+
+Source-authored controls compare complete old semantic/refusal/JSON values,
+authenticated explicit-vector and real function-only private-layout signatures,
+borrowed identity pointer/bytes, every byte frontier of successful alias and
+missing-import message acquisition, first sticky retry, foreign/restored owner,
+whole Drop and complete old/current source bindings. These have not run. Test
+input copies and compatibility/JSON output stay inside their allocation observer;
+there is no whole-test or full-constructor funding inference.
+
+Declaration/type-template rewriting, legacy runtime prebounds and other callers
+of the original rewrite helpers remain separate residuals, as do registry cold
+preparation before the core Receiver exists, provider internals, checked count
+arithmetic and public/no-owner outward Vec compatibility. No runtime, saving,
+application-fit or OPT825 closure claim follows from this source successor.

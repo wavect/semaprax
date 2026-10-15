@@ -304,3 +304,6 @@ use type @id("row") from vector.provider as ImportedRow;
         }
     }
 }
+
+#[path = "type_rewrite/receiving.rs"]
+pub(in crate::workspace_graph) mod receiving;

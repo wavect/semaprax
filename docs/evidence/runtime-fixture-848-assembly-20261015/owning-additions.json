@@ -1,0 +1,50 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::selected_context::child::tests::source::compressed_fixture::runtime_fixture_reads_complete_bytes_and_rejects_missing_bounds_tamper_and_stream_drift",
+    "reasons": [
+      "new bounded IO positive/10hostile controls +complete current source custody"
+    ]
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "workspace_graph::tests::builder_limits::pattern_source_workspace_fits_unchanged_builder_budget",
+    "reasons": [
+      "parent-authorized752 exact missing acceptance owner; historical failures retained, no fit promise"
+    ]
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:project",
+    "selector": "standard_library::pattern_executes_on_all_three_backends",
+    "reasons": [
+      "parent-authorized752 exact missing acceptance owner; historical failures retained, no fit promise"
+    ]
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::scalar_match::tests::nested_scalar_guards_and_string_values_preserve_decisions_failure_and_owned_transfers",
+    "reasons": [
+      "parent-authorized752 exact missing acceptance owner; historical failures retained, no fit promise"
+    ]
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::scalar_match::tests::late_nested_scalar_value_catch_all_poison_is_not_skipped",
+    "reasons": [
+      "parent-authorized752 exact missing acceptance owner; historical failures retained, no fit promise"
+    ]
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::scalar_match::tests::heap_continuation_backing_and_path_storage_refuse_one_short_before_growth",
+    "reasons": [
+      "parent-authorized752 exact missing acceptance owner; historical failures retained, no fit promise"
+    ]
+  }
+]

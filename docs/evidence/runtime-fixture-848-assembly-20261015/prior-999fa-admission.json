@@ -1,0 +1,29 @@
+{
+  "source_subject": "999fae8f3b82f1ff68408849b4684ea1dd49a1f9",
+  "kind": "PRE_CARGO_RESOURCE_ADMISSION_REFUSAL_NOT_COMPILER_FAILURE",
+  "original_log": "/Volumes/Semaprax/lane-prompts/final-999fa-161-qualification-20261015/pressure-guardian.jsonl",
+  "original_log_sha256": "04f1c5da42b3c1870802b173f3bca3c345b57a3d9456880e86e4222d14339608",
+  "actual_events": [
+    {
+      "time_unix": 1792096025.0578508,
+      "event": "guardian_identity",
+      "source": "/Volumes/Semaprax/provenance/focused-build-pressure-wrapper-v4-20261015.py",
+      "source_sha256": "a4477f43ec63fccb169a9b951c793f62a1cd06352d3a690872cfe1673be58119",
+      "rss_limit_gib": 7.0,
+      "build_driver": "/Volumes/Semaprax/lane-prompts/final-999fa-161-qualification-20261015/drivers/build-owning.py",
+      "build_driver_sha256": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888"
+    },
+    {
+      "time_unix": 1792096025.0648131,
+      "event": "admission_refused",
+      "kernel_raw": "2",
+      "free_percent": 34,
+      "returncode": 0,
+      "internal_disk_free_bytes": 16195334144,
+      "minimum_internal_disk_free_bytes": 5368709120
+    }
+  ],
+  "parent_observed_guardian_exit": 125,
+  "owning_build_receipt_present": false,
+  "Cargo_or_test_bodies_started": false
+}

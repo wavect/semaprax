@@ -1,0 +1,436 @@
+{
+  "status": "SOURCE_ONLY_RUNTIME_FIXTURE_JOIN_NOT_EXECUTABLY_QUALIFIED",
+  "parents": [
+    "999fae8f3b82f1ff68408849b4684ea1dd49a1f9",
+    "8c974ceb05e0bbd63fda796054b00f68f90b5938"
+  ],
+  "whole_immediate999fa_rows": 2,
+  "independent_direct848_rows": 2,
+  "whole848_checkpoint_namespace_rows": 43,
+  "original848_static_verifier_replayed_unchanged": {
+    "status": "SOURCE_ONLY_NOT_EXECUTED",
+    "whole_source_inverses": 2,
+    "original_decoder_functions_byte_exact": 5,
+    "original41_assertion_rows_and_parent_body_unchanged": true,
+    "five_test_dependencies_unchanged": true,
+    "new_IO_test_bodies": 1,
+    "pending_exact_owners": 2,
+    "runtime_repository_fixture_required": true,
+    "old_raw_default_source_proof": {
+      "status": "SOURCE_ONLY_RAW_DEFAULT_NOT_CURRENT_RUNTIME_QUALIFIED",
+      "complete_named_rows": 3,
+      "actual_changed_source_rows": 2,
+      "one_payload_literal_changed": true,
+      "helper_exact_tested_raw_arm": "57e1485ca695771d0f381ce20f4d740ee98f2b86",
+      "root_source_shim_and_all_41_original_assertion_rows_preserved": true,
+      "all_decoder_hostile_controls_preserved": true,
+      "five_test_dependencies_and_Cargo_bytes_unchanged": true,
+      "raw_fixture_and_gzip_sidecar_unchanged": true,
+      "old_runtime_JSON_scripts_archives_unchanged": true,
+      "whole_predecessor_source_proof": {
+        "status": "SOURCE_ONLY_MODULE_LOADER_SUCCESSOR",
+        "full_sources": 3,
+        "new_test_bodies": 0,
+        "six_existing_alias_test_bodies_now_linked_by_explicit_paths": true,
+        "actual_Rust_or_test_execution": false,
+        "unchanged_whole_previous_source_proof": {
+          "status": "SOURCE_ONLY_FINAL_JOIN_NOT_QUALIFIED",
+          "independent_final_fronts": {
+            "main": 15,
+            "alias": 15
+          },
+          "prior_MAIN_full_proof": {
+            "status": "SOURCE_ONLY_NOT_EXECUTABLY_QUALIFIED",
+            "named_full_views": {
+              "7f": 18,
+              "523": 16,
+              "main": 3
+            },
+            "actual_MAIN_source_guard_preserved": true,
+            "complete_immediate_generic677_and_MAIN_concrete_cursors_preserved": true,
+            "generic_new_find_grow_paid_entries": 3,
+            "MAIN_growth_backing_header_work_depth_preserved": true,
+            "stronger_frozen_help_677_controls_preserved": true,
+            "new_children_all_three_audits": 4,
+            "prior_7f_proof": "SOURCE_ONLY_NO_RUST",
+            "prior_523_proof": "SOURCE_ONLY_NOT_EXECUTABLY_QUALIFIED",
+            "rust_execution": false,
+            "application_or_pin_pass_claim": false
+          },
+          "prior_alias_full_proof": {
+            "status": "SOURCE_ONLY_NO_RUST",
+            "independent_branch_rows": {
+              "453": 52,
+              "523": 16,
+              "7f": 18
+            },
+            "both_compile_branches_restore_identical_677": true,
+            "protected_packet_files_byteexact": 46,
+            "new_test_bodies": 8,
+            "original_branch_proofs": {
+              "453": {
+                "status": "SOURCE_ONLY_UNCOMPILED_UNEXECUTED",
+                "base": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+                "whole_immediate_inputs": 13,
+                "new_Rust_owners": 8,
+                "complete_independent_receivers": 4,
+                "new_bodies": 8,
+                "three_audit_joins_complete": true,
+                "old_packets_unchanged": true,
+                "old_clone_and_peak_helpers_byteexact": true,
+                "full_immediate_predecessor_replay": {
+                  "status": "SOURCE_ONLY_NO_RUST_GATES",
+                  "source_basis": "29750ef89f6823e8c8b0fde330342f585762bfb5",
+                  "complete_current_to_old_inputs": 6,
+                  "entire_old_acquire_and_general_weighted_constructor_exact": true,
+                  "actual_direct_slot_sites": 5,
+                  "new_test_bodies": 1,
+                  "all_old_test_bodies_and_strict163_unchanged": true,
+                  "bootstrap_symbolic_removed": "size_of::<Result<ClosureReceiving,Diagnostic>>()",
+                  "root_symbolic_net_removed": "size_of::<Result<SharedWeighted,Diagnostic>>() - 2*size_of::<SharedWeighted>()",
+                  "all_old_runtime_JSON_unchanged": true,
+                  "full_prior_proof": {
+                    "status": "SOURCE_ONLY_NO_RUST_GATES",
+                    "source_basis": "61f2de3cb32ab280accb227123b4c332cb628ec1",
+                    "full_predecessor_inputs": 2,
+                    "full_runtime_829_inputs": 1,
+                    "modified_input_refusals": 3,
+                    "old_literal_hash_and_all_splices_unchanged": true,
+                    "entire_original_restored_bytes": 1134,
+                    "prior_physical_fixture_static_refusal_reproduced": true,
+                    "application_retry_not_executed": true,
+                    "selection_unchanged": 119,
+                    "full_prior_proof": {
+                      "status": "SOURCE_ONLY_NO_RUST_GATES",
+                      "inherited_checkpoint": "397326184614b463bee6438cf85f6fae905cd97a",
+                      "actual_MAIN": "66517a983",
+                      "whole_previous_inputs": 14,
+                      "new_audited_modules": 2,
+                      "altered_input_refusals": 28,
+                      "full_previous_proof": {
+                        "status": "SOURCE_ONLY_NO_RUST_GATES",
+                        "inherited_checkpoint": "3817411671f83c4437432dae72b44b83369ac349",
+                        "retained_checkpoint": "c3ecc303705334619b48aa64b79302f706afc44e",
+                        "full_views": {
+                          "current-to-381": 11,
+                          "current-to-c3": 11,
+                          "checkpoint-c3": 46
+                        },
+                        "modified_inputs_rejected": 136,
+                        "production_and_owning_modules_exact_reviewed_c3": true,
+                        "all_old_evidence_runtime_JSON_unchanged": true,
+                        "full_inherited_source_proof": {
+                          "status": "SOURCE_ONLY_NO_RUST_GATES",
+                          "inherited_checkpoint": "13d48f0b5d0d6fdc1ce83a717d1729f734eb5392",
+                          "pilot_checkpoint": "5f60eecf8d9f7febfc515b9f34e2d02a8327b31a",
+                          "full_views": {
+                            "current-to-13d": 8,
+                            "current-to-pilot": 8,
+                            "pilot-runtime-views": 5,
+                            "source-inverses": 1
+                          },
+                          "altered_inputs_rejected": 44,
+                          "full_inherited_proof": {
+                            "status": "SOURCE_ONLY_NO_RUST_GATES",
+                            "actual_parent": "85142274c2f3e73bc1a4e5150672150c4d17d95f",
+                            "actual_MAIN": "5ba0c4daf1c4eacfc2004de2da676b71493f8e28",
+                            "previous_private_full_source_proof": {
+                              "status": "SOURCE_ONLY_NO_RUST_GATES",
+                              "source_basis": "aa03d88c21b268cfc383c9842c5799bc8bca3c3f",
+                              "full_source_successor_rows": 3,
+                              "physical_runtime_e4b_inputs": 23,
+                              "inline_five_complete_owners_and_five_children_replayed": true,
+                              "backing_seventeen_full_sources_replayed": true,
+                              "old_manifests_archives_unchanged": true,
+                              "prior_source_proof_replayed": {
+                                "status": "SOURCE_ONLY_NO_RUST_GATES",
+                                "source_basis": "a0c1213695b475c585e94cb599fedc218aa37ef5",
+                                "full_source_successor_rows": 2,
+                                "full_runtime_binding_rows": 6,
+                                "all_four_complete_originals_and_two_variants_restored": true,
+                                "original_status_literal_preserved": true,
+                                "physical_816_JSON_unchanged": true,
+                                "all_prior_evidence_unchanged": true,
+                                "prior_corrected825_full_source_proof": {
+                                  "status": "SOURCE_ONLY_NO_RUST_GATES",
+                                  "source_basis": "9cbdb5520a0ded38c5aece9f79e99c03e73e93fd",
+                                  "fee_author_commit": "96c5548088f189c836a7e66081a26269dbf82cec",
+                                  "complete_successor_rows": 2,
+                                  "stale_and_altered_refusals": 4,
+                                  "all_old_9cb_source_proofs_replayed": {
+                                    "status": "SOURCE_ONLY_NO_RUST_GATES",
+                                    "source_basis": "d4cab900edac07fdcc4de0cdcb1bf3daafbef5ef",
+                                    "complete_branch_rows": {
+                                      "d4": 15,
+                                      "825": 29,
+                                      "typed825": 9
+                                    },
+                                    "typed825_all21_original_full_assertions_replayed": true,
+                                    "three_audit_owners_each_include_all_four_new_sources": true,
+                                    "interop_inventory_lines": 1500,
+                                    "stale_and_altered_refusals": 106,
+                                    "complete_prior_d4_source_proof": {
+                                      "status": "SOURCE_ONLY_NO_RUST_GATES",
+                                      "actual_main": "9279411a0c7e7cf12908457c5fe93289a7b19508",
+                                      "source_basis": "9b174d852798c99ce2d14b8170ec05e6c0f94b88",
+                                      "complete_branch_rows": {
+                                        "main927": 3,
+                                        "hex": 24
+                                      },
+                                      "complete_9b_convergence_paths": 25,
+                                      "stale_and_altered_refusals": 54,
+                                      "original_main927_proof_replayed": {
+                                        "status": "SOURCE_ONLY_NO_RUST_GATES",
+                                        "source_basis": "9b174d852798c99ce2d14b8170ec05e6c0f94b88",
+                                        "actual_main": "9279411a0c7e7cf12908457c5fe93289a7b19508",
+                                        "current_to_9b": 23,
+                                        "current_to_main927": 26,
+                                        "old93_immutable": true,
+                                        "new_main87_full_inverses": true,
+                                        "main_semantic_root_and_inline_full_assertions": true,
+                                        "three_new_owners_in_all_three_audits": true,
+                                        "interop_inventory_lines": 1500,
+                                        "altered_and_stale_refusals": 98,
+                                        "complete_original_9b_source_proof_replayed": {
+                                          "status": "SOURCE_ONLY_NO_RUST_GATES",
+                                          "actual_main": "f0455caf96706a0545e754957fcc903434a7f880",
+                                          "strict_named_branch_inputs": {
+                                            "fixes": 26,
+                                            "main": 8
+                                          },
+                                          "strict_stale_rejections": 34,
+                                          "independent_full_ae91_convergence": true,
+                                          "four_source_failures_and_full_facade_replayed": true,
+                                          "original57consumer87CI_and_ff92_MAIN93_verifiers_replayed_in_named_views": true,
+                                          "old_closed_metadata_scope_views": {
+                                            "fixes": "052667a21687a73e2d9af415171663c783d415a9",
+                                            "main_ff": "77f90da5e00d533e40714d42369daed90661156a"
+                                          },
+                                          "protected_full_packet_files": 61,
+                                          "production_edited_by_assembly": false,
+                                          "new_test_bodies_by_assembly": 0,
+                                          "runtime_bodies_executed": 0
+                                        },
+                                        "runtime_or_app_recovery_claim": false
+                                      },
+                                      "original_hex_proof_replayed": {
+                                        "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+                                        "actual_failed_subject": "9b174d852798c99ce2d14b8170ec05e6c0f94b88",
+                                        "actual_build_exit": 101,
+                                        "actual_build_wall_seconds": 462.47538741600874,
+                                        "actual_test_bodies": 0,
+                                        "exact_full_source_inputs": 2,
+                                        "all_original_assertions_retained": true,
+                                        "stable_public_digest_adapter_already_used_in_same_file": true,
+                                        "complete_frozen_4_57_87_92_93_source_verifier_replayed": true,
+                                        "protected_packets_unchanged": 61,
+                                        "source_only_production_changes": 0,
+                                        "new_test_bodies": 0,
+                                        "actual_E0277_direct_records": 2,
+                                        "old_unit_and_production_passes_are_only_subject_9b": true,
+                                        "unit_recompile_required_because_typed_cost_reads_full_helper": true
+                                      },
+                                      "all_preexisting_evidence_unchanged": true,
+                                      "failed_build_14_archive_unchanged": true,
+                                      "starter_exact_authored_commit": true,
+                                      "runtime_test_bodies_executed": 0,
+                                      "production_changes_only_authored_MAIN": true,
+                                      "prior_completed_runtime_subject": "ae91_95_only_not_failed9b"
+                                    },
+                                    "isolated_825_source_proof": {
+                                      "status": "SOURCE_ONLY_PASS",
+                                      "changed_complete_sources": 6,
+                                      "complete_added_sources": 4,
+                                      "rust_execution": false,
+                                      "issue825": "OPEN_PARTIAL"
+                                    },
+                                    "relative_held_reader_byte_exact": true,
+                                    "relative_resolution_read_order_preserved": true,
+                                    "all_existing_evidence_unchanged": true,
+                                    "issue825": "OPEN_PARTIAL",
+                                    "runtime_test_bodies_executed": 0
+                                  },
+                                  "fee_author_complete_source_proof_replayed": {
+                                    "status": "SOURCE_ONLY_PASS",
+                                    "whole_current_inverse": true,
+                                    "original_packet_unchanged": true,
+                                    "original_complete_bindings_replayed": true,
+                                    "new_layouts": [
+                                      "&Result<T,CoreFailure>",
+                                      "&mut Result<T,CoreFailure>",
+                                      "&Setup",
+                                      "Setup copied initializer",
+                                      "Setup parameter receiver"
+                                    ],
+                                    "rust_execution": false
+                                  },
+                                  "all_existing_evidence_unchanged": true,
+                                  "future_selection_unchanged": 152,
+                                  "new_test_bodies": 0,
+                                  "production_correction_exact_author_bytes": true,
+                                  "runtime_bodies_executed": 0,
+                                  "issue825": "OPEN_PARTIAL"
+                                },
+                                "stale_altered_refusals": 8,
+                                "future_selection": 178,
+                                "new_test_bodies": 0,
+                                "production_changes": 0,
+                                "runtime_bodies_executed": 0
+                              },
+                              "stale_altered_refusals": 28,
+                              "new_test_bodies": 0,
+                              "production_changes": 0,
+                              "runtime_bodies_executed": 0,
+                              "future_selection_unchanged": 178
+                            },
+                            "fixture_author_proof": {
+                              "status": "SOURCE_ONLY_PASS",
+                              "complete_test_inverse": true,
+                              "entire_original_source_restored": true,
+                              "full_raw_fixture_files": 13,
+                              "rust_execution": false,
+                              "issue837": "OPEN"
+                            },
+                            "complete_views": {
+                              "1c": 16,
+                              "parent851": 22,
+                              "main5ba": 2
+                            },
+                            "fresh_MAIN_full_root_and_inventory_inverses": true,
+                            "v12_positive_v11_negative_authored_unexecuted": true,
+                            "all_existing_evidence_unchanged": true,
+                            "new_test_bodies_by_assembly": 0,
+                            "stale_altered_refusals": 82,
+                            "source_subject_results_not_currentPASS": true,
+                            "owner130_matched_context_contract_authored": "ordinary vs cached fullreport parity, sticky restored SetupBudget, zeroallocation and retainedDetached; no production change"
+                          },
+                          "full_paired_transport_source_proof": {
+                            "status": "SOURCE_ONLY_PASS",
+                            "whole_immediate_inverse": true,
+                            "original11a_packet_unchanged": true,
+                            "original_verifier_AST_unchanged_in_full_old_helper_view": true,
+                            "original_full_assertion_rows": 41,
+                            "raw_and_compressed_transport_share_all_other_code": true,
+                            "one_literal_toggle_occurrences": 1,
+                            "Rust_execution": false,
+                            "paired_build_execution": false
+                          },
+                          "all_old_evidence_and_runtime_JSON_unchanged": true,
+                          "original_assertion_rows": 41,
+                          "independent_inherited_and_pilot_domains": true,
+                          "paired_build_or_RSS_measurement": false,
+                          "issue841": "OPEN_PENDING_RUNTIME_AND_MEANINGFUL_PAIRED_MEASUREMENT"
+                        },
+                        "full_registry_source_proof": {
+                          "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+                          "base": "0e1a061e8ef09f786e2470b311ed7d4cb28e9d42",
+                          "whole_original_inputs": 11,
+                          "independent_complete_old_registry": true,
+                          "old_scratch_assertions_unchanged": true,
+                          "old_derivation_census_owner_bodies_exact": true,
+                          "cached_get_body_exact": true,
+                          "all_three_new_owners_in_all_three_audits": true,
+                          "complete_frozen_source_proofs_replayed": true,
+                          "new_behavior_tests": 6,
+                          "new_source_tests": 1,
+                          "old_issue825_failure_paths_remain_residual": true,
+                          "measured_saving": null
+                        },
+                        "new_behavior_tests": 6,
+                        "new_source_tests": 1,
+                        "compiler_or_runtime_execution": false,
+                        "measured_savings": null
+                      },
+                      "MAIN_hygiene_complete_original_restored": true,
+                      "all_old_runtime_JSON_and_scripts_unchanged": true,
+                      "dev_dependencies_and_lock_unchanged_since_pilot": true,
+                      "Rust_execution": false,
+                      "paired_measurement": false
+                    }
+                  },
+                  "actual_allocation_or_reservation_gain": null,
+                  "strict831_issue_closure": false
+                },
+                "physical_gain_or_application_fit": null
+              },
+              "523": {
+                "status": "SOURCE_ONLY_NOT_EXECUTABLY_QUALIFIED",
+                "complete_current_to_677_inputs": 4,
+                "new_test_bodies": 0,
+                "old_receiver_definitions_restored": [
+                  "grow<T>",
+                  "CanonicalFrame"
+                ],
+                "unchanged_677_assembly_replay": {
+                  "status": "SOURCE_ONLY_JOINED_NOT_QUALIFIED",
+                  "named_view_rows": {
+                    "d8": 44,
+                    "844": 5,
+                    "846": 5,
+                    "836": 1,
+                    "main": 5
+                  },
+                  "full_844_original_rows": 26,
+                  "immediate_844_old_receivers": 5,
+                  "new_846_owner_bindings": 3,
+                  "old_836_full_input_checks": 25,
+                  "actual_MAIN_inputs_byte_exact": 20,
+                  "old_packet_files_byte_exact": 222,
+                  "new_children_in_each_of_three_audits": 14,
+                  "rust_execution": false,
+                  "new_head_pin_proof": false
+                },
+                "actual_failure_json_sha256": "351b694cf85b5f280d53fac0bab083ae6b277aebcd664f0826b0bd7c4085a63f",
+                "rust_execution": false
+              },
+              "7f": {
+                "status": "SOURCE_ONLY_NO_RUST",
+                "full_source_inverses": 2,
+                "test_body_change": "only nonexistent Expr child API replaced by owning ChildCursor Iterator",
+                "all_positive_negative_and_exact_runtime_child_assertions_unchanged": true,
+                "new_selectors": 0,
+                "production_changed": false,
+                "whole_previous_joined_source_proof": {
+                  "status": "SOURCE_ONLY_JOINED_NOT_QUALIFIED",
+                  "named_view_rows": {
+                    "d8": 44,
+                    "844": 5,
+                    "846": 5,
+                    "836": 1,
+                    "main": 5
+                  },
+                  "full_844_original_rows": 26,
+                  "immediate_844_old_receivers": 5,
+                  "new_846_owner_bindings": 3,
+                  "old_836_full_input_checks": 25,
+                  "actual_MAIN_inputs_byte_exact": 20,
+                  "old_packet_files_byte_exact": 222,
+                  "new_children_in_each_of_three_audits": 14,
+                  "rust_execution": false,
+                  "new_head_pin_proof": false
+                }
+              }
+            },
+            "gain_or_fit_claim": null
+          },
+          "reviewed_production_and_test_algorithms_byteexact": true,
+          "protected_branch_packet_files_byteexact": 178,
+          "new_children_each_three_audits": 12,
+          "all_owner_occurrence_counts_match_reviewed_checkpoint": true,
+          "Rust_Cargo_Node_tests_Clippy_executed": false,
+          "new_pin_or_app_success_claim": false
+        }
+      },
+      "new_test_bodies": 0,
+      "Rust_Cargo_tests_executed": false,
+      "RAM_token_semantic_or_app_gain_claim": false
+    },
+    "measurement_or_RAM_claim": false
+  },
+  "production_unchanged": true,
+  "old_runtime_JSON_archives_scripts_immutable": true,
+  "all_audits_raw_gzip_and_five_dependencies_unchanged": true,
+  "runtime_repository_fixture_required": true,
+  "RAM_or_speed_gain_claim": false,
+  "Rust_Cargo_Node_IO_tests_executed": false
+}

@@ -1,0 +1,156 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "workspace_graph::identity_resolution::base::cache_billing::tests::first_cached_module_and_later_miss_pay_shared_base_and_extensions_once",
+    "reasons": [
+      "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+    ],
+    "source_path": "src/workspace_graph/identity_resolution/base/cache_billing/tests.rs",
+    "source_sha256": "34429276a4978bd27df8ee7ba3badc66c1e48b0bdcd151c2cdc9393dc0cc5a9f",
+    "line": 15
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "workspace_graph::identity_resolution::base::cache_billing::tests::cached_prelude_replay_keeps_foreign_core_refusal_sticky",
+    "reasons": [
+      "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+    ],
+    "source_path": "src/workspace_graph/identity_resolution/base/cache_billing/tests.rs",
+    "source_sha256": "34429276a4978bd27df8ee7ba3badc66c1e48b0bdcd151c2cdc9393dc0cc5a9f",
+    "line": 83
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "workspace_graph::identity_resolution::base::cache_billing::source_reference::complete_root_has_only_the_declared_shared_billing_hooks_and_prior_formatting",
+    "reasons": [
+      "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+    ],
+    "source_path": "src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs",
+    "source_sha256": "809389548397e2d0562ae8986a276673cc0cc5bd17f61289e964573f227b5e46",
+    "line": 107
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:project",
+    "selector": "semantic_cache::same_length_provider_edits_after_a_checked_hit_keep_full_cold_graph_and_image_bytes",
+    "reasons": [
+      "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+    ],
+    "source_path": "tests/project/semantic_cache.rs",
+    "source_sha256": "9873c4f2040c011a35098776b402ecab3fc5721511525ecd86522a7c94f46162",
+    "line": 584
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:native",
+    "selector": "owned_data_string_settlement::standalone_descriptor_does_not_widen_project_wasm_string_admission",
+    "reasons": [
+      "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+    ],
+    "source_path": "tests/native/owned_data_string_settlement.rs",
+    "source_sha256": "b35de06f072cc033c4a36a7fa77a2364af49c27180e654ed9a3038f77c9edf9c",
+    "line": 154
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:native",
+    "selector": "owned_data_string_settlement::nested_public_bytes_profile_does_not_select_v10_for_an_internal_string",
+    "reasons": [
+      "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+    ],
+    "source_path": "tests/native/owned_data_string_settlement.rs",
+    "source_sha256": "b35de06f072cc033c4a36a7fa77a2364af49c27180e654ed9a3038f77c9edf9c",
+    "line": 239
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "wasm::aggregate::tests::owned_utf8_usage::scalar_signature_lexical_body_string_selects_existing_owned_literal_storage",
+    "reasons": [
+      "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+    ],
+    "source_path": "src/wasm/aggregate/tests/owned_utf8_usage.rs",
+    "source_sha256": "35e68fc318622429221c934d8c2b4d66e6ee28a7438e09c09110563c7d4cf04a",
+    "line": 18
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "wasm::aggregate::tests::owned_utf8_usage::exact_function_iterator_counts_contract_strings_without_unselected_body_leakage",
+    "reasons": [
+      "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+    ],
+    "source_path": "src/wasm/aggregate/tests/owned_utf8_usage.rs",
+    "source_sha256": "35e68fc318622429221c934d8c2b4d66e6ee28a7438e09c09110563c7d4cf04a",
+    "line": 64
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "wasm::aggregate::tests::owned_utf8_usage::current_generic_and_closure_body_inventory_includes_local_strings",
+    "reasons": [
+      "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+    ],
+    "source_path": "src/wasm/aggregate/tests/owned_utf8_usage.rs",
+    "source_sha256": "35e68fc318622429221c934d8c2b4d66e6ee28a7438e09c09110563c7d4cf04a",
+    "line": 100
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "wasm::aggregate::tests::owned_utf8_usage::local_static_text_still_refuses_public_owned_export_authority",
+    "reasons": [
+      "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+    ],
+    "source_path": "src/wasm/aggregate/tests/owned_utf8_usage.rs",
+    "source_sha256": "35e68fc318622429221c934d8c2b4d66e6ee28a7438e09c09110563c7d4cf04a",
+    "line": 193
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "workspace_graph::expected_projection::defaults::inline_tests::complete_inline_sources_and_original_owners_have_exact_whole_file_inverses",
+    "reasons": [
+      "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+    ],
+    "source_path": "src/workspace_graph/expected_projection/defaults/inline_tests.rs",
+    "source_sha256": "8d6290f602d5ab09de127fd0a2eb84f859c8606d8b9cf32340daf06230026a5e",
+    "line": 300
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "workspace_graph::expected_projection::import_stub::core_proofs::tests::complete_original_receivers_and_all_literal_source_inverses_remain_byte_exact",
+    "reasons": [
+      "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+    ],
+    "source_path": "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs",
+    "source_sha256": "0a19104b2f1fda01b6ae6c525690cd1be2172185635f6540513465cbfd714333",
+    "line": 538
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "wasm::aggregate::tests::owned_data_scalar_wrappers_publish_exact_width_and_preserve_foreign_sentinels",
+    "reasons": [
+      "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+    ],
+    "source_path": "src/wasm/aggregate/tests.rs",
+    "source_sha256": "4b1db4a3d033b9e0ec68503605d6126133954b8782deb8b2f904a29eac3a2e0a",
+    "line": 224
+  },
+  {
+    "package": "semaprax-toolchain",
+    "kind": "test:cli_new_project_v1",
+    "selector": "application_starter::tiny_collection_record_selector_executes_typed_native_roots_and_keeps_legacy_refusal",
+    "reasons": [
+      "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+    ],
+    "source_path": "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+    "source_sha256": "368628ab7380b8c2e57874e2ff103a0a09bb4d3e6ce75065e239c2988b7808b5",
+    "line": 397
+  }
+]

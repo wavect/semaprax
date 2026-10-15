@@ -1,0 +1,1241 @@
+{
+  "status": "STATIC_PENDING_PARENT_REGISTRATION_NO_RUST_EXECUTION",
+  "prior_completed_round": "ae91_95_89PASS6FAIL",
+  "failed_9b_round": "compile101_0_runtime_bodies",
+  "retained_exact_prior_selection": 128,
+  "added_count": 14,
+  "total": 142,
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::atomic_body_control_clone_preserves_complete_key_and_work_in_both_measurement_orders",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::atomic_control_exact_short_zero_and_every_request_frontier_remain_sticky",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::absent_compound_and_residual_results_and_other_payers_keep_the_original_route",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::absent_statuses_and_scalar_or_absent_return_keep_exact_false_publication",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::selected_admission_with_an_active_builder_still_cannot_select_the_ordinary_constructor",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::empty_renewals::tests::empty_renewal_branch_clone_preserves_every_field_work_and_complete_drop",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::empty_renewals::tests::empty_renewal_clone_exact_short_zero_and_each_request_frontier_remain_sticky",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::empty_renewals::tests::atomic_type_clone_omits_only_the_absent_census_cursor_and_preserves_all_tags",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::empty_renewals::tests::nonempty_and_selected_or_unobserved_renewal_routes_keep_the_original_receiver",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum",
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::a_changed_current_byte_is_refused_before_an_inverse_can_hide_it",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum",
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:image_transport_v5",
+      "selector": "builtin_calls::constructor_schemas_preserve_builtin_alternatives_with_numeric_string_operations_added",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum",
+        "verified actual module tests/image_transport_v5.rs18\u201319; Cargo automatic test target image_transport_v5"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:image_transport_v5",
+      "selector": "builtin_calls::builtin_hole_fill_and_apply_intent_have_exact_library_candidate_identity_without_source_writes",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum",
+        "verified actual module tests/image_transport_v5.rs18\u201319; Cargo automatic test target image_transport_v5"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:image_transport_v5",
+      "selector": "builtin_calls::builtin_constructor_does_not_grant_candidate_preparation_to_a_readonly_host",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum",
+        "verified actual module tests/image_transport_v5.rs18\u201319; Cargo automatic test target image_transport_v5"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:hir_module_boundaries",
+      "selector": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:hir_module_boundaries",
+      "selector": "oracle_source_inventory::complete_independent_cleanup_oracles_remain_registered_and_source_bound",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum",
+        "one of6actualae91failures; same6bodieschangedin9ab+weighted4"
+      ]
+    },
+    {
+      "package": "semaprax-native-rust-interop",
+      "kind": "lib",
+      "selector": "implementation::tests::ledger_capacity::hir_capacity_layout_constants_are_bound_to_root_const_assertions",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:agent_runtime_v1",
+      "selector": "execution_revision::workspace::workspace_execution_retains_historical_generation_across_exact_refresh",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::resolve_for::bytes::tests::a_manual_while_cannot_create_byte_traversal_ancestry",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::validation::iterative_while_admission_tests::exact_512_nested_indexed_matches_validate_on_a_low_stack",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::resolve_statement::text_reference::full_current_expression_entry_is_exact_original_plus_test_dispatch",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::regions_entry::tests::complete_region_entry_and_four_variant_source_projections_restore_full_originals",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::ordinary_dag::frontier_tests::independent_original_type_drop_builders_and_complete_receiver_are_byte_locked",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::ids::fixed_operation_tests::full_original_operation_sources_and_receivers_have_only_declared_identity_hooks",
+      "reasons": [
+        "existing19ff+6newMAINf045minimum"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_foreign_restored_owner_keeps_unchanged_ast_and_sticky_detachment",
+      "reasons": [
+        "one of6actualae91failures; same6bodieschangedin9ab+weighted4"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::complete_old_registry_census_derivation_and_current_scratch_sources_remain_bound",
+      "reasons": [
+        "one of6actualae91failures; same6bodieschangedin9ab+weighted4"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::amortized_source::ordered_amortized_checkpoint_full_sources_and_inverses_are_exact",
+      "reasons": [
+        "one of6actualae91failures; same6bodieschangedin9ab+weighted4",
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard",
+        "explicit closure #838 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_foreign_function_budget_nested_and_expired_slot_are_sticky_without_query",
+      "reasons": [
+        "one of6actualae91failures; same6bodieschangedin9ab+weighted4",
+        "explicit closure #843 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::cold_canonical::tests::complete_old_commented_formatter_preflight_sources_and_all_current_children_remain_exact",
+      "reasons": [
+        "one of6actualae91failures; same6bodieschangedin9ab+weighted4"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_complete_old_receivers_actual_callers_and_full_source_inverses_stay_bound",
+      "reasons": [
+        "affected complete-source guard after actual combined helper/testsource changes"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "reasons": [
+        "affected complete-source guard after actual combined helper/testsource changes",
+        "explicit closure #832 owning control",
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::b::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "reasons": [
+        "affected complete-source guard after actual combined helper/testsource changes",
+        "explicit closure #832 owning control",
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::presence_tests::merged_current_ci_reflow_and_presence512_complete_inputs_remain_exact",
+      "reasons": [
+        "affected complete-source guard after actual combined helper/testsource changes",
+        "explicit closure #832 owning control",
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::inline_weighted::source::inline_weighted_complete_source_inverses_and_immediate_receiver_are_exact",
+      "reasons": [
+        "affected complete-source guard after actual combined helper/testsource changes"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::inline_weighted::source::inline_weighted_every_new_owner_remains_in_all_three_full_source_audits",
+      "reasons": [
+        "affected complete-source guard after actual combined helper/testsource changes",
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::source::held_closure_every_source_and_full_immediate_inverse_are_exact",
+      "reasons": [
+        "affected complete-source guard after actual combined helper/testsource changes",
+        "explicit closure #843 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::source::held_closure_complete_old_canonical_and_caller_are_independent_byte_exact_bodies",
+      "reasons": [
+        "affected complete-source guard after actual combined helper/testsource changes",
+        "explicit closure #843 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::lexical_replay::operand_tests::full_old_and_current_ordinary_lexical_callers_keep_success_and_first_diagnostic_fields",
+      "reasons": [
+        "actual ActiveBuilder ordinary caller reaches validate_path_states; full verdict/6field/work/allocationDrop control, no claim of branch-frequency instrumentation",
+        "explicit closure #832 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::identical_branch_arms_replay_the_producer_join_and_refuse_either_repaired_order",
+      "reasons": [
+        "canonical join consumer opposing order success+forgeries; unobserved control complements5new paid atomic constructor owners, not itself active-selection frequency evidence"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::lexical_replay::operand_tests::no_owner_ordinary_caller_remains_the_complete_original_route",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::lexical_replay::operand_tests::source::whole_old_lexical_caller_and_all_new_inventory_sources_remain_bound",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::exact_one_short_zero_bytes_and_work_pay_actual_controls_and_first_node_through_drop",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::duplicate_ids_borrow_exact_input_and_spare_reuse_authenticates_sticky_failure",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::foreign_function_facts_budget_and_restored_nested_owner_never_reuse_backing",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::expired_original_active_owner_cannot_restore_an_inventory_after_scope_exit",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::empty_and_duplicate_absolute_frontiers_follow_actual_control_node_and_comparison_work",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::ordinary_operand_producer_costs_are_controls_plus_fact_visits_and_actual_directory_operations",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::remaining::tests::complete_exit_receivers_preserve_all_old_fields_and_first_semantic_errors",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "project::incremental::cold_source_tests::explicit_owner_siblings_match_legacy_selective_routes_and_body_reuse",
+      "reasons": [
+        "explicit closure #832 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_cost_complete_originals_live_callers_and_all_source_inverses_are_bound",
+      "reasons": [
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::physical_budget::authentication::source::held_full_current_sources_and_immediate_inverses_authenticate_every_byte",
+      "reasons": [
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard",
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:documentation",
+      "selector": "held_auth_sources::held_authentication_complete_source_owners_and_ordinary_receivers_stay_independent",
+      "reasons": [
+        "explicit closure #832 shared fullsource guard",
+        "explicit closure #834 shared fullsource guard",
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::callback_occurrences_bound_exact_full_identity_inserts_on_sparse_dense_duplicate_and_imported_closures",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::actual_cold_reservation_allocation_peak_and_full_drop_are_compared_without_baseline_padding",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::physical_and_work_exact_short_zero_frontiers_preserve_old_order_and_honest_new_acceptance",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::malformed_complete_receivers_keep_all_six_diagnostic_fields_and_priority",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::owner_controls::cold_registry_exact_short_zero_and_foreign_restored_contexts_keep_receipts_sticky",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::owner_controls::same_required_derived_bytes_preserve_nested_parent_floor_and_full_drop",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::owner_controls::unchanged_signature_owner_rejects_foreign_type_then_cannot_recover_after_restoration",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::source::complete_old_receiver_source_and_all_new_joined_sources_stay_exact",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::function_tests::decoded_ready_wire_and_cleanup_match_complete_imports_with_private_descendants_omitted",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::tests::invocation_reuses_exact_closure_across_import_forecasts_stubs_and_retry_modes",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::tests::preparation_has_exact_one_short_overlap_and_sticky_context_refusal",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::tests::fallible_sort_matches_independent_order_and_stops_at_exact_work_boundary",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::tests::two_callers_share_one_derivation_query_ledger_and_sticky_refusal",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::tests::held_presentation_borrows_without_allocation_and_pays_shared_work",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::tests::held_presentation_work_is_exact_one_short_and_sticky",
+      "reasons": [
+        "explicit closure #834 owning control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::receiver_tests::ordered_complete_old_closures_successors_ids_signatures_and_weighted_overflow_match",
+      "reasons": [
+        "explicit closure #838 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::receiver_tests::ordered_complete_old_each_exposed_work_frontier_preserves_first_diagnostic_and_overflow",
+      "reasons": [
+        "explicit closure #838 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::receiver_tests::ordered_full_receiver_actual_reservation_allocation_peak_and_every_exit_drop",
+      "reasons": [
+        "explicit closure #838 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::source::ordered_complete_immediate_sources_round_trip_in_both_directions",
+      "reasons": [
+        "explicit closure #838 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::source::ordered_full_old_receiver_and_alias_adaptation_are_exact",
+      "reasons": [
+        "explicit closure #838 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_arena_all_rotations_numeric_extremes_and_dense_permutations_match_btree",
+      "reasons": [
+        "explicit closure #838 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_arena_each_growth_zero_exact_short_keeps_actual_allocation_separate_and_drops",
+      "reasons": [
+        "explicit closure #838 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_growth_receiving_and_initializers_are_paid_then_warm_insertion_constructs_no_result",
+      "reasons": [
+        "explicit closure #838 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_private_index_growth_refuses_before_allocation_or_mutation",
+      "reasons": [
+        "explicit closure #838 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_cache_receiving_fee_preserves_floor_and_sticky_refusal_without_allocation",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_canonical_physical_zero_exact_short_growth_and_all_exit_drops",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_closure_cached_route_constructs_no_cursor_and_rejects_foreign_authentication",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_closure_same_scope_cache_hit_has_zero_allocation_and_one_work_unit",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_memo_foreign_function_budget_and_restoration_never_touch_foreign_payer",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_complete_old_current_actual_and_reserved_costs_are_separate",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_complete_old_every_work_frontier_and_failure_cleanup",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_complete_old_ids_weights_signatures_work_and_diagnostics",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_every_actual_byte_cut_clears_owners_before_sticky_retry",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_immediate_complete_originals_and_adaptation_are_exact",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_scratch_no_owner_route_never_bootstraps_active_zero_payer",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::retained_warm_authentication_pays_the_real_result_at_exact_and_one_short_frontiers",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_warm_authentication_removes_only_real_carriers_at_zero_exact_and_short_frontiers",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_complete_immediate_receiver_keeps_ids_signatures_overflow_and_every_work_frontier",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_immediate_old_and_current_cold_cuts_and_whole_drop_remain_separate",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_foreign_function_budget_nested_and_restored_owner_refuse_without_foreign_debit",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_cached_closure_keeps_original_one_work_unit_and_same_result_without_auth_debit",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_foreign_oracle_never_queries_foreign_or_restored_payer",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_warm_floor_equality_and_first_required_refusal_remain_sticky_after_floor_clear",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::held_auth_tests::held_oracle_old_current_actual_warm_requests_are_not_padded_and_whole_owners_drop",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::memo::retained::held_tests::held_first_six_field_diagnostic_moves_once_and_terminal_retry_keeps_empty_sentinel",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::scratch_tests::immediate_old_floor::retained_cache_receiving_fee_preserves_floor_and_sticky_refusal_without_allocation",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::physical_budget::authentication::tests::held_zero_gateway_all_production_payers_preserve_full_diagnostic_first_receipt_floor_and_drop",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::physical_budget::authentication::tests::held_zero_gateway_existing_six_field_slot_is_never_overwritten_or_queried",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::physical_budget::authentication::tests::held_zero_gateway_oracle_exact_attempts_sticky_expired_and_zero_owner_parity",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::physical_budget::authentication::tests::held_zero_gateway_fresh_zero_oracle_never_bootstraps_text_or_active_payer",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::physical_budget::authentication::source::held_complete_old_receivers_and_original_fee_body_are_exact_independent_sources",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::physical_storage::zero_tests::held_physical_zero_preserves_all_fields_first_refusal_and_enclosing_floor",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::allocation::oracle::zero_tests::held_oracle_unit_zero_keeps_complete_charge_receipt_counter_overflow_and_expiration",
+      "reasons": [
+        "explicit closure #839 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_full_old_ids_six_fields_work_order_overflow_and_cycles",
+      "reasons": [
+        "explicit closure #843 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_two_roots_reuse_one_owner_and_count_actual_inner_misses",
+      "reasons": [
+        "explicit closure #843 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_bootstrap_pays_actual_controls_at_exact_and_one_short",
+      "reasons": [
+        "explicit closure #843 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_production_sequence_exact_short_and_whole_drop_have_separate_old_domain",
+      "reasons": [
+        "explicit closure #843 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_failure_publication_moves_all_six_fields_without_success_transport",
+      "reasons": [
+        "explicit closure #843 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_arithmetic_none_is_not_a_refusal_and_slot_can_receive_again",
+      "reasons": [
+        "explicit closure #843 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_complete_old_invocation_and_current_caller_keep_checked_verdict_and_work",
+      "reasons": [
+        "explicit closure #843 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_actual_entries_hide_cached_views_after_foreign_and_restored_slots",
+      "reasons": [
+        "explicit closure #843 direct owner"
+      ]
+    },
+    {
+      "package": "semaprax-toolchain",
+      "kind": "test:cli_new_project_v1",
+      "selector": "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+      "reasons": [
+        "actual fixture canonical-root b8c46fea fix: affected retained installer owner or unchanged hostile parent/symlink negative control"
+      ]
+    },
+    {
+      "package": "semaprax-toolchain",
+      "kind": "test:cli_new_project_v1",
+      "selector": "application_starter::application_starter_selected_file_declared_native_tests_and_unchanged_cli49",
+      "reasons": [
+        "actual fixture canonical-root b8c46fea fix: affected retained installer owner or unchanged hostile parent/symlink negative control"
+      ]
+    },
+    {
+      "package": "semaprax-toolchain",
+      "kind": "test:cli_new_project_v1",
+      "selector": "new_project::application::tests::starter_plan_and_activation_swap_to_symlink_or_fifo_refuses_before_staging",
+      "reasons": [
+        "actual fixture canonical-root b8c46fea fix: affected retained installer owner or unchanged hostile parent/symlink negative control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+      "reasons": [
+        "explicit actualcurrent wholeowner physicalmeasurement; STRICT historical831 inequality retained, expectedmayFAIL, no suppression"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:native",
+      "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_actual_byte_and_item_plus_one_preflight_never_reserve_output",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:native",
+      "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_reads_and_short_refusal_allocate_nothing_then_copy_final_string_once",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_request_decision_response_keeps_duplicate_unicode_and_boundary_slots",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_actual_item_and_byte_plus_one_refuse_before_publication",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_maximum_escaping_exact_output_cap_and_plus_one",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_plan_receipts_and_live_revision_reject_forged_versions",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_two_nested_paths_preserve_exact_and_one_short_bytes",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+      "reasons": [
+        "unchanged838/839app-or-diagnostic gate affected by realnewMAIN ordinary ActiveBuilder atomic-control-clone cost; prior3d result is historical, rerun exactowner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::identity_resolution::base::cache_billing::tests::first_cached_module_and_later_miss_pay_shared_base_and_extensions_once",
+      "reasons": [
+        "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+      ],
+      "source_path": "src/workspace_graph/identity_resolution/base/cache_billing/tests.rs",
+      "source_sha256": "34429276a4978bd27df8ee7ba3badc66c1e48b0bdcd151c2cdc9393dc0cc5a9f",
+      "line": 15
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::identity_resolution::base::cache_billing::tests::cached_prelude_replay_keeps_foreign_core_refusal_sticky",
+      "reasons": [
+        "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+      ],
+      "source_path": "src/workspace_graph/identity_resolution/base/cache_billing/tests.rs",
+      "source_sha256": "34429276a4978bd27df8ee7ba3badc66c1e48b0bdcd151c2cdc9393dc0cc5a9f",
+      "line": 83
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::identity_resolution::base::cache_billing::source_reference::complete_root_has_only_the_declared_shared_billing_hooks_and_prior_formatting",
+      "reasons": [
+        "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+      ],
+      "source_path": "src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs",
+      "source_sha256": "809389548397e2d0562ae8986a276673cc0cc5bd17f61289e964573f227b5e46",
+      "line": 107
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "semantic_cache::same_length_provider_edits_after_a_checked_hit_keep_full_cold_graph_and_image_bytes",
+      "reasons": [
+        "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+      ],
+      "source_path": "tests/project/semantic_cache.rs",
+      "source_sha256": "9873c4f2040c011a35098776b402ecab3fc5721511525ecd86522a7c94f46162",
+      "line": 584
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:native",
+      "selector": "owned_data_string_settlement::standalone_descriptor_does_not_widen_project_wasm_string_admission",
+      "reasons": [
+        "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+      ],
+      "source_path": "tests/native/owned_data_string_settlement.rs",
+      "source_sha256": "b35de06f072cc033c4a36a7fa77a2364af49c27180e654ed9a3038f77c9edf9c",
+      "line": 154
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:native",
+      "selector": "owned_data_string_settlement::nested_public_bytes_profile_does_not_select_v10_for_an_internal_string",
+      "reasons": [
+        "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+      ],
+      "source_path": "tests/native/owned_data_string_settlement.rs",
+      "source_sha256": "b35de06f072cc033c4a36a7fa77a2364af49c27180e654ed9a3038f77c9edf9c",
+      "line": 239
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "wasm::aggregate::tests::owned_utf8_usage::scalar_signature_lexical_body_string_selects_existing_owned_literal_storage",
+      "reasons": [
+        "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+      ],
+      "source_path": "src/wasm/aggregate/tests/owned_utf8_usage.rs",
+      "source_sha256": "35e68fc318622429221c934d8c2b4d66e6ee28a7438e09c09110563c7d4cf04a",
+      "line": 18
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "wasm::aggregate::tests::owned_utf8_usage::exact_function_iterator_counts_contract_strings_without_unselected_body_leakage",
+      "reasons": [
+        "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+      ],
+      "source_path": "src/wasm/aggregate/tests/owned_utf8_usage.rs",
+      "source_sha256": "35e68fc318622429221c934d8c2b4d66e6ee28a7438e09c09110563c7d4cf04a",
+      "line": 64
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "wasm::aggregate::tests::owned_utf8_usage::current_generic_and_closure_body_inventory_includes_local_strings",
+      "reasons": [
+        "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+      ],
+      "source_path": "src/wasm/aggregate/tests/owned_utf8_usage.rs",
+      "source_sha256": "35e68fc318622429221c934d8c2b4d66e6ee28a7438e09c09110563c7d4cf04a",
+      "line": 100
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "wasm::aggregate::tests::owned_utf8_usage::local_static_text_still_refuses_public_owned_export_authority",
+      "reasons": [
+        "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+      ],
+      "source_path": "src/wasm/aggregate/tests/owned_utf8_usage.rs",
+      "source_sha256": "35e68fc318622429221c934d8c2b4d66e6ee28a7438e09c09110563c7d4cf04a",
+      "line": 193
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::defaults::inline_tests::complete_inline_sources_and_original_owners_have_exact_whole_file_inverses",
+      "reasons": [
+        "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+      ],
+      "source_path": "src/workspace_graph/expected_projection/defaults/inline_tests.rs",
+      "source_sha256": "8d6290f602d5ab09de127fd0a2eb84f859c8606d8b9cf32340daf06230026a5e",
+      "line": 300
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::import_stub::core_proofs::tests::complete_original_receivers_and_all_literal_source_inverses_remain_byte_exact",
+      "reasons": [
+        "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+      ],
+      "source_path": "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs",
+      "source_sha256": "0a19104b2f1fda01b6ae6c525690cd1be2172185635f6540513465cbfd714333",
+      "line": 538
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "wasm::aggregate::tests::owned_data_scalar_wrappers_publish_exact_width_and_preserve_foreign_sentinels",
+      "reasons": [
+        "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+      ],
+      "source_path": "src/wasm/aggregate/tests.rs",
+      "source_sha256": "4b1db4a3d033b9e0ec68503605d6126133954b8782deb8b2f904a29eac3a2e0a",
+      "line": 224
+    },
+    {
+      "package": "semaprax-toolchain",
+      "kind": "test:cli_new_project_v1",
+      "selector": "application_starter::tiny_collection_record_selector_executes_typed_native_roots_and_keeps_legacy_refusal",
+      "reasons": [
+        "MAIN927 exact changed owning gate or source frontier / startere690 changed body"
+      ],
+      "source_path": "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+      "source_sha256": "368628ab7380b8c2e57874e2ff103a0a09bb4d3e6ce75065e239c2988b7808b5",
+      "line": 397
+    }
+  ],
+  "prior_receipt_preservation": [
+    {
+      "path": "/Volumes/Semaprax/lane-prompts/final-3d4b-310-qualification-20261015/owning-selected-results.json",
+      "sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "complete": true,
+      "executed": 310,
+      "pass": 263,
+      "fail": 47
+    },
+    {
+      "path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-results.json",
+      "sha256": "680062c9896e350da4dc325145047b8bd1b55f290c222b1916a4f78e7b4871af",
+      "source_subject": "ae91fa963ecfe85f4cc830cda85fff2f5bdbe094",
+      "complete": true,
+      "executed": 95,
+      "pass": 89,
+      "fail": 6
+    }
+  ],
+  "historical_failures_file": "/Volumes/Semaprax/provenance/next-f045-finite-scope-20261015/historical-failures.json",
+  "cli_artifact_policy": "Extract actual non-test core/full CLI artifacts from successful new raw build JSON first; no redundant Cargo if present; postpone pins until actual combined source build."
+}

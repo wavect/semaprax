@@ -4113,6 +4113,7 @@ fn build_owned_inner(
                 )
             })
             .transpose()?;
+        layouts.release_scratch();
         let (core, overflowed, consumed, refusal) =
             crate::bounded_output::with_limit_usage_refusal(active_builder_limit(), || {
                 #[cfg(test)]

@@ -16,6 +16,7 @@ pub(in crate::workspace_graph) struct LayoutRegistry<'a> {
     slots: RefCell<Vec<Option<LayoutClosure<'a>>>>,
     ledger: RefCell<Option<std::rc::Rc<super::ledger::Ledger>>>,
     empty: RefCell<LayoutClosure<'a>>,
+    census: RefCell<Option<super::names::Census<'a>>>,
     remaining: Cell<usize>,
     receipt: Cell<usize>,
     failed: Cell<bool>,
@@ -36,6 +37,7 @@ impl<'a> LayoutRegistry<'a> {
                 entries: Vec::new(),
                 owners: None,
             }),
+            census: RefCell::new(None),
             remaining: Cell::new(WORK),
             receipt: Cell::new(0),
             failed: Cell::new(false),
@@ -47,7 +49,15 @@ impl<'a> LayoutRegistry<'a> {
         self.receipt.get()
     }
 
+    /// End preparation overlap before the core owner is acquired. Receipt is
+    /// monotonic: dropping scratch grants no refund or authority. A later cold
+    /// caller acquires and pays new backing at its ordinary census point.
+    pub(in crate::workspace_graph) fn release_scratch(&self) {
+        self.census.borrow_mut().take();
+    }
+
     fn fail(&self) {
+        self.release_scratch();
         self.failed.set(true);
         self.remaining.set(0);
         if let Some(ledger) = self.ledger.borrow().as_ref() {
@@ -197,12 +207,13 @@ impl<'a> LayoutRegistry<'a> {
                 DERIVATIONS.with(|count| count.set(count.get() + 1));
             }
             let mut work = self.work_remaining();
-            let layout = LayoutClosure::derive_with_work(
-                caller,
+            let layout = LayoutClosure::derive_with_scratch(
+                &self.programs[index],
                 self.authored,
                 self.programs,
                 &mut work,
                 self.ledger.borrow().as_ref(),
+                &mut self.census.borrow_mut(),
             );
             self.set_remaining(work);
             let layout = layout?;
@@ -235,3 +246,7 @@ fn observe_derivations<T>(operation: impl FnOnce() -> T) -> (T, usize) {
     drop(saved);
     (result, count)
 }
+
+#[cfg(test)]
+#[path = "registry/scratch_tests.rs"]
+mod scratch_tests;

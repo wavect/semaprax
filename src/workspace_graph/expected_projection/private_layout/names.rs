@@ -96,6 +96,121 @@ pub(super) fn first(caller: &Program) -> Result<u64, Vec<Diagnostic>> {
     census.next.ok_or_else(refusal)
 }
 
+pub(super) fn first_reusing<'a>(
+    caller: &'a Program,
+    held: &mut Option<Census<'a>>,
+    work: &mut usize,
+) -> Result<u64, Vec<Diagnostic>> {
+    if !caller.interfaces.is_empty()
+        || !caller.protocols.is_empty()
+        || !caller.implementations.is_empty()
+        || !caller.session_protocols.is_empty()
+        || !caller.agents.is_empty()
+        || caller.types.iter().any(|t| {
+            matches!(
+                t.kind,
+                TypeDeclarationKind::Class { .. } | TypeDeclarationKind::Resource { .. }
+            )
+        })
+        || caller.functions.iter().any(|f| f.follows.is_some())
+    {
+        return Err(refusal());
+    }
+    // The existing registry owns this header; backing is acquired only here,
+    // after precisely the same unsupported-surface checks as the old census.
+    super::debit(work, 1)?;
+    if held.is_none() {
+        // Prepay this generation's eventual buffer teardown. Failure/drop does
+        // not borrow another owner's work or replace an already selected error.
+        super::debit(work, 1)?;
+        *held = Some(Census::new()?);
+    } else {
+        // A prior child receipt is not this child's physical permission.
+        // Pay the complete original census backing at the same frontier before
+        // borrowing any retained vector; this packet claims no quota saving.
+        Census::reserve_reuse()?;
+    }
+    let census = held.as_mut().expect("acquired census scratch");
+    census.name(&caller.module)?;
+    for item in &caller.module_uses {
+        census.name(&item.alias)?;
+        census.name(&item.persistent_id)?;
+        census.name(&item.target_module)?;
+    }
+    for name in &caller.permits {
+        census.name(name)?;
+    }
+    for declaration in &caller.types {
+        census.name(&declaration.name)?;
+        census.name(&declaration.stable_id)?;
+        for p in &declaration.type_parameters {
+            census.name(&p.name)?;
+        }
+        if let Some(ty) = &declaration.extends {
+            census.ty(ty)?;
+        }
+        match &declaration.kind {
+            TypeDeclarationKind::Record { fields } => {
+                for f in fields {
+                    census.field(f)?;
+                }
+            }
+            TypeDeclarationKind::Variant { cases } => {
+                for case in cases {
+                    census.name(&case.name)?;
+                    census.name(&case.stable_id)?;
+                    for f in &case.fields {
+                        census.field(f)?;
+                    }
+                }
+            }
+            TypeDeclarationKind::Class { .. } | TypeDeclarationKind::Resource { .. } => {
+                return Err(refusal())
+            }
+        }
+        for e in declaration.invariants() {
+            census.expr(e)?;
+        }
+    }
+    for f in &caller.functions {
+        census.name(&f.name)?;
+        census.name(&f.stable_id)?;
+        for p in &f.type_parameters {
+            census.name(&p.name)?;
+        }
+        for p in &f.params {
+            census.name(&p.name)?;
+            census.ty(&p.ty)?;
+        }
+        census.ty(&f.return_type)?;
+        for name in &f.effects {
+            census.name(name)?;
+        }
+        if let Some(y) = &f.yields {
+            census.ty(&y.request_type)?;
+            census.ty(&y.response_type)?;
+        }
+        for e in f
+            .requires
+            .iter()
+            .chain(std::iter::once(&f.body))
+            .chain(&f.ensures)
+        {
+            census.expr(e)?;
+        }
+    }
+    let next = census.next.ok_or_else(refusal)?;
+    // All three traversal stacks are empty after a successful full walk. Pay
+    // the five new reset operations before clearing references and counters.
+    super::debit(work, 5)?;
+    census.expressions.clear();
+    census.types.clear();
+    census.patterns.clear();
+    census.remaining = WORK;
+    census.next = Some(0);
+    Ok(next)
+}
+
 fn refusal() -> Vec<Diagnostic> {
     vec![graph_error(
         "SPX-G172",
@@ -103,7 +218,7 @@ fn refusal() -> Vec<Diagnostic> {
     )]
 }
 
-struct Census<'a> {
+pub(super) struct Census<'a> {
     expressions: Vec<(&'a Expr, usize)>,
     types: Vec<(&'a Type, usize)>,
     patterns: Vec<(Pattern<'a>, usize)>,
@@ -117,6 +232,16 @@ enum Pattern<'a> {
 }
 
 impl<'a> Census<'a> {
+    fn reserve_reuse() -> Result<(), Vec<Diagnostic>> {
+        let bytes = DEPTH
+            .checked_mul(
+                std::mem::size_of::<(&Expr, usize)>()
+                    + std::mem::size_of::<(&Type, usize)>()
+                    + std::mem::size_of::<(Pattern<'_>, usize)>(),
+            )
+            .ok_or_else(refusal)?;
+        reserve_builder_structure(bytes)
+    }
     fn new() -> Result<Self, Vec<Diagnostic>> {
         let bytes = DEPTH
             .checked_mul(
@@ -406,5 +531,26 @@ impl<'a> Census<'a> {
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+impl Census<'_> {
+    pub(super) fn state(&self) -> ([usize; 3], [usize; 3], usize, Option<u64>, bool) {
+        (
+            [
+                self.expressions.as_ptr() as usize,
+                self.types.as_ptr() as usize,
+                self.patterns.as_ptr() as usize,
+            ],
+            [
+                self.expressions.capacity(),
+                self.types.capacity(),
+                self.patterns.capacity(),
+            ],
+            self.remaining,
+            self.next,
+            self.expressions.is_empty() && self.types.is_empty() && self.patterns.is_empty(),
+        )
     }
 }

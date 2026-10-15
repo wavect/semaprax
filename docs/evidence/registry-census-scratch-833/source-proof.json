@@ -1,0 +1,49 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED_NO_COMPILER_OR_RUNTIME",
+  "basis": "940fcf220e47d1975f757e76f0b3401691db9358",
+  "whole_changed_source_owners": 5,
+  "documentation_originals": 2,
+  "new_children": [
+    {
+      "source": "src/workspace_graph/expected_projection/private_layout/before_registry.rs",
+      "sha256": "0d6e2e30c78d040eafcd7c11e66a4696d17e949aa09eac7d79d6d1b6634721cd"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+      "sha256": "ba6c1913332dd3c33f921cd334807f926e51c344a90472dcd576703d84b44d05"
+    }
+  ],
+  "complete_old_registry_executable": true,
+  "complete_old_census_and_layout_derivation_bodies_byte_exact": true,
+  "old_registry_adapter": "only old test module registration omitted; whole old registry calls cfgtest old940 method by adapted name",
+  "old_ownership_index_full_source_unchanged": true,
+  "all_old_traversals_work_error_order_and_checked_total_fold_retained": true,
+  "new_helper_inherits_exact_834_capacity_min": {
+    "owning_commit": "b36501d32dd5199dd2ce3a7d45a39484dc9c048c",
+    "integrated_current_observed": "cb7aeb1",
+    "source": "src/workspace_graph/expected_projection/private_layout.rs",
+    "source_sha256": "352f21121745b0e902aeace72eb3e338a11ddf36ab16fe90ea5c5cc7bf6e9dd4",
+    "archive": "original/private_layout-834.rs",
+    "exact_added_line": "        let capacity = capacity.min(count);",
+    "applies_to": "new derive_with_scratch only; independent old940 derive_with_work unchanged",
+    "qualification": "Source incorporation only; no new or inherited execution claim"
+  },
+  "new_control_work_operations_per_successful_census": 6,
+  "new_teardown_work_prepaid_per_acquired_generation": 1,
+  "new_header_prepayment": "enlarged original LayoutRegistry Self size, charged before census backing",
+  "scratch_release": "before each core owner acquisition; monotonic receipt unchanged; later cold caller reacquires",
+  "retained_scratch_overlap_disclosed": true,
+  "distinct_child_physical_permission": "Fresh full original census backing reservation in each child before borrowing held vectors; prior receipt grants no permission",
+  "reservation_saving_blocked": "No persistent parent physical Budget owner exists on this route; semantic ledger and numeric receipt are insufficient",
+  "residuals": [
+    "per-derivation layout traversal frames",
+    "per-derivation ownership-index facts and frames"
+  ],
+  "all_new_sources_joined_into_existing_audit": true,
+  "source_registered_new_selectors": 7,
+  "source_registered_existing_selectors": 11,
+  "actual_execution": false,
+  "actual_before_after_metrics": null,
+  "physical_or_reservation_gain_claim": false,
+  "global_custody": "Prior global Source36/packets unchanged; integrator must compose all five full owners after adoption and preserve other lanes including 834 capacity min"
+}

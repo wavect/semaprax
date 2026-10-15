@@ -1,3 +1,5 @@
+<!-- Source-only #833: invocation-owned identifier census scratch reuse across
+     distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
 
 - Author the ordinary lexical return-operand inventory (#832) on fallible paid AVL backing with borrowed identities, exact caller/facts/budget/ledger binding and certificate-boundary authentication. Preserve complete old callers and original verification charges; new directory work is additional. Rust qualification remains pending.

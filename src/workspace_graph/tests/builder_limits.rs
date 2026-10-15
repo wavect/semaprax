@@ -390,7 +390,7 @@ fn core_retry_fixture() -> Vec<WorkspaceSource> {
 #[test]
 fn identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal() {
     // Preserve the complete earlier fixture before changing only admissibility.
-    let current = crate::source_reflows_merge::retry_fixture_input("src/workspace_graph/tests/builder_limits.rs", include_str!("builder_limits.rs"));
+    let current = crate::source_reflows_merge::main83_retry_fixture_input("src/workspace_graph/tests/builder_limits.rs", include_str!("builder_limits.rs"));
     let start = current
         .find("/// Tune only the fixture size, never the production bound.")
         .unwrap();

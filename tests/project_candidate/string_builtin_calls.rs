@@ -526,6 +526,9 @@ fn arity_types_names_and_source_identity_collisions_remain_closed() {
 #[test]
 fn nested_char_producer_rebases_by_identity_and_new_builtin_id_cannot_take_its_place() {
     let fixture = Fixture::new(false);
+    let core = std::fs::read_to_string(fixture.0.join("src/core.spx")).unwrap()
+        + "\n@id(\"strings.other-glyph\") fn other_glyph()->char {'é'}\n";
+    fixture.write("src/core.spx", &core);
     let disk = fixture.bytes();
     let base = fixture.candidate();
     let (candidate, _) = replace(
@@ -557,18 +560,37 @@ fn nested_char_producer_rebases_by_identity_and_new_builtin_id_cannot_take_its_p
     )
     .unwrap();
     assert_eq!(restored.to_json(), rebased.to_json());
-    let (colliding, _) = apply(
+    let before = candidate.to_json().to_owned();
+    let errors = apply(
         &base,
         declaration("core.string.from_char", json!({"kind":"i64","value":0})),
+    )
+    .err()
+    .expect("a compiler-owned identity cannot enter an authored revision");
+    assert_eq!(errors[0].code, "SPX-S113");
+    assert_eq!(errors[0].message, "authored function uses stable ID `core.string.from_char`, which is reserved by the compiler-owned string operations");
+    assert_eq!(fixture.bytes(), disk);
+
+    // An admitted destination can contain an identical char producer name and
+    // signature, but its different identity cannot replace the deleted callee.
+    let (deleted, _) = apply(
+        &base,
+        json!({"kind":"delete_declaration","target":"strings.glyph"}),
+    )
+    .unwrap();
+    let (lookalike, _) = apply(
+        &deleted,
+        json!({"kind":"rename_declaration","target":"strings.other-glyph","name":"glyph"}),
     )
     .unwrap();
     code(
         candidate.rebase(
             candidate.candidate_digest(),
-            Arc::clone(colliding.revision()),
-            colliding.revision().project_revision(),
+            Arc::clone(lookalike.revision()),
+            lookalike.revision().project_revision(),
         ),
         "SPX-G235",
     );
+    assert_eq!(candidate.to_json(), before);
     assert_eq!(fixture.bytes(), disk);
 }

@@ -15,6 +15,181 @@
       "start": 936,
       "before": "        expected_projection::retention_prebound_mode(&programs, &authored, false, 0).is_ok()\n",
       "after": "        let Ok(legacy) = expected_projection::retention_prebound_mode(\n            &programs, &authored, false, 0,\n        ) else { return false };\n        // The fixed fixture has only ordinary modules, no frontend or native\n        // law branch. Run their actual pre-core formatter and registry owners:\n        // the enclosing ledger keeps these debits before entering core.\n        let (actual, refused, pre_core) = crate::bounded_output::with_limit_usage(\n            MAX_BUILDER_BYTES,\n            || {\n                let mut programs = Vec::with_capacity(candidate.len());\n                let mut canonical_bytes = 0usize;\n                for source in &candidate {\n                    let (program, comments) = crate::parse_with_comments(\n                        &source.source, Path::new(&source.path),\n                    ).unwrap();\n                    crate::static_protocol::validate(&program).unwrap();\n                    let remaining = MAX_BUILDER_BYTES.saturating_sub(canonical_bytes);\n                    let (canonical, overflowed) = crate::bounded_output::with_limit(\n                        remaining,\n                        || format::comments::canonical_with_comments(&program, &comments),\n                    );\n                    if overflowed { return None; }\n                    assert_eq!(canonical, source.source);\n                    canonical_bytes = canonical_bytes.checked_add(canonical.len()).unwrap();\n                    programs.push(program);\n                }\n                crate::static_protocol::validate_workspace(&programs).unwrap();\n                let _pruned = dependency_pruning::prune(&mut programs, &candidate);\n                let modules = index_modules(&programs).unwrap();\n                let authored = index_authored(&programs).unwrap();\n                validate_synthetic_main_id_collisions(&programs, &authored).unwrap();\n                let registry = expected_projection::private_layout::registry::LayoutRegistry::new(\n                    &programs, &authored,\n                );\n                import_validation::validate_uses_with_registry(\n                    &programs, &modules, &authored, Some(&registry),\n                ).unwrap();\n                let _depths = validate_dependency_dag(&programs).unwrap();\n                let initial = expected_projection::cached_exact::initial_with_registry(\n                    &programs, &authored, true,\n                    expected_projection::cached_exact::Retention::Parsed, Some(&registry),\n                ).ok()?;\n                Some((initial, registry.receipt()))\n            },\n        );\n        let Some((initial, registry)) = actual else { return false };\n        !refused && initial.0 == legacy.0 && initial.3 == 1\n            && pre_core.checked_add(registry)\n                .and_then(|paid| paid.checked_add(initial.0))\n                .is_some_and(|paid| paid <= MAX_BUILDER_BYTES)\n"
+    },
+    {
+      "start": 960,
+      "before": "",
+      "after": "\n           "
+    },
+    {
+      "start": 1018,
+      "before": "\n            ",
+      "after": ""
+    },
+    {
+      "start": 1048,
+      "before": ",",
+      "after": ")"
+    },
+    {
+      "start": 1058,
+      "before": ") ",
+      "after": ""
+    },
+    {
+      "start": 1064,
+      "before": "",
+      "after": "\n           "
+    },
+    {
+      "start": 1089,
+      "before": "",
+      "after": ";\n       "
+    },
+    {
+      "start": 1374,
+      "before": "",
+      "after": "\n           "
+    },
+    {
+      "start": 1427,
+      "before": "\n            ",
+      "after": ""
+    },
+    {
+      "start": 1445,
+      "before": "\n           ",
+      "after": ""
+    },
+    {
+      "start": 1661,
+      "before": "",
+      "after": "\n                       "
+    },
+    {
+      "start": 1713,
+      "before": "\n                        ",
+      "after": ""
+    },
+    {
+      "start": 1752,
+      "before": ",",
+      "after": ")"
+    },
+    {
+      "start": 1774,
+      "before": ")",
+      "after": "        "
+    },
+    {
+      "start": 2002,
+      "before": "",
+      "after": "\n                       "
+    },
+    {
+      "start": 2061,
+      "before": "",
+      "after": "remaining, || {"
+    },
+    {
+      "start": 2101,
+      "before": "remaining,\n",
+      "after": ""
+    },
+    {
+      "start": 2104,
+      "before": "                     ||",
+      "after": ""
+    },
+    {
+      "start": 2167,
+      "before": ",",
+      "after": ""
+    },
+    {
+      "start": 2188,
+      "before": "",
+      "after": "    }"
+    },
+    {
+      "start": 2231,
+      "before": "",
+      "after": "\n                       "
+    },
+    {
+      "start": 2268,
+      "before": "",
+      "after": "\n                   "
+    },
+    {
+      "start": 3140,
+      "before": "",
+      "after": "\n                   "
+    },
+    {
+      "start": 3170,
+      "before": "",
+      "after": "\n                   "
+    },
+    {
+      "start": 3201,
+      "before": "",
+      "after": "\n                   "
+    },
+    {
+      "start": 3256,
+      "before": "",
+      "after": "\n                "
+    },
+    {
+      "start": 3477,
+      "before": "",
+      "after": "\n                   "
+    },
+    {
+      "start": 3508,
+      "before": "",
+      "after": "\n                   "
+    },
+    {
+      "start": 3608,
+      "before": "",
+      "after": "\n                   "
+    },
+    {
+      "start": 3663,
+      "before": "",
+      "after": "\n                "
+    },
+    {
+      "start": 3753,
+      "before": ",\n        ",
+      "after": ""
+    },
+    {
+      "start": 3809,
+      "before": "",
+      "after": "\n           "
+    },
+    {
+      "start": 3834,
+      "before": "",
+      "after": ";\n       "
+    },
+    {
+      "start": 3863,
+      "before": "",
+      "after": "\n           "
+    },
+    {
+      "start": 3900,
+      "before": "",
+      "after": "\n           "
+    },
+    {
+      "start": 3954,
+      "before": "",
+      "after": "\n                "
     }
   ]
 }

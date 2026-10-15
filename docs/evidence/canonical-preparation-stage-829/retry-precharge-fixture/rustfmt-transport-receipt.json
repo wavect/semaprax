@@ -1,0 +1,16 @@
+{
+  "qualification": "actual pinned rustfmt output exactly equals the complete current fixture; existing three inverse records remain unchanged, formatting-only records appended; complete original fixture/hash unchanged",
+  "formatter": "rustfmt 1.9.0-stable (8bab26f4f6 2026-07-14)",
+  "original_fixture_sha256": "4c8f8a2cac574013d6acb485d7af2c86699fb3b5b09be532c90786c6ec7add24",
+  "original_inverse_sha256": "f54d89d60d2bddbc925cd9ac8bc05eb8bc1f3d6044b20797822be48da7388d3a",
+  "preformat_fixture_sha256": "054fe7f60c7f1eae580b6fa8f582e753a5b99777106c8c8ddb7f9a7f56445601",
+  "formatted_fixture_sha256": "a1d1805d9ac00293249b4323ea54127c2961a37d4c92da51bba1a4915cfa6c54",
+  "original_splices": 3,
+  "appended_formatting_splices": 35,
+  "complete_original_reconstructed": true,
+  "isolated_source_comparison": {
+    "scope": "complete initial source-comparison code extracted unchanged from the owning test; actual sha2/serde and include files; later builder predicate not executed",
+    "result": "pass",
+    "sampled_compile_peak_KiB": 132960
+  }
+}

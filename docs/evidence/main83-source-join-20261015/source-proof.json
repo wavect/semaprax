@@ -1,0 +1,22 @@
+{
+  "status": "SOURCE_ONLY_MAIN83_JOIN_NOT_EXECUTED",
+  "parents": [
+    "4f5b5ccfad20ce100205d6cf666c1b6c27330818",
+    "83f069e4c9500bc9bac7e0f3a1ba86f7dbef9c8d"
+  ],
+  "complete_old4f_namespace_rows": 7,
+  "Main_changed_Rust_exact": 2,
+  "original89_runtime_files_bytes": 93590460,
+  "extra_runtime_Custody_files": 1,
+  "extra_runtime_Custody_bytes": 51472,
+  "all90_runtime_files_unchanged": true,
+  "new_compiled_projection_count": 1,
+  "new_compiled_projection_bytes": 22353,
+  "Main38_splices_preserve_old3": true,
+  "actual_formatted_fragment_restores_full_frozen_original": true,
+  "old_F56_helper_and_table_preserved": true,
+  "new_reader_independent_formatted_domain": true,
+  "all_old_runtime_assertions_unchanged": true,
+  "production_unchanged": true,
+  "Cargo_or_Rust_or_IOtest_execution": false
+}

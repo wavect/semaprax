@@ -1,0 +1,37 @@
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+    Finished `dev` profile [unoptimized] target(s) in 1m 51s
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+    Finished `test` profile [unoptimized] target(s) in 2m 29s
+   Compiling hyper-rustls v0.27.9
+   Compiling reqwest v0.13.5
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+   Compiling semaprax-harness v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-harness)
+    Finished `test` profile [unoptimized] target(s) in 1m 50s
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+   Compiling semaprax-native-rust-interop-platform v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-native-rust-interop-platform)
+   Compiling semaprax-native-rust-owned-data-package v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-native-rust-owned-data-package)
+   Compiling semaprax-native-rust-interop v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-native-rust-interop-builder)
+    Finished `test` profile [unoptimized] target(s) in 1m 58s
+   Compiling const-oid v0.10.2
+   Compiling signature v2.2.0
+   Compiling zeroize v1.9.1
+   Compiling curve25519-dalek v4.1.3
+   Compiling ed25519 v2.2.3
+   Compiling digest v0.11.3
+   Compiling sha2 v0.11.0
+   Compiling ed25519-dalek v2.2.0
+   Compiling semaprax-native-rust-interop-platform-sys v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-native-rust-interop-platform-sys)
+    Finished `test` profile [unoptimized] target(s) in 2.67s
+   Compiling serde_core v1.0.229
+   Compiling serde_json v1.0.151
+   Compiling semaprax-native-rust-interop-platform-sys v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-native-rust-interop-platform-sys)
+   Compiling memchr v2.8.3
+   Compiling semaprax-native-rust-interop-platform v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-native-rust-interop-platform)
+   Compiling semaprax-native-rust-owned-data-package v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-native-rust-owned-data-package)
+    Finished `test` profile [unoptimized] target(s) in 6.58s
+   Compiling semaprax-native-rust-interop v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-native-rust-interop-builder)
+   Compiling semaprax-harness v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-harness)
+   Compiling semaprax-toolchain v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-toolchain)
+    Finished `test` profile [unoptimized] target(s) in 26.68s
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+error: could not compile `semaprax` (lib test) due to 3 previous errors; 2 warnings emitted

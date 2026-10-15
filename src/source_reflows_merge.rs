@@ -39,6 +39,11 @@ fn project(rows: &str, source: &str, current: &str) -> String {
     );
     result
 }
+// Exact post-build name/visibility repair, before every protected older domain.
+// Unlisted sources remain unchanged; listed inputs must match their full new SHA.
+fn before_build_fix(source: &str, current: &str) -> String {
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/compiler-receiving-fix-7800-20261015/predecessor-projections.json")), source, current)
+}
 pub(crate) fn ours(source: &str, current: &str) -> String {
     let staged = project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-composition-f813-held-20261015/pre-ours.json")), source, current);
     let current = staged.as_str();
@@ -52,6 +57,8 @@ pub(crate) fn ours(source: &str, current: &str) -> String {
     )
 }
 pub(crate) fn main(source: &str, current: &str) -> String {
+    let repaired = before_build_fix(source, current);
+    let current = repaired.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -63,6 +70,8 @@ pub(crate) fn main(source: &str, current: &str) -> String {
 }
 
 pub(crate) fn held(source: &str, current: &str) -> String {
+    let repaired = before_build_fix(source, current);
+    let current = repaired.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-composition-f813-held-20261015/held-projections.json")), source, current)
 }
 

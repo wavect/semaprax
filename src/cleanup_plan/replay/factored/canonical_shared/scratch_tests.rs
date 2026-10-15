@@ -1,6 +1,7 @@
 //! Exact immediate-old receivers and physical scratch lifetime controls.
 use super::{before_scratch, Canonicalizer, Diagnostic, ReplayBudget};
 use super::before_held::memo;
+use super::tests;
 use crate::bounded_output::with_limit_usage_refusal;
 use crate::test_allocation_observer::{current_metrics, measure};
 

@@ -9,6 +9,23 @@ impl Drop for Directory {
         std::fs::remove_dir_all(&self.0).unwrap();
     }
 }
+fn authenticate_keys(fixture: Fixture, rows: &serde_json::Value) {
+    let mut actual = rows
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|row| row["source"].as_str())
+        .collect::<Vec<_>>();
+    actual.sort();
+    // Keep duplicates: presence selects the unchanged projector, which still
+    // refuses more than one matching row. Never silently deduplicate evidence.
+    assert_eq!(actual.as_slice(), membership::keys(fixture));
+    for key in &actual {
+        assert!(membership::keys(fixture).binary_search(key).is_ok());
+    }
+    assert!(membership::keys(fixture).binary_search(&"\0").is_err());
+    assert_eq!(project(fixture, "\0", "unchanged"), "unchanged");
+}
 #[test]
 fn fixed_projection_json_transport_refuses_hostile_io_before_parsing() {
     let path = std::env::temp_dir().join(format!(
@@ -39,9 +56,19 @@ fn fixed_projection_json_transport_refuses_hostile_io_before_parsing() {
     let custody = load(Fixture::Custody);
     let custody: serde_json::Value = serde_json::from_str(&custody).unwrap();
     assert_eq!(custody.as_array().unwrap().len(), 6);
+    authenticate_keys(Fixture::Custody, &custody);
     for fixture in inventory::ORIGINAL_FIXTURES {
-        drop(load(fixture));
+        let payload = load(fixture);
+        let rows: serde_json::Value = serde_json::from_str(&payload).unwrap();
+        authenticate_keys(fixture, &rows);
     }
+    // Compiled presence must reach the original duplicate-row refusal, never
+    // choose one row or turn a duplicate into an unchanged-input success.
+    let duplicate = r#"[{"source":"same"},{"source":"same"}]"#;
+    assert!(
+        std::panic::catch_unwind(|| { super::super::project(duplicate, "same", "unchanged") })
+            .is_err()
+    );
     // Ten distinct hostile boundaries. None hands unauthenticated data to serde.
     assert_eq!(
         read_fixture(&directory.0.join("missing"), bytes.len(), sha),

@@ -7,6 +7,8 @@ use std::io::Read;
 #[path = "runtime_json/inventory.rs"]
 mod inventory;
 pub(super) use inventory::Fixture;
+#[path = "runtime_json/membership.rs"]
+mod membership;
 
 // Largest exact original fixture; never grow a buffer from untrusted metadata.
 const OUTPUT_CAP: usize = 5_081_115;
@@ -32,6 +34,15 @@ pub(super) fn load(fixture: Fixture) -> String {
     let spec = fixture.spec();
     read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
         .expect("complete authenticated immutable projection JSON fixture")
+}
+// The compiled index proves absence against these exact immutable fixture specs.
+// An unused fixture is not opened on this route; the all-fixture owner separately
+// authenticates availability, complete bytes and exact key multiplicity.
+pub(super) fn project(fixture: Fixture, source: &str, current: &str) -> String {
+    if membership::keys(fixture).binary_search(&source).is_err() {
+        return current.to_owned();
+    }
+    super::project(&load(fixture), source, current)
 }
 fn read_fixture(
     path: &std::path::Path,

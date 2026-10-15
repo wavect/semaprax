@@ -1,0 +1,11 @@
+{
+  "source_subject": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+  "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/owning-selected-42.log",
+  "log_sha256": "ee04994ce56bdeb3da829ba976615758a3f82d5e801d678fc1dc6f9a90713b61",
+  "selector": "hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_case_coordinates_and_detached_children_drop_512_without_new_backing",
+  "actual_allocated_before_drop": 535509,
+  "actual_allocated_after_drop": 535701,
+  "delta_bytes": 192,
+  "cause_status": "SOURCE_CONSISTENCY_ONLY_UNTIL_UNCHANGED_OWNER_REEXECUTES",
+  "corrective_qualification": "NOT_EXECUTED"
+}

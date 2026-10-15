@@ -1151,6 +1151,11 @@ fn one_mib_ledger_preserves_first_cursor_refusal_and_sticky_retries() {
             include_str!("../src/cleanup_plan/replay/expression_facts/receiving/retained/edge_before.rs"),
             include_str!("../src/cleanup_plan/replay/expression_facts/receiving/retained/edge_tests.rs"),
             include_str!("../src/cleanup_plan/replay/expression_facts/receiving/retained/tests.rs"))"######, r######"include_str!("../src/cleanup_plan/replay/expression_facts/receiving.rs")"######);
+        // Exact new legacy iterative Drop producer, complete prior receiver and controls.
+        undo(&mut current, r########"        include_str!("../src/hir/declaration_index/legacy_drop.rs"),
+        include_str!("../src/hir/declaration_index/legacy_drop/before.rs"),
+        include_str!("../src/hir/declaration_index/legacy_drop/tests.rs"),
+"########, "");
         // Exact additive Legacy finalizer oracle and complete controls.
         undo(&mut current, r########"        include_str!("../src/hir/declaration_index/linked_owned_data/legacy_before.rs"),
 "########, "");

@@ -37,3 +37,26 @@ detaches complete Owned values. Removing an eager field copy may move copying
 to a later host mutation; no universal mutation/allocation or application-fit
 claim follows. The immediate full prior index and finalizer are independently
 compiled controls, alongside the older complete original linker.
+
+## Legacy detached-field disposal successor (source only)
+
+The final linked Legacy coordinate still detaches a complete independent Owned
+field vector on host mutation. A no-workspace declaration index now disposes
+each recursive field root to completion by reusing its already-owned nominal
+argument Vec as the iterative continuation. Empty-parameter function spines
+move their result directly. No cloned value, new owner, source authority, byte
+allowance or refund is introduced. Funded/immutable shared last owners keep
+their original acquired disposal scratch. Every adopted or pending vector is
+fully drained before normal destruction; no recursive type subtree is left to
+ordinary Drop glue. Arbitrary wider Legacy frontiers may still grow ordinary
+unfunded scratch, just as this compatibility route did before. There is no
+universal zero-allocation/funding claim.
+
+This responds to actual828f's unchanged 512-depth detached-case owner observing
+192 bytes of new Drop allocation. The old empty Vec's minimum four-type backing
+is source-consistent with that delta, not a new runtime attribution receipt.
+The unchanged original owner retains both disposal orders, all case coordinates,
+detached fields, depth512 and its zero-allocation assertion. A complete previous
+Drop body compiles independently through only a consuming-receiver/signature
+adapter. Corrective tests additionally cover multiple roots, function spines,
+branching settlement and unchanged sticky ledger state. All await execution.

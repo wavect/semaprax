@@ -1,0 +1,58 @@
+{
+  "status": "AUTHORED_UNEXECUTED_CORRECTIVE",
+  "basis": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+  "new": [
+    {
+      "selector": "hir::declaration_index::legacy_drop::tests::detached_legacy_case_roots_reuse_argument_backing_and_keep_complete_old_drop_independent",
+      "source": "src/hir/declaration_index/legacy_drop/tests.rs",
+      "source_sha256": "8961cde452ec94c60e436236c510088984e1fe7b7b4e875b7ac70c9c9c912d92"
+    },
+    {
+      "selector": "hir::declaration_index::legacy_drop::tests::multiple_case_record_roots_and_function_spines_drop_iteratively_without_new_backing",
+      "source": "src/hir/declaration_index/legacy_drop/tests.rs",
+      "source_sha256": "8961cde452ec94c60e436236c510088984e1fe7b7b4e875b7ac70c9c9c912d92"
+    },
+    {
+      "selector": "hir::declaration_index::legacy_drop::tests::branching_unfunded_disposal_settles_every_allocation_and_original_sticky_ledger",
+      "source": "src/hir/declaration_index/legacy_drop/tests.rs",
+      "source_sha256": "8961cde452ec94c60e436236c510088984e1fe7b7b4e875b7ac70c9c9c912d92"
+    },
+    {
+      "selector": "hir::declaration_index::legacy_drop::tests::complete_previous_drop_and_existing_mixed_case_512_owner_remain_exact",
+      "source": "src/hir/declaration_index/legacy_drop/tests.rs",
+      "source_sha256": "8961cde452ec94c60e436236c510088984e1fe7b7b4e875b7ac70c9c9c912d92"
+    }
+  ],
+  "required_existing": [
+    {
+      "selector": "hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_case_coordinates_and_detached_children_drop_512_without_new_backing",
+      "source": "src/hir/declaration_index/linked_owned_data/tests/legacy.rs",
+      "source_sha256": "ba420975af2d67b6633888cae914ec598ad67d4f14c50e4e383df1ac2e34f355"
+    },
+    {
+      "selector": "hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_constructor_observes_real_owned_baseline_and_whole_drop_both_orders",
+      "source": "src/hir/declaration_index/linked_owned_data/tests/legacy.rs",
+      "source_sha256": "ba420975af2d67b6633888cae914ec598ad67d4f14c50e4e383df1ac2e34f355"
+    },
+    {
+      "selector": "hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_constructor_preserves_complete_old_hir_wire_and_mutation_isolation",
+      "source": "src/hir/declaration_index/linked_owned_data/tests/legacy.rs",
+      "source_sha256": "ba420975af2d67b6633888cae914ec598ad67d4f14c50e4e383df1ac2e34f355"
+    },
+    {
+      "selector": "hir::declaration_index::leaf_drop_tests::nested_nominal_payloads_keep_iterative_depth_512_disposal_and_complete_settlement",
+      "source": "src/hir/declaration_index/leaf_drop_tests.rs",
+      "source_sha256": "3ee21dff87932511910fb328367e4cb6d09c6ca2bc5400cda0668c46c71dbf42"
+    },
+    {
+      "selector": "hir::declaration_index::leaf_drop_tests::sixteen_actual_leaf_fields_remove_only_the_original_literal_drop_queue",
+      "source": "src/hir/declaration_index/leaf_drop_tests.rs",
+      "source_sha256": "3ee21dff87932511910fb328367e4cb6d09c6ca2bc5400cda0668c46c71dbf42"
+    },
+    {
+      "selector": "hir::declaration_index::leaf_drop_tests::zero_argument_nominal_fields_do_not_allocate_drop_scratch",
+      "source": "src/hir/declaration_index/leaf_drop_tests.rs",
+      "source_sha256": "3ee21dff87932511910fb328367e4cb6d09c6ca2bc5400cda0668c46c71dbf42"
+    }
+  ]
+}

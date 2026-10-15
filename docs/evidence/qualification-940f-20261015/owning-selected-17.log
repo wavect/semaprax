@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::resolve_statement::nested_byte_tests::nested_byte_source_lowering_bridge_resolves_and_independent_hir_replays ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8913 filtered out; finished in 0.08s
+

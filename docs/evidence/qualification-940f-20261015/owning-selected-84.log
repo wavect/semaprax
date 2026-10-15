@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::expected_projection::defaults::error_custody_tests::closed_errors_keep_full_old_diagnostics_and_remove_only_message_backing_through_drop ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8913 filtered out; finished in 0.00s
+

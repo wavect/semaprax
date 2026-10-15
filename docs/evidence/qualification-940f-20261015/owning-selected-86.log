@@ -1,0 +1,17 @@
+
+running 1 test
+test workspace_graph::expected_projection::defaults::error_custody_tests::complete_static_error_source_and_independent_old_dispatch_preserve_all_original_bytes ... 
+thread 'workspace_graph::expected_projection::defaults::error_custody_tests::complete_static_error_source_and_independent_old_dispatch_preserve_all_original_bytes' (5537463) panicked at src/workspace_graph/expected_projection/defaults/error_custody_tests.rs:161:5:
+assertion `left == right` failed
+  left: 13
+ right: 12
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::expected_projection::defaults::error_custody_tests::complete_static_error_source_and_independent_old_dispatch_preserve_all_original_bytes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8913 filtered out; finished in 0.04s
+

@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::constructor_failure::receiving::typed::tests::typed_helper_budget_reaches_original_same_child_prepaid_final_report_without_late_backing ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8913 filtered out; finished in 0.00s
+

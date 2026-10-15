@@ -1,0 +1,8 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::epsilon_alias::tests::epsilon_alias_full_diagnostics_every_work_frontier_and_exact_short_zero_physical_are_independent ... epsilon current=false cumulative=10405 allocation=Metrics { allocations: 30, reallocations: 5, allocated: 3485, freed: 3485, live: 0, highwater: 3237, invalid: false }
+epsilon current=true cumulative=6525 allocation=Metrics { allocations: 20, reallocations: 5, allocated: 2325, freed: 2325, live: 0, highwater: 2077, invalid: false }
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8913 filtered out; finished in 0.02s
+

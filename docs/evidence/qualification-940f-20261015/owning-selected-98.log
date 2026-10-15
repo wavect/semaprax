@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::selected_entry::tests::session_errors::selected_session_receipt_full_carrier_exact_short_zero_sticky_report_and_drop ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8913 filtered out; finished in 0.01s
+

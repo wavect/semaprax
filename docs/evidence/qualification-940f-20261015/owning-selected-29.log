@@ -1,0 +1,7 @@
+
+running 1 test
+test hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_constructor_observes_real_owned_baseline_and_whole_drop_both_orders ... final-link-owned-before/current-legacy-before/current=[Metrics { allocations: 765, reallocations: 106, allocated: 321520, freed: 321520, live: 0, highwater: 90634, invalid: false }, Metrics { allocations: 765, reallocations: 106, allocated: 321520, freed: 321520, live: 0, highwater: 90634, invalid: false }, Metrics { allocations: 748, reallocations: 106, allocated: 320218, freed: 320218, live: 0, highwater: 89524, invalid: false }, Metrics { allocations: 746, reallocations: 106, allocated: 320081, freed: 320081, live: 0, highwater: 89387, invalid: false }]
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8913 filtered out; finished in 0.02s
+

@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::constructor_failure::receiving::tests::constructor_receiving_foreign_then_restored_owner_retains_primary_and_never_reactivates ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8913 filtered out; finished in 0.00s
+

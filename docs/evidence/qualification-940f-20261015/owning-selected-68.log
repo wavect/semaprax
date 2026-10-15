@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::constructor_failure::receiving::tests::constructor_receiving_after_sticky_moves_existing_slot_without_a_new_debit_or_allocation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8913 filtered out; finished in 0.00s
+

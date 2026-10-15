@@ -1,0 +1,7 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::epsilon_alias::tests::epsilon_alias_long_chain_reports_actual_cumulative_and_peak_costs_separately ... epsilon long-chain old cumulative=80069 metrics=Metrics { allocations: 165, reallocations: 11, allocated: 21893, freed: 21893, live: 0, highwater: 19741, invalid: false }; current cumulative=28853 metrics=Metrics { allocations: 33, reallocations: 11, allocated: 6581, freed: 6581, live: 0, highwater: 4429, invalid: false }
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8913 filtered out; finished in 0.01s
+

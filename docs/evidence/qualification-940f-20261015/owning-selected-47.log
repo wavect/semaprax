@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_target_promotions_sort_and_preserve_same_child_overflow_before_later_acquisition ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8913 filtered out; finished in 0.01s
+

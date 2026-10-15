@@ -1,0 +1,6 @@
+
+running 1 test
+test loan_plan::paid_candidate::retained::nested_tests::actual_ordinary_and_funded_candidates_replay_nested_bytes_before_plan_selection ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8913 filtered out; finished in 0.11s
+

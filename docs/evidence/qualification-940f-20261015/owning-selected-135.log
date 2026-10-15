@@ -1,0 +1,15 @@
+
+running 1 test
+test cleanup_plan::replay::semantic_refusal::tests::every_atom_matches_complete_original_diagnostic_under_finite_account_through_drop ... 
+thread 'cleanup_plan::replay::semantic_refusal::tests::every_atom_matches_complete_original_diagnostic_under_finite_account_through_drop' (5571686) panicked at src/cleanup_plan/replay/semantic_refusal/tests.rs:167:9:
+assertion failed: metrics.allocated <= scope.receipt().charged
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::semantic_refusal::tests::every_atom_matches_complete_original_diagnostic_under_finite_account_through_drop
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8913 filtered out; finished in 0.05s
+

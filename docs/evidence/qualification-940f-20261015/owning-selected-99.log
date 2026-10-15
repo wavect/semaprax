@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::selected_entry::tests::session_errors::selected_session_publication_keeps_first_named_boundary_across_later_atom_kinds ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8913 filtered out; finished in 0.00s
+

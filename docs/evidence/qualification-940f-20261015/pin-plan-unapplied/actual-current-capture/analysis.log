@@ -1,0 +1,17 @@
+
+running 1 test
+test semantic_graph::public_workspace_analysis_api_cli_kats_and_locking_are_exact ... 
+thread 'semantic_graph::public_workspace_analysis_api_cli_kats_and_locking_are_exact' (5588995) panicked at tests/workspace/semantic_graph.rs:1041:5:
+assertion `left == right` failed
+  left: ["sha256:cbc5963fbf3ba219ee141f2269a20416e204f5529e5e42c4d4fd0dde3ca69778", "sha256:3f8f861a33f7e8b34033f676eb87ef2298b7ad7947f7438ca4eb1db81f0e68af", "sha256:83e25791bf429e6d9e25be3ab5b06b3d67e8f8ef90e1632694e43302094c4e7d", "sha256:6f73e7fbed30ab886bf63790bef2e3274c7937a66b5e785b75a8f1ff3ee416f6", "sha256:f03865049d7150d4a249f6229e09c443aeef421ddf7a7812f95b9619405221ca", "sha256:5b60215c7df7278d42797da149eb54a402b3ed0d5879e19578fb58f626f7c739", "sha256:9c4d720ada0b200d06428ccb720355888b181510c53d05094a4a2d862acbe957", "sha256:257a277525f802985fd573b2bc3607a3f4c08fc882089f3f3b269c0c5e8b81d9"]
+ right: ["sha256:71855c0574be5fd10adb3b71de33afb4cbae905cc7110a8da68fbe5d09b808f9", "sha256:4b0d89b424ac9058c44093ccbe4a60a0eb3ec584ce5c85bc1378d31dfd0d9080", "sha256:52b7f0a8f754cacfffe82f7cdbdb851641fdc1ef86f9ee188590436a5bf77896", "sha256:387c789cb5f6a014ab377ea97138ed9e9869ece09068db7c3889f6acc058bc5a", "sha256:ffb6cb3247de03e4409c67f267bc4a77e20949171e79d5a80b40cad9a861ead1", "sha256:c1d4b519315729c71b590be9926de416136cb0e4bca007c3fb2a90d2996213dc", "sha256:b14145b8e6975212415b282b2f67e5e38d1e43bea2c8a5f689c003a9883a21ac", "sha256:6d503a367d03d11fa4cb37e50f579bc16f0e22c3469f47dbbbd05647c93f1eca"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    semantic_graph::public_workspace_analysis_api_cli_kats_and_locking_are_exact
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 278 filtered out; finished in 8.63s
+

@@ -1,0 +1,11 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured ... inline-target-layers width=0 immediate831/current=[(10829, Metrics { allocations: 12, reallocations: 0, allocated: 1517, freed: 1517, live: 0, highwater: 1501, invalid: false }), (10661, Metrics { allocations: 12, reallocations: 0, allocated: 1517, freed: 1517, live: 0, highwater: 1501, invalid: false })]
+inline-target-layers width=1 immediate831/current=[(18525, Metrics { allocations: 34, reallocations: 2, allocated: 4317, freed: 4317, live: 0, highwater: 2461, invalid: false }), (17733, Metrics { allocations: 34, reallocations: 2, allocated: 4317, freed: 4317, live: 0, highwater: 2461, invalid: false })]
+inline-target-layers width=2 immediate831/current=[(20333, Metrics { allocations: 38, reallocations: 2, allocated: 4773, freed: 4773, live: 0, highwater: 2709, invalid: false }), (19549, Metrics { allocations: 38, reallocations: 2, allocated: 4773, freed: 4773, live: 0, highwater: 2709, invalid: false })]
+inline-target-layers width=3 immediate831/current=[(21565, Metrics { allocations: 41, reallocations: 2, allocated: 5037, freed: 5037, live: 0, highwater: 2957, invalid: false }), (20781, Metrics { allocations: 41, reallocations: 2, allocated: 5037, freed: 5037, live: 0, highwater: 2957, invalid: false })]
+inline-target-layers width=4 immediate831/current=[(22797, Metrics { allocations: 44, reallocations: 2, allocated: 5301, freed: 5301, live: 0, highwater: 3205, invalid: false }), (22013, Metrics { allocations: 44, reallocations: 2, allocated: 5301, freed: 5301, live: 0, highwater: 3205, invalid: false })]
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8913 filtered out; finished in 0.01s
+

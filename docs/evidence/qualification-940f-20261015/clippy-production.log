@@ -1,0 +1,30 @@
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+error: redundant field names in struct initialization
+   --> src/loop_calls/byte_writer/resolved/selected_inline.rs:132:13
+    |
+132 |             error: error,
+    |             ^^^^^^^^^^^^ help: replace it with: `error`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#redundant_field_names
+    = note: `-D clippy::redundant-field-names` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::redundant_field_names)]`
+
+error: unused import: `crate::cleanup::ReplayContext`
+ --> src/cleanup/inventory_builder/selected_inline.rs:3:5
+  |
+3 | use crate::cleanup::ReplayContext;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `-D unused-imports` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(unused_imports)]`
+
+error: unused variable: `function`
+   --> src/cleanup_plan/replay/selected_profile/paid_children/flat_records.rs:109:5
+    |
+109 |     function: &ResolvedFunction,
+    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_function`
+    |
+    = note: `-D unused-variables` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(unused_variables)]`
+
+error: could not compile `semaprax` (lib) due to 3 previous errors

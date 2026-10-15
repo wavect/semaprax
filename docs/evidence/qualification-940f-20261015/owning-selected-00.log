@@ -1,0 +1,17 @@
+
+running 1 test
+test workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal ... identity-retry-parent before=Some(67108864) after=Some(550)
+identity-retry-contract legacy=(67019038, 67020132) tight=(53615014, 53616108) actual_initial=(67019038, 67020132, true, 1) registry_receipt=0 nested_overflow=false nested_debit=67108314 first_refusal=None trace=Some(Trace { owner: 52022479136, operation: None, first_operation_refusal: Some(OperationRefusal { operation: None, requested: 1264, remaining: 550, floor: 0, stage: Some(FreshResolution) }), initial: 67075946, consumed: 67075396, prebound: 67019038, layouts: 0, mode: 1, debits: [3666, 6520, 0, 0, 0, 0, 0, 0, 0, 67019038, 768, 0, 0, 0, 0, 0, 0, 2669, 0, 42735, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] })
+
+thread 'workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal' (5501539) panicked at src/workspace_graph/tests/builder_limits.rs:442:84:
+called `Result::unwrap()` on an `Err` value: [Diagnostic { code: "SPX-G171", severity: Error, message: "Workspace Semantic Graph `builder_bytes` exceeds 67108864", path: None, span: None, help: Some("live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 32397468 bytes for 2 module(s) and fit within 67108864, with `stub/provider.spx` the largest at 32291270 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 201 bytes with 116 remaining and 0 reserved floor. Authenticated internal stage: HIR final validation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.") }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8913 filtered out; finished in 65.71s
+

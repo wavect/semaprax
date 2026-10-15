@@ -1,0 +1,9 @@
+{
+  "capture_head": "940fcf220e47d1975f757e76f0b3401691db9358",
+  "later_root_head_at_preparation": "940fcf220e47d1975f757e76f0b3401691db9358",
+  "build_receipt_sha256": "41a345c51015319d24e6461d6bd15a936511ec37647556e4f45a17c42bedc7d8",
+  "producer_receipt_sha256": "87a62473e805b0492f179ce5a9d08ea13a8274d079e12a01c6a2edf8b7cbd8a0",
+  "root": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "capture": "/Volumes/Semaprax/provenance/prelude-pin-actual-940f-20261015",
+  "round": "/Volumes/Semaprax/lane-prompts/large-940f-qualification-20261015"
+}

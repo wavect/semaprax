@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::expression_facts::receiving::remaining::selected::tests::ordered_selection_acquires_no_backing_at_zero_or_sticky_and_preserves_first_refusal ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8913 filtered out; finished in 0.00s
+

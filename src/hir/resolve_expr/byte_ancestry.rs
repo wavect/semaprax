@@ -61,14 +61,24 @@ mod tests {
     fn nested_byte_ancestry_prepays_controls_and_unwinds_outermost_scope_without_allocating() {
         let map = BTreeMap::<String, Binding>::new();
         let entry = resolver_scope::borrowed(&map);
-        let expected = size_of::<Ancestry<'_>>()
+        let state_bytes = size_of::<Ancestry<'_>>()
             + size_of::<Result<Ancestry<'_>, crate::diagnostic::Diagnostic>>();
-        for limit in [0, expected - 1, expected] {
+        let handle_bytes = size_of::<crate::hir::resolver_scope::Scope<'_>>();
+        let expected = state_bytes + 2 * handle_bytes;
+        for limit in [
+            0,
+            state_bytes - 1,
+            state_bytes + handle_bytes - 1,
+            expected - 1,
+            expected,
+        ] {
             let ((result, refused, used, first), metrics) = measure(|| {
                 with_limit_usage_refusal(limit, || {
                     let mut state = Ancestry::acquire()?;
                     assert!(state.entry().is_none());
+                    super::reserve_scope()?;
                     state.enter(entry.clone(), 1);
+                    super::reserve_scope()?;
                     state.enter(entry.clone(), 3);
                     state.leave(2);
                     assert!(std::ptr::eq(state.entry().unwrap(), &map));
@@ -82,7 +92,16 @@ mod tests {
             assert_eq!(result.is_ok(), limit == expected);
             assert_eq!(refused, limit < expected);
             assert_eq!(first.is_some(), limit < expected);
-            assert_eq!(used, if limit == expected { expected } else { 0 });
+            let acquired = if limit < state_bytes {
+                0
+            } else if limit < state_bytes + handle_bytes {
+                state_bytes
+            } else if limit < expected {
+                state_bytes + handle_bytes
+            } else {
+                expected
+            };
+            assert_eq!(used, acquired);
             assert_eq!(
                 (metrics.allocations, metrics.allocated, metrics.live),
                 (0, 0, 0)

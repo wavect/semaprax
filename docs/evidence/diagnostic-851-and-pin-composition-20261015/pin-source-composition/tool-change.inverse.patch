@@ -1,0 +1,40 @@
+--- a/archive-actual-and-build-patch.py
++++ b/archive-actual-and-build-patch.py
+@@ -33,26 +33,17 @@
+ before={p:(OUT/'source-before'/p).read_bytes() for p in set(e['path'] for e in plan['edits'])|{'docs/evidence/prelude-forecast-286/pin-capture/exact-source-inverses.json'}};after=before.copy()
+ for e in plan['edits']:
+  a=e['before'].encode();b=e['after'].encode();assert after[e['path']].count(a)==1;after[e['path']]=after[e['path']].replace(a,b,1)
+-# Explicit immutable legacy-input domain; never infer it from a live checkout.
+-from source_inverse_composition import compose,blob
+-assert plan['capture_head']==meta['capture_head']
+-for name,raw in before.items():
+- assert raw==blob(ROOT,meta['capture_head'],name),'complete captured source-before drift'
+-for name,expected in plan['source_sha256'].items():
+- assert 'sha256:'+sha(before[name])==expected
+-for name,expected in plan['after_sha256'].items():
+- assert 'sha256:'+sha(after[name])==expected
+-checkpoint_head=subprocess.check_output(['git','rev-parse',sys.argv[3]+'^{commit}'],cwd=ROOT,text=True).strip()
+-path='docs/evidence/prelude-forecast-286/pin-capture/exact-source-inverses.json'
+-projection,legacy_table,legacy_archives=compose(ROOT,meta['capture_head'],checkpoint_head,path,after)
+-assert legacy_table==before[path],'complete frozen legacy table must remain exact'
+-assert after[path]==before[path],'do not rewrite legacy manifest or append guessed hooks'
+-(OUT/'complete-source-projections.json').write_text(json.dumps(projection,indent=2)+'\n')
+-legacy_dir=OUT/'immutable-legacy';legacy_dir.mkdir(exist_ok=True)
+-for name,raw in {path:legacy_table,**legacy_archives}.items():
+- target=legacy_dir/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(raw)
+-# Candidate literal sources remain hypothetical: no application or current-head
+-# qualification is asserted by this external source-composition stage.
++path='docs/evidence/prelude-forecast-286/pin-capture/exact-source-inverses.json';rows=json.loads(before[path])
++for e in plan['edits']:
++ if e['before']!=e['after']:
++  row=next((row for row in rows if row['path']==e['path']),None)
++  if row is not None:row['edits'].append({'before':e['before'],'after':e['after']})
++for row in rows:
++ raw=(after[row['path']] if row['path'] in after else subprocess.check_output(['git','show',meta['capture_head']+':'+row['path']],cwd=ROOT)).decode()
++ for e in reversed(row['edits']):
++  assert raw.count(e['after'])==1,(row['path'],e['after'][:60]);raw=raw.replace(e['after'],e['before'],1)
++ archive=ROOT/'docs/evidence/prelude-forecast-286/pin-capture'/row['archive'];assert sha(raw.encode())==row['sha256'] and raw.encode()==archive.read_bytes()
++after[path]=(json.dumps(rows,indent=2)+'\n').encode()
+ patch=[];inverse=[]
+ for name in sorted(before):
+  file=OUT/'candidate-source-after'/name;file.parent.mkdir(parents=True,exist_ok=True);file.write_bytes(after[name])

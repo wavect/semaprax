@@ -1,0 +1,24 @@
+{
+  "status": "SOURCE_ONLY_PASS_NOT_CURRENT_OR_PIN_QUALIFICATION",
+  "capture_head": "d4cab900edac07fdcc4de0cdcb1bf3daafbef5ef",
+  "checkpoint_head": "39130d9237121b61e40b47f95c072c09a456554e",
+  "observed_checkout_head": "85142274c2f3e73bc1a4e5150672150c4d17d95f",
+  "source_projection_rows": 2,
+  "legacy_inverse_counts": [
+    106,
+    1
+  ],
+  "old_table_sha256": "04d14712fb00b8d909c5d15766233b6009b6c6fed00ec8a76bd86372b501e9ff",
+  "old_archives_unchanged": true,
+  "old_tool_whole_inverse": true,
+  "all_other_old_tool_bytes_exact": true,
+  "tamper_refusals": [
+    "complete_current_tamper",
+    "wrong_raw_domain",
+    "checkpoint_tamper",
+    "legacy_hook_tamper",
+    "archive_tamper"
+  ],
+  "actual_wire_or_pin_apply_execution": false,
+  "producer_execution": false
+}

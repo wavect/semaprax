@@ -1,0 +1,110 @@
+[
+  {
+    "source": "/Volumes/Semaprax/provenance/diagnostic-851-caller-20261015/normalizer-diagnostic-memory.jsonl",
+    "archive": "diagnostic-851/normalizer-diagnostic-memory.jsonl",
+    "sha256": "b4aba3a195416a4ab59d56f6a6c6e6892cc84cd32ba8875199d22953878aab8f",
+    "bytes": 13046
+  },
+  {
+    "source": "/Volumes/Semaprax/provenance/diagnostic-851-caller-20261015/normalizer-diagnostic-result.json",
+    "archive": "diagnostic-851/normalizer-diagnostic-result.json",
+    "sha256": "34a83206d4b38973453a6eb24852f71726361adc5451edbd689017bc8bd5d1e9",
+    "bytes": 5902
+  },
+  {
+    "source": "/Volumes/Semaprax/provenance/diagnostic-851-caller-20261015/normalizer-diagnostic.log",
+    "archive": "diagnostic-851/normalizer-diagnostic.log",
+    "sha256": "5efe9e1a20e2bd2da02ee5cecf5d1fa0845c92428b1baba3a347a94e06730305",
+    "bytes": 742
+  },
+  {
+    "source": "/Volumes/Semaprax/provenance/diagnostic-851-caller-20261015/production-build-memory.jsonl",
+    "archive": "diagnostic-851/production-build-memory.jsonl",
+    "sha256": "24a1928793f5ea0b7471e9e23e704bf700f429274d41d98a817e692b729831cb",
+    "bytes": 150752
+  },
+  {
+    "source": "/Volumes/Semaprax/provenance/diagnostic-851-caller-20261015/production-build-result.json",
+    "archive": "diagnostic-851/production-build-result.json",
+    "sha256": "fe9673d5fad436717ddb3e8cccacd553e370ebe550fa04e56014122fd776c587",
+    "bytes": 7347
+  },
+  {
+    "source": "/Volumes/Semaprax/provenance/diagnostic-851-caller-20261015/production-build.log",
+    "archive": "diagnostic-851/production-build.log",
+    "sha256": "08ff7b22659b416013ddfb999612666136df374923fdea0a1444323ea419445a",
+    "bytes": 217962
+  },
+  {
+    "source": "/Volumes/Semaprax/provenance/pin-source-composition-v2-20261015/README.md",
+    "archive": "pin-source-composition/README.md",
+    "sha256": "b3ec17dd09f7851257dc27574171b9b8022b2e317c7b8c84b8c3e195e21dcd4a",
+    "bytes": 3760
+  },
+  {
+    "source": "/Volumes/Semaprax/provenance/pin-source-composition-v2-20261015/archive-actual-and-build-patch.before.py",
+    "archive": "pin-source-composition/archive-actual-and-build-patch.before.py",
+    "sha256": "ee9b5350c7e24a46be2f1254aabe8fc4614570378371b082af7d6729b7a2cf0e",
+    "bytes": 4914
+  },
+  {
+    "source": "/Volumes/Semaprax/provenance/pin-source-composition-v2-20261015/archive-actual-and-build-patch.py",
+    "archive": "pin-source-composition/archive-actual-and-build-patch.py",
+    "sha256": "1beb232ee52729d8980580274f7bd4089942a9f6d08499180a8833937a7c97c2",
+    "bytes": 5514
+  },
+  {
+    "source": "/Volumes/Semaprax/provenance/pin-source-composition-v2-20261015/file-sha256.json",
+    "archive": "pin-source-composition/file-sha256.json",
+    "sha256": "f9bd805852dad22d5f6f96d441fb232c3fde2f746cb0c7f748426793885a8674",
+    "bytes": 984
+  },
+  {
+    "source": "/Volumes/Semaprax/provenance/pin-source-composition-v2-20261015/finite-proof.json",
+    "archive": "pin-source-composition/finite-proof.json",
+    "sha256": "64dfe432e907015e5d1c530a82ff13cb0034789de0318f4682298cfc34b9de8a",
+    "bytes": 780
+  },
+  {
+    "source": "/Volumes/Semaprax/provenance/pin-source-composition-v2-20261015/historical-d4-complete-source-projections.json",
+    "archive": "pin-source-composition/historical-d4-complete-source-projections.json",
+    "sha256": "3c2a8214e16c66372369a3916b8805012221bd800313d1225a764245a97e5575",
+    "bytes": 129087
+  },
+  {
+    "source": "/Volumes/Semaprax/provenance/pin-source-composition-v2-20261015/parent-review.json",
+    "archive": "pin-source-composition/parent-review.json",
+    "sha256": "bbcd8ca3c5dde053e74493f21aac8cb784e7f289aef145df8eb30ece15329a8b",
+    "bytes": 699
+  },
+  {
+    "source": "/Volumes/Semaprax/provenance/pin-source-composition-v2-20261015/source_inverse_composition.py",
+    "archive": "pin-source-composition/source_inverse_composition.py",
+    "sha256": "7219e0924d6dc42222796c96414a11a7aa90c222073e3ee188bb1a0197308946",
+    "bytes": 4316
+  },
+  {
+    "source": "/Volumes/Semaprax/provenance/pin-source-composition-v2-20261015/tool-change.inverse.patch",
+    "archive": "pin-source-composition/tool-change.inverse.patch",
+    "sha256": "313beedf41472d279880613d28ddd02850eb7d23cd133ccf38fdb40c08aaf938",
+    "bytes": 2911
+  },
+  {
+    "source": "/Volumes/Semaprax/provenance/pin-source-composition-v2-20261015/tool-change.json",
+    "archive": "pin-source-composition/tool-change.json",
+    "sha256": "8cd9edd8c88acee2f3a508f95651af9e958f4848cf99ffa1bc9066fa87ff5aa3",
+    "bytes": 2560
+  },
+  {
+    "source": "/Volumes/Semaprax/provenance/pin-source-composition-v2-20261015/tool-change.patch",
+    "archive": "pin-source-composition/tool-change.patch",
+    "sha256": "ad5b18f8d68e283ab87acbcdcb3d729c738b909238a27aa03e4b42d6404f266d",
+    "bytes": 2911
+  },
+  {
+    "source": "/Volumes/Semaprax/provenance/pin-source-composition-v2-20261015/verify.py",
+    "archive": "pin-source-composition/verify.py",
+    "sha256": "33d551741066de135a2ba8ba6e83dac0937ae0b78aeeab45c97da3fc8143bb4f",
+    "bytes": 3378
+  }
+]

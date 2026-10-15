@@ -1,0 +1,9 @@
+{
+  "capture_head": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+  "later_root_head_at_preparation": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+  "build_receipt_sha256": "adaeeaa70d39722dfe0110b7e073f8300988d7fc337c33c80f500d92b945bc4f",
+  "producer_receipt_sha256": "0ceb7036c1816c22e801e5aca8b3b91fb04199b29943b4a3ab1f2e0865c3755f",
+  "root": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "capture": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016",
+  "round": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016"
+}

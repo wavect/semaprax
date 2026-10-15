@@ -1,0 +1,7 @@
+Implemented the existing typed reporting boundary while preserving initial failure provenance and the complete selected diagnostic. All six real public reporting consumers PASS at `8bb9f5b7`: two in the 76-check batch, four in the separate supplement. Ten core diagnostic/lifetime/old-receiver controls retain their historical `35cc6325` PASS status; their bodies and six owning production files are byte-identical at 8bb and were not rerun.
+
+Scope is the actual compatibility-Vec removal through the typed boundary. Allocating compatibility/output residuals remain explicit; this does not close #825 or claim fully funded diagnostic output.
+
+[Complete published evidence](https://github.com/wavect/semaprax/tree/2f03b2a2d50b06e34c8e5a5f1a4b7c4fad2cacda/docs/evidence/qualification-8bb9-76-resume-20261016): original 76 = 56 PASS / 20 FAIL; separate supplement = 9 PASS / 0 FAIL. Four build scopes qualify using the explicitly recorded two-command resumption; the original resource interruption remains archived. No full suite or full quality gate ran.
+
+Both consolidated scoped Clippy commands ran and returned 101 for the same **unrelated #849** `manual_saturating_arithmetic` lint at `path_join/boxed_states.rs:63`. This is not a Clippy-PASS claim. Its equivalent `saturating_add` correction is prepared in the next implementation batch. The issue's own acceptance is complete; an unrelated lint or stale graph-budget pins are not added as global closure gates. All 20 current failures remain in the linked archive.

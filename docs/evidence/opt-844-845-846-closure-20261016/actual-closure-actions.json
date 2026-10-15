@@ -1,0 +1,26 @@
+[
+  {
+    "issue": 844,
+    "comment_sha256": "e4489a950ed8d95899ec24bdf49538fba8c61dd24d86f18414690a2ef6693bdf",
+    "owning_contract_complete": true,
+    "clippy_pass_claimed": false,
+    "unrelated_lint_disclosed": true,
+    "published_commit": "2f03b2a2d50b06e34c8e5a5f1a4b7c4fad2cacda"
+  },
+  {
+    "issue": 845,
+    "comment_sha256": "5e49a32cd14a01319f3935683d73a884fa15b91a535fa435f51e9541d4a85cfc",
+    "owning_contract_complete": true,
+    "clippy_pass_claimed": false,
+    "unrelated_lint_disclosed": true,
+    "published_commit": "2f03b2a2d50b06e34c8e5a5f1a4b7c4fad2cacda"
+  },
+  {
+    "issue": 846,
+    "comment_sha256": "dacafa82ab4e84661adc6bcdae8f0fcccd1e715b61bbe7ee23a89525b72abd80",
+    "owning_contract_complete": true,
+    "clippy_pass_claimed": false,
+    "unrelated_lint_disclosed": true,
+    "published_commit": "2f03b2a2d50b06e34c8e5a5f1a4b7c4fad2cacda"
+  }
+]

@@ -1,0 +1,3 @@
+public-graph	101	semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact
+analysis	101	semantic_graph::public_workspace_analysis_api_cli_kats_and_locking_are_exact
+projection-wire	0	workspace_graph::type_proof_tests::projection_tests::emit_projection_wire_pin_candidate

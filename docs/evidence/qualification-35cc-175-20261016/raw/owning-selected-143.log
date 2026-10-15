@@ -1,0 +1,15 @@
+
+running 1 test
+test semantic_structural_change::reporting::typed_public_generation_verification_and_application_keep_full_legacy_bytes ... 
+thread 'semantic_structural_change::reporting::typed_public_generation_verification_and_application_keep_full_legacy_bytes' (11355470) panicked at tests/workspace/semantic_structural_change/reporting.rs:145:9:
+actual positive fixture selected unsupported schema semaprax.graph.v74
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    semantic_structural_change::reporting::typed_public_generation_verification_and_application_keep_full_legacy_bytes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 278 filtered out; finished in 0.53s
+

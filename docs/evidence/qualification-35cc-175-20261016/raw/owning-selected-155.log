@@ -1,0 +1,15 @@
+
+running 1 test
+test command_argument_borrow::retained_hir_still_rejects_a_mutable_command_argument_alias_independently ... 
+thread 'command_argument_borrow::retained_hir_still_rejects_a_mutable_command_argument_alias_independently' (11359382) panicked at tests/project/command_argument_borrow.rs:135:10:
+called `Option::unwrap()` on a `None` value
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    command_argument_borrow::retained_hir_still_rejects_a_mutable_command_argument_alias_independently
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 642 filtered out; finished in 0.13s
+

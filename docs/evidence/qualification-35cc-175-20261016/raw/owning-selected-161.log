@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::selected_context::child::tests::source::compressed_fixture::runtime_fixture_reads_complete_bytes_and_rejects_missing_bounds_tamper_and_stream_drift ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9168 filtered out; finished in 0.01s
+

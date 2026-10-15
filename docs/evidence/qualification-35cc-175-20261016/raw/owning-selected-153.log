@@ -1,0 +1,15 @@
+
+running 1 test
+test workspace_graph::source_schema::static_text::primitive::helpers::tests::a_large_comment_keeps_ordinary_imports_admitted_without_authorizing_a_selected_helper ... 
+thread 'workspace_graph::source_schema::static_text::primitive::helpers::tests::a_large_comment_keeps_ordinary_imports_admitted_without_authorizing_a_selected_helper' (11358895) panicked at src/workspace_graph/source_schema/static_text/primitive/helpers/tests.rs:1077:5:
+assertion failed: provider.scalar_helpers.is_none()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::source_schema::static_text::primitive::helpers::tests::a_large_comment_keeps_ordinary_imports_admitted_without_authorizing_a_selected_helper
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9168 filtered out; finished in 0.89s
+

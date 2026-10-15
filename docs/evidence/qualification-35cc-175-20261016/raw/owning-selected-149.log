@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::supplemental::receiving::tests::every_replacement_is_paid_while_old_live_frames_survive_and_then_release ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9168 filtered out; finished in 0.01s
+

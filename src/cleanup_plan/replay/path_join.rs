@@ -262,18 +262,25 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                             renewal::retained_units(&state),
                             "renewal branch history clone",
                         )?;
-                        storage::reserve_state_clone(
-                            function,
-                            &state,
-                            budget,
-                            "ownership branch clone",
-                        )?;
-                        let next = state_for_edge(
-                            function,
-                            state.clone(),
-                            &edge.condition,
-                            &contract_sources,
-                        )?;
+                        let cloned = if storage::empty_renewals::selected(&state, budget) {
+                            let payload = storage::empty_renewals::reserve(
+                                function,
+                                &state,
+                                budget,
+                                "ownership branch clone",
+                            )?;
+                            storage::empty_renewals::copy(payload)
+                        } else {
+                            storage::reserve_state_clone(
+                                function,
+                                &state,
+                                budget,
+                                "ownership branch clone",
+                            )?;
+                            state.clone()
+                        };
+                        let next =
+                            state_for_edge(function, cloned, &edge.condition, &contract_sources)?;
                         if let Some(auth) = lexical {
                             lexical_flow::capture_loop_entry(
                                 function,

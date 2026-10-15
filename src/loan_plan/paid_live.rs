@@ -7,6 +7,10 @@ use super::{Cfg, Diagnostic, LoanCause, LoanId, LoanPlan, MAX_LOAN_PLAN_WORK_V1,
     build_cfg, charge, error, funded_flat, funded_flat_legacy, guidance,
     paid_candidate, paid_plan, paid_plan_legacy, saved_planner, storage, traversal, work};
 #[cfg(test)]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod tests;
 pub(super) trait Membership {
     fn contains(&self, node: &u16) -> bool;

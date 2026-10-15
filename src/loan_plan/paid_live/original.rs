@@ -2,6 +2,10 @@
 use super::*;
 #[cfg(test)]
 #[path = "tests.rs"]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod tests;
 pub(super) trait Membership {
     fn contains(&self, node: &u16) -> bool;

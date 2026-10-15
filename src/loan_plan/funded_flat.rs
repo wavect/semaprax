@@ -97,9 +97,17 @@ fn lexical_preflight(
 mod tests;
 
 #[cfg(test)]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod directories_tests;
 
 #[cfg(test)]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod work_boundary;
 
 // Constructible only after this producer's exact current-function check.

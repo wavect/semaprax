@@ -971,6 +971,34 @@ jobs:
           echo "SEMAPRAX_DIRECT_CALCULATOR_ROOT=$direct" >> "$GITHUB_ENV"
           echo "SEMAPRAX_PROJECT_CALCULATOR_ROOT=$project" >> "$GITHUB_ENV"
           echo "SEMAPRAX_RENAMED_PROJECT_CALCULATOR_ROOT=$renamed" >> "$GITHUB_ENV"
+      - name: Capture exact Project graph records for fixture pin diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/wasm-scalar-project-graphs"
+          mkdir "$evidence"
+          cargo run --locked -p semaprax -- graph examples/calculator-project/semaprax.toml > "$evidence/calculator-baseline.json"
+          cargo run --locked -p semaprax -- graph "$RUNNER_TEMP/semaprax-wasm-scalar-browser-v1/calculator-project-renamed/semaprax.toml" > "$evidence/calculator-renamed.json"
+          python3 - "$evidence" <<'PY'
+          import hashlib, json, pathlib, subprocess, sys
+          directory = pathlib.Path(sys.argv[1])
+          metadata = json.loads(subprocess.check_output(["cargo", "metadata", "--offline", "--locked", "--no-deps", "--format-version", "1"], text=True))
+          binary = pathlib.Path(metadata["target_directory"]) / "debug" / "semaprax"
+          digest = hashlib.sha256()
+          with binary.open("rb") as source:
+              for block in iter(lambda: source.read(65536), b""):
+                  digest.update(block)
+          record = {"head": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(), "rustc": subprocess.check_output(["rustc", "--version", "--verbose"], text=True), "binary_sha256": digest.hexdigest()}
+          (directory / "provenance.json").write_text(json.dumps(record, sort_keys=True) + "\n")
+          PY
+      - name: Retain diagnostic Project graphs without changing the pin gates
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wasm-scalar-project-graphs-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/wasm-scalar-project-graphs
+          if-no-files-found: ignore
+          retention-days: 1
       - name: Install the locked Playwright fixture and Chromium
         working-directory: platform-tests/wasm-scalar-browser-v1
         run: |

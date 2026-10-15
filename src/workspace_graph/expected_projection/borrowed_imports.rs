@@ -1,8 +1,16 @@
 //! Exact-source imported overlays, including ordinary classified retained
 //! wrappers and invariant/class roots. Views confer no import authority.
 #[path = "borrowed_imports/alias_clone.rs"]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod alias_clone;
 #[path = "borrowed_imports/receiving.rs"]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod receiving;
 use super::{
     active_builder_limit, ast_function_cost, ast_function_signature_cost,

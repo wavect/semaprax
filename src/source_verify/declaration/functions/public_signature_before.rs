@@ -532,6 +532,10 @@ pub(in crate::source_verify) fn check_generic_function_cycles_with_types<'p>(
     }
 }
 #[path = "traversal_scope.rs"]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod traversal_scope;
 use traversal_scope::static_binding;
 const MAX_STATIC_MAPPING_DEPTH: usize = 128;
@@ -1386,4 +1390,3 @@ pub(in crate::source_verify) fn check_function_bodies<'p>(
         diagnostics.push(error.at_path(program.path()));
     }
 }
-

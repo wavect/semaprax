@@ -91,8 +91,16 @@ mod tests;
 
 #[cfg(test)]
 #[path = "../funded_flat/directories_tests.rs"]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod directories_tests;
 
 #[cfg(test)]
 #[path = "../funded_flat/work_boundary.rs"]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod work_boundary;

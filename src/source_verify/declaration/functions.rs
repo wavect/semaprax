@@ -547,6 +547,10 @@ pub(super) fn check_generic_function_cycles_with_types<'p>(
         }
     }
 }
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod traversal_scope;
 use traversal_scope::static_binding;
 const MAX_STATIC_MAPPING_DEPTH: usize = 128;

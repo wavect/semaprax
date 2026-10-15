@@ -1,0 +1,47 @@
+# Borrowed Byte Slice For Traversal v2
+
+Status: private source implementation for #780, executable qualification pending. No build, runtime, application-fit or backend-support claim is made by this authored contract. V1 remains the complete independent prior receiver.
+
+## Narrow additive profile
+
+A named immutable `Slice<u8>` byte traversal may contain another byte traversal whose view binding already exists at the OUTERMOST byte traversal entry. Both may name the same view or different whole/subrange aliases of one root. Each item remains a fresh immutable Copy `u8`, with unchanged left-to-right evaluation, one length snapshot per loop entry, ascending unit counters and ordinary checked `byte_get` result reception. No byte buffer or owned view is copied.
+
+Every enclosing source-for must itself be an admitted immutable byte traversal. Computed and mutable iterable expressions, a view first declared inside the outer body, mixed source Vec/row/owned iterator nesting, generic-instance traversal, item shadowing/reassignment and closure admission remain closed under their existing diagnostics and contracts. An ordinary `while` preserves byte ancestry; it does not create byte admission outside a byte region. Function and closure-body checks start with their own scope. This first profile does not close all of #780.
+
+These source admission limits do not impose a blanket Vec/Iter-operation or manual-While ban on a byte body. Existing independent collection, ownership, row, owned-iterator and lexical-exit validators keep their full restrictions. HIR proves actual lowered semantics and does not infer surface syntax from a marker or cached Boolean.
+
+## Independent contextual replay
+
+A private non-Clone, non-serialized census borrows one immutable function and its exact current replay context. It indexes exact expression references and complete IDs; a same-ID clone, foreign function/context or stale decoded graph is not a current member. Current HIR must be freshly replayed after decode.
+
+Local shape replay authenticates every region's snapshot, view, receiver, counter, item, discarded authored body and optional BorrowBytes latch. This is structural evidence only. Before an early loan-plan receiver borrows a region, a complete function census independently proves outer-entry definition availability, exact receiver association and every enclosing freeze over the ENTIRE inner subtree. It never skips an inner body or exempts its lowered statements from an outer freeze. Hidden receiver payloads cannot escape into any authored body. Duplicate expression/binding identities fail closed.
+
+Late HIR validation runs after ordinary type/scope/ownership checks and fresh byte-provenance derivation. It adds each authenticated ultimate root to the same complete ancestor freeze proof. The loan planner independently resolves aliases and creates a distinct `TraversalFreeze` loan per region, ending after that exact region. Ending an inner same-root loan must preserve the outer loan, including on a back edge and after inner Break. Each lexical Break/Continue still targets its exact nearest current loop; Continue executes that loop's own latch once. Return, failure selection, postconditions and cleanup remain unchanged.
+
+Contextless `region()` remains the complete strict v1 receiver and cannot lend nested authority. Actual ordinary/paid/retained loan-plan builders and lexical contour validation retain one paid slot. It lazily acquires one function census only when the existing complete v1 region check selects its nested-receiver refusal, then lends exact matching region references. This adds no separate selector cursor pass. Static v1 diagnostic text preserves all six fields and avoids allocating/discarding an owned temporary message on this newly admitted path. Native/cleanup standalone wrapper lookups remain guarded by the owning-iterator latch; they grant no byte authority. No new source origin descriptor, graph tag, wire layout, ABI, intrinsic or host authority is introduced. Current Graph v83 and checked-HIR v11 retain complete replay obligations.
+
+## Source-to-HIR admission bridge
+
+The bounded-loop pre-scan still walks the complete authored body before lowering. A nested `for` is traversed only when its named binding is an immutable exact `Slice<u8>` in the outermost byte-entry scope; its complete subtree keeps every scalar, call, allocation and unsafe restriction. Vec, record and owned `for` keep the old refusal. An ordinary `while` obtains this narrow scan only while a current byte-loop continuation is live, and never creates byte ancestry itself. The existing loop-depth check precedes publication; leaving the outer byte loop clears the borrowed scope. Each independent function/closure resolver starts empty. The contextless gate and complete prior resolver remain independent strict controls.
+
+The invocation-local optional scope/depth and Result receiving controls are prepaid before initialization, and the extra retained Rc handle is prepaid before cloning that handle. It shares the already held scope, with no new map or Rc control-block allocation. One byte-specific EnterLoop continuation replaces the existing EnterLoop slot; frame count is unchanged and the actual maximum-layout assertion and census remain active. No new depth allowance, work credit or quota is introduced. This is a source correction until the exact failed owning controls are executed again.
+
+## Storage and refusal
+
+The slot, result and retained controls are separately priced, including ordinary functions that hold an empty slot; there is no exemption or unchanged-byte-debit claim. Private node/definition/receiver/ancestor/freeze lookup rows have exact admitted counts. Their Vec backing, control/receiving carriers and reusable iterative cursor are reserved before heap acquisition on the actual captured active ledger. Private sorting touches lookup rows only, never canonical HIR or cleanup vectors. Node and binding search are logarithmic; ancestor interval prefix maxima preserve all outer same-root freezes after inner exit. There is no new language depth quota or new budget.
+
+The captured ledger rejects foreign/nested owners, preserves its first refusal after restoration and requires a zero authentication before reuse. Partial/current owners hold only borrowed references and fixed Copy rows; disposal allocates no memory. Allocation refusal never falls back to the old receiver or formats an owned diagnostic. Existing logical loan-work units, limits, caps and forecasts receive no discount or new allowance.
+
+With no ACTIVE owner the ordinary public semantic API still performs complete replay, but its allocations are explicitly unqualified; it is not described as prepaid. No fake payer, cached admission flag or allowance is substituted. The new physical controls qualify the explicit same-owner census route only, not every public producer or whole application.
+
+## Required executable owners
+
+The new source and HIR unit children cover exact old/current nonnested replay, complete v1 nested refusal, source projection/graph/cache round-trip, same-root loans, every ancestor binding, foreign/restored owners, exact/short/zero/every-acquisition refusal and full same-observer Drop. Nearest-target drift and unrelated ordinary Vec accumulation remain independent checks. The useful-data child compares nested traversal with a separately authored manual loop and Rust Cartesian-product oracle on interpreter, native C11 O0/O2 and Core-Wasm, including empty/singleton/same-root views and sticky body failure. Existing v1 hostile HIR, lexical exits, stale-root, subrange, mutation, cache and public API owners must also run unchanged.
+
+All these are authored gates until an exact-source execution receipt records their results. #780 remains open for residual source profiles and full qualification.
+
+## Candidate dispatch correction
+
+The ordinary and actual retained funded candidate-discovery passes also retain one paid lazy byte slot, after their complete preexisting expression/alias inventories. At the original byte-region check they ask that exact function/context-bound slot. This closes an early strict-v1 dispatch that previously rejected nested traversal before the already-contextual plan builders ran. The slot stays local to the candidate call; its census is dropped on early return or error. A later plan receiver acquires and pays its own slot, with no transferred authority or fee exemption. Non-nested functions do not construct a full census. The added slot receiving/storage payments can increase debit on small or non-byte functions; no unchanged-cost or application recovery claim follows. The complete contextless helper, saved planner and independently compiled old paid candidate receivers remain strict v1.
+
+The funded result classifier authenticates its actual CFG reservation with a zero request before choosing the typed result. A child census reservation on that same captured ledger can therefore latch its original first receipt on the CFG owner before any semantic guidance formatter runs. Classification never recognizes budget failure from diagnostic text and neither replaces a healthy-ledger six-field semantic report nor creates or resets an allowance. Existing foreign/restored first errors remain sticky. The saved planner explicitly imports an independently compiled exact original candidate helper, preserving its former shared v1 dependency after the ordinary root adopts v2.

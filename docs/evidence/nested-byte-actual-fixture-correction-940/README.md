@@ -1,0 +1,21 @@
+# Actual nested-byte owner corrections, immutable940
+
+This packet corrects two source-bound actual failures at `940fcf220e47d1975f757e76f0b3401691db9358`. The full original files, exact four-file inverses, both actual failure rows/logs, source-only verification and unchanged owning selectors are retained. No Rust/compiler/Cargo/Clippy, Wasm/Node execution, Claude, review, ROOT edit or remote write was performed. These corrected owners remain SOURCE AUTHORED / UNEXECUTED until the next consolidated batch. No safety fix, backend recovery or allocation gain is claimed from source inspection alone.
+
+## Actual failure 1: local ownership premise
+
+`nested_byte_ancestor_freezes_cover_every_inner_subtree_and_same_root_after_inner_exit` expected two `TraversalFreeze` loans from `sum(left: borrow Slice<u8>, right: borrow Slice<u8>)`. Both roots are borrowed parameters. The unchanged ordinary, funded and retained candidate predicates follow aliases and select a loan plan only for an ultimate local Own/provisional root; otherwise the planner retains its existing empty plan. This is the explicit v1 contract: [Owner freeze](../../BORROWED-BYTE-SLICE-FOR-TRAVERSAL-V1.md#owner-freeze) says the caller loan spans a parameter invocation and Borrow-only/Copy roots retain no loan. The observed zero loans therefore do not demonstrate a missing local freeze.
+
+Every original two-loan, same-root, distinct-loan-ID, after-inner live-outer and after-outer endpoint assertion remains intact, now against the already existing `ROOTED` fixture: owned Bytes, whole/subrange aliases, nested same-root traversals. The original borrowed-parameter fixture and complete forged-inner-subtree mutation loop remain byte-exact. Additional assertions bind its two current census regions, strict nesting and empty local loan plan. The v2 wording is clarified to retain v1's owner distinction; source admission, planning and validator code are unchanged.
+
+## Actual failure 2: independent host ownership premise
+
+The unchanged backend source uses fixed arrays and borrowed/subrange views and performs no Bytes copy. The negative variant adds only a scalar `reject(u8)` precondition. The generic `catalog-failure-0` host label, however, means one zero-length *owned* copy. The host's contract callback is reached: it checks status9, report count1 and settled owner count0, then fails its hardcoded `copies==1` assertion with actual0 before throwing the expected `contract` error. Interpreter and native negative checks preceding Wasm remained intact and were reached in the actual failed owner.
+
+The negative nested source now uses explicit `nested-failure`. The host still demands status9, exactly one callback, cleanup before publication, exact `contract` error, undefined result and complete final settlement. This fixture additionally demands zero copies, zero drops and zero allocated bytes; no ownership assertion is omitted. Existing `success`, `failure` and every `catalog-*` label retain their exact original expected copy/drop mapping (2,1,1); catalog failure with a zero-length owned payload still demands one copy and one drop. All positive nested, empty, singleton, same-root, manual reference, interpreter, native O0/O2 and deterministic Wasm comparisons remain unchanged.
+
+## Source boundaries and next qualification
+
+No production Rust/backend source, language cap, work allowance, ownership rule, cleanup ordering, fixture payload or ABI changed. Existing source joins still include the same nested-test path and the same host include path; no submodule relocation occurred. `source-only.py` verifies complete original reconstruction, exact original loan assertion block (only structural indentation changes), byte-exact borrowed mutation suffix and both original fixture literals, plus retained host status/report/cleanup assertions. Prior global custody proofs retain their historical heads: integration must add this packet's preinverses to the current composition rather than weakening a source guard.
+
+Re-run the same two failed owning selectors in the next consolidated implementation batch; preserve all other positive/refusal/backend controls already selected. Actual940 rows remain actual940 failures, not relabeled corrected successes.

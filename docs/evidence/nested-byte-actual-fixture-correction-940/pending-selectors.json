@@ -1,0 +1,22 @@
+{
+  "status": "SOURCE_AUTHORED_UNEXECUTED_CORRECTION",
+  "basis": "940fcf220e47d1975f757e76f0b3401691db9358",
+  "checks": [
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "hir::validation::byte_traversal::nested::tests::nested_byte_ancestor_freezes_cover_every_inner_subtree_and_same_root_after_inner_exit",
+      "source": "src/hir/validation/byte_traversal/nested/tests.rs",
+      "source_sha256": "16a6195ebf472b9d328c9da1f6267a400d3f34c783e39080641e8714219f7caf",
+      "reason": "Actual source-bound940 failed owner retained in full with corrected source/host ownership premise; no assertion removed"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:useful_data",
+      "selector": "byte_slice_for_runtime::nested::nested_byte_traversal_matches_manual_loop_on_interpreter_native_and_wasm",
+      "source": "tests/useful_data/byte_slice_for_runtime/nested.rs",
+      "source_sha256": "a937965cb7d286931639a836a94f2080cfaef94307f83dd220ceab4f79fb9a8f",
+      "reason": "Actual source-bound940 failed owner retained in full with corrected source/host ownership premise; no assertion removed"
+    }
+  ]
+}

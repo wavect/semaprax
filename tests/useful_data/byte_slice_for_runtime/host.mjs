@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const bytes=await readFile(process.argv[2]),kind=process.argv[3],expected=BigInt(process.argv[4]);
 const catalog=/^catalog-(failure-)?(0|[1-9][0-9]*)$/.exec(kind);
-const failure=kind==='failure'||Boolean(catalog?.[1]);
+const nestedFailure=kind==='nested-failure';
+const failure=kind==='failure'||nestedFailure||Boolean(catalog?.[1]);
+const expectedCopies=kind==='success'?2:kind==='failure'||catalog?1:0;
 const expectedAllocated=kind==='success'?256+new TextEncoder().encode('SEMAPRAX').length:kind==='failure'?3:catalog?Number(catalog[2]):0;
 const module=await WebAssembly.compile(bytes);
 const names=['spx_add','spx_sub','spx_mul','spx_div','spx_rem','spx_neg','spx_contract_fail','spx_bytes_copy','spx_bytes_get','spx_bytes_drop','spx_bytes_as_slice'];
@@ -47,7 +49,8 @@ for(let run=0;run<4;run++){
       assert(failure);assert.equal(status,9,'requires status contract.v1/code1');
       assert.equal(++reports,1,'exactly one selected report');
       assert.equal(owners.size,0,'report follows complete non-result cleanup');
-      assert.equal(copies,1);assert.equal(drops,1);assert.equal(allocated,expectedAllocated);
+      assert.equal(copies,expectedCopies);assert.equal(drops,expectedCopies);assert.equal(allocated,expectedAllocated);
+      if(nestedFailure){assert.equal(copies,0);assert.equal(drops,0);assert.equal(allocated,0)}
       throw Error('contract');
     },
     spx_bytes_copy:carrier=>{
@@ -73,8 +76,7 @@ for(let run=0;run<4;run++){
   else {assert.equal(error,undefined);assert.equal(value,expected)}
   assert.equal(reports,failure?1:0);
   assert.equal(owners.size,0,'all reached owned carriers settle');
-  const count=kind==='success'?2:kind==='failure'||catalog?1:0;
-  assert.equal(copies,count);assert.equal(drops,count);
+  assert.equal(copies,expectedCopies);assert.equal(drops,expectedCopies);
   // Complete success source copies the 256-byte array and 8-byte SEMAPRAX String.
   assert.equal(allocated,expectedAllocated);
 }

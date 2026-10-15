@@ -30,7 +30,7 @@ fn nested_byte_traversal_matches_manual_loop_on_interpreter_native_and_wasm() {
     std::fs::create_dir_all(&root).unwrap();
     for (name, source, program, value) in [
         ("nested", NESTED, &ast, Some(expected)),
-        ("catalog-failure-0", failure.as_str(), &failed_ast, None),
+        ("nested-failure", failure.as_str(), &failed_ast, None),
     ] {
         let path = root.join(format!("{name}.spx"));
         std::fs::write(&path, source).unwrap();

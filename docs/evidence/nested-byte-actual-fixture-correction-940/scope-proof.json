@@ -1,0 +1,54 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_RUNTIME_OR_CLAUDE",
+  "basis": "940fcf220e47d1975f757e76f0b3401691db9358",
+  "modified_tracked_files": [
+    "docs/BORROWED-BYTE-SLICE-FOR-TRAVERSAL-V2.md",
+    "src/hir/validation/byte_traversal/nested/tests.rs",
+    "tests/useful_data/byte_slice_for_runtime/host.mjs",
+    "tests/useful_data/byte_slice_for_runtime/nested.rs"
+  ],
+  "unchanged_production_and_complete_backend_fixture": [
+    {
+      "source": "src/loan_plan.rs",
+      "sha256": "192c28dccc80ba447f09c05a7b606416e92d37854f66e64cd337ec168a666d68",
+      "unchanged_from_basis": true
+    },
+    {
+      "source": "src/loan_plan/paid_candidate.rs",
+      "sha256": "21beae8f565af669630a2e858cae0ac02caf8c871fa783b6c413a4159ebf77e9",
+      "unchanged_from_basis": true
+    },
+    {
+      "source": "src/loan_plan/paid_candidate/retained.rs",
+      "sha256": "26517460e33d149c931e07c1900412e5f380211950dce03eb6d905b3933ec8cf",
+      "unchanged_from_basis": true
+    },
+    {
+      "source": "src/hir/validation/byte_traversal/nested.rs",
+      "sha256": "6d08f48019419c1c6a7f289cbc70bb4df4e3320cebf76c0042de2bea7f02c43e",
+      "unchanged_from_basis": true
+    },
+    {
+      "source": "src/hir/validation/byte_traversal/nested/check.rs",
+      "sha256": "f43eae1057816d52521acb0bf668fa48950763834e0b6c1aa5eed2d11f76d940",
+      "unchanged_from_basis": true
+    },
+    {
+      "source": "src/hir/validation/byte_traversal/nested/intervals.rs",
+      "sha256": "00f3240a36b6763f2b6d25e9dfce340e55117cc3fb6c74a2e75154b145288249",
+      "unchanged_from_basis": true
+    },
+    {
+      "source": "tests/fixtures/nested-byte-slice-traversal.spx",
+      "sha256": "f0829da6f19834f7ff3524b498c6057a4d822e04fe7e2ab3cdb487f6bcad9d4d",
+      "unchanged_from_basis": true
+    }
+  ],
+  "rust_line_counts": {
+    "src/hir/validation/byte_traversal/nested/tests.rs": 520,
+    "tests/useful_data/byte_slice_for_runtime/nested.rs": 94
+  },
+  "same_two_owning_selectors_retained": true,
+  "new_module_or_audit_exclusion": false,
+  "actual_corrections_executed": false
+}

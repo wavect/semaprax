@@ -137,6 +137,20 @@ pub(super) fn signature(
             "borrowed field uniqueness root/nominal/field/layout descriptor is forged or stale",
         ));
     }
+    if op == crate::vec_ops::VecOp::UpdateField {
+        let (_, field) = crate::vec_ops::field_update::position(
+            declarations,
+            &type_arguments[0],
+            callee.as_str(),
+        )
+        .ok_or_else(|| hir_error("scalar field update descriptor is forged or stale"))?;
+        if !crate::vec_ops::field_update::arguments(args, &type_arguments[0], &field) {
+            return Err(hir_error(crate::vec_ops::field_update::SHAPE));
+        }
+        let mut params = crate::vec_ops::resolved_params_in(declarations, op, &type_arguments[0]);
+        params[2].ty = field;
+        return Ok(Some((params, op.resolved_return_type(&type_arguments[0]))));
+    }
     Ok(Some((
         crate::vec_ops::resolved_params_in(declarations, op, &type_arguments[0]),
         if callee.as_str() == crate::vec_ops::string_slot::BYTES_ID {

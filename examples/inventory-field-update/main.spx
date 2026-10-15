@@ -1,0 +1,23 @@
+module inventory.update;
+
+@id("inventory.item")
+record Item {
+    @id("inventory.item.sku")
+    sku: string,
+    @id("inventory.item.count")
+    count: usize,
+    @id("inventory.item.active")
+    active: bool,
+}
+
+@id("inventory.main")
+fn main() -> i64
+{
+    let mut stock = vec_with_capacity<Item>(2usize);
+    stock = vec_push<Item>(stock, Item { sku: "nuts", count: 3usize, active: true });
+    stock = vec_push<Item>(stock, Item { sku: "bolts", count: 9usize, active: false });
+    let available = vec_field<Item>(stock, 0usize, "count");
+    stock = vec_update_field<Item>(stock, 0usize, available - 1usize, "count");
+    stock = vec_update_field<Item>(stock, 1usize, true, "active");
+    if vec_field<Item>(stock, 0usize, "sku") == str"nuts" && vec_field<Item>(stock, 0usize, "count") == 2usize && vec_field<Item>(stock, 1usize, "count") == 9usize && vec_field<Item>(stock, 1usize, "active") && vec_capacity<Item>(stock) == 2usize { 42 } else { 1 }
+}

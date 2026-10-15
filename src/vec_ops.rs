@@ -99,7 +99,12 @@ impl VecOp {
     pub(crate) const fn owned_leaf_only(self) -> bool {
         matches!(
             self,
-            Self::CloneAt | Self::Replace | Self::ReserveOwned | Self::SortOwned | Self::StrAt | Self::UpdateField
+            Self::CloneAt
+                | Self::Replace
+                | Self::ReserveOwned
+                | Self::SortOwned
+                | Self::StrAt
+                | Self::UpdateField
         )
     }
     pub(crate) const fn admits_owned_leaf(self) -> bool {
@@ -288,7 +293,7 @@ impl VecOp {
             | Self::Clear
             | Self::Sort
             | Self::Replace
-                | Self::UpdateField
+            | Self::UpdateField
             | Self::ReserveOwned
             | Self::SortOwned
             | Self::SortBy => resolved_vec(element.clone()),
@@ -307,7 +312,7 @@ impl VecOp {
             | Self::Clear
             | Self::Sort
             | Self::Replace
-                | Self::UpdateField
+            | Self::UpdateField
             | Self::ReserveOwned
             | Self::SortOwned
             | Self::SortBy => ast_vec(element.clone()),
@@ -345,9 +350,8 @@ impl VecOp {
             | (Self::Clear | Self::Sort | Self::SortOwned | Self::SortBy, 0) => {
                 resolved_vec_matches(ty, element)
             }
-            (Self::ReserveExact | Self::ReserveOwned, 1) | (Self::Set | Self::Replace | Self::UpdateField, 1) => {
-                *ty == ResolvedType::Usize
-            }
+            (Self::ReserveExact | Self::ReserveOwned, 1)
+            | (Self::Set | Self::Replace | Self::UpdateField, 1) => *ty == ResolvedType::Usize,
             (Self::Set | Self::Replace, 2) => ty == element,
             (Self::UpdateField, 2) => resolved_element_is_admitted(ty),
             _ => false,
@@ -391,7 +395,9 @@ pub(crate) fn by_id(id: &str) -> Option<VecOp> {
     if id.starts_with(field_unique::PREFIX) {
         return Some(VecOp::UniqueBy);
     }
-    if id.starts_with(field_update::PREFIX) { return Some(VecOp::UpdateField); }
+    if id.starts_with(field_update::PREFIX) {
+        return Some(VecOp::UpdateField);
+    }
     match id {
         string_slot::ID | string_slot::BYTES_ID => Some(VecOp::StrAt),
         WITH_CAPACITY_ID => Some(VecOp::WithCapacity),
@@ -542,7 +548,11 @@ pub(crate) fn resolved_params(op: VecOp, element: &ResolvedType) -> Vec<Resolved
         VecOp::ReserveExact | VecOp::ReserveOwned => {
             vec![resolved_vec(element.clone()), ResolvedType::Usize]
         }
-        VecOp::UpdateField => vec![resolved_vec(element.clone()), ResolvedType::Usize, ResolvedType::I64],
+        VecOp::UpdateField => vec![
+            resolved_vec(element.clone()),
+            ResolvedType::Usize,
+            ResolvedType::I64,
+        ],
         VecOp::Set | VecOp::Replace => vec![
             resolved_vec(element.clone()),
             ResolvedType::Usize,
@@ -686,8 +696,10 @@ pub(crate) fn is_same_owner_reassignment_source(
     };
     // The literal policy is an authored source operand. Resolution encodes it
     // into the authenticated callee descriptor, leaving only the owning Vec.
-    op.is_some_and(|op| args.len() == op.arity() + usize::from(matches!(direct, Some(VecOp::SortBy | VecOp::UpdateField))))
-        && owner_type_matches
+    op.is_some_and(|op| {
+        args.len()
+            == op.arity() + usize::from(matches!(direct, Some(VecOp::SortBy | VecOp::UpdateField)))
+    }) && owner_type_matches
         && matches!(&args[0].kind, ExprKind::Var(source) if source == name)
 }
 

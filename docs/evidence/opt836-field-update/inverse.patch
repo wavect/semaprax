@@ -1,0 +1,1831 @@
+diff --git b/CHANGELOG.md a/CHANGELOG.md
+index 67acf56b2..9cbaa8c2a 100644
+--- b/CHANGELOG.md
++++ a/CHANGELOG.md
+@@ -1232,6 +1231,0 @@ format: `Unreleased` then release buckets, grouped by impact.
+-- Source-only #836 adds consuming `vec_update_field<Row>(rows,index,value,"field")`
+-  for exact Copy scalar slots of invariant-free flat owned-leaf records, with
+-  independent source/HIR/graph/cache checks, ordinary sticky preflight cleanup,
+-  interpreter/native/Wasm paths, typed ShiftSim Worker adoption and an unrelated
+-  inventory example. Owning gates remain pending; no efficiency result is claimed.
+-
+diff --git b/docs/AGENT-QUICK-REFERENCE.md a/docs/AGENT-QUICK-REFERENCE.md
+index 7e49a9f5b..7a5e2c054 100644
+--- b/docs/AGENT-QUICK-REFERENCE.md
++++ a/docs/AGENT-QUICK-REFERENCE.md
+@@ -1506,6 +1505,0 @@ vec_sort_owned retains declaration order. [Sort](EXPLICIT-RECORD-SORT-KEYS-V1.md
+-`vec_update_field<Row>(rows,index,value,"count")` consumes/renews the Vec and
+-writes one exact Copy scalar. Literal field name is last; invariant-free flat
+-owned-leaf records only (SPX-T320), usize index, exact RHS type. End all field
+-loans first. No leaf clones or capacity change. Qualification pending:
+-[contract](OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md), `help language author:update-field`.
+-
+diff --git b/docs/OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md a/docs/OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md
+deleted file mode 100644
+index df85f85bb..000000000
+--- b/docs/OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md
++++ /dev/null
+@@ -1,136 +0,0 @@
+-# Owned record scalar field update v1
+-
+-Audience: language users, compiler contributors and reviewers.
+-
+-Status: source implementation batch for #836; all owning executable gates below
+-are pending. No implementation completion, application acceptance or efficiency
+-result is claimed.
+-
+-## Source and admission
+-
+-`vec_update_field<Row>(rows, index, value, "field") -> Vec<Row>` consumes and
+-renews an existing owning vector. The selector is last, consistent with lowering
+-a contiguous left-to-right evaluated operand list followed by literal metadata.
+-It is one literal ASCII field identifier of at most 256 bytes. It is not a
+-runtime String, allocation, evaluated fourth operand or dynamic selector.
+-
+-`Row` is an explicitly identified, monomorphic, invariant-free flat record
+-already admitted by [Owned Leaf Collections v1](OWNED-LEAF-COLLECTIONS-V1.md):
+-one through eight explicitly identified fields, one or two direct String/Bytes
+-leaves, all remaining fields from `i64`, `i32`, `u8`, `usize`, `char`, `f32`,
+-`f64`, `bool`. The selected field must be one of those Copy scalars, and `value`
+-must have its exact type; there is no coercion. `index` has type `usize`.
+-Primitive, Copy-only, nested, recursive, generic, resource, class,
+-borrowed-field and invariant-bearing records do not acquire this operation.
+-The legacy two-Bytes record may use its existing carrier when it independently
+-meets this same predicate; its old operations and physical layout stay exact.
+-
+-Missing, computed, non-Copy or unsupported selectors/shapes refuse with
+-`SPX-T320`; ordinary wrong operand types retain `SPX-T205`. An own vector is
+-required; ordinary move/availability and whole-root loan rules apply. The
+-operation is allowed in existing bounded loops under their unchanged work and
+-allocation limits. It creates no general mutable reference or new authority.
+-
+-## Evaluation and commit
+-
+-Evaluate vector, index and value exactly once from left to right. The selector
+-is resolved statically. Finish RHS evaluation before checking the index; an RHS
+-failure therefore remains selected even if the index would be out of range.
+-Authenticate the current owner/generation, complete nominal layout and scalar
+-slot before storage access. Invalid index selects existing `semaprax.vec.v1`
+-code 2 before transferring the staged owner. Preflight or RHS failure leaves
+-staged owners to ordinary canonical failure cleanup.
+-
+-Success performs one Copy scalar slot store, then publishes the same vector at
+-its next generation, with one ordinary grouped call commit. Length and capacity
+-are unchanged. Every unrelated scalar bit and every String/Bytes owner and
+-payload identity stays unchanged. The store does not clone, allocate, drop a
+-leaf, rebuild a row, settle another field, call user code or acquire an effect.
+-Checked preflight generation exhaustion/stale or forged private carriers fail
+-closed; no stale handle is repaired. Failure selection is sticky and cleanup
+-plan order is consumed as authored, never sorted or repaired.
+-
+-A field view protects the whole vector generation through its last use.
+-Movement/update while that loan is live is refused, including inside a scoped
+-row traversal. End the loan first; copying an index does not bypass it.
+-[Scoped Vec Field Reads v1](SCOPED-VEC-FIELD-READS-V1.md) retains its existing
+-read-only behavior. No view survives mutation.
+-
+-## HIR, source and cache authority
+-
+-HIR uses the ordinary owned `Call` form with exactly three runtime children
+-`.arg.0`, `.arg.1`, `.arg.2`, one exact element type and no function instance.
+-Its compiler-owned callee is `core.vec.update-field.v1:<descriptor>`. The
+-canonical length-delimited descriptor retains the exact nominal identity,
+-complete declaration-order field/type/capacity layout and persistent selected
+-field ID, bounded to 16384 bytes. Replay independently derives the layout,
+-field name, type, owner and admission from current declarations. A reserved
+-prefix alone grants no authority; declarations/imports cannot impersonate it.
+-
+-The source verifier independently derives the profile from source declarations;
+-HIR validation checks the exact RHS signature again. Canonical formatting uses
+-the existing ordinary generic-call grammar and preserves the literal selector.
+-Graph prelude v19 is selected only by this operation; prior source keeps its
+-prior prelude schema/bytes. The ordinary graph Call schema is unchanged.
+-Workspace replay compares the source-derived descriptor at its exact expression
+-identity. Checked module cache compatibility v12 independently resolves the
+-retained canonical synthetic source. A coherent same-type field substitution
+-cannot gain source/cache authority even after rebuilding all ownership proofs.
+-
+-The existing cleanup, renewal, status and cache Call machinery retains the
+-operation's fallible preflight/one-owner boundary. No new plan vector is sorted
+-or repaired. Old public command entry ABI, carrier capacities, profiles v27/v29
+-and public owning adapters retain their existing admission. Private owned-leaf
+-profiles alone admit this operation; schema declarations or synthetic origins
+-cannot widen them.
+-
+-## Runtime representations
+-
+-The interpreter uses unique existing vector/record storage and mutates the
+-selected scalar slot without materializing owned values. Native C11 authenticates
+-its existing carrier descriptor and index and writes the selected scalar word;
+-all eight scalar encodings retain exact bits, including signed zero and NaNs.
+-The success owner transfer follows the ordinary cleanup epoch protocol.
+-
+-The private Core-Wasm host adds only `spx_vec_update_field_v1`, six i64 arguments
+-`(handle, nominal_identity, shape, index, ordinal, scalar_bits) -> i64`. Existing
+-imports, layouts and tags remain unchanged. The operation authenticates the
+-complete descriptor, current generation, index, ordinal and scalar encoding.
+-A null failure result consumes nothing; success renews the existing authority
+-slot once and returns its fresh generation. No row/payload clone, allocation or
+-Drop occurs at the store. Legacy tag10 descriptor binding is selected only when
+-this update is reachable. This is a private host protocol, not a public ABI.
+-
+-## Adoption and exact owning gates (pending)
+-
+-The actual typed ShiftSim scheduler carries `Worker { id, free_at }` and updates
+-`free_at` after the assignment's borrowed ID is copied into the output report.
+-Its runtime parallel worker-state Vec and complete worker-row reconstruction
+-are removed. `PatientState` and independent sorted arrival indices remain:
+-they serve different work. Prior WorkerState helper bodies, old scheduler,
+-independent acceptance/oracles and all original ShiftSim15 tasks stay intact.
+-The unrelated [inventory example](../examples/inventory-field-update/main.spx)
+-updates `count` and `active` while preserving `sku` and the other row.
+-
+-Minimum next grouped selection, owned by the integration parent:
+-
+-- `cargo test --locked -p semaprax --lib vec_ops::field_update::tests -- --nocapture`
+-- `cargo test --locked -p semaprax --lib project::incremental::snapshot::field_update::tests -- --nocapture`
+-- `cargo test --locked -p semaprax --bin semaprax scalar_field_update_card -- --nocapture`
+-- Existing owned-data backend harness's `field_update` module: same-source
+-  interpreter/native C11 O0/O2/strict Wasm, exact/+1 index, every scalar lane and
+-  floating bit patterns, RHS first failure, physical leaf identity and zero
+-  clone/allocation/drop at store, whole construction-through-Drop settlement,
+-  stale generation and malformed descriptor controls.
+-- Existing typed ShiftSim application harness: unchanged complete ShiftSim15,
+-  original invalid-input controls and independent scheduler comparison, plus
+-  unrelated inventory/count acceptance; full original fuel/bounds retained.
+-- Scoped Clippy and required current pin regeneration follow the parent's batch;
+-  no full suite is selected by this source-only work.
+-
+-No Cargo command, build, test, Clippy or benchmark was executed by this authoring
+-lane. Static source is separate from executable evidence. Immediate prior source
+-archives/inverses and direct pending selectors accompany this batch. Historical
+-global provenance composition remains deliberately uncomposed here; the parent
+-will compose it once after integrating disjoint lanes. No measured token, turn,
+-latency, billed-cost or efficiency savings follows from a source reduction.
+diff --git b/docs/SUMMARY.md a/docs/SUMMARY.md
+index 62a04d7a1..c489b3d2c 100644
+--- b/docs/SUMMARY.md
++++ a/docs/SUMMARY.md
+@@ -740 +739,0 @@ Audience: all documentation readers.
+-- [Owned record scalar field update v1](OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md)
+diff --git b/examples/inventory-field-update/README.md a/examples/inventory-field-update/README.md
+deleted file mode 100644
+index 1bebda222..000000000
+--- b/examples/inventory-field-update/README.md
++++ /dev/null
+@@ -1,6 +0,0 @@
+-# Inventory scalar field updates
+-
+-This compiler-checked source example updates one `count` and one `active` field
+-inside an owning `Vec<Item>`, retaining the SKU owners and other row values.
+-Expected result is 42. See the [owning contract](../../docs/OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md).
+-Execution qualification is pending; this example is not a benchmark.
+diff --git b/examples/inventory-field-update/main.spx a/examples/inventory-field-update/main.spx
+deleted file mode 100644
+index 77dc110f5..000000000
+--- b/examples/inventory-field-update/main.spx
++++ /dev/null
+@@ -1,23 +0,0 @@
+-module inventory.update;
+-
+-@id("inventory.item")
+-record Item {
+-    @id("inventory.item.sku")
+-    sku: string,
+-    @id("inventory.item.count")
+-    count: usize,
+-    @id("inventory.item.active")
+-    active: bool,
+-}
+-
+-@id("inventory.main")
+-fn main() -> i64
+-{
+-    let mut stock = vec_with_capacity<Item>(2usize);
+-    stock = vec_push<Item>(stock, Item { sku: "nuts", count: 3usize, active: true });
+-    stock = vec_push<Item>(stock, Item { sku: "bolts", count: 9usize, active: false });
+-    let available = vec_field<Item>(stock, 0usize, "count");
+-    stock = vec_update_field<Item>(stock, 0usize, available - 1usize, "count");
+-    stock = vec_update_field<Item>(stock, 1usize, true, "active");
+-    if vec_field<Item>(stock, 0usize, "sku") == str"nuts" && vec_field<Item>(stock, 0usize, "count") == 2usize && vec_field<Item>(stock, 1usize, "count") == 9usize && vec_field<Item>(stock, 1usize, "active") && vec_capacity<Item>(stock) == 2usize { 42 } else { 1 }
+-}
+diff --git b/examples/shiftsim-typed-record-successor/README.md a/examples/shiftsim-typed-record-successor/README.md
+index 2f66ed334..99f3e0631 100644
+--- b/examples/shiftsim-typed-record-successor/README.md
++++ a/examples/shiftsim-typed-record-successor/README.md
+@@ -3,11 +3,14 @@
+-This source draft uses named `Patient`, `Worker`, `Assignment`, and `Metrics`
+-records. Actual worker rows hold both `id` and `free_at`; consuming
+-`vec_update_field<Worker>(workers,index,finish,"free_at")` updates availability
+-without rebuilding the row or cloning its ID. The scheduler no longer maintains
+-a parallel worker-state vector. The prior `WorkerState` declarations and helper
+-bodies remain independent controls. Patient state and sorted arrival indices
+-remain separate for their distinct scheduling roles. Patient uniqueness uses
+-`vec_unique_by`; borrowed IDs are copied only into completed output assignments.
+-The original tasks, acceptance/oracles, 8/256 bounds and one-million-step fuel
+-limit remain unchanged. Current-head executable qualification is pending; this
+-source change establishes no allocation or agent-efficiency result.
++This source draft replaces the retained scheduler's six-slot scalar packing
++with named `Patient`, `Assignment`, and `Metrics` records. Server IDs stay
++in a sorted `Vec<string>` and use `vec_str_at` for validation and selection. The
++declared `Patient` field order is the dispatch key `(priority, arrival, id)`;
++the stable owned-record sort preserves those ties. Mutable scheduling state
++uses separate Copy records indexed alongside the sorted owners, so waiting and
++completion scans do not deep-clone patient IDs. Patient uniqueness now copies
++each ID once into a separate owned String vector,
++sorts it, and compares adjacent borrowed slots. Dispatch order stays in the
++original patient vector. The frozen pairwise helper remains an independent
++control, including 256 IDs; the application still uses its original one-million-step
++limit. These validation copies and the vector change allocation-failure ordinals.
++Output IDs are copied when a completed assignment enters the owned report.
++Runtime/fuel improvement is unqualified until the focused application gates run.
+diff --git b/examples/shiftsim-typed-record-successor/src/model.spx a/examples/shiftsim-typed-record-successor/src/model.spx
+index 2054e73de..0b674beae 100644
+--- b/examples/shiftsim-typed-record-successor/src/model.spx
++++ a/examples/shiftsim-typed-record-successor/src/model.spx
+@@ -33,8 +32,0 @@ fn model_anchor() -> i64
+-
+-@id("shiftsim.worker")
+-record Worker {
+-    @id("shiftsim.worker.id")
+-    id: string,
+-    @id("shiftsim.worker.free_at")
+-    free_at: i64,
+-}
+diff --git b/examples/shiftsim-typed-record-successor/src/schedule.spx a/examples/shiftsim-typed-record-successor/src/schedule.spx
+index 4a9214945..ac3407241 100644
+--- b/examples/shiftsim-typed-record-successor/src/schedule.spx
++++ a/examples/shiftsim-typed-record-successor/src/schedule.spx
+@@ -9 +8,0 @@ use type @id("shiftsim.worker_state") from shiftsim.model as WorkerState;
+-use type @id("shiftsim.worker") from shiftsim.model as Worker;
+@@ -188,27 +186,0 @@ fn next_time_from_arrivals_indexed_control(arrivals: borrow Vec<i64>, arrived: u
+-// The actual owning Worker rows replace the runtime parallel worker-state Vec.
+-@id("shiftsim.schedule.next_worker")
+-fn next_worker(workers: borrow Vec<Worker>, count: usize, time: i64) -> usize
+-{
+-    let mut index = 0usize;
+-    while index < count {
+-        if vec_field<Worker>(workers, index, "free_at") <= time { return index; }
+-        index = index + 1usize;
+-        0
+-    }
+-    count
+-}
+-
+-@id("shiftsim.schedule.next_worker_time")
+-fn next_worker_time(arrivals: borrow Vec<i64>, arrived: usize, count: usize, workers: borrow Vec<Worker>, server_count: usize, time: i64) -> i64
+-{
+-    let mut next = if arrived < count { vec_get<i64>(arrivals, arrived) } else { 9223372036854775807 };
+-    let mut index = 0usize;
+-    while index < server_count {
+-        let free_at = vec_field<Worker>(workers, index, "free_at");
+-        if free_at > time && free_at < next { next = free_at; }
+-        index = index + 1usize;
+-        0
+-    }
+-    next
+-}
+-
+@@ -222 +194 @@ fn run(request: own Request) -> ScheduleResult
+-    // Only validated worker rows and patient state reach dispatch: 8/256 bounds,
++    // Only valid fixed-length Copy state reaches dispatch: 8/256 bounds,
+@@ -225 +197 @@ fn run(request: own Request) -> ScheduleResult
+-    match own request { Request { servers: input_servers, patients: input_patients } => { let patient_count = vec_len<Patient>(input_patients); let server_count = vec_len<string>(input_servers); let ordered_patients = patients_by_dispatch_key(input_patients); let worker_ids = servers_by_id(input_servers); let mut people = vec_with_capacity<Patient>(patient_count); let mut patient_states = vec_with_capacity<PatientState>(patient_count); let mut arrival_times = vec_with_capacity<i64>(patient_count); let mut valid = server_count <= 8usize && patient_count <= 256usize && (server_count > 0usize || patient_count == 0usize); for own ordered_patient in vec_into_iter<Patient>(ordered_patients) { match own ordered_patient { Patient { priority: person_priority, arrival: person_arrival, id: person_id, service: person_service, deadline: person_deadline } => { if !identifier(string_as_str(person_id)) { valid = false; } if patient_fields_invalid(person_arrival, person_service, person_priority, person_deadline) { valid = false; } patient_states = vec_push<PatientState>(patient_states, PatientState { arrival: person_arrival, assigned: false }); arrival_times = vec_push<i64>(arrival_times, person_arrival); people = vec_push<Patient>(people, Patient { priority: person_priority, arrival: person_arrival, id: person_id, service: person_service, deadline: person_deadline }); 0 }, } } valid = unique_patient_ids(people) && valid; valid = sorted_servers_have_unique_ids(worker_ids) && valid; let mut workers = vec_with_capacity<Worker>(server_count); for own worker_id in vec_into_iter<string>(worker_ids) { if !identifier(string_as_str(worker_id)) { valid = false; } workers = vec_push<Worker>(workers, Worker { id: worker_id, free_at: 0 }); 0 } if !valid { return ScheduleResult { valid: false, report: empty_report() }; } let arrival_order = vec_sort<i64>(arrival_times); let mut arrived = 0usize; let mut assignments = vec_with_capacity<Assignment>(patient_count); let mut total_wait = 0; let mut max_wait = 0; let mut late_count = 0; let mut busy_time = 0; let mut makespan = 0; let mut peak_queue = 0; let mut time = 0; let mut dispatched = 0usize; while dispatched < patient_count { arrived = advance_arrivals(arrival_order, patient_count, arrived, time); let waiting = i64_from_usize(arrived - dispatched); peak_queue = maximum(peak_queue, waiting); while true { let server_index = next_worker(workers, server_count, time); if server_index == server_count { break; } let patient_index = next_patient(patient_states, patient_count, time); if patient_index == patient_count { break; } let selected_arrival = vec_field<Patient>(people, patient_index, "arrival"); let selected_service = vec_field<Patient>(people, patient_index, "service"); let selected_deadline = vec_field<Patient>(people, patient_index, "deadline"); let selected_id = vec_field<Patient>(people, patient_index, "id"); let selected_server_id = vec_field<Worker>(workers, server_index, "id"); let finish = time + selected_service; let wait = time - selected_arrival; let is_late = finish > selected_deadline; let prior_patient_state = vec_get<PatientState>(patient_states, patient_index); let updated_patient_state = PatientState { arrival: prior_patient_state.arrival, assigned: true }; patient_states = vec_set<PatientState>(patient_states, patient_index, updated_patient_state); assignments = vec_push<Assignment>(assignments, Assignment { id: string_from_str(selected_id), server: string_from_str(selected_server_id), arrival: selected_arrival, start: time, finish: finish, wait: wait, late: is_late }); workers = vec_update_field<Worker>(workers, server_index, finish, "free_at"); total_wait = total_wait + wait; max_wait = maximum(max_wait, wait); late_count = count_late(late_count, is_late); busy_time = busy_time + selected_service; makespan = maximum(makespan, finish); dispatched = dispatched + 1usize; 0 } if dispatched < patient_count { time = next_worker_time(arrival_order, arrived, patient_count, workers, server_count, time); 0 } else { 0 } } let utilization_ppm = if patient_count == 0usize || server_count == 0usize || makespan == 0 { 0 } else { busy_time * 1000000 / (i64_from_usize(server_count) * makespan) }; return ScheduleResult { valid: true, report: Report { assignments: assignments, metrics: Metrics { patients: i64_from_usize(patient_count), total_wait: total_wait, max_wait: max_wait, late: late_count, busy_time: busy_time, makespan: makespan, peak_queue: peak_queue, utilization_ppm: utilization_ppm } } }; }, }
++    match own request { Request { servers: input_servers, patients: input_patients } => { let patient_count = vec_len<Patient>(input_patients); let server_count = vec_len<string>(input_servers); let ordered_patients = patients_by_dispatch_key(input_patients); let workers = servers_by_id(input_servers); let mut people = vec_with_capacity<Patient>(patient_count); let mut patient_states = vec_with_capacity<PatientState>(patient_count); let mut arrival_times = vec_with_capacity<i64>(patient_count); let mut valid = server_count <= 8usize && patient_count <= 256usize && (server_count > 0usize || patient_count == 0usize); for own ordered_patient in vec_into_iter<Patient>(ordered_patients) { match own ordered_patient { Patient { priority: person_priority, arrival: person_arrival, id: person_id, service: person_service, deadline: person_deadline } => { if !identifier(string_as_str(person_id)) { valid = false; } if patient_fields_invalid(person_arrival, person_service, person_priority, person_deadline) { valid = false; } patient_states = vec_push<PatientState>(patient_states, PatientState { arrival: person_arrival, assigned: false }); arrival_times = vec_push<i64>(arrival_times, person_arrival); people = vec_push<Patient>(people, Patient { priority: person_priority, arrival: person_arrival, id: person_id, service: person_service, deadline: person_deadline }); 0 }, } } valid = unique_patient_ids(people) && valid; let mut worker_states = vec_with_capacity<WorkerState>(server_count); let mut worker_index = 0usize; while worker_index < server_count { let server_id = vec_str_at(workers, worker_index); if !identifier(server_id) { valid = false; } worker_states = vec_push<WorkerState>(worker_states, WorkerState { free_at: 0 }); worker_index = worker_index + 1usize; 0 } valid = sorted_servers_have_unique_ids(workers) && valid; if !valid { return ScheduleResult { valid: false, report: empty_report() }; } let arrival_order = vec_sort<i64>(arrival_times); let mut arrived = 0usize; let mut assignments = vec_with_capacity<Assignment>(patient_count); let mut total_wait = 0; let mut max_wait = 0; let mut late_count = 0; let mut busy_time = 0; let mut makespan = 0; let mut peak_queue = 0; let mut time = 0; let mut dispatched = 0usize; while dispatched < patient_count { arrived = advance_arrivals(arrival_order, patient_count, arrived, time); let waiting = i64_from_usize(arrived - dispatched); peak_queue = maximum(peak_queue, waiting); while true { let server_index = next_server(worker_states, server_count, time); if server_index == server_count { break; } let patient_index = next_patient(patient_states, patient_count, time); if patient_index == patient_count { break; } let selected_arrival = vec_field<Patient>(people, patient_index, "arrival"); let selected_service = vec_field<Patient>(people, patient_index, "service"); let selected_deadline = vec_field<Patient>(people, patient_index, "deadline"); let selected_id = vec_field<Patient>(people, patient_index, "id"); let selected_server_id = vec_str_at(workers, server_index); let finish = time + selected_service; let wait = time - selected_arrival; let is_late = finish > selected_deadline; let prior_patient_state = vec_get<PatientState>(patient_states, patient_index); let updated_patient_state = PatientState { arrival: prior_patient_state.arrival, assigned: true }; patient_states = vec_set<PatientState>(patient_states, patient_index, updated_patient_state); let updated_worker_state = WorkerState { free_at: finish }; worker_states = vec_set<WorkerState>(worker_states, server_index, updated_worker_state); assignments = vec_push<Assignment>(assignments, Assignment { id: string_from_str(selected_id), server: string_from_str(selected_server_id), arrival: selected_arrival, start: time, finish: finish, wait: wait, late: is_late }); total_wait = total_wait + wait; max_wait = maximum(max_wait, wait); late_count = count_late(late_count, is_late); busy_time = busy_time + selected_service; makespan = maximum(makespan, finish); dispatched = dispatched + 1usize; 0 } if dispatched < patient_count { time = next_time_from_arrivals(arrival_order, arrived, patient_count, worker_states, server_count, time); 0 } else { 0 } } let utilization_ppm = if patient_count == 0usize || server_count == 0usize || makespan == 0 { 0 } else { busy_time * 1000000 / (i64_from_usize(server_count) * makespan) }; return ScheduleResult { valid: true, report: Report { assignments: assignments, metrics: Metrics { patients: i64_from_usize(patient_count), total_wait: total_wait, max_wait: max_wait, late: late_count, busy_time: busy_time, makespan: makespan, peak_queue: peak_queue, utilization_ppm: utilization_ppm } } }; }, }
+diff --git b/src/cleanup_plan/build.rs a/src/cleanup_plan/build.rs
+index 473330ac8..5c412a7ef 100644
+--- b/src/cleanup_plan/build.rs
++++ a/src/cleanup_plan/build.rs
+@@ -2598 +2597,0 @@ impl<'a> PlanBuilder<'a> {
+-                                callee,
+diff --git b/src/cleanup_plan/build/bounded_vec.rs a/src/cleanup_plan/build/bounded_vec.rs
+index 060954932..6a12530ab 100644
+--- b/src/cleanup_plan/build/bounded_vec.rs
++++ a/src/cleanup_plan/build/bounded_vec.rs
+@@ -56 +55,0 @@ impl PlanBuilder<'_> {
+-        callee: &DeclarationId,
+@@ -62,14 +60,0 @@ impl PlanBuilder<'_> {
+-        if op == crate::vec_ops::VecOp::UpdateField {
+-            let [element] = type_arguments else {
+-                return Err(plan_error("scalar update missing element"));
+-            };
+-            if has_instance || argument_count != 3 {
+-                return Err(plan_error("scalar update invalid call shape"));
+-            }
+-            return crate::vec_ops::field_update::params(
+-                &self.program.declarations,
+-                element,
+-                callee.as_str(),
+-            )
+-            .ok_or_else(|| plan_error("scalar update forged descriptor"));
+-        }
+diff --git b/src/cleanup_plan/deferred_commit.rs a/src/cleanup_plan/deferred_commit.rs
+index 93812d324..be0449f74 100644
+--- b/src/cleanup_plan/deferred_commit.rs
++++ a/src/cleanup_plan/deferred_commit.rs
+@@ -41 +40,0 @@ pub(super) fn call_behavior(
+-                | crate::vec_ops::VecOp::UpdateField
+diff --git b/src/cleanup_plan/replay.rs a/src/cleanup_plan/replay.rs
+index bbbcb2b44..a361c9f02 100644
+--- b/src/cleanup_plan/replay.rs
++++ a/src/cleanup_plan/replay.rs
+@@ -618,2 +618 @@ fn validate_structure_with_budget_storage<'hir>(
+-    let status_cases =
+-        expression_facts::receiving::StatusCases::validate(program, function, budget)?;
++    let status_cases = expression_facts::receiving::StatusCases::validate(program, function, budget)?;
+@@ -623,4 +622 @@ fn validate_structure_with_budget_storage<'hir>(
+-        function,
+-        &expression_facts,
+-        budget,
+-        &status_cases,
++        function, &expression_facts, budget, &status_cases,
+@@ -3600 +3596 @@ fn expression_skeleton_run<'hir>(
+-                                    resolved_call::vector_params(
++                                    crate::vec_ops::resolved_params_in(
+@@ -3604 +3599,0 @@ fn expression_skeleton_run<'hir>(
+-                                        callee,
+diff --git b/src/cleanup_plan/replay/allocation_coverage.rs a/src/cleanup_plan/replay/allocation_coverage.rs
+index 03a66109b..05e025d86 100644
+--- b/src/cleanup_plan/replay/allocation_coverage.rs
++++ a/src/cleanup_plan/replay/allocation_coverage.rs
+@@ -279,8 +279,3 @@ fn call(
+-                V::Push
+-                | V::Len
+-                | V::Capacity
+-                | V::Set
+-                | V::Clear
+-                | V::Replace
+-                | V::StrAt
+-                | V::UpdateField => Ok(()),
++                V::Push | V::Len | V::Capacity | V::Set | V::Clear | V::Replace | V::StrAt => {
++                    Ok(())
++                }
+diff --git b/src/cleanup_plan/replay/resolved_call.rs a/src/cleanup_plan/replay/resolved_call.rs
+index 3004222d3..cf352c4d8 100644
+--- b/src/cleanup_plan/replay/resolved_call.rs
++++ a/src/cleanup_plan/replay/resolved_call.rs
+@@ -437,8 +436,0 @@ pub(super) fn resolved_call_params(
+-            if op == crate::vec_ops::VecOp::UpdateField {
+-                return crate::vec_ops::field_update::params(
+-                    program.declarations(),
+-                    element,
+-                    callee.as_str(),
+-                )
+-                .ok_or_else(|| replay_error(function, "forged scalar update signature"));
+-            }
+@@ -501 +493 @@ pub(super) fn defers_owner_commit(expression: &crate::hir::ResolvedExpr) -> bool
+-                | crate::vec_ops::VecOp::Replace | crate::vec_ops::VecOp::ReserveOwned | crate::vec_ops::VecOp::UpdateField
++                | crate::vec_ops::VecOp::Replace | crate::vec_ops::VecOp::ReserveOwned
+@@ -517,13 +508,0 @@ pub(super) fn defers_owner_commit(expression: &crate::hir::ResolvedExpr) -> bool
+-
+-pub(super) fn vector_params(
+-    index: &crate::hir::DeclarationIndex,
+-    op: crate::vec_ops::VecOp,
+-    element: &ResolvedType,
+-    callee: &DeclarationId,
+-) -> Vec<ResolvedParam> {
+-    if op == crate::vec_ops::VecOp::UpdateField {
+-        return crate::vec_ops::field_update::params(index, element, callee.as_str())
+-            .unwrap_or_default();
+-    }
+-    crate::vec_ops::resolved_params_in(index, op, element)
+-}
+diff --git b/src/cleanup_plan/replay/selected_profile/collections.rs a/src/cleanup_plan/replay/selected_profile/collections.rs
+index 43716d09e..991aacca5 100644
+--- b/src/cleanup_plan/replay/selected_profile/collections.rs
++++ a/src/cleanup_plan/replay/selected_profile/collections.rs
+@@ -42,6 +42 @@ pub(in crate::cleanup_plan::replay) fn call_facts(
+-    if instance.is_some()
+-        || matches!(
+-            op,
+-            VecOp::SortBy | VecOp::StrAt | VecOp::UniqueBy | VecOp::UpdateField
+-        )
+-    {
++    if instance.is_some() || matches!(op, VecOp::SortBy | VecOp::StrAt | VecOp::UniqueBy) {
+diff --git b/src/cleanup_plan/replay/selected_profile/paid_children/collections.rs a/src/cleanup_plan/replay/selected_profile/paid_children/collections.rs
+index 1ca6249db..df9531dd2 100644
+--- b/src/cleanup_plan/replay/selected_profile/paid_children/collections.rs
++++ a/src/cleanup_plan/replay/selected_profile/paid_children/collections.rs
+@@ -68,6 +68 @@ pub(super) fn call_facts_inner(
+-    if instance.is_some()
+-        || matches!(
+-            op,
+-            VecOp::SortBy | VecOp::StrAt | VecOp::UniqueBy | VecOp::UpdateField
+-        )
+-    {
++    if instance.is_some() || matches!(op, VecOp::SortBy | VecOp::StrAt | VecOp::UniqueBy) {
+diff --git b/src/cli/help/authoring.rs a/src/cli/help/authoring.rs
+index 94c42271a..42abd61af 100644
+--- b/src/cli/help/authoring.rs
++++ a/src/cli/help/authoring.rs
+@@ -7 +7 @@ const MAX_BYTES: usize = 2_048;
+-const ROUTES: &str = "Authoring routes (complete):\n  author:vec-constructor typed Vec construction\n  author:lexical-exits break/continue/return\n  author:stdin-json v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data v30 private owned-leaf collections\n  author:collection-records v31 nested records containing Vec\n  author:nested-outcomes v32 typed nested success/error carriers\n  author:file-text native UTF-8 file command\n  author:selected-file native file\n  author:selected-file-resource v34\n  author:source-web single-source web build\n  author:literal-format literal String rendering\n  author:string-take named String owner transfer\n  author:static-utf8              borrowed UTF-8\n  author:string-from-utf8         strict bytes-to-String\n  author:copy-record-vec Copy-record Vec\n  author:update-field scalar slot update\n  author:record-sort-keys stable field sort\n  author:unique-by field duplicate check\n  author:record-field-views record/Vec field reads\n  author:record-traversal scoped borrowed rows and optional indices\n  author:byte-traversal named immutable byte-slice traversal\n  author:json-codec checked source JSON codec derivation\n  author:json-identifier-views one identifier as a token view\n  author:json-request-views bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request bounded owning request collections\n  author:json-utf8-owned-request bounded UTF-8 string values\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\n  author:json-collection-response nested collection encoder\n  author:json-nested-request finite nested request decoder\n  author:json-stream-nested-request finite nested stdin decoder\n  author:json-nested-response finite nested borrowed encoder\n  author:json-request-response typed request/response composition boundaries\nCard search: help language author:find:<word>:0\nLibrary-only search: help language find:<word>:0\n";
++const ROUTES: &str = "Authoring routes (complete):\n  author:vec-constructor typed Vec source; ordinary per-item commits\n  author:lexical-exits statement-tail break/continue/return\n  author:stdin-json v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data v30 private owned-leaf collections\n  author:collection-records v31 nested records containing Vec\n  author:nested-outcomes v32 typed nested success/error carriers\n  author:file-text native UTF-8 file command\n  author:selected-file native file\n  author:selected-file-resource v34\n  author:source-web single-source web build\n  author:literal-format literal String rendering\n  author:string-take named String owner transfer\n  author:static-utf8              borrowed UTF-8\n  author:string-from-utf8         strict bytes-to-String\n  author:copy-record-vec flat Copy-record vectors\n  author:record-sort-keys explicit stable field sort policies\n  author:unique-by field duplicate check\n  author:record-field-views borrowed record and Vec field reads\n  author:record-traversal scoped borrowed rows and optional indices\n  author:byte-traversal named immutable byte-slice traversal\n  author:json-codec checked source JSON codec derivation\n  author:json-identifier-views one identifier as a token view\n  author:json-request-views bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request bounded owning request collections\n  author:json-utf8-owned-request bounded UTF-8 string values\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\n  author:json-collection-response nested collection encoder\n  author:json-nested-request finite nested request decoder\n  author:json-stream-nested-request finite nested stdin decoder\n  author:json-nested-response finite nested borrowed encoder\n  author:json-request-response typed request/response composition boundaries\nCard search: help language author:find:<word>:0\nLibrary-only search: help language find:<word>:0\n";
+@@ -142,7 +141,0 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
+-        "author:update-field" => Ok(concat!(
+-            "Update one Copy scalar inside an owning record Vec: rows = vec_update_field<Row>(rows, index, value, \"count\");\n",
+-            "The field name is the last argument and must be a literal identifier. Row is an invariant-free explicit monomorphic flat owned-leaf record with 1..8 identified fields and one or two String/Bytes leaves. The selected field is i64/i32/u8/usize/char/f32/f64/bool; index is usize and value has the exact field type. Invalid shape/field: SPX-T320; wrong operand type: SPX-T205.\n",
+-            "Vector, index and value evaluate once left to right. RHS failure wins before the index check; out-of-range index selects semaprax.vec.v1 code 2 before owner transfer. Success writes one scalar slot and renews the same vector generation once. Unrelated scalar bits and String/Bytes owners, length and capacity stay exact; no payload clone, allocation or Drop at the store.\n",
+-            "End all whole-vector/field-view loans before update; an update consumes the Vec. No mutable reference, borrowed owner, nested/generic/resource/invariant-bearing record, non-Copy field or public ABI is added. Existing private owned-leaf profiles remain the boundary.\n",
+-            "Literal metadata authenticates the full nominal layout and persistent field identity in HIR/graph/cache; selective prelude v19. Qualification pending. Example: examples/inventory-field-update/main.spx; contract: docs/OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md.\n"
+-        ).to_owned()),
+@@ -661,18 +653,0 @@ mod tests {
+-    #[test]
+-    fn scalar_field_update_card_is_bounded_and_example_checks() {
+-        let card = lookup("author:update-field").unwrap();
+-        assert!(card.len() <= MAX_BYTES);
+-        assert!(lookup("author:routes").unwrap().len() <= MAX_BYTES);
+-        assert!(lookup("author:find:vec_update_field:0")
+-            .unwrap()
+-            .contains("author:update-field"));
+-        let source = include_str!("../../../examples/inventory-field-update/main.spx");
+-        let ast = semaprax::check(source, "inventory.spx").unwrap();
+-        let canonical = semaprax::format::canonical(&ast);
+-        assert_eq!(
+-            canonical,
+-            semaprax::format::canonical(&semaprax::check(&canonical, "inventory.spx").unwrap())
+-        );
+-        semaprax::hir::validate(&semaprax::hir::resolve(&ast).unwrap()).unwrap();
+-    }
+-
+diff --git b/src/graph/prelude_binding.rs a/src/graph/prelude_binding.rs
+index be919df96..c5767ce73 100644
+--- b/src/graph/prelude_binding.rs
++++ a/src/graph/prelude_binding.rs
+@@ -249,3 +249 @@ pub(super) fn schema(program: &ResolvedProgram) -> &'static str {
+-    if crate::vec_ops::field_update::uses(program) {
+-        prelude::SCHEMA_V19
+-    } else if crate::vec_ops::field_unique::uses(program) {
++    if crate::vec_ops::field_unique::uses(program) {
+@@ -289,3 +287 @@ pub(super) fn digest(program: &ResolvedProgram) -> String {
+-    if crate::vec_ops::field_update::uses(program) {
+-        prelude::field_update::digest_text()
+-    } else if crate::vec_ops::field_unique::uses(program) {
++    if crate::vec_ops::field_unique::uses(program) {
+@@ -396,3 +392 @@ pub(super) fn schema_selected(program: &ResolvedProgram, selected: bool) -> &'st
+-    if crate::vec_ops::field_update::uses(program) {
+-        prelude::SCHEMA_V19
+-    } else if crate::vec_ops::field_unique::uses(program) {
++    if crate::vec_ops::field_unique::uses(program) {
+@@ -409,3 +403 @@ pub(super) fn digest_selected(program: &ResolvedProgram, selected: bool) -> Stri
+-    if crate::vec_ops::field_update::uses(program) {
+-        prelude::field_update::digest_text()
+-    } else if crate::vec_ops::field_unique::uses(program) {
++    if crate::vec_ops::field_unique::uses(program) {
+diff --git b/src/hir/resolve_expr.rs a/src/hir/resolve_expr.rs
+index 1cbfff5f0..f54d3adbb 100644
+--- b/src/hir/resolve_expr.rs
++++ a/src/hir/resolve_expr.rs
+@@ -17,2 +17,2 @@ use super::nodes::{
+-    is_scalar_resolved_type, DeclarationKind, OwnershipMode, ResolvedBinding,
+-    ResolvedImportResultKind, ResolvedMatchMode, ResolvedNativeRustImportCall, ResolvedType,
++    DeclarationKind, OwnershipMode, ResolvedBinding, ResolvedImportResultKind, ResolvedMatchMode,
++    ResolvedNativeRustImportCall, ResolvedType, is_scalar_resolved_type,
+@@ -20 +20 @@ use super::nodes::{
+-use super::resolve_expr_frame::{take_pair, take_results, take_triple, Frame};
++use super::resolve_expr_frame::{Frame, take_pair, take_results, take_triple};
+@@ -298,3 +298 @@ impl Resolver<'_> {
+-                        } else if crate::vec_ops::field_unique::literal_call(name)
+-                            || name == crate::vec_ops::field_update::NAME
+-                        {
++                        } else if crate::vec_ops::field_unique::literal_call(name) {
+diff --git b/src/hir/resolve_expr/sort_keys.rs a/src/hir/resolve_expr/sort_keys.rs
+index d8b1e2e81..2cc3c7440 100644
+--- b/src/hir/resolve_expr/sort_keys.rs
++++ a/src/hir/resolve_expr/sort_keys.rs
+@@ -19,11 +19 @@ impl Resolver<'_> {
+-                let args = take_results(
+-                    results,
+-                    if callee
+-                        .as_str()
+-                        .starts_with(crate::vec_ops::field_update::PREFIX)
+-                    {
+-                        3
+-                    } else {
+-                        1
+-                    },
+-                );
++                let args = take_results(results, 1);
+@@ -58 +47,0 @@ impl Resolver<'_> {
+-        let update = matches!(&expression.kind, ExprKind::Call { name, .. } if name == crate::vec_ops::field_update::NAME);
+@@ -60,7 +48,0 @@ impl Resolver<'_> {
+-            if update {
+-                return self.error(
+-                    "SPX-H006",
+-                    crate::vec_ops::field_update::SHAPE,
+-                    expression.span,
+-                );
+-            }
+@@ -83,10 +65,2 @@ impl Resolver<'_> {
+-        let literal = if update {
+-            let [_, _, _, literal] = args else {
+-                return Err(fail());
+-            };
+-            literal
+-        } else {
+-            let [_, literal] = args else {
+-                return Err(fail());
+-            };
+-            literal
++        let [_, literal] = args else {
++            return Err(fail());
+@@ -98,4 +72 @@ impl Resolver<'_> {
+-        let descriptor = if update {
+-            crate::vec_ops::field_update::resolve(&self.declarations, &element, keys)
+-                .and_then(|d| d.identity())
+-        } else if unique {
++        let descriptor = if unique {
+@@ -120,17 +91 @@ impl Resolver<'_> {
+-        let update = callee
+-            .as_str()
+-            .starts_with(crate::vec_ops::field_update::PREFIX);
+-        if update {
+-            let (_, field_type) = crate::vec_ops::field_update::position(
+-                &self.declarations,
+-                &element,
+-                callee.as_str(),
+-            )
+-            .ok_or_else(|| self.error("SPX-H006", crate::vec_ops::field_update::SHAPE, span))?;
+-            if !crate::vec_ops::field_update::arguments(&args, &element, &field_type) {
+-                return Err(self.error("SPX-H006", crate::vec_ops::field_update::SHAPE, span));
+-            }
+-        }
+-        let op = if update {
+-            crate::vec_ops::VecOp::UpdateField
+-        } else if callee
++        let op = if callee
+@@ -162,8 +116,0 @@ impl Resolver<'_> {
+-        let runtime_count = if callee
+-            .as_str()
+-            .starts_with(crate::vec_ops::field_update::PREFIX)
+-        {
+-            3
+-        } else {
+-            1
+-        };
+@@ -178 +125 @@ impl Resolver<'_> {
+-                children: &args[..runtime_count],
++                children: &args[..1],
+diff --git b/src/hir/resolve_expr_reference.rs a/src/hir/resolve_expr_reference.rs
+index a9b2a0145..d52f5a54d 100644
+--- b/src/hir/resolve_expr_reference.rs
++++ a/src/hir/resolve_expr_reference.rs
+@@ -225,3 +225 @@ impl Resolver<'_> {
+-                if crate::vec_ops::field_unique::literal_call(name)
+-                    || name == crate::vec_ops::field_update::NAME
+-                {
++                if crate::vec_ops::field_unique::literal_call(name) {
+@@ -230,19 +228,15 @@ impl Resolver<'_> {
+-                    let count = if name == crate::vec_ops::field_update::NAME {
+-                        3
+-                    } else {
+-                        1
+-                    };
+-                    let values = args[..count]
+-                        .iter()
+-                        .enumerate()
+-                        .map(|(index, arg)| {
+-                            self.resolve_expr_recursive_reference_inner(
+-                                function,
+-                                arg,
+-                                bindings,
+-                                &format!("{path}.arg.{index}"),
+-                                nearest,
+-                            )
+-                        })
+-                        .collect::<Result<Vec<_>, _>>()?;
+-                    return self.finish_sort_by(function, expr.span, path, element, callee, values);
++                    let value = self.resolve_expr_recursive_reference_inner(
++                        function,
++                        &args[0],
++                        bindings,
++                        &format!("{path}.arg.0"),
++                        nearest,
++                    )?;
++                    return self.finish_sort_by(
++                        function,
++                        expr.span,
++                        path,
++                        element,
++                        callee,
++                        vec![value],
++                    );
+diff --git b/src/hir/validation/vec_intrinsic.rs a/src/hir/validation/vec_intrinsic.rs
+index f0d30d7cf..01eeecea5 100644
+--- b/src/hir/validation/vec_intrinsic.rs
++++ a/src/hir/validation/vec_intrinsic.rs
+@@ -140,14 +139,0 @@ pub(super) fn signature(
+-    if op == crate::vec_ops::VecOp::UpdateField {
+-        let (_, field) = crate::vec_ops::field_update::position(
+-            declarations,
+-            &type_arguments[0],
+-            callee.as_str(),
+-        )
+-        .ok_or_else(|| hir_error("scalar field update descriptor is forged or stale"))?;
+-        if !crate::vec_ops::field_update::arguments(args, &type_arguments[0], &field) {
+-            return Err(hir_error(crate::vec_ops::field_update::SHAPE));
+-        }
+-        let mut params = crate::vec_ops::resolved_params_in(declarations, op, &type_arguments[0]);
+-        params[2].ty = field;
+-        return Ok(Some((params, op.resolved_return_type(&type_arguments[0]))));
+-    }
+diff --git b/src/installed_diagnostics.rs a/src/installed_diagnostics.rs
+index 8c41ccf9d..90e19a1d0 100644
+--- b/src/installed_diagnostics.rs
++++ a/src/installed_diagnostics.rs
+@@ -215,6 +214,0 @@ pub fn explain_installed_diagnostic(code: &str) -> Result<InstalledDiagnosticExp
+-        "SPX-T320" => Some(json!({
+-            "summary": "owned record scalar field update has an unsupported field or record",
+-            "required_shape": "vec_update_field<Row>(rows, index, value, \"count\")",
+-            "requirements": ["explicit invariant-free monomorphic flat owned-leaf record", "literal scalar field name as last argument", "exact scalar RHS type and usize index", "end all overlapping loans before consuming the Vec"],
+-            "repair": "Name an identified Copy scalar field and pass its exact type. See docs/OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md.",
+-        })),
+diff --git b/src/interpreter/owned_vec.rs a/src/interpreter/owned_vec.rs
+index c9cd85389..72a7f9881 100644
+--- b/src/interpreter/owned_vec.rs
++++ a/src/interpreter/owned_vec.rs
+@@ -4 +3,0 @@ mod field_unique;
+-mod field_update;
+@@ -191,8 +189,0 @@ impl Evaluator<'_> {
+-        if op == crate::vec_ops::VecOp::UpdateField {
+-            let (_, field) =
+-                crate::vec_ops::field_update::position(declarations, &element, identity)
+-                    .ok_or(Flow::Guard("forged scalar field update descriptor"))?;
+-            if !crate::vec_ops::field_update::arguments(args, &element, &field) {
+-                return Err(Flow::Guard("forged scalar field update operands"));
+-            }
+-        }
+@@ -218,3 +208,0 @@ impl Evaluator<'_> {
+-            crate::vec_ops::VecOp::UpdateField => {
+-                self.update_owned_vec_field(&element, identity, values)
+-            }
+diff --git b/src/interpreter/owned_vec/field_update.rs a/src/interpreter/owned_vec/field_update.rs
+deleted file mode 100644
+index 2052535df..000000000
+--- b/src/interpreter/owned_vec/field_update.rs
++++ /dev/null
+@@ -1,52 +0,0 @@
+-//! A single Copy slot store: preserve row and leaf owners in place.
+-use super::*;
+-impl Evaluator<'_> {
+-    pub(super) fn update_owned_vec_field(
+-        &mut self,
+-        element: &ResolvedType,
+-        identity: &str,
+-        values: Vec<Value>,
+-    ) -> Result<Value, Flow> {
+-        let descriptor = crate::vec_ops::field_update::replay(self.declarations, element, identity)
+-            .ok_or(Flow::Guard("forged scalar update descriptor"))?;
+-        let (_, field_type) =
+-            crate::vec_ops::field_update::position(self.declarations, element, identity)
+-                .ok_or(Flow::Guard("missing scalar update field"))?;
+-        let mut values = values.into_iter();
+-        let (Some(Value::Vec(mut vector)), Some(Value::Usize(index)), Some(value), None) =
+-            (values.next(), values.next(), values.next(), values.next())
+-        else {
+-            return Err(Flow::Guard("invalid scalar update operands"));
+-        };
+-        if vector.element != *element || !scalar_value_matches_type(&value, &field_type) {
+-            return Err(Flow::Guard("forged scalar update type"));
+-        }
+-        let index = usize::try_from(index)
+-            .ok()
+-            .filter(|i| *i < vector.values.len())
+-            .ok_or_else(|| Flow::Failure(normalize_vec(crate::vec_ops::GET_OUT_OF_BOUNDS_CODE)))?;
+-        if !element_value_matches_type(self.declarations, &vector.values[index], element) {
+-            return Err(Flow::Guard("forged scalar update row"));
+-        }
+-        let generation = vector
+-            .generation
+-            .checked_add(1)
+-            .ok_or(Flow::Guard("scalar update generation overflow"))?;
+-        self.fused.preflight_value(&vector.values[index])?;
+-        let carrier =
+-            Arc::get_mut(&mut vector).ok_or(Flow::Guard("aliased scalar update vector"))?;
+-        let Value::Record(record) = &mut carrier.values[index] else {
+-            return Err(Flow::Guard("missing scalar update row"));
+-        };
+-        let row = Arc::get_mut(record).ok_or(Flow::Guard("aliased scalar update row"))?;
+-        let slot = row
+-            .fields
+-            .get_mut(&descriptor.field)
+-            .ok_or(Flow::Guard("missing scalar update slot"))?;
+-        // All fallible authentication and uniqueness work precedes this commit.
+-        // The replaced value is Copy; no owned leaf is dropped or materialized.
+-        *slot = value;
+-        carrier.generation = generation;
+-        Ok(Value::Vec(vector))
+-    }
+-}
+diff --git b/src/prelude.rs a/src/prelude.rs
+index 3eb66b114..deb315d61 100644
+--- b/src/prelude.rs
++++ a/src/prelude.rs
+@@ -31,3 +30,0 @@ pub(crate) const SCHEMA_V12: &str = "semaprax.prelude.v12";
+-#[path = "prelude_field_update.rs"]
+-pub(crate) mod field_update;
+-pub(crate) const SCHEMA_V19: &str = "semaprax.prelude.v19";
+@@ -748,7 +745 @@ pub(crate) fn selected_for_program(program: &dyn ProgramSource) -> (&'static str
+-    if crate::vec_ops::field_update::source_uses(program) {
+-        (
+-            SCHEMA_V19,
+-            self::field_update::contract_bytes(),
+-            self::field_update::digest_text(),
+-        )
+-    } else if crate::vec_ops::field_unique::source_uses(program) {
++    if crate::vec_ops::field_unique::source_uses(program) {
+diff --git b/src/prelude_field_update.rs a/src/prelude_field_update.rs
+deleted file mode 100644
+index d922f921b..000000000
+--- b/src/prelude_field_update.rs
++++ /dev/null
+@@ -1,17 +0,0 @@
+-//! Additive selective v19; programs without field updates keep exact old bytes.
+-use sha2::{Digest, Sha256};
+-pub(crate) fn contract_bytes() -> Vec<u8> {
+-    let old = crate::prelude::field_unique::contract_bytes();
+-    let mut bytes = std::str::from_utf8(&old)
+-        .expect("prelude UTF-8")
+-        .replacen(crate::prelude::SCHEMA_V18, crate::prelude::SCHEMA_V19, 1)
+-        .into_bytes();
+-    bytes.extend_from_slice(b"operation core.vec.update-field.v1:<descriptor> vec_update_field <T>(own:Vec<T>,value:usize,value:Copy,literal:field)->own:Vec<T>\nrule scalar_field_update.v1 invariant_free_explicit_flat_owned_leaf_record exact_field_identity complete_layout eight_Copy_scalars staged_left_to_right preflight_before_single_commit same_owner_generation no_clone_no_allocation_no_drop_at_store no_capacity_change whole_root_loans_end_before_update\n");
+-    bytes
+-}
+-pub(crate) fn digest_text() -> String {
+-    format!(
+-        "sha256:{:x}",
+-        crate::digest_hex::LowerHex(Sha256::digest(contract_bytes()))
+-    )
+-}
+diff --git b/src/project/incremental.rs a/src/project/incremental.rs
+index 145f23757..a1ab39592 100644
+--- b/src/project/incremental.rs
++++ a/src/project/incremental.rs
+@@ -53 +53 @@ pub const PROJECT_SEMANTIC_CACHE_SCHEMA: &str = "semaprax.project-semantic-cache
+-pub const PROJECT_SEMANTIC_CACHE_COMPATIBILITY: &str = "semaprax.project-checked-module-hir.v12";
++pub const PROJECT_SEMANTIC_CACHE_COMPATIBILITY: &str = "semaprax.project-checked-module-hir.v11";
+diff --git b/src/project/incremental/snapshot.rs a/src/project/incremental/snapshot.rs
+index 20e04f125..bf9248494 100644
+--- b/src/project/incremental/snapshot.rs
++++ a/src/project/incremental/snapshot.rs
+@@ -9 +8,0 @@ mod field_unique;
+-mod field_update;
+@@ -207 +205,0 @@ pub(crate) fn decode_snapshot(bytes: &[u8]) -> Result<ProjectFrontendCache> {
+-                field_update::replay_source(&entry.source, &entry.synthetic, &entry.resolved)?;
+diff --git b/src/project/incremental/snapshot/field_update.rs a/src/project/incremental/snapshot/field_update.rs
+deleted file mode 100644
+index 8311ae0f9..000000000
+--- b/src/project/incremental/snapshot/field_update.rs
++++ /dev/null
+@@ -1,59 +0,0 @@
+-//! A cached scalar-field-update descriptor is authenticated against a new
+-//! resolution of the cached synthetic AST, so a valid descriptor for another
+-//! same-typed field cannot acquire source authority through the cache. The
+-//! ordinary Project replay then proves that AST came from canonical source.
+-use super::*;
+-
+-fn uses(function: &crate::hir::ResolvedFunction) -> bool {
+-    std::iter::once(&function.body)
+-        .chain(&function.requires)
+-        .chain(&function.ensures)
+-        .any(|root| {
+-            let mut found = false;
+-            crate::hir::visit_resolved_calls(root, &mut |callee, _, _| {
+-                found |= callee
+-                    .as_str()
+-                    .starts_with(crate::vec_ops::field_update::PREFIX);
+-            });
+-            found
+-        })
+-}
+-
+-pub(super) fn replay_source(
+-    source: &str,
+-    synthetic: &Program,
+-    retained: &crate::hir::ResolvedProgram,
+-) -> Result<()> {
+-    if !retained.functions.iter().any(uses) && !source.contains(crate::vec_ops::field_update::NAME)
+-    {
+-        return Ok(());
+-    }
+-    let fresh = crate::hir::resolve(synthetic).map_err(|_| {
+-        invalid("semantic snapshot scalar-field-update source cannot be independently resolved")
+-    })?;
+-    if fresh.functions.len() != retained.functions.len() {
+-        return Err(invalid(
+-            "semantic snapshot scalar-field-update function inventory disagrees",
+-        ));
+-    }
+-    for function in &fresh.functions {
+-        let expected = retained
+-            .functions
+-            .iter()
+-            .find(|item| item.id == function.id)
+-            .ok_or_else(|| invalid("semantic snapshot scalar-field-update function is absent"))?;
+-        if (uses(function) || uses(expected))
+-            && (function.body != expected.body
+-                || function.requires != expected.requires
+-                || function.ensures != expected.ensures)
+-        {
+-            return Err(invalid(
+-                "semantic snapshot scalar-field-update HIR disagrees with canonical source",
+-            ));
+-        }
+-    }
+-    Ok(())
+-}
+-
+-#[cfg(test)]
+-mod tests;
+diff --git b/src/project/incremental/snapshot/field_update/tests.rs a/src/project/incremental/snapshot/field_update/tests.rs
+deleted file mode 100644
+index 95ed8314e..000000000
+--- b/src/project/incremental/snapshot/field_update/tests.rs
++++ /dev/null
+@@ -1,52 +0,0 @@
+-use super::*;
+-use crate::hir::{self, DeclarationId, ResolvedExprKind, ResolvedType};
+-const SOURCE: &str = r#"module replay.update;
+-@id("row") record Row { @id("row.label") label:string,@id("row.left") left:i64,@id("row.right") right:i64 }
+-@id("update") fn update(rows:own Vec<Row>)->Vec<Row> { vec_update_field<Row>(rows,0usize,4,"left") }
+-@id("app.main") fn main()->i64 {0}
+-"#;
+-#[test]
+-fn coherent_same_type_field_substitution_fails_source_and_cache_replay() {
+-    let ast = crate::check(SOURCE, "update.spx").unwrap();
+-    let canonical = crate::format::canonical(&ast);
+-    let mut retained = hir::resolve(&ast).unwrap();
+-    replay_source(&canonical, &ast, &retained).unwrap();
+-    let element = ResolvedType::Nominal {
+-        declaration: DeclarationId::new("row"),
+-        arguments: vec![],
+-    };
+-    let other = crate::vec_ops::field_update::resolve(&retained.declarations, &element, "right")
+-        .unwrap()
+-        .identity()
+-        .unwrap();
+-    let position = retained
+-        .functions
+-        .iter()
+-        .position(|f| f.id.as_str() == "update")
+-        .unwrap();
+-    let function = &mut retained.functions[position];
+-    let body = if let ResolvedExprKind::Block { tail, .. } = &mut function.body.kind {
+-        &mut **tail
+-    } else {
+-        &mut function.body
+-    };
+-    let ResolvedExprKind::Call { callee, .. } = &mut body.kind else {
+-        panic!("call")
+-    };
+-    *callee = DeclarationId::new(other);
+-    // Rebuild every derived proof: refusing only stale cleanup metadata would
+-    // not demonstrate canonical source authority against a coherent substitution.
+-    retained.functions[position].loan_plan =
+-        crate::loan_plan::build_plan(&retained, &retained.functions[position]).unwrap();
+-    retained.functions[position].cleanup =
+-        crate::cleanup::build_inventory(&retained, &retained.functions[position]).unwrap();
+-    retained.functions[position].cleanup_plan =
+-        crate::cleanup_plan::build_plan(&retained, &retained.functions[position]).unwrap();
+-    hir::validate(&retained).unwrap();
+-    assert!(replay_source(&canonical, &ast, &retained).is_err());
+-    let wire = crate::cache_codec::encode(&retained).unwrap();
+-    let restored: hir::ResolvedProgram = crate::cache_codec::decode(&wire).unwrap();
+-    assert!(replay_source(&canonical, &ast, &restored).is_err());
+-    let graph = crate::graph::to_json(&ast).unwrap();
+-    assert!(graph.contains(crate::vec_ops::field_update::PREFIX));
+-}
+diff --git b/src/source_verify.rs a/src/source_verify.rs
+index e5660439a..46521c542 100644
+--- b/src/source_verify.rs
++++ a/src/source_verify.rs
+@@ -49 +48,0 @@ mod field_unique;
+-mod field_update;
+diff --git b/src/source_verify/field_update.rs a/src/source_verify/field_update.rs
+deleted file mode 100644
+index 75f3f5036..000000000
+--- b/src/source_verify/field_update.rs
++++ /dev/null
+@@ -1,77 +0,0 @@
+-//! Independent source signature; the last literal is metadata, never an owner.
+-use super::type_table::TypeTable;
+-use crate::ast::{Expr, ExprKind, Type};
+-pub(super) fn field_type(
+-    types: &TypeTable<'_>,
+-    type_arguments: &[Type],
+-    args: &[Expr],
+-) -> Option<Type> {
+-    let [Type::Named { name, arguments }] = type_arguments else {
+-        return None;
+-    };
+-    let [_, _, _, literal] = args else {
+-        return None;
+-    };
+-    let ExprKind::String(name_field) = &literal.kind else {
+-        return None;
+-    };
+-    if !arguments.is_empty() {
+-        return None;
+-    }
+-    let declaration = types.declaration(name)?;
+-    crate::vec_ops::field_update::source(declaration, name_field)?;
+-    let crate::ast::TypeDeclarationKind::Record { fields } = &declaration.kind else {
+-        return None;
+-    };
+-    Some(fields.iter().find(|f| f.name == *name_field)?.ty.clone())
+-}
+-
+-pub(super) fn prepare(
+-    types: &TypeTable<'_>,
+-    current: &crate::ast::Function,
+-    expression: &Expr,
+-    program: &dyn crate::ast::program_source::ProgramSource,
+-) -> Result<Option<Type>, crate::diagnostic::Diagnostic> {
+-    let ExprKind::Call {
+-        name,
+-        type_arguments,
+-        args,
+-    } = &expression.kind
+-    else {
+-        return Ok(None);
+-    };
+-    let span = expression.span;
+-    if name != crate::vec_ops::field_update::NAME {
+-        return Ok(None);
+-    }
+-    if !current.type_parameters.is_empty() {
+-        return Err(super::diagnostics::error(
+-            program,
+-            "SPX-T320",
+-            crate::vec_ops::field_update::SHAPE,
+-            span,
+-        ));
+-    }
+-    field_type(types, type_arguments, args)
+-        .map(Some)
+-        .ok_or_else(|| {
+-            super::diagnostics::error(
+-                program,
+-                "SPX-T320",
+-                crate::vec_ops::field_update::SHAPE,
+-                span,
+-            )
+-        })
+-}
+-pub(super) fn params(
+-    op: crate::vec_ops::VecOp,
+-    element: &Type,
+-    owned_element: bool,
+-    field: Option<&Type>,
+-) -> Vec<crate::ast::Param> {
+-    let mut params = crate::vec_ops::ast_params_with_owned_element(op, element, owned_element);
+-    if let Some(field) = field {
+-        params[2].ty = field.clone();
+-    }
+-    params
+-}
+diff --git b/src/source_verify/iterative/enter.rs a/src/source_verify/iterative/enter.rs
+index 705833ab8..f3d6f065f 100644
+--- b/src/source_verify/iterative/enter.rs
++++ a/src/source_verify/iterative/enter.rs
+@@ -277,9 +277 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
+-                let update_field_type = crate::source_verify::field_update::prepare(
+-                    self.types,
+-                    self.current,
+-                    expression,
+-                    self.program,
+-                )?;
+-                let args: &[Expr] = if update_field_type.is_some() {
+-                    &args[..3]
+-                } else if name == crate::vec_ops::sort_keys::NAME {
++                let args: &[Expr] = if name == crate::vec_ops::sort_keys::NAME {
+@@ -652 +644 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
+-                            params: crate::source_verify::field_update::params(
++                            params: crate::vec_ops::ast_params_with_owned_element(
+@@ -661 +652,0 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
+-                                update_field_type.as_ref(),
+diff --git b/src/vec_ops.rs a/src/vec_ops.rs
+index 094b3318f..9bb808bb6 100644
+--- b/src/vec_ops.rs
++++ a/src/vec_ops.rs
+@@ -12 +11,0 @@ pub(crate) mod field_unique;
+-pub(crate) mod field_update;
+@@ -75 +73,0 @@ pub(crate) enum VecOp {
+-    UpdateField,
+@@ -78 +76 @@ pub(crate) enum VecOp {
+-pub(crate) const ALL: [VecOp; 17] = [
++pub(crate) const ALL: [VecOp; 16] = [
+@@ -95 +92,0 @@ pub(crate) const ALL: [VecOp; 17] = [
+-    VecOp::UpdateField,
+@@ -102,6 +99 @@ impl VecOp {
+-            Self::CloneAt
+-                | Self::Replace
+-                | Self::ReserveOwned
+-                | Self::SortOwned
+-                | Self::StrAt
+-                | Self::UpdateField
++            Self::CloneAt | Self::Replace | Self::ReserveOwned | Self::SortOwned | Self::StrAt
+@@ -127 +118,0 @@ impl VecOp {
+-                | Self::UpdateField
+@@ -145 +135,0 @@ impl VecOp {
+-                | Self::UpdateField
+@@ -166 +155,0 @@ impl VecOp {
+-                | Self::UpdateField
+@@ -198 +186,0 @@ impl VecOp {
+-            Self::UpdateField => field_update::NAME,
+@@ -219 +206,0 @@ impl VecOp {
+-            Self::UpdateField => field_update::PREFIX,
+@@ -229 +216 @@ impl VecOp {
+-            Self::Set | Self::Replace | Self::UpdateField => 3,
++            Self::Set | Self::Replace => 3,
+@@ -242 +228,0 @@ impl VecOp {
+-                | Self::UpdateField
+@@ -296 +281,0 @@ impl VecOp {
+-            | Self::UpdateField
+@@ -315 +299,0 @@ impl VecOp {
+-            | Self::UpdateField
+@@ -349 +333 @@ impl VecOp {
+-            | (Self::Set | Self::Replace | Self::UpdateField, 0)
++            | (Self::Set | Self::Replace, 0)
+@@ -353,2 +337,3 @@ impl VecOp {
+-            (Self::ReserveExact | Self::ReserveOwned, 1)
+-            | (Self::Set | Self::Replace | Self::UpdateField, 1) => *ty == ResolvedType::Usize,
++            (Self::ReserveExact | Self::ReserveOwned, 1) | (Self::Set | Self::Replace, 1) => {
++                *ty == ResolvedType::Usize
++            }
+@@ -356 +340,0 @@ impl VecOp {
+-            (Self::UpdateField, 2) => resolved_element_is_admitted(ty),
+@@ -387 +370,0 @@ pub(crate) fn by_name(name: &str) -> Option<VecOp> {
+-        field_update::NAME => Some(VecOp::UpdateField),
+@@ -398,3 +380,0 @@ pub(crate) fn by_id(id: &str) -> Option<VecOp> {
+-    if id.starts_with(field_update::PREFIX) {
+-        return Some(VecOp::UpdateField);
+-    }
+@@ -512 +491,0 @@ pub(crate) fn ast_params_with_owned_element(
+-        VecOp::UpdateField => vec![ast_vec(element.clone()), Type::Usize, Type::I64],
+@@ -551,5 +529,0 @@ pub(crate) fn resolved_params(op: VecOp, element: &ResolvedType) -> Vec<Resolved
+-        VecOp::UpdateField => vec![
+-            resolved_vec(element.clone()),
+-            ResolvedType::Usize,
+-            ResolvedType::I64,
+-        ],
+@@ -699,4 +673,2 @@ pub(crate) fn is_same_owner_reassignment_source(
+-    op.is_some_and(|op| {
+-        args.len()
+-            == op.arity() + usize::from(matches!(direct, Some(VecOp::SortBy | VecOp::UpdateField)))
+-    }) && owner_type_matches
++    op.is_some_and(|op| args.len() == op.arity() + usize::from(direct == Some(VecOp::SortBy)))
++        && owner_type_matches
+diff --git b/src/vec_ops/by_id_metered.rs a/src/vec_ops/by_id_metered.rs
+index af649dedc..d264a5f6c 100644
+--- b/src/vec_ops/by_id_metered.rs
++++ a/src/vec_ops/by_id_metered.rs
+@@ -11,4 +10,0 @@ pub(crate) fn by_id_with_work(
+-    if id.starts_with(field_update::PREFIX) {
+-        crate::hir::renewal_probes::units(work, field_update::PREFIX.len() + 1)?;
+-        return Ok(Some(VecOp::UpdateField));
+-    }
+diff --git b/src/vec_ops/field_update.rs a/src/vec_ops/field_update.rs
+deleted file mode 100644
+index 1abc46e3a..000000000
+--- b/src/vec_ops/field_update.rs
++++ /dev/null
+@@ -1,234 +0,0 @@
+-//! Checked scalar slot updates. Descriptors authenticate the complete current
+-//! nominal layout; a reserved prefix alone never grants storage authority.
+-use super::sort_keys;
+-use crate::hir::{
+-    DeclarationId, DeclarationIndex, OwnershipMode, ResolvedExpr, ResolvedExprKind, ResolvedType,
+-};
+-pub(crate) const NAME: &str = "vec_update_field";
+-pub(crate) const PREFIX: &str = "core.vec.update-field.v1:";
+-pub(crate) const SHAPE: &str = "vec_update_field requires an invariant-free explicit monomorphic flat owned-leaf record, a usize index, an exact Copy scalar value, and a literal scalar field name as its last argument";
+-#[derive(Clone, Debug, Eq, PartialEq)]
+-pub(crate) struct Descriptor {
+-    pub(crate) element: String,
+-    pub(crate) layout: String,
+-    pub(crate) field: DeclarationId,
+-}
+-impl Descriptor {
+-    pub(crate) fn identity(&self) -> Option<String> {
+-        let length = PREFIX
+-            .len()
+-            .checked_add(sort_keys::part_len(&self.element)?)?
+-            .checked_add(sort_keys::part_len(&self.layout)?)?
+-            .checked_add(sort_keys::part_len(self.field.as_str())?)?;
+-        if length > sort_keys::MAX_DESCRIPTOR_BYTES
+-            || !crate::bounded_output::reserve_active_required(length)
+-        {
+-            return None;
+-        }
+-        let mut out = String::with_capacity(length);
+-        out.push_str(PREFIX);
+-        sort_keys::part(&mut out, &self.element);
+-        sort_keys::part(&mut out, &self.layout);
+-        sort_keys::part(&mut out, self.field.as_str());
+-        (out.len() == length).then_some(out)
+-    }
+-}
+-pub(crate) fn decode(identity: &str) -> Option<Descriptor> {
+-    if identity.len() > sort_keys::MAX_DESCRIPTOR_BYTES {
+-        return None;
+-    }
+-    let mut input = identity.strip_prefix(PREFIX)?;
+-    let result = Descriptor {
+-        element: sort_keys::take(&mut input)?.to_owned(),
+-        layout: sort_keys::take(&mut input)?.to_owned(),
+-        field: DeclarationId::new(sort_keys::take(&mut input)?),
+-    };
+-    (input.is_empty() && result.identity()?.as_str() == identity).then_some(result)
+-}
+-pub(crate) fn resolve(
+-    index: &DeclarationIndex,
+-    element: &ResolvedType,
+-    name: &str,
+-) -> Option<Descriptor> {
+-    let ResolvedType::Nominal {
+-        declaration,
+-        arguments,
+-    } = element
+-    else {
+-        return None;
+-    };
+-    if !arguments.is_empty()
+-        || index.has_record_invariant(declaration)
+-        || !super::field_unique::literal(name)
+-    {
+-        return None;
+-    }
+-    let fields = crate::hir::owned_leaf_collection::layout(index, element)?.fields?;
+-    let field = fields
+-        .iter()
+-        .find(|f| index.declaration(&f.id).is_some_and(|d| d.name == name))?;
+-    if !super::resolved_element_is_admitted(&field.ty) {
+-        return None;
+-    }
+-    let selected = sort_keys::resolve(
+-        index,
+-        element,
+-        &crate::bounded_output::budgeted_format(format_args!("{name}:asc")),
+-    )?;
+-    let result = Descriptor {
+-        element: selected.element,
+-        layout: selected.layout,
+-        field: field.id.clone(),
+-    };
+-    result.identity()?;
+-    Some(result)
+-}
+-/// Source-owned independent derivation; never accepts resolved layout facts.
+-pub(crate) fn source(declaration: &crate::ast::TypeDeclaration, name: &str) -> Option<Descriptor> {
+-    if !declaration.invariants().is_empty()
+-        || !crate::source_verify::owned_leaf_declaration_admitted(declaration)
+-        || !super::field_unique::literal(name)
+-    {
+-        return None;
+-    }
+-    let crate::ast::TypeDeclarationKind::Record { fields } = &declaration.kind else {
+-        return None;
+-    };
+-    let field = fields.iter().find(|f| f.name == name)?;
+-    if !super::ast_element_is_admitted(&field.ty) {
+-        return None;
+-    }
+-    let selected = sort_keys::source(
+-        declaration,
+-        &crate::bounded_output::budgeted_format(format_args!("{name}:asc")),
+-    )?;
+-    let result = Descriptor {
+-        element: selected.element,
+-        layout: selected.layout,
+-        field: DeclarationId::new(&field.stable_id),
+-    };
+-    result.identity()?;
+-    Some(result)
+-}
+-pub(crate) fn replay(
+-    index: &DeclarationIndex,
+-    element: &ResolvedType,
+-    identity: &str,
+-) -> Option<Descriptor> {
+-    let descriptor = decode(identity)?;
+-    let ResolvedType::Nominal { declaration, .. } = element else {
+-        return None;
+-    };
+-    let field = index
+-        .record_fields(declaration)?
+-        .iter()
+-        .find(|f| f.id == descriptor.field)?;
+-    (resolve(index, element, &index.declaration(&field.id)?.name)? == descriptor)
+-        .then_some(descriptor)
+-}
+-pub(crate) fn position(
+-    index: &DeclarationIndex,
+-    element: &ResolvedType,
+-    identity: &str,
+-) -> Option<(usize, ResolvedType)> {
+-    let descriptor = replay(index, element, identity)?;
+-    let ResolvedType::Nominal { declaration, .. } = element else {
+-        return None;
+-    };
+-    let fields = index.record_fields(declaration)?;
+-    let position = fields.iter().position(|f| f.id == descriptor.field)?;
+-    Some((position, fields[position].ty.clone()))
+-}
+-pub(crate) fn arguments(
+-    args: &[ResolvedExpr],
+-    element: &ResolvedType,
+-    field: &ResolvedType,
+-) -> bool {
+-    matches!(args, [source,index,value] if super::resolved_vec_matches(&source.ty,element) && source.ownership == OwnershipMode::Own && index.ty == ResolvedType::Usize && index.ownership == OwnershipMode::Value && value.ty == *field && value.ownership == OwnershipMode::Value && super::resolved_element_is_admitted(field))
+-}
+-pub(crate) struct Use<'a> {
+-    pub(crate) element: &'a ResolvedType,
+-    pub(crate) source: &'a ResolvedExpr,
+-    pub(crate) index: &'a ResolvedExpr,
+-    pub(crate) value: &'a ResolvedExpr,
+-    pub(crate) identity: &'a str,
+-}
+-pub(crate) fn inspect(expression: &ResolvedExpr) -> Option<Use<'_>> {
+-    let ResolvedExprKind::Call {
+-        callee,
+-        type_arguments,
+-        instance: None,
+-        args,
+-    } = &expression.kind
+-    else {
+-        return None;
+-    };
+-    let [element] = type_arguments.as_slice() else {
+-        return None;
+-    };
+-    let [source, index, value] = args.as_slice() else {
+-        return None;
+-    };
+-    if !callee.as_str().starts_with(PREFIX)
+-        || !arguments(args, element, &value.ty)
+-        || expression.ownership != OwnershipMode::Own
+-        || !super::resolved_vec_matches(&expression.ty, element)
+-    {
+-        return None;
+-    }
+-    Some(Use {
+-        element,
+-        source,
+-        index,
+-        value,
+-        identity: callee.as_str(),
+-    })
+-}
+-pub(crate) fn uses(program: &crate::hir::ResolvedProgram) -> bool {
+-    program
+-        .functions
+-        .iter()
+-        .chain(program.function_instances.iter().map(|i| &i.function))
+-        .any(|f| {
+-            f.requires
+-                .iter()
+-                .chain(std::iter::once(&f.body))
+-                .chain(&f.ensures)
+-                .any(|root| {
+-                    let mut found = false;
+-                    crate::hir::visit_resolved_calls(root, &mut |id, _, _| {
+-                        found |= id.as_str().starts_with(PREFIX)
+-                    });
+-                    found
+-                })
+-        })
+-}
+-pub(crate) fn source_uses(program: &dyn crate::ast::program_source::ProgramSource) -> bool {
+-    let uses = |f: &crate::ast::Function| {
+-        f.requires
+-            .iter()
+-            .chain(std::iter::once(&f.body))
+-            .chain(&f.ensures)
+-            .any(|root| {
+-                let mut found = false;
+-                root.visit_calls(&mut |name, _| found |= name == NAME);
+-                found
+-            })
+-    };
+-    program.functions().iter().any(uses) || program.types().iter().any(|t| matches!(&t.kind,crate::ast::TypeDeclarationKind::Class {methods,..} if methods.iter().any(uses)))
+-}
+-
+-/// Complete ordinary-call signature, including the descriptor's exact RHS type.
+-pub(crate) fn params(
+-    index: &DeclarationIndex,
+-    element: &ResolvedType,
+-    identity: &str,
+-) -> Option<Vec<crate::hir::ResolvedParam>> {
+-    let (_, field) = position(index, element, identity)?;
+-    let mut params = super::resolved_params_in(index, super::VecOp::UpdateField, element);
+-    params[2].ty = field;
+-    Some(params)
+-}
+-
+-#[cfg(test)]
+-mod tests;
+diff --git b/src/vec_ops/field_update/tests.rs a/src/vec_ops/field_update/tests.rs
+deleted file mode 100644
+index b7e42f4c6..000000000
+--- b/src/vec_ops/field_update/tests.rs
++++ /dev/null
+@@ -1,213 +0,0 @@
+-use super::*;
+-const SOURCE: &str = include_str!("../../../examples/inventory-field-update/main.spx");
+-fn resolved(source: &str) -> crate::hir::ResolvedProgram {
+-    crate::hir::resolve(&crate::check(source, "update.spx").unwrap()).unwrap()
+-}
+-#[test]
+-fn canonical_descriptor_graph_and_cache_replay() {
+-    let ast = crate::check(SOURCE, "inventory.spx").unwrap();
+-    let canonical = crate::format::canonical(&ast);
+-    assert_eq!(
+-        canonical,
+-        crate::format::canonical(&crate::check(&canonical, "inventory.spx").unwrap())
+-    );
+-    assert_eq!(
+-        crate::prelude::selected_for_program(&ast).0,
+-        crate::prelude::SCHEMA_V19
+-    );
+-    let graph = crate::graph::to_json(&ast).unwrap();
+-    assert!(graph.contains(PREFIX));
+-    crate::graph::verify_json(&ast, &graph).unwrap();
+-    assert!(crate::graph::verify_json(
+-        &ast,
+-        &graph.replace("semaprax.prelude.v19", "semaprax.prelude.v18")
+-    )
+-    .is_err());
+-    let program = resolved(SOURCE);
+-    crate::hir::validate(&program).unwrap();
+-    let wire = crate::cache_codec::encode(&program).unwrap();
+-    let replay: crate::hir::ResolvedProgram = crate::cache_codec::decode(&wire).unwrap();
+-    crate::hir::validate(&replay).unwrap();
+-    assert_eq!(wire, crate::cache_codec::encode(&replay).unwrap());
+-    let old = crate::check(
+-        "module old; @id(\"old.main\") fn main()->i64{42}",
+-        "old.spx",
+-    )
+-    .unwrap();
+-    assert_ne!(
+-        crate::prelude::selected_for_program(&old).0,
+-        crate::prelude::SCHEMA_V19
+-    );
+-}
+-#[test]
+-fn scalar_update_wrong_selector_type_nominal_shape_and_live_loan_refuse() {
+-    for (from, to, code) in [
+-        (
+-            "available - 1usize, \"count\"",
+-            "available - 1usize, \"missing\"",
+-            "SPX-T320",
+-        ),
+-        (
+-            "available - 1usize, \"count\"",
+-            "available - 1usize, \"sku\"",
+-            "SPX-T320",
+-        ),
+-        (
+-            "available - 1usize, \"count\"",
+-            "false, \"count\"",
+-            "SPX-T205",
+-        ),
+-        (
+-            "0usize, available - 1usize",
+-            "0, available - 1usize",
+-            "SPX-T205",
+-        ),
+-    ] {
+-        let changed = SOURCE.replace(from, to);
+-        assert_ne!(changed, SOURCE);
+-        let diagnostics = crate::check(&changed, "bad.spx").unwrap_err();
+-        assert!(
+-            diagnostics.iter().any(|d| d.code == code),
+-            "{diagnostics:?}"
+-        );
+-    }
+-    let borrowed = SOURCE
+-        .replace(
+-            "let available =",
+-            "let view = vec_field<Item>(stock, 0usize, \"sku\"); let available =",
+-        )
+-        .replace(
+-            "if vec_field<Item>",
+-            "if view == str\"nuts\" && vec_field<Item>",
+-        );
+-    assert!(crate::check(&borrowed, "loan.spx").is_err());
+-    let element = ResolvedType::Nominal {
+-        declaration: DeclarationId::new("inventory.item"),
+-        arguments: vec![],
+-    };
+-    let program = resolved(SOURCE);
+-    let count = resolve(&program.declarations, &element, "count").unwrap();
+-    assert_eq!(
+-        position(&program.declarations, &element, &count.identity().unwrap()),
+-        Some((1, ResolvedType::Usize))
+-    );
+-    let wrong = ResolvedType::Nominal {
+-        declaration: DeclarationId::new("other.item"),
+-        arguments: vec![],
+-    };
+-    assert!(replay(&program.declarations, &wrong, &count.identity().unwrap()).is_none());
+-    let mut forged = count.clone();
+-    forged.field = DeclarationId::new("inventory.item.active");
+-    // A scalar type change remains a different descriptor; consumers must
+-    // authenticate the actual RHS against that exact field type.
+-    assert_eq!(
+-        position(&program.declarations, &element, &forged.identity().unwrap()),
+-        Some((2, ResolvedType::Bool))
+-    );
+-    forged.layout.push('x');
+-    assert!(replay(&program.declarations, &element, &forged.identity().unwrap()).is_none());
+-}
+-#[test]
+-fn inventory_success_and_bounds_rhs_failure_precedence() {
+-    use crate::interpreter::{evaluate_resolved_zero_arg_i64, ResolvedEvaluationOutcome};
+-    let result =
+-        evaluate_resolved_zero_arg_i64(&resolved(SOURCE), "inventory.main", 1_000_000).unwrap();
+-    assert!(
+-        matches!(result.outcome, ResolvedEvaluationOutcome::ReturnedI64(42)),
+-        "{:?}",
+-        result.outcome
+-    );
+-    for (index, rhs, domain, code) in [
+-        ("2usize", "available - 1usize", "semaprax.vec.v1", 2),
+-        ("2usize", "0usize - 1usize", "semaprax.arithmetic.v1", 2),
+-    ] {
+-        let source = SOURCE.replace(
+-            "0usize, available - 1usize, \"count\"",
+-            &format!("{index}, {rhs}, \"count\""),
+-        );
+-        let result =
+-            evaluate_resolved_zero_arg_i64(&resolved(&source), "inventory.main", 1_000_000)
+-                .unwrap();
+-        let ResolvedEvaluationOutcome::LanguageFailure(status) = result.outcome else {
+-            panic!("{:?}", result.outcome)
+-        };
+-        assert_eq!(status.domain_id(), domain);
+-        assert_eq!(status.code(), code);
+-    }
+-}
+-
+-#[test]
+-fn unsupported_record_frontiers_and_descriptor_budget_fail_closed() {
+-    let ast = crate::parse(SOURCE, "shapes.spx").unwrap();
+-    let base = ast.types[0].clone();
+-    let crate::ast::TypeDeclarationKind::Record { fields } = &base.kind else {
+-        panic!("record")
+-    };
+-    assert!(source(&base, "count").is_some());
+-    for replacement in [
+-        crate::ast::Type::String,
+-        crate::ast::Type::Bytes,
+-        crate::ast::Type::Named {
+-            name: "Item".into(),
+-            arguments: vec![],
+-        },
+-    ] {
+-        let mut wrong = base.clone();
+-        let crate::ast::TypeDeclarationKind::Record { fields } = &mut wrong.kind else {
+-            unreachable!()
+-        };
+-        fields[1].ty = replacement;
+-        assert!(source(&wrong, "count").is_none());
+-    }
+-    let mut implicit = base.clone();
+-    implicit.explicit_id = false;
+-    assert!(source(&implicit, "count").is_none());
+-    let mut implicit_field = base.clone();
+-    let crate::ast::TypeDeclarationKind::Record { fields: bad } = &mut implicit_field.kind else {
+-        unreachable!()
+-    };
+-    bad[1].explicit_id = false;
+-    assert!(source(&implicit_field, "count").is_none());
+-    let mut copy_only = base.clone();
+-    let crate::ast::TypeDeclarationKind::Record { fields: copy } = &mut copy_only.kind else {
+-        unreachable!()
+-    };
+-    copy[0].ty = crate::ast::Type::I64;
+-    assert!(source(&copy_only, "count").is_none());
+-    let mut invariant = base.clone();
+-    invariant.invariants = Some(Box::new(vec![crate::ast::Expr {
+-        kind: crate::ast::ExprKind::Bool(true),
+-        span: crate::ast::Span::default(),
+-    }]));
+-    assert!(source(&invariant, "count").is_none());
+-    assert_eq!(fields.len(), 3);
+-    for selector in ["", "count:asc", "count,active", "1count", " count"] {
+-        assert!(source(&base, selector).is_none());
+-    }
+-    let mut generic = base.clone();
+-    generic
+-        .type_parameters
+-        .push(crate::ast::TypeParameterDeclaration {
+-            name: "T".into(),
+-            span: crate::ast::Span::default(),
+-        });
+-    assert!(source(&generic, "count").is_none());
+-    let mut resource = base.clone();
+-    resource.kind = crate::ast::TypeDeclarationKind::Resource { lifecycles: vec![] };
+-    assert!(source(&resource, "count").is_none());
+-    assert!(super::super::field_unique::literal(&"a".repeat(256)));
+-    assert!(!super::super::field_unique::literal(&"a".repeat(257)));
+-    let descriptor = source(&base, "count").unwrap();
+-    assert!(decode(&(descriptor.identity().unwrap() + "x")).is_none());
+-    let length = descriptor.identity().unwrap().len();
+-    let (exact, overflow, bytes) =
+-        crate::bounded_output::with_limit_usage(length, || descriptor.identity());
+-    assert!(exact.is_some());
+-    assert!(!overflow);
+-    assert_eq!(bytes, length);
+-    let (short, _, _) =
+-        crate::bounded_output::with_limit_usage(length - 1, || descriptor.identity());
+-    assert!(short.is_none());
+-    let (result, _, _) = crate::bounded_output::with_limit_usage(0, || descriptor.identity());
+-    assert!(result.is_none());
+-}
+diff --git b/src/vec_ops/wrappers.rs a/src/vec_ops/wrappers.rs
+index 13e18dadd..17daa8a11 100644
+--- b/src/vec_ops/wrappers.rs
++++ a/src/vec_ops/wrappers.rs
+@@ -54,2 +54 @@ pub(crate) fn wrapper_id(op: VecOp) -> Option<&'static str> {
+-        | VecOp::UniqueBy
+-        | VecOp::UpdateField => return None,
++        | VecOp::UniqueBy => return None,
+@@ -76,2 +75 @@ pub(crate) fn wrapper_name(op: VecOp) -> Option<&'static str> {
+-        | VecOp::UniqueBy
+-        | VecOp::UpdateField => return None,
++        | VecOp::UniqueBy => return None,
+@@ -124,2 +122 @@ pub(crate) fn source_wrapper(program: &dyn ProgramSource, function: &Function) -
+-        | VecOp::UniqueBy
+-        | VecOp::UpdateField => return None,
++        | VecOp::UniqueBy => return None,
+@@ -251,2 +248 @@ pub(crate) fn hir_wrapper(template: &ResolvedFunctionTemplate) -> Option<VecOp>
+-        | VecOp::UniqueBy
+-        | VecOp::UpdateField => return None,
++        | VecOp::UniqueBy => return None,
+@@ -374,2 +370 @@ pub(crate) fn template_ownership(
+-            | VecOp::UniqueBy
+-            | VecOp::UpdateField => {
++            | VecOp::UniqueBy => {
+diff --git b/src/vec_ops/wrappers/original.rs a/src/vec_ops/wrappers/original.rs
+index ba3b840f7..27312c42a 100644
+--- b/src/vec_ops/wrappers/original.rs
++++ a/src/vec_ops/wrappers/original.rs
+@@ -38,2 +38 @@ pub(crate) fn source_wrapper(program: &dyn ProgramSource, function: &Function) -
+-        | VecOp::UniqueBy
+-        | VecOp::UpdateField => return None,
++        | VecOp::UniqueBy => return None,
+diff --git b/src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs a/src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs
+index 35710af0b..fe0c3ffe7 100644
+--- b/src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs
++++ a/src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs
+@@ -199,3 +199 @@ fn ast_expr_cost_at(
+-            if crate::vec_ops::field_unique::literal_call(name)
+-                || name == crate::vec_ops::field_update::NAME
+-            {
++            if crate::vec_ops::field_unique::literal_call(name) {
+diff --git b/src/workspace_graph/expected_projection/declaration_cost.rs a/src/workspace_graph/expected_projection/declaration_cost.rs
+index 4dd3b1d2a..f62927a3e 100644
+--- b/src/workspace_graph/expected_projection/declaration_cost.rs
++++ a/src/workspace_graph/expected_projection/declaration_cost.rs
+@@ -198,3 +198 @@ fn ast_expr_cost_at(
+-            if crate::vec_ops::field_unique::literal_call(name)
+-                || name == crate::vec_ops::field_update::NAME
+-            {
++            if crate::vec_ops::field_unique::literal_call(name) {
+diff --git b/src/workspace_graph/expected_projection/field_unique.rs a/src/workspace_graph/expected_projection/field_unique.rs
+index b57c0b6e9..45955e429 100644
+--- b/src/workspace_graph/expected_projection/field_unique.rs
++++ a/src/workspace_graph/expected_projection/field_unique.rs
+@@ -4,2 +3,0 @@
+-#[path = "field_update.rs"]
+-mod field_update;
+@@ -17 +14,0 @@ pub(super) fn verify(
+-    field_update::verify(program, resolved, authored)?;
+diff --git b/src/workspace_graph/expected_projection/field_update.rs a/src/workspace_graph/expected_projection/field_update.rs
+deleted file mode 100644
+index 4447ab592..000000000
+--- b/src/workspace_graph/expected_projection/field_update.rs
++++ /dev/null
+@@ -1,205 +0,0 @@
+-//! Independent source-derived scalar-field-update callee replay at exact source
+-//! paths. It shares SPX-G173 with explicit sort keys: both are compiler-owned
+-//! literal descriptors that must equal retained HIR at each source identity.
+-use crate::ast::{Expr, ExprKind, ModuleUseKind, Program, Type};
+-use crate::bounded_output::budgeted_format;
+-use crate::diagnostic::Diagnostic;
+-use crate::hir;
+-use crate::workspace_graph::{graph_error, reserve_builder_structure, AuthoredDeclaration};
+-use std::collections::BTreeMap;
+-pub(super) fn verify(
+-    program: &Program,
+-    resolved: &hir::ResolvedProgram,
+-    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+-) -> Result<(), Vec<Diagnostic>> {
+-    let fail = || {
+-        vec![graph_error(
+-            "SPX-G173",
+-            "scalar field update source descriptor disagrees with retained HIR",
+-        )]
+-    };
+-    // Path-free census first; injected synthetic HIR calls still reach the
+-    // exact comparison below even when the source has none.
+-    let source_uses = program.functions.iter().any(|function| {
+-        function
+-            .requires
+-            .iter()
+-            .chain(std::iter::once(&function.body))
+-            .chain(&function.ensures)
+-            .any(contains_source)
+-    });
+-    let resolved_uses = resolved.functions.iter().any(|function| {
+-        function
+-            .requires
+-            .iter()
+-            .chain(std::iter::once(&function.body))
+-            .chain(&function.ensures)
+-            .any(contains_resolved)
+-    }) || resolved.function_templates.iter().any(|function| {
+-        function
+-            .requires
+-            .iter()
+-            .chain(std::iter::once(&function.body))
+-            .chain(&function.ensures)
+-            .any(contains_resolved)
+-    });
+-    if !source_uses && !resolved_uses {
+-        return Ok(());
+-    }
+-    let mut expected = Vec::new();
+-    for function in &program.functions {
+-        let owner = hir::DeclarationId::new(&function.stable_id);
+-        for (root, expression) in function
+-            .requires
+-            .iter()
+-            .enumerate()
+-            .map(|(i, e)| (budgeted_format(format_args!("requires.{i}")), e))
+-            .chain(std::iter::once((String::from("body"), &function.body)))
+-            .chain(
+-                function
+-                    .ensures
+-                    .iter()
+-                    .enumerate()
+-                    .map(|(i, e)| (budgeted_format(format_args!("ensures.{i}")), e)),
+-            )
+-        {
+-            crate::workspace_graph::source_callables::visit_ast_call_expressions(
+-                expression,
+-                &root,
+-                &mut |expr, path| {
+-                    let ExprKind::Call {
+-                        name,
+-                        type_arguments,
+-                        args,
+-                    } = &expr.kind
+-                    else {
+-                        unreachable!()
+-                    };
+-                    if name != crate::vec_ops::field_update::NAME {
+-                        return Ok(());
+-                    }
+-                    let [Type::Named { name, arguments }] = type_arguments.as_slice() else {
+-                        return Err(fail());
+-                    };
+-                    let [_, _, _, literal] = args.as_slice() else {
+-                        return Err(fail());
+-                    };
+-                    let ExprKind::String(field) = &literal.kind else {
+-                        return Err(fail());
+-                    };
+-                    if !arguments.is_empty() {
+-                        return Err(fail());
+-                    }
+-                    let declaration = program
+-                        .types
+-                        .iter()
+-                        .find(|ty| ty.name == *name)
+-                        .or_else(|| {
+-                            program
+-                                .module_uses
+-                                .iter()
+-                                .find(|item| {
+-                                    item.kind == ModuleUseKind::Type && item.alias == *name
+-                                })
+-                                .and_then(|item| authored.get(item.persistent_id.as_str()))
+-                                .and_then(|item| item.ty)
+-                        })
+-                        .ok_or_else(fail)?;
+-                    let descriptor = crate::vec_ops::field_update::source(declaration, field)
+-                        .and_then(|d| d.identity())
+-                        .ok_or_else(fail)?;
+-                    reserve_builder_structure(
+-                        std::mem::size_of::<(String, String, String)>()
+-                            + function.stable_id.len()
+-                            + descriptor.len(),
+-                    )?;
+-                    expected.push((
+-                        function.stable_id.clone(),
+-                        hir::workspace_expression_identity(&owner, path),
+-                        descriptor,
+-                    ));
+-                    Ok(())
+-                },
+-            )?;
+-        }
+-    }
+-    let mut actual = Vec::new();
+-    hir::visit_workspace_call_sites(resolved, &mut |owner, expression, target| {
+-        if target
+-            .as_str()
+-            .starts_with(crate::vec_ops::field_update::PREFIX)
+-        {
+-            reserve_builder_structure(
+-                std::mem::size_of::<(String, String, String)>()
+-                    + owner.as_str().len()
+-                    + expression.len()
+-                    + target.as_str().len(),
+-            )?;
+-            actual.push((
+-                owner.as_str().to_owned(),
+-                expression.to_owned(),
+-                target.as_str().to_owned(),
+-            ));
+-        }
+-        Ok::<(), Vec<Diagnostic>>(())
+-    })?;
+-    expected.sort();
+-    actual.sort();
+-    if expected != actual {
+-        return Err(fail());
+-    }
+-    Ok(())
+-}
+-
+-fn contains_source(expression: &Expr) -> bool {
+-    // One indexed frame per ancestor; excess depth takes the full verifier.
+-    let mut stack = [None; 514];
+-    stack[0] = Some((expression, 0usize));
+-    let mut len = 1usize;
+-    while len != 0 {
+-        len -= 1;
+-        let (expression, next) = stack[len].take().expect("uniqueness census frame");
+-        if next == 0
+-            && matches!(&expression.kind, ExprKind::Call { name, .. }
+-                if name == crate::vec_ops::field_update::NAME)
+-        {
+-            return true;
+-        }
+-        if let Some(child) = expression.child(next) {
+-            if len + 2 > stack.len() {
+-                return true;
+-            }
+-            stack[len] = Some((expression, next + 1));
+-            stack[len + 1] = Some((child, 0));
+-            len += 2;
+-        }
+-    }
+-    false
+-}
+-
+-fn contains_resolved(expression: &hir::ResolvedExpr) -> bool {
+-    let mut stack = [None; 514];
+-    stack[0] = Some((expression, 0usize));
+-    let mut len = 1usize;
+-    while len != 0 {
+-        len -= 1;
+-        let (expression, next) = stack[len].take().expect("resolved uniqueness census frame");
+-        if next == 0
+-            && matches!(&expression.kind,
+-            hir::ResolvedExprKind::Call { callee: target, .. }
+-                | hir::ResolvedExprKind::FunctionReference { target }
+-                if target.as_str().starts_with(crate::vec_ops::field_update::PREFIX))
+-        {
+-            return true;
+-        }
+-        if let Some(child) = hir::lexical_exit::child(expression, next) {
+-            if len + 2 > stack.len() {
+-                return true;
+-            }
+-            stack[len] = Some((expression, next + 1));
+-            stack[len + 1] = Some((child, 0));
+-            len += 2;
+-        }
+-    }
+-    false
+-}
+diff --git b/src/workspace_graph/import_validation.rs a/src/workspace_graph/import_validation.rs
+index 8d0a841bf..cd5ac2e5d 100644
+--- b/src/workspace_graph/import_validation.rs
++++ a/src/workspace_graph/import_validation.rs
+@@ -74,10 +73,0 @@ pub(super) fn validate_uses_with_registry(
+-                .persistent_id
+-                .starts_with(crate::vec_ops::field_update::PREFIX)
+-            {
+-                return Err(vec![use_error(
+-                    program,
+-                    module_use,
+-                    "compiler-owned scalar field update descriptors cannot be imported",
+-                )]);
+-            }
+-            if module_use

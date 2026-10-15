@@ -28,6 +28,9 @@ pub(crate) const SCHEMA_V9: &str = "semaprax.prelude.v9";
 pub(crate) const SCHEMA_V10: &str = "semaprax.prelude.v10";
 pub(crate) const SCHEMA_V11: &str = "semaprax.prelude.v11";
 pub(crate) const SCHEMA_V12: &str = "semaprax.prelude.v12";
+#[path = "prelude_field_update.rs"]
+pub(crate) mod field_update;
+pub(crate) const SCHEMA_V19: &str = "semaprax.prelude.v19";
 pub(crate) const SCHEMA_V18: &str = "semaprax.prelude.v18";
 #[path = "prelude_field_unique.rs"]
 pub(crate) mod field_unique;
@@ -742,7 +745,13 @@ pub(crate) fn selected_for_source(source: &str) -> (&'static str, Vec<u8>, Strin
 
 pub(crate) fn selected_for_program(program: &dyn ProgramSource) -> (&'static str, Vec<u8>, String) {
     let (sort_keys, static_text, string_slots) = sort_keys::selection(program);
-    if crate::vec_ops::field_unique::source_uses(program) {
+    if crate::vec_ops::field_update::source_uses(program) {
+        (
+            SCHEMA_V19,
+            self::field_update::contract_bytes(),
+            self::field_update::digest_text(),
+        )
+    } else if crate::vec_ops::field_unique::source_uses(program) {
         (
             SCHEMA_V18,
             self::field_unique::contract_bytes(),

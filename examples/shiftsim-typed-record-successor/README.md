@@ -1,19 +1,16 @@
 # ShiftSim typed-record successor
 
-This source draft replaces the retained scheduler's six-slot scalar packing
-with named `Patient`, `Assignment`, and `Metrics` records. Server IDs stay
-in a sorted `Vec<string>` and use `vec_str_at` for validation and selection. The
-declared `Patient` field order is the dispatch key `(priority, arrival, id)`;
-the stable owned-record sort preserves those ties. Mutable scheduling state
-uses separate Copy records indexed alongside the sorted owners, so waiting and
-completion scans do not deep-clone patient IDs. Patient uniqueness now copies
-each ID once into a separate owned String vector,
-sorts it, and compares adjacent borrowed slots. Dispatch order stays in the
-original patient vector. The frozen pairwise helper remains an independent
-control, including 256 IDs; the application still uses its original one-million-step
-limit. These validation copies and the vector change allocation-failure ordinals.
-Output IDs are copied when a completed assignment enters the owned report.
-Runtime/fuel improvement is unqualified until the focused application gates run.
+This source draft uses named `Patient`, `Worker`, `Assignment`, and `Metrics`
+records. Actual worker rows hold both `id` and `free_at`; consuming
+`vec_update_field<Worker>(workers,index,finish,"free_at")` updates availability
+without rebuilding the row or cloning its ID. The scheduler no longer maintains
+a parallel worker-state vector. The prior `WorkerState` declarations and helper
+bodies remain independent controls. Patient state and sorted arrival indices
+remain separate for their distinct scheduling roles. Patient uniqueness uses
+`vec_unique_by`; borrowed IDs are copied only into completed output assignments.
+The original tasks, acceptance/oracles, 8/256 bounds and one-million-step fuel
+limit remain unchanged. Current-head executable qualification is pending; this
+source change establishes no allocation or agent-efficiency result.
 A separate Copy `Vec<i64>` sorts arrival times once. Its monotonic cursor counts
 all arrivals at or before the current event; subtracting the dispatched count
 gives the exact waiting count. The next event is the first later arrival or the

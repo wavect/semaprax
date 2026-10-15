@@ -737,6 +737,7 @@ Audience: all documentation readers.
 - [Nested owned collection records v1](NESTED-OWNED-COLLECTION-RECORDS-V1.md)
 - [Nonallocating Byte Helper Renewal v1](NONALLOCATING-BYTE-HELPER-RENEWAL-V1.md)
 - [Owned leaf collections v1](OWNED-LEAF-COLLECTIONS-V1.md)
+- [Owned record scalar field update v1](OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md)
 - [Owned Nested Outcomes v1](OWNED-NESTED-OUTCOMES-V1.md)
 - [Selective owned npm lexical semantic recipe v1](OWNED-NPM-LEXICAL-RECIPE-V1.md)
 - [Rooted record String views v1](PROJECTED-STRING-VIEWS-V1.md)

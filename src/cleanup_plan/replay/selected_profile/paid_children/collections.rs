@@ -65,7 +65,12 @@ pub(super) fn call_facts_inner(
     let Some(op) = crate::vec_ops::by_id(callee.as_str()) else {
         return Ok(None);
     };
-    if instance.is_some() || matches!(op, VecOp::SortBy | VecOp::StrAt | VecOp::UniqueBy) {
+    if instance.is_some()
+        || matches!(
+            op,
+            VecOp::SortBy | VecOp::StrAt | VecOp::UniqueBy | VecOp::UpdateField
+        )
+    {
         return Err(Deferred::Finite(Refusal::Profile(
             ProfileRefusal::SelectedVecCallRequiresASeparatelyAuthenticatedOperation,
         )));

@@ -2595,6 +2595,7 @@ impl<'a> PlanBuilder<'a> {
                         } else if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
                             self.bounded_vec_params(
                                 op,
+                                callee,
                                 instance.is_some(),
                                 args.len(),
                                 type_arguments,

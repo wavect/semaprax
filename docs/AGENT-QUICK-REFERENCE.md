@@ -1503,6 +1503,12 @@ one admitted explicit flat monomorphic record (SPX-T311). Consumes Vec; stable
 ties/payload owners; end loans first. Descending reverses operands (signed MIN safe).
 vec_sort_owned retains declaration order. [Sort](EXPLICIT-RECORD-SORT-KEYS-V1.md).
 
+`vec_update_field<Row>(rows,index,value,"count")` consumes/renews the Vec and
+writes one exact Copy scalar. Literal field name is last; invariant-free flat
+owned-leaf records only (SPX-T320), usize index, exact RHS type. End all field
+loans first. No leaf clones or capacity change. Qualification pending:
+[contract](OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md), `help language author:update-field`.
+
 `vec_unique_by<Row>(rows,"id")` -> bool: duplicate check on one literal String or
 i64/i32/u8/usize/bool/char field of a named own/borrow record Vec (SPX-T319).
 Borrows rows for the call; no key copies, order or generation change. Floats,

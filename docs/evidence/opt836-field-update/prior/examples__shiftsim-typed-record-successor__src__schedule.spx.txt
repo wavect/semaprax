@@ -1,0 +1,198 @@
+module shiftsim.schedule;
+use type @id("shiftsim.patient") from shiftsim.request_schema as Patient;
+use type @id("shiftsim.request") from shiftsim.request_schema as Request;
+use type @id("shiftsim.assignment") from shiftsim.response_schema as Assignment;
+use type @id("shiftsim.metrics") from shiftsim.response_schema as Metrics;
+use type @id("shiftsim.report") from shiftsim.response_schema as Report;
+use type @id("shiftsim.patient_state") from shiftsim.model as PatientState;
+use type @id("shiftsim.worker_state") from shiftsim.model as WorkerState;
+use type @id("shiftsim.schedule_result") from shiftsim.model as ScheduleResult;
+use function @id("shiftsim.order.patients") from shiftsim.order as patients_by_dispatch_key;
+use function @id("shiftsim.order.servers") from shiftsim.order as servers_by_id;
+use function @id("shiftsim.order.unique_sorted_server_ids") from shiftsim.order as sorted_servers_have_unique_ids;
+
+@id("shiftsim.schedule.empty_report")
+fn empty_report() -> Report
+{
+    Report { assignments: vec_with_capacity<Assignment>(0usize), metrics: Metrics { patients: 0, total_wait: 0, max_wait: 0, late: 0, busy_time: 0, makespan: 0, peak_queue: 0, utilization_ppm: 0 } }
+}
+
+@id("shiftsim.schedule.identifier")
+fn identifier(value: borrow str) -> bool
+{
+    let bytes = str_as_bytes(value);
+    let length = byte_len(bytes);
+    let mut valid = length > 0usize && length <= 16usize;
+    let mut index = 0usize;
+    while valid && index < length {
+        valid = match byte_get(bytes, index) { Option::Some { value: byte } => byte >= 65u8 && byte <= 90u8 || byte >= 97u8 && byte <= 122u8 || byte >= 48u8 && byte <= 57u8 || byte == 95u8 || byte == 45u8, Option::None {} => false, };
+        index = index + 1usize;
+        valid && index < length
+    }
+    valid
+}
+
+@id("shiftsim.schedule.unique_patient_ids")
+fn unique_patient_ids(values: borrow Vec<Patient>) -> bool
+{
+    vec_unique_by<Patient>(values, "id")
+}
+
+@id("shiftsim.schedule.patient_fields_invalid")
+fn patient_fields_invalid(arrival: i64, service: i64, priority: i64, deadline: i64) -> bool
+{
+    arrival < 0 || arrival > 1000000 || service < 1 || service > 100000 || priority < 0 || priority > 9 || deadline < 0 || deadline > 1000000
+}
+
+@id("shiftsim.schedule.maximum")
+fn maximum(previous: i64, current: i64) -> i64
+{
+    if current > previous { current } else { previous }
+}
+
+@id("shiftsim.schedule.count_late")
+fn count_late(previous: i64, late: bool) -> i64
+{
+    if late { previous + 1 } else { previous }
+}
+
+@id("shiftsim.schedule.waiting_count")
+fn waiting_count(states: borrow Vec<PatientState>, count: usize, time: i64) -> i64
+{
+    let mut waiting = 0;
+    let mut index = 0usize;
+    while index < count {
+        let state = vec_get<PatientState>(states, index);
+        if !state.assigned && state.arrival <= time { waiting = waiting + 1; }
+        index = index + 1usize;
+        0
+    }
+    waiting
+}
+
+@id("shiftsim.schedule.next_patient")
+fn next_patient(states: borrow Vec<PatientState>, count: usize, time: i64) -> usize
+{
+    if count > vec_len<PatientState>(states) { return next_patient_indexed_control(states, count, time); }
+    let mut selected = count;
+    for borrow state at index in states {
+        if index >= count { break; }
+        if !state.assigned && state.arrival <= time { selected = index; break; }
+        0
+    }
+    selected
+}
+
+// Complete indexed receiver retained for exact prefix/overlength controls.
+@id("shiftsim.schedule.next_patient.indexed_control")
+fn next_patient_indexed_control(states: borrow Vec<PatientState>, count: usize, time: i64) -> usize
+{
+    let mut index = 0usize;
+    while index < count {
+        let state = vec_get<PatientState>(states, index);
+        if !state.assigned && state.arrival <= time { return index; }
+        index = index + 1usize;
+        0
+    }
+    count
+}
+
+@id("shiftsim.schedule.next_server")
+fn next_server(states: borrow Vec<WorkerState>, count: usize, time: i64) -> usize
+{
+    if count > vec_len<WorkerState>(states) { return next_server_indexed_control(states, count, time); }
+    let mut selected = count;
+    for borrow state at index in states {
+        if index >= count { break; }
+        if state.free_at <= time { selected = index; break; }
+        0
+    }
+    selected
+}
+
+// Complete indexed receiver retained for exact prefix/overlength controls.
+@id("shiftsim.schedule.next_server.indexed_control")
+fn next_server_indexed_control(states: borrow Vec<WorkerState>, count: usize, time: i64) -> usize
+{
+    let mut index = 0usize;
+    while index < count {
+        let state = vec_get<WorkerState>(states, index);
+        if state.free_at <= time { return index; }
+        index = index + 1usize;
+        0
+    }
+    count
+}
+
+@id("shiftsim.schedule.next_time")
+fn next_time(patients: borrow Vec<PatientState>, patient_count: usize, workers: borrow Vec<WorkerState>, server_count: usize, time: i64) -> i64
+{
+    let mut next = 9223372036854775807;
+    let mut arrival_index = 0usize;
+    while arrival_index < patient_count {
+        let state = vec_get<PatientState>(patients, arrival_index);
+        if !state.assigned && state.arrival > time && state.arrival < next { next = state.arrival; }
+        arrival_index = arrival_index + 1usize;
+        0
+    }
+    let mut completion_index = 0usize;
+    while completion_index < server_count {
+        let state = vec_get<WorkerState>(workers, completion_index);
+        if state.free_at > time && state.free_at < next { next = state.free_at; }
+        completion_index = completion_index + 1usize;
+        0
+    }
+    next
+}
+
+@id("shiftsim.schedule.advance_arrivals")
+fn advance_arrivals(arrivals: borrow Vec<i64>, count: usize, cursor: usize, time: i64) -> usize
+{
+    let mut next = cursor;
+    while next < count && vec_get<i64>(arrivals, next) <= time {
+        next = next + 1usize;
+        0
+    }
+    next
+}
+
+@id("shiftsim.schedule.next_time_from_arrivals")
+fn next_time_from_arrivals(arrivals: borrow Vec<i64>, arrived: usize, count: usize, workers: borrow Vec<WorkerState>, server_count: usize, time: i64) -> i64
+{
+    if server_count > vec_len<WorkerState>(workers) { return next_time_from_arrivals_indexed_control(arrivals, arrived, count, workers, server_count, time); }
+    let mut next = if arrived < count { vec_get<i64>(arrivals, arrived) } else { 9223372036854775807 };
+    for borrow state at index in workers {
+        if index >= server_count { break; }
+        if state.free_at > time && state.free_at < next { next = state.free_at; }
+        0
+    }
+    next
+}
+
+// Complete indexed receiver retained for exact prefix/overlength controls.
+@id("shiftsim.schedule.next_time_from_arrivals.indexed_control")
+fn next_time_from_arrivals_indexed_control(arrivals: borrow Vec<i64>, arrived: usize, count: usize, workers: borrow Vec<WorkerState>, server_count: usize, time: i64) -> i64
+{
+    let mut next = if arrived < count { vec_get<i64>(arrivals, arrived) } else { 9223372036854775807 };
+    let mut completion_index = 0usize;
+    while completion_index < server_count {
+        let state = vec_get<WorkerState>(workers, completion_index);
+        if state.free_at > time && state.free_at < next { next = state.free_at; }
+        completion_index = completion_index + 1usize;
+        0
+    }
+    next
+}
+
+@id("shiftsim.schedule.run")
+fn run(request: own Request) -> ScheduleResult
+{
+    // Arrival order is independent of dispatch priority and server tie order.
+    // Before dispatch, arrived counts every arrival <= time; every dispatched
+    // patient has arrived, so arrived - dispatched is the exact waiting count.
+    // The cursor never rewinds; its next entry is the first future arrival.
+    // Only valid fixed-length Copy state reaches dispatch: 8/256 bounds,
+    // current lengths, and no effects/contracts make both lookup helpers total.
+    // An unavailable server skips only the unused patient scan, not a failure.
+    match own request { Request { servers: input_servers, patients: input_patients } => { let patient_count = vec_len<Patient>(input_patients); let server_count = vec_len<string>(input_servers); let ordered_patients = patients_by_dispatch_key(input_patients); let workers = servers_by_id(input_servers); let mut people = vec_with_capacity<Patient>(patient_count); let mut patient_states = vec_with_capacity<PatientState>(patient_count); let mut arrival_times = vec_with_capacity<i64>(patient_count); let mut valid = server_count <= 8usize && patient_count <= 256usize && (server_count > 0usize || patient_count == 0usize); for own ordered_patient in vec_into_iter<Patient>(ordered_patients) { match own ordered_patient { Patient { priority: person_priority, arrival: person_arrival, id: person_id, service: person_service, deadline: person_deadline } => { if !identifier(string_as_str(person_id)) { valid = false; } if patient_fields_invalid(person_arrival, person_service, person_priority, person_deadline) { valid = false; } patient_states = vec_push<PatientState>(patient_states, PatientState { arrival: person_arrival, assigned: false }); arrival_times = vec_push<i64>(arrival_times, person_arrival); people = vec_push<Patient>(people, Patient { priority: person_priority, arrival: person_arrival, id: person_id, service: person_service, deadline: person_deadline }); 0 }, } } valid = unique_patient_ids(people) && valid; let mut worker_states = vec_with_capacity<WorkerState>(server_count); let mut worker_index = 0usize; while worker_index < server_count { let server_id = vec_str_at(workers, worker_index); if !identifier(server_id) { valid = false; } worker_states = vec_push<WorkerState>(worker_states, WorkerState { free_at: 0 }); worker_index = worker_index + 1usize; 0 } valid = sorted_servers_have_unique_ids(workers) && valid; if !valid { return ScheduleResult { valid: false, report: empty_report() }; } let arrival_order = vec_sort<i64>(arrival_times); let mut arrived = 0usize; let mut assignments = vec_with_capacity<Assignment>(patient_count); let mut total_wait = 0; let mut max_wait = 0; let mut late_count = 0; let mut busy_time = 0; let mut makespan = 0; let mut peak_queue = 0; let mut time = 0; let mut dispatched = 0usize; while dispatched < patient_count { arrived = advance_arrivals(arrival_order, patient_count, arrived, time); let waiting = i64_from_usize(arrived - dispatched); peak_queue = maximum(peak_queue, waiting); while true { let server_index = next_server(worker_states, server_count, time); if server_index == server_count { break; } let patient_index = next_patient(patient_states, patient_count, time); if patient_index == patient_count { break; } let selected_arrival = vec_field<Patient>(people, patient_index, "arrival"); let selected_service = vec_field<Patient>(people, patient_index, "service"); let selected_deadline = vec_field<Patient>(people, patient_index, "deadline"); let selected_id = vec_field<Patient>(people, patient_index, "id"); let selected_server_id = vec_str_at(workers, server_index); let finish = time + selected_service; let wait = time - selected_arrival; let is_late = finish > selected_deadline; let prior_patient_state = vec_get<PatientState>(patient_states, patient_index); let updated_patient_state = PatientState { arrival: prior_patient_state.arrival, assigned: true }; patient_states = vec_set<PatientState>(patient_states, patient_index, updated_patient_state); let updated_worker_state = WorkerState { free_at: finish }; worker_states = vec_set<WorkerState>(worker_states, server_index, updated_worker_state); assignments = vec_push<Assignment>(assignments, Assignment { id: string_from_str(selected_id), server: string_from_str(selected_server_id), arrival: selected_arrival, start: time, finish: finish, wait: wait, late: is_late }); total_wait = total_wait + wait; max_wait = maximum(max_wait, wait); late_count = count_late(late_count, is_late); busy_time = busy_time + selected_service; makespan = maximum(makespan, finish); dispatched = dispatched + 1usize; 0 } if dispatched < patient_count { time = next_time_from_arrivals(arrival_order, arrived, patient_count, worker_states, server_count, time); 0 } else { 0 } } let utilization_ppm = if patient_count == 0usize || server_count == 0usize || makespan == 0 { 0 } else { busy_time * 1000000 / (i64_from_usize(server_count) * makespan) }; return ScheduleResult { valid: true, report: Report { assignments: assignments, metrics: Metrics { patients: i64_from_usize(patient_count), total_wait: total_wait, max_wait: max_wait, late: late_count, busy_time: busy_time, makespan: makespan, peak_queue: peak_queue, utilization_ppm: utilization_ppm } } }; }, }
+}

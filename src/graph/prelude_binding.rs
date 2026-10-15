@@ -246,7 +246,9 @@ fn uses_vec_v3(program: &ResolvedProgram) -> bool {
 }
 
 pub(super) fn schema(program: &ResolvedProgram) -> &'static str {
-    if crate::vec_ops::field_unique::uses(program) {
+    if crate::vec_ops::field_update::uses(program) {
+        prelude::SCHEMA_V19
+    } else if crate::vec_ops::field_unique::uses(program) {
         prelude::SCHEMA_V18
     } else if crate::vec_ops::string_slot::resolved_uses(program) {
         prelude::SCHEMA_V17
@@ -284,7 +286,9 @@ pub(super) fn schema(program: &ResolvedProgram) -> &'static str {
 }
 
 pub(super) fn digest(program: &ResolvedProgram) -> String {
-    if crate::vec_ops::field_unique::uses(program) {
+    if crate::vec_ops::field_update::uses(program) {
+        prelude::field_update::digest_text()
+    } else if crate::vec_ops::field_unique::uses(program) {
         prelude::field_unique::digest_text()
     } else if crate::vec_ops::string_slot::resolved_uses(program) {
         prelude::string_slots::digest_text()
@@ -389,7 +393,9 @@ module iterator.binding;
 
 // Selection comes from the mandatory validator at the outer projection boundary.
 pub(super) fn schema_selected(program: &ResolvedProgram, selected: bool) -> &'static str {
-    if crate::vec_ops::field_unique::uses(program) {
+    if crate::vec_ops::field_update::uses(program) {
+        prelude::SCHEMA_V19
+    } else if crate::vec_ops::field_unique::uses(program) {
         prelude::SCHEMA_V18
     } else if crate::vec_ops::string_slot::resolved_uses(program) {
         prelude::SCHEMA_V17
@@ -400,7 +406,9 @@ pub(super) fn schema_selected(program: &ResolvedProgram, selected: bool) -> &'st
     }
 }
 pub(super) fn digest_selected(program: &ResolvedProgram, selected: bool) -> String {
-    if crate::vec_ops::field_unique::uses(program) {
+    if crate::vec_ops::field_update::uses(program) {
+        prelude::field_update::digest_text()
+    } else if crate::vec_ops::field_unique::uses(program) {
         prelude::field_unique::digest_text()
     } else if crate::vec_ops::string_slot::resolved_uses(program) {
         prelude::string_slots::digest_text()

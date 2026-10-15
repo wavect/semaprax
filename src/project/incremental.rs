@@ -50,7 +50,7 @@ pub const PROJECT_FRONTEND_CACHE_COMPATIBILITY: &str = "semaprax.project-fronten
 pub const PROJECT_SEMANTIC_CACHE_SCHEMA: &str = "semaprax.project-semantic-cache-work.v1";
 /// v11 retains scoped field source forms after v10 CopyDiscard and v9 row loans.
 /// Older cached modules must be freshly source-checked, never reinterpreted.
-pub const PROJECT_SEMANTIC_CACHE_COMPATIBILITY: &str = "semaprax.project-checked-module-hir.v11";
+pub const PROJECT_SEMANTIC_CACHE_COMPATIBILITY: &str = "semaprax.project-checked-module-hir.v12";
 pub const MAX_PROJECT_FRONTEND_CACHE_SOURCE_BYTES: usize = MAX_TOTAL_SOURCE_BYTES;
 /// The frontend retains the complete admitted semantic module closure, which
 /// includes bundled/dependency modules beyond the manifest's sixteen authored

@@ -14,10 +14,10 @@ use super::ids::CompilerDeclaration as CId;
 use super::ids::{DeclarationId, ExpressionId, FunctionExecutionId, ValueId};
 use super::monomorphize::substitute_type;
 use super::nodes::{
-    DeclarationKind, OwnershipMode, ResolvedBinding, ResolvedImportResultKind, ResolvedMatchMode,
-    ResolvedNativeRustImportCall, ResolvedType, is_scalar_resolved_type,
+    is_scalar_resolved_type, DeclarationKind, OwnershipMode, ResolvedBinding,
+    ResolvedImportResultKind, ResolvedMatchMode, ResolvedNativeRustImportCall, ResolvedType,
 };
-use super::resolve_expr_frame::{Frame, take_pair, take_results, take_triple};
+use super::resolve_expr_frame::{take_pair, take_results, take_triple, Frame};
 use super::type_reachability::record_args_ok;
 use super::{Binding, Place, PlaceProjection, Resolver, Scope};
 use path_arena::{PathArena, PathId, Seg, Step};
@@ -295,7 +295,9 @@ impl Resolver<'_> {
                                 path,
                                 segment: Seg::NativeRustArg,
                             });
-                        } else if crate::vec_ops::field_unique::literal_call(name) {
+                        } else if crate::vec_ops::field_unique::literal_call(name)
+                            || name == crate::vec_ops::field_update::NAME
+                        {
                             frames.extend(self.sort_by_frames(
                                 function,
                                 expr,

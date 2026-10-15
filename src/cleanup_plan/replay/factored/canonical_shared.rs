@@ -123,7 +123,8 @@ impl<'a> Canonicalizer<'a> {
             return Err(self.closures.failure());
         }
         // The cached route still executes its original one cursor work debit.
-        // It constructs neither a cursor Vec nor an inner Result receiver.
+        // It constructs neither a cursor Vec nor a closure_inner Result
+        // receiver. The ordinary memo authentication Result remains paid.
         if self.closures.contains_key(&root) {
             budget.charge(function, 1, "factored closure cursor")?;
             return Ok(self.closures.get(&root).cloned());

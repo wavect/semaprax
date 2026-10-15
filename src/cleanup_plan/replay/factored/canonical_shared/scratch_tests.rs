@@ -69,7 +69,7 @@ fn retained_scratch_complete_old_every_work_frontier_and_failure_cleanup() {
 }
 
 #[test]
-fn retained_closure_cached_route_constructs_no_cursor_or_auth_return_carrier() {
+fn retained_closure_cached_route_constructs_no_cursor_and_rejects_foreign_authentication() {
     let function = fixture();
     let (automaton, sink, roots) = super::tests::automaton(&function);
     let mut current = Canonicalizer::new(&automaton, sink);
@@ -393,7 +393,7 @@ fn retained_scratch_complete_old_current_actual_and_reserved_costs_are_separate(
 }
 
 #[test]
-fn retained_cache_zero_byte_reuse_checks_floor_and_sticky_refusal_without_allocation() {
+fn retained_cache_receiving_fee_preserves_floor_and_sticky_refusal_without_allocation() {
     use crate::bounded_output::{
         active_remaining, clear_active_floor, reserve_active_required, set_active_floor,
     };
@@ -406,10 +406,11 @@ fn retained_cache_zero_byte_reuse_checks_floor_and_sticky_refusal_without_alloca
                 let mut budget = ReplayBudget::new();
                 current.closure(&function, roots[3], &mut budget).unwrap();
                 let remaining = active_remaining().unwrap();
+                let receipt = std::mem::size_of::<Result<(), Diagnostic>>();
                 if floor {
-                    assert!(set_active_floor(remaining));
+                    assert!(set_active_floor(remaining - receipt));
                 } else {
-                    assert!(reserve_active_required(remaining));
+                    assert!(reserve_active_required(remaining - receipt));
                 }
                 let at = current_metrics().allocated;
                 assert!(current
@@ -434,4 +435,61 @@ fn retained_cache_zero_byte_reuse_checks_floor_and_sticky_refusal_without_alloca
             !allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed
         );
     }
+}
+
+#[test]
+fn retained_warm_authentication_pays_the_real_result_at_exact_and_one_short_frontiers() {
+    use crate::bounded_output::{active_remaining, reserve_active_required};
+    let function = fixture();
+    let receipt = std::mem::size_of::<Result<(), Diagnostic>>();
+    for available in [0, receipt - 1, receipt] {
+        let (((), allocation), refused, _, first) = with_limit_usage_refusal(1 << 20, || {
+            measure(|| {
+                let mut memo = memo::RetainedMemo::<usize>::new();
+                let mut budget = ReplayBudget::new();
+                memo.authenticate_retained(&function, &mut budget);
+                assert!(!memo.failed());
+                let remaining = active_remaining().unwrap();
+                assert!(reserve_active_required(remaining - available));
+                let at = current_metrics().allocated;
+                memo.authenticate_retained(&function, &mut budget);
+                assert_eq!(memo.failed(), available != receipt);
+                assert_eq!(current_metrics().allocated, at);
+                if available == receipt {
+                    assert_eq!(active_remaining(), Some(0));
+                } else {
+                    assert_eq!(memo.failure().code, "SPX-H006");
+                    memo.authenticate_retained(&function, &mut budget);
+                    assert!(memo.failed());
+                    assert_eq!(current_metrics().allocated, at);
+                }
+                drop(memo);
+                drop(budget);
+            })
+        });
+        assert_eq!(refused, available != receipt);
+        if available == receipt {
+            assert!(first.is_none());
+        } else {
+            let first = first.unwrap();
+            assert_eq!(first.requested, receipt);
+            assert_eq!(first.remaining, available);
+        }
+        assert!(
+            !allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed
+        );
+    }
+    // Calling the ordinary authenticator above retains its exact source fee;
+    // its complete implementation has no hidden replacement or weakened debit.
+    let ordinary = include_str!("memo.rs").replace(
+        "    #[cfg(test)]\n    pub(super) fn insert(",
+        "    pub(super) fn insert(",
+    );
+    let ordinary = ordinary
+        .strip_suffix("\nmod retained;\npub(super) use retained::RetainedMemo;\n")
+        .unwrap();
+    assert_eq!(
+        ordinary,
+        include_str!("../../../../../docs/evidence/canonical-scratch-839/memo.rs.before.txt")
+    );
 }

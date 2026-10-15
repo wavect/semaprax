@@ -1,0 +1,10 @@
+{
+  "execution": "UNEXECUTED",
+  "selectors": [
+    "workspace_graph::expected_projection::private_layout::capacity_tests::",
+    "workspace_graph::expected_projection::private_layout::tests::",
+    "workspace_graph::expected_projection::private_layout::function_tests::",
+    "workspace_graph::expected_projection::private_layout::owner_index::tests::",
+    "workspace_graph::expected_projection::private_layout::registry::tests::"
+  ]
+}

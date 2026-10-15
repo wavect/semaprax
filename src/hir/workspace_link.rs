@@ -6,6 +6,8 @@
 use super::*;
 
 mod compiler_prelude;
+#[cfg(test)]
+pub(in crate::hir) mod legacy_nominal_before;
 mod profile_diagnostics;
 mod stdin_stream;
 mod stream_collection_record;

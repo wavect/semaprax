@@ -25,3 +25,12 @@ Four authored controls cover complete old/current maps and wire for Owned,
 Shared and decoded inputs; complete selected errors and partial maps; physical
 clone removal and complete lifetime; and synthetic 512-level last-owner disposal.
 They have not been compiled or executed in this private lane.
+
+## Legacy coordinate successor
+
+The original scope above describes the retained predecessor. The source-only
+`legacy-final-link-sharing-827` packet adds a separate Legacy coordinate branch
+after the same complete fact checks; funded provenance still uses is_shared.
+Decoded Owned inputs still copy. Full original archives and the complete prior
+receivers remain unchanged and independently compiled. No new execution claim
+is supplied by this additive note.

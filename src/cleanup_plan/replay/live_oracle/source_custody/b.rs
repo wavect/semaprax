@@ -1151,6 +1151,13 @@ fn one_mib_ledger_preserves_first_cursor_refusal_and_sticky_retries() {
             include_str!("../src/cleanup_plan/replay/expression_facts/receiving/retained/edge_before.rs"),
             include_str!("../src/cleanup_plan/replay/expression_facts/receiving/retained/edge_tests.rs"),
             include_str!("../src/cleanup_plan/replay/expression_facts/receiving/retained/tests.rs"))"######, r######"include_str!("../src/cleanup_plan/replay/expression_facts/receiving.rs")"######);
+        // Exact additive Legacy finalizer oracle and complete controls.
+        undo(&mut current, r########"        include_str!("../src/hir/declaration_index/linked_owned_data/legacy_before.rs"),
+"########, "");
+        undo(&mut current, r########"        include_str!("../src/hir/declaration_index/linked_owned_data/tests/legacy.rs"),
+"########, "");
+        undo(&mut current, r########"        include_str!("../src/hir/workspace_link/legacy_nominal_before.rs"),
+"########, "");
         undo(&mut current, r####"        include_str!("../src/hir/declaration_index/nominal_paid_facts.rs"),
         include_str!("../src/hir/declaration_index/linked_owned_data.rs"),
         include_str!("../src/hir/declaration_index/linked_owned_data/original.rs"),

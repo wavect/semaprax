@@ -1,0 +1,51 @@
+{
+  "status": "SOURCE_ONLY_NO_CARGO_OR_RUST_TEST_EXECUTION",
+  "basis": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+  "own_rows": 10,
+  "all_current_bindings_and_original_inverse_bytes": "PASS",
+  "complete_immediate_before_index_adapter_inverse": "PASS",
+  "complete_immediate_before_finalizer_adapter_inverse": "PASS",
+  "source36": "PASS",
+  "module_limits": [
+    {
+      "source": "src/hir/declaration_index/linked_owned_data.rs",
+      "lines": 358
+    },
+    {
+      "source": "src/hir/declaration_index/linked_owned_data/tests.rs",
+      "lines": 311
+    },
+    {
+      "source": "src/hir/workspace_link.rs",
+      "lines": 1432
+    },
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "lines": 738
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "lines": 540
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "lines": 1417
+    },
+    {
+      "source": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "lines": 1357
+    },
+    {
+      "source": "src/hir/declaration_index/linked_owned_data/tests/legacy.rs",
+      "lines": 332
+    },
+    {
+      "source": "src/hir/declaration_index/linked_owned_data/legacy_before.rs",
+      "lines": 348
+    },
+    {
+      "source": "src/hir/workspace_link/legacy_nominal_before.rs",
+      "lines": 115
+    }
+  ]
+}

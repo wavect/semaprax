@@ -7151,3 +7151,8 @@ are authored. Qualification is pending; Catalog corpus and limits are unchanged.
 - Source-only #816 successor: reuse complete independent status-source case
   proof in ordinary arithmetic receiving, preserving full direct receivers,
   exact held invocation membership and pending whole-Drop/refusal controls.
+
+- Source-only #827 Legacy final-link successor retains exact checked case-field
+  coordinates without promoting unfunded storage; complete immediate prior
+  finalizer, mutation, Owned baseline and iterative Drop controls await the
+  next combined qualification.

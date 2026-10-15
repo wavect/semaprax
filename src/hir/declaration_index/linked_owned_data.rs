@@ -12,6 +12,8 @@ use super::DeclarationIndex;
 mod original;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod legacy_before;
 
 impl DeclarationIndex {
     /// Extend the canonical compiler prelude with exactly one authenticated
@@ -169,12 +171,15 @@ impl DeclarationIndex {
                             )?;
                             self.insert_case_field_view(case.id.clone(), field, fact.origin);
                         }
-                        // Only an already acquired immutable owner can back
-                        // coordinates. Legacy/decoded values retain their own
-                        // complete field facts; this route grants no payer.
+                        // The exact borrowed case above passed every Phase-A
+                        // fact check. A coordinate retains that physical owner;
+                        // Legacy sharing grants no funded provenance or payer.
                         let fields: nominal_payload::map::CaseFields = if cases.is_shared() {
                             nominal_payload::map::CaseFields::canonical(cases.clone(), ordinal)
+                        } else if cases.is_legacy_shared() {
+                            nominal_payload::map::CaseFields::legacy_unfunded(cases.clone(), ordinal)
                         } else {
+                            // Decoded/hostile Owned inputs keep independent facts.
                             case.fields.clone().into()
                         };
                         self.case_fields.insert(case.id.clone(), fields);

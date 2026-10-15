@@ -25,3 +25,15 @@ variant, payer discovery, controlled Legacy budget refusal, forecast discount or
 application recovery is claimed. Complete old/current owners and allocation/Drop
 observations are pending execution; source custody and scope are recorded under
 `docs/evidence/legacy-nominal-sharing-827/`.
+
+## Legacy final-link coordinate successor (source only)
+
+After the existing complete Phase-A case and field checks, final linking now
+retains an actual Legacy outer owner for its case-field coordinate too. This
+physical storage decision grants no funded provenance, byte payer or source
+authority. Funded coordinates remain unchanged; decoded/hostile Owned payloads
+retain their complete independent field copies. Legacy index/HIR mutation still
+detaches complete Owned values. Removing an eager field copy may move copying
+to a later host mutation; no universal mutation/allocation or application-fit
+claim follows. The immediate full prior index and finalizer are independently
+compiled controls, alongside the older complete original linker.

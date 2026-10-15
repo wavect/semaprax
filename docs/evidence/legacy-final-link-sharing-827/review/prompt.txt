@@ -1,0 +1,114 @@
+Independent bounded implementation review. No tools, ≤600-word verdict. Actual source only, no execution. #827 goal retain one canonical per-module nominal payload through final linking, preserving public mutable API and funded provenance. A417 Legacy postvalidation owners exist; current final linker still copied case.fields despite outer Legacy owner. This patch adds separate is_legacy_shared branch. is_shared remains FUNDED ONLY; Legacy constructor has immutable owner-mode and explicit unfunded allocations/no ambient debit, COW to Owned on mutation. No new carrier/field/allocation in branch; CaseFields::Case layout existing unchanged. No work caps/units/forecast changed. Decode stays Owned. Existing funded branch unchanged. Review authority, exact case identity, mutation/drop, physical baseline validity; no invented implicit paid authority.
+CURRENT ENTIRE VARIANT FINAL-LINK BRANCH:
+                ResolvedTypeDeclarationKind::Variant { cases } => {
+                    for (ordinal, case) in cases.iter().enumerate() {
+                        let fact = require_fact(
+                            facts,
+                            &mut used,
+                            &case.id,
+                            DeclarationKind::VariantCase,
+                            Some(&declaration.id),
+                        )?;
+                        self.insert_case(
+                            declaration.id.clone(),
+                            case.name.clone(),
+                            case.id.clone(),
+                            fact.origin,
+                        );
+                        for field in &case.fields {
+                            let fact = require_fact(
+                                facts,
+                                &mut used,
+                                &field.id,
+                                DeclarationKind::CaseField,
+                                Some(&case.id),
+                            )?;
+                            self.insert_case_field_view(case.id.clone(), field, fact.origin);
+                        }
+                        // The exact borrowed case above passed every Phase-A
+                        // fact check. A coordinate retains that physical owner;
+                        // Legacy sharing grants no funded provenance or payer.
+                        let fields: nominal_payload::map::CaseFields = if cases.is_shared() {
+                            nominal_payload::map::CaseFields::canonical(cases.clone(), ordinal)
+                        } else if cases.is_legacy_shared() {
+                            nominal_payload::map::CaseFields::legacy_unfunded(cases.clone(), ordinal)
+                        } else {
+                            // Decoded/hostile Owned inputs keep independent facts.
+                            case.fields.clone().into()
+                        };
+                        self.case_fields.insert(case.id.clone(), fields);
+                    }
+                    self.variant_cases
+                        .insert(declaration.id.clone(), cases.clone());
+                }
+
+EXISTING COMPLETE CASEFIELDS RECEIVER/COW/DRAIN:
+impl CaseFields {
+    pub(crate) fn canonical(
+        owner: NominalPayload<ResolvedVariantCaseDeclaration>,
+        ordinal: usize,
+    ) -> Self {
+        assert!(owner.is_shared());
+        assert!(ordinal < owner.len());
+        Self {
+            storage: CaseStorage::Case { owner, ordinal },
+        }
+    }
+    /// Actual immutable storage only; this grants no paid provenance.
+    pub(crate) fn legacy_unfunded(
+        owner: NominalPayload<ResolvedVariantCaseDeclaration>,
+        ordinal: usize,
+    ) -> Self {
+        assert!(owner.is_legacy_shared());
+        assert!(ordinal < owner.len());
+        Self {
+            storage: CaseStorage::Case { owner, ordinal },
+        }
+    }
+    pub(crate) fn drain(self, dispose: &mut impl FnMut(ResolvedType)) {
+        if let CaseStorage::Owned(fields) = self.storage {
+            fields.drain_recursive_types(dispose);
+        }
+    }
+}
+impl From<Vec<ResolvedFieldDeclaration>> for CaseFields {
+    fn from(v: Vec<ResolvedFieldDeclaration>) -> Self {
+        Self {
+            storage: CaseStorage::Owned(v.into()),
+        }
+    }
+}
+impl Deref for CaseFields {
+    type Target = Vec<ResolvedFieldDeclaration>;
+    fn deref(&self) -> &Self::Target {
+        match &self.storage {
+            CaseStorage::Owned(v) => v,
+            CaseStorage::Case { owner, ordinal } => &owner[*ordinal].fields,
+        }
+    }
+}
+impl DerefMut for CaseFields {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        if let CaseStorage::Case { owner, ordinal } = &self.storage {
+            if owner.is_legacy_shared() {
+                let fields = owner[*ordinal]
+                    .fields
+                    .iter()
+                    .map(NominalElement::clone_legacy_unfunded)
+                    .collect::<Vec<_>>();
+                self.storage = CaseStorage::Owned(fields.into());
+            }
+        }
+        match &mut self.storage {
+            CaseStorage::Owned(values) => values,
+            CaseStorage::Case { .. } => {
+                panic!("shared case-field mutation requires explicit paid materialization")
+            }
+        }
+    }
+}
+
+Owner/Type lifecycle: NominalPayload Shared is Arc<Owner<T>>. Private immutable mode Funded|LegacyUnfunded; constructors separately create owner, no promotion/mixed modes. Owner holds values+preacquired iterative scratch. Last Arc Drop drains Nominal+Function child types iteratively. Legacy payload DerefMut unique moves Vec; aliased copies via iterative full Field/Case clone. CaseFields::drain handles only Owned; Case variant drops retained Arc normally. Index Drop uses current physical has_shared_owner only to avoid mutating shared recursive roots. No payer discovered.
+Full independently retained receivers: untouched original pre-link optimization body still compiled/executed by existing tests. NEW additional complete immediate a417 linked_owned_data.rs copy (353lines) adapted only imports, removes test child declarations, renames3methods _before_legacy_coordinates. Entire final workspace link_owned_data_api_workspace function copied verbatim into cfgtest child (110lines), changed entry name+one call to that immediate before-index method; other validation/cleanup/order retained. Test windows compare this immediate baseline, so no inflated original/preexisting clone baseline. Existing full original method separately checks errors/partial maps.
+New controls: full actual final constructor old/current ResolvedProgram equality, full cache wire+graph, decoded full equality; Legacy casefield pointers share exact case; mutate index detaches full fields leaving HIR/sibling, mutate HIR detaches and leaves index/sibling; first malformed missing/wrongkind/wrongowner/later/mixedfacts bothscalar+owned routes equality all6diag+partial maps, then actualfinalizer error equality; actualold/current allocation/freed/live/highwater with genuinely decodedOwned vsLegacy inputs, no false paidclaims; entire input+current+sibling/actualCOW+bothDroporders observer; synthetic512 receiving+realCaseFields detachment and final drops allocate0. Existing4 linker pointer controls now use physical has_shared_owner (covers Legacy), Owned/decoded keepassertNe. Existing original test file archived byteexact in newcustody. No tests executed.
+Question: any concrete blocker in exact branch/CaseFields safety/provenance/error priority or controls? Does caseordinal derive exact same borrowed element after fullfactguards without inferring authority from matchingID? Is actualcostcomparison honest? Note fullfinalizer may independently debit cleanup; zeroambientused assertion isolates only complete index receiver, not entire finalizer.

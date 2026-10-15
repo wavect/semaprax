@@ -1,0 +1,44 @@
+{
+  "source_subject": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+  "status": "UNEXECUTED_SOURCE_ONLY",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_constructor_preserves_complete_old_hir_wire_and_mutation_isolation",
+      "source": "src/hir/declaration_index/linked_owned_data/tests/legacy.rs",
+      "source_sha256": "ba420975af2d67b6633888cae914ec598ad67d4f14c50e4e383df1ac2e34f355",
+      "reason": "Actual public Legacy final-link coordinates: complete old/current constructor or error/physical/iterative Drop contract."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_constructor_retains_all_original_fact_errors_and_partial_map_order",
+      "source": "src/hir/declaration_index/linked_owned_data/tests/legacy.rs",
+      "source_sha256": "ba420975af2d67b6633888cae914ec598ad67d4f14c50e4e383df1ac2e34f355",
+      "reason": "Actual public Legacy final-link coordinates: complete old/current constructor or error/physical/iterative Drop contract."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_constructor_observes_real_owned_baseline_and_whole_drop_both_orders",
+      "source": "src/hir/declaration_index/linked_owned_data/tests/legacy.rs",
+      "source_sha256": "ba420975af2d67b6633888cae914ec598ad67d4f14c50e4e383df1ac2e34f355",
+      "reason": "Actual public Legacy final-link coordinates: complete old/current constructor or error/physical/iterative Drop contract."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_case_coordinates_and_detached_children_drop_512_without_new_backing",
+      "source": "src/hir/declaration_index/linked_owned_data/tests/legacy.rs",
+      "source_sha256": "ba420975af2d67b6633888cae914ec598ad67d4f14c50e4e383df1ac2e34f355",
+      "reason": "Actual public Legacy final-link coordinates: complete old/current constructor or error/physical/iterative Drop contract."
+    }
+  ],
+  "required_existing": [
+    "hir::declaration_index::linked_owned_data::tests::linked_nominal_views_preserve_complete_old_maps_wire_and_owned_decoded_facts",
+    "hir::declaration_index::linked_owned_data::tests::linked_nominal_views_keep_full_old_errors_partial_maps_and_first_fact_order",
+    "hir::declaration_index::linked_owned_data::tests::linked_nominal_views_remove_actual_discarded_backing_and_retain_owner_until_drop",
+    "hir::declaration_index::linked_owned_data::tests::linked_shared_case_views_last_owner_drop_uses_prepaid_iterative_frontier"
+  ]
+}

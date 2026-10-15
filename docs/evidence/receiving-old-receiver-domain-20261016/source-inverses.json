@@ -1,0 +1,15 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+    "checkpoint_revision": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+    "archive": "docs/evidence/receiving-old-receiver-domain-20261016/receiving_layer_tests.rs.before.txt",
+    "current_sha256": "969a66f6a53585c67165c9b7eba481cc8528bf93e7e8e9a797b47c99352199a7",
+    "original_sha256": "22358b445b982ce13d5a55dfff11df4eb0d1ec0133ad9fae9008c66c26efe029",
+    "edits": [
+      {
+        "new": "    let saved = crate::source_reflows_merge::assembly_view(\n        \"842\",\n        \"src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs\",\n        include_str!(\"before_receiving_layers.rs\"),\n    );",
+        "old": "    let saved = include_str!(\"before_receiving_layers.rs\");"
+      }
+    ]
+  }
+]

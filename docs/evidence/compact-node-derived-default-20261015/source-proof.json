@@ -1,0 +1,10 @@
+{
+  "status": "SOURCE_ONLY_DERIVED_DEFAULT_SAME_EMPTY_VALUE_UNEXECUTED",
+  "exact_manual_default_return": "Self::Empty",
+  "exact_derived_default_variant": "Empty",
+  "enum_fields_order_and_payloads_unchanged": true,
+  "all_receiving_fees_and_method_bodies_unchanged": true,
+  "whole_previous_source_restored": true,
+  "new_selectors": 0,
+  "Rust_Cargo_Clippy_executed": false
+}

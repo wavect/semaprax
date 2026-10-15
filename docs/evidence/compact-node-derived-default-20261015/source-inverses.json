@@ -1,0 +1,19 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/compact_nodes.rs",
+    "checkpoint_revision": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+    "archive": "docs/evidence/compact-node-derived-default-20261015/compact_nodes.rs.before.txt",
+    "current_sha256": "ad3616be7fd59600b8c8145276545aa53cb5ce82dc9b97cff9faf7664b183feb",
+    "original_sha256": "3b15e49c7e796ed282a9926db50717ab446377dac44cff34dea453d1ea7c2e04",
+    "edits": [
+      {
+        "new": "#[derive(Default)]\npub(super) enum Node {\n    #[default]\n    Empty,",
+        "old": "pub(super) enum Node {\n    Empty,"
+      },
+      {
+        "new": "impl Node {",
+        "old": "impl Default for Node {\n    fn default() -> Self {\n        Self::Empty\n    }\n}\nimpl Node {"
+      }
+    ]
+  }
+]

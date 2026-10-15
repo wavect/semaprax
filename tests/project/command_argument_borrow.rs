@@ -124,7 +124,9 @@ fn retained_hir_still_rejects_a_mutable_command_argument_alias_independently() {
     let project = fixture(example, files);
     let mut program = with_authenticated_project(&project.0.join("semaprax.toml"), |snapshot| {
         snapshot.check()?;
-        Ok(snapshot.entry_program().clone())
+        // The selected command is retained in the export closure; main's
+        // entry-only closure correctly omits this independently selected root.
+        Ok(snapshot.retain_revision().public_api_program().clone())
     })
     .unwrap();
     hir::validate(&program).unwrap();

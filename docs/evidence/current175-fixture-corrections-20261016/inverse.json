@@ -1,0 +1,32 @@
+[
+  {
+    "path": "src/workspace_graph/source_schema/static_text/primitive/helpers/tests.rs",
+    "edits": [
+      {
+        "start_line": 1064,
+        "remove": "    // Canonicalize the declaration first: the shared build() helper formats\n    // the whole source and would silently discard the comment under test.\n    let leaf = format!(\n        \"{}\\n//{}\\n\",\n        crate::format::canonical(&crate::parse(LEAF, \"leaf.spx\").unwrap()),\n        \"x\".repeat(1_048_576)\n    );\n    assert!(leaf.len() > 1_048_576);\n    let build_with_comment = |caller: &str| {\n        let sources = [\n            (\"caller.spx\", caller),\n            (\"provider.spx\", PROVIDER),\n            (\"leaf.spx\", &leaf),\n        ]\n        .into_iter()\n        .map(|(path, source)| WorkspaceSource {\n            path: path.into(),\n            source: if path == \"leaf.spx\" {\n                source.to_owned()\n            } else {\n                crate::format::canonical(&crate::parse(source, path).unwrap())\n            },\n        })\n        .collect();\n        build_owned_retaining_sources_for_change(sources, MAX_CHANGE_BUILDER_BYTES)\n            .map(|(build, _)| build)\n    };\n",
+        "restore": "    let leaf = format!(\"{LEAF}\\n//{}\\n\", \"x\".repeat(1_048_576));\n"
+      },
+      {
+        "start_line": 1095,
+        "remove": "    let ordinary = build_with_comment(ordinary_caller).unwrap();\n",
+        "restore": "    let ordinary = build(ordinary_caller, PROVIDER, &leaf).unwrap();\n"
+      },
+      {
+        "start_line": 1111,
+        "remove": "    let selected = build_with_comment(CALLER).unwrap();\n",
+        "restore": "    let selected = build(CALLER, PROVIDER, &leaf).unwrap();\n"
+      }
+    ]
+  },
+  {
+    "path": "tests/project/command_argument_borrow.rs",
+    "edits": [
+      {
+        "start_line": 126,
+        "remove": "        // The selected command is retained in the export closure; main's\n        // entry-only closure correctly omits this independently selected root.\n        Ok(snapshot.retain_revision().public_api_program().clone())\n",
+        "restore": "        Ok(snapshot.entry_program().clone())\n"
+      }
+    ]
+  }
+]

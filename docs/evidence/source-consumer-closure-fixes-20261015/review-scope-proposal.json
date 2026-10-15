@@ -1,0 +1,838 @@
+{
+  "proposal_not_authorization": true,
+  "basis": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+  "rust_path_count": 18,
+  "paths": [
+    {
+      "path": "crates/semaprax-native-rust-owned-data-package/src/project_publication/application.rs",
+      "before_sha256": "38f2c9cb6c841a4cb83a5796748533d2c131f21d44b2f23d9c110c217572d777",
+      "after_sha256": "5f4ee2befaa1836b8a4aa1e4d5da7afb0ba874ced101026bc64e7243cd7e7a3f",
+      "kind": "parent_authorized_layout_equivalent_production_spelling",
+      "equivalence_packet": "application-osstr-map-spelling-20261015"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "before_sha256": "df8d23dcd96f6002a3aec148ef663e2cc0543d32d30e6e34d5316fd3884b8e6c",
+      "after_sha256": "43df43ad61648075dcc465d6af296891394fd6019eacd5a1105ed621c8b8da70",
+      "kind": "whole_existing_cfg_test_item",
+      "before_item": "#[cfg(test)]\n    pub(super) fn id(\n        &mut self,\n        function: &ResolvedFunction,\n        root: Weighted,\n        budget: &mut ReplayBudget,\n    ) -> Result<Option<usize>, Diagnostic> {\n        let mut receiving = closure_receiving::ClosureReceiving::acquire(function, budget)?;\n        self.id_with_receiving(function, root, budget, &mut receiving)\n    }",
+      "after_item": "#[cfg(test)]\n    pub(super) fn id(\n        &mut self,\n        function: &ResolvedFunction,\n        root: Weighted,\n        budget: &mut ReplayBudget,\n    ) -> Result<Option<usize>, Diagnostic> {\n        // Preserve the old entry's owner rejection before a fresh test-only slot\n        // can query or charge a foreign payer. A valid call still pays acquisition.\n        self.closures.authenticate_retained(function, budget);\n        if self.closures.failed() {\n            return Err(self.closures.failure());\n        }\n        let mut receiving = closure_receiving::ClosureReceiving::acquire(function, budget)?;\n        self.id_with_receiving(function, root, budget, &mut receiving)\n    }",
+      "before_item_bytes": [
+        4769,
+        5133
+      ],
+      "after_item_bytes": [
+        4769,
+        5458
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "before_sha256": "78c6bfedd01a582a93788c427223e79e134c894e3d3767b99683e6137c9a6b19",
+      "after_sha256": "9f93d0a5b2eb84ccd0e2da828c410fda3949ef9082ade4543c13525f1f43e891",
+      "kind": "cfg_test_only_module_source",
+      "registration_chains": [
+        [
+          {
+            "source_path": "src/lib.rs",
+            "line": 120,
+            "module": "cleanup_plan",
+            "attributes": [
+              "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ]
+          },
+          {
+            "source_path": "src/cleanup_plan.rs",
+            "line": 32,
+            "module": "replay",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay.rs",
+            "line": 102,
+            "module": "factored",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/factored.rs",
+            "line": 36,
+            "module": "canonical_shared",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+            "line": 24,
+            "module": "closure_receiving",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs",
+            "line": 93,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs",
+      "before_sha256": "75cb7782397334be2bd59b1b9cc5615f995c20271aec086911c2c92e5ef10ad1",
+      "after_sha256": "4f2e45b389447291464f818cf8834880f7935e6578087e9bef7f96c89a16c8af",
+      "kind": "cfg_test_only_module_source",
+      "registration_chains": [
+        [
+          {
+            "source_path": "src/lib.rs",
+            "line": 120,
+            "module": "cleanup_plan",
+            "attributes": [
+              "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ]
+          },
+          {
+            "source_path": "src/cleanup_plan.rs",
+            "line": 32,
+            "module": "replay",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay.rs",
+            "line": 102,
+            "module": "factored",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/factored.rs",
+            "line": 36,
+            "module": "canonical_shared",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+            "line": 31,
+            "module": "ordered_weights",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs",
+            "line": 364,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "before_sha256": "d5054407b2b56f0d06d1809036eda0005b936e004ef72fc1fa5104bb8dcdda45",
+      "after_sha256": "4a848cbfadb3b15d5c7af9b93ca902555266d7d1c971590b67c9adb3366716e7",
+      "kind": "cfg_test_only_module_source",
+      "registration_chains": [
+        [
+          {
+            "source_path": "src/lib.rs",
+            "line": 120,
+            "module": "cleanup_plan",
+            "attributes": [
+              "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ]
+          },
+          {
+            "source_path": "src/cleanup_plan.rs",
+            "line": 32,
+            "module": "replay",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay.rs",
+            "line": 102,
+            "module": "factored",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/factored.rs",
+            "line": 36,
+            "module": "canonical_shared",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+            "line": 807,
+            "module": "receiving_layer_tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/lexical_replay/operand_tests/source.rs",
+      "before_sha256": "3cd0e0bdcab54d043d21a4097011b1caf11a374337bfce107e1bd5b3b0fd7c22",
+      "after_sha256": "575f7461fb6624f8dfdf1ed511cbade1227a47358abd0858755396d949e2931b",
+      "kind": "cfg_test_only_module_source",
+      "registration_chains": [
+        [
+          {
+            "source_path": "src/lib.rs",
+            "line": 120,
+            "module": "cleanup_plan",
+            "attributes": [
+              "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ]
+          },
+          {
+            "source_path": "src/cleanup_plan.rs",
+            "line": 32,
+            "module": "replay",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay.rs",
+            "line": 128,
+            "module": "lexical_replay",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/lexical_replay.rs",
+            "line": 17,
+            "module": "operand_tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/lexical_replay/operand_tests.rs",
+            "line": 108,
+            "module": "source",
+            "attributes": []
+          }
+        ]
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "before_sha256": "1d87c88e53860e44af4e07eb2f57ddee8df39cdc7d279f47065c4ceced66cb67",
+      "after_sha256": "baa930978cb919d86e9b1ccc4ddf2e35910e0f85e6947f9273b7e43d1c02521d",
+      "kind": "cfg_test_only_module_source",
+      "registration_chains": [
+        [
+          {
+            "source_path": "src/lib.rs",
+            "line": 120,
+            "module": "cleanup_plan",
+            "attributes": [
+              "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ]
+          },
+          {
+            "source_path": "src/cleanup_plan.rs",
+            "line": 32,
+            "module": "replay",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay.rs",
+            "line": 7294,
+            "module": "live_oracle",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/live_oracle.rs",
+            "line": 29,
+            "module": "source_custody",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/live_oracle/source_custody.rs",
+            "line": 10,
+            "module": "a",
+            "attributes": []
+          }
+        ]
+      ]
+    },
+    {
+      "path": "src/source_reflows_merge.rs",
+      "before_sha256": "7befff57d9722528eec8fbd2a330e5fbc0ea799b00576dff01d23ecd04273115",
+      "after_sha256": "dccde9ae85ac89b25e5914c812f7beb551e45f5ee2c8e8a27575d3635a88305c",
+      "kind": "cfg_test_only_module_source",
+      "registration_chains": [
+        [
+          {
+            "source_path": "src/lib.rs",
+            "line": 20,
+            "module": "source_reflows_merge",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "path": "src/workspace_graph/cold_canonical/tests.rs",
+      "before_sha256": "0d01d06a2f6f9794f9f52ffa4ebcdac1a557405a2737623ae7515422c511a148",
+      "after_sha256": "c3f6ff4b44a73a1cb577ee26d9ef507d9cde09e762e4b3316e76f391c0d1364b",
+      "kind": "cfg_test_only_module_source",
+      "registration_chains": [
+        [
+          {
+            "source_path": "src/lib.rs",
+            "line": 534,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 13,
+            "module": "cold_canonical",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/cold_canonical.rs",
+            "line": 3,
+            "module": "tests",
+            "attributes": []
+          }
+        ]
+      ]
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+      "before_sha256": "ab6b02805af1ed1723058a3b366b3b24ce558f7a88612c0c25af0257ef26570d",
+      "after_sha256": "51e119aef00399eece1536e6d9c4a3a91b876d5d768821fb9134bbe02746d680",
+      "kind": "whole_existing_cfg_test_item",
+      "before_item": "#[cfg(test)]\nmod tests {\n    use super::{\n        ast_function_cost, ast_type_declaration_cost, pay_default_teardown, teardown_function,\n        Cost, Receiver, Setup, Type,\n    };\n    use crate::bounded_output::with_limit_usage_refusal;\n    use crate::test_allocation_observer::{current_metrics, measure};\n    use crate::workspace_graph::constructor_failure::typed::Failure;\n    use crate::workspace_graph::expected_projection::{self, StructuralCost};\n    const LIMIT: usize = 64 * 1024 * 1024;\n    fn facts(raw: &StructuralCost) -> [usize; 15] {\n        [\n            raw.total,\n            raw.string_bytes,\n            raw.scalar_identity_discount,\n            raw.literal_fixed_discount,\n            raw.identity_carriers,\n            raw.single_identity_carriers,\n            raw.exact_fixed_discount,\n            raw.exact_expressions,\n            raw.exact_absent_roots[0],\n            raw.exact_absent_roots[1],\n            raw.exact_absent_roots[2],\n            raw.exact_carrier_free_roots,\n            raw.exact_carrier_free_ifs,\n            raw.exact_carrier_free_vars,\n            raw.exact_carrier_free_blocks,\n        ]\n    }\n    #[test]\n    fn typed_constructor_census_keeps_all_original_raw_fields_order_and_teardown_formulas() {\n        let sources = [\n            \"module test; @id(\\\"main\\\") fn main()->i64 { let x=1; x }\",\n            \"module test; @id(\\\"main\\\") fn main()->i64 { while false {0} 0 }\",\n            \"module test; @id(\\\"main\\\") fn main()->i64 { if true {1 + -2} else {callee(3)} }\",\n            \"module test; @id(\\\"main\\\") fn main()->i64 { let mut value=0; value.x=1; 0 }\",\n            \"module test; @id(\\\"main\\\") fn main()->i64 { let x:Input=0; 0 }\",\n            \"module test; @id(\\\"row\\\") record Row {@id(\\\"x\\\") x:i64,} @id(\\\"main\\\") fn main()->i64 {0}\",\n            include_str!(concat!(\n                env!(\"CARGO_MANIFEST_DIR\"),\n                \"/std/collections/src/collections.spx\"\n            )),\n            include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/std/mem/src/mem.spx\")),\n        ];\n        for source in sources {\n            let program = crate::parse(source, \"typed-census.spx\").unwrap();\n            for inline in [false, true] {\n                for function in &program.functions {\n                    let mut original = StructuralCost::raw_ast(true).with_inline_values(inline);\n                    expected_projection::ast_function_cost(function, &mut original).unwrap();\n                    let expected = facts(&original);\n                    let (((), physical), refused, used, first) =\n                        with_limit_usage_refusal(LIMIT, || {\n                            measure(|| {\n                                let mut owner = Receiver::acquire().unwrap();\n                                let mut cost = Cost::new(&mut owner, inline).unwrap();\n                                ast_function_cost(function, &mut cost).unwrap();\n                                assert_eq!(facts(&cost.raw), expected);\n                                cost.teardown().unwrap();\n                                drop(cost);\n                                drop(owner);\n                            })\n                        });\n                    assert!(!refused && first.is_none());\n                    assert!(\n                        !physical.invalid\n                            && physical.live == 0\n                            && physical.allocated == physical.freed\n                    );\n                    assert!(physical.allocated <= used);\n                }\n                for declaration in &program.types {\n                    let mut original = StructuralCost::raw_ast(true).with_inline_values(inline);\n                    expected_projection::ast_type_declaration_cost(declaration, &mut original)\n                        .unwrap();\n                    let expected = facts(&original);\n                    let ((), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n                        let mut owner = Receiver::acquire().unwrap();\n                        let mut cost = Cost::new(&mut owner, inline).unwrap();\n                        ast_type_declaration_cost(declaration, &mut cost).unwrap();\n                        assert_eq!(facts(&cost.raw), expected);\n                        drop(cost);\n                        drop(owner);\n                    });\n                    assert!(!refused && first.is_none());\n                    let index = [(declaration.name.as_str(), declaration)];\n                    let ty = Type::Named {\n                        name: declaration.name.clone(),\n                        arguments: Vec::new(),\n                    };\n                    let ((), refused, old, first) = with_limit_usage_refusal(LIMIT, || {\n                        super::super::super::pay_default_teardown(&ty, &index).unwrap();\n                    });\n                    assert!(!refused && first.is_none());\n                    let ((), refused, new, first) = with_limit_usage_refusal(LIMIT, || {\n                        let mut owner = Receiver::acquire().unwrap();\n                        pay_default_teardown(&ty, &index, &mut owner).unwrap();\n                        drop(owner);\n                    });\n                    assert!(!refused && first.is_none());\n                    assert!(\n                        new > old,\n                        \"actual controls are additional; no old fee credit\"\n                    );\n                }\n            }\n        }\n    }\n\n    #[test]\n    fn typed_constructor_cost_every_byte_frontier_and_retry_allocate_nothing_after_refusal() {\n        let program = crate::parse(\n            \"module test; @id(\\\"main\\\") fn main()->i64 {1 + -2}\",\n            \"frontier.spx\",\n        )\n        .unwrap();\n        let function = &program.functions[0];\n        let ((), refused, exact, first) = with_limit_usage_refusal(LIMIT, || {\n            let mut owner = Receiver::acquire().unwrap();\n            teardown_function(function, true, &mut owner).unwrap();\n            drop(owner);\n        });\n        assert!(!refused && first.is_none());\n        for limit in 0..=exact {\n            let (((), physical), refused, used, first) = with_limit_usage_refusal(limit, || {\n                measure(|| {\n                    let mut owner = match Receiver::acquire() {\n                        Ok(owner) => owner,\n                        Err(Setup::Budget { .. }) => return,\n                        Err(other) => panic!(\"unexpected owner setup: {other:?}\"),\n                    };\n                    match teardown_function(function, true, &mut owner) {\n                        Ok(()) => assert_eq!(limit, exact),\n                        Err(selected @ Setup::Budget { .. }) => {\n                            let stop = current_metrics().allocated;\n                            assert_eq!(\n                                teardown_function(function, true, &mut owner),\n                                Err(selected)\n                            );\n                            drop(owner);\n                            assert_eq!(current_metrics().allocated, stop);\n                            return;\n                        }\n                        Err(other) => panic!(\"unexpected census setup: {other:?}\"),\n                    }\n                    drop(owner);\n                })\n            });\n            assert_eq!(refused, limit != exact);\n            assert_eq!(first.is_some(), refused);\n            assert!(used <= limit);\n            assert!(\n                !physical.invalid && physical.live == 0 && physical.allocated == physical.freed\n            );\n            assert!(physical.allocated <= used);\n        }\n    }\n\n    #[test]\n    fn typed_constructor_logical_cost_cap_has_no_invented_receipt_and_foreign_stays_detached() {\n        let maximum = crate::workspace_graph::active_builder_limit();\n        let expected =\n            crate::workspace_graph::checked_usage(usize::MAX, 1, \"builder_bytes\", maximum)\n                .unwrap_err();\n        let ((failure, physical), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n            measure(|| {\n                let mut owner = Receiver::acquire().unwrap();\n                let selected = owner.sum(usize::MAX, 1).unwrap_err();\n                assert_eq!(selected, Setup::Budget { maximum });\n                let stop = current_metrics().allocated;\n                assert_eq!(owner.sum(0, 0), Err(selected));\n                let result = owner.receive_typed(Failure::Setup(selected));\n                assert_eq!(current_metrics().allocated, stop);\n                result\n            })\n        });\n        assert!(!refused && first.is_none());\n        assert!(!physical.invalid && physical.live == 0 && physical.allocated == physical.freed);\n        // The allocating legacy adapter remains explicit and outside payment.\n        assert_eq!(failure.into_legacy_unfunded(), expected);\n        let ((), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n            let mut owner = Receiver::acquire().unwrap();\n            let (((), physical), refused, used, first) = with_limit_usage_refusal(7, || {\n                measure(|| {\n                    assert_eq!(owner.sum(usize::MAX, 1), Err(Setup::Detached));\n                    assert_eq!(owner.limit(), Setup::Detached);\n                })\n            });\n            assert!(!refused && used == 0 && first.is_none());\n            assert_eq!(physical.allocated, 0);\n            assert_eq!(owner.sum(0, 0), Err(Setup::Detached));\n            drop(owner);\n        });\n        assert!(refused && first.is_some());\n    }\n    #[test]\n    fn typed_constructor_cost_complete_originals_live_callers_and_all_source_inverses_are_bound() {\n        use sha2::{Digest, Sha256};\n        let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/constructor-cost-propagation-825/source-inverses.json\"\n        )))\n        .unwrap();\n        let sources = [\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/constructor_failure/receiving/typed.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/00.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/borrowed_imports/typed.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/01.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/cost.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/02.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/03.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/cost/constructor.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/04.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/tests/workspace/semantic_graph/source_inventory.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/05.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/tests/workspace/semantic_graph.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/06.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/07.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/08.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/declaration_cost.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/09.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/borrowed_imports.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/10.before\"\n                )),\n            ),\n        ];\n        let rows = rows.as_array().unwrap();\n        assert_eq!(rows.len(), sources.len());\n        for (row, (current, original)) in rows.iter().zip(sources) {\n            assert_eq!(\n                format!(\n                    \"{:x}\",\n                    crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))\n                ),\n                row[\"current_sha256\"].as_str().unwrap()\n            );\n            assert_eq!(\n                format!(\n                    \"{:x}\",\n                    crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))\n                ),\n                row[\"original_sha256\"].as_str().unwrap()\n            );\n            let mut restored = current.to_owned();\n            for edit in row[\"edits\"].as_array().unwrap() {\n                let new = edit[\"new\"].as_str().unwrap();\n                assert_eq!(restored.matches(new).count(), 1);\n                restored = restored.replacen(new, edit[\"before\"].as_str().unwrap(), 1);\n            }\n            assert_eq!(restored, original);\n        }\n        let live = sources[1].0.split(\"#[cfg(test)]\").next().unwrap();\n        for selected in [\n            \"pay_type(declaration, owner)?\",\n            \"pay_type(entry.declaration, owner)?\",\n            \"pay_signature(original, owner)?\",\n            \"typed_cost::teardown_function(original, true, owner)?\",\n            \"typed_cost::teardown_function(original, false, owner)?\",\n            \"pay_default_teardown(&function.return_type, &type_index, owner)?\",\n        ] {\n            assert!(live.contains(selected));\n        }\n        assert!(!live.contains(\"StructuralCost::\"));\n        let typed = sources[3].0.split(\"#[cfg(test)]\").next().unwrap();\n        for forbidden in [\n            \"Vec<Diagnostic>\",\n            \"reserve_builder_structure(\",\n            \"ok_or_else(refusal)\",\n            \"checked_usage(\",\n        ] {\n            assert!(!typed.contains(forbidden));\n        }\n    }\n}",
+      "after_item": "#[cfg(test)]\nmod tests {\n    use super::{\n        ast_function_cost, ast_type_declaration_cost, pay_default_teardown, teardown_function,\n        Cost, Receiver, Setup, Type,\n    };\n    use crate::bounded_output::with_limit_usage_refusal;\n    use crate::test_allocation_observer::{current_metrics, measure};\n    use crate::workspace_graph::constructor_failure::typed::Failure;\n    use crate::workspace_graph::expected_projection::{self, StructuralCost};\n    const LIMIT: usize = 64 * 1024 * 1024;\n    fn facts(raw: &StructuralCost) -> [usize; 15] {\n        [\n            raw.total,\n            raw.string_bytes,\n            raw.scalar_identity_discount,\n            raw.literal_fixed_discount,\n            raw.identity_carriers,\n            raw.single_identity_carriers,\n            raw.exact_fixed_discount,\n            raw.exact_expressions,\n            raw.exact_absent_roots[0],\n            raw.exact_absent_roots[1],\n            raw.exact_absent_roots[2],\n            raw.exact_carrier_free_roots,\n            raw.exact_carrier_free_ifs,\n            raw.exact_carrier_free_vars,\n            raw.exact_carrier_free_blocks,\n        ]\n    }\n    #[test]\n    fn typed_constructor_census_keeps_all_original_raw_fields_order_and_teardown_formulas() {\n        let sources = [\n            \"module test; @id(\\\"main\\\") fn main()->i64 { let x=1; x }\",\n            \"module test; @id(\\\"main\\\") fn main()->i64 { while false {0} 0 }\",\n            \"module test; @id(\\\"main\\\") fn main()->i64 { if true {1 + -2} else {callee(3)} }\",\n            \"module test; @id(\\\"main\\\") fn main()->i64 { let mut value=0; value.x=1; 0 }\",\n            \"module test; @id(\\\"main\\\") fn main()->i64 { let x:Input=0; 0 }\",\n            \"module test; @id(\\\"row\\\") record Row {@id(\\\"x\\\") x:i64,} @id(\\\"main\\\") fn main()->i64 {0}\",\n            include_str!(concat!(\n                env!(\"CARGO_MANIFEST_DIR\"),\n                \"/std/collections/src/collections.spx\"\n            )),\n            include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/std/mem/src/mem.spx\")),\n        ];\n        for source in sources {\n            let program = crate::parse(source, \"typed-census.spx\").unwrap();\n            for inline in [false, true] {\n                for function in &program.functions {\n                    let mut original = StructuralCost::raw_ast(true).with_inline_values(inline);\n                    expected_projection::ast_function_cost(function, &mut original).unwrap();\n                    let expected = facts(&original);\n                    let (((), physical), refused, used, first) =\n                        with_limit_usage_refusal(LIMIT, || {\n                            measure(|| {\n                                let mut owner = Receiver::acquire().unwrap();\n                                let mut cost = Cost::new(&mut owner, inline).unwrap();\n                                ast_function_cost(function, &mut cost).unwrap();\n                                assert_eq!(facts(&cost.raw), expected);\n                                cost.teardown().unwrap();\n                                drop(cost);\n                                drop(owner);\n                            })\n                        });\n                    assert!(!refused && first.is_none());\n                    assert!(\n                        !physical.invalid\n                            && physical.live == 0\n                            && physical.allocated == physical.freed\n                    );\n                    assert!(physical.allocated <= used);\n                }\n                for declaration in &program.types {\n                    let mut original = StructuralCost::raw_ast(true).with_inline_values(inline);\n                    expected_projection::ast_type_declaration_cost(declaration, &mut original)\n                        .unwrap();\n                    let expected = facts(&original);\n                    let ((), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n                        let mut owner = Receiver::acquire().unwrap();\n                        let mut cost = Cost::new(&mut owner, inline).unwrap();\n                        ast_type_declaration_cost(declaration, &mut cost).unwrap();\n                        assert_eq!(facts(&cost.raw), expected);\n                        drop(cost);\n                        drop(owner);\n                    });\n                    assert!(!refused && first.is_none());\n                    let index = [(declaration.name.as_str(), declaration)];\n                    let ty = Type::Named {\n                        name: declaration.name.clone(),\n                        arguments: Vec::new(),\n                    };\n                    let ((), refused, old, first) = with_limit_usage_refusal(LIMIT, || {\n                        super::super::super::pay_default_teardown(&ty, &index).unwrap();\n                    });\n                    assert!(!refused && first.is_none());\n                    let ((), refused, new, first) = with_limit_usage_refusal(LIMIT, || {\n                        let mut owner = Receiver::acquire().unwrap();\n                        pay_default_teardown(&ty, &index, &mut owner).unwrap();\n                        drop(owner);\n                    });\n                    assert!(!refused && first.is_none());\n                    assert!(\n                        new > old,\n                        \"actual controls are additional; no old fee credit\"\n                    );\n                }\n            }\n        }\n    }\n\n    #[test]\n    fn typed_constructor_cost_every_byte_frontier_and_retry_allocate_nothing_after_refusal() {\n        let program = crate::parse(\n            \"module test; @id(\\\"main\\\") fn main()->i64 {1 + -2}\",\n            \"frontier.spx\",\n        )\n        .unwrap();\n        let function = &program.functions[0];\n        let ((), refused, exact, first) = with_limit_usage_refusal(LIMIT, || {\n            let mut owner = Receiver::acquire().unwrap();\n            teardown_function(function, true, &mut owner).unwrap();\n            drop(owner);\n        });\n        assert!(!refused && first.is_none());\n        for limit in 0..=exact {\n            let (((), physical), refused, used, first) = with_limit_usage_refusal(limit, || {\n                measure(|| {\n                    let mut owner = match Receiver::acquire() {\n                        Ok(owner) => owner,\n                        Err(Setup::Budget { .. }) => return,\n                        Err(other) => panic!(\"unexpected owner setup: {other:?}\"),\n                    };\n                    match teardown_function(function, true, &mut owner) {\n                        Ok(()) => assert_eq!(limit, exact),\n                        Err(selected @ Setup::Budget { .. }) => {\n                            let stop = current_metrics().allocated;\n                            assert_eq!(\n                                teardown_function(function, true, &mut owner),\n                                Err(selected)\n                            );\n                            drop(owner);\n                            assert_eq!(current_metrics().allocated, stop);\n                            return;\n                        }\n                        Err(other) => panic!(\"unexpected census setup: {other:?}\"),\n                    }\n                    drop(owner);\n                })\n            });\n            assert_eq!(refused, limit != exact);\n            assert_eq!(first.is_some(), refused);\n            assert!(used <= limit);\n            assert!(\n                !physical.invalid && physical.live == 0 && physical.allocated == physical.freed\n            );\n            assert!(physical.allocated <= used);\n        }\n    }\n\n    #[test]\n    fn typed_constructor_logical_cost_cap_has_no_invented_receipt_and_foreign_stays_detached() {\n        let maximum = crate::workspace_graph::active_builder_limit();\n        let expected =\n            crate::workspace_graph::checked_usage(usize::MAX, 1, \"builder_bytes\", maximum)\n                .unwrap_err();\n        let ((failure, physical), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n            measure(|| {\n                let mut owner = Receiver::acquire().unwrap();\n                let selected = owner.sum(usize::MAX, 1).unwrap_err();\n                assert_eq!(selected, Setup::Budget { maximum });\n                let stop = current_metrics().allocated;\n                assert_eq!(owner.sum(0, 0), Err(selected));\n                let result = owner.receive_typed(Failure::Setup(selected));\n                assert_eq!(current_metrics().allocated, stop);\n                result\n            })\n        });\n        assert!(!refused && first.is_none());\n        assert!(!physical.invalid && physical.live == 0 && physical.allocated == physical.freed);\n        // The allocating legacy adapter remains explicit and outside payment.\n        assert_eq!(failure.into_legacy_unfunded(), expected);\n        let ((), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n            let mut owner = Receiver::acquire().unwrap();\n            let (((), physical), refused, used, first) = with_limit_usage_refusal(7, || {\n                measure(|| {\n                    assert_eq!(owner.sum(usize::MAX, 1), Err(Setup::Detached));\n                    assert_eq!(owner.limit(), Setup::Detached);\n                })\n            });\n            assert!(!refused && used == 0 && first.is_none());\n            assert_eq!(physical.allocated, 0);\n            assert_eq!(owner.sum(0, 0), Err(Setup::Detached));\n            drop(owner);\n        });\n        assert!(refused && first.is_some());\n    }\n    #[test]\n    fn typed_constructor_cost_complete_originals_live_callers_and_all_source_inverses_are_bound() {\n        use sha2::{Digest, Sha256};\n        let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/constructor-cost-propagation-825/source-inverses.json\"\n        )))\n        .unwrap();\n        let sources = [\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/constructor_failure/receiving/typed.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/00.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/borrowed_imports/typed.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/01.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/cost.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/02.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/03.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/cost/constructor.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/04.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/tests/workspace/semantic_graph/source_inventory.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/05.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/tests/workspace/semantic_graph.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/06.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/07.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/08.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/declaration_cost.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/09.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/borrowed_imports.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-cost-propagation-825/original/10.before\"\n                )),\n            ),\n        ];\n        let rows = rows.as_array().unwrap();\n        assert_eq!(rows.len(), sources.len());\n        for (row, (current, original)) in rows.iter().zip(sources) {\n            let projected = crate::source_reflows_merge::consumer_input(\"cost825\", row[\"source\"].as_str().unwrap(), current);\n            let current = projected.as_str();\n            assert_eq!(\n                format!(\n                    \"{:x}\",\n                    crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))\n                ),\n                row[\"current_sha256\"].as_str().unwrap()\n            );\n            assert_eq!(\n                format!(\n                    \"{:x}\",\n                    crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))\n                ),\n                row[\"original_sha256\"].as_str().unwrap()\n            );\n            let mut restored = current.to_owned();\n            for edit in row[\"edits\"].as_array().unwrap() {\n                let new = edit[\"new\"].as_str().unwrap();\n                assert_eq!(restored.matches(new).count(), 1);\n                restored = restored.replacen(new, edit[\"before\"].as_str().unwrap(), 1);\n            }\n            assert_eq!(restored, original);\n        }\n        let live = sources[1].0.split(\"#[cfg(test)]\").next().unwrap();\n        for selected in [\n            \"pay_type(declaration, owner)?\",\n            \"pay_type(entry.declaration, owner)?\",\n            \"pay_signature(original, owner)?\",\n            \"typed_cost::teardown_function(original, true, owner)?\",\n            \"typed_cost::teardown_function(original, false, owner)?\",\n            \"pay_default_teardown(&function.return_type, &type_index, owner)?\",\n        ] {\n            assert!(live.contains(selected));\n        }\n        assert!(!live.contains(\"StructuralCost::\"));\n        let typed = sources[3].0.split(\"#[cfg(test)]\").next().unwrap();\n        for forbidden in [\n            \"Vec<Diagnostic>\",\n            \"reserve_builder_structure(\",\n            \"ok_or_else(refusal)\",\n            \"checked_usage(\",\n        ] {\n            assert!(!typed.contains(forbidden));\n        }\n    }\n}",
+      "before_item_bytes": [
+        25051,
+        41459
+      ],
+      "after_item_bytes": [
+        25051,
+        41631
+      ]
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs",
+      "before_sha256": "76da939a001315f86e3607609d10b0b87742d25ff7ecb8983054f873f631769e",
+      "after_sha256": "cb4c709ecd0d8966ec03c9cc9d666468182861ded8cb0c860ed20c35300064e2",
+      "kind": "cfg_test_only_module_source",
+      "registration_chains": [
+        [
+          {
+            "source_path": "src/lib.rs",
+            "line": 534,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 22,
+            "module": "expected_projection",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection.rs",
+            "line": 69,
+            "module": "private_layout",
+            "attributes": [
+              "#[path = \"expected_projection/private_layout.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout.rs",
+            "line": 986,
+            "module": "capacity_tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"private_layout/capacity_tests.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout/capacity_tests.rs",
+            "line": 375,
+            "module": "source",
+            "attributes": [
+              "#[path = \"capacity_tests/source.rs\"]"
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+      "before_sha256": "c5b5041220d5806ce4ac7076caa32f3dce3fdbb9cdbef583e79e95a3e6b92856",
+      "after_sha256": "5d303e39c0d75faccd1f6a151cbf958a05a5bfe0e16e1ebcc6b467b465ec24d4",
+      "kind": "cfg_test_only_module_source",
+      "registration_chains": [
+        [
+          {
+            "source_path": "src/lib.rs",
+            "line": 534,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 22,
+            "module": "expected_projection",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection.rs",
+            "line": 69,
+            "module": "private_layout",
+            "attributes": [
+              "#[path = \"expected_projection/private_layout.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout.rs",
+            "line": 14,
+            "module": "registry",
+            "attributes": [
+              "#[path = \"private_layout/registry.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout/registry.rs",
+            "line": 252,
+            "module": "scratch_tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"registry/scratch_tests.rs\"]"
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+      "before_sha256": "7b55d1b2883d25a89010673ba8253c748520c2c2297a027cece57a19feb2cb86",
+      "after_sha256": "b5eb131534d7bbd10d95aa2e8eeeafd3efa7d55fde34b5ab8fa0a24fbf396062",
+      "kind": "whole_existing_cfg_test_item",
+      "before_item": "#[cfg(test)]\nmod tests {\n    use super::{\n        identity, missing, rewrite_with_layout, vector_element, Failure, Program, Receiver, Setup,\n        Type,\n    };\n    use crate::bounded_output::with_limit_usage_refusal;\n    use crate::test_allocation_observer::{current_metrics, measure};\n    const LIMIT: usize = 8 * 1024 * 1024;\n    const PROVIDER: &str = r#\"module vector.provider;\n@id(\"row\") record Row { @id(\"row.id\") id:i64, @id(\"row.text\") text:string, }\n@id(\"inspect\") fn inspect(values:borrow Vec<Row>)->usize{0usize}\"#;\n    const CALLER: &str = r#\"module vector.caller;\nuse type @id(\"row\") from vector.provider as ImportedRow;\n@id(\"main\") fn main()->i64{0}\"#;\n    fn programs(provider: &str, caller: &str) -> [Program; 2] {\n        [\n            crate::parse(provider, \"provider.spx\").unwrap(),\n            crate::parse(caller, \"caller.spx\").unwrap(),\n        ]\n    }\n    #[test]\n    fn typed_signature_identity_borrows_exact_original_local_import_and_static_prelude_bytes() {\n        let mut programs = programs(PROVIDER, CALLER);\n        programs[0].types[0].stable_id = \"row.\u03bb\\0\ud83d\ude42\".to_owned();\n        for (module, name) in [\n            (\"vector.provider\", \"Row\"),\n            (\"vector.caller\", \"ImportedRow\"),\n            (\"vector.provider\", \"Missing\"),\n            (\"missing.module\", \"Row\"),\n        ] {\n            let original = crate::workspace_graph::resolve_type_id(module, name, &programs);\n            let (((), physical), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n                measure(|| {\n                    let mut owner = Receiver::acquire().unwrap();\n                    let stop = current_metrics().allocated;\n                    let borrowed = identity(module, name, &programs, &mut owner).unwrap();\n                    assert_eq!(borrowed, original.as_deref());\n                    if module == \"vector.provider\" && name == \"Row\" {\n                        assert_eq!(\n                            borrowed.unwrap().as_ptr(),\n                            programs[0].types[0].stable_id.as_ptr()\n                        );\n                    }\n                    assert_eq!(current_metrics().allocated, stop);\n                    drop(owner);\n                })\n            });\n            assert!(!refused && first.is_none());\n            assert!(\n                !physical.invalid && physical.live == 0 && physical.allocated == physical.freed\n            );\n        }\n        let original = &programs[0].functions[0].params[0].ty;\n        let ((), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n            let mut owner = Receiver::acquire().unwrap();\n            // Static prelude Vec identity has no new String backing either.\n            assert!(vector_element(\n                original,\n                \"vector.provider\",\n                &programs[1],\n                &programs,\n                None,\n                &mut owner\n            )\n            .unwrap()\n            .is_none());\n            drop(owner);\n        });\n        assert!(!refused && first.is_none());\n    }\n\n    #[test]\n    fn typed_signature_rewrite_matches_complete_old_success_refusals_and_all_six_json_fields() {\n        for (provider, caller) in [\n            (PROVIDER.to_owned(), CALLER.to_owned()),\n            (\n                PROVIDER.to_owned(),\n                CALLER.replace(\n                    \"use type @id(\\\"row\\\") from vector.provider as ImportedRow;\",\n                    \"\",\n                ),\n            ),\n            (\n                PROVIDER.replace(\"text:string\", \"text:Vec<string>\"),\n                CALLER.to_owned(),\n            ),\n            (\n                format!(\n                    \"{PROVIDER}\\n@id(\\\"fake.vec\\\") record Vec {{ @id(\\\"fake.field\\\") field:i64, }}\"\n                ),\n                CALLER.to_owned(),\n            ),\n        ] {\n            let programs = programs(&provider, &caller);\n            let source = &programs[0].functions[0].params[0].ty;\n            let mut expected_type = source.clone();\n            let (expected, refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n                super::super::rewrite_with_layout(\n                    &mut expected_type,\n                    \"vector.provider\",\n                    &programs[1],\n                    &programs,\n                    None,\n                )\n            });\n            assert!(!refused && first.is_none());\n            let (((), physical), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n                measure(|| {\n                    // Test input ownership and compatibility/JSON output stay in\n                    // this observer; no whole-test funding inference is made.\n                    let mut actual = source.clone();\n                    let mut owner = Receiver::acquire().unwrap();\n                    match (\n                        rewrite_with_layout(\n                            &mut actual,\n                            \"vector.provider\",\n                            &programs[1],\n                            &programs,\n                            None,\n                            &mut owner,\n                        ),\n                        &expected,\n                    ) {\n                        (Ok(()), Ok(())) => {\n                            assert_eq!(actual, expected_type);\n                            drop(owner);\n                        }\n                        (Err(failure), Err(expected)) => {\n                            let report = owner.receive_typed(failure).into_legacy_unfunded();\n                            assert_eq!(&report, expected);\n                            assert_eq!(\n                                report\n                                    .iter()\n                                    .map(|diagnostic| diagnostic.json())\n                                    .collect::<Vec<_>>(),\n                                expected\n                                    .iter()\n                                    .map(|diagnostic| diagnostic.json())\n                                    .collect::<Vec<_>>()\n                            );\n                            drop(report);\n                        }\n                        (result, expected) => {\n                            panic!(\"old/current rewrite disagreement: {result:?} {expected:?}\")\n                        }\n                    }\n                    drop(actual);\n                })\n            });\n            assert!(!refused && first.is_none());\n            assert!(\n                !physical.invalid && physical.live == 0 && physical.allocated == physical.freed\n            );\n        }\n        let mut dynamic_programs = programs(\n            PROVIDER,\n            \"module vector.caller; @id(\\\"main\\\") fn main()->i64{0}\",\n        );\n        dynamic_programs[0].types[0].stable_id = \"row.\u03bb\\0\ud83d\ude42\".to_owned();\n        for name in [\"Row\", \"Ghost\"] {\n            let original = Type::Named {\n                name: name.to_owned(),\n                arguments: Vec::new(),\n            };\n            let mut expected = original.clone();\n            let expected = super::super::rewrite_with_layout(\n                &mut expected,\n                \"vector.provider\",\n                &dynamic_programs[1],\n                &dynamic_programs,\n                None,\n            )\n            .unwrap_err();\n            let ((), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n                let mut current = original.clone();\n                let mut owner = Receiver::acquire().unwrap();\n                let failure = rewrite_with_layout(\n                    &mut current,\n                    \"vector.provider\",\n                    &dynamic_programs[1],\n                    &dynamic_programs,\n                    None,\n                    &mut owner,\n                )\n                .unwrap_err();\n                assert_eq!(\n                    owner.receive_typed(failure).into_legacy_unfunded(),\n                    expected\n                );\n            });\n            assert!(!refused && first.is_none());\n        }\n        let programs = programs(\n            include_str!(\"../private_layout/function_provider.spx\"),\n            include_str!(\"../private_layout/function_caller.spx\"),\n        );\n        let authored = crate::workspace_graph::index_authored(&programs).unwrap();\n        let registry = crate::workspace_graph::expected_projection::private_layout::registry::LayoutRegistry::new(&programs, &authored);\n        let layout = registry.get(&programs[1], &authored, &programs).unwrap();\n        assert!(!layout.entries.is_empty());\n        for function in &programs[0].functions {\n            for source in\n                std::iter::once(&function.return_type).chain(function.params.iter().map(|p| &p.ty))\n            {\n                let mut expected = source.clone();\n                super::super::rewrite_with_layout(\n                    &mut expected,\n                    \"function_layout.provider\",\n                    &programs[1],\n                    &programs,\n                    Some(&layout),\n                )\n                .unwrap();\n                let (((), physical), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n                    measure(|| {\n                        let mut current = source.clone();\n                        let mut owner = Receiver::acquire().unwrap();\n                        rewrite_with_layout(\n                            &mut current,\n                            \"function_layout.provider\",\n                            &programs[1],\n                            &programs,\n                            Some(&layout),\n                            &mut owner,\n                        )\n                        .unwrap();\n                        assert_eq!(current, expected);\n                        drop(current);\n                        drop(owner);\n                    })\n                });\n                assert!(!refused && first.is_none());\n                assert!(\n                    !physical.invalid && physical.live == 0 && physical.allocated == physical.freed\n                );\n            }\n        }\n    }\n\n    #[test]\n    fn typed_signature_rewrite_every_byte_frontier_keeps_first_setup_and_no_later_allocation() {\n        let programs = programs(PROVIDER, CALLER);\n        let source = &programs[0].functions[0].params[0].ty;\n        let ((), refused, exact, first) = with_limit_usage_refusal(LIMIT, || {\n            let mut ty = source.clone();\n            let mut owner = Receiver::acquire().unwrap();\n            rewrite_with_layout(\n                &mut ty,\n                \"vector.provider\",\n                &programs[1],\n                &programs,\n                None,\n                &mut owner,\n            )\n            .unwrap();\n            drop(owner);\n        });\n        assert!(!refused && first.is_none());\n        for limit in 0..=exact {\n            let (((), physical), refused, _, first) = with_limit_usage_refusal(limit, || {\n                measure(|| {\n                    let mut ty = source.clone();\n                    let mut owner = match Receiver::acquire() {\n                        Ok(owner) => owner,\n                        Err(Setup::Budget { .. }) => return,\n                        Err(other) => panic!(\"unexpected receiver setup: {other:?}\"),\n                    };\n                    match rewrite_with_layout(\n                        &mut ty,\n                        \"vector.provider\",\n                        &programs[1],\n                        &programs,\n                        None,\n                        &mut owner,\n                    ) {\n                        Ok(()) => assert_eq!(limit, exact),\n                        Err(Failure::Setup(selected @ Setup::Budget { .. })) => {\n                            let stop = current_metrics().allocated;\n                            assert!(\n                                matches!(rewrite_with_layout(&mut ty, \"vector.provider\", &programs[1], &programs, None, &mut owner), Err(Failure::Setup(next)) if next == selected)\n                            );\n                            drop(owner);\n                            drop(ty);\n                            assert_eq!(current_metrics().allocated, stop);\n                            return;\n                        }\n                        Err(other) => panic!(\"unexpected typed rewrite failure: {other:?}\"),\n                    }\n                    drop(owner);\n                    drop(ty);\n                })\n            });\n            assert_eq!(refused, limit != exact);\n            assert_eq!(first.is_some(), refused);\n            assert!(\n                !physical.invalid && physical.live == 0 && physical.allocated == physical.freed\n            );\n        }\n        let id = \"row.\u03bb\\0\ud83d\ude42\";\n        let ((), refused, exact, first) = with_limit_usage_refusal(LIMIT, || {\n            let mut owner = Receiver::acquire().unwrap();\n            drop(missing(id, &mut owner).unwrap());\n            drop(owner);\n        });\n        assert!(!refused && first.is_none());\n        for limit in 0..=exact {\n            let (((), physical), refused, _, first) = with_limit_usage_refusal(limit, || {\n                measure(|| {\n                    let mut owner = match Receiver::acquire() {\n                        Ok(owner) => owner,\n                        Err(Setup::Budget { .. }) => return,\n                        Err(other) => panic!(\"unexpected owner failure: {other:?}\"),\n                    };\n                    match missing(id, &mut owner) {\n                        Ok(primary) => {\n                            assert_eq!(limit, exact);\n                            let stop = current_metrics().allocated;\n                            let report = owner\n                                .receive_typed(Failure::One(primary))\n                                .into_legacy_unfunded();\n                            assert_eq!(report.len(), 1);\n                            drop(report);\n                            assert_eq!(current_metrics().allocated, stop);\n                        }\n                        Err(Failure::Setup(selected @ Setup::Budget { .. })) => {\n                            let stop = current_metrics().allocated;\n                            assert!(\n                                matches!(missing(id, &mut owner), Err(Failure::Setup(next)) if next == selected)\n                            );\n                            drop(owner);\n                            assert_eq!(current_metrics().allocated, stop);\n                        }\n                        Err(other) => panic!(\"unexpected message failure: {other:?}\"),\n                    }\n                })\n            });\n            assert_eq!(refused, limit != exact);\n            assert_eq!(first.is_some(), refused);\n            assert!(\n                !physical.invalid && physical.live == 0 && physical.allocated == physical.freed\n            );\n        }\n    }\n\n    #[test]\n    fn typed_signature_rewrite_foreign_and_restored_owner_cannot_replace_or_mutate_the_source() {\n        let programs = programs(PROVIDER, CALLER);\n        let source = &programs[0].functions[0].params[0].ty;\n        let ((), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n            let mut ty = source.clone();\n            let mut owner = Receiver::acquire().unwrap();\n            let (((), physical), refused, used, first) = with_limit_usage_refusal(7, || {\n                measure(|| {\n                    assert!(matches!(\n                        rewrite_with_layout(\n                            &mut ty,\n                            \"vector.provider\",\n                            &programs[1],\n                            &programs,\n                            None,\n                            &mut owner\n                        ),\n                        Err(Failure::Setup(Setup::Detached))\n                    ));\n                })\n            });\n            assert!(!refused && used == 0 && first.is_none());\n            assert_eq!(physical.allocated, 0);\n            assert_eq!(&ty, source);\n            assert!(matches!(\n                rewrite_with_layout(\n                    &mut ty,\n                    \"vector.provider\",\n                    &programs[1],\n                    &programs,\n                    None,\n                    &mut owner\n                ),\n                Err(Failure::Setup(Setup::Detached))\n            ));\n            assert_eq!(&ty, source);\n            drop(owner);\n        });\n        assert!(refused && first.is_some());\n    }\n    #[test]\n    fn typed_signature_rewrite_complete_old_helpers_live_callers_and_whole_source_inverses_are_bound(\n    ) {\n        use sha2::{Digest, Sha256};\n        let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/constructor-signature-rewrite-825/source-inverses.json\"\n        )))\n        .unwrap();\n        let sources = [\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/type_rewrite/receiving.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-signature-rewrite-825/original/00.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/type_rewrite.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-signature-rewrite-825/original/01.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/borrowed_imports/typed.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-signature-rewrite-825/original/02.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/tests/workspace/semantic_graph/source_inventory.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-signature-rewrite-825/original/03.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-signature-rewrite-825/original/04.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-signature-rewrite-825/original/05.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/private_layout.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-signature-rewrite-825/original/06.before\"\n                )),\n            ),\n        ];\n        let rows = rows.as_array().unwrap();\n        assert_eq!(rows.len(), sources.len());\n        for (row, (current, original)) in rows.iter().zip(sources) {\n            assert_eq!(\n                format!(\n                    \"{:x}\",\n                    crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))\n                ),\n                row[\"current_sha256\"].as_str().unwrap()\n            );\n            assert_eq!(\n                format!(\n                    \"{:x}\",\n                    crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))\n                ),\n                row[\"original_sha256\"].as_str().unwrap()\n            );\n            let mut restored = current.to_owned();\n            for edit in row[\"edits\"].as_array().unwrap() {\n                let new = edit[\"new\"].as_str().unwrap();\n                assert_eq!(restored.matches(new).count(), 1);\n                restored = restored.replacen(new, edit[\"before\"].as_str().unwrap(), 1);\n            }\n            assert_eq!(restored, original);\n        }\n        let live = sources[2].0.split(\"#[cfg(test)]\").next().unwrap();\n        assert_eq!(\n            live.matches(\"type_rewrite::receiving::rewrite_with_layout(\")\n                .count(),\n            2\n        );\n        let current = sources[0].0.split(\"#[cfg(test)]\").next().unwrap();\n        for forbidden in [\n            \"vec![\",\n            \"budgeted_clone(\",\n            \"budgeted_format(\",\n            \"reserve_builder_structure(\",\n            \"resolve_type_id(\",\n        ] {\n            assert!(!current.contains(forbidden));\n        }\n        assert!(sources[5].0.contains(\"fn resolve_type_id(\"));\n        assert!(sources[1]\n            .0\n            .contains(\"pub(in crate::workspace_graph) fn rewrite_with_layout(\"));\n    }\n}",
+      "after_item": "#[cfg(test)]\nmod tests {\n    use super::{\n        identity, missing, rewrite_with_layout, vector_element, Failure, Program, Receiver, Setup,\n        Type,\n    };\n    use crate::bounded_output::with_limit_usage_refusal;\n    use crate::test_allocation_observer::{current_metrics, measure};\n    const LIMIT: usize = 8 * 1024 * 1024;\n    const PROVIDER: &str = r#\"module vector.provider;\n@id(\"row\") record Row { @id(\"row.id\") id:i64, @id(\"row.text\") text:string, }\n@id(\"inspect\") fn inspect(values:borrow Vec<Row>)->usize{0usize}\"#;\n    const CALLER: &str = r#\"module vector.caller;\nuse type @id(\"row\") from vector.provider as ImportedRow;\n@id(\"main\") fn main()->i64{0}\"#;\n    fn programs(provider: &str, caller: &str) -> [Program; 2] {\n        [\n            crate::parse(provider, \"provider.spx\").unwrap(),\n            crate::parse(caller, \"caller.spx\").unwrap(),\n        ]\n    }\n    #[test]\n    fn typed_signature_identity_borrows_exact_original_local_import_and_static_prelude_bytes() {\n        let mut programs = programs(PROVIDER, CALLER);\n        programs[0].types[0].stable_id = \"row.\u03bb\\0\ud83d\ude42\".to_owned();\n        for (module, name) in [\n            (\"vector.provider\", \"Row\"),\n            (\"vector.caller\", \"ImportedRow\"),\n            (\"vector.provider\", \"Missing\"),\n            (\"missing.module\", \"Row\"),\n        ] {\n            let original = crate::workspace_graph::resolve_type_id(module, name, &programs);\n            let (((), physical), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n                measure(|| {\n                    let mut owner = Receiver::acquire().unwrap();\n                    let stop = current_metrics().allocated;\n                    let borrowed = identity(module, name, &programs, &mut owner).unwrap();\n                    assert_eq!(borrowed, original.as_deref());\n                    if module == \"vector.provider\" && name == \"Row\" {\n                        assert_eq!(\n                            borrowed.unwrap().as_ptr(),\n                            programs[0].types[0].stable_id.as_ptr()\n                        );\n                    }\n                    assert_eq!(current_metrics().allocated, stop);\n                    drop(owner);\n                })\n            });\n            assert!(!refused && first.is_none());\n            assert!(\n                !physical.invalid && physical.live == 0 && physical.allocated == physical.freed\n            );\n        }\n        let original = &programs[0].functions[0].params[0].ty;\n        let ((), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n            let mut owner = Receiver::acquire().unwrap();\n            // Static prelude Vec identity has no new String backing either.\n            assert!(vector_element(\n                original,\n                \"vector.provider\",\n                &programs[1],\n                &programs,\n                None,\n                &mut owner\n            )\n            .unwrap()\n            .is_none());\n            drop(owner);\n        });\n        assert!(!refused && first.is_none());\n    }\n\n    #[test]\n    fn typed_signature_rewrite_matches_complete_old_success_refusals_and_all_six_json_fields() {\n        for (provider, caller) in [\n            (PROVIDER.to_owned(), CALLER.to_owned()),\n            (\n                PROVIDER.to_owned(),\n                CALLER.replace(\n                    \"use type @id(\\\"row\\\") from vector.provider as ImportedRow;\",\n                    \"\",\n                ),\n            ),\n            (\n                PROVIDER.replace(\"text:string\", \"text:Vec<string>\"),\n                CALLER.to_owned(),\n            ),\n            (\n                format!(\n                    \"{PROVIDER}\\n@id(\\\"fake.vec\\\") record Vec {{ @id(\\\"fake.field\\\") field:i64, }}\"\n                ),\n                CALLER.to_owned(),\n            ),\n        ] {\n            let programs = programs(&provider, &caller);\n            let source = &programs[0].functions[0].params[0].ty;\n            let mut expected_type = source.clone();\n            let (expected, refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n                super::super::rewrite_with_layout(\n                    &mut expected_type,\n                    \"vector.provider\",\n                    &programs[1],\n                    &programs,\n                    None,\n                )\n            });\n            assert!(!refused && first.is_none());\n            let (((), physical), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n                measure(|| {\n                    // Test input ownership and compatibility/JSON output stay in\n                    // this observer; no whole-test funding inference is made.\n                    let mut actual = source.clone();\n                    let mut owner = Receiver::acquire().unwrap();\n                    match (\n                        rewrite_with_layout(\n                            &mut actual,\n                            \"vector.provider\",\n                            &programs[1],\n                            &programs,\n                            None,\n                            &mut owner,\n                        ),\n                        &expected,\n                    ) {\n                        (Ok(()), Ok(())) => {\n                            assert_eq!(actual, expected_type);\n                            drop(owner);\n                        }\n                        (Err(failure), Err(expected)) => {\n                            let report = owner.receive_typed(failure).into_legacy_unfunded();\n                            assert_eq!(&report, expected);\n                            assert_eq!(\n                                report\n                                    .iter()\n                                    .map(|diagnostic| diagnostic.json())\n                                    .collect::<Vec<_>>(),\n                                expected\n                                    .iter()\n                                    .map(|diagnostic| diagnostic.json())\n                                    .collect::<Vec<_>>()\n                            );\n                            drop(report);\n                        }\n                        (result, expected) => {\n                            panic!(\"old/current rewrite disagreement: {result:?} {expected:?}\")\n                        }\n                    }\n                    drop(actual);\n                })\n            });\n            assert!(!refused && first.is_none());\n            assert!(\n                !physical.invalid && physical.live == 0 && physical.allocated == physical.freed\n            );\n        }\n        let mut dynamic_programs = programs(\n            PROVIDER,\n            \"module vector.caller; @id(\\\"main\\\") fn main()->i64{0}\",\n        );\n        dynamic_programs[0].types[0].stable_id = \"row.\u03bb\\0\ud83d\ude42\".to_owned();\n        for name in [\"Row\", \"Ghost\"] {\n            let original = Type::Named {\n                name: name.to_owned(),\n                arguments: Vec::new(),\n            };\n            let mut expected = original.clone();\n            let expected = super::super::rewrite_with_layout(\n                &mut expected,\n                \"vector.provider\",\n                &dynamic_programs[1],\n                &dynamic_programs,\n                None,\n            )\n            .unwrap_err();\n            let ((), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n                let mut current = original.clone();\n                let mut owner = Receiver::acquire().unwrap();\n                let failure = rewrite_with_layout(\n                    &mut current,\n                    \"vector.provider\",\n                    &dynamic_programs[1],\n                    &dynamic_programs,\n                    None,\n                    &mut owner,\n                )\n                .unwrap_err();\n                assert_eq!(\n                    owner.receive_typed(failure).into_legacy_unfunded(),\n                    expected\n                );\n            });\n            assert!(!refused && first.is_none());\n        }\n        let programs = programs(\n            include_str!(\"../private_layout/function_provider.spx\"),\n            include_str!(\"../private_layout/function_caller.spx\"),\n        );\n        let authored = crate::workspace_graph::index_authored(&programs).unwrap();\n        let registry = crate::workspace_graph::expected_projection::private_layout::registry::LayoutRegistry::new(&programs, &authored);\n        let layout = registry.get(&programs[1], &authored, &programs).unwrap();\n        assert!(!layout.entries.is_empty());\n        for function in &programs[0].functions {\n            for source in\n                std::iter::once(&function.return_type).chain(function.params.iter().map(|p| &p.ty))\n            {\n                let mut expected = source.clone();\n                super::super::rewrite_with_layout(\n                    &mut expected,\n                    \"function_layout.provider\",\n                    &programs[1],\n                    &programs,\n                    Some(&layout),\n                )\n                .unwrap();\n                let (((), physical), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n                    measure(|| {\n                        let mut current = source.clone();\n                        let mut owner = Receiver::acquire().unwrap();\n                        rewrite_with_layout(\n                            &mut current,\n                            \"function_layout.provider\",\n                            &programs[1],\n                            &programs,\n                            Some(&layout),\n                            &mut owner,\n                        )\n                        .unwrap();\n                        assert_eq!(current, expected);\n                        drop(current);\n                        drop(owner);\n                    })\n                });\n                assert!(!refused && first.is_none());\n                assert!(\n                    !physical.invalid && physical.live == 0 && physical.allocated == physical.freed\n                );\n            }\n        }\n    }\n\n    #[test]\n    fn typed_signature_rewrite_every_byte_frontier_keeps_first_setup_and_no_later_allocation() {\n        let programs = programs(PROVIDER, CALLER);\n        let source = &programs[0].functions[0].params[0].ty;\n        let ((), refused, exact, first) = with_limit_usage_refusal(LIMIT, || {\n            let mut ty = source.clone();\n            let mut owner = Receiver::acquire().unwrap();\n            rewrite_with_layout(\n                &mut ty,\n                \"vector.provider\",\n                &programs[1],\n                &programs,\n                None,\n                &mut owner,\n            )\n            .unwrap();\n            drop(owner);\n        });\n        assert!(!refused && first.is_none());\n        for limit in 0..=exact {\n            let (((), physical), refused, _, first) = with_limit_usage_refusal(limit, || {\n                measure(|| {\n                    let mut ty = source.clone();\n                    let mut owner = match Receiver::acquire() {\n                        Ok(owner) => owner,\n                        Err(Setup::Budget { .. }) => return,\n                        Err(other) => panic!(\"unexpected receiver setup: {other:?}\"),\n                    };\n                    match rewrite_with_layout(\n                        &mut ty,\n                        \"vector.provider\",\n                        &programs[1],\n                        &programs,\n                        None,\n                        &mut owner,\n                    ) {\n                        Ok(()) => assert_eq!(limit, exact),\n                        Err(Failure::Setup(selected @ Setup::Budget { .. })) => {\n                            let stop = current_metrics().allocated;\n                            assert!(\n                                matches!(rewrite_with_layout(&mut ty, \"vector.provider\", &programs[1], &programs, None, &mut owner), Err(Failure::Setup(next)) if next == selected)\n                            );\n                            drop(owner);\n                            drop(ty);\n                            assert_eq!(current_metrics().allocated, stop);\n                            return;\n                        }\n                        Err(other) => panic!(\"unexpected typed rewrite failure: {other:?}\"),\n                    }\n                    drop(owner);\n                    drop(ty);\n                })\n            });\n            assert_eq!(refused, limit != exact);\n            assert_eq!(first.is_some(), refused);\n            assert!(\n                !physical.invalid && physical.live == 0 && physical.allocated == physical.freed\n            );\n        }\n        let id = \"row.\u03bb\\0\ud83d\ude42\";\n        let ((), refused, exact, first) = with_limit_usage_refusal(LIMIT, || {\n            let mut owner = Receiver::acquire().unwrap();\n            drop(missing(id, &mut owner).unwrap());\n            drop(owner);\n        });\n        assert!(!refused && first.is_none());\n        for limit in 0..=exact {\n            let (((), physical), refused, _, first) = with_limit_usage_refusal(limit, || {\n                measure(|| {\n                    let mut owner = match Receiver::acquire() {\n                        Ok(owner) => owner,\n                        Err(Setup::Budget { .. }) => return,\n                        Err(other) => panic!(\"unexpected owner failure: {other:?}\"),\n                    };\n                    match missing(id, &mut owner) {\n                        Ok(primary) => {\n                            assert_eq!(limit, exact);\n                            let stop = current_metrics().allocated;\n                            let report = owner\n                                .receive_typed(Failure::One(primary))\n                                .into_legacy_unfunded();\n                            assert_eq!(report.len(), 1);\n                            drop(report);\n                            assert_eq!(current_metrics().allocated, stop);\n                        }\n                        Err(Failure::Setup(selected @ Setup::Budget { .. })) => {\n                            let stop = current_metrics().allocated;\n                            assert!(\n                                matches!(missing(id, &mut owner), Err(Failure::Setup(next)) if next == selected)\n                            );\n                            drop(owner);\n                            assert_eq!(current_metrics().allocated, stop);\n                        }\n                        Err(other) => panic!(\"unexpected message failure: {other:?}\"),\n                    }\n                })\n            });\n            assert_eq!(refused, limit != exact);\n            assert_eq!(first.is_some(), refused);\n            assert!(\n                !physical.invalid && physical.live == 0 && physical.allocated == physical.freed\n            );\n        }\n    }\n\n    #[test]\n    fn typed_signature_rewrite_foreign_and_restored_owner_cannot_replace_or_mutate_the_source() {\n        let programs = programs(PROVIDER, CALLER);\n        let source = &programs[0].functions[0].params[0].ty;\n        let ((), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n            let mut ty = source.clone();\n            let mut owner = Receiver::acquire().unwrap();\n            let (((), physical), refused, used, first) = with_limit_usage_refusal(7, || {\n                measure(|| {\n                    assert!(matches!(\n                        rewrite_with_layout(\n                            &mut ty,\n                            \"vector.provider\",\n                            &programs[1],\n                            &programs,\n                            None,\n                            &mut owner\n                        ),\n                        Err(Failure::Setup(Setup::Detached))\n                    ));\n                })\n            });\n            assert!(!refused && used == 0 && first.is_none());\n            assert_eq!(physical.allocated, 0);\n            assert_eq!(&ty, source);\n            assert!(matches!(\n                rewrite_with_layout(\n                    &mut ty,\n                    \"vector.provider\",\n                    &programs[1],\n                    &programs,\n                    None,\n                    &mut owner\n                ),\n                Err(Failure::Setup(Setup::Detached))\n            ));\n            assert_eq!(&ty, source);\n            drop(owner);\n        });\n        assert!(refused && first.is_some());\n    }\n    #[test]\n    fn typed_signature_rewrite_complete_old_helpers_live_callers_and_whole_source_inverses_are_bound(\n    ) {\n        use sha2::{Digest, Sha256};\n        let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/constructor-signature-rewrite-825/source-inverses.json\"\n        )))\n        .unwrap();\n        let sources = [\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/type_rewrite/receiving.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-signature-rewrite-825/original/00.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/type_rewrite.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-signature-rewrite-825/original/01.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/borrowed_imports/typed.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-signature-rewrite-825/original/02.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/tests/workspace/semantic_graph/source_inventory.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-signature-rewrite-825/original/03.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-signature-rewrite-825/original/04.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-signature-rewrite-825/original/05.before\"\n                )),\n            ),\n            (\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/workspace_graph/expected_projection/private_layout.rs\"\n                )),\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/constructor-signature-rewrite-825/original/06.before\"\n                )),\n            ),\n        ];\n        let rows = rows.as_array().unwrap();\n        assert_eq!(rows.len(), sources.len());\n        for (row, (current, original)) in rows.iter().zip(sources) {\n            let projected = crate::source_reflows_merge::consumer_input(\"signature825\", row[\"source\"].as_str().unwrap(), current);\n            let current = projected.as_str();\n            assert_eq!(\n                format!(\n                    \"{:x}\",\n                    crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))\n                ),\n                row[\"current_sha256\"].as_str().unwrap()\n            );\n            assert_eq!(\n                format!(\n                    \"{:x}\",\n                    crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))\n                ),\n                row[\"original_sha256\"].as_str().unwrap()\n            );\n            let mut restored = current.to_owned();\n            for edit in row[\"edits\"].as_array().unwrap() {\n                let new = edit[\"new\"].as_str().unwrap();\n                assert_eq!(restored.matches(new).count(), 1);\n                restored = restored.replacen(new, edit[\"before\"].as_str().unwrap(), 1);\n            }\n            assert_eq!(restored, original);\n        }\n        let live = sources[2].0.split(\"#[cfg(test)]\").next().unwrap();\n        assert_eq!(\n            live.matches(\"type_rewrite::receiving::rewrite_with_layout(\")\n                .count(),\n            2\n        );\n        let current = sources[0].0.split(\"#[cfg(test)]\").next().unwrap();\n        for forbidden in [\n            \"vec![\",\n            \"budgeted_clone(\",\n            \"budgeted_format(\",\n            \"reserve_builder_structure(\",\n            \"resolve_type_id(\",\n        ] {\n            assert!(!current.contains(forbidden));\n        }\n        assert!(sources[5].0.contains(\"fn resolve_type_id(\"));\n        assert!(sources[1]\n            .0\n            .contains(\"pub(in crate::workspace_graph) fn rewrite_with_layout(\"));\n    }\n}",
+      "before_item_bytes": [
+        6434,
+        27992
+      ],
+      "after_item_bytes": [
+        6434,
+        28169
+      ]
+    },
+    {
+      "path": "src/workspace_graph/generic_type_import/parameter_names/receiving.rs",
+      "before_sha256": "33c62515a8cc1ad1de3d10fc5496130dfb8b09b3b23bb87aff5eddbf13f69216",
+      "after_sha256": "163eae08f884d4d0bc45f72fba0f764822e0d9761eee7037a52bb5fa06e6c05c",
+      "kind": "parent_authorized_layout_equivalent_production_spelling",
+      "equivalence_packet": "reference-control-size-spelling-20261015"
+    },
+    {
+      "path": "src/workspace_graph/generic_type_import/receiving.rs",
+      "before_sha256": "1d7f0b2253be075ab39fe2373fa4b1ad6d2fdb2f029c066cfe1931dae7c9e5ce",
+      "after_sha256": "1a7e0734a7a731870971a5ede0a4177ff897c0bd80628bcae24a8768720f6cde",
+      "kind": "parent_authorized_layout_equivalent_production_spelling",
+      "equivalence_packet": "reference-control-size-spelling-20261015"
+    },
+    {
+      "path": "src/workspace_graph/generic_type_import/receiving/tests.rs",
+      "before_sha256": "8cc7e655607decc8fa37eb527962318443f2b0e319df60d1802919980e7130fb",
+      "after_sha256": "d2a9170a764c27d4d1d06c441e6e577426f70c74403a75931c6c36331c1e894f",
+      "kind": "cfg_test_only_module_source",
+      "registration_chains": [
+        [
+          {
+            "source_path": "src/lib.rs",
+            "line": 534,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 25,
+            "module": "generic_type_import",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph/generic_type_import.rs",
+            "line": 352,
+            "module": "receiving",
+            "attributes": [
+              "#[path = \"generic_type_import/receiving.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/generic_type_import/receiving.rs",
+            "line": 195,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"receiving/tests.rs\"]"
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before_sha256": "910cc41a86fb254e3aa36e2708b109ec91f7a309dd64aac051854cbf5806abab",
+      "after_sha256": "3c2872191c024e61a79a51721807ff023e5390c89a07785d80f4b41672306539",
+      "kind": "integration_test_source"
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "before_sha256": "979326a3b01901b8dcd6e62d0505078c7e13c43885dfc4c13117a637a0eb7163",
+      "after_sha256": "3109b33250efd4327b551edc09057ede275303a5c82c55c09c6082fdbe93675d",
+      "kind": "integration_test_source"
+    }
+  ],
+  "source_declared_changed_file_tests": [
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_full_old_ids_six_fields_work_order_overflow_and_cycles",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "line": 14
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_two_roots_reuse_one_owner_and_count_actual_inner_misses",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "line": 55
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_bootstrap_pays_actual_controls_at_exact_and_one_short",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "line": 157
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_production_sequence_exact_short_and_whole_drop_have_separate_old_domain",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "line": 186
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_failure_publication_moves_all_six_fields_without_success_transport",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "line": 263
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_foreign_function_budget_nested_and_expired_slot_are_sticky_without_query",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "line": 299
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_arithmetic_none_is_not_a_refusal_and_slot_can_receive_again",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "line": 342
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_complete_old_invocation_and_current_caller_keep_checked_verdict_and_work",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "line": 381
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_actual_entries_hide_cached_views_after_foreign_and_restored_slots",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "line": 400
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_arena_all_rotations_numeric_extremes_and_dense_permutations_match_btree",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs",
+      "line": 49
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_arena_each_growth_zero_exact_short_keeps_actual_allocation_separate_and_drops",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs",
+      "line": 132
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_growth_receiving_and_initializers_are_paid_then_warm_insertion_constructs_no_result",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs",
+      "line": 183
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_private_index_growth_refuses_before_allocation_or_mutation",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs",
+      "line": 315
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_complete_immediate_receiver_keeps_states_signatures_and_every_work_frontier",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "line": 40
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "line": 140
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_successors_every_actual_byte_cut_covers_promotion_finish_and_zero_without_post_error_drop",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "line": 161
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::complete_immediate_receiver_helpers_and_all_seven_original_controls_remain_exact",
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "line": 182
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::lexical_replay::operand_tests::source::whole_old_lexical_caller_and_all_new_inventory_sources_remain_bound",
+      "source_path": "src/cleanup_plan/replay/lexical_replay/operand_tests/source.rs",
+      "line": 3
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "source_path": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "line": 3
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::cold_canonical::tests::complete_old_and_comparison_keep_exact_short_zero_sticky_and_nested_formatter_debits",
+      "source_path": "src/workspace_graph/cold_canonical/tests.rs",
+      "line": 10
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::cold_canonical::tests::final_string_backing_is_removed_with_actual_allocated_reserved_peak_and_whole_drop_observation",
+      "source_path": "src/workspace_graph/cold_canonical/tests.rs",
+      "line": 75
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::cold_canonical::tests::whole_cold_preflight_keeps_complete_old_source_graph_diagnostics_and_priority",
+      "source_path": "src/workspace_graph/cold_canonical/tests.rs",
+      "line": 193
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::cold_canonical::tests::whole_cold_preflight_exact_short_zero_builder_bounds_and_early_mismatch_keep_old_refusal",
+      "source_path": "src/workspace_graph/cold_canonical/tests.rs",
+      "line": 218
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::cold_canonical::tests::whole_cold_preflight_observes_same_cold_setup_reserved_peak_and_complete_drop_without_output_string",
+      "source_path": "src/workspace_graph/cold_canonical/tests.rs",
+      "line": 250
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::cold_canonical::tests::complete_old_commented_formatter_preflight_sources_and_all_current_children_remain_exact",
+      "source_path": "src/workspace_graph/cold_canonical/tests.rs",
+      "line": 292
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_census_keeps_all_original_raw_fields_order_and_teardown_formulas",
+      "source_path": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+      "line": 678
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_cost_every_byte_frontier_and_retry_allocate_nothing_after_refusal",
+      "source_path": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+      "line": 758
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_logical_cost_cap_has_no_invented_receipt_and_foreign_stays_detached",
+      "source_path": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+      "line": 807
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_cost_complete_originals_live_callers_and_all_source_inverses_are_bound",
+      "source_path": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+      "line": 844
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::distinct_census_callers_keep_complete_old_layouts_and_reset_paid_scratch",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+      "line": 33
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::census_scratch_release_retains_receipt_and_late_cold_caller_reacquires",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+      "line": 97
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::complete_old_and_reused_census_keep_malformed_diagnostics_and_poisoned_drop",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+      "line": 129
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::census_registry_exact_short_zero_work_and_byte_limits_keep_sticky_refusal",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+      "line": 155
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::census_scratch_preserves_nested_floors_foreign_and_restored_owner_refusal",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+      "line": 193
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::distinct_census_registry_observes_actual_allocated_reserved_peak_and_complete_drop",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+      "line": 258
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::complete_old_registry_census_derivation_and_current_scratch_sources_remain_bound",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+      "line": 325
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::capacity_tests::source::complete_old_receiver_source_and_all_new_joined_sources_stay_exact",
+      "source_path": "src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs",
+      "line": 3
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_identity_borrows_exact_original_local_import_and_static_prelude_bytes",
+      "source_path": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+      "line": 219
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_rewrite_matches_complete_old_success_refusals_and_all_six_json_fields",
+      "source_path": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+      "line": 270
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_rewrite_every_byte_frontier_keeps_first_setup_and_no_later_allocation",
+      "source_path": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+      "line": 438
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_rewrite_foreign_and_restored_owner_cannot_replace_or_mutate_the_source",
+      "source_path": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+      "line": 543
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_rewrite_complete_old_helpers_live_callers_and_whole_source_inverses_are_bound",
+      "source_path": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+      "line": 584
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_rewrite_preserves_complete_old_record_class_variant_order_and_six_fields",
+      "source_path": "src/workspace_graph/generic_type_import/receiving/tests.rs",
+      "line": 65
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_parameter_spill_keeps_exact_old_sort_lookup_work_and_original_borrows",
+      "source_path": "src/workspace_graph/generic_type_import/receiving/tests.rs",
+      "line": 111
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_every_byte_frontier_stops_acquisition_and_preserves_original_first_setup",
+      "source_path": "src/workspace_graph/generic_type_import/receiving/tests.rs",
+      "line": 139
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_foreign_restored_owner_keeps_unchanged_ast_and_sticky_detachment",
+      "source_path": "src/workspace_graph/generic_type_import/receiving/tests.rs",
+      "line": 190
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_complete_old_receivers_actual_callers_and_full_source_inverses_stay_bound",
+      "source_path": "src/workspace_graph/generic_type_import/receiving/tests.rs",
+      "line": 230
+    }
+  ],
+  "new_test_bodies": 0,
+  "production_spelling_owners": [
+    "crates/semaprax-native-rust-owned-data-package/src/project_publication/application.rs",
+    "src/workspace_graph/generic_type_import/parameter_names/receiving.rs",
+    "src/workspace_graph/generic_type_import/receiving.rs"
+  ]
+}

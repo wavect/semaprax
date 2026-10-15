@@ -78,6 +78,8 @@ fn whole_old_lexical_caller_and_all_new_inventory_sources_remain_bound() {
     ];
     assert_eq!(sources.len(), rows.as_array().unwrap().len());
     for (path, source) in sources {
+        let projected = crate::source_reflows_merge::consumer_input("lexical832", path, source);
+        let source = projected.as_str();
         let row = rows
             .as_array()
             .unwrap()

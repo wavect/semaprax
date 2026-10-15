@@ -1,0 +1,17 @@
+
+running 1 test
+test workspace_graph::expected_projection::private_layout::registry::scratch_tests::complete_old_registry_census_derivation_and_current_scratch_sources_remain_bound ... 
+thread 'workspace_graph::expected_projection::private_layout::registry::scratch_tests::complete_old_registry_census_derivation_and_current_scratch_sources_remain_bound' (7907854) panicked at src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs:401:9:
+assertion `left == right` failed
+  left: "5d303e39c0d75faccd1f6a151cbf958a05a5bfe0e16e1ebcc6b467b465ec24d4"
+ right: "c5b5041220d5806ce4ac7076caa32f3dce3fdbb9cdbef583e79e95a3e6b92856"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::expected_projection::private_layout::registry::scratch_tests::complete_old_registry_census_derivation_and_current_scratch_sources_remain_bound
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.09s
+

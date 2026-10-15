@@ -1,6 +1,6 @@
 //! Direct production-slot controls. Single-request compatibility wrappers are
 //! deliberately excluded from the receiving-cost observation below.
-use super::super::{Canonicalizer, before_closure_receiver};
+use super::super::{before_closure_receiver, Canonicalizer};
 use super::*;
 use crate::bounded_output::{active_remaining, with_limit_usage_refusal};
 use crate::test_allocation_observer::{current_metrics, measure};
@@ -98,12 +98,10 @@ fn held_closure_two_roots_reuse_one_owner_and_count_actual_inner_misses() {
                 budget
                     .reserve_array::<(usize, u64)>(&function, 1, "held closure test root")
                     .unwrap();
-                assert!(
-                    current
-                        .id_with_receiving(&function, vec![(root, 1)], &mut budget, &mut receiving)
-                        .unwrap()
-                        .is_some()
-                );
+                assert!(current
+                    .id_with_receiving(&function, vec![(root, 1)], &mut budget, &mut receiving)
+                    .unwrap()
+                    .is_some());
                 assert_eq!(owner, std::ptr::from_ref(&receiving));
             }
             // LoopLatch is disconnected from both comparison roots. A fresh
@@ -300,42 +298,52 @@ fn held_closure_foreign_function_budget_nested_and_expired_slot_are_sticky_witho
     let function = fixture();
     let foreign = fixture();
     for kind in 0..3 {
-        let ((), refused, _, first) = with_limit_usage_refusal(1 << 20, || {
-            let mut budget = ReplayBudget::new();
-            let mut other = ReplayBudget::new();
-            let mut receiving = ClosureReceiving::acquire(&function, &mut budget).unwrap();
-            if kind == 2 {
-                let ((), refused, used, first) = with_limit_usage_refusal(0, || {
-                    let at = current_metrics().allocated;
-                    assert!(!receiving.valid(&function, &budget));
-                    assert_eq!(current_metrics().allocated, at);
-                });
-                assert!(!refused && used == 0 && first.is_none());
-            } else {
-                let left = active_remaining();
-                if kind == 0 {
-                    assert!(!receiving.valid(&foreign, &budget));
+        let (((), allocation), refused, _, first) = with_limit_usage_refusal(1 << 20, || {
+            measure(|| {
+                let mut budget = ReplayBudget::new();
+                let mut other = ReplayBudget::new();
+                let mut receiving = ClosureReceiving::acquire(&function, &mut budget).unwrap();
+                if kind == 2 {
+                    let ((), refused, used, first) = with_limit_usage_refusal(0, || {
+                        let at = current_metrics().allocated;
+                        assert!(!receiving.valid(&function, &budget));
+                        assert_eq!(current_metrics().allocated, at);
+                    });
+                    assert!(!refused && used == 0 && first.is_none());
                 } else {
-                    assert!(!receiving.valid(&function, &other));
+                    let left = active_remaining();
+                    if kind == 0 {
+                        assert!(!receiving.valid(&foreign, &budget));
+                    } else {
+                        assert!(!receiving.valid(&function, &other));
+                    }
+                    assert_eq!(active_remaining(), left);
                 }
+                let left = active_remaining();
+                assert!(!receiving.valid(&function, &budget));
                 assert_eq!(active_remaining(), left);
-            }
-            let left = active_remaining();
-            assert!(!receiving.valid(&function, &budget));
-            assert_eq!(active_remaining(), left);
-            // Keep the second budget at a stable distinct address throughout.
-            assert_eq!(other.remaining, budget.remaining);
-            let _ = &mut other;
+                // Keep the second budget at a stable distinct address throughout.
+                assert_eq!(other.remaining, budget.remaining);
+                let _ = &mut other;
+            })
         });
+        assert!(!allocation.invalid && allocation.live == 0);
+        assert_eq!(allocation.allocated, allocation.freed);
         assert_eq!(refused, kind == 2);
         assert!(first.is_none() || kind == 2);
     }
-    let mut budget = ReplayBudget::new();
-    let (mut expired, _, _, _) = with_limit_usage_refusal(1 << 20, || {
-        ClosureReceiving::acquire(&function, &mut budget).unwrap()
+    let ((), allocation) = measure(|| {
+        let mut budget = ReplayBudget::new();
+        let (mut expired, _, _, _) = with_limit_usage_refusal(1 << 20, || {
+            ClosureReceiving::acquire(&function, &mut budget).unwrap()
+        });
+        assert!(!expired.valid(&function, &budget));
+        assert!(!expired.valid(&function, &budget));
+        drop(expired);
+        drop(budget);
     });
-    assert!(!expired.valid(&function, &budget));
-    assert!(!expired.valid(&function, &budget));
+    assert!(!allocation.invalid && allocation.live == 0);
+    assert_eq!(allocation.allocated, allocation.freed);
 }
 
 #[test]
@@ -361,20 +369,16 @@ fn held_closure_arithmetic_none_is_not_a_refusal_and_slot_can_receive_again() {
     let mut b = ReplayBudget::unobserved();
     let mut receiving = ClosureReceiving::acquire(&function, &mut b).unwrap();
     assert!(old.closure(&function, root, &mut a).unwrap().is_none());
-    assert!(
-        current
-            .closure_with_receiving(&function, root, &mut b, &mut receiving)
-            .unwrap()
-            .is_none()
-    );
+    assert!(current
+        .closure_with_receiving(&function, root, &mut b, &mut receiving)
+        .unwrap()
+        .is_none());
     assert_eq!(a.remaining, b.remaining);
     assert!(!receiving.failed && !receiving.ready && receiving.refusal.is_none());
-    assert!(
-        current
-            .closure_with_receiving(&function, sink, &mut b, &mut receiving)
-            .unwrap()
-            .is_some()
-    );
+    assert!(current
+        .closure_with_receiving(&function, sink, &mut b, &mut receiving)
+        .unwrap()
+        .is_some());
 }
 
 #[test]
@@ -417,30 +421,26 @@ fn held_closure_actual_entries_hide_cached_views_after_foreign_and_restored_slot
                         budget
                             .reserve_array::<(usize, u64)>(&function, 1, "sticky id prime")
                             .unwrap();
-                        assert!(
-                            current
-                                .id_with_receiving(
-                                    &function,
-                                    vec![(roots[0], 1)],
-                                    &mut budget,
-                                    &mut receiving
-                                )
-                                .unwrap()
-                                .is_some()
-                        );
+                        assert!(current
+                            .id_with_receiving(
+                                &function,
+                                vec![(roots[0], 1)],
+                                &mut budget,
+                                &mut receiving
+                            )
+                            .unwrap()
+                            .is_some());
                         assert!(!current.states.is_empty());
                     } else {
-                        assert!(
-                            current
-                                .closure_with_receiving(
-                                    &function,
-                                    roots[0],
-                                    &mut budget,
-                                    &mut receiving
-                                )
-                                .unwrap()
-                                .is_some()
-                        );
+                        assert!(current
+                            .closure_with_receiving(
+                                &function,
+                                roots[0],
+                                &mut budget,
+                                &mut receiving
+                            )
+                            .unwrap()
+                            .is_some());
                     }
                     assert!(current.closures.get(&roots[0]).is_some());
                     if kind == 3 {

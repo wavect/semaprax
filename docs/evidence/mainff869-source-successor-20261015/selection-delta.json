@@ -1,0 +1,188 @@
+{
+  "actual_main": "ff869dd96ef97f179078c08fca098398be2d8e8e",
+  "source_only": true,
+  "new_atomic_bodies": 5,
+  "old_empty_renewal_bodies": 4,
+  "literal_selectors": [
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::atomic_body_control_clone_preserves_complete_key_and_work_in_both_measurement_orders",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs",
+      "line": 123,
+      "source_sha256": "2b2688fb72b38c1467127fd0dd907e755d1895a3f00a1ab8ed37b0a97e08748f",
+      "why": "new atomic production constructor owner",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::atomic_control_exact_short_zero_and_every_request_frontier_remain_sticky",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs",
+      "line": 169,
+      "source_sha256": "2b2688fb72b38c1467127fd0dd907e755d1895a3f00a1ab8ed37b0a97e08748f",
+      "why": "new atomic production constructor owner",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::absent_compound_and_residual_results_and_other_payers_keep_the_original_route",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs",
+      "line": 201,
+      "source_sha256": "2b2688fb72b38c1467127fd0dd907e755d1895a3f00a1ab8ed37b0a97e08748f",
+      "why": "new atomic production constructor owner",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::absent_statuses_and_scalar_or_absent_return_keep_exact_false_publication",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs",
+      "line": 275,
+      "source_sha256": "2b2688fb72b38c1467127fd0dd907e755d1895a3f00a1ab8ed37b0a97e08748f",
+      "why": "new atomic production constructor owner",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::selected_admission_with_an_active_builder_still_cannot_select_the_ordinary_constructor",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs",
+      "line": 310,
+      "source_sha256": "2b2688fb72b38c1467127fd0dd907e755d1895a3f00a1ab8ed37b0a97e08748f",
+      "why": "new atomic production constructor owner",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::empty_renewals::tests::empty_renewal_branch_clone_preserves_every_field_work_and_complete_drop",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs",
+      "line": 133,
+      "source_sha256": "0642e437f6e107f81bf1c5ef3425d93075683417d7303754ce7494915b5d1dc0",
+      "why": "all four existing empty-renewal controls after shared leaf predicate/test-fixture visibility change",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::empty_renewals::tests::empty_renewal_clone_exact_short_zero_and_each_request_frontier_remain_sticky",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs",
+      "line": 180,
+      "source_sha256": "0642e437f6e107f81bf1c5ef3425d93075683417d7303754ce7494915b5d1dc0",
+      "why": "all four existing empty-renewal controls after shared leaf predicate/test-fixture visibility change",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::empty_renewals::tests::atomic_type_clone_omits_only_the_absent_census_cursor_and_preserves_all_tags",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs",
+      "line": 214,
+      "source_sha256": "0642e437f6e107f81bf1c5ef3425d93075683417d7303754ce7494915b5d1dc0",
+      "why": "all four existing empty-renewal controls after shared leaf predicate/test-fixture visibility change",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::empty_renewals::tests::nonempty_and_selected_or_unobserved_renewal_routes_keep_the_original_receiver",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs",
+      "line": 272,
+      "source_sha256": "0642e437f6e107f81bf1c5ef3425d93075683417d7303754ce7494915b5d1dc0",
+      "why": "all four existing empty-renewal controls after shared leaf predicate/test-fixture visibility change",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "source_reflows::approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors",
+      "source_path": "src/source_reflows.rs",
+      "line": 104,
+      "source_sha256": "d2ea7db3344ae437d72f776af5006e3553862971782f94d59f7e93b4c04f6135",
+      "why": "new active ff doc inverse and strict input authentication",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "target": "lib",
+      "selector": "source_reflows::a_changed_current_byte_is_refused_before_an_inverse_can_hide_it",
+      "source_path": "src/source_reflows.rs",
+      "line": 117,
+      "source_sha256": "d2ea7db3344ae437d72f776af5006e3553862971782f94d59f7e93b4c04f6135",
+      "why": "new active ff doc inverse and strict input authentication",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:image_transport_v5",
+      "selector": "builtin_calls::constructor_schemas_preserve_builtin_alternatives_with_numeric_string_operations_added",
+      "source_path": "tests/image_transport_v5/builtin_calls.rs",
+      "line": 160,
+      "source_sha256": "93d0dffda92459246b5a37c307c741801c0800168f3007350b4510f9596d3c8f",
+      "why": "actual changed metadata count helper caller",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:image_transport_v5",
+      "selector": "builtin_calls::builtin_hole_fill_and_apply_intent_have_exact_library_candidate_identity_without_source_writes",
+      "source_path": "tests/image_transport_v5/builtin_calls.rs",
+      "line": 245,
+      "source_sha256": "93d0dffda92459246b5a37c307c741801c0800168f3007350b4510f9596d3c8f",
+      "why": "direct builtin candidate/refusal compatibility control",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:image_transport_v5",
+      "selector": "builtin_calls::builtin_constructor_does_not_grant_candidate_preparation_to_a_readonly_host",
+      "source_path": "tests/image_transport_v5/builtin_calls.rs",
+      "line": 324,
+      "source_sha256": "93d0dffda92459246b5a37c307c741801c0800168f3007350b4510f9596d3c8f",
+      "why": "direct builtin candidate/refusal compatibility control",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:hir_module_boundaries",
+      "selector": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+      "source_path": "tests/hir_module_boundaries.rs",
+      "line": 2,
+      "source_sha256": "f56a3328c6a4e84a397178f6f8ae0ba7f5ac7b44554b3368676c12849af068cc",
+      "why": "expanded whole-source HIR authority audit",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:hir_module_boundaries",
+      "selector": "oracle_source_inventory::complete_independent_cleanup_oracles_remain_registered_and_source_bound",
+      "source_path": "tests/hir_module_boundaries/oracle_source_inventory.rs",
+      "line": 15,
+      "source_sha256": "2e42bd6bab367993c04f9d54c974a7d5e9ab601017fa2959e77aaa3dff1a333b",
+      "why": "expanded whole-source HIR authority audit",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "target": "test:workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "source_path": "tests/workspace/semantic_graph.rs",
+      "source_sha256": "3c2872191c024e61a79a51721807ff023e5390c89a07785d80f4b41672306539",
+      "why": "expanded complete full-source audit owner; retain whole original scope",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax-native-rust-interop",
+      "target": "lib",
+      "selector": "implementation::tests::ledger_capacity::hir_capacity_layout_constants_are_bound_to_root_const_assertions",
+      "source_path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs",
+      "source_sha256": "13cc01e2a5491dcd162e6a531905020cf57487b5c4cff15edf72739d3520ff0f",
+      "why": "expanded complete full-source audit owner; retain whole original scope",
+      "status": "PENDING_NOT_EXECUTED"
+    }
+  ],
+  "note": "No runtime discovery. Keep all parent prior selected controls, including workspace full-source/purity and interop capacity owner; no omitted failure is relabeled.",
+  "total_literal_selectors": 18
+}

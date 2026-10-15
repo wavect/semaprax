@@ -4,7 +4,10 @@ use std::io::Write;
 use std::process::Stdio;
 
 fn repo() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .canonicalize()
+        .expect("canonical repository fixture root")
 }
 fn install(
     root: &Path,

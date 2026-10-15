@@ -3,7 +3,7 @@
 //! builder ledger BEFORE verification, SourceIndex or DeclarationIndex work,
 //! then forwarded through the selective or fresh route and both invariant
 //! passes. Cache hits never reach this module. Setup refusal stays Copy; the
-//! outer Vec<Diagnostic> graph/report layer remains explicitly unqualified.
+//! outer `Vec<Diagnostic>` graph/report layer remains explicitly unqualified.
 use super::expected_projection::borrowed_leaf::Input;
 use crate::bounded_output::identity_reservation::{IdentityReservation, Refused};
 use crate::bounded_output::staged;

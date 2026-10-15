@@ -1,0 +1,35 @@
+{
+  "frozen_prior_domain": "ae91fa963ecfe85f4cc830cda85fff2f5bdbe094",
+  "actual_main_baseline": "ff869dd96ef97f179078c08fca098398be2d8e8e",
+  "isolated_merge": "72afbfc5572db8ed025042dfd98db9ac89afa698",
+  "strict_prior_rows": 18,
+  "new_sources": [
+    {
+      "source": "src/cleanup_plan/replay/path_join/storage/atomic_controls.rs",
+      "sha256": "81d09f6b20ab45c49948e5282f56dcd9842cc1eac7740b263ddd2646e194e9c7"
+    },
+    {
+      "source": "src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs",
+      "sha256": "2b2688fb72b38c1467127fd0dd907e755d1895a3f00a1ab8ed37b0a97e08748f"
+    }
+  ],
+  "active_ci_records": 92,
+  "ci_changed_main_inputs": [
+    "src/hir/borrowed_scalar/option_u8.rs",
+    "src/hir/owned_leaf_collection.rs",
+    "src/hir/static_text/backing.rs",
+    "src/hir/validation/generic_template/call_graph/ordered.rs",
+    "src/workspace_graph/identity_resolution.rs"
+  ],
+  "main_ff_projection_rows": 18,
+  "assembly_sources": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "src/source_reflows.rs",
+    "src/source_reflows_merge.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "source_only": true,
+  "old_runtime_json_edited": false,
+  "runtime_bodies_executed": 0
+}

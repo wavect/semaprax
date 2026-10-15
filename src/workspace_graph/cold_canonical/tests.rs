@@ -301,7 +301,11 @@ fn complete_old_commented_formatter_preflight_sources_and_all_current_children_r
             "tests/workspace/semantic_graph/source_inventory.rs" => (include_str!("../../../tests/workspace/semantic_graph/source_inventory.rs").to_owned(), include_str!("../../../docs/evidence/canonical-comment-comparison-835/original/source_inventory.rs")),
             _ => panic!("unexpected complete source owner"),
         };
-        current = crate::source_reflows_merge::consumer_input("cold835", row["source"].as_str().unwrap(), &current);
+        current = crate::source_reflows_merge::consumer_input(
+            "cold835",
+            row["source"].as_str().unwrap(),
+            &current,
+        );
         for edit in row["edits"].as_array().unwrap() {
             let new = edit["new"].as_str().unwrap();
             let old = edit["before"].as_str().unwrap();
@@ -369,6 +373,8 @@ fn complete_old_commented_formatter_preflight_sources_and_all_current_children_r
             .iter()
             .find(|r| r["source"] == source)
             .unwrap();
+        let projected = crate::source_reflows_merge::consumer_child("cold835", source, bytes);
+        let bytes = projected.as_str();
         assert_eq!(
             format!(
                 "{:x}",

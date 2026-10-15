@@ -1,0 +1,53 @@
+{
+  "source_basis": "0bf3c1d04e627f9af226a805d773460596fa4d52",
+  "merged_main": "f0455caf96706a0545e754957fcc903434a7f880",
+  "whole_before_owners": [
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/regions_entry/tests.rs",
+      "current_sha256": "21c27e94bab72e8d61590fe376791f877a2d120eb5ba0d944f51e50de713f6f6",
+      "basis_sha256": "393c169fbf096a07ac373703d2138b1811c0da33f2c45e851fec60918074fdcb"
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/ordinary_dag/frontier_tests.rs",
+      "current_sha256": "fce7489273c69005df5c53d72213a1b0c628bdf6f43198cdddfed39573446ca0",
+      "basis_sha256": "436512ed0559dafe0ff0df59c5c24799b9ecd35b7ec0f995b4d4280667c8ba22"
+    },
+    {
+      "source": "src/hir/ids/fixed_operation_tests.rs",
+      "current_sha256": "c0364b9bfdb04d34d031bdd3712d9f781711a12ea9811516af5417f89febc10f",
+      "basis_sha256": "cc6864667fa0677b8bff665c2f53d5e9bc64b7288b2ee9f2c687692af9761ac5"
+    },
+    {
+      "source": "src/hir/resolve_for/bytes/tests.rs",
+      "current_sha256": "3520d01293ca3b8db3f7de8cc2f3fab3b8673baa1eb33f946cfcb8dc8c590c32",
+      "basis_sha256": "ddf50183d313de2b87b9adfe62b804373b8fd20ec71ce51558efacae66e59cbe"
+    },
+    {
+      "source": "src/hir/resolve_statement/text_reference.rs",
+      "current_sha256": "5a48e8f408e3816971541426d79f40bef15a2477675c57ab0df30a3f587dadd9",
+      "basis_sha256": "e980a913e7718a0fa36696bbc44e9382bc4741300ab572b9d2b028e319f30f2e"
+    },
+    {
+      "source": "src/hir/validation/iterative_while_admission_tests.rs",
+      "current_sha256": "6ae19431da3839495e725f661f6710417bc01c9651f982db8eeb36ffe1a833ad",
+      "basis_sha256": "08002a6d745f6a15bd7d7c025b5195dc587ee101770e2de6e07b025dc6880389"
+    },
+    {
+      "source": "src/source_reflows.rs",
+      "current_sha256": "130ef764ccd28e1cc53d17ab720426e1a754c1a92cd79b7732135b21fcea41d5",
+      "basis_sha256": "d2ea7db3344ae437d72f776af5006e3553862971782f94d59f7e93b4c04f6135"
+    },
+    {
+      "source": "src/source_reflows_merge.rs",
+      "current_sha256": "34b534b027ca6e14201c8798bcebf9c7b596e70d112bca342848eb75de3bfc64",
+      "basis_sha256": "138beaede6fd3412ac3f3593c8d62ff7bebeaee1291a108cf2ba873e5f89c447"
+    }
+  ],
+  "f045_guard_source": "src/hir/resolve_statement.rs",
+  "current_runtime_json_protected": [
+    "current-to-0bf.json",
+    "current-to-f045.json",
+    "live-mainf045-ci93.json",
+    "historical-main87.json"
+  ]
+}

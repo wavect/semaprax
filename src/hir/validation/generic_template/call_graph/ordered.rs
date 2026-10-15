@@ -1,5 +1,5 @@
 //! Private paid insertion-only AVL ordinal set. Stable indices survive rotations.
-//! The sentinel cannot be an index: Layout::array<Node> limits every real Vec.
+//! The sentinel cannot be an index: `Layout::array<Node>` limits every real Vec.
 use super::{corrupt, layout_bytes, physical, reserve, settle, Diagnostic};
 const NONE: usize = usize::MAX;
 struct Node {

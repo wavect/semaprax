@@ -1,0 +1,29 @@
+{
+  "status": "SOURCE_ONLY_NO_EXECUTION",
+  "source_basis": "ae91fa963ecfe85f4cc830cda85fff2f5bdbe094",
+  "complete_immediate_inverses_verified": true,
+  "production_owners_byte_exact": [
+    {
+      "source": "src/bounded_output/classifier_string.rs",
+      "sha256": "ee3073593ac4c8ab657dc5daa7500108b60c4c64bc898e877208f60a10d56a34"
+    },
+    {
+      "source": "src/workspace_graph/constructor_failure/receiving/typed.rs",
+      "sha256": "bef244ba26dd19d6e6f7b02ee7283159a8389036d4c629918b53c4f567a3a169"
+    },
+    {
+      "source": "src/workspace_graph/generic_type_import/receiving.rs",
+      "sha256": "1a7e0734a7a731870971a5ede0a4177ff897c0bd80628bcae24a8768720f6cde"
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs",
+      "sha256": "77c3a4d7a6897bc33acf94c36c14812596f9ec0e47bce60de8146c758e64d92f"
+    }
+  ],
+  "new_test_bodies": 0,
+  "required_existing_selectors": [
+    "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_foreign_function_budget_nested_and_expired_slot_are_sticky_without_query",
+    "workspace_graph::generic_type_import::receiving::tests::typed_declaration_foreign_restored_owner_keeps_unchanged_ast_and_sticky_detachment"
+  ],
+  "source_reader_successor": "Parent weighted source lane must prepend actual combined source bytes to these two complete prior domains; no immutable prior runtime JSON modified."
+}

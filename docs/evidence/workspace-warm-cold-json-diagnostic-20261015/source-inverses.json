@@ -1,0 +1,19 @@
+[
+  {
+    "source": "tests/agent_runtime_v1/execution_revision/workspace.rs",
+    "checkpoint_revision": "77f90da5e00d533e40714d42369daed90661156a",
+    "archive": "docs/evidence/workspace-warm-cold-json-diagnostic-20261015/workspace.rs.before.txt",
+    "current_sha256": "45f64162922d8a06c23712a0e010cdc6f983df499909ae72bed191205723fb17",
+    "original_sha256": "ad18ce957412ea18523be2b02c9567085d5fccf82037fa536bd89b375cfc84e5",
+    "edits": [
+      {
+        "new": "// Fatal-path diagnostics only: never serialize whole graph subtrees.\nfn first_graph_difference(warm: &Value, cold: &Value, skip_root_digest: bool) -> Value {\n    fn preview(value: Option<&Value>) -> Value {\n        match value {\n            None => json!(\"<missing>\"),\n            Some(Value::String(value)) => json!({\n                \"text_prefix\": value.chars().take(80).collect::<String>(),\n                \"utf8_bytes\": value.len(),\n            }),\n            Some(Value::Array(value)) => json!({\"array_length\": value.len()}),\n            Some(Value::Object(value)) => json!({\"object_fields\": value.len()}),\n            Some(value) => value.clone(),\n        }\n    }\n    fn walk(\n        warm: Option<&Value>,\n        cold: Option<&Value>,\n        pointer: &str,\n        depth: usize,\n        remaining: &mut usize,\n        skip_root_digest: bool,\n    ) -> Option<Value> {\n        if depth == 64 || *remaining == 0 {\n            return Some(json!({\"status\": \"scan_limit\", \"pointer\": pointer}));\n        }\n        *remaining -= 1;\n        let mut child = |key: &str, warm, cold| {\n            // JSON Pointer escapes can double a key. Refuse before constructing\n            // an oversized path, and identify the bounded parent honestly.\n            if key.len() > (512usize.saturating_sub(pointer.len() + 1)) / 2 {\n                return Some(json!({\"status\": \"pointer_limit\", \"pointer\": pointer}));\n            }\n            let key = key.replace('~', \"~0\").replace('/', \"~1\");\n            walk(\n                warm,\n                cold,\n                &format!(\"{pointer}/{key}\"),\n                depth + 1,\n                remaining,\n                skip_root_digest,\n            )\n        };\n        match (warm, cold) {\n            (Some(Value::Object(left)), Some(Value::Object(right))) => {\n                for key in left.keys().chain(right.keys().filter(|key| !left.contains_key(*key))) {\n                    if skip_root_digest && depth == 0 && key == \"graph_digest\" {\n                        continue;\n                    }\n                    if let Some(found) = child(key, left.get(key), right.get(key)) {\n                        return Some(found);\n                    }\n                }\n                None\n            }\n            (Some(Value::Array(left)), Some(Value::Array(right))) => {\n                for index in 0..left.len().max(right.len()) {\n                    if let Some(found) = child(&index.to_string(), left.get(index), right.get(index)) {\n                        return Some(found);\n                    }\n                }\n                None\n            }\n            _ if warm == cold => None,\n            _ => Some(json!({\n                \"status\": \"different\",\n                \"pointer\": pointer,\n                \"warm\": preview(warm),\n                \"cold\": preview(cold),\n            })),\n        }\n    }\n    walk(Some(warm), Some(cold), \"\", 0, &mut 32_768, skip_root_digest)\n        .unwrap_or_else(|| json!({\"status\": \"equal\"}))\n}\n\n",
+        "old": ""
+      },
+      {
+        "new": "                \"first_graph_difference\": first_graph_difference(&warm_graph, &cold_graph, false),\n                \"first_graph_content_difference\": first_graph_difference(&warm_graph, &cold_graph, true),\n",
+        "old": ""
+      }
+    ]
+  }
+]

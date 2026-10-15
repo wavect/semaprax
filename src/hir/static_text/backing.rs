@@ -1,5 +1,5 @@
 //! Immutable module-owned decoded text. The carrier layout is the same pinned
-//! Arc<String> allocation as ExpressionId; equal bytes do not prove sharing.
+//! `Arc<String>` allocation as ExpressionId; equal bytes do not prove sharing.
 use std::ops::Deref;
 use std::sync::Arc;
 

@@ -161,7 +161,42 @@ fn full_original_operation_sources_and_receivers_have_only_declared_identity_hoo
         ),
         "0abc67a67c5c22b175b81e2ef82e46206421f6a974fa772ea40de40181467dd2"
     );
-    assert_eq!(ci_str!("../../../src/list_ops.rs"), original);
+    let current = ci_str!("../../../src/list_ops.rs");
+    let start = current.find("pub(crate) fn is_list(").unwrap();
+    let end = current
+        .find("pub(crate) fn validate_declarations(")
+        .unwrap();
+    // Bind the complete later borrowed predicate receiver, and reconstruct
+    // every archived byte from the independently compiled old predicates.
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(<sha2::Sha256 as sha2::Digest>::digest(
+                &current.as_bytes()[start..end]
+            ))
+        ),
+        "c91741020e653b86582b9e811353438c67c934a29746dedfdec632ef81ece8a9"
+    );
+    let saved = ci_str!("../../../src/list_ops/original_constructor.rs");
+    let saved_start = saved.find("pub(crate) fn is_list(").unwrap();
+    let saved_end = saved.find("pub(crate) fn validate_declarations(").unwrap();
+    let mut projected = format!(
+        "{}{}{}",
+        &current[..start],
+        &saved[saved_start..saved_end],
+        &current[end..]
+    );
+    let later_call = "&& canonical_step_shape(&program.declarations)";
+    assert_eq!(projected.matches(later_call).count(), 1);
+    projected = projected.replacen(
+        later_call,
+        "&& step_shape(&program.declarations, &resolved_step())",
+        1,
+    );
+    let registration = "\n#[cfg(test)]\npub(crate) mod original_constructor;\n";
+    assert_eq!(projected.matches(registration).count(), 1);
+    projected = projected.replacen(registration, "", 1);
+    assert_eq!(projected, original);
     assert_eq!(original.matches("pub(crate) const fn id(self)").count(), 1);
 
     let old = ci_str!(

@@ -39,6 +39,8 @@ macro_rules! semantic_graph_private_layout_source_inventory {
         include_str!("../../src/loan_plan/paid_plan/retained_before_dense.rs"),
         include_str!("../../src/loan_plan/funded_flat/before_dense.rs"),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified.rs"),
+        include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_before.rs"),
+        include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs"),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs"),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs"),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs"),

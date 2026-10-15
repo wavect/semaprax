@@ -46,3 +46,14 @@ hostile cases/IDs/callee/lane, each algorithm's derived exact/short/zero byte an
 work boundaries, binding/foreign/stale membership and post-refusal allocation.
 The unchanged retry, normalizer, application and backend owners remain the
 qualification authority; no new broad gate or benchmark is added.
+
+## Counter representation successor
+
+The certified receiver uses the already-funded manual ordinal as a while-index
+into its immutable status slice. The complete fallible row body and its explicit
+increment work charge still precede the increment. The original usize fee and
+all other controls remain unchanged. No Enumerate iterator, tuple receiver,
+Result layer, backing, lint allowance or guessed credit is introduced. Complete
+immediate for-loop receiver compiles independently with only nested-module path
+adapters; full six-field/work/physical-debit differential and original hostile/
+refusal/Drop owners qualify the change. This source correction awaits execution.

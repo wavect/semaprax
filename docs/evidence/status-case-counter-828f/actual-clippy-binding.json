@@ -1,0 +1,7 @@
+{
+  "source_subject": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+  "log": "/Volumes/Semaprax/lane-prompts/large-828f-qualification-20261015/clippy-production.log",
+  "sha256": "627eabf68efb2cd02882df5d2cf26a47a2e48bd0e1f9a5426503ba0845514aea",
+  "actual_exit_code": 101,
+  "corrective_runtime": "NOT_EXECUTED"
+}

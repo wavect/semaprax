@@ -1,0 +1,1 @@
+Source-only whole inverse proofs: 36 all equal; unchanged constructor paid/key/substitute/storage archives all equal. No Rust execution.

@@ -1,0 +1,92 @@
+{
+  "source_commit": "828f258503ec98c6cc9b1b59d307ad604bcf681d + uncommitted counter payload",
+  "argv": [
+    "/Users/kevin/.local/bin/claude",
+    "--print",
+    "--output-format",
+    "json",
+    "--model",
+    "sonnet",
+    "--tools",
+    "",
+    "--no-session-persistence",
+    "--safe-mode",
+    "--restricted",
+    "--strict-mcp-config",
+    "--permission-prompts",
+    "none",
+    "--prompt-suggestions",
+    "false",
+    "--max-budget-usd",
+    "3.5",
+    "--system-prompt",
+    "Review only the pasted source. No tools, code execution, delegation, file access, or web. Identify concrete semantic, Rust typing, accounting, or test mistakes with source line references. Distinguish blockers from uncertainties. Do not claim execution. Keep findings under 900 words."
+  ],
+  "dispatches": 1,
+  "tools_enabled": false,
+  "code_execution": false,
+  "wall_seconds": 65.33155116700073,
+  "exit_code": 0,
+  "peak_process_group_rss_bytes": 327663616,
+  "rss_limit_bytes": 805306368,
+  "timeout_seconds": 120,
+  "output_limit_bytes": 2097152,
+  "resource_refusal": null,
+  "payload_sha256": "0e1e086a890c9aef46ce29694995eac299081c70c81e832debd8b8451c737033",
+  "budget_usd_max": 3.5,
+  "actual_billing": "unknown",
+  "model_usage": {
+    "claude-sonnet-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 8408,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 4179,
+      "webSearchRequests": 0,
+      "costUSD": 0.1008,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 6152,
+      "canonicalModel": "claude-sonnet-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 4179,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 8408,
+    "output_tokens_details": {
+      "thinking_tokens": 6152
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 4179,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 8408,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 4179,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4179
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "provider_list_cost_usd": 0.1008,
+  "is_error": false,
+  "num_turns": 1,
+  "subtype": "success"
+}

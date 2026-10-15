@@ -533,6 +533,8 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
             include_str!("../src/cleanup_plan/replay/expression_facts/receiving/retained/exit_tests.rs"),
             include_str!("../src/cleanup_plan/replay/expression_facts/receiving/retained/tests.rs")),
         include_str!("../src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified.rs"),
+        include_str!("../src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_before.rs"),
+        include_str!("../src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs"),
         include_str!("../src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs"),
         include_str!("../src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs"),
         include_str!("../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs"),

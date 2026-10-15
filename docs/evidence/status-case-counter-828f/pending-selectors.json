@@ -1,0 +1,48 @@
+{
+  "status": "SOURCE_ONLY_NOT_EXECUTED",
+  "basis": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+  "new": [
+    {
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_certified::counter_tests::certified_while_counter_preserves_complete_before_fields_work_and_receiving_debit",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs",
+      "source_sha256": "d81ac15a131e6f1019e3e7024b38b4c2fa7a70e50bc64943bac8c345914340eb"
+    }
+  ],
+  "required_existing": [
+    {
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::complete_old_and_certified_cases_preserve_all_operations_rows_and_whole_drop",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+      "source_sha256": "7ca585aab8b3fe7b7941644860af7a6a397695c41fc7b17d5e98a33bc0e3532b"
+    },
+    {
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::complete_source_walk_rejects_hostile_cases_ids_callee_and_lane_before_certificate",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+      "source_sha256": "7ca585aab8b3fe7b7941644860af7a6a397695c41fc7b17d5e98a33bc0e3532b"
+    },
+    {
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::each_receiver_has_derived_exact_short_and_zero_bytes_and_work",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+      "source_sha256": "7ca585aab8b3fe7b7941644860af7a6a397695c41fc7b17d5e98a33bc0e3532b"
+    },
+    {
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::proof_binds_exact_rows_function_budget_and_foreign_restored_invocation",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+      "source_sha256": "7ca585aab8b3fe7b7941644860af7a6a397695c41fc7b17d5e98a33bc0e3532b"
+    },
+    {
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::selected_member_refusal_latches_without_post_refusal_acquisition_or_drop_allocation",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+      "source_sha256": "7ca585aab8b3fe7b7941644860af7a6a397695c41fc7b17d5e98a33bc0e3532b"
+    },
+    {
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::complete_direct_receiver_and_independent_source_discovery_remain_byte_exact",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+      "source_sha256": "7ca585aab8b3fe7b7941644860af7a6a397695c41fc7b17d5e98a33bc0e3532b"
+    },
+    {
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::attempts_cannot_complete_after_poison_foreign_payer_or_successful_consumption",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+      "source_sha256": "7ca585aab8b3fe7b7941644860af7a6a397695c41fc7b17d5e98a33bc0e3532b"
+    }
+  ]
+}

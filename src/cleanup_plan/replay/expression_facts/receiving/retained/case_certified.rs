@@ -1,8 +1,8 @@
 //! Complete retained status receiver; only the certified arithmetic branch differs.
 use super::{
-    CONTROL_BYTES, CallFact, ClassifierLedger, Diagnostic, Directory, Facts, Lookup, ReplayBudget,
-    ResolvedFunction, StatusLane, StatusProducer, StatusSources, case_proof, directory,
-    replay_error, semantic_refusal,
+    case_proof, directory, replay_error, semantic_refusal, CallFact, ClassifierLedger, Diagnostic,
+    Directory, Facts, Lookup, ReplayBudget, ResolvedFunction, StatusLane, StatusProducer,
+    StatusSources, CONTROL_BYTES,
 };
 
 pub(in crate::cleanup_plan::replay) fn validate_status_sources_certified<'hir>(
@@ -33,7 +33,10 @@ pub(in crate::cleanup_plan::replay) fn validate_status_sources_certified<'hir>(
     )?;
     budget.charge(function, 1, "status case row ordinal")?;
     let mut ordinal = 0usize;
-    for source in &function.cleanup_plan.status_sources {
+    // This paid ordinal advances only after the complete fallible row body.
+    // A direct while-index keeps that frontier without an Enumerate carrier.
+    while ordinal < function.cleanup_plan.status_sources.len() {
+        let source = &function.cleanup_plan.status_sources[ordinal];
         if !ids.insert_certified(function, &source.id, budget, &prefix_owner)? {
             return Err(<Diagnostic as semantic_refusal::Error>::structural(
                 function,
@@ -124,3 +127,8 @@ pub(in crate::cleanup_plan::replay) fn validate_status_sources_certified<'hir>(
         ids: Some(ids),
     })
 }
+
+#[cfg(test)]
+mod counter_before;
+#[cfg(test)]
+mod counter_tests;

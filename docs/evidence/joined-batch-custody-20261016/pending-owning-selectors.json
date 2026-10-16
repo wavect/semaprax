@@ -1,0 +1,38 @@
+{
+  "status": "PENDING_NOT_EXECUTED",
+  "selectors": [
+    "ast::expression_statement::tests::resolver_512_payload_source_fits_the_same_canonical_budget_without_pattern_scratch",
+    "cleanup_plan::replay::flat_records::tests::receiving_boundary::boundary_complete_paid_driver_keeps_source_and_first_refusal",
+    "cleanup_plan::replay::flat_records::tests::receiving_certificate::certificate_precision_complete_paid_drivers_keep_source_and_first_refusal",
+    "cleanup_plan::replay::flat_records::tests::receiving_families::complete_paid_drivers_keep_independent_source_authenticated_success_and_refusal",
+    "cleanup_plan::replay::flat_records::tests::receiving_status_scalar::scalar_record_receivers_keep_complete_shape_answers_and_real_limits",
+    "cleanup_plan::replay::flat_records::tests::receiving_status_scalar::status_scalar_complete_paid_drivers_keep_source_and_first_refusal",
+    "cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+    "cleanup_plan::replay::live_oracle::source_custody::b::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+    "cleanup_plan::replay::selected_entry::tests::driver_local_receivers::duplicated_driver_profile_and_owner_keep_raw_oracle_and_transfer_one_paid_report",
+    "cli::help::authoring::tasks::tests::json_task_exact_specimen_has_ordinary_paired_starter_compiler_admission",
+    "cli::help::authoring::tasks::tests::json_task_refuses_foreign_profiles_stale_tail_and_duplicate_identities",
+    "cli::help::authoring::tasks::tests::json_task_whole_entries_are_complete_deterministic_and_exactly_bounded",
+    "graph::tests::explicit_match_modes_select_v21_and_are_distinct_in_graph_and_agent_views",
+    "hir::expr_nodes::residual_payload_tests::lexical_residual_receiving_keeps_old_producer_order_floor_and_restored_sticky_owner",
+    "hir::ids::instance_match::tests::streamed_instance_exact_short_zero_sticky_floor_keep_all_key_producers_and_drop",
+    "hir::ids::instance_match::tests::streamed_instance_matches_complete_encoder_all_forms_and_forged_bytes",
+    "hir::ids::instance_match::tests::streamed_instance_validator_preserves_duplicate_before_canonical_refusal",
+    "hir::ids::instance_match::tests::streamed_instance_zero_argument_nominal_omission_cannot_authenticate_empty_key",
+    "semantic_graph::current344_input::tests::complete_direct_reader_preimages_refuse_stale_truncated_and_historical_inputs",
+    "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+    "source_reflows_merge::current344::tests::complete_direct_reader_preimages_refuse_stale_truncated_and_historical_inputs",
+    "source_reflows_merge::runtime_json::tests::fixed_projection_json_transport_refuses_hostile_io_before_parsing",
+    "task_pages::json_task_pages_keep_full_host_boundaries_and_complete_source_inventory_inert",
+    "test_allocation_observer::free_order::tests::a_reacquired_address_does_not_repeat_the_initial_release_event",
+    "test_allocation_observer::free_order::tests::allocator_replacement_keeps_the_initial_watch_and_all_layout_counters",
+    "test_allocation_observer::free_order::tests::duplicate_free_without_reacquisition_and_live_reacquisition_still_refuse",
+    "test_allocation_observer::free_order::tests::missing_release_still_refuses_and_unwatched_events_do_not_hide_it",
+    "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure"
+  ],
+  "benchmark_and_application_qualification": "PENDING",
+  "scoped_required_checks": "PENDING_NOT_EXECUTED",
+  "ignored_pin_producers_separate_regeneration": [
+    "standard_library::regenerate_catalogs"
+  ]
+}

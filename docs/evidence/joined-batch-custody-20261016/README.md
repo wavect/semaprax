@@ -49,3 +49,42 @@ python3 docs/evidence/residual855-independent-payer-fixture-20261016/verify-sour
 The source refresh recipe is separately named `refresh.py`; its explicit
 `--apply --expected-head <full source commit>` arguments prevent accidental
 application to another source state. Original source algorithms are unchanged.
+
+## Pending parent continuation
+
+The authority attempt before the856 continuation was interrupted before any
+output was written. This packet has no final `receipt.json`, and its staged
+endpoint files are provisional. `source-proof.json` and authority manifests in
+the older directory still describe their earlier phase until explicitly refreshed.
+The parent takes ROOT ownership after the prep handoff commit.
+
+After cherry-picking856, resolve any source overlap by retaining both complete
+implementations/preimages, and add every genuinely new Rust child to all three
+existing raw joins as additive lines. Commit that source state before invoking
+the refresh recipe. Do not change source afterward without repeating the binding
+phase. Set the expected head to the exact full commit from `git rev-parse HEAD`.
+
+```
+TMPDIR=/Volumes/Semaprax/runtime-tmp PYTHONDONTWRITEBYTECODE=1 \
+  python3 docs/evidence/joined-batch-custody-20261016/refresh.py \
+  --apply --expected-head <full-final-source-commit>
+```
+
+The recipe rederives the original53-key Previous16c scope from committed1746,
+then adds every changed preexisting16c input since a82e, with full original Git
+archives. It does not derive from an already refreshed77-key table. Maina3(30),
+Alias1ae(2) and MainE47(2) scopes stay fixed. It executes Main043 endpoint refresh
+first, Main44 next, a3/e47/correction endpoints and descriptors next, then one
+completed final authority generation and both unchanged source verifiers last.
+It finishes by rechecking Main043/Main44 and208 protected historical files.
+No Cargo, build, Rust test or capture command is in this recipe.
+
+After the final endpoint refresh, run `verify-lanes.py` and the residual855
+source verifier above. If856 changes a file in another private packet, preserve
+its complete after-preimage and add an explicit final-to-private source view
+before replaying that packet's verifier. Do not replace its original hash,
+assertion or inverse with final bytes. The current `verify-lanes.py` intentionally
+refuses such unreviewed overlapping source changes. Update this phase's lane
+proof only after that composition is checked, then commit the endpoint refresh.
+Qualification uses the parent's separate focused selection and fresh build;
+the ignored catalog producer remains a separately labeled regeneration step.

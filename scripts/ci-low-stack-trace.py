@@ -18,6 +18,40 @@ CASE = (
 )
 
 
+# Read only six stopped frames and 24 entry instructions per frame. No target
+# expression is evaluated and no instruction is executed after the first fault.
+FRAME_LAYOUT_CODE = r"""import gdb
+import re
+try:
+    frame = gdb.newest_frame()
+    for level in range(6):
+        if frame is None:
+            break
+        frame.select()
+        pc = int(frame.pc())
+        name = (frame.name() or "unknown")[:512]
+        try:
+            sp = hex(int(frame.read_register("sp")))
+        except Exception:
+            sp = "unavailable"
+        print(f"SEMAPRAX_STACK_FRAME_LAYOUT_V1 frame={level} pc={pc:#x} sp={sp} name={name!r}")
+        try:
+            print(gdb.execute("info frame", to_string=True))
+        except Exception as error:
+            print(f"frame info unavailable: {error}")
+        try:
+            symbol = gdb.execute(f"info symbol {pc:#x}", to_string=True)
+            offset = re.search(r"\+ (0x[0-9a-fA-F]+|[0-9]+) in section", symbol)
+            entry = pc - int(offset.group(1), 0) if offset else pc
+            gdb.execute(f"x/24i {entry:#x}")
+        except Exception as error:
+            print(f"bounded prologue unavailable: {error}")
+        frame = frame.older()
+except Exception as error:
+    print(f"stopped frame layout unavailable: {error}")
+"""
+
+
 def select_executable(messages, root, target):
     """Select one current Cargo root-library test artifact, never a guessed path."""
     # https://doc.rust-lang.org/cargo/reference/external-tools.html#artifact-messages
@@ -96,7 +130,7 @@ def main():
         "set debuginfod enabled off", "set disable-randomization off",
         "handle SIGPIPE nostop noprint pass", "handle SIGSEGV stop print nopass",
         "handle SIGBUS stop print nopass", "handle SIGABRT stop print nopass",
-        "run", "thread apply all bt 48",
+        "run", "python exec(" + repr(FRAME_LAYOUT_CODE) + ")", "thread apply all bt 48",
     ]
     command = [debugger, "--batch", "--nx"]
     for instruction in commands:

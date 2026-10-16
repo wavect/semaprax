@@ -45,13 +45,35 @@ use canonical_before::Receiver as Canonicalizer;
 use compact_nodes::Node;
 use storage::{memo_insert, push_end, push_frame, reserve_transition_observation};
 
-/// Path count above which the factored comparison replaces enumeration.
-const FACTORED_PATH_THRESHOLD: usize = 4_096;
+/// Representation crossover, independent of the admitted path/work limits.
+const FACTORED_PATH_THRESHOLD: usize = 256;
+// Preserve the original broad factored domain and every original small-function
+// enumeration cross-check. Earlier selection is only a representation choice.
+const ENUMERATION_CROSS_CHECK_THRESHOLD: usize = 4_096;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 enum Label {
     Observation(Rc<SkeletonObservation>),
     End(SkeletonTerminal),
+}
+
+// Borrowed headers select a representation; structural and complete weighted
+// language verification retain all acceptance authority. Resource-bearing
+// functions keep the original window because their states need not coalesce.
+fn representation_candidate(
+    function: &ResolvedFunction,
+    cfg_paths: usize,
+    semantic_paths: usize,
+) -> bool {
+    if cfg_paths <= FACTORED_PATH_THRESHOLD && semantic_paths <= FACTORED_PATH_THRESHOLD {
+        return false;
+    }
+    let plan = &function.cleanup_plan;
+    cfg_paths > ENUMERATION_CROSS_CHECK_THRESHOLD
+        || semantic_paths > ENUMERATION_CROSS_CHECK_THRESHOLD
+        || (plan.slots.is_empty()
+            && plan.entry_state.live_owned_parameters.is_empty()
+            && plan.entry_state.conditional_owned_parameters.is_empty())
 }
 
 /// Semantic nonselection remains false; a physical scratch refusal is sticky
@@ -62,7 +84,7 @@ pub(super) fn selected_paid(
     semantic_paths: usize,
     budget: &mut ReplayBudget,
 ) -> Result<bool, Diagnostic> {
-    if cfg_paths <= FACTORED_PATH_THRESHOLD && semantic_paths <= FACTORED_PATH_THRESHOLD {
+    if !representation_candidate(function, cfg_paths, semantic_paths) {
         return Ok(false);
     }
     match structural_control::validate_ordinary_cfg(function, budget) {
@@ -80,7 +102,7 @@ pub(super) fn selected(
     cfg_paths: usize,
     semantic_paths: usize,
 ) -> bool {
-    (cfg_paths > FACTORED_PATH_THRESHOLD || semantic_paths > FACTORED_PATH_THRESHOLD)
+    representation_candidate(function, cfg_paths, semantic_paths)
         && validate_reachable_acyclic_cfg(function).is_ok()
 }
 
@@ -112,19 +134,41 @@ pub(super) fn validate_with_index_storage<'hir>(
 ) -> Result<bool, Diagnostic> {
     let cfg_paths = branch_sensitive_cfg_bounds(function)?.terminal_paths;
     let semantic_paths = hir_terminal_path_bound(function)?;
-    if !selected_paid(
+    let selected = selected_paid(
         function,
         cfg_paths,
         semantic_paths,
         &mut ReplayBudget::new(),
-    )? {
-        #[cfg(test)]
-        oracle_hook::cross_check_with_storage(program, function, budget, continuations)?;
+    )?;
+    #[cfg(test)]
+    let continuations = {
+        let mut continuations = continuations;
+        if !selected
+            || (cfg_paths <= ENUMERATION_CROSS_CHECK_THRESHOLD
+                && semantic_paths <= ENUMERATION_CROSS_CHECK_THRESHOLD)
+        {
+            oracle_hook::cross_check_with_storage(
+                program,
+                function,
+                budget,
+                continuations.as_deref_mut(),
+            )?;
+        }
+        continuations
+    };
+    if !selected {
         return Ok(false);
     }
     match compare_with_index_storage(program, function, budget, helpers, continuations) {
         Ok(Some(true)) => Ok(true),
         Ok(Some(false)) => Err(skeleton_mismatch(function)),
+        Err(error)
+            if cfg_paths <= MAX_REPLAY_PATHS
+                && semantic_paths <= MAX_REPLAY_PATHS
+                && (budget.refusal_spent || crate::bounded_output::active_refused()) =>
+        {
+            Err(error)
+        }
         verdict => {
             if cfg_paths <= MAX_REPLAY_PATHS && semantic_paths <= MAX_REPLAY_PATHS {
                 // Enumeration still fits; an attempted factored comparison
@@ -1054,3 +1098,6 @@ mod continuation_receiver;
 
 #[cfg(test)]
 pub(crate) use canonical_shared::app_census::Scope as EpsilonAppCensus;
+
+#[cfg(test)]
+mod moderate_tests;

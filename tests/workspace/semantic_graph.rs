@@ -448,7 +448,15 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     // The complete actual projection above remains the purity input. This
     // independent historical view retains the original facade assertion too.
     let current_projection_root = projection_root;
-    let projection_root = historical_projection_root_facade(current_projection_root.as_str());
+    current344_input::refuses_drift(
+        "expected_projection::root_join",
+        current_projection_root.as_str(),
+    );
+    let facade_input = current344_input::project(
+        "expected_projection::root_join",
+        current_projection_root.as_str(),
+    );
+    let projection_root = historical_projection_root_facade(&facade_input);
     assert_eq!(
         projection_root
             .lines()
@@ -1450,4 +1458,13 @@ fn current_projection_facade_input(current: &str) -> String {
         row["original_sha256"]
     );
     previous
+}
+
+// The purity gate above still consumes the complete actual join. Only its
+// independent historical facade equality receives this authenticated bridge.
+mod current344_input {
+    include!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/source_reflows_merge/current344.rs"
+    ));
 }

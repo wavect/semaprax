@@ -1,0 +1,78 @@
+[
+  {
+    "source": "src/cleanup_plan.rs",
+    "current_sha256": "0e19e80ed9cc80eafe015ff4e11688d6aa24b80755e6afbe1ed727f5d2a63621",
+    "original_sha256": "58f4ca8f4b449b2b63f19c0111af9f4dae6525f382f99130b189a8bf1e1457fb",
+    "edits": [
+      {
+        "new": "    PhysicalReservation as ReplayPhysicalReservation, ReplayPhysicalRefusal, SelectedReplayPreparation,\n",
+        "old": "    PhysicalReservation as ReplayPhysicalReservation, SelectedReplayPreparation,\n"
+      },
+      {
+        "new": "    ReplayBorrowedIdentity, ReplayBorrowedLease, SelectedReplayCause,\n",
+        "old": "    ReplayBorrowedIdentity, ReplayBorrowedLease, ReplayPhysicalRefusal, SelectedReplayCause,\n"
+      }
+    ]
+  },
+  {
+    "source": "src/hir/ids.rs",
+    "current_sha256": "186e98de002cd77f1e546a34423a6ca4792d8fbedc8ff7decc8d8a6a3e03b306",
+    "original_sha256": "afbbd5de9f56e15dc761c6b01ae591db9472efc4664effcb5c5093833dcfa569",
+    "edits": [
+      {
+        "new": "\n#[path = \"ids/instance_match.rs\"]\npub(in crate::hir) mod instance_match;\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "tests/native/string_settlement/codec_allocation/string_vectors.rs",
+    "current_sha256": "8fc18b5920eb5f4a5c5d43c886f327b32e6f0ead6570d1640e43db0e5f0cfddb",
+    "original_sha256": "590c08774b5b29d20413fb9764152fd5a5168758a1fcf1cec40637521991b591",
+    "edits": [
+      {
+        "new": "    let root = fs::canonicalize(root).unwrap();\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "expected_projection::root_join",
+    "current_sha256": "0c1b20aa901a342923a52a51f1e7b5bc71330c785e4baeee92185ebaf6e64aa4",
+    "original_sha256": "3c5f2068b1ec9634f156dbc123eb60aebfc1a043de64adde5096febbdc9061f4",
+    "edits": [
+      {
+        "new": "#[macro_use]\n#[path = \"alias/owned_growth.rs\"]\nmod owned_growth;\n#[cfg(test)]\n#[path = \"alias/before_owned_directory.rs\"]\nmod before_owned_directory;\n#[cfg(test)]\n#[path = \"alias/owned_growth_tests.rs\"]\nmod owned_growth_tests;\n\n",
+        "old": ""
+      },
+      {
+        "new": "    // GeneratedRoots already holds the empty owned directory. Borrowed entries\n    // acquire no Function backing; owning fallback acquires the original full bound at its real frontier.\n",
+        "old": "    directory_owner.roots.functions = directory::<Function>(\n        imports\n            .checked_add(usize::from(needs_main))\n            .ok_or_else(refusal)?,\n        owner,\n    )?;\n"
+      },
+      {
+        "new": "        }\n        owned_function_directory!(functions, entries, owner);\n",
+        "old": "        }\n"
+      },
+      {
+        "new": "        #[cfg(test)]\n        owned_growth_tests::observe_owned_push();\n",
+        "old": ""
+      },
+      {
+        "new": "    if needs_main && !functions.iter().any(|function| function.name == \"main\") {\n        owned_function_directory!(functions, entries, owner);\n",
+        "old": "    if needs_main && !functions.iter().any(|function| function.name == \"main\") {\n"
+      },
+      {
+        "new": "    for row in rows.as_array().unwrap() {\n        let source = row[\"source\"].as_str().unwrap();\n        let current =\n            std::fs::read_to_string(std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(source))\n                .unwrap();\n        let current = super::owned_growth_tests::previous_source(source, &current);\n",
+        "old": "    for row in rows.as_array().unwrap() {\n        let source = row[\"source\"].as_str().unwrap();\n        let current =\n            std::fs::read_to_string(std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(source))\n                .unwrap();\n"
+      },
+      {
+        "new": "        let source = owner[\"source\"].as_str().unwrap();\n        let current =\n            std::fs::read_to_string(std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(source))\n                .unwrap();\n        let current = super::owned_growth_tests::previous_source(source, &current);\n",
+        "old": "        let source = owner[\"source\"].as_str().unwrap();\n        let current =\n            std::fs::read_to_string(std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(source))\n                .unwrap();\n"
+      },
+      {
+        "new": "    for row in receivers.as_array().unwrap() {\n        let source = row[\"source\"].as_str().unwrap();\n        let current =\n            std::fs::read_to_string(std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(source))\n                .unwrap();\n        let current = super::owned_growth_tests::previous_source(source, &current);\n",
+        "old": "    for row in receivers.as_array().unwrap() {\n        let source = row[\"source\"].as_str().unwrap();\n        let current =\n            std::fs::read_to_string(std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(source))\n                .unwrap();\n"
+      }
+    ]
+  }
+]

@@ -30,10 +30,14 @@ fn authenticate_keys(fixture: Fixture, rows: &serde_json::Value) {
 fn fixed_projection_json_transport_refuses_hostile_io_before_parsing() {
     // Both exact selector arms normalize to the identical common source before
     // any historical source inverse. No arbitrary edited source is accepted.
+    let current = super::super::release_current_input(
+        "src/source_reflows_merge/runtime_json.rs",
+        include_str!("../runtime_json.rs"),
+    );
     let release = super::super::release_custody::input(
         super::super::release_custody::Fixture::Previous2c,
         "src/source_reflows_merge/runtime_json.rs",
-        include_str!("../runtime_json.rs"),
+        &current,
     );
     let joined =
         super::super::joined_custody::input("src/source_reflows_merge/runtime_json.rs", &release);

@@ -101,7 +101,11 @@ fn exact_original_fixture_prefix() {
     let parent = include_str!(
         "../../../../docs/evidence/codec808-frontier-witness/original-codec_allocation.rs"
     );
-    assert_eq!(include_str!("string_vectors.rs"), original);
+    let current = crate::source_reflows_merge::current344::project(
+        "tests/native/string_settlement/codec_allocation/string_vectors.rs",
+        include_str!("string_vectors.rs"),
+    );
+    assert_eq!(current, original);
     assert_eq!(include_str!("../codec_allocation.rs"), parent);
     let original = original.split_once("fn generated_v2(").unwrap().1;
     let start = original

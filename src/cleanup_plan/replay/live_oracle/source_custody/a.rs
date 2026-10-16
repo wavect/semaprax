@@ -51,7 +51,7 @@ impl ClassifierLedger {
         );
     }
     {
-        let mut current = include_str!("../../../../cleanup_plan.rs").to_owned(); undo(&mut current, "\n#[cfg(test)]\npub(crate) use replay::EpsilonAppCensus;\n", "");
+        let mut current = crate::source_reflows_merge::current344::project("src/cleanup_plan.rs", include_str!("../../../../cleanup_plan.rs")); undo(&mut current, "\n#[cfg(test)]\npub(crate) use replay::EpsilonAppCensus;\n", "");
         undo(
             &mut current,
             r#"

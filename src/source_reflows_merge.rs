@@ -972,3 +972,11 @@ pub(crate) use main043_custody::Fixture as Main043Fixture;
 pub(crate) fn main043_metadata(fixture: Main043Fixture) -> String { runtime_json::main043_metadata(fixture) }
 pub(crate) fn main043_input(source: &str, current: &str) -> String { main043_custody::input(source, current) }
 pub(crate) fn main043_historical_ci_extra(source: &str, current: &str) -> String { main043_custody::historical_ci_extra(source, current) }
+// Current344 direct readers keep their complete historical predicates below.
+#[path = "source_reflows_merge/current344.rs"]
+pub(crate) mod current344;
+
+pub(crate) fn release_current_input(source: &str, current: &str) -> String {
+    let previous = main65_previous(source, current);
+    cursor_clippy_input(source, &previous)
+}

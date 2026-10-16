@@ -50,7 +50,7 @@ pub(crate) mod work;
         );
     }
     {
-        let mut current = include_str!("../../../../hir/ids.rs").to_owned();
+        let mut current = crate::source_reflows_merge::current344::project("src/hir/ids.rs", include_str!("../../../../hir/ids.rs"));
         undo(
             &mut current,
             r#"mod metered_owner;

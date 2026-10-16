@@ -467,7 +467,8 @@ fn expired_and_foreign_account_keep_the_original_failure_before_probe() {
             assert!(result.is_err());
             let after = live.as_ref().map(|scope| scope.receipt().charged);
             assert_eq!(after, before, "foreign account cannot pay an expired source owner");
-            drop((work, budget, suffixes, live));
+            drop(work);
+            drop((budget, suffixes, live));
             result
         };
         let actual = run(false).err().expect("optimized receiver must refuse");

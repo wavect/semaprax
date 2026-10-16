@@ -71,6 +71,10 @@
 - Reconcile Main8a finished-path capacity, arbitrary final-suffix transfer and borrowed nominal context with lexical paid receiving; preserve original work-before-optional-payment priority and complete Main controls. Qualification and net application cost remain pending.
 
 - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.
+- Capture bounded stopped-frame layouts and function prologues for the unchanged 128 KiB diagnostic case after constructor phase isolation still crashed.
+
+- Select the complete factored verifier earlier for scalar path products, retaining original resource-bearing selection, every enumeration cross-check, all limits, and sticky comparison failures.
+
 - Restore the fixed supplemental cursor for unobserved legacy replay so geometric relocation does not change its original work counters; retain every funded growth frontier and full before/current inventory assertion.
 
 - Refresh browser graph pins from complete hosted 524a80bc9 captures after a 36,720-byte builder-bill reduction, preserving all earlier whole-wire, source, and tamper controls.

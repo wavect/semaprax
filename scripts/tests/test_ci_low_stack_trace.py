@@ -1,12 +1,18 @@
 """Artifact provenance failures must stop before a debugger can execute anything."""
 
+import contextlib
+import io
 import json
 from pathlib import Path
 import runpy
+import sys
+import types
 import tempfile
 import unittest
+from unittest.mock import patch
 
-SELECT = runpy.run_path(str(Path(__file__).resolve().parents[1] / "ci-low-stack-trace.py"))["select_executable"]
+TRACE = runpy.run_path(str(Path(__file__).resolve().parents[1] / "ci-low-stack-trace.py"))
+SELECT = TRACE["select_executable"]
 
 
 class ArtifactProvenance(unittest.TestCase):
@@ -94,6 +100,66 @@ class ManualDiagnosticWorkflow(unittest.TestCase):
         compiler = unit.split("toolchain: ", 1)[1].splitlines()[0]
         self.assertIn("toolchain: " + compiler, workflow)
         self.assertIn("RUSTC=$(rustup which rustc)", workflow)
+
+
+class BoundedFrameLayouts(unittest.TestCase):
+    def test_reads_only_six_frames_and_bounded_entry_instructions(self):
+        class Frame:
+            def __init__(self, index):
+                self.index = index
+
+            def select(self):
+                pass
+
+            def pc(self):
+                return 0x1000 + self.index * 0x100
+
+            def name(self):
+                return "controlled frame"
+
+            def read_register(self, name):
+                registers.append(name)
+                return 0x2000 + self.index * 0x100
+
+            def older(self):
+                return Frame(self.index + 1) if self.index < 8 else None
+
+        commands = []
+        registers = []
+        debugger = types.ModuleType("gdb")
+        debugger.newest_frame = lambda: Frame(0)
+
+        def execute(command, to_string=False):
+            commands.append(command)
+            if command.startswith("info symbol "):
+                return "controlled_symbol + 32 in section .text"
+            return "controlled frame info" if to_string else None
+
+        debugger.execute = execute
+        output = io.StringIO()
+        with patch.dict(sys.modules, {"gdb": debugger}), contextlib.redirect_stdout(output):
+            exec(TRACE["FRAME_LAYOUT_CODE"], {})
+        self.assertEqual(output.getvalue().count("SEMAPRAX_STACK_FRAME_LAYOUT_V1"), 6)
+        self.assertEqual(commands.count("info frame"), 6)
+        self.assertEqual(registers, ["sp"] * 6)
+        disassembly = [command for command in commands if command.startswith("x/")]
+        self.assertEqual(len(disassembly), 6)
+        self.assertEqual(disassembly[0], "x/24i 0xfe0")
+        for command in commands:
+            self.assertRegex(command, r"^(info frame|info symbol 0x[0-9a-f]+|x/24i 0x[0-9a-f]+)$")
+
+    def test_completed_inferior_has_no_frame_and_cannot_break_capture(self):
+        debugger = types.ModuleType("gdb")
+
+        def no_frame():
+            raise RuntimeError("no stopped inferior")
+
+        debugger.newest_frame = no_frame
+        output = io.StringIO()
+        with patch.dict(sys.modules, {"gdb": debugger}), contextlib.redirect_stdout(output):
+            exec(TRACE["FRAME_LAYOUT_CODE"], {})
+        self.assertIn("stopped frame layout unavailable: no stopped inferior", output.getvalue())
+
 
 
 if __name__ == "__main__":

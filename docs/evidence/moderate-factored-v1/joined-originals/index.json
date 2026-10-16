@@ -1,0 +1,23 @@
+{
+  "scope": "Complete merge preimages only; no runtime qualification",
+  "rows": [
+    {
+      "stage": 1,
+      "file": "merge-base-receiver-inverse.json",
+      "sha256": "7548f9e7d429e7ef8fb25c422d9b2614d088681a6342a3e1195749381d4bde12",
+      "length": 91294
+    },
+    {
+      "stage": 2,
+      "file": "complete-local-receiver-inverse.json",
+      "sha256": "17758338cdb03f1a294fb75d923ccc515c814aa3d257521f41ef8593a7d9da1b",
+      "length": 6660
+    },
+    {
+      "stage": 3,
+      "file": "complete-incoming-receiver-inverse.json",
+      "sha256": "b73fb7b3dc1b3d2dbcce17ac6beeebe9832a22519aabe009cd37cec9d43b5221",
+      "length": 172007
+    }
+  ]
+}

@@ -827,6 +827,7 @@ Audience: all documentation readers.
 - [Recovery constructor funding design v1](RECOVERY-CONSTRUCTOR-FUNDING-DESIGN-V1.md)
 - [Referenced edge ownership proof v1](REFERENCED-EDGE-OWNERSHIP-PROOF-V1.md)
 - [Factored continuation receiving v1](REPLAY-FACTORED-CONTINUATION-RECEIVING-V1.md)
+- [Earlier factored comparison for scalar path products](evidence/moderate-factored-v1/README.md)
 - [Scoped Vec Field Source Forms v1](SCOPED-VEC-FIELD-SOURCE-FORMS-V1.md)
 - [Status fact borrow reuse v1](STATUS-FACT-BORROW-REUSE-V1.md)
 - [Workspace Graph Prelude Forecast Accounting v1](WORKSPACE-GRAPH-PRELUDE-FORECAST-V1.md)

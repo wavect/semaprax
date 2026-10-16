@@ -2129,6 +2129,9 @@
         "src/cleanup/inventory_builder/typed/receiving.rs",
         "src/cleanup/inventory_builder/typed/selected.rs",
         "src/cleanup/inventory_builder/typed/traversal.rs",
+        "src/cleanup/schema_summary.rs",
+        "src/cleanup/schema_summary/generic_record.rs",
+        "src/cleanup/schema_summary/support.rs",
         "src/cleanup_plan/build/helper_index/ordinary_view.rs",
         "src/cleanup_plan/build/helper_index/validation.rs",
         "src/cleanup_plan/build/lexical_control/validation.rs",
@@ -2585,9 +2588,9 @@
         "src/source_verify/declaration/identity.rs",
         "src/source_verify/declaration/record_shape.rs"
       ],
-      "full_manifest_sha256": "c0cf341b580f0f6a45a120d3081d5b078bf6649228eb6c2a540f79b343d6d3f4",
-      "full_raw_sha256": "d700317074c50125fba1a4b046f06537d5dfd35b921e841b87a87fc136d90e62",
-      "full_authenticated_production_sha256": "43de198dd2e58e0275d35c40c35f68e6ac3020f4ceb7d6f4fffc7b436020c6a2"
+      "full_manifest_sha256": "c6bf7894b4fca8b62639dbfb9a4a9843067957bd1559bb7ddbac1ad1712fc220",
+      "full_raw_sha256": "5bb7ed055ac84691317b51b9d2edc792569ff1bcc5cd581bdf6d9c42894e24c2",
+      "full_authenticated_production_sha256": "63f5c55eabefd820d5bcb9e438ed82176ac25f334eb46d7fd4b2d9812566c229"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -3033,6 +3036,9 @@
         "src/workspace_graph/expected_projection/vec_constructor.rs"
       ],
       "fully_authenticated_outside_production": [
+        "src/cleanup/schema_summary.rs",
+        "src/cleanup/schema_summary/generic_record.rs",
+        "src/cleanup/schema_summary/support.rs",
         "src/cleanup_plan/replay.rs",
         "src/cleanup_plan/replay/allocation.rs",
         "src/cleanup_plan/replay/allocation_coverage.rs",
@@ -3553,9 +3559,9 @@
         "src/source_verify/declaration/identity.rs",
         "src/source_verify/declaration/record_shape.rs"
       ],
-      "full_manifest_sha256": "f89c63ae7968d0f0df39bc65982cf36a335f78140b7fe6e0bf07771eb9d8223e",
-      "full_raw_sha256": "807965a78691a806c2d40c87251fb36ac62ea206a97fdf1a5c263ae870183e96",
-      "full_authenticated_production_sha256": "10282f5e634c13d8c2a9c15fc43dfdeab0a849412e7bd981af8fafbd0158945b"
+      "full_manifest_sha256": "a7bc4b9a11465acb156067d2fb49fabae3743f5f8d5f3ebbed868bfd1bac0fd2",
+      "full_raw_sha256": "5355f4697e64b3ec4b2dd4c173e162e8d6834c8f6e1345dc987cdb02e06ab0e5",
+      "full_authenticated_production_sha256": "3d6a545ab7d88db25d1c164527021ca031329eeaf5a50999691fcba69b9b4182"
     }
   }
 }

@@ -404,6 +404,7 @@ fn complete_predecessor_is_bound_to_the_single_reviewed_macro_replacement() {
         .unwrap()
         .0;
     let current = format!("fn sequence_skeleton_paths({current}");
+    let current = crate::source_reflows_merge::current344::sequence_minimum_input(&current);
     let hook = "    #[cfg(test)]\n    if path_array_main44::selected() {\n        return path_array_main44::current_sequence(prefixes, suffixes, work);\n    }\n";
     assert_eq!(current.matches(hook).count(), 1);
     let restored = current

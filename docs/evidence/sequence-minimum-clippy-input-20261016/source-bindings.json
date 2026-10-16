@@ -1,0 +1,21 @@
+{
+  "base": "787f84774e935833cd0d8de17c6c8da21d7b4986",
+  "status": "SOURCE_ONLY_NOT_RUST_EXECUTED",
+  "rows": [
+    {
+      "source": "src/source_reflows_merge/current344.rs",
+      "before_file": "src__source_reflows_merge__current344.rs.before.txt",
+      "before_sha256": "8214903cc8333c8afc8cda6f3bc64887ee57244813d3705808b37b5a4a8c06f9",
+      "after_sha256": "7b6d7a4aadfd49bd2c88ca1871188669256ecfc446b1ec29159ab070010a801e"
+    },
+    {
+      "source": "src/cleanup_plan/replay/path_array/sequence_minimum/tests.rs",
+      "before_file": "src__cleanup_plan__replay__path_array__sequence_minimum__tests.rs.before.txt",
+      "before_sha256": "95ff328e5de29b4a92fe166fd6fc096d54025f10b6786d7a7940be09eb7eecec",
+      "after_sha256": "81d7a68d192f84516af94d3718738434de98076459755b9cc0091dd6552712a4"
+    }
+  ],
+  "entire_original_sequence_owner_assertion_replayed": true,
+  "old_before_file_unchanged": true,
+  "finite_full_block_inverses": 3
+}

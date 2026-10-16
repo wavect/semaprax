@@ -1,0 +1,19 @@
+{
+  "source": "sequence_skeleton_paths complete function",
+  "current_sha256": "3e00ef845bc488dda26f32e67c81f01d6b32e8246e54e7ca911a2f37e957bbca",
+  "original_sha256": "1f5d803e9a7a6cf6cb775c77238da0c8d1e0ace389c17ebbb4bd7528984e35a8",
+  "edits": [
+    {
+      "new": "    if single && first {\n        sequence_vector::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged);\n    }",
+      "old": "    if single {\n        if first {\n            sequence_vector::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged);\n        }\n    }"
+    },
+    {
+      "new": "        if !precharged && share_prefix {\n            work.share_prefix_tail(&mut prefix.observations)?;\n        }",
+      "old": "        if !precharged {\n            if share_prefix {\n                work.share_prefix_tail(&mut prefix.observations)?;\n            }\n        }"
+    },
+    {
+      "new": "            if work.budget.selected() || len < final_output::FINAL_MINIMUM_ITEMS {\n                false\n            } else if last.observations.prefix.is_some() || capacity == len {\n                true",
+      "old": "            if work.budget.selected() {\n                false\n            } else if len < final_output::FINAL_MINIMUM_ITEMS {\n                false\n            } else if last.observations.prefix.is_some() {\n                true\n            } else if capacity == len {\n                true"
+    }
+  ]
+}

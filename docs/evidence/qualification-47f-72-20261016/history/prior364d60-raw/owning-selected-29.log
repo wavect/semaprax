@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::factored::compact_nodes::before::tests::complete_original_receivers_and_all_new_source_owners_remain_authenticated ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9233 filtered out; finished in 2.35s
+

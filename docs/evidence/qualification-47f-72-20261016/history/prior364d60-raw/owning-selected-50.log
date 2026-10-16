@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::path_join::main_single_groups::grouping::tests::whole_replay_preserves_success_work_and_the_older_independent_receiver ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9233 filtered out; finished in 0.98s
+

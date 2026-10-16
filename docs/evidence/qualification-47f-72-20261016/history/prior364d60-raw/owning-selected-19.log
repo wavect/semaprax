@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::before_empty::cached_tests::held_cached_closure_keeps_original_one_work_unit_and_same_result_without_auth_debit ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9233 filtered out; finished in 0.01s
+

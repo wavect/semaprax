@@ -459,3 +459,8 @@ requires 0usize<byte_len(bytes_as_slice(data)) {
         );
     }
 }
+
+pub(in crate::cleanup_plan::replay) mod paid;
+
+#[cfg(test)]
+mod typed_tests;

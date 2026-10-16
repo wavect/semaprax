@@ -3,6 +3,8 @@ use super::*;
 
 #[path = "nested_request/profile_admission.rs"]
 mod profile_admission;
+#[path = "nested_request/scheduler.rs"]
+mod scheduler;
 #[path = "nested_request/template_names.rs"]
 mod template_names;
 
@@ -17,9 +19,18 @@ fn install(label: &str) -> std::path::PathBuf {
 }
 
 fn install_named(label: &str, record_name: &str, record_id: &str) -> std::path::PathBuf {
+    install_example(label, EXAMPLE, record_name, record_id)
+}
+
+fn install_example(
+    label: &str,
+    example: &str,
+    record_name: &str,
+    record_id: &str,
+) -> std::path::PathBuf {
     let root = super::super::temporary(label);
     std::fs::create_dir_all(root.join("src")).unwrap();
-    let source = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(EXAMPLE);
+    let source = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(example);
     for path in [
         "semaprax.toml",
         "src/schema.spx",

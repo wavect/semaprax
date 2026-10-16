@@ -1073,3 +1073,5 @@ impl InventoryBuilder<'_> {
 
 #[cfg(test)]
 mod tests;
+
+pub(crate) mod typed;

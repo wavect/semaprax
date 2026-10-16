@@ -1,0 +1,158 @@
+{
+  "base": "60ad3866e609270fa902601d89d603387faa5f39",
+  "rows": [
+    {
+      "source": "CHANGELOG.md",
+      "before_sha256": "99135a92c1908d8eaef553c690b9db2e1dd5081ac903f57fb9a58eef9fadf4a9",
+      "after_sha256": "e5e9a6e5c57510fcb68ff3322c28b88a4a622a351ca73296684de93d9b7e918d",
+      "before_archive": "before/CHANGELOG.md",
+      "edits": [
+        {
+          "old": "<!-- Source-only #833: invocation-owned identifier census scratch reuse across\n     distinct cold callers; full old receiver retained; qualification pending. -->\n# Changelog\n\n- Source-only #781 adds complete paid status and selected scalar record/body receivers with closed semantic data, actual per-call same-ledger banks and independent prior drivers. Error-only dynamic controls are acquired only on that path. New frontiers and remaining inventory/certificate/schema/path diagnostics are explicit; executable qualification and end-to-end closure remain pending.\n\n",
+          "new": "<!-- Source-only #833: invocation-owned identifier census scratch reuse across\n     distinct cold callers; full old receiver retained; qualification pending. -->\n# Changelog\n\n- Source-only #781 moves raw-inventory initial receiving ahead of its actual four arguments, preserving complete historical typed/Diagnostic controls and explicit remaining failure-ABI gaps. Qualification is pending.\n\n- Source-only #781 adds complete paid status and selected scalar record/body receivers with closed semantic data, actual per-call same-ledger banks and independent prior drivers. Error-only dynamic controls are acquired only on that path. New frontiers and remaining inventory/certificate/schema/path diagnostics are explicit; executable qualification and end-to-end closure remain pending.\n\n"
+        }
+      ]
+    },
+    {
+      "source": "docs/ARCHITECTURE.md",
+      "before_sha256": "81a97ac040bafb45180e4d7b41bf6b7bcdef82e6ede5ec81a83caa5e44019ad8",
+      "after_sha256": "1f030f588a3ac69a5f9b5ee8b63020c17ef3b31d53c02877e282250f33ff1216",
+      "before_archive": "before/docs/ARCHITECTURE.md",
+      "edits": [
+        {
+          "old": "`lexical_boundary::Policy` directly owns the complete ordinary Diagnostic or paid Engine boundary-check algorithm. Its paid finalizer uses the same-ledger child bank and existing node primitive. `lexical_cert/paid/chains` expands the exact bounded selected borrowed walk; its intentionally or-false query adds no budget failure to swallow. Immediate-old whole path replay and ordinary checking remain independently compiled in tests.\n\nThe selected raw-inventory twin in `cleanup/inventory_builder/typed.rs` owns its synchronous borrowed physical/work ledger and opaque primitive failures. Its `failure`, `receiving`, `queries`, `selected`, and `traversal` children preserve the original selected shape and traversal boundaries; `replay/inventory_coverage/paid.rs` transfers only those actual failures into the existing selected-child receipt. The original Diagnostic builder/callback and coverage checker remain independent; supplemental/schema diagnostics retain their ordinary publication boundary.\n",
+          "new": "`lexical_boundary::Policy` directly owns the complete ordinary Diagnostic or paid Engine boundary-check algorithm. Its paid finalizer uses the same-ledger child bank and existing node primitive. `lexical_cert/paid/chains` expands the exact bounded selected borrowed walk; its intentionally or-false query adds no budget failure to swallow. Immediate-old whole path replay and ordinary checking remain independently compiled in tests.\n\nThe selected raw-inventory twin in `cleanup/inventory_builder/typed.rs` owns its synchronous borrowed physical/work ledger and opaque primitive failures. Its `failure`, `receiving`, `queries`, `selected`, and `traversal` children preserve the original selected shape and traversal boundaries; `replay/inventory_coverage/paid.rs` transfers only those actual failures into the existing selected-child receipt. The original Diagnostic builder/callback and coverage checker remain independent; supplemental/schema diagnostics retain their ordinary publication boundary.\n\nThe selected raw-inventory initial frontier is lexical in\n`replay/inventory_coverage/paid.rs`; its two existing acquiring/debit primitives\nfinish before the four raw arguments. `inventory_builder/typed/receiving.rs`\nowns the opaque actual-layout witness. `typed/before_initial.rs` and\n`typed/before_initial_receiving.rs` preserve the complete prior entry/layout;\n`inventory_coverage/typed_tests/initial_tests.rs` observes the real entry and\nsame retained ledger across conversion and Drop. No new replay authority,\nallowance, callback or refund is introduced.\n"
+        }
+      ]
+    },
+    {
+      "source": "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "before_sha256": "31bd6a223aa56bf2eb89384149c6a16814ba3803519a87d579052ebf55e6ee5e",
+      "after_sha256": "cbd27d1642f0331d101df764161ab9ea2d2589181cf919cdeb30273a184a6e25",
+      "before_archive": "before/docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "edits": [
+        {
+          "old": "Before the new Builder, Ledger, RefCell, Vec headers and inventory outputs are formed, an actual-layout initial bank is debited; each method admits its actual compact result/failure and added ledger-borrow controls before subsequent producers. Initial metadata acquisition itself is an explicit unreceived ABI on failure, including the bank's own primitive borrow/result path; no failed debit retroactively funds it. Successful metadata and initializer work remain spent. Original traversal/probe/clone work and parameter/requires/body/result/ensures order remain unchanged and are separately observed. No donor, retry, refund, cap change, or reservation estimate grants authority. The raw API retains no owner between calls, so its explicit borrowed ledger is not represented as a retained foreign-owner capability.\n\nThe paid coverage caller uses the existing affine selected-child permit for actual raw failures. Its remaining inventory comparisons and supplemental/schema checker are still ordinary owning diagnostics, explicitly outside this tranche. Same-format publication uses the existing receipt/Diagnostic bridges; this boundary does not reinterpret a returned Diagnostic. New metadata frontiers can select an earlier refusal and increase common costs. Exact mixed-resource first-winner equality and application-fit gains are not claimed from source; focused owners must report the real tradeoff.\n",
+          "new": "Before the new Builder, Ledger, RefCell, Vec headers and inventory outputs are formed, an actual-layout initial bank is debited; each method admits its actual compact result/failure and added ledger-borrow controls before subsequent producers. Initial metadata acquisition itself is an explicit unreceived ABI on failure, including the bank's own primitive borrow/result path; no failed debit retroactively funds it. Successful metadata and initializer work remain spent. Original traversal/probe/clone work and parameter/requires/body/result/ensures order remain unchanged and are separately observed. No donor, retry, refund, cap change, or reservation estimate grants authority. The raw API retains no owner between calls, so its explicit borrowed ledger is not represented as a retained foreign-owner capability.\n\nThe paid coverage caller uses the existing affine selected-child permit for actual raw failures. Its remaining inventory comparisons and supplemental/schema checker are still ordinary owning diagnostics, explicitly outside this tranche. Same-format publication uses the existing receipt/Diagnostic bridges; this boundary does not reinterpret a returned Diagnostic. New metadata frontiers can select an earlier refusal and increase common costs. Exact mixed-resource first-winner equality and application-fit gains are not claimed from source; focused owners must report the real tradeoff.\n\n## Raw inventory initial receiving (#781, source-only)\n\nThe selected lexical/scalar coverage caller now admits the complete raw\n`Result<CleanupInventory, InventoryFailure>` boundary before forming its four\narguments. A dedicated lexical expansion calls the existing authenticated\n`ReplayBudget::reserve_bytes` on the same retained physical reservation, then\ncalls the existing checked/zeroing typed debit on that budget's remaining field.\nThe debit is irreversible, not a temporary grant: no scope exit refunds it.\nThere is no additional preflight function, callback or forwarding Result.\nThe physical acquiring primitive retains its existing paid Diagnostic/inline\ninitial-refusal contract; no failed raw self-payment is credited retroactively.\n\nAfter admission, the shipping constructor starts at the original builder body.\nIts former initial reserve and work self-payment are absent. The exact raw\nreceiving inventory has44 fields: the prior42 minus the removed primitive\nphysical Result pair and byte-argument pair, plus the program/function argument\nand parameter pairs and the debit remaining reborrow/parameter pair. Complete\nKind/InventoryFailure layouts pay their actual maximum alternative; no arbitrary\nDiagnostic can enter those sealed constructors. Existing per-method acquisition\nboundaries, schema/supplemental diagnostics and other #781 residuals remain open.\n\nThe complete60ad typed entry and initial layout remain independent cfg(test)\ncontrols, as do the original Diagnostic builder/callback and full coverage\nchecker. New owners assert whole inventory/six-field mismatch parity, actual raw\nentry and retained ledger/remaining pointers, irreversible charge across result\nconversion/Drop, exact/one-short/zero physical frontiers, work zero/short/exact,\nfloors and first refusal. They are authored only; no Rust execution, numerical\nbenefit, application admission or #781 closure is claimed.\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup.rs",
+      "before_sha256": "d545c00a4339117833f6bfabc1d370df5e61245b8a016aeeee0a6db7f10ae7ea",
+      "after_sha256": "b7bf90f8fcba74efc7aecdd06df2a5a46f4dc3f74078b8f96bcb91d31b5ce48d",
+      "before_archive": "before/src/cleanup.rs",
+      "edits": [
+        {
+          "old": "#[path = \"cleanup/nested_owned_records_tests.rs\"]\nmod nested_owned_records_tests;\n\npub(crate) use inventory_builder::typed::{\n    build as build_typed_flat_record_inventory, InventoryFailure,\n};\n\n#[cfg(test)]\n",
+          "new": "#[path = \"cleanup/nested_owned_records_tests.rs\"]\nmod nested_owned_records_tests;\n\n#[cfg(test)]\npub(crate) use inventory_builder::typed::before_initial::build as build_typed_flat_record_inventory;\npub(crate) use inventory_builder::typed::{\n    build_after_initial_receiving as build_prepaid_typed_flat_record_inventory,\n    debit as debit_typed_inventory_initial, InitialReceiving as TypedInventoryInitialReceiving,\n    InventoryFailure, INITIAL_CONTROL_INITIALIZERS as TYPED_INVENTORY_INITIAL_FIELDS,\n};\n\n#[cfg(test)]\n"
+        },
+        {
+          "old": "    begin_logical_trace as begin_typed_inventory_trace,\n    take_logical_trace as take_typed_inventory_trace,\n};\n",
+          "new": "    begin_logical_trace as begin_typed_inventory_trace,\n    take_logical_trace as take_typed_inventory_trace,\n};\n\n#[cfg(test)]\npub(crate) use inventory_builder::typed::{\n    initial_entries as typed_inventory_initial_entries,\n    reset_initial_entries as reset_typed_inventory_initial_entries,\n};\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup/inventory_builder/typed.rs",
+      "before_sha256": "8ff4e8e1706d7c650f82c329dfbd357fe70b0aae30c81a4b739e67c5505eaf01",
+      "after_sha256": "c98b1f572eab4176b78b8d4e7747b35c110e1306e734e83189070cf3be5f2c9a",
+      "before_archive": "before/src/cleanup/inventory_builder/typed.rs",
+      "edits": [
+        {
+          "old": "use crate::hir::{OwnershipMode, ResolvedFunction, ResolvedType, ResolvedTypeDeclarationKind};\nuse std::cell::RefCell;\nmod receiving;\nuse receiving::{receiving, INITIAL_BYTES, INITIAL_CONTROL_INITIALIZERS};\nmod queries;\nuse queries::{flat_fields, needs_drop_in, primitive_drop, vector_element};\nmod failure;\n",
+          "new": "use crate::hir::{OwnershipMode, ResolvedFunction, ResolvedType, ResolvedTypeDeclarationKind};\nuse std::cell::RefCell;\nmod receiving;\nuse receiving::receiving;\npub(crate) use receiving::{InitialReceiving, INITIAL_CONTROL_INITIALIZERS};\n#[cfg(test)]\npub(crate) mod before_initial;\nmod queries;\nuse queries::{flat_fields, needs_drop_in, primitive_drop, vector_element};\nmod failure;\n"
+        },
+        {
+          "old": "/// Same actual two fields destructured from the invocation ReplayBudget. This\n/// API creates no accounting owner or allowance and cannot accept a Diagnostic;\n/// Ledger below is only a synchronous pair of borrows into those existing fields.\npub(crate) fn build(\n    program: &dyn crate::cleanup::ReplayContext,\n    function: &ResolvedFunction,\n    physical: &mut ReplayPhysicalReservation,\n    remaining: &mut usize,\n) -> Result<CleanupInventory, InventoryFailure> {\n    match physical.reserve(INITIAL_BYTES) {\n        Ok(()) => {}\n        Err(_) => return Err(InventoryFailure(Kind::Receiving)),\n    }\n    debit(remaining, INITIAL_CONTROL_INITIALIZERS)?;\n    #[cfg(test)]\n    note_metadata(INITIAL_CONTROL_INITIALIZERS);\n    let mut builder = InventoryBuilder {\n",
+          "new": "/// Same actual two fields destructured from the invocation ReplayBudget. This\n/// API creates no accounting owner or allowance and cannot accept a Diagnostic;\n/// Ledger below is only a synchronous pair of borrows into those existing fields.\npub(crate) fn build_after_initial_receiving(\n    program: &dyn crate::cleanup::ReplayContext,\n    function: &ResolvedFunction,\n    physical: &mut ReplayPhysicalReservation,\n    remaining: &mut usize,\n) -> Result<CleanupInventory, InventoryFailure> {\n    #[cfg(test)]\n    note_initial_entry(physical, remaining);\n    #[cfg(test)]\n    note_metadata(INITIAL_CONTROL_INITIALIZERS);\n    let mut builder = InventoryBuilder {\n"
+        },
+        {
+          "old": "}\n// Sole work-failure producer: the original checked subtraction and zeroing,\n// invoked on the actual borrowed ReplayBudget remaining field, in the same order.\nfn debit(remaining: &mut usize, units: usize) -> Result<(), InventoryFailure> {\n    match remaining.checked_sub(units) {\n        Some(next) => {\n            *remaining = next;\n",
+          "new": "}\n// Sole work-failure producer: the original checked subtraction and zeroing,\n// invoked on the actual borrowed ReplayBudget remaining field, in the same order.\npub(crate) fn debit(remaining: &mut usize, units: usize) -> Result<(), InventoryFailure> {\n    match remaining.checked_sub(units) {\n        Some(next) => {\n            *remaining = next;\n"
+        },
+        {
+          "old": "    TRACE_ENABLED.with(|enabled| assert!(enabled.replace(false)));\n    LOGICAL_TRACE.with(|trace| trace.take().unwrap())\n}\n",
+          "new": "    TRACE_ENABLED.with(|enabled| assert!(enabled.replace(false)));\n    LOGICAL_TRACE.with(|trace| trace.take().unwrap())\n}\n\n#[cfg(test)]\nthread_local! {\n    static INITIAL_ENTRIES: std::cell::Cell<(usize, usize, usize, usize)> = const { std::cell::Cell::new((0, 0, 0, 0)) };\n}\n#[cfg(test)]\nfn note_initial_entry(physical: &mut ReplayPhysicalReservation, remaining: &mut usize) {\n    INITIAL_ENTRIES.with(|entry| {\n        let calls = entry.get().0;\n        entry.set((\n            calls + 1,\n            std::ptr::from_ref(physical) as usize,\n            std::ptr::from_ref(remaining) as usize,\n            physical.charged(),\n        ));\n    });\n}\n#[cfg(test)]\npub(crate) fn reset_initial_entries() {\n    INITIAL_ENTRIES.with(|entry| entry.set((0, 0, 0, 0)));\n}\n#[cfg(test)]\npub(crate) fn initial_entries() -> (usize, usize, usize, usize) {\n    INITIAL_ENTRIES.with(std::cell::Cell::get)\n}\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup/inventory_builder/typed/receiving.rs",
+      "before_sha256": "144cb4c698bf41735f62c6537d85f509f949e6d8ced1d6c16cdd9aed16495294",
+      "after_sha256": "04c30f00b1547a12dd828e163647cb25df4e5c65ce97e4ee906ca4873495404d",
+      "before_archive": "before/src/cleanup/inventory_builder/typed/receiving.rs",
+      "edits": [
+        {
+          "old": "//! Actual per-call failure/output and added bank-borrow receiving. Initial bank\n//! failure is the declared acquisition ABI; its token still grants no authority.\nuse super::{InventoryBuilder, InventoryFailure, Kind, Ledger, Reason};\nuse crate::cleanup::{\n    CleanupEntryState, CleanupFlag, CleanupInventory, CleanupStorageId, CleanupStorageSlot,\n    ConditionalVariantEntry,\n",
+          "new": "//! Actual per-call receiving; initial raw entry is prepaid at its caller.\n//! The common per-method primitive acquisition ABI remains an explicit residual.\nuse super::{InventoryBuilder, InventoryFailure, Kind, Ledger, Reason};\n#[cfg(test)]\n#[path = \"before_initial_receiving.rs\"]\npub(super) mod before_initial;\nuse crate::cleanup::{\n    CleanupEntryState, CleanupFlag, CleanupInventory, CleanupStorageId, CleanupStorageSlot,\n    ConditionalVariantEntry,\n"
+        },
+        {
+          "old": "pub(super) fn controls<T, const PAYLOAD: usize>() -> usize {\n    size_of::<Controls<'static, T>>() + PAYLOAD\n}\n// Initial payment happens before any RefCell or Builder exists. It has\n// its own exact primitive/constructor inventory, not the per-method borrow bank.\ntype Initial<'a> = (\n    Result<CleanupInventory, InventoryFailure>,\n    Result<CleanupInventory, InventoryFailure>,\n",
+          "new": "pub(super) fn controls<T, const PAYLOAD: usize>() -> usize {\n    size_of::<Controls<'static, T>>() + PAYLOAD\n}\n// The caller pays this entire layout before the four raw arguments, RefCell,\n// Builder or raw Result. The actual checked/zeroing debit also precedes entry.\ntype Initial<'a> = (\n    Result<CleanupInventory, InventoryFailure>,\n    Result<CleanupInventory, InventoryFailure>,\n"
+        },
+        {
+          "old": "    Kind,\n    Kind,\n    Reason,\n    Result<(), ReplayPhysicalRefusal>,\n    Result<(), ReplayPhysicalRefusal>,\n    Result<(), InventoryFailure>,\n    Result<(), InventoryFailure>,\n    usize,\n    usize,\n    usize,\n    usize,\n    usize,\n",
+          "new": "    Kind,\n    Kind,\n    Reason,\n    Result<(), InventoryFailure>,\n    Result<(), InventoryFailure>,\n    usize,\n    usize,\n    usize,\n"
+        },
+        {
+          "old": "    &'a mut ReplayPhysicalReservation,\n    &'a mut usize,\n    &'a mut usize,\n    InventoryBuilder<'a>,\n    InventoryBuilder<'a>,\n    Ledger<'a>,\n",
+          "new": "    &'a mut ReplayPhysicalReservation,\n    &'a mut usize,\n    &'a mut usize,\n    &'a mut usize,\n    &'a mut usize,\n    &'a dyn crate::cleanup::ReplayContext,\n    &'a dyn crate::cleanup::ReplayContext,\n    &'a crate::hir::ResolvedFunction,\n    &'a crate::hir::ResolvedFunction,\n    InventoryBuilder<'a>,\n    InventoryBuilder<'a>,\n    Ledger<'a>,\n"
+        },
+        {
+          "old": "    CleanupEntryState,\n    CleanupEntryState,\n);\n// Static layout creates no runtime size-helper result or named bytes local.\n// Payment keeps its CONST argument and primitive reserve parameter receivers;\n// initial primitive/failure publication is still an unreceived acquisition ABI.\npub(super) const INITIAL_CONTROL_INITIALIZERS: usize = 42;\npub(super) const INITIAL_BYTES: usize = size_of::<Initial<'static>>();\nmacro_rules! receiving {\n    ($ledger:expr,$value:ty) => {\n        receiving!($ledger, $value, 0, 0)\n",
+          "new": "    CleanupEntryState,\n    CleanupEntryState,\n);\n// Opaque size witness only: no instance, allowance, replay authority or retained\n// ledger can be manufactured from this type. The sole shipping caller pays it\n// with its existing ReplayBudget BEFORE the raw call's four argument expressions.\npub(crate) struct InitialReceiving {\n    _layout: Initial<'static>,\n}\npub(crate) const INITIAL_CONTROL_INITIALIZERS: usize = 44;\nmacro_rules! receiving {\n    ($ledger:expr,$value:ty) => {\n        receiving!($ledger, $value, 0, 0)\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/inventory_coverage/paid.rs",
+      "before_sha256": "b9dd9f7e6367d59ced142de04a2b7064eb5133d94d889850779dc93aab23c446",
+      "after_sha256": "b40e3f1232dd9c79b990c9279f2c59db56da8659e96858f28c5ea17c8f21e423",
+      "before_archive": "before/src/cleanup_plan/replay/inventory_coverage/paid.rs",
+      "edits": [
+        {
+          "old": "    ReplayContext, ResolvedFunction,\n};\nuse crate::cleanup_plan::replay::expression_facts::errors::EngineError;\npub(in crate::cleanup_plan::replay) fn validate_inventory_coverage(\n    program: &dyn ReplayContext,\n    function: &ResolvedFunction,\n",
+          "new": "    ReplayContext, ResolvedFunction,\n};\nuse crate::cleanup_plan::replay::expression_facts::errors::EngineError;\n// This lexical frontier introduces no preflight helper or forwarding Result.\n// The authenticated physical primitive and original checked/zeroing field debit\n// both finish before any raw argument.\nmacro_rules! admit_initial {\n    ($budget:ident, $function:ident, $permit:ident) => {{\n        match $budget.reserve_bytes(\n            $function,\n            std::mem::size_of::<crate::cleanup::TypedInventoryInitialReceiving>(),\n            \"selected raw inventory initial receiving\",\n        ) {\n            Ok(()) => {}\n            Err(error) => {\n                return Err(\n                    crate::cleanup_plan::replay::expression_facts::errors::EngineError::Owned(\n                        error,\n                    ),\n                )\n            }\n        }\n        match crate::cleanup::debit_typed_inventory_initial(\n            &mut $budget.remaining,\n            crate::cleanup::TYPED_INVENTORY_INITIAL_FIELDS,\n        ) {\n            Ok(()) => {}\n            Err(failure) => {\n                return Err($permit.refuse(\n                    crate::cleanup_plan::renewal_profile::child_refusal::Refusal::Inventory(\n                        failure,\n                    ),\n                ))\n            }\n        }\n    }};\n}\npub(super) use admit_initial;\npub(in crate::cleanup_plan::replay) fn validate_inventory_coverage(\n    program: &dyn ReplayContext,\n    function: &ResolvedFunction,\n"
+        },
+        {
+          "old": "    let permit = crate::cleanup_plan::replay::selected_context::child::Permit::acquire::<()>(\n        function, budget,\n    )?;\n    let inventory = {\n        let ReplayBudget {\n            remaining,\n",
+          "new": "    let permit = crate::cleanup_plan::replay::selected_context::child::Permit::acquire::<()>(\n        function, budget,\n    )?;\n    admit_initial!(budget, function, permit);\n    let inventory = {\n        let ReplayBudget {\n            remaining,\n"
+        },
+        {
+          "old": "                \"selected inventory coverage requires a physical ledger\",\n            )\n        })?;\n        match crate::cleanup::build_typed_flat_record_inventory(\n            program, function, physical, remaining,\n        ) {\n            Ok(inventory) => inventory,\n",
+          "new": "                \"selected inventory coverage requires a physical ledger\",\n            )\n        })?;\n        match crate::cleanup::build_prepaid_typed_flat_record_inventory(\n            program, function, physical, remaining,\n        ) {\n            Ok(inventory) => inventory,\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/inventory_coverage/typed_tests.rs",
+      "before_sha256": "94d2ae0e11a60cf31b7bfc99b3d47c85c15a600e5c11401b325dbf736b594f54",
+      "after_sha256": "90e883ce881573c8ae5a8c87a14fc3d962a4a1ae91223e681d977f10f7a40526",
+      "before_archive": "before/src/cleanup_plan/replay/inventory_coverage/typed_tests.rs",
+      "edits": [
+        {
+          "old": "    assert_eq!(first.floor, limit - 1);\n    assert!(first.requested > first.remaining - first.floor);\n}\n",
+          "new": "    assert_eq!(first.floor, limit - 1);\n    assert!(first.requested > first.remaining - first.floor);\n}\n\nmod initial_tests;\n"
+        }
+      ]
+    }
+  ],
+  "new_sources": [
+    {
+      "source": "src/cleanup/inventory_builder/typed/before_initial.rs",
+      "sha256": "575d4af74507702f8f352aeb26bb0852f1936a310275f0703b7faea55c35c916",
+      "lines": 97
+    },
+    {
+      "source": "src/cleanup/inventory_builder/typed/before_initial_receiving.rs",
+      "sha256": "d3a4d8e11b1bfd0a11c50dc8f54ca2eb0eee34bbc2b84a999aeda5439af0a990",
+      "lines": 59
+    },
+    {
+      "source": "src/cleanup_plan/replay/inventory_coverage/typed_tests/initial_tests.rs",
+      "sha256": "d455c3010bc02246f562810a27fdccbfd44c793e38ac9b312454ebf6681a55ba",
+      "lines": 222
+    }
+  ]
+}

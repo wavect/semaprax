@@ -151,3 +151,7 @@ mod tests;
 #[cfg(test)]
 #[path = "prefix/source_main8a.rs"]
 mod source_main8a;
+
+#[cfg(test)]
+#[path = "prefix/source_maina3.rs"]
+mod source_maina3;

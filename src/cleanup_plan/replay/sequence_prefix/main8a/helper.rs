@@ -1,23 +1,23 @@
 //! A pure borrowed shape probe; the existing receiver owns fallible transfer.
 use super::*;
 
-pub(super) struct Candidate<'a> {
-    pub(super) prefix: &'a Observations,
-    pub(super) suffix: &'a Observations,
+pub(in crate::cleanup_plan::replay) struct Candidate<'a> {
+    pub(in crate::cleanup_plan::replay) prefix: &'a Observations,
+    pub(in crate::cleanup_plan::replay) suffix: &'a Observations,
     /// Successors still pending after the currently borrowed successor.
-    pub(super) remaining_suffixes: usize,
-    pub(super) budget: &'a ReplayBudget,
+    pub(in crate::cleanup_plan::replay) remaining_suffixes: usize,
+    pub(in crate::cleanup_plan::replay) budget: &'a ReplayBudget,
 }
 // Both complete incoming/callee headers and both boolean result slots. The
 // transfer stays in the existing sequencing receiver, whose observation/result
 // carriers already existed in the original clone. No new fallible sum crosses
 // this probe. The old vector clone alone must cover this complete new layout.
-pub(super) const RECEIVING_BYTES: usize =
+pub(in crate::cleanup_plan::replay) const RECEIVING_BYTES: usize =
     2 * std::mem::size_of::<Candidate<'static>>() + 2 * std::mem::size_of::<bool>();
 const ITEM_BYTES: usize = std::mem::size_of::<std::rc::Rc<SkeletonObservation>>();
 const MINIMUM_ITEMS: usize = RECEIVING_BYTES.div_ceil(ITEM_BYTES);
 
-pub(super) fn can_take(input: Candidate<'_>) -> bool {
+pub(in crate::cleanup_plan::replay) fn can_take(input: Candidate<'_>) -> bool {
     #[cfg(test)]
     if tests::original_selected() {
         return false;

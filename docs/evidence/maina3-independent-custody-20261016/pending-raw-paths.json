@@ -1,0 +1,35 @@
+{
+  "present_appended_paths": [
+    "src/cleanup_plan/replay/sequence_vector.rs",
+    "src/cleanup_plan/replay/sequence_vector/main_a3/mod.rs",
+    "src/cleanup_plan/replay/sequence_vector/main_a3/helper.rs",
+    "src/cleanup_plan/replay/sequence_vector/main_a3/current.rs",
+    "src/cleanup_plan/replay/sequence_vector/main_a3/before.rs",
+    "src/cleanup_plan/replay/sequence_vector/main_a3/tests.rs",
+    "src/cleanup/inventory_builder/typed.rs",
+    "src/cleanup/inventory_builder/typed/before_initial.rs",
+    "src/cleanup/inventory_builder/typed/before_initial_receiving.rs",
+    "src/cleanup/inventory_builder/typed/failure.rs",
+    "src/cleanup/inventory_builder/typed/queries.rs",
+    "src/cleanup/inventory_builder/typed/receiving.rs",
+    "src/cleanup/inventory_builder/typed/selected.rs",
+    "src/cleanup/inventory_builder/typed/traversal.rs",
+    "src/cleanup_plan/replay/inventory_coverage/paid.rs",
+    "src/cleanup_plan/replay/inventory_coverage/typed_tests.rs",
+    "src/cleanup_plan/replay/inventory_coverage/typed_tests/initial_tests.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/before_owned_directory.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs",
+    "src/source_reflows_merge/maina3_custody.rs",
+    "src/source_reflows/semantic_receivers_maina3.rs",
+    "src/cleanup_plan/replay/compact_stage/source_custody_maina3.rs",
+    "src/cleanup_plan/replay/expression_facts/arena/prefix/source_maina3.rs",
+    "src/hir/nominal_payload/legacy/source_tests_maina3.rs",
+    "src/cleanup_plan/replay/selected_entry/tests/session_errors/source_maina3.rs"
+  ],
+  "planned_missing_waiting_vector": [
+    "src/cleanup_plan/replay/sequence_vector/funded_tests.rs"
+  ],
+  "all_original16c_order_and_predicates_preserved": true,
+  "codequiet": false
+}

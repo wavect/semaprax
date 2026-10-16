@@ -1,0 +1,32 @@
+{
+  "source_predecessor": "55e805c2f6e23dda58ce4c72223914ed511b117b",
+  "status": "source-authored-not-executed",
+  "changed": [
+    {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs",
+      "sha256": "50bbe14f93402a3180e774d3c531a72aee402bbd260d919381418c02cad1cdc5",
+      "before": "docs/evidence/owned-function-directory-847/alias.before.rs.txt",
+      "before_sha256": "6dafc416d72e22cc58ba07cfb63ca91cd727d03167a14de0e88f038a36628561"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs",
+      "sha256": "1cf6e9ba50b29043f0ee92a6a6aa1b58bb06f1f7d738cda8e0ac5b9a71ce7f6c",
+      "before": "docs/evidence/owned-function-directory-847/tests.before.rs.txt",
+      "before_sha256": "b2191c03d4dd66a071d943fe235bb743bc00032340b4928a3313faed1b9bc570"
+    }
+  ],
+  "added": [
+    {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/before_owned_directory.rs",
+      "sha256": "4d853d0e4333e099629815d6d056101a4d23ecc1b196855ff852facb8144254b"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth.rs",
+      "sha256": "1ca86dc308358122eb2be42dd434978625e985a1300f8f23eed971c57abc3ece"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs",
+      "sha256": "9cdb0c181b935f712b2e0871b262c25ef755087068c9d4f0af68fdddaaf88ad3"
+    }
+  ]
+}

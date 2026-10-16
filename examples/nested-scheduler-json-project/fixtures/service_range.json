@@ -1,0 +1,1 @@
+{"configuration":{"label":"queue","server_count":2},"jobs":[{"id":"J","arrival":0,"service":256}],"preemptive":false}

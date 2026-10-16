@@ -711,3 +711,29 @@ fn cleanup_error(message: impl Into<String>) -> Diagnostic {
 #[cfg(test)]
 #[path = "cleanup/nested_owned_records_tests.rs"]
 mod nested_owned_records_tests;
+
+#[cfg(test)]
+pub(crate) use inventory_builder::typed::before_initial::build as build_typed_flat_record_inventory;
+pub(crate) use inventory_builder::typed::{
+    build_after_initial_receiving as build_prepaid_typed_flat_record_inventory,
+    debit as debit_typed_inventory_initial, InitialReceiving as TypedInventoryInitialReceiving,
+    InventoryFailure, INITIAL_CONTROL_INITIALIZERS as TYPED_INVENTORY_INITIAL_FIELDS,
+};
+
+#[cfg(test)]
+pub(crate) use inventory_builder::typed::{
+    metadata_work as typed_inventory_metadata_work,
+    reset_metadata_work as reset_typed_inventory_metadata_work,
+};
+
+#[cfg(test)]
+pub(crate) use inventory_builder::typed::{
+    begin_logical_trace as begin_typed_inventory_trace,
+    take_logical_trace as take_typed_inventory_trace,
+};
+
+#[cfg(test)]
+pub(crate) use inventory_builder::typed::{
+    initial_entries as typed_inventory_initial_entries,
+    reset_initial_entries as reset_typed_inventory_initial_entries,
+};

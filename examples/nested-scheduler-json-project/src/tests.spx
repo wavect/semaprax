@@ -1,0 +1,14 @@
+module scheduler.tests;
+use function @id("scheduler.schema.anchor") from scheduler.schema as schema_anchor;
+
+@id("scheduler.tests.main")
+fn main() -> i64
+{
+    0
+}
+
+@id("scheduler.tests.anchor")
+fn test_anchor() -> i64
+{
+    schema_anchor()
+}

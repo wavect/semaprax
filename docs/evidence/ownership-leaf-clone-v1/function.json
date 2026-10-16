@@ -1,0 +1,4 @@
+{
+  "sha256": "193c8dc2803409158e0dbeb3d133ab6651eb2568a40e277d1396d913a90e9438",
+  "body": "    fn clone_type(&mut self, ty: &ResolvedType) -> Result<ResolvedType, Diagnostic> {\n        Self::authenticate()?;\n        if !self.clone_cursor_paid {\n            pay(Some(size_of::<[Option<(&ResolvedType, usize)>; 514]>()))?;\n            self.clone_cursor_paid = true;\n        }\n        pay(ty.clone_payload_bytes())?;\n        Ok(ty.clone())\n    }"
+}

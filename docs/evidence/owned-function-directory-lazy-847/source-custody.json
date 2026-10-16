@@ -1,0 +1,25 @@
+{
+  "source_predecessor": "e8d2a7d89f2bfb2e94bd9e94e4f1ef66d81e95fc",
+  "original_receiver": "55e805c2f6e23dda58ce4c72223914ed511b117b",
+  "status": "source-authored-not-executed",
+  "changed": [
+    {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs",
+      "sha256": "d3e1bd0b288ffd3f6adc0079340b49146ab39b74a526b6a1129cc641fbe4c537",
+      "before": "docs/evidence/owned-function-directory-lazy-847/prior-0.txt",
+      "before_sha256": "50bbe14f93402a3180e774d3c531a72aee402bbd260d919381418c02cad1cdc5"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth.rs",
+      "sha256": "5492d84c2e3827ef4731477f70a073bd3547341108bdd79cc2b14571051857fe",
+      "before": "docs/evidence/owned-function-directory-lazy-847/prior-1.txt",
+      "before_sha256": "1ca86dc308358122eb2be42dd434978625e985a1300f8f23eed971c57abc3ece"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs",
+      "sha256": "073e417ad1f67742652e880a6a153bcea530981b50e60a7d2a0b9b093622a247",
+      "before": "docs/evidence/owned-function-directory-lazy-847/prior-2.txt",
+      "before_sha256": "9cdb0c181b935f712b2e0871b262c25ef755087068c9d4f0af68fdddaaf88ad3"
+    }
+  ]
+}

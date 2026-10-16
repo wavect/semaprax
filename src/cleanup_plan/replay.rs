@@ -35,6 +35,7 @@ mod selected_context;
 mod selected_entry;
 #[cfg(test)]
 mod sequence_prefix;
+mod sequence_vector;
 mod shape_cursor;
 mod status_construction;
 mod structural_control;
@@ -63,7 +64,6 @@ mod selected_profile;
 mod semantic_refusal;
 mod status_validation;
 pub(crate) use physical_clone::ClonePayload;
-#[cfg(test)]
 pub(crate) use physical_storage::PhysicalRefusal as ReplayPhysicalRefusal;
 pub(crate) use physical_storage::{
     btree_node_upper as replay_btree_node_upper, replay_reserve_vec, PhysicalReservation,
@@ -2953,10 +2953,14 @@ fn sequence_skeleton_paths(
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
     #[cfg(test)]
+    if sequence_vector_maina3::selected() {
+        return sequence_vector_maina3::current_sequence(prefixes, suffixes, work);
+    }
+    #[cfg(test)]
     if path_array::main696::selected() {
         return path_array::main696::sequence_skeleton_paths(prefixes, suffixes, work);
     }
-    let prefixes = work.merged_paths(prefixes)?;
+    let mut prefixes = work.merged_paths(prefixes)?;
     let suffixes = work.merged_suffixes(suffixes)?;
     let share_prefix = work.shares_prefix_tail(&suffixes)?;
     let mut combined = Vec::new();
@@ -2977,8 +2981,19 @@ fn sequence_skeleton_paths(
         "HIR single-suffix selection controls",
     )?;
     let single = suffixes.len() == 1;
+    let mut precharged = false;
+    if single {
+        if first {
+            sequence_vector::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged);
+        }
+    }
     for mut prefix in prefixes {
         if prefix.failed || prefix.residual {
+            if precharged {
+                precharged = false;
+                sequence_vector::stopped_after_work!(work, first, minimum, combined, prefix);
+                continue;
+            }
             path_array::push!(
                 work,
                 first,
@@ -2989,18 +3004,24 @@ fn sequence_skeleton_paths(
             );
             continue;
         }
-        if share_prefix {
-            work.share_prefix_tail(&mut prefix.observations)?;
+        if !precharged {
+            if share_prefix {
+                work.share_prefix_tail(&mut prefix.observations)?;
+            }
         }
         if single {
-            work.budget.reserve_bytes(
-                work.function,
-                final_output::HIR_MOVE_CONTROLS,
-                "HIR single-suffix move controls",
-            )?;
+            if precharged {
+                precharged = false;
+            } else {
+                work.budget.reserve_bytes(
+                    work.function,
+                    final_output::HIR_MOVE_CONTROLS,
+                    "HIR single-suffix move controls",
+                )?;
+                work.charge(1, "skeleton prefix clone")?;
+                note_skeleton_materialization();
+            }
             let suffix = &suffixes[0];
-            work.charge(1, "skeleton prefix clone")?;
-            note_skeleton_materialization();
             let observations = prefix.observations;
             let observations = work.extend_owned_observations(
                 observations,
@@ -7762,3 +7783,7 @@ mod path_array_main8a;
 #[cfg(test)]
 #[path = "replay/sequence_prefix/main8a/mod.rs"]
 mod sequence_prefix_main8a;
+
+#[cfg(test)]
+#[path = "replay/sequence_vector/main_a3/mod.rs"]
+mod sequence_vector_maina3;

@@ -1,0 +1,7 @@
+module scheduler.app;
+
+@id("scheduler.main")
+fn main() -> i64
+{
+    0
+}

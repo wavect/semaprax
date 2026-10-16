@@ -27,7 +27,7 @@ pub(super) const PLAN_MOVE_CONTROLS: usize = 5 * size_of::<Result<(), Diagnostic
 pub(super) const HIR_SELECTION_CONTROLS: usize = size_of::<Result<(), Diagnostic>>()
     + size_of::<&mut ReplayBudget>() + size_of::<&ResolvedFunction>() + size_of::<&str>()
     + 2 * size_of::<usize>() // price and length
-    + 2 * size_of::<bool>() // predicate initializer/receiving slot
+    + 4 * size_of::<bool>() // single predicate pair and first-work continuation initializer/slot
     + size_of::<&std::borrow::Cow<'_, [ExprSkeletonPath]>>()
     + size_of::<&[ExprSkeletonPath]>();
 

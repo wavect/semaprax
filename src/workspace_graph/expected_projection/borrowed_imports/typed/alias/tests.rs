@@ -423,6 +423,7 @@ fn complete_immediate_sources_and_independent_old_receivers_remain_authenticated
         let current =
             std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(source))
                 .unwrap();
+        let current = super::owned_growth_tests::previous_source(source, &current);
         let current = crate::source_reflows_merge::retained_function847_input(source, &current);
         assert_eq!(
             format!(
@@ -457,6 +458,7 @@ fn complete_immediate_sources_and_independent_old_receivers_remain_authenticated
         let current =
             std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(source))
                 .unwrap();
+        let current = super::owned_growth_tests::previous_source(source, &current);
         let current = crate::source_reflows_merge::retained_function847_input(source, &current);
         assert_eq!(
             format!(
@@ -476,6 +478,7 @@ fn complete_immediate_sources_and_independent_old_receivers_remain_authenticated
         let current =
             std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(source))
                 .unwrap();
+        let current = super::owned_growth_tests::previous_source(source, &current);
         let current = crate::source_reflows_merge::retained_function847_input(source, &current);
         assert_eq!(current, row["compiled"].as_str().unwrap());
         assert_eq!(

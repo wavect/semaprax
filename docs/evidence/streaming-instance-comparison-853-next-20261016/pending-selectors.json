@@ -1,0 +1,20 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "hir::ids::instance_match::tests::streamed_instance_matches_complete_encoder_all_forms_and_forged_bytes",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "hir::ids::instance_match::tests::streamed_instance_exact_short_zero_sticky_floor_keep_all_key_producers_and_drop",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "hir::ids::instance_match::tests::streamed_instance_validator_preserves_duplicate_before_canonical_refusal",
+    "status": "PENDING_NOT_EXECUTED"
+  }
+]

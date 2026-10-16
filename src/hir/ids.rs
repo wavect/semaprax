@@ -679,3 +679,6 @@ pub(crate) use metered_owner::general_matches as oracle_owner_matches_with_work;
 
 #[cfg(test)]
 pub(in crate::hir) mod fixed_operation_tests;
+
+#[path = "ids/instance_match.rs"]
+pub(in crate::hir) mod instance_match;

@@ -938,3 +938,6 @@ pub(crate) fn is_scalar_resolved_type(ty: &ResolvedType) -> bool {
             | ResolvedType::Bool
     )
 }
+
+#[path = "nodes/instance_key.rs"]
+mod instance_key;

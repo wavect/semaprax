@@ -1,0 +1,419 @@
+{
+  "source_subject": "17b12c909916ce8671b43f208b59f3432144709a",
+  "files": [
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-20261016/READY.md",
+      "retained": "producer-mainb80-closure3-20261016/READY.md",
+      "sha256": "c5e9fc1187e8b8d5a5f93c0dac3dbc58d063e7e3a1820aeb83dd71a646d6659b",
+      "bytes": 862
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-20261016/compilation-manifest.json",
+      "retained": "producer-mainb80-closure3-20261016/compilation-manifest.json",
+      "sha256": "909a3ccb4fa30d93e3e7219048d2f825ba0575174e999702dfa3013fed552bfc",
+      "bytes": 390476
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-20261016/drivers/build-owning.py",
+      "retained": "producer-mainb80-closure3-20261016/drivers/build-owning.py",
+      "sha256": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888",
+      "bytes": 9776
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-20261016/drivers/draft_contract.py",
+      "retained": "producer-mainb80-closure3-20261016/drivers/draft_contract.py",
+      "sha256": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1",
+      "bytes": 1752
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-20261016/drivers/observed_phase.py",
+      "retained": "producer-mainb80-closure3-20261016/drivers/observed_phase.py",
+      "sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867",
+      "bytes": 11471
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-20261016/drivers/run-owning-selected.py",
+      "retained": "producer-mainb80-closure3-20261016/drivers/run-owning-selected.py",
+      "sha256": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450",
+      "bytes": 10438
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-20261016/drivers/run-production-lib-cli-clippy.py",
+      "retained": "producer-mainb80-closure3-20261016/drivers/run-production-lib-cli-clippy.py",
+      "sha256": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077",
+      "bytes": 6214
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-20261016/drivers/semaprax_pressure_observation_v3.py",
+      "retained": "producer-mainb80-closure3-20261016/drivers/semaprax_pressure_observation_v3.py",
+      "sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+      "bytes": 10269
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-20261016/expected-counts.json",
+      "retained": "producer-mainb80-closure3-20261016/expected-counts.json",
+      "sha256": "909a3ccb4fa30d93e3e7219048d2f825ba0575174e999702dfa3013fed552bfc",
+      "bytes": 390476
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-20261016/launch-binding.json",
+      "retained": "producer-mainb80-closure3-20261016/launch-binding.json",
+      "sha256": "98de514b78f5b9eb86aba95fa7046769c1ee23e23aa982a8b83f6acdf0c99aa4",
+      "bytes": 640
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-20261016/preparation-receipt.json",
+      "retained": "producer-mainb80-closure3-20261016/preparation-receipt.json",
+      "sha256": "285615456d78e563aaf601a129a0830f64a085679d205f553c2ecfff17baf38c",
+      "bytes": 4197
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-20261016/pressure-guardian-source.py",
+      "retained": "producer-mainb80-closure3-20261016/pressure-guardian-source.py",
+      "sha256": "115dfba227713331fe0b021d787e9c7ddff44e3cf5ad1524526da45bb322021a",
+      "bytes": 6400
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-20261016/pressure-guardian.jsonl",
+      "retained": "producer-mainb80-closure3-20261016/pressure-guardian.jsonl",
+      "sha256": "925fd484ad873e83d7123710620740a6b0c952729186756d3f9d5cc19d742421",
+      "bytes": 665
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-20261016/producer-build-contract.json",
+      "retained": "producer-mainb80-closure3-20261016/producer-build-contract.json",
+      "sha256": "5261e62921d010556e0f420c7c42ec1864426bc415fe819223b9462121be1c34",
+      "bytes": 378829
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-20261016/registration.json",
+      "retained": "producer-mainb80-closure3-20261016/registration.json",
+      "sha256": "6afdb902c5576f16914a28d05569a8638f755f9f692c1c0fcf32a0bcb57d4d7f",
+      "bytes": 4316
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-20261016/supplemental-historical-outcomes.json",
+      "retained": "producer-mainb80-closure3-20261016/supplemental-historical-outcomes.json",
+      "sha256": "99c78dfabad5001bfa1edbcf5962c0c9ca7b201c6a14d5da870a6a8f59c0121d",
+      "bytes": 36577
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry1-20261016/READY.md",
+      "retained": "producer-mainb80-closure3-retry1-20261016/READY.md",
+      "sha256": "91564ea0cc4c473eb12a05b67527f33b4deb16626161d445c34b7ad28da533b3",
+      "bytes": 869
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry1-20261016/compilation-manifest.json",
+      "retained": "producer-mainb80-closure3-retry1-20261016/compilation-manifest.json",
+      "sha256": "909a3ccb4fa30d93e3e7219048d2f825ba0575174e999702dfa3013fed552bfc",
+      "bytes": 390476
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry1-20261016/drivers/build-owning.py",
+      "retained": "producer-mainb80-closure3-retry1-20261016/drivers/build-owning.py",
+      "sha256": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888",
+      "bytes": 9776
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry1-20261016/drivers/draft_contract.py",
+      "retained": "producer-mainb80-closure3-retry1-20261016/drivers/draft_contract.py",
+      "sha256": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1",
+      "bytes": 1752
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry1-20261016/drivers/observed_phase.py",
+      "retained": "producer-mainb80-closure3-retry1-20261016/drivers/observed_phase.py",
+      "sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867",
+      "bytes": 11471
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry1-20261016/drivers/run-owning-selected.py",
+      "retained": "producer-mainb80-closure3-retry1-20261016/drivers/run-owning-selected.py",
+      "sha256": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450",
+      "bytes": 10438
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry1-20261016/drivers/run-production-lib-cli-clippy.py",
+      "retained": "producer-mainb80-closure3-retry1-20261016/drivers/run-production-lib-cli-clippy.py",
+      "sha256": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077",
+      "bytes": 6214
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry1-20261016/drivers/semaprax_pressure_observation_v3.py",
+      "retained": "producer-mainb80-closure3-retry1-20261016/drivers/semaprax_pressure_observation_v3.py",
+      "sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+      "bytes": 10269
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry1-20261016/expected-counts.json",
+      "retained": "producer-mainb80-closure3-retry1-20261016/expected-counts.json",
+      "sha256": "909a3ccb4fa30d93e3e7219048d2f825ba0575174e999702dfa3013fed552bfc",
+      "bytes": 390476
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry1-20261016/launch-binding.json",
+      "retained": "producer-mainb80-closure3-retry1-20261016/launch-binding.json",
+      "sha256": "ad6c75864c8daa39c4fc7a1972780e782bce4ef1a2970c6a394366ee6ce3776f",
+      "bytes": 647
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry1-20261016/preparation-receipt.json",
+      "retained": "producer-mainb80-closure3-retry1-20261016/preparation-receipt.json",
+      "sha256": "285615456d78e563aaf601a129a0830f64a085679d205f553c2ecfff17baf38c",
+      "bytes": 4197
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry1-20261016/pressure-guardian-source.py",
+      "retained": "producer-mainb80-closure3-retry1-20261016/pressure-guardian-source.py",
+      "sha256": "115dfba227713331fe0b021d787e9c7ddff44e3cf5ad1524526da45bb322021a",
+      "bytes": 6400
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry1-20261016/pressure-guardian.jsonl",
+      "retained": "producer-mainb80-closure3-retry1-20261016/pressure-guardian.jsonl",
+      "sha256": "85aef7da8ee8f4c46c394eff749deb05b04a1c6fb3ac8496ff5ff553fa2f4586",
+      "bytes": 674
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry1-20261016/producer-build-contract.json",
+      "retained": "producer-mainb80-closure3-retry1-20261016/producer-build-contract.json",
+      "sha256": "f7bcdcaf3421d2789b158924e8ca0ef944198bba1e371144650adec17ce51ad3",
+      "bytes": 378836
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry1-20261016/registration.json",
+      "retained": "producer-mainb80-closure3-retry1-20261016/registration.json",
+      "sha256": "6afdb902c5576f16914a28d05569a8638f755f9f692c1c0fcf32a0bcb57d4d7f",
+      "bytes": 4316
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry1-20261016/supplemental-historical-outcomes.json",
+      "retained": "producer-mainb80-closure3-retry1-20261016/supplemental-historical-outcomes.json",
+      "sha256": "99c78dfabad5001bfa1edbcf5962c0c9ca7b201c6a14d5da870a6a8f59c0121d",
+      "bytes": 36577
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry2-20261016/READY.md",
+      "retained": "producer-mainb80-closure3-retry2-20261016/READY.md",
+      "sha256": "fa400f22f768c92d16f97eff620b1a4abdb22947af23816f962b64f891350128",
+      "bytes": 869
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry2-20261016/compilation-manifest.json",
+      "retained": "producer-mainb80-closure3-retry2-20261016/compilation-manifest.json",
+      "sha256": "909a3ccb4fa30d93e3e7219048d2f825ba0575174e999702dfa3013fed552bfc",
+      "bytes": 390476
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry2-20261016/drivers/build-owning.py",
+      "retained": "producer-mainb80-closure3-retry2-20261016/drivers/build-owning.py",
+      "sha256": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888",
+      "bytes": 9776
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry2-20261016/drivers/draft_contract.py",
+      "retained": "producer-mainb80-closure3-retry2-20261016/drivers/draft_contract.py",
+      "sha256": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1",
+      "bytes": 1752
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry2-20261016/drivers/observed_phase.py",
+      "retained": "producer-mainb80-closure3-retry2-20261016/drivers/observed_phase.py",
+      "sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867",
+      "bytes": 11471
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry2-20261016/drivers/run-owning-selected.py",
+      "retained": "producer-mainb80-closure3-retry2-20261016/drivers/run-owning-selected.py",
+      "sha256": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450",
+      "bytes": 10438
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry2-20261016/drivers/run-production-lib-cli-clippy.py",
+      "retained": "producer-mainb80-closure3-retry2-20261016/drivers/run-production-lib-cli-clippy.py",
+      "sha256": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077",
+      "bytes": 6214
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry2-20261016/drivers/semaprax_pressure_observation_v3.py",
+      "retained": "producer-mainb80-closure3-retry2-20261016/drivers/semaprax_pressure_observation_v3.py",
+      "sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+      "bytes": 10269
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry2-20261016/expected-counts.json",
+      "retained": "producer-mainb80-closure3-retry2-20261016/expected-counts.json",
+      "sha256": "909a3ccb4fa30d93e3e7219048d2f825ba0575174e999702dfa3013fed552bfc",
+      "bytes": 390476
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry2-20261016/launch-binding.json",
+      "retained": "producer-mainb80-closure3-retry2-20261016/launch-binding.json",
+      "sha256": "ee1bc81ab10520f4a2bb24e47d1cd6a9dc13cf4d810fd55f77aac03d27e10574",
+      "bytes": 647
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry2-20261016/preparation-receipt.json",
+      "retained": "producer-mainb80-closure3-retry2-20261016/preparation-receipt.json",
+      "sha256": "285615456d78e563aaf601a129a0830f64a085679d205f553c2ecfff17baf38c",
+      "bytes": 4197
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry2-20261016/pressure-guardian-source.py",
+      "retained": "producer-mainb80-closure3-retry2-20261016/pressure-guardian-source.py",
+      "sha256": "115dfba227713331fe0b021d787e9c7ddff44e3cf5ad1524526da45bb322021a",
+      "bytes": 6400
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry2-20261016/pressure-guardian.jsonl",
+      "retained": "producer-mainb80-closure3-retry2-20261016/pressure-guardian.jsonl",
+      "sha256": "f1e2f5eeb751df143c855f8b9cf45cda2b84992e089d371428c0a75693b7bd9c",
+      "bytes": 672
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry2-20261016/producer-build-contract.json",
+      "retained": "producer-mainb80-closure3-retry2-20261016/producer-build-contract.json",
+      "sha256": "f8e7e0d6be337a3b849c8b532e1d9cd3133cc296a9457aa7a7b3a23c7446915d",
+      "bytes": 378836
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry2-20261016/registration.json",
+      "retained": "producer-mainb80-closure3-retry2-20261016/registration.json",
+      "sha256": "6afdb902c5576f16914a28d05569a8638f755f9f692c1c0fcf32a0bcb57d4d7f",
+      "bytes": 4316
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry2-20261016/supplemental-historical-outcomes.json",
+      "retained": "producer-mainb80-closure3-retry2-20261016/supplemental-historical-outcomes.json",
+      "sha256": "99c78dfabad5001bfa1edbcf5962c0c9ca7b201c6a14d5da870a6a8f59c0121d",
+      "bytes": 36577
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/READY.md",
+      "retained": "producer-mainb80-closure3-retry3-20261016/READY.md",
+      "sha256": "35fd335d6b83878707af2c56b3efdaa0c27189e50aa172514b7e441c47c0ed41",
+      "bytes": 869
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/compilation-manifest.json",
+      "retained": "producer-mainb80-closure3-retry3-20261016/compilation-manifest.json",
+      "sha256": "909a3ccb4fa30d93e3e7219048d2f825ba0575174e999702dfa3013fed552bfc",
+      "bytes": 390476
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/drivers/build-owning.py",
+      "retained": "producer-mainb80-closure3-retry3-20261016/drivers/build-owning.py",
+      "sha256": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888",
+      "bytes": 9776
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/drivers/draft_contract.py",
+      "retained": "producer-mainb80-closure3-retry3-20261016/drivers/draft_contract.py",
+      "sha256": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1",
+      "bytes": 1752
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/drivers/observed_phase.py",
+      "retained": "producer-mainb80-closure3-retry3-20261016/drivers/observed_phase.py",
+      "sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867",
+      "bytes": 11471
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/drivers/run-owning-selected.py",
+      "retained": "producer-mainb80-closure3-retry3-20261016/drivers/run-owning-selected.py",
+      "sha256": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450",
+      "bytes": 10438
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/drivers/run-production-lib-cli-clippy.py",
+      "retained": "producer-mainb80-closure3-retry3-20261016/drivers/run-production-lib-cli-clippy.py",
+      "sha256": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077",
+      "bytes": 6214
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/drivers/semaprax_pressure_observation_v3.py",
+      "retained": "producer-mainb80-closure3-retry3-20261016/drivers/semaprax_pressure_observation_v3.py",
+      "sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+      "bytes": 10269
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/expected-counts.json",
+      "retained": "producer-mainb80-closure3-retry3-20261016/expected-counts.json",
+      "sha256": "909a3ccb4fa30d93e3e7219048d2f825ba0575174e999702dfa3013fed552bfc",
+      "bytes": 390476
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/launch-binding.json",
+      "retained": "producer-mainb80-closure3-retry3-20261016/launch-binding.json",
+      "sha256": "f8301f8cabdd31d9a3818f9309fa18dbf4f0f5819db2c30ec39aaddf081e525b",
+      "bytes": 647
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/memory-samples.jsonl",
+      "retained": "producer-mainb80-closure3-retry3-20261016/memory-samples.jsonl",
+      "sha256": "c29b1aab37b0834678c73ed24f968ac5d8dc334afd2404d8a5faf5b43bd01a4a",
+      "bytes": 117812
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/owning-build-progress.json",
+      "retained": "producer-mainb80-closure3-retry3-20261016/owning-build-progress.json",
+      "sha256": "372cf4e88a0d4ce45f42e61c7284472e1cbd3d041e14a89dfd742254a7792178",
+      "bytes": 8844
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/owning-build-result.json",
+      "retained": "producer-mainb80-closure3-retry3-20261016/owning-build-result.json",
+      "sha256": "b0f846adc6f3e8a2c58597c154946c35d78a7001c971f15a70f43c6555860db5",
+      "bytes": 9156
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/owning-build.jsonl",
+      "retained": "producer-mainb80-closure3-retry3-20261016/owning-build.jsonl",
+      "sha256": "4debdc89d37d8e31b9fce01af9de141393fcba8d7818a4f9b8eda2994a36d5f1",
+      "bytes": 266284
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/owning-build.log",
+      "retained": "producer-mainb80-closure3-retry3-20261016/owning-build.log",
+      "sha256": "c49bb2724b58d818c56e0e0db86f9c5dac0afd93e3e2cae48abb6bd9fda2c1d3",
+      "bytes": 196
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/preparation-receipt.json",
+      "retained": "producer-mainb80-closure3-retry3-20261016/preparation-receipt.json",
+      "sha256": "285615456d78e563aaf601a129a0830f64a085679d205f553c2ecfff17baf38c",
+      "bytes": 4197
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/pressure-guardian-source.py",
+      "retained": "producer-mainb80-closure3-retry3-20261016/pressure-guardian-source.py",
+      "sha256": "115dfba227713331fe0b021d787e9c7ddff44e3cf5ad1524526da45bb322021a",
+      "bytes": 6400
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/pressure-guardian.jsonl",
+      "retained": "producer-mainb80-closure3-retry3-20261016/pressure-guardian.jsonl",
+      "sha256": "31ff590d4eeaf7578d97db9c81a534834891a44ad5c95ad6b1d60804c3b5043a",
+      "bytes": 19417
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/producer-build-contract.json",
+      "retained": "producer-mainb80-closure3-retry3-20261016/producer-build-contract.json",
+      "sha256": "6b4d82a3bb8b2d76b22eeed14175d401249601ebdd4c824ebe16095775fabeb7",
+      "bytes": 378836
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/registration.json",
+      "retained": "producer-mainb80-closure3-retry3-20261016/registration.json",
+      "sha256": "6afdb902c5576f16914a28d05569a8638f755f9f692c1c0fcf32a0bcb57d4d7f",
+      "bytes": 4316
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016/supplemental-historical-outcomes.json",
+      "retained": "producer-mainb80-closure3-retry3-20261016/supplemental-historical-outcomes.json",
+      "sha256": "99c78dfabad5001bfa1edbcf5962c0c9ca7b201c6a14d5da870a6a8f59c0121d",
+      "bytes": 36577
+    }
+  ]
+}

@@ -13,6 +13,8 @@
   Complete old drivers and report/ledger/Drop controls remain; transitive dynamic
   Session diagnostics remain open and qualification is pending.
 
+- Source-only #853 compares retained generic instance identities against the exact canonical stream at five validation predicates, removing the encoded-tail and final temporary-ID buffers while retaining the complete argument-key traversal, duplicate/error order and allocating encoder. A one-use checked writer refuses silently truncated compound keys without changing ordinary sinks. New control frontiers remain required and sticky; qualification and application-fit claims are pending.
+
 - Select the existing paid borrowed-alias producer on the first ordinary uncached core attempt, preserving cache/invariant fallbacks and the complete old/current Project source, graph and Image parity gate. The previous compact-only gate left successful small Projects on the owning fallback; qualification is pending.
 
 - Source-only #851 admits exact capacity-witness control layouts before eligibility/length receivers and reserves optional String backing separately; preserve the complete Main receiver and all three original controls independently, with truthful paid-control spend on later backing refusal. Output, primary fields, sticky/floor behavior and limits remain; focused qualification is pending.

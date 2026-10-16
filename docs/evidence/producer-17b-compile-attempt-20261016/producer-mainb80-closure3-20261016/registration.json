@@ -1,0 +1,114 @@
+{
+  "status": "SOURCE_REGISTERED_UNEXECUTED_PARENT_FINAL_HEAD",
+  "source_head": "17b12c909916ce8671b43f208b59f3432144709a",
+  "source_tree": "62d816c4fd1190cd2c6256ba40753dc042491e11",
+  "repository": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "selected": 3,
+  "resolved": 3,
+  "issues": [],
+  "rows": [
+    {
+      "source_path": "src/workspace_graph/type_proof_tests.rs",
+      "line": 829,
+      "name": "rendered_document_has_literal_sha_exact_wire_order_and_digest_binding",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 5611,
+          "module": "type_proof_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"workspace_graph/type_proof_tests.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/workspace_graph/type_proof_tests.rs",
+          "line": 30,
+          "module": "projection_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "fc7995a691693f71686e264b60ef5803a8a724553ea948f5dfd34ce0b6e80eab",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding",
+      "reason": "Compile lib target using original nonignored managed wire KAT; capture-only ignored producer is separately authenticated and is not a runtime selected body.",
+      "current_batch_selection_reasons": [
+        "Compile lib target using original nonignored managed wire KAT; capture-only ignored producer is separately authenticated and is not a runtime selected body."
+      ]
+    },
+    {
+      "source_path": "tests/workspace/semantic_graph.rs",
+      "line": 628,
+      "name": "public_api_cli_bytes_getters_and_read_only_locking_are_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/workspace.rs",
+          "line": 68,
+          "module": "semantic_graph",
+          "attributes": [
+            "#[path = \"workspace/semantic_graph.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "8fb7dfdffa4bfdc4a0a9a3b35aa6a81b549015379b8768e309358306307a2232",
+      "ignored": false,
+      "harness": "semaprax::workspace",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact",
+      "reason": "Actual managed public graph/context wire producer.",
+      "current_batch_selection_reasons": [
+        "Actual managed public graph/context wire producer."
+      ]
+    },
+    {
+      "source_path": "tests/workspace/semantic_graph.rs",
+      "line": 872,
+      "name": "public_workspace_analysis_api_cli_kats_and_locking_are_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/workspace.rs",
+          "line": 68,
+          "module": "semantic_graph",
+          "attributes": [
+            "#[path = \"workspace/semantic_graph.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "8fb7dfdffa4bfdc4a0a9a3b35aa6a81b549015379b8768e309358306307a2232",
+      "ignored": false,
+      "harness": "semaprax::workspace",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::public_workspace_analysis_api_cli_kats_and_locking_are_exact",
+      "reason": "Actual managed analysis wire producer.",
+      "current_batch_selection_reasons": [
+        "Actual managed analysis wire producer."
+      ]
+    }
+  ],
+  "prior_failed_bodies": 0,
+  "parser_source": "/Volumes/Semaprax/provenance/qualification-registration-module-path-20261014.py",
+  "parser_sha256": "8774afeeb957dabcde7eee44a29c1a91aec2572d7740413a0dbebf473ec7da6f",
+  "parser_span_protocol": "Original definitions through before first parse; override R only; original enumeration through before failp unchanged",
+  "selection_sha256": "c1083d394251ff1f70bd554d6900289a69073ee5352af0fb9d4625b6cc9f7d25",
+  "discovery_performed": false,
+  "execution_performed": false
+}

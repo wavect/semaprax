@@ -1,0 +1,86 @@
+{
+  "layout": "tables",
+  "scaffold_name": "task-demo",
+  "schema": "semaprax.authoring-tasks.v6",
+  "tasks": [
+    {
+      "capabilities": [
+        "fs.read",
+        "process.args.read",
+        "process.stderr.write",
+        "process.stdout.write"
+      ],
+      "card": "author:file-text",
+      "declarations": [
+        "std.int.decimal.add",
+        "std.int.decimal.canonicalize",
+        "std.int.decimal.divide"
+      ],
+      "dependencies": {
+        "std.int.decimal": "=0.1.0"
+      },
+      "files": [
+        {
+          "path": "semaprax.toml",
+          "sha256": "1ff6b1f50075b30852af6d6d8b4a8afb84defda18affb916be4a43e0ee1fb82b"
+        },
+        {
+          "path": "src/app.spx",
+          "sha256": "3ff1186387fef95158197097b51480b03e7fa5900c7dd751240a20bebfc3b9d7"
+        },
+        {
+          "path": "src/tests.spx",
+          "sha256": "2819913acabd6d293b25ad7e71dd48df9b84144602c8776050cb353789e2a98a"
+        }
+      ],
+      "input": "argv-utf8+file-text.v1",
+      "project_profile": "source-command.v1",
+      "sources": [
+        "src/app.spx",
+        "src/tests.spx"
+      ],
+      "target": "native64",
+      "task": "file-text",
+      "template": "source-command-file-text"
+    },
+    {
+      "capabilities": [
+        "process.args.read",
+        "process.stderr.write",
+        "process.stdin.read",
+        "process.stdout.write"
+      ],
+      "card": "author:stdin-json",
+      "declarations": [],
+      "dependencies": {},
+      "files": [
+        {
+          "path": "semaprax.toml",
+          "sha256": "9f180d937362ea9e49ea2145c94d33c6be6255d4589c56ecd16cb4ec729c9697"
+        },
+        {
+          "path": "src/app.spx",
+          "sha256": "38944cb8093940f38443db7ad2bb7d6ddf7cd983661cefe2f1388fa966754e6c"
+        },
+        {
+          "path": "src/input.spx",
+          "sha256": "ff725dc7176914cd0bed2f90a595fe2e7563ba836b998acfdb96dfe073f5be29"
+        },
+        {
+          "path": "src/tests.spx",
+          "sha256": "a5901b745dc84a944202219164150bb7b0eb804080e913ba78098a3fd75fb924"
+        }
+      ],
+      "input": "argv-utf8+stdin-stream.v1",
+      "project_profile": "language-command-io.stream-data.v1",
+      "sources": [
+        "src/app.spx",
+        "src/input.spx",
+        "src/tests.spx"
+      ],
+      "target": "native64",
+      "task": "stdin-stream",
+      "template": "stdin-stream-data"
+    }
+  ]
+}

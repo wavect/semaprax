@@ -1,6 +1,6 @@
 {
   "base": "3220d0bf17ebf41f73abdbad1b5f5c66e5bbfbf8",
-  "scope": "FOUR FIXED CURRENT-TO-3220 SOURCE VIEWS; separate postpin218a phase; original predecessors and assertions retained; source custody only, no execution",
+  "scope": "Separate joined-batch20261016 complete four-endpoint source custody; no runtime qualification",
   "rows": [
     {
       "source": "src/cleanup/inventory_builder/typed/before_initial.rs",

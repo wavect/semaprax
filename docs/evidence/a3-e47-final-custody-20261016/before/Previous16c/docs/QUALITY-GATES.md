@@ -1,0 +1,624 @@
+# Quality gates
+
+Status: living internal contributor documentation.
+
+Audience: contributors, maintainers, and release reviewers.
+
+Use this page to choose the repository-wide verification profile. Each
+versioned specification owns its focused tests, fixtures, and known answers.
+
+The v0.4.0 regression corpus has a
+[HOSTED GREEN baseline](RELEASE-0.4.0-STATUS.md). These checks preserve that
+evidence for later changes; ignored or provisioned tests run only when
+explicitly selected.
+
+## Comparison supported-scope gate
+
+For comparison-adapter scope changes, run:
+
+```sh
+python3 -m unittest discover -s benchmarks/cross-language-v1 \
+  -p test_supported_scope.py -v
+```
+
+The same selector is part of the existing `documentation` harness through
+`cross_language_benchmark_suite::supported_scope`. It checks the complete
+182-slot supported-set projection and refusal controls without a toolchain,
+model, credentials or network. Source-reading cases require the existing POSIX
+no-follow acquisition primitives; unsupported hosts run the fail-closed
+capability controls and explicitly skip the source-reading cases. It does not replace the real official
+TypeScript selector in [Runnable adapter v3](CROSS-LANGUAGE-RUNNABLE-ADAPTER-V3.md).
+The supported profile still requires its exact provisioned host and original
+provenance/authority gates. A scope-only #322 reconciliation retains the prior
+corrected 54/54 report; no new hosted run or broader support is implied.
+
+## Live laboratory pilot fixture gate
+
+For the additive #332 protocol, transport or candidate-session changes, run:
+
+```sh
+python3 -m unittest discover -s benchmarks/cross-language-v1/agent/tests -p test_live_pilot.py -v
+```
+
+The existing `documentation` harness owns the `cross_language_benchmark_suite::live_pilot`
+wrapper. A local Node is required for the assertion-isolation positive/hostile
+fixtures. This gate makes no provider call and does not admit the official
+runtime or a second host. [Live pilot v1](CROSS-LANGUAGE-LIVE-PILOT-V1.md) owns
+its scope, operator interface and remaining real-execution gates. Preserve the
+existing supported-scope and v3 pure-provenance selectors when changing admission.
+
+The Linux admission/authority owner also requires its focused pure gate:
+
+```sh
+python3 -m unittest discover -s benchmarks/cross-language-v1/agent/tests -p test_pilot_linux_host.py -v
+```
+
+The same `documentation::cross_language_benchmark_suite::live_pilot` module owns
+this wrapper and clears physical-provision environment variables. Its three
+pure cases do not replace the two explicitly provisioned physical selectors in
+[Linux pilot host v1](CROSS-LANGUAGE-PILOT-LINUX-HOST-V1.md). Those selectors
+exercise actual OS denials and official Node/TypeScript candidate scoring;
+neither pure nor physical fixture evidence implies a provider model trial.
+
+## Specialization cell-accounting gate
+
+For #326 accounting or provenance changes, run:
+
+```sh
+python3 -m unittest discover -s benchmarks/cross-language-v1/agent/tests \
+  -p test_specialization_accounting.py -v
+```
+
+This selector is included in the existing `documentation` harness through
+`cross_language_benchmark_suite::specialization_accounting`. It authenticates
+the original 81-cell denominator, retains the current nine extra cells
+separately, and tests input/refusal, null-outcome and missing-review boundaries.
+Source-reading cases need the existing POSIX no-follow primitives; other hosts
+explicitly skip them and run the fail-closed capability controls. These tests
+are not model trials, a source/oracle approval or an independent leakage review.
+The original specialization protocol and live-transport refusal tests remain
+required and unchanged.
+
+The accounting CLI itself deliberately exits **3** after emitting its complete
+blocked report; input/authentication failures exit **2** with no report on
+stdout. A green accounting self-test never means the experiment is ready or
+issue #326 is closed. See the [operator record](../benchmarks/cross-language-v1/agent/README.md#issue-326-frozen-cell-accounting-blocked)
+for the missing model/authority, frozen-source and independent-review gates.
+
+## The rule
+
+A change is ready when:
+
+1. its baseline quality profile passes;
+2. every affected versioned contract passes its focused evidence;
+3. preservation tests for older schemas and unaffected behavior pass;
+4. any public or hosted claim has evidence from the exact commit being claimed.
+
+A local pass proves only a local result. Hosted, public, cross-platform, and
+production claims need their own exact-commit evidence.
+
+Native public-generic single-owner/admission changes additionally run the
+[admission continuation](PUBLIC-GENERIC-SETTLEMENT-CORPUS-V1.md#native-single-owner-admission-continuation-issue-162):
+actual-renderer comparison, O0/O2 execution, ASan/UBSan, fresh evidence replay and
+compiled negative controls. The optional ThreadSanitizer selector requires a
+working provisioned runtime and must fail rather than silently skip on startup
+failure. Thread misuse/refusal evidence does not claim concurrent execution.
+
+Dependency changes additionally run the complete
+`tests/project.rs::package_manifest_v1` module and the Native Rust builder's
+library and `project_sdk_cli` tests. Effectful Rust-crate coverage requires the
+explicit tool environment documented by
+[Project Dependencies v1](PROJECT-DEPENDENCIES-V1.md); a skipped tool-dependent
+case is not promotion evidence. The arbitrary-crate gate must generate the
+Project SDK, lock and build its consumer offline, invoke a declared external
+crate from `NativeRustSdkImports`, cross the `import rust fn` boundary, and
+observe the resulting value through a SEMAPRAX export.
+
+A ScalarV1 internal flat generic-owned body change additionally requires exact
+reachable-body admission independent of source provenance, frozen value-scalar
+callable and selected-public signatures, and independent linked-HIR
+identity/cleanup checks. The cross-package fixture must replay an exact
+Subject-v3/Report-v2 provider exposing `fn() -> i64`, then pass Project check,
+repeated entry/test, native C11 `-O0`/`-O2`, Core-Wasm and the unchanged scalar
+Web build. Selecting the internal aggregate-bearing function must retain
+`SPX-W115`; subject/report/source/cross-pair mutation must fail before
+execution. Earlier scalar and compiler-owned Vec dependency fixtures remain
+preservation gates. Local passage is not hosted promotion.
+
+An exact-byte native fixture that replaces the compiler's entry wrapper must
+establish its own stdout transport mode. String fixtures use the shared
+test-only binary-stdout setup before allocator instrumentation and check setup
+success before semantic execution; retain exact transcript/status bytes rather
+than normalizing away an unintended Windows CRT newline conversion. That setup
+is fixture plumbing, not evidence that the generated runtime or any target gate
+has executed.
+
+## Standard entry point
+
+On Unix, the standard full profile is:
+
+```sh
+scripts/quality.sh full
+```
+
+The script accepts `quick`, `changed`, or `full`. It validates a deterministic
+`semaprax.quality-route.v2` plan before running gates. `changed` widens to
+`full` when a path lacks a safe narrow mapping. CLI paths add `test-cli` for
+standalone and full-toolchain harnesses; editor paths add `test-editor` for
+extension and documentation tests. The `full` gate list is fixed.
+
+Preview the route without running tests:
+
+```sh
+scripts/quality.sh changed --plan
+```
+
+Use `scripts/quality.sh --help` for options. During a run, each gate name goes
+to stderr before it starts.
+
+| Profile | Intended use | Gates |
+| --- | --- | --- |
+| `quick` | Early local feedback | diff check, Rust formatting, workspace check, advisory documentation/examples/context tests |
+| `changed` | Bounded reviewed changes | `quick` plus package Clippy, agent-context integration, and package rustdoc; plus `test-cli` for CLI surface paths and `test-editor` for editor paths |
+| `full` | Semantic changes and release candidates | workspace Clippy/tests/doctests/rustdoc, release build, package check, canonical example checks, and the Kernel-0 Lean proof gate |
+
+Capability-aware command help additionally requires the exact catalog/dispatcher
+inventory, global-byte preservation, standalone/full capability separation,
+scoped and malformed-position behavior, and zero-activity gates owned by
+[Capability-Aware CLI Help v1](CLI-HELP-V1.md). Typo guidance additionally
+requires bounded unique matching, exact diagnostics, and standalone/full
+capability separation owned by [CLI Help v2](CLI-HELP-V2.md).
+Known-command recovery additionally requires exact status-2 hints, capability
+separation, and preservation of unknown and malformed-help diagnostics owned by
+[CLI Help v3](CLI-HELP-V3.md). The guided global page additionally requires
+its 2048-byte bound, fixed groups, capability filtering, and the exhaustive
+`help all` catalog owned by [CLI Help v4](CLI-HELP-V4.md).
+
+Human diagnostic rendering requires exact path/span combinations,
+control-character escaping, unchanged JSON, and a physical compiler failure as
+owned by [Human Diagnostic Locations v1](HUMAN-DIAGNOSTICS-V1.md).
+
+The script owns the exact command sequence; do not duplicate it in feature
+documents.
+
+The general Windows CI job disables dev/test debug-symbol files and incremental
+artifacts to reduce cold-build I/O. It keeps debug assertions, existing tests,
+physical host gates, and release-profile settings. This saves build cost; it
+does not narrow coverage.
+
+On Linux, macOS, and Windows, the current-toolchain Rust lane runs the same
+closed six-way Cargo target inventory: one lib/bin shard and five parallel
+integration-target shards, with the Unix-only development harness excluded on
+Windows. Each host keeps focused runtime tests, sanitizers,
+and physical-platform gates in a separate blocking evidence job.
+Formatting, Clippy, doctests, rustdoc, release builds, packaging, and examples
+run in the independent `verify-build` matrix, so they no longer wait for that
+evidence. Windows also retains its existing exclusion of
+the separately owned native-Rust-interop package; the router validates those
+exclusion against Cargo metadata instead of accepting a free-form omitted
+target. Unknown target kinds or package exclusions fail closed. The release
+gate requires all three matrices.
+
+Source-repair unit tests run once per host outside the ordinary unit shards.
+The blocking `unix-source-repair` Linux/macOS matrix splits them into two
+shards, which `scripts/ci-msrv.py --repair-shard` fills by dealing the sorted
+case list round-robin, so each case runs exactly once per host. Windows runs
+its complete set, mostly Unix-checkpoint refusal tests, in the single
+`windows-source-repair` job.
+
+A Cargo test command whose selector matches nothing still exits 0, so a
+renamed test can silently stop running. `python3 scripts/ci-msrv.py checked`
+lists the one selected target with the same package, target, features and
+toolchain it then executes, refuses a missing, malformed, out-of-scope or
+ignored-only selection before execution, and accepts a run only when every
+selected case has exactly one completion record and libtest's summary counts
+(passed, failed, ignored, filtered out) match the listed target. It prints
+discovered, selected, executed, passed and ignored counts per invocation; a
+`--list` alone is never execution evidence. The GEN-05B exact-selector step,
+both `unit-heavy` families and the source-repair shards run through it. Other
+direct `cargo test ... -- --exact` selectors in the workflows remain
+unchecked. `scripts/test-ci-msrv.py fake` covers its failure paths against a
+fake Cargo, and `scripts/test-ci-msrv.py real` proves the listing, ignore and
+execution behaviour against the real toolchain on
+`scripts/tests/checked-selector-fixture`; `ci_msrv_sharding_contract` runs
+both levels.
+
+The source Agent lifecycle suite runs once in the sharded matrix. The separate
+Rust evidence job runs only the provisioned Proposal-client case under its
+explicit environment flag; repeating the entire Agent Runtime harness there
+previously consumed the six-hour job limit. The `project` and
+`agent_runtime_v1` harnesses occupy different integration shards.
+
+The fresh public owned-Agent v1 selector is
+`public_owned_agent_fresh_entry_runs_two_real_turns_and_projects_report` in
+the existing library harness. It must prove retained Project/source binding,
+full fresh registration acknowledgement, two real model and target dispatches,
+ordered cleanup, checked terminal Report projection, and pre-effect wrong
+source/replay refusal. The private `owned_runtime_two_turn_` and
+`owned_runtime_restart_prepared_` matrices remain separate #330 gates; a local
+selector pass alone does not establish full shutdown or recovery support.
+
+The Rust 1.88 minimum-version lane checks every workspace target and feature
+combination once with the locked dependency graph. Runtime suites run on the
+current compiler across Linux, macOS, and Windows; repeating all of them on
+1.88 added no target or operating-system coverage. The release gate still
+requires the minimum-version check. Local `full` verification and runtime
+admission limits are unchanged.
+
+## Kernel-0 Lean proof gate
+
+`proofs/kernel0-lean/Kernel0.lean` proves Progress and Preservation for all of
+Kernel-0, including `Let` and non-recursive `Call`, without holes. Its
+fuel-bounded small-step theorem says a closed, well-typed term either reaches a
+value/fault within the supplied budget or consumes exactly that budget with a
+witnessed next `Step`. The decrease bridge shows that value substitution
+preserves node count and call targets; each step shrinks syntax or introduces
+lower-rank calls through contextual beta. A supplied
+`WeightedCallCertificate` now yields a global natural-number potential that
+strictly decreases on every real step and a finite normalization theorem for
+closed well-typed terms. The gate neither derives weights from the ranked call
+graph or compiler HIR nor computes a numeric fuel bound --
+see [Kernel-0 proof mechanization](KERNEL-PROOF-MECHANIZATION-V1.md) for the
+design record and [Semantic Kernel v1](SEMANTIC-KERNEL-V1.md) for Kernel-0.
+Before issue #188, neither CI nor `scripts/quality.sh` re-checked this file:
+proof regression or a broken build could go undetected.
+
+`scripts/kernel0-lean-gate.py` supplies that gate. Its module doc comment owns
+the exact behavior; the summary follows:
+
+- **Always runs, no Lean toolchain required**: re-locates each of the 34
+  headline theorems (`progress_scalarIf`, `progress_scalarIf_closed`,
+  `preservation`, `subst_preserves_type`, `subst_preserves_type_args`,
+  `hastype_weaken_right`, `hastype_weaken_right_args`,
+  `bool_equality_has_type`, `bool_equality_steps`, `bool_inequality_steps`,
+  `bool_ordering_is_not_typed`, the five ranked-call-graph theorems, the
+  full-language progress pair, bounded-step theorem, two-step fixture, and
+  eight structural/rank-bridge theorems and five weighted-normalization theorems)
+  by name in the source
+  and fails if any is missing (deleted or renamed); compares each theorem's
+  exact statement text against a frozen, byte-exact pin in the script and
+  fails on any change (a weakened conclusion or hypothesis, kept name and
+  all, fails here even though the file may still build); authenticates the
+  complete comment/string-stripped live source (every command, declaration
+  gap, and proof body), so notation/macro/syntax/scope/attribute/instance or
+  other elaboration-environment changes require a deliberate full-source
+  repin; retains 14 narrower exact code-region pins for precise diagnostics
+  over the semantic boundary
+  (`Expr`, `Step`, the complete `FaultRedex` and `ArgsProgress` constructors,
+  `Steps`, `Terminal`, `NormalizesWithin`, and their type/value/program/
+  arithmetic/well-formedness/substitution dependencies); and scans the
+  source for a real `sorry`, `admit`, or new `axiom`/`constant` token outside comments
+  and string literals, using a nesting-aware Lean comment/string stripper
+  (Lean 4 block comments nest) rather than a raw grep -- a raw
+  `grep -n sorry` on this exact file returns six hits, all inside doc
+  comments discussing this very gate, none a real tactic invocation. The same
+  stripped view owns signature lookup, so a commented pinned signature cannot
+  shadow a weakened live theorem; see
+  [the mechanization doc's "A concrete pitfall"](KERNEL-PROOF-MECHANIZATION-V1.md#a-concrete-pitfall-the-textual-half-of-the-gate-must-avoid).
+- **Runs only when `lake` is on `PATH`**: a `lake build` of
+  `proofs/kernel0-lean/`, followed by a gate-owned temporary Lean driver that
+  imports `Kernel0` and issues all 34 `#print axioms` commands between fresh,
+  unpredictable markers. The gate parses only that owned interval and fails
+  on a missing/duplicate/unexpected report, `sorryAx`, or an axiom outside
+  `propext`/`Classical.choice`/`Quot.sound`; proof-source output cannot stand in
+  for a removed report. When
+  `lake` is absent, the script prints an explicit, unambiguous `SKIP` line
+  naming exactly what was not checked and exits 0 for that half only -- it
+  never reports a build it did not run as a pass. Under `--require-kernel`
+  that absence is itself the failure: a caller that promised a provisioned
+  kernel and then finds none has a provisioning defect, not a skippable
+  check.
+- **Invoked from `scripts/quality.sh full`** (after the validated
+  `semaprax.quality-route.v2` gate list, not part of its schema) and from
+  the `kernel0-lean-proof-gate` CI job in `.github/workflows/ci.yml`, which
+  **is** in `release-gate`'s blocker set.
+
+  That job provisions the pinned toolchain itself: a sha256-pinned `elan`
+  release archive, then the exact `leanprover/lean4` version named by
+  `proofs/kernel0-lean/lean-toolchain`. The earlier reading -- that
+  AGENTS.md's no-build-time-network invariant forbade this -- conflated a
+  *setup step* provisioning a pinned toolchain, which the same workflow
+  already does for Rust, Node and TypeScript, with a *build* reaching the
+  network, which nothing here does:
+  `proofs/kernel0-lean/lake-manifest.json` declares `"packages": []`, so
+  `lake build` resolves no dependency and contacts nothing.
+
+  Both Lean gates run there under `--require-kernel`, which converts the
+  skip-when-absent path above into a hard failure. That flag is the whole
+  reason the job is admissible as a blocker: without it a provisioning
+  regression would leave the job green while checking nothing, which is a
+  strictly worse outcome than the honest not-hosted gap it replaces. On a
+  developer machine, without the flag, a missing toolchain remains a visible
+  skip and blocks nobody.
+- **Local evidence** (this repository's own dev host has a working Lean
+  4.34.0 toolchain via `elan`, not on `PATH` by default -- run
+  `export PATH="$HOME/.elan/bin:$PATH"` first): a `lake build` run
+  against the committed proof completes in about a second and reports
+  `PASS (source checks + lake build + axiom audit)`. Deliberate mutations
+  verified this session to be caught by name (never as a generic build
+  failure alone): renaming `preservation` away, weakening `preservation`'s
+  conclusion to `True` while keeping its name, and appending a real
+  `theorem ... := by sorry` -- each reported by the specific failing check
+  before any of the others, and a `sorry` mentioned only inside a doc
+  comment was confirmed **not** to trip the token scan.
+
+## Manual baseline
+
+If a host cannot run the POSIX script, reproduce the `full` profile:
+
+```sh
+git diff --check
+cargo fmt --all --check
+cargo check --locked --workspace --all-targets --all-features
+cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+cargo test --locked --workspace --all-targets --all-features
+cargo test --locked --workspace --all-features --doc
+RUSTDOCFLAGS="-D warnings" cargo doc --locked --workspace --all-features --no-deps
+cargo build --locked --workspace --release
+cargo package --locked --allow-dirty -p semaprax
+```
+
+Also run the example check and canonical-format loops in
+`scripts/quality.sh`; the script owns that list to prevent drift.
+
+Hosted CI partitions the workspace tests across the checked unit and integration
+shards. The Linux build job separately executes every benchmark target with
+`cargo test --locked --workspace --all-features --bench '*'`, completing the
+`--all-targets` coverage. This uses Cargo's test invocation: Criterion runs its
+test mode and the custom workflow observer keeps its ordinary default samples.
+That job also completes the named example check and formatting loops, including
+`examples/calculator-rust/callback.spx`. These steps require successful execution;
+Clippy compilation alone does not qualify benchmark coverage.
+
+## Documentation changes
+
+Documentation-only changes must pass at least:
+
+```sh
+git diff --check
+cargo test --locked -p semaprax --test documentation --test examples
+```
+
+`tests/documentation.rs` checks recursive local Markdown links, verbatim
+tour/example excerpts, and every SEMAPRAX block in
+the [agent quick reference](AGENT-QUICK-REFERENCE.md) either verifies cleanly in
+canonical form or produces exactly the diagnostic code its marker names. The
+same harness regenerates and pins diagnostic-help JSON from the reference's
+correction table and requires indexed help for every marked failing block.
+The docs workflow builds mdBook using the pinned version in
+`.github/workflows/docs.yml`. The pinned mdBook installation is cached by
+version, runner OS, and architecture and its version is checked before use.
+Every Docs run still builds the book; only deployable main pushes upload it.
+
+If a document changes a technical claim, run its owning evidence. Prose alone
+does not establish implementation behavior.
+
+## Change-specific evidence
+
+Select every affected row. Requirements add together; one row does not replace
+another.
+
+| Change | Minimum additional evidence |
+| --- | --- |
+| Lexer, parser, or formatter | Success and diagnostic cases, canonical round-trip, unchanged legacy formatting |
+| Verifier or HIR | Focused verifier tests, hostile-HIR rejection where applicable, deterministic identity checks |
+| Runtime semantics | Interpreter/native O0/native O2/Wasm agreement for success, failure, evaluation order, and re-entry |
+| Development harness (`crates/semaprax-harness`) | `cargo test --locked -p semaprax-harness` (unit + `harness_v1`), adapter suites under `packages/semaprax-harness-adapters/` (`python3 -m unittest`, `node --test`), `cargo test --locked -p semaprax-toolchain --test harness_bridge_v1`, and the provisioned `--test real_tools_v1 -- --ignored` cells with the real tool paths named in that file. Record tool versions and platform; provisioned evidence is local, not hosted. |
+| Agent/payment harness | Exact AgentDefinition, AgentGraph, Economic Policy and payment-graph replay; model-output rejection; disjoint-host authority inventory; completed-run handoff; Economic Agent all-rail, x402, restart, cancellation and hostile-document evidence |
+| Agent Proposal to Runtime v1 compatibility | Deterministic record and Copy-scalar-variant admission; Proposal `SPX-G550`/`SPX-G551` preservation; exact cross-definition/schema/profile rejection; byte-preserved canonical Proposal including its LF inside the frozen Runtime final-message action; exact escaped-action bound and one-byte-over rejection; hostile tool-like Proposal identities remaining final-message data; offline Runtime v1 execution/evidence parity; no host reachability; unchanged AgentDefinition, AgentGraph, Runtime Profile, Task, Action, Trace and Evidence v1 known answers. [Agent Proposal to Runtime v1 Compatibility v1](AGENT-PROPOSAL-RUNTIME-V1-COMPATIBILITY-V1.md) owns the focused `agent_proposal_runtime_v1_compatibility::` gate. |
+| Generated Agent Proposal client execution | Materialize exact record and variant client bundles in isolated temporary projects; strict TypeScript 5.8.3 compilation, Python byte-compilation, and offline locked Rust build with a private target; execute all three and admit every stdout through the canonical Proposal decoder; exact i64/i32/u8/u64 extrema, 4096-byte multibyte UTF-8 boundary, both stable case discriminants, all-client text rejection and TypeScript/Python integer/case rejection; no packaging, publication, provider or authority claim. [Language-native Agent Object v1](LANGUAGE-NATIVE-AGENT-OBJECT-V1.md#additive-proposal-client-bundle-v1) owns the authored provisioned Linux selector. |
+| Agent lifecycle | Deterministic binding of the four deterministic operation identities to actual verified functions with HIR-read ownership modes; one acyclic pass to completion with per-stage cleanup and one injected read; byte-identical evidence replay and lifecycle-bundle tamper rejection; an authorization that separates policy, state, proposal, grant case and seal and cannot be spent into a substituted state or proposal; all six terminal conditions; seven stage-binding rejections before any run; a single crate mint site with no consumer-reachable constructor, `Clone` or `Default`; unchanged frozen AgentDefinition, AgentGraph and Runtime v1 profile digests |
+| Source Agent lifecycle bridge | Select one checked `.spx` Agent by persistent identity, derive its exact frozen AgentDefinition-v1 bytes, compile the existing Lifecycle v1 from the same immutable module, and require agent/definition parity; replay binds both exact lifecycle bytes and the checked semantic source revision so role-body drift fails closed; oversized lifecycle bytes and malformed Agent/revision selectors reject before compiler work; successful one-pass execution, refusal, injected-effect failure, missing Agent, stale identity and incompatible signature evidence; no copied role body, new lifecycle wire, provider or ambient authority. [Language-native Agent lowering v1](LANGUAGE-NATIVE-AGENT-LOWERING-V1.md) owns the focused `source_agent_lifecycle::` gate. |
+| Opt-in internal String interpreter | Distinct schema/domain and cross-profile rejection, frozen ordinary/Project/prepared/effectful admission, unchanged external String rejection, source and envelope bounds, canonical/duplicate/re-signed hostile-wire rejection, exact output capacity, String call/contract/failure value parity, fuel/depth boundaries, CLI behavior, and unchanged legacy golden/fuel facts; no heap-memory or Wasm settlement inference |
+| Standalone Wasm internal String settlement | Distinct explicit profile, structural module validation, fixed memory and selected acyclic stack/owner bounds; independent raw mint/drop accounting and every reached mint-refusal path, generated-host exact/+1 quotas and poison/reentry, exact artifact/input binding, native O0/O2 and internal-String interpreter parity, legal scalar-loop helper reuse, unchanged U105/T252/J113 rejection and legacy artifact known answers; [local validation record](WASM-INTERNAL-STRINGS-V1.md#local-validation-record) owns bounded partial evidence, with cross-platform, full-profile, and hosted gates remaining; no support promotion or ordinary-Wasm, peak-heap or trap-recovery inference |
+| Standalone internal String Web package | Actual explicit-source CLI selection and pre-effect usage rejection; bounded source snapshot and final drift recheck; source/descriptor/package exact/+1 bounds; exact eight-file inventory, independent manifest/digest replay and direct compiler-output equality; deterministic repeat and stable-ID rename, hostile identities, fresh-parent publication and foreign-byte preservation; real generated Node, strict provisioned TypeScript and provisioned browser consumers including streamed fetch rejection before EOF; pre-effect legacy String rejection including materialized generic bodies, unchanged raw emission and String-free legacy bytes; the [package validation record](WASM-INTERNAL-STRINGS-WEB-V1.md#local-validation-record) separates selected local consumers and real source/descriptor boundaries from private renderer accounting and unrun required-host/release gates; no support promotion |
+| Prepared Project interpreter or source trace | One cached exact closure admission and one persistent worker across repeated entry/test execution; legacy outcome/fuel parity; cancellation boundaries; exact node/byte/event limits; deterministic truncation; canonical replay; retained-HIR source-origin binding; worker panic/disconnect fail-stop; and unchanged Interpreter/Project/Transport v1-v5 bytes |
+| Prepared Project revision replacement | Exact expected-content revision before candidate preparation, both closures/origins swapped together, byte-identical old execution after stale or ordinary candidate rejection, new/old trace cross-binding, same worker and permit, unchanged ceilings/cancellation/admission, concurrent-operation rejection, and terminal panic or lost acknowledgement; no epoch, incremental-compiler, or peak-heap inference |
+| Ownership or cleanup | Structural inventory, canonical plan build, independent replay, hostile mutation, success/failure settlement |
+| Private function values and generic collection callbacks | The `function_values` selectors in the language, owned-data, workspace and library harnesses cover typed indirect calls, all eight scalar substitutions, callback argument snapshots, empty and ordered Vec adapters, repeated owner settlement, callback failure, hostile callable/template replay, and exact graph/ProgramRoot association. The named LANG-07 CI step requires Clang and Node. [Function Values v1](FUNCTION-VALUES-V1.md) and [v2](FUNCTION-VALUES-V2.md) own admission and local evidence; hosted and public promotion remain separate. |
+| Concrete generic instance graph and cleanup closure | Graph v34 exact revision-bound identities, ordered substitutions, ownership signatures/leaves, forwarding closure and selected cleanup schema; independent HIR-derived inventory/schema replay; missing, forged and stale graph rejection; frozen legacy graph/cleanup known answers and public descriptors; all eight Copy scalars through flat and both nested forwarding shapes on interpreter, C11 O0/O2 and Core-Wasm; bounded Agent Context v2 facts; additive SemanticProgram v2 and exact ProgramRoot cross-pair rejection. The independent Linux job `GEN-05B generic instance semantic closure` additionally selects flat expression composition and exact ScalarV1 cross-package execution. The job passed on implementation commit `c27d06f0cf74749804237a43cc71c248b319cfe0` in [run 34058787739, job 101555489228](https://github.com/wavect/semaprax/actions/runs/34058787739/job/101555489228); this is the selected bounded corpus, not full-CI or broader support evidence. [Concrete Generic Owned-Byte Records v1](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md) and [Canonical Semantic Workspace Revision](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md#additive-semantic-program-node-v2-generic-instance-closure) own these contracts. |
+| Concrete generic owned-byte records | Exact owner/index substitution in source, HIR, inventory, plan replay and target layouts; direct `Bytes` plus every Copy scalar (`i64`, `i32`, `u8`, `usize`, `char`, `f32`, `f64`, `bool`); bounded fully concrete `Box<Pair<Bytes,bool>>` and `Pair<Box<Bytes>,i64>` storage with one global exact/+1 depth/leaf/field-work budget, recursive cleanup shapes, independently bounded Native64/Wasm32 layouts, and hostile child-digest/carrier mutation; hostile type-argument/liveness/order mutation; stable nonconcrete/class/variant/resource/non-Copy rejection; borrow then own; immutable update with unchanged-field transfer and owned replacement; partial construction and partial update failure settlement; unchanged legacy flat generic-function admission plus the bounded nested-nonflat authored-record-template relay with one owner, an identical return and explicit Copy-scalar arguments; representative `Box<Pair<Bytes,T>>` and `Pair<Box<Bytes>,T>` source/HIR authentication over every Copy scalar; frozen legacy Graph-v14 bytes and unchanged CleanupPlan-v7 semantics, with additive Graph-v34 instance facts; representative `bool`/`i64` nested-relay success and failure settlement on interpreter/native O0/native O2/Wasm; exact one-live flat and two-live nested Wasm capacity plus too-small rejection; real cross-file Project link/replay without public descriptor widening. The pre-nested-relay corpus is hosted green in [run 34031917437, Ubuntu job 101482963175](https://github.com/wavect/semaprax/actions/runs/34031917437/job/101482963175). The additive exact-selector step is hosted green in [run 34048713967, Ubuntu job 101528399406](https://github.com/wavect/semaprax/actions/runs/34048713967/job/101528399406), without duplicating its backend and Project selectors in the adjacent generic-owned step. Existing Graph and cleanup schema-byte gates remain unchanged and separate. [Concrete Generic Owned-Byte Records v1](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md) owns the bounded gate. |
+| Flat generic owned-record expression composition | One owning flat generic-record parameter and an identical result; exact admission for all eight explicit Copy-scalar substitutions; direct Copy-field projection, top-level immutable update, `match borrow` returning one bound Copy field before owner reuse, and `match own` reconstructing the same owner; exact update and reconstruction failure settlement; hostile HIR/backend mutation replay; repeated interpreter, native C11 `-O0`/`-O2`, and Core-Wasm execution; no aggregate `memory.copy` added relative to the direct-relay baseline. Generic variants, nested expression-result composition, standalone constructors, consuming projections, broader source shapes, public generic ABI, and cleanup/public-schema widening remain closed or unclaimed. Graph v34 is an additive internal projection. The dedicated GEN-05B/GEN-05C Linux job passed on the exact implementation commit recorded in the owning evidence status; [Concrete Generic Owned-Byte Records v1](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md) owns the bounded gate. |
+| Acyclic generic-to-generic forwarding | Direct calls only between already-admitted generic templates; callee arguments exactly equal the caller-owned parameter vector in declaration order; authored-FIFO deterministic transitive concrete-instance closure with exact 256/+1 evidence; direct-scalar or one-owner-identical-result relay profiles only; exact Graph v14 call/instance identities and unchanged CleanupPlan v2/v5/v7 meaning; chained success plus requires/argument failure settlement on interpreter, native C11 `-O0`/`-O2`, and Core-Wasm; all eight Copy scalars through a three-template nested relay; flat `Pair<Bytes,bool>` CleanupPlan-v5 ScalarV1 package-chain evidence; concrete non-identity, permutation, duplication, omission and cyclic source rejection plus forged argument, signature, inventory path, liveness and call-instance HIR rejection. Inference, constraints, construction, projection, matching, variants, resources, effects, package signatures, and public generic ABI remain closed. The dedicated Linux step is hosted green in run 34048713967, Ubuntu job 101528399406; [Concrete Generic Owned-Byte Records v1](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md) owns the focused gate. |
+| ScalarV1 internal flat generic-owned body | Exact reachable-body classification independent of provenance; bounded generic-owned identity and cleanup retained only inside the body; frozen value-scalar call and public-export signatures. Cross-package evidence adds exact held Subject-v3 and embedded Report-v2 replay, selected coordinate and native64/wasm32 closure equality, and exactly one no-argument `i64` interface; Project check plus repeated interpreter test/entry, native C11 `-O0`/`-O2`, Core-Wasm and unchanged scalar Web build; `SPX-W115` public escape and `SPX-J123` dependency tamper rejection; unchanged manifest, report, Project, descriptor, Wasm and package-evidence schemas. This exact fixture is selected by the independent `GEN-05B generic instance semantic closure` Linux job; its successful exact-commit hosted result is tracked in the owning evidence status. [Project Dependencies v1](PROJECT-DEPENDENCIES-V1.md) and [Concrete Generic Owned-Byte Records v1](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md) own the focused gate. |
+| Public generic type grammar | Gates PG-1 and PG-2 of the [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md): one exact target-neutral term per admitted type with no C, Wasm, size, alignment or layout fact in it; byte-exact render and parse round trip including zero-arity instances, nested substitution before descent, and identity-framed ordered owned-leaf paths; injective length-prefixed identities that round trip when they contain the grammar's own punctuation, are empty, or are non-ASCII, and never render alike for two distinct types; template and instance digests unchanged by a record, parameter and field display rename but distinct under argument permutation, duplication and substitution, with omission rejected as `arity_mismatch`; every one of the twelve closed rejection reasons reachable and reported; nesting, leaf, node, arity and byte bounds refusing rather than truncating; twenty malformed-byte cases and byte-exact replay with `SPX-PG101`-`SPX-PG104`; deterministic repeated projection and separated digest domains. Hosted green on `ubuntu-latest`, `macos-latest` and `windows-latest` for implementation commit `2ef043ba1b989f49b256e456f71fb6e89068bf33` in [run 34594793245](https://github.com/wavect/semaprax/actions/runs/34594793245). No descriptor, carrier, package or consumer selects the grammar, and no compatibility, settlement, support or publication claim follows from it. [Public Generic Type Grammar v1](PUBLIC-GENERIC-TYPE-GRAMMAR-V1.md) owns the gate. |
+| Public generic compatibility | Gate PG-3 of the [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md): candidate surfaces selected by persistent identity only, with the closed non-data position vocabulary (`view:slice-u8`, `view:str`) beside grammar terms and the complete reachable instance closure including nested monomorphic records; thirteen closed reasons with distinct spellings and asserted verdict weights; renaming both records, their type parameters, their fields, the exports and their parameters yields `unchanged` with an identical surface digest and different rendered bytes; export addition compatible, removal breaking; argument permutation, ownership change and result change breaking; a Copy field added to a nested reachable record breaking as `instance_fields_changed` alone, reported once on the record that changed while every term, position and owned-leaf path is unchanged; an added owned field additionally breaking as `instance_owned_leaves_changed` on that record and on every instance reaching it; empty, repeated, unknown, type-declaration, generic-template and oversized selections failing closed; a grammar-rejected position reported with its grammar reason; directional byte-exact replay of both artifacts including the trailing newline; and `semantic_version_decision: not_inferred` with `support`/`publication` unassessed. Hosted green on the three release hosts for commit `2ef043ba1b989f49b256e456f71fb6e89068bf33` in [run 34594793245](https://github.com/wavect/semaprax/actions/runs/34594793245); describing a candidate export admits no public signature. [Public Generic Compatibility v1](PUBLIC-GENERIC-COMPATIBILITY-V1.md) owns the gate. |
+| Public generic metadata consumers | The grammar half of gates PG-5 and PG-6 of the [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md): a Rust, TypeScript/Wasm, C11 and C++ consumer generated from one candidate surface, each compiled warning-free (`-Wall -Wextra -Werror`, `-D warnings`) and executed on its embedded metadata, on the same bytes from a file, and on nine hostile documents - empty, wrong magic, truncated, leading-zero count, field count past the record, forged term length, reordered records, appended record and a stale surface. Every exercised language must report the same closed refusal of `malformed`, `term` or `mismatch` as every other and as the Rust reference reader; the gate fails when no toolchain was available rather than passing silently. Also pinned: length-framed metadata that round-trips exactly, every record kind present in the surface's canonical order with the surface digest closing the document, identifiers derived from term bytes rather than display names, nested instances declared before their holders, byte-deterministic regeneration, and the no-layout/no-ABI banner in every generated file. No calling convention, descriptor, carrier, allocation or ownership transfer is defined or claimed, and no value crosses a boundary. Hosted green on all three release hosts for commit `2ef043ba1b989f49b256e456f71fb6e89068bf33` in [run 34594793245](https://github.com/wavect/semaprax/actions/runs/34594793245), with all four toolchains exercised on each. [Public Generic Metadata Consumers v1](PUBLIC-GENERIC-CONSUMERS-V1.md) owns the gate. |
+| Public generic settlement obligations | The specification half of gate PG-7 of the [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md): for one owned admitted instance parameter, the derived owned-leaf obligations equal the cleanup inventory's structural leaf order and the grammar's owned-leaf paths, each paired with its liveness flag in flag order and carrying that flag's checked drop lifecycle; the transfer unit is the cleanup plan's single whole live owned place, asserted to be unprojected and distinct from any leaf; release order is the exact reverse of the canonical obligation order. A non-owned parameter, a borrowed one, a missing index and a leafless instance fail closed with `SPX-PG501`; a shortened inventory, a retyped storage slot and a relabelled liveness flag fail closed with `SPX-PG502`; derivation is deterministic. Nothing is allocated, transferred, released or executed, and no engine evidence is claimed - PG-7 remains open for that. [Public Generic Settlement Obligations v1](PUBLIC-GENERIC-SETTLEMENT-V1.md) owns the gate. |
+| Public generic runtime settlement evidence | The [Settlement Corpus v1](PUBLIC-GENERIC-SETTLEMENT-CORPUS-V1.md) manifest is shared by library and native harnesses. Native O0/O2, optional required ASan/UBSan, exact physical release order, chronological primary failure, real allocator failures, per-case observations and remint-resistant portable replay have focused gates. The native lifecycle continuation adds stale-alias/recreation safety, sibling settlement isolation, exact/+1 live and lifetime identity bounds, an explicit 8,192-call stress option, and companion replay evidence. The physical-phase extension adds 72 real result-allocation/copy, export-retry and explicit-release cases, exact 16 MiB success, pre-rollback payload checks and a third replayed artifact. The consumer continuation adds 112 cases (108 C11/105 C++17 executions per build), bounded preflight/decode, explicit release/close propagation, isolated caller counters, independent replay and eleven compiled semantic negative controls. Cargo separately verifies actual generator bytes and the Rust explicit-settlement path. The TypeScript continuation adds 108 pinned host settlement cases, 32 host groups and 13 authenticated module fixtures under two V8 tiers; immutable byte authentication, frame zeroing, strict replay, twelve compiled mutants and seven freshly compared native semantic cases are selected separately. Its Cargo byte-equality bridge is required, not inferred from template execution. This is the flat-owned-Bytes fixture subset, not full PG-7, complete Wasm/four-language closure or a hosted/public claim. |
+| Public generic candidate delta | Gate PG-4 of the [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md): a candidate-bound, grammar-strict delta over the manifest's complete `web_exports` set plus its command function, selected by stable identity. An unchanged candidate yields equal surface digests and an `unchanged` verdict; the milestone's own generic fixture is all-excluded with the exact closed reason `borrowed_byte_view` and its rendered bytes carry no template identity, instance term, record identity, or grammar instance sigil; a display rename leaves the verdict and both surface digests unchanged while the rendered surfaces disagree; a real `add_record_field` change on a Project v9 record-returning export is `breaking` with the finding on the record that changed, retaining ordered arguments, substituted fields in declaration order, and owned leaves; recovery-capsule restoration recomputes byte-identical bytes; stale, wrong and malformed candidate selectors fail closed before any surface is described; and independent replay rejects a single-byte mutation, a truncation, empty bytes, a reordered-keys re-serialization, a tampered verdict and another candidate's report (`SPX-PG301`-`SPX-PG303`). No compatibility, support, publication or runtime conclusion is inferred, and no public generic signature is admitted. Local evidence only. [Public Generic Candidate Delta v1](PUBLIC-GENERIC-CANDIDATE-DELTA-V1.md) owns the gate. |
+| Compiled Core Wasm reference settlement | The [private compiled reference continuation](PUBLIC-GENERIC-SETTLEMENT-CORPUS-V1.md#compiled-c11-reference-provider-inside-core-wasm-issue-162) compiles the unchanged native provider and existing assertions with Clang/wasm-ld. O0/O2 and Liftoff/TurboFan execute in-module ownership with no imports. Native O0/O2/sanitizers supply the same carrier oracle. Exact result/status/trace/release/count equality, retained local byte peaks, 34 hostile transport cases, allocator bounds/reuse/scrubbing, independent recompilation/replay and compiled semantic mutants are required. The separately selected Cargo bridge supplies actual Rust-rendered source. This is not the missing compiler-derived generic Wasm ABI or a hosted-green claim. |
+| Public generic ownership milestone corpus | Gate PG-8 of the [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md): the `public-generic-ownership-milestone` job runs the grammar, template-identity, compatibility, candidate-delta, settlement, separation and four-language consumer gates plus the frozen Project v9/v11 descriptor refusals of a selected generic result on `ubuntu-latest`, `macos-latest` and `windows-latest`, as a declared release blocker rather than an optional lane. All three legs are green for implementation commit `2ef043ba1b989f49b256e456f71fb6e89068bf33` in [run 34594793245](https://github.com/wavect/semaprax/actions/runs/34594793245), and each leg's log records `rust`, `typescript`, `c` and `cxx` as exercised rather than skipped. This is evidence for the corpus those gates own; PG-5's calling consumers, PG-6's descriptor bytes and PG-7's boundary settlement are not in it, and public generic ownership remains unsupported and unpublished. |
+| Public generic ownership separation | The eight prerequisite gates and distinct PG-9 decision gate of the [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md) are independent of internal generic semantics, so the separation gate selects a generic template, a concrete generic-instance result, and an owned generic parameter through every public projection the repository has and pins each closed refusal: the canonical ABI report and C header emission exclude them as `generic_function`, `unsupported_result_type` and `unsupported_parameter_mode` while still admitting the monomorphic scalar function beside them; the emitted header carries no template material; the public scalar Wasm export edge rejects all three with `SPX-W115`/`SPX-W116`; the charter keeps every PG-1 through PG-8 state in its closed prerequisite vocabulary; and PG-9 retains the exact human-authorized `unsupported`, `unpublished` decision. No grammar, descriptor, carrier, consumer, compatibility rule, settlement claim or publication is asserted by this gate; it fails closed when an internal admission starts producing a public generic surface. |
+| Concrete generic owned-byte variants | Explicit authored identity and exact owner/index substitution; direct Bytes/Copy arguments and fields; one owned case or the exact two-parameter/two-case `[Bytes, Bytes]` authored shape while monomorphic behavior is preserved; exact authenticated compiler-owned `Result<Bytes, Bytes>` ordinary execution and same-typed postfix `?`; evaluation-once, Ok-payload move, Err residual transfer, shared postconditions, sticky failure, topological ownership-only replay joins, and exact guarded finalizers; complete ordered conditional-case inventory; every live-case vector; inactive-case liveness, case-authentication, join and guarded-finalizer hostility; dynamic parameter/result/call transfer; layout/index parity and forged case rejection; construction tag published last; own/borrow matching; partial construction and owned-arm failure settlement on every owned branch; exact semantic status; repeated interpreter/native O0/native O2/Wasm execution with zero native leaks; native `memcpy` and Wasm `memory.copy` ownership rejection; tight one-live-owner capacity; stable broader-multicase/unsupported-prelude/nonconcrete/nested/class/resource rejection; mixed/general/nested/generic-function owned `?`, Project/public ABI, and hosted support remain closed; [Owned Byte Variant Algebra v1](OWNED-BYTE-VARIANT-ALGEBRA-V1.md) owns the bounded local gate |
+| Owned bounded byte buffer | Exact `bytes_zeroed` literal capacity at most 131072 and at most 256 nested `bytes_set` links with literal in-range indices; frozen-binding and loop rejection; source/HIR identity and capacity parity; one transfer and call commit per link, one final owner, no copy or variant transitions, and hostile nonliteral/callee/commit/transfer rejection; interpreter/native O0/O2/internal Core-Wasm execution; deterministic valid Wasm with exact frozen imports, same-token mutation, repeated success and contract-failure settlement/re-entry at one arena entry, and no `memory.copy` or `memory.grow`; public byte adapter rejection with `SPX-W115`; growth, loops, wider elements, public/Project/std, browser/hosted and cross-platform support remain closed; [Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md) owns the bounded local gate |
+| Owned bounded Vec | Exact compiler-owned `Vec<T>` for the eight Copy scalars; explicit type arguments; hard capacity maximum 8192 with static oversized-literal rejection and sticky code 3 for dynamic construction/reserve failure; consuming push, exact reserve, indexed set and clear; synchronous len/capacity/get; deterministic reserve capacity `max(old_capacity, len + additional)`, set/get code 2 bounds failure, clear retaining capacity, exact same-owner rebind, stable source/HIR identities, and hostile mutation rejection. Prelude v3 is selected only by reserve/set/clear use while frozen v1/v2 contract bytes and collision-free legacy bindings remain unchanged; the three new intrinsic names and identities are reserved. The locally passed bounded traversal selectors pin canonical `for item in values { body }` source, a simple immutable Vec binding, all eight Copy scalars, one ascending length snapshot, frozen source ownership, discarded body results, exact lowering to existing len/get/while HIR, representative empty/multi/full-capacity behavior, cross-engine execution, and hostile source rejection. Hosted evidence remains required. The absence of new identities, schemas, prelude/backend operations, package declarations, and public ABI remains part of the gate. Backend execution is claimed only by the dedicated Vec runtime gate. The locally exercised `std.collections` alloc package is limited to eight authenticated transparent aliases, explicit eight-scalar conformance, generated catalogs, and no public exports. Owned elements, general iterators, adapters, closures, inference, public generic ABI and hosted support remain closed; [Owned Bounded Vec v1](OWNED-BOUNDED-VEC-V1.md) and [Owned Bounded Vec For Traversal v1](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md) own the gates |
+| Owned bounded Box | Exact compiler-owned `Box<T>` for eight explicit Copy scalars; `new`, synchronous borrowed `get`, and consuming `into_inner`; non-Copy one-owner carrier; 4,096-live-allocation bound; sticky `semaprax.box.v1` code 1 refusal; exact lexical/consuming settlement; frozen prelude v1-v3 and Box-only additive v4 selection; authored-Box compatibility and collision rejection; hostile type, identity, liveness, cleanup and wrapper-source rejection; interpreter, native C11 O0/O2 and internal Core-Wasm execution. The `std.mem` package must remain the exact authenticated three-wrapper, 3-by-8-conformance, scalar-result, no-export surface with no public descriptor. Owned payloads, inference, mutable borrow, replacement, regions, arenas, ARC/shared ownership, allocator ABI, public generic ABI and hosted support remain closed; [Owned Bounded Box v1](OWNED-BOUNDED-BOX-V1.md) owns the gate. |
+| Nested owned records and loans | Exact/+1 depth, leaf and work bounds; stable full field-ID paths; partial-construction and trailing-Copy failure; atomic whole moves/call commits; path-overlap loans; interpreter/native O0/O2/Wasm trace parity; v2-v6/v1-v25 byte preservation; [Nested Records v1](NESTED-OWNED-BYTE-RECORDS-V1.md) owns the complete gate |
+| Nested owned-record destructuring | Exact recursive pattern identities/inventory; every owned descendant bound once or rejected; Copy-only wildcards/results; atomic whole-source commit; borrowed-arm alias lifetime and sibling independence; hostile HIR/plan mutations; interpreter/native O0/O2/Wasm trace parity; v2-v7/v1-v27 byte preservation; [Nested Destructuring v1](NESTED-OWNED-RECORD-DESTRUCTURING-V1.md) owns the complete gate |
+| Nested owned-record immutable update | Exact base/record/field identities; top-level replacement inventory and left-to-right completion; unchanged transfer, replaced-old settlement and reverse completed-prefix cleanup; atomic result commit; active-loan rejection; hostile HIR/plan mutations; interpreter/native O0/O2/Wasm trace parity; v2-v8/v1-v29 and flat-update preservation; [Nested Immutable Update v1](NESTED-OWNED-RECORD-UPDATE-V1.md) owns the complete gate |
+| Project Agent Transport v6 | Exact startup admission for only Project v8-v11 and rejection of earlier/future profiles; byte-frozen v2-v5 protocol behavior; direct retained descriptor/carrier equality for all four profiles; full carrier replay plus profile-specific typed descriptor and subject binding; exact closed result keys and complete response-wrapper boundary; zero/oversized/one-byte-short rejection with recovery; stale/surplus/notification rejection and zero Project-tree writes; generated Python, in-harness Rust, and provisioned Node/TypeScript codecs against retained v8-v11 sessions; complete cross-profile/schema/digest/build hostile pairs; closed direct-child environments and bounded settlement; [Project Agent Transport v6](PROJECT-AGENT-TRANSPORT-V6.md) and its [SDK](PROJECT-AGENT-TRANSPORT-V6-SDK-V1.md) own the local gate. Hosted, packaged-client, registry and cross-platform evidence remain required for promotion. |
+| C++ scalar package v1 | Exact caller-authorized source and stable-ID replay through parser, verifier, admission and native generation; byte-identical reconstructed Shim/header/provider; valid-subject substitution, digest-reminted source/revision/selection/artifact and appended-code rejection; final-envelope exact/+1 bounds plus independent hard source/intermediate bounds; separate C11 provider and C++17 consumer compilation/link/execution; success plus precondition/postcondition/arithmetic/invalid-char/null-output failure-slot preservation; frozen C++ Shim v1 bytes. [C++ scalar package v1](CXX-PACKAGE-V1.md) owns the local gate; cross-platform ABI, owned values, exceptions, packaging and support promotion remain separate. |
+| Project v8 C/C++ owned-data package v1 | Exact held-Project v8 descriptor/provider regeneration and package replay; bounded canonical C/C++ artifacts; separate provider plus C11 and C++17 consumer compilation, linking and execution at O0/O2; the pure C lane covers invalid-bool poison, owned-byte length/copy/drop, stale handles and context closure; exact/+1 cumulative input and output limits; poison preservation and recovery; wrong-context/stale/duplicate handle rejection; copy/drop/context-close settlement and fail-stop uncertainty. [Project v8 C/C++ owned-data package](PUBLIC-CXX-OWNED-DATA-PACKAGE-V1.md) owns the local gate; target activation, MSVC/cross-platform ABI, maintained distribution, compatibility and support promotion remain separate. |
+| Project v9 C11 flat owned-record integration | Header bytes derive only from the replayed descriptor; closed status/type-kind vocabulary; exact export, field-count and descriptor-order ordinal mapping; conditional `uint64_t[static N]` in C and C++-legal `uint64_t[N]` rather than native record layout; invalid-input poison; copied scalar validation; owned-handle length/copy/single-drop and stale-drop rejection; context closure; separate actual-provider/consumer C11 compilation, link and execution at O0/O2. [Public Flat Owned Record API v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md) owns the local gate; packaging, cross-platform support, compatibility and v9 promotion remain separate. |
+| Project v9 C++17 flat owned-record adapter | Descriptor-derived value structs and noncopyable/thread-bound client; fixed-width scalar mapping and no public carrier/layout/handle; cumulative borrowed-input preflight; poison preservation on recoverable failure; private handle copy and single settlement; context closure before value publication; separately compiled real C11 provider and C++17 consumer linked and executed at O0/O2 with repeated calls. [C++ Adapter v1](PUBLIC-FLAT-OWNED-RECORD-CXX-ADAPTER-V1.md) owns the local gate; fault-injected fail-stop subprocesses, packaging, MSVC/cross-platform support, compatibility and v9 promotion remain separate. |
+| Project v10 C11 owned-UTF8 integration | Shared header bytes derive only from the replayed descriptor; fixed-width status/tag/handle boundary; no native String layout or sentinel scan; exact length, embedded NUL and multibyte UTF-8 preservation; copy, single drop and context closure; separate actual-provider/consumer C11 compilation, link and execution at O0/O2. [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md) owns the local gate; malformed-provider fault injection, safe C wrapping, packaging, cross-platform support, compatibility and v10 promotion remain separate. |
+| Project v11 C11 nested owned-record integration | Header bytes derive only from the replayed descriptor; closed status/leaf-kind vocabulary; exact export, leaf-count, path-order ordinal and kind mapping; `uint64_t[static N]` carrier rather than native record layout; two distinct owned handles copied and settled exactly once; duplicate-drop rejection and post-settlement context closure; separate actual-provider/consumer C11 compilation, link and execution at O0/O2. [Public Nested Owned-Record API v1](PUBLIC-NESTED-OWNED-RECORD-API-V1.md) owns the local gate; fault injection, safe application wrapping, packaging, cross-platform support, compatibility and v11 promotion remain separate. |
+| Graph schema | Exact new projection, legacy byte preservation, context projection, invalid/tampered rejection |
+| Semantic patch or repair | Preview, stale/drift rejection, no-write failures, independent replay, atomic A0 application |
+| Project candidates and typed intentions | Exact canonical change admission, complete caller migration/evaluation order, AST/source round-trip and complete Project replay, unchanged explicit identities/effects/contracts, core target admission preservation, stale/tampered evidence rejection and no writes; [Candidate v1](PROJECT-CANDIDATES-V1.md) owns the focused unrun evidence |
+| Candidate holes and ordered signature mapping | Unresolved drafts expose no source/evidence, failed fills preserve every sibling, exact stale/duplicate/capacity rejection, actual scope/contracts/effect budget, original argument evaluation order including removed arguments, hygienic bindings, and ownership-mode rejection; [Holes v1](PROJECT-CANDIDATE-HOLES-V1.md) and [Signature Evolution v1](PROJECT-SIGNATURE-EVOLUTION-V1.md) own maintained cases |
+| Unified workspace protocol v5 | Exact startup capability matrix and rejection of RPC elevation; frozen v1–v4 bytes; expected-old/new cold refresh, failure immutability, preserved candidate handles and cleared drafts/attempts; bounded output before state mutation; [Workspace Protocol v5](IMAGE-WORKSPACE-PROTOCOL-V5.md) and [Session CLI](WORKSPACE-SESSION-CLI-V1.md) own maintained cases |
+| Source-backed candidate archives and startup recovery | Exact canonical original-source rebuilding plus unchanged capsule replay; stale/rehash/compatibility/authority-claim rejection; recovery after raw source removal; private normalized root and held ancestor identities; single-link files, bounded inventory/read, no-replace pivot and retained failed stages; post-pivot uncertainty; startup-only same-manifest candidate handoff with live pre/post authentication and no approval restoration; v1/v2 policy and full historical CLI help preservation. [Archive](PROJECT-CANDIDATE-ARCHIVE-V1.md), [Store](CANDIDATE-ARCHIVE-STORE-V1.md), [Recovery](IMAGE-WORKSPACE-ARCHIVE-RECOVERY-V1.md), and [CLI](CANDIDATE-ARCHIVE-CLI-V1.md) own maintained evidence |
+| Automatic candidate/draft retention lifecycle | Publish the immutable typed archive before registry mutation; retain distinct held archive/registry roots; exact checkpoint/plan and expected-current pivot; preserve archive success on stale or uncertain registry outcomes; replay an existing archive into a typed receipt without adoption; resume once or recognize an exact already-retained subject; reject cross-kind/reminted selectors; restart without the original checkout; canonical authority-free replay/resume reports. [Automatic lifecycle v1](AUTOMATIC-CANDIDATE-DRAFT-LIFECYCLE-V1.md) owns the focused local gate. |
+| Live frontend reuse and parallel image reads | Exact-source parser/formatter reuse without a preliminary cold build; unchanged cold/image bytes; source path/identity authentication despite cache hits; staged preview/failed-refresh rollback; strict host-policy v1/v2 separation; bounded worker overlap, ordered sequential-byte equivalence, no mutable/execution/publication dispatch, all-worker join on failure and whole-batch stale rejection. [Live Frontend Cache](IMAGE-WORKSPACE-FRONTEND-CACHE-V1.md) and [Parallel Reads](IMAGE-PARALLEL-READS-V1.md) own maintained cases |
+| V5 source-commit extension | Independent startup-only approval, exact restored candidate/base selection, no request-selected Git policy, approval consumption, one-shot success and G267 uncertainty, bounded retained receipt/chunks and historical status after drift; generic transport checks must not mask a pivot outcome; [Source Commit v5](IMAGE-SOURCE-COMMIT-PROTOCOL-V5.md) owns maintained cases |
+| Integrated v5 signature-to-Git workflow | Execute both real SHA1/SHA256 provider scenarios, exact migrated-call/source/semantic-delta checks, preserved contract/effect/export/parameter facts, explicit-policy tests, all four target projection rows, separate review/restore/approval sessions, committed source/parent/unrelated-mode preservation, wrong approval and actual stale-ref preflight. [Git Workflow v1](PROJECT-GRAPH-OPERATIONAL-GIT-WORKFLOW-V1.md) owns maintained cases; general ownership, native/Wasm execution and physical CAS-race evidence remain separate |
+| Supported v5 product workflow | One clean exact local subject; exact Cargo inputs and selected tool identities; frozen review/publish capability profiles and host test policy; independently executed generated Python, Rust, and provisioned-TypeScript codecs; three isolated local Unix bare SHA-256 publications with handoff, approval, receipt, committed-object, and raw-source bindings; stale/drift/test/recovery/approval/pre-pivot/real-post-CAS-loss/malformed-response hostility; canonical archived replay. [Product Workflow v1](IMAGE-SUPPORTED-PRODUCT-WORKFLOW-V1.md) and [Phase 1 Product Workflow Evidence v1](GRAPH-OPERATIONAL-PHASE1-PRODUCT-WORKFLOW-EXECUTION-EVIDENCE-V1.md) own the gate. Local passage does not establish MCP/editor transport, hosted/cross-platform, target runtime, network isolation, full quality, or programme completion. |
+| V5 workflow response accountability | Preserve the existing JSON-RPC code/message and generic grammar failures; emit complete closed application diagnostic data or the existing overflow response; reject malformed/foreign diagnostic data in generated TypeScript, Python, and Rust clients; bind every selected workflow step to its exact method, payload, grant, effect, authority flags, blind-spot ledger and only permitted runtime update; bind the exact selected-profile digest; reject phase/index/method mismatches. [Application Error Data v1](IMAGE-AGENT-APPLICATION-ERROR-DATA-V1.md) and [Response Accountability v1](IMAGE-SUPPORTED-WORKFLOW-RESPONSE-ACCOUNTABILITY-V1.md) own the gate. This does not qualify a packaged SDK, automatic orchestration/repair, cancellation, or later-head workflow execution. |
+| Candidate test task control | Preserve byte-identical synchronous/cancellable success reports; prove immediate pre-step cancellation emits no report; admit one exact image/project/candidate-bound task per test-enabled v5 session; pin queued/running/sticky terminal states, duplicate/stale handle rejection, bounded result paging, all-false authority and blind spots; cancel and join on drift, refresh, finish and drop; execute direct v5 and ordinary MCP tool paths; validate editor cancellation and late-result invalidation. [Candidate Test Tasks v1](IMAGE-CANDIDATE-TEST-TASKS-V1.md) owns the gate. Broad quality, MCP Tasks conformance, real Extension Host task execution, hosted/cross-platform and timing evidence remain separate. |
+| Packaged TypeScript workflow SDK | Build the production `@semaprax/agent-workflow` artifact; strict-compile generated review/publish codecs and its consumer; offline pack and local-tarball install with disabled scripts and closed inventory, integrity and lockfile; resolve and execute the installed package by name without a compiler; drive the exact thirteen-step review and separately approved nine-step publication through distinct real v5 stdio sessions; authenticate handoff, unchanged source, receipt and local SHA-256 Git objects; reject malformed/structured failure and duplicate publication. [Packaged TypeScript Workflow SDK v1](IMAGE-PACKAGED-TYPESCRIPT-WORKFLOW-SDK-V1.md) owns the explicitly provisioned ignored gate. Offline npm is not OS network isolation, and a local Unix package run is not registry, hosted, cross-platform, release or programme promotion. |
+| V5 targets, artifacts and typed discovery | Actual closure target-emission facts without false per-symbol blame; independent Web/npm carrier replay and source/export/file bindings; candidate replay before pathless builds; zero artifact filesystem writes; runtime-granted catalog/schema/client alignment and explicit opaque-response gaps; executed cross-language validation remains required; [Target/Artifact Projections](IMAGE-TARGET-ARTIFACTS-V1.md) and [Discovery v5](IMAGE-AGENT-DISCOVERY-V5.md) own maintained cases |
+| Candidate-only image protocol | Explicit host selection, preserved read-only v1, schema/catalog alignment, exact handle selection, bounded registries and response-before-mutation, source drift invalidation, independent candidate replay, no source/test/build authority, and hole lifecycle; [Candidate Protocol v2](IMAGE-CANDIDATE-PROTOCOL-V2.md) owns maintained cases |
+| Candidate expression/contract changes and rebase | Actual HIR/source expression identity and lexical scope, exact expected type/ownership after source replay, additive contract inventory and predicate preservation, independent body/display-name changes, contract revalidation, competing signatures and deleted dependencies, exact shared history handling, stale selectors and no writes; [Expression Change](PROJECT-EXPRESSION-CHANGE-V1.md), [Contract Change](PROJECT-CONTRACT-CHANGE-V1.md), and [Candidate Rebase](PROJECT-CANDIDATE-REBASE-V1.md) own maintained cases |
+| Workspace transaction | Held-input rechecks, replay before candidate/staging, one publication pivot, old-or-new process termination evidence |
+| Canonical Semantic Workspace Revision v1 | Deterministic authority-free derivation from one admitted immutable Project; exact schemas and all nine typed nodes; separate semantic/source-projection/manifest/dependency-lock component digests and ordered composite revision; exact fresh replay; stale, malformed, reminted and one-byte-over-limit rejection; no writes or authority; byte-identical legacy Project, managed Workspace and Semantic Workspace Image v1 artifacts; [Canonical Revision v1](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md) owns the locally passed focused evidence |
+| ProgramRoot v1 | Derive one small manifest from the exact Canonical Semantic Workspace Revision; independently recompute all nine fixed-order segment descriptor digests and exact node schema/digest/byte associations; exact ProgramRoot identity and replay; typed unbound DeploymentRoot/InstanceRoot/EvidenceRoot relationships only; malformed/stale rejection; byte-identical legacy Project, graph, and canonical-workspace artifacts. [ProgramRoot v1](PROGRAM-ROOT-V1.md) owns the locally passed focused evidence. |
+| ProgramRoot interface/artifact and Project Lock inputs | Freshly derive and replay exact existing interface descriptors and selected pathless Image artifact reports; associate exact caller-supplied Project Lock bytes only after ordinary lock verification; reject stale, malformed, cross-project, unordered, reminted, and over-bound inputs; privately retain lock bytes for later replay; preserve ProgramRoot v1, Canonical Workspace, Project Lock, Project, Image, and Graph bytes. [Interface and artifact facts v1](INTERFACE-ARTIFACT-FACTS-V1.md) and [ProgramRoot Dependency Lock Association v1](PROGRAM-ROOT-DEPENDENCY-LOCK-ASSOCIATION-V1.md) own the locally passed focused evidence. Exact-context integration and candidate-safe replay are owned by the later context-v1/v2 lifecycle rows. |
+| ProgramRoot v2 exact context | Retain the nine enriched-workspace v1 segments exactly, append interface/artifact and Project Lock association descriptors, distinguish base Project and enriched semantic-workspace v1 roots, reject empty Agent facts/cross-Project inputs/reordering/cycles, and require dual workspace/v2 selectors. The focused gate must select identical v2 bytes and segment digests through canonical context, service generation/snapshot, query execution/replay, transaction validation/replay, service-history snapshot/query/replay, and structural-diff base; exact transaction history must retain the authenticated default base workspace identity, and every frozen v1 wire must remain byte-identical. Stale, reminted, cross-paired, or mutated replay material fails closed and read-only replay appends no history. [ProgramRoot v2](PROGRAM-ROOT-V2.md) and [Exact Program Context v1](EXACT-PROGRAM-CONTEXT-V1.md) own the locally passed bounded gate; candidate-v2 successor and context-v1 exact refresh remain unavailable until lock replay can be proven on an in-memory candidate. |
+| Contracts/test facts and ProgramRoot v3 | Derive stable-ID-sorted admitted function and function-template rows with ordered requires/ensures expression facts; inventory only the declared test main and ordinary executable named tests; assert coverage, execution, and source authority are false; exact replay with Project/Graph/workspace bindings and fixed count/byte limits; append exactly one facts descriptor after the byte-identical eleven ProgramRoot-v2 descriptors while retaining all unbound relationships; fail closed on invalid or stale facts/root material; preserve Canonical Workspace v1 and ProgramRoot v1/v2 bytes. [Contracts and Tests Facts v1](CONTRACTS-AND-TESTS-FACTS-V1.md) and [ProgramRoot v3](PROGRAM-ROOT-V3.md) own the locally passed five-case focused Workspace gate, which exercises skipped-helper exclusion, contract/body changes, stale and noncanonical facts, phase mutation, fact reminting, cross-Project association, v3 segment reordering and substitution, and complete-document byte ceilings. This row is association and declared inventory only, never contract proof, coverage, test execution/results, or authority; the following lifecycle row owns exact-context/service integration. |
+| Exact Program Context v2 and v3 lifecycle | Independently replay exact context v1, contract/test facts, and ProgramRoot v3; require workspace/v3 selectors before operation parsing, cache, or history work; retain the same v3/facts descriptor through query/transaction/service/history operations; independently replay a host-authenticated candidate context against a separately frontend-built Project; stage the complete generation/cache/index/receipt/history successor before exact adoption; preserve all frozen operation, receipt, history, context-v1, and ProgramRoot bytes; retain the authenticated default base workspace in exact transaction history and old/new enriched workspace identities in refresh history; append no history on replay or failure. [Exact Program Context v2](EXACT-PROGRAM-CONTEXT-V2.md) owns the focused context and refresh gates covering parity, exact selectors, stale/cross-paired facts, rollback, immutable snapshots, no writes, and history identity. Execution, transport, commit, and publication remain closed. |
+| Language-native source Agent population | Parse and canonically format the closed `.spx` Agent declaration; lower through the unchanged AgentDefinition v1 compiler; preserve exact AgentDefinition, AgentGraph and Runtime Profile bytes; reject role/kind/identity collisions; require Proposal and Observation role IDs to resolve to checked declarations; independently replay their exact bounded schemas; retain Project Agent facts in stable-ID order; select one identical populated AgentDefinitions node and typed interaction-contract bundle through canonical workspace, ProgramRoot, query and semantic service; select the same exact source Agent into existing Lifecycle v1 execution while binding semantic source revision; no wire change or authority. [Language-native Agent syntax v1](LANGUAGE-NATIVE-AGENT-SYNTAX-V1.md), [Language-native Agent lowering v1](LANGUAGE-NATIVE-AGENT-LOWERING-V1.md), [Agent Interaction Contract Facts v1](AGENT-INTERACTION-CONTRACT-FACTS-V1.md), and [Language-native Agent Object v1](LANGUAGE-NATIVE-AGENT-OBJECT-V1.md) own the focused `source_agent_lowering::` and `source_agent_lifecycle::` gates. |
+| Universal Semantic Transaction v1 | Exact canonical one-operation envelope; composite base plus exact old-name or old-block preconditions; explicit monomorphic non-main function restriction; comment-free canonical source guard; deterministic intent/impact/review/result/evidence; fresh exact replay, including additive dual-selector replay that retains the authenticated base ProgramRoot v2 only in memory; ProjectCandidate parity for RenameDisplayName and typed whole-function ReplaceBlock; byte-identical source outside the selected block; stale old-block, malformed replacement, reminted evidence and stale/cross-paired exact selectors rejected; no writes, replay history append, or authority; unchanged v1 wire and legacy bytes; [Universal Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md) owns the locally passed focused gate |
+| Universal Semantic Transaction v2 | Exact canonical one-operation v2 envelope for `ReplaceExpression`; exact workspace, revision-scoped expression identity, and old-source-slice preconditions; explicit monomorphic source functions including `main`; authenticated body expressions only; ProjectCandidate parity; complete candidate rebuild; exact bytes outside the selected span; deterministic result/evidence and exact replay; ordinary service validation plus ProgramRoot-v2/v3 selector checks before parsing/history on exact routes; stale, contract/implicit/nonreplaceable, malformed, oversized, and reminted inputs rejected; no writes, commit, authority, or replay history append; unchanged v1 transaction and CLI bytes. [Universal Semantic Transaction v2](UNIVERSAL-SEMANTIC-TRANSACTION-V2.md) owns the focused Project-Candidate and Workspace gates. |
+| Universal Semantic Transaction Composition v1 | Deterministic canonical structural diff with exact four-component/nine-node bindings, semantic-delta catalogue, source review and exact replay; unrelated-drift rebase with reminted transaction/direct Candidate parity and replay; both explicit distinct-target merge orders with direct Candidate parity and replay; same-target, stale, tampered, noncanonical and cross-base rejection; exact CLI/core parity with closed grammar and held-root preservation; no filesystem writes; unchanged Semantic Transaction v1, Candidate and canonical-workspace bytes. [Universal Semantic Transaction Composition v1](UNIVERSAL-SEMANTIC-TRANSACTION-COMPOSITION-V1.md) owns the locally passed five-case Project-Candidate and four-case Workspace CLI gates. |
+| Universal Semantic Query v1 | All seven typed constructors and exact canonical parsing; deterministic revision-bound request/result with domain-separated digests; bounded declaration paging with stable direct-query parity; exact symbol/context/impact delegation; truthful shared transaction eligibility paired with a valid rename and unavailable-target cases; fresh exact replay, including additive dual-selector core/service replay that retains ProgramRoot v2 only in the typed result; stale, malformed, noncanonical, reminted, cross-paired, mutated and oversized rejection; immutable old snapshots after refresh; unchanged v1 request/result bytes; no writes, mutation, transport or authority. Frozen Project Agent Transport v5 is outside this additive core and must remain unchanged. [Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md) owns the locally passed focused integration gate. |
+| Persistent Incremental Semantic Workspace Service v1 | Deterministic cold, caller-supplied semantic-cache, and already-replayed exact-context opens; immutable revision-bound snapshots; bounded symbol/context/impact delegation; deterministic retained indexes for tests covering a declaration and functions reaching an effect; canonical bounded work and refresh receipts; source-exact incremental reuse with cold-equivalent Project, graph and canonical-revision results; one expected-current atomic in-memory generation/cache CAS; stale and failed refresh preserve the complete installed generation; transaction validation returns exact artifacts without mutation; exact query and transaction replay plus history snapshot/query/replay require both context selectors and retain ProgramRoot v2 only in memory; exact transaction history binds the authenticated default base workspace identity and replay appends nothing; frozen v1 wires remain unchanged; no filesystem, transport, execution or publication authority. [Persistent Incremental Semantic Workspace Service v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md) owns the locally passed focused gate covering cold/open-exact, query delegation/replay, unchanged and one-source refresh accounting, cold equivalence, rollback, transaction validation/replay and staleness, history selection/replay, index query/replay, refresh consistency, and no writes. |
+| Persistent Semantic Workspace Service Transport v1 | One real long-running `semaprax service` process and direct session; exact closed protocol/method/limit inventory; repeated generation-bound open/status/query/index-query/transaction parity; unchanged and changed caller-owned refresh with cold equivalence, CAS, stale/failed rollback and old-query staleness; malformed, unknown, pre-open and oversized rejection; bounded responses and shutdown; complete unchanged startup Project inventory; frozen v5 protocol identity. [Persistent Semantic Workspace Service Transport v1](PERSISTENT-SEMANTIC-SERVICE-TRANSPORT-V1.md) owns the locally passed four-case Workspace-harness gate. |
+| Universal Semantic Workflow CLI v1 | One authenticated Project lifetime per invocation; exact core JSON for declarations, symbol, context, impact and available operations; exact transaction result/evidence for v1 previews and the additive v2 `replace-expression` preview; Candidate-derived structural diff; exact `review <project> <transaction.json> [--evidence]` core artifact parity while preserving legacy patch review; explicit/current revision binding and stale rejection before expression discovery; closed subcommand/options grammar; unchanged legacy v1/query outputs; no source, cache, generation, transport or publication writes. Project Agent Transport v5 remains outside the adapter and unchanged. [Universal Semantic Workflow CLI v1](UNIVERSAL-SEMANTIC-WORKFLOW-CLI-V1.md) and [Universal Semantic Transaction v2](UNIVERSAL-SEMANTIC-TRANSACTION-V2.md) own the focused gates. |
+| Installed Agent Guidance v1 | Exact core/CLI parity for all six closed skill selectors; recursively canonical LF-terminated envelopes, domain-separated payload and embedded-source digests, installed package-version binding, optional commit grammar and the one-MiB cap; inert malformed/unknown grammar and empty working directory; exact five-operation query capability inventory with no host grants or authority; unchanged legacy source-query bytes. [Installed Agent Guidance v1](INSTALLED-AGENT-GUIDANCE-V1.md) owns the locally passed five-case focused projections-harness gate. |
+| Installed Diagnostics v1 | Independent exact rescan of every static diagnostic code occurrence below `src/` and `crates/`, with the complete unresolved dynamic-constructor-site inventory retained; deterministic canonical LF envelopes, domain-separated payload digests, installed version binding and 8-MiB/1-MiB bounds; exact core/default-text/JSON CLI parity from an empty working directory; malformed, unknown, noncanonical, tampered and oversized rejection; no writes; unchanged legacy diagnostic text and JSON. [Installed Diagnostics v1](INSTALLED-DIAGNOSTICS-V1.md) owns the locally passed five-case focused projections-harness gate. |
+| Installed Fix Plan v1 | Exact deterministic one-operation installed catalog; canonical LF bytes, domain-separated payload and embedded-report digests, compiler version binding and 1-MiB/64-MiB bounds; exact current-source Diagnostic Repair report/source binding and fresh replay; exact core/CLI parity for both closed `fix --plan` forms; malformed, unavailable, noncanonical, tampered, oversized and stale rejection; no writes or authority; unchanged legacy `repairs` and `repair` bytes. [Installed Fix Plan v1](INSTALLED-FIX-PLAN-V1.md) owns the locally passed five-case semantic-harness gate. |
+| Candidate tests and v3 execution | Exact candidate replay, real transitive HIR relevance, conservative non-call fallback, fixed host policy, nonzero/fuel failure, source/test/options/diff binding, old-profile rejection and no request elevation; [Candidate Tests](PROJECT-CANDIDATE-TESTS-V1.md) and [Test Protocol](IMAGE-CANDIDATE-TEST-PROTOCOL-V3.md) own maintained cases |
+| Rejected candidate attempts | Exact predecessor/intent/diagnostic provenance, no invalid source/image exposure, stale selectors and compiler-admitted same-value repair only; [Candidate Diagnostics](PROJECT-CANDIDATE-DIAGNOSTICS-V1.md) owns maintained cases |
+| Candidate managed publication | Lock before replay, exact host-approved candidate and ACTIVE base, independent Project/source/evidence reconstruction before staging, existing single pivot, unchanged raw files and explicit postpublication uncertainty; [Candidate Publication](PROJECT-CANDIDATE-PUBLICATION-V1.md) owns maintained cases |
+| Semantic image store and refresh | Secure source-backed store reuse, exact receipt/image replay, stale/corrupt/deleted inputs, same-revision reuse and conservative reverse-module invalidation; [Image Store](SEMANTIC-IMAGE-STORE-V1.md) owns maintained cases |
+| Semantic deltas and diagnostic protocol v4 | Exact source-bound fact replay, no invented runtime/equivalence claims, bounded UTF8 chunks and attempt accounting, legacy method preservation and no request capability escalation; [Delta](PROJECT-CANDIDATE-SEMANTIC-DELTA-V1.md) and [Diagnostic Protocol](IMAGE-CANDIDATE-DIAGNOSTIC-PROTOCOL-V4.md) own maintained cases |
+| Integrated graph workflow | Cross-file signature migration, unrelated merge, competing-signature rejection, reports/test policy, separate managed publication and stale rejection with unchanged raw source; [Workflow](PROJECT-GRAPH-OPERATIONAL-WORKFLOW-V1.md) remains maintained |
+| Incremental frontend and expression holes | Source-exact cache keys, actual parse/canonicalization reuse, invalidation and cold semantic-output equivalence; disjoint selections, lexical scope, overlap rejection, full fill replay, surviving-selector remapping and no unresolved materialization; [Frontend Cache](PROJECT-FRONTEND-CACHE-V1.md) and [Expression Holes](PROJECT-CANDIDATE-EXPRESSION-HOLES-V1.md) own maintained cases |
+| Persistent semantic-cache lifecycle | Existing empty private root; exact cold source admission, authenticated stored restore, unchanged explicit refresh, digest-selected eviction and byte-identical cold reconstruction; unchanged canonical source bytes; exact Project/image identity; required nonzero cold resolutions, zero cold hits and complete warm/refresh hits; bounded deterministic work/retained-byte receipt and honest exclusion of timing, RSS, cross-process and crash claims. [Semantic Cache Store v1](SEMANTIC-CACHE-STORE-V1.md) owns the maintained gate. |
+| Candidate Git publication | Independent source and Git-object authentication, exact approved candidate, preserved unrelated tree entries, host-selected bare repository/ref, held executable/cwd use under same-byte and ancestor substitution, fixed non-inherited environment and exact descriptor inventory, bounded I/O/deadline, leader reap plus process-group quiescence, old-OID compare-and-swap, disabled ambient hooks/network and explicit post-pivot uncertainty; [Git Publication](PROJECT-CANDIDATE-GIT-PUBLICATION-V1.md) owns the gate |
+| Root unsafe quarantine | `root_unsafe_quarantine` plus strict Clippy prove the root manifest denies unsafe code, reject allow/expect/warn overrides outside the held-Git platform module, source-lock that sole local exception, and confirm the private module exposes no unrestricted public process API |
+| Source-backed static protocol conformance | Canonical protocol/impl preservation, original-source locality before synthetic imports, global identity uniqueness, exact required-member signatures and effect/precondition rejection; [Static Conformance](STATIC-PROTOCOL-CONFORMANCE-V1.md) owns maintained cases |
+| Typed interface candidates and image conformance | Complete member discovery, preserved source binding identities, exact replay/recovery, explicit rebase rejection, source-bound read-only image reports and v4 chunks with legacy method exclusion; [Interface Changes](PROJECT-INTERFACE-CHANGE-V1.md) and [Image Conformance](IMAGE-PROTOCOL-CONFORMANCE-V1.md) own maintained cases |
+| Candidate moves and record fields | Exact stable-ID relocation and import/call rebinding, no effect/export widening, pure appended defaults after existing constructor evaluation, recursive exact-pattern migration, preserved old field identities, complete source replay and conflict handling; [Declaration Move](PROJECT-DECLARATION-MOVE-V1.md) and [Record Field Change](PROJECT-RECORD-FIELD-CHANGE-V1.md) own maintained cases |
+| Image HIR relationships | Exact ValueId/field/expression/source facts, declared consumption contexts, bounded deterministic traversal and paging, unchanged prior facet handles/payloads, and fail-closed unsafe Project admission; [HIR Relationships](SEMANTIC-IMAGE-HIR-RELATIONSHIPS-V1.md) owns maintained cases |
+| Candidate declaration, extraction and recovery | Exact one-function identity extension, namespace/effect/ownership admission, actual ValueId capture order, Copy-only captures, exact whole provisional publication for a resource-free owned result, no crossing loans, and unsafe-boundary rejection; later edits and merge of introduced identities, complete canonical history replay, tampered/stale/capacity failures and unchanged source/read-only authority; [Declaration Change](PROJECT-DECLARATION-CHANGE-V1.md), [Extraction](PROJECT-EXTRACTION-V1.md), and [Recovery](PROJECT-CANDIDATE-RECOVERY-V1.md) own maintained cases |
+| Project manifest or carrier | Exact source-set authentication, Phase-A reuse, closure/admission checks, carrier replay, post-publication drift behavior |
+| Windows owned npm publication | Opaque compiler-prepared six-file handoff; exact v8/v9/v10 inline/published equality; standalone CLI/library pre-effect rejection and full-host aliases; source drift and primary failures; held-parent/stage/inventory/byte authentication, no-clobber and post-settlement no-rollback; actual Windows Node consumers and unchanged Unix/older-profile routes. [Windows publication v1](WINDOWS-OWNED-NPM-PUBLICATION-V1.md) owns the maintained gate. |
+| Project profile admission | Exhaustive v1-v10 schema/profile dispatch, descriptor derive/replay equality, ordinary v9 load and Revision Store round trip, v9/v10 execution-envelope replay, exact earlier-profile bytes and diagnostics |
+| Windows Project Revision Store | Explicit Windows-entry-v1 APIs/schema, unchanged ordinary v1 bytes, protected effective-SID/LocalSystem DACL and mutex authority, fixed-local-NTFS/alias/ADS/reparse/link admission, bounded held reads/inventory, exact retained-parent publication and settlement, provisioned-host physical fixtures, all admitted Project profile round trips, and no support promotion from skipped or unrun gates |
+| Project agent transport | Closed method/parameter schemas, exact revision binding, pre/post held-input authentication, response framing boundaries, zero-write inventory, hostile replay, and byte-preserved earlier protocols |
+| Native backend or ABI | C11 compilation at required optimization levels, descriptor/header agreement, runtime status and cleanup conformance; Project-v8's public C boundary additionally executes the named Option/Result tags at O0/O2, rejects inactive-case handle authority, and settles every active handle exactly once |
+| Native HTTPS boundary | Emit and compile the authenticated Project-v13 command with libcurl; prove the pinned Mozilla bundle inventory, an actual encrypted loopback handshake with hostname and certificate validation, bounded canonical response projection, proxy suppression and settlement; keep the public-PKI endpoint smoke explicit and ignored because its inputs are not deterministic |
+| V10 inline String settlement | Real descriptor replay and native provider generation; strict O0/O2 allocation/free accounting, failure-slot poison, late-argument/callee/local/loop failures, clone/branch/pressure and mixed Bytes ownership, same-context reuse after failure, explicitly selected sanitizers, safe locked/offline Rust consumer, and earlier-provider preservation except the explicit internal-String correction below; ordinary C corrections have a separate gate and context-handle closure is not a physical-allocation proof |
+| Ordinary/stdout inline String settlement and contents | Actual emitted-C O0/O2 allocation/free counts, normalized failure and poisoned out slots, parameter/temporary/provisional settlement, branches/loops/contracts/intrinsics and mixed Bytes, generic-instance runtime discovery, exact-length NUL/Unicode contents across admitted interpreter/native/Wasm value lanes, explicit sanitizers, String-free byte/budget preservation, unchanged v10/command/callable selectors, and Target Evidence/Evidence-v2 binding to current production C; no inferred ordinary Wasm settlement |
+| Owned-data provider internal Strings | [Explicit v8/v9 correction](NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md): actual descriptor replay/provider generation, physical allocation/free accounting beyond handle closure, strict O0/O2 and provisioned sanitizers, pre/post-call-commit and mixed Bytes failure settlement, exact NUL/Unicode values, poisoned output slots, same-context reuse, real generated locked/offline safe Rust consumer; String-free output/budget and existing KAT preservation, no activated Project admission widening; all new execution remains unrun |
+| Wasm or JavaScript boundary | Structural Wasm validation, generated binding checks, Node execution, and browser/multi-engine evidence when claimed |
+| Direct-Bytes browser boundary | Execute the provisioned [Owned Data Browser v1](https://github.com/wavect/semaprax/blob/main/platform-tests/owned-data-browser-v1/README.md) on each selected engine: real package imports, exact fixture signatures/carrier, capacity and hostile-input rejection, calibrated pre-instantiation Wasm authentication and genuine failure recovery; missing prerequisites fail and authored cases alone grant no browser promotion |
+| HTTPS browser fixture boundary | Build Project v13 into a fresh npm package and execute [HTTPS Browser v1](https://github.com/wavect/semaprax/blob/main/platform-tests/https-browser-v1/README.md) in provisioned Chromium: exact fixture-v3 result, authenticated Wasm, invocation reuse and tamper rejection, no page/request failures, and an observed request-origin set containing only the loopback harness origin; this grants no live browser TLS authority |
+| Owned-data boundary corrections | Zero payload snapshot allocation on complete-tuple rejection; intrinsic-brand/species hostility; exact UTF-8/input bounds; selected-call-path private-frame exclusion and failure-slot poison; live foreign-context/reincarnation handle rejection; 4,095/4,096/4,097 live-slot and serial-exhaustion/contention settlement; v1-v7 preservation and explicit v8-v10 artifact deltas, subject to the separately documented shared arithmetic correction below |
+| Checked `usize` multiplication | [Shared Wasm correction](PORTABLE-INDEXED-BYTE-DATA-V1.md#checked-multiplication-correction): ordinary and aggregate routes, zero on both sides, maximum/exact/overflow boundaries, evaluated-left failure precedence, nested status-branch depth, actual staged-owner success and failure settlement, preserved failed output, and same-instance recovery across interpreter/native O0/O2/generated npm; affected Wasm/integrity bytes change intentionally, not schemas or native behavior |
+| Owned npm invocation failure state | [Shared v8/v9/v10 contract](OWNED-NPM-INVOCATION-V1.md): seven real generated packages covering direct/variant/mixed/flat renderers; reusable preflight and authentic semantic failure; unexpected type/range/falsy throws, malformed statuses, forged semantic markers, caught reentry, post-consume UTF-8 failure, sticky primary under cleanup failure, no later engine/import/publication after poison, unchanged non-runtime artifacts and historical cryptographic pins. Actual generated-result decoding must reject corrupted tags/carriers/bools and modified failure slots with calibrated payload-read/consume observations, same-arena stale tokens, inactive-storage non-access and live-owner settlement disagreement; a test-local decoder or arena is not a substitute. |
+| Doctor tool detection and subprocess lifetime | Real basename-sensitive multicall symlink, relative PATH and non-executable shadows, missing/failed tool exits, complete numeric version and suffix admission, unchanged report schemas/order, and physical exact/plus-one output, timeout, descendant, descriptor and fail-stop settlement fixtures on all supported hosts. Linux additionally requires actual BPF policy interpretation, direct/exec-descendant syscall denial, before/after unfiltered-host controls, actual filter-install rejection before executable entry, unsupported-ABI rejection and unchanged Command-descendant compatibility gates. The [lifecycle contract](DOCTOR-PROBE-V1.md) leaves complete discovery/filesystem/broker and cross-platform no-network isolation open. |
+| Linux production doctor provisioner | Exact Ed25519 capsule/request/bundle/static-image binding, fixed descriptor inventory, procfs/cgroup2 authentication, pre-effect bounds, role-specific default-deny syscall tables, private namespace maps, atomic cgroup placement, held-image execution, sticky capture failure, exact reap and `populated 0`; the [Provisioner v1](DOCTOR-PRODUCTION-PROVISIONER-V1.md) additionally requires an unpacked signed release with real Clang/Node/Rust plus hostile authority and settlement cases before promotion. Missing kernel/cgroup/sealing prerequisites fail rather than skip. The [Provisioned Linux gate v1](DOCTOR-PROVISIONED-LINUX-GATE-V1.md) owns the executable gate — host preconditions, exact serial selection of the twenty-six ignored lifecycle fixtures, create-new bound evidence, and a fail-closed verdict in which a skip is never a passing confinement result. It has executed on hosted Linux but remains red on the real-distribution fixture, so WP-05 is unpromoted. Run `python3 scripts/doctor-provisioned-linux-gate.py --self-test` to check refusal logic anywhere; that self-test is not evidence the gate passed. |
+| Signed doctor generation install | Hold the exact private Unix store root for the API lifetime; verify signed release meaning from held exact member bytes; reject unsafe roots, modes, links, surplus, adoption and substitution; fsync members/stage/root around no-replace generation publication; reverify before cooperative expected-current activation/rollback; classify post-pivot failures as sticky uncertainty; authenticate every held stage member before recovery's first effect and preserve foreign bytes. [Signed Install v1](DOCTOR-SIGNED-INSTALL-V1.md) owns the local gate and explicitly excludes Windows, CLI execution and kernel-CAS claims. |
+| Project v8 promotion receipt replay | Closed canonical one-line schema; exact 40-lowerhex commit; baseline/display-rename subject and stable-ID bindings; fixed eight-artifact inventory; closed ordered fifteen-gate platform/tool inventory; pass-only observations; domain-separated receipt and artifact digests; unknown/duplicate/reordered/deep/oversized/reminted/cross-profile rejection. [Promotion Receipt v1](PROJECT-V8-PROMOTION-RECEIPT-V1.md) is authority-free local evidence and does not itself satisfy WP-15 or hosted promotion. |
+| Report or schema projection | Closed admission/exclusion vocabulary, deterministic envelope, independent replay, tamper and budget rejection, cross-report consistency |
+| Offline package resolution | Strict SemVer/range boundaries, deterministic permutation and first-feasible backtracking, multi-root/transitive closure, conflict/duplicate/cycle rejection, exact bounds, ternary-target and capability policy, subject/report and outer-wire remint rejection, exact replay, and preserved Report/Lock/Compatibility bytes |
+| Offline published semantic lock snapshot | Exact raw Subject-v2 preservation, catalog-permutation canonicalization, input/evidence/Lock cross-pair and remint rejection, checked component/cumulative bounds, two complete replays around held staging, exact fixed three-file inventory, no-replace publication, settlement/uncertainty/foreign-byte evidence, platform authority preconditions, and unchanged Resolver/Lock/build-v1/v2 bytes and diagnostics |
+| Authenticated package ranges | Subject-v3 dependency order/self/grammar rejection, exact selected-version range binding, range intersection and rollback, numeric candidate ordering, catalog permutation, cycle/depth/edge/decision/work exact bounds, Lock-v3 and Resolver-v2 tamper/remint/cross-pair replay, and exact v1/v2 API/schema/byte/diagnostic preservation |
+| Offline multi-package source capsule | Two-to-four-package success, exact resolver/subject/report replay, explicit-root and root-only export binding, exact typed-interface comparison ignoring display/parameter names, source-import versus dependency-graph equality, unreachable/provider/type/effect rejection, canonical-wire and every exact/+1 bound, tamper/cross-pair replay, and preserved Report/Lock/Resolver/build-v1 bytes |
+| Offline linked scalar Wasm package build | Real two-package capsule-to-build replay, root-only export ownership, exact seven-import/export inventory, distinct v2 canonical manifest/evidence, mutation and cross-pair rejection, cumulative artifact/evidence and fixed-point boundaries, two compiler replays around held publication, exact three-file inventory, cleanup/uncertainty/post-publication authentication, and unchanged build-v1 bytes/order |
+| Private host integration | Authority inventory, fail-stop uncertainty, process/loader settlement, platform-specific hosted jobs |
+| Built-in project publication | [Owning contract](NEW-PROJECT-PUBLICATION-V1.md): unchanged template bytes and ordinary Project validation, exact template-specific root/source inventories including the Project v26 source-command `digits`/two-source shape, relative/parent-relative success, post-rename held-parent/output and original-alias displacement, preserved original/foreign inventories after failure and drop, partial-stage residue rejection; forced Windows extended-to-legacy call with actual zero replacement field plus native success and collision preservation; preserve the admitted release regression gates and separately specified physical-host prerequisites |
+| Public Project scaffold capsule | [Owning contract](PROJECT-SCAFFOLD-V1.md): exact ordered four-file bytes, ordinary and top-level digests, subject-bound canonical replay, every semantic/canonical mutation, exact/+1 descriptor capacity, private-`new` byte convergence, stdout-only public CLI, empty working directory, and unchanged Project-v1/private-publication known answers; the admitted release corpus is HOSTED GREEN and grants no filesystem or publication authority |
+| Standard library | Exact package-directory/catalog agreement; canonical sources; stable `std.*` identities; examples and conformance on interpreter, native C11 O0/O2, and Core Wasm; bundled dependency range and multi-package linking; cross-file `borrow str`; authenticated alloc-tier intrinsic aliases without public generic exports; exact calculator/library staged-publication inventories |
+| Semantic Workspace Image | Execute the maintained [Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md) exact replay, typed-index, stale/drift, capacity, deterministic cross-root, CLI and zero-write evidence before promotion |
+| Public scalar WIT interface | [Owning contract](PUBLIC-SCALAR-WIT-INTERFACE-V1.md): exact retained Project-v1 selection, injective stable-ID names, ordinal parameters, `result<T, status>`, deterministic bounded WIT and descriptor bytes, independent subject/HIR replay, mutation/truncation/trailing/remint/cross-subject rejection, wrong-profile pre-effect rejection, external parser and consumer evidence, and proof that access and replay perform no new target or I/O activity after Project admission. Interface evidence is not Component execution. |
+| Public API or generated SDK | External consumer with no source/workspace dependency, locked offline build, inventory and compatibility checks; retained-HIR descriptor binding through authentic self-replay and correctly digested cross-replay rejection, as specified by [owned data](PUBLIC-OWNED-DATA-API-V1.md) and [flat records](PUBLIC-FLAT-OWNED-RECORD-API-V1.md) |
+| Unix npm publication | Real-carrier parent/ancestor substitution, exact retained artifact and foreign-byte preservation, healthy alias binding, unchanged no-clobber behavior and thread-local fixture isolation; [Project Manifest v2](PROJECT-MANIFEST-V2.md) owns the shared boundary and maintained regression modules |
+| Shared full-toolchain test launcher | Exact Cargo artifact selection, stale guessed-path rejection, unique manifest-bound binary and successful build completion; [development](DEVELOPMENT.md#verification) owns the helper boundary and maintained regression entry point |
+| Unpacked release product | Explicit native archive admission, exact inventory and manifest/version agreement, outside-checkout calculator and read-only daemon execution, stable source/package bytes, and real generated Node/Rust consumers; [release process](RELEASE-PROCESS.md) separates artifact labels, local execution and release provenance. No implicit archive build, extraction, installation or hosted promotion. |
+| Kernel-0 Lean proof (`proofs/kernel0-lean/`) | Headline-theorem presence and byte-exact pinned signatures extracted from comment/string-stripped source (deletion, renaming, statement-weakening and commented-signature spoofing fail closed, no Lean toolchain needed), one authoritative exact pin over the complete live comment/string-stripped source plus 14 narrower semantic-region pins for diagnostics, a comment/string-aware `sorry`/`admit`/`axiom`/`constant` token scan, and, where `lake` is on PATH, a `lake build` plus a gate-owned unpredictable-marker `#print axioms` audit requiring every headline theorem's axiom set to be a subset of `propext`/`Classical.choice`/`Quot.sound`. The complete-source pin makes every live command, declaration gap, and proof body review-and-repin controlled. Built-in hostile self-tests reject commented signatures, source-forged/removed reports, live `constant` declarations, an injected zero-cost `Steps.teleport`, an injected universal `FaultRedex`, and a gap-injected local notation rebinding `FaultRedex` to `True`. The build half also requires three semantic hostile controls to fail at their exact type mismatches: a recursive call cannot forge strict rank, a genuine two-step fixture cannot fit a one-step normalization budget, and its equal-size first beta cannot be forged into a strict node decrease. See "Kernel-0 Lean proof gate" below for the exact catch/skip inventory; a missing toolchain is an explicit, visible skip of the build half only, never a silent pass. |
+
+The owning specification lists exact focused tests. If that list is missing,
+add it there rather than duplicating the spec here.
+
+## Required semantic cases
+
+For a runtime-meaning change, cover every applicable case:
+
+- minimum and maximum admitted values and capacities;
+- exact-capacity success and capacity-plus-one rejection;
+- left-to-right evaluation and lazy boolean behavior;
+- first-failure stickiness;
+- success, contract failure, runtime failure, and cleanup failure;
+- repeated entry and deterministic output;
+- stale source, source drift, tampered evidence, and forged re-digested input;
+- unsupported profile rejection before target or filesystem effects;
+- unchanged bytes for older schema versions and unaffected examples.
+
+Never weaken a diagnostic or golden merely to make the gate green. A deliberate
+wire change needs a migration, an updated versioned contract, and explicit
+compatibility evidence.
+
+## Public Native Rust SDK promotion
+
+The generated Rust SDK is a useful example of evidence layers. Local promotion
+requires the focused `public_native_rust_sdk_v1` and
+`public_native_rust_sdk_ci_contract` suites plus the standalone
+`examples/calculator-rust` consumer. The consumer must use the generated
+package with no repository source or workspace dependency and build in locked
+offline mode.
+
+Public promotion additionally requires the blocking Ubuntu, macOS, and Windows
+jobs at the exact claimed commit, including deterministic inventory,
+tool-authority, failure-settlement, and compiler-free consumer evidence. The
+builder remains unpublished until that boundary is intentionally promoted.
+
+## Hosted evidence
+
+For a hosted claim, use the exact workflow jobs named by the owning
+specification. A prior-head run is historical evidence; diagnostic and
+allowed-failure jobs do not pass a promotion gate.
+
+A cancelled run is neither. The `Release gate` job aggregates every CI blocker
+and fails, rather than skipping, when any of them failed, was skipped, was
+cancelled, is missing from its dependency set, or reported against another
+commit; [required CI checks](CI-REQUIRED-CHECKS-V1.md) owns that gate's contract
+and the unapplied repository-rule proposal that would make it a required check
+for `main`. No branch rule is in force today, so a green gate is evidence about
+a commit, not a precondition that any commit had to meet.
+
+The current released baseline is annotated tag `v0.4.0` at exact commit
+`dfc15e2ddc818fa97744b5a9d69fd6108dd6a321`, published
+`2026-09-10T10:31:03Z`; the three host-built archives and digests live in the
+[release evidence record](RELEASE-PROCESS.md#040-hosted-release-evidence).
+The prior baseline remains annotated tag `v0.2.0` at exact commit
+`5f6fb9655fdec92c57ab71615cfd7bfa8cc76051` with all 45 jobs in
+[tag run 33608662244](https://github.com/wavect/semaprax/actions/runs/33608662244)
+passing, including the blocking release aggregation, three host-built archive
+smokes, and final prerelease publication; see
+[its release evidence](RELEASE-PROCESS.md#v020-hosted-release-evidence).
+Either tag run promotes release evidence only where an owning gate selects it;
+it does not turn ignored, unprovisioned, multi-engine, physical-device,
+registry, or production-support requirements into passing evidence.
+
+For platform claims, keep these boundaries explicit:
+
+- compilation or object inspection is not runtime execution;
+- simulator evidence is not physical-device evidence;
+- Node execution is not browser or multi-engine evidence;
+- one operating system is not a cross-platform matrix;
+- a private fixture is not a supported public SDK or application surface.
+
+Record exact commit and run links in the owning specification's status/evidence
+section or the changelog. Link the completion matrix to that owner instead of
+copying run IDs into it.
+
+## Evidence strength
+
+From weakest to strongest:
+
+1. design text;
+2. compilation or structural inspection;
+3. deterministic local unit/integration evidence;
+4. independent replay and hostile-input evidence;
+5. exact-head hosted execution on the required target matrix;
+6. external consumer or representative application evidence;
+7. maintained release and compatibility evidence.
+
+More evidence does not widen the feature tested. Even a perfectly replayed
+scalar report does not prove general aggregates, resources, or production
+interoperability.

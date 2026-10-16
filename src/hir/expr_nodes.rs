@@ -750,14 +750,54 @@ mod residual_payload_tests {
 
         let (_, refused, used, first, _) = output::with_limit_usage_refusal_site(0, || {
             assert!(!output::reserve_active_required(17));
-            // A constructor retains no ambient owner/permit: the current
-            // independently entered scope pays, then its Drop restores the
-            // already-sticky old account without replacing its first refusal.
-            let ((), inner_refused, inner_used) = output::with_limit_usage(debit, || {
-                let value = crate::hir::resolved_residual_type!(ResolvedType::I64).unwrap();
-                assert_eq!(*value, ResolvedType::I64);
-                drop(value);
-            });
+            // A nested child is clamped by its parent's remaining zero bytes;
+            // asking for the constructor's debit does not create another payer.
+            let arguments = Cell::new(0);
+            let ((value, allocation), child_refused, child_used) =
+                output::with_limit_usage(debit, || {
+                    assert_eq!(output::active_limit(), Some(0));
+                    measure(|| crate::hir::resolved_residual_type!({
+                        arguments.set(arguments.get() + 1);
+                        ResolvedType::I64
+                    }))
+                });
+            assert!(value.is_none() && child_refused);
+            assert_eq!(child_used, 0);
+            assert_eq!(arguments.get(), 0);
+            assert!(!allocation.invalid);
+            assert_eq!(allocation.allocated, 0);
+            assert_eq!(allocation.freed, 0);
+            assert_eq!(allocation.live, 0);
+            assert_eq!(allocation.reallocations, 0);
+
+            // A constructor retains no ambient owner/permit. This existing
+            // explicit source scope owns an independent exact-debit payer,
+            // then restores the already-sticky old account before receiving.
+            let ((), inner_refused, inner_used) = output::source_owner_scope(
+                debit,
+                || {
+                    assert_eq!(output::active_limit(), Some(debit));
+                    measure(|| {
+                        let value = crate::hir::resolved_residual_type!({
+                            arguments.set(arguments.get() + 1);
+                            ResolvedType::I64
+                        }).unwrap();
+                        assert_eq!(*value, ResolvedType::I64);
+                        drop(value);
+                    })
+                },
+                |((), allocation), formatting_refused, _source_payer| {
+                    assert!(!formatting_refused);
+                    assert_eq!(arguments.get(), 1);
+                    assert!(!allocation.invalid);
+                    assert_eq!(allocation.allocated, size_of::<ResolvedType>());
+                    assert_eq!(allocation.freed, size_of::<ResolvedType>());
+                    assert_eq!(allocation.live, 0);
+                    assert_eq!(allocation.reallocations, 0);
+                    assert!(output::active_refused());
+                    assert_eq!(output::active_remaining(), Some(0));
+                },
+            );
             assert!(!inner_refused);
             assert_eq!(inner_used, debit);
             assert!(crate::hir::resolved_residual_type!(ResolvedType::Bool).is_none());

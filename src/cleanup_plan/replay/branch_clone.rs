@@ -104,9 +104,11 @@ pub(super) fn with_observation<T: Clone + ClonePayload, V: physical_clone::IntoR
 }
 
 #[cfg(test)]
-mod before;
+pub(in crate::cleanup_plan::replay) mod before;
 #[cfg(test)]
-use before::{for_push, main_replay_input, plan_skeleton_paths};
+pub(in crate::cleanup_plan::replay) use before::for_push;
+#[cfg(test)]
+use before::{main_replay_input, plan_skeleton_paths};
 #[cfg(test)]
 mod funded_tests;
 #[cfg(test)]

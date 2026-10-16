@@ -1,0 +1,26 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/compact_stage.rs",
+    "current_sha256": "7bfb511c1ac993dc6c9ae97b9f04c6b0275d6ecc3ef8946a07fb3277e1cad4a4",
+    "original_sha256": "ca8c7717b83fee5ad162f72013abe107f67553f755b1e43d0ad3bca5bc4082a6",
+    "archive": "docs/evidence/mainb80-test-compile-fix-20261016/before/src/cleanup_plan/replay/compact_stage.rs",
+    "edits": [
+      {
+        "old": "#[cfg(test)]\nuse super::{\n    branch_clone, lexical_cert, physical_clone, plan_skeleton_paths, replay_error, skeleton_clone,\n    skeleton_materializations, skeleton_push, skeleton_queue_push, CleanupPlace, CleanupTerminator,\n    CleanupTransition, DeclarationId, EdgeCondition, ExitContinuation, ExitTargetId, IntoReplay,\n    LexicalExitKind, Observations, ResolvedProgram, SkeletonObservation, SkeletonPath,\n    SkeletonTerminal, StatusSourceId, VecDeque,\n};\nuse super::{\n    Diagnostic, ExpressionId, ReplayBudget, ResolvedFunction, ResolvedType, StagedCopyResultSource,\n};\n\n",
+        "new": "#[cfg(test)]\nuse super::physical_clone::IntoReplay;\n#[cfg(test)]\nuse super::{\n    CleanupPlace, CleanupTerminator, CleanupTransition, DeclarationId, EdgeCondition,\n    ExitContinuation, Observations, ResolvedProgram, SkeletonObservation, SkeletonPath,\n    SkeletonTerminal, StatusSourceId, VecDeque, lexical_cert, physical_clone, plan_skeleton_paths,\n    replay_error, skeleton_clone, skeleton_materializations, skeleton_push, skeleton_queue_push,\n};\nuse super::{\n    Diagnostic, ExpressionId, ReplayBudget, ResolvedFunction, ResolvedType, StagedCopyResultSource,\n};\n#[cfg(test)]\nuse crate::cleanup_plan::ExitTargetId;\n#[cfg(test)]\nuse crate::hir::LexicalExitKind;\n\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/branch_clone.rs",
+    "current_sha256": "35facf68388efde6a741c404244e3263248d059d3c13e9d12a18d24e8da4a072",
+    "original_sha256": "c205be3e78dbd53bcb2fd7598b64828895fdcaacff62c2d6661fe0a110a4c160",
+    "archive": "docs/evidence/mainb80-test-compile-fix-20261016/before/src/cleanup_plan/replay/branch_clone.rs",
+    "edits": [
+      {
+        "old": "#[cfg(test)]\nmod before;\n#[cfg(test)]\nuse before::{for_push, main_replay_input, plan_skeleton_paths};\n#[cfg(test)]\n",
+        "new": "#[cfg(test)]\npub(in crate::cleanup_plan::replay) mod before;\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) use before::for_push;\n#[cfg(test)]\nuse before::{main_replay_input, plan_skeleton_paths};\n#[cfg(test)]\n"
+      }
+    ]
+  }
+]

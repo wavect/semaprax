@@ -1333,3 +1333,6 @@ mod canonical_stage_tests;
 
 #[cfg(test)]
 mod loan_inner_stage_tests;
+
+mod checked_string;
+pub(crate) use checked_string::CheckedCappedString;

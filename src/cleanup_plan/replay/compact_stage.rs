@@ -2,16 +2,21 @@
 //! The common body source stays inline. Only residual carriers need a second
 //! allocation, acquired from the same live payer before that allocation exists.
 #[cfg(test)]
+use super::physical_clone::IntoReplay;
+#[cfg(test)]
 use super::{
-    branch_clone, lexical_cert, physical_clone, plan_skeleton_paths, replay_error, skeleton_clone,
-    skeleton_materializations, skeleton_push, skeleton_queue_push, CleanupPlace, CleanupTerminator,
-    CleanupTransition, DeclarationId, EdgeCondition, ExitContinuation, ExitTargetId, IntoReplay,
-    LexicalExitKind, Observations, ResolvedProgram, SkeletonObservation, SkeletonPath,
-    SkeletonTerminal, StatusSourceId, VecDeque,
+    CleanupPlace, CleanupTerminator, CleanupTransition, DeclarationId, EdgeCondition,
+    ExitContinuation, Observations, ResolvedProgram, SkeletonObservation, SkeletonPath,
+    SkeletonTerminal, StatusSourceId, VecDeque, lexical_cert, physical_clone, plan_skeleton_paths,
+    replay_error, skeleton_clone, skeleton_materializations, skeleton_push, skeleton_queue_push,
 };
 use super::{
     Diagnostic, ExpressionId, ReplayBudget, ResolvedFunction, ResolvedType, StagedCopyResultSource,
 };
+#[cfg(test)]
+use crate::cleanup_plan::ExitTargetId;
+#[cfg(test)]
+use crate::hir::LexicalExitKind;
 
 #[derive(Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub(super) enum CopySource {

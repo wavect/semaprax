@@ -1,0 +1,11 @@
+{
+  "round": "/Volumes/Semaprax/lane-prompts/producer-mainb80-closure3-retry3-20261016",
+  "source": "17b12c909916ce8671b43f208b59f3432144709a",
+  "exit_code": 101,
+  "executed_test_bodies": 0,
+  "receipt_sha256": "b0f846adc6f3e8a2c58597c154946c35d78a7001c971f15a70f43c6555860db5",
+  "raw_compiler_metadata_sha256": "4debdc89d37d8e31b9fce01af9de141393fcba8d7818a4f9b8eda2994a36d5f1",
+  "errors": 3,
+  "warnings": 1,
+  "no_runtime_or_rebuild_here": true
+}

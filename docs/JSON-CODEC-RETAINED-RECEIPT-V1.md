@@ -46,3 +46,7 @@ Original input and mixed candidate output remain separate inventories. Candidate
 ## Pending owning checks
 
 Focused source-authored owners cover full original byte retention, held content/identity replacement refusal, resolved bundled closure, ordinary plan equivalence, actual repeat bindings, full original diagnostic equality, rehashed forgery rejection, exact grammar, one-file no-overwrite publication, no publication on invalid derivation, and unchanged original source mode. Their names and registration are recorded in the evidence packet. Cargo, runtime checks and repository gates have not been executed for this source candidate.
+
+## Optional stdout publication correlation
+
+The additive `--receipt-stdout-seal <nonce>` form, usable only with exactly one `--retained-receipt`, is specified in [JSON Codec Publication Seal v1](JSON-CODEC-PUBLICATION-SEAL-V1.md). It emits a bounded stdout record after successful exclusive publication of the identical JSON-plus-LF artifact. It creates no second artifact and grants no execution authentication. Existing forms without that flag retain their original output and diagnostic behavior. Qualification of the additive form remains pending.

@@ -1,0 +1,25 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "complete_preimages": 7,
+  "new_files": 4,
+  "unchanged_whole_files": 7,
+  "old_assertion_calls_in_changed_rust": 74,
+  "drift_controls": 34,
+  "raw_joins": 3,
+  "new_pending_rust_owners": 8,
+  "rust_or_provider_execution": false,
+  "commands": [
+    {
+      "command": "/opt/homebrew/bin/python3 docs/evidence/codec-stdout-publication-seal-20261017/verify-source.py",
+      "exit": 0
+    },
+    {
+      "command": "/opt/homebrew/bin/rustfmt --edition 2021 --config skip_children=true src/cli/json_codec/retained_receipt.rs src/cli/json_codec/retained_receipt/stdout_seal.rs src/cli/json_codec/retained_receipt/stdout_seal/tests.rs tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs",
+      "exit": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0
+    }
+  ]
+}

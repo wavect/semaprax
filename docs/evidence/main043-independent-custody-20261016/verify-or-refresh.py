@@ -20,7 +20,7 @@ for i,o in enumerate(owners):
  assert read(f'{D}/incoming/owners/owner-{i}.rs.txt')==git(M,o['owner'])
 assert read('src/source_reflows/semantic_receivers.rs')==git(A,'src/source_reflows/semantic_receivers.rs')
 for path in ['.github/workflows/ci.yml','scripts/ci-low-stack-trace.py','scripts/tests/test_ci_low_stack_trace.py']:
- assert read(path)==git(M,path),('incoming CI bytes',path)
+ assert read(path)==git('b4523cc7c46de19287a1675a3482416d860d4976',path),('reviewed latest-main CI bytes',path)
 for path in (R/D/'incoming/archives').rglob('*'):
  if path.is_file():
   logical=path.relative_to(R/D/'incoming/archives').as_posix();assert path.read_text()==git(M,logical)==read(logical)

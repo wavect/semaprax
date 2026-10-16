@@ -32,7 +32,9 @@ baseline=O/'protected-baseline.json'
 if baseline.exists():
  assert load(baseline)['files']==protected
 else:write(baseline,{'source':g('rev-parse','HEAD').decode().strip(),'files':protected})
-# Main043 is first; its original verifier asserts complete old guards and all75 raw inputs.
+# Refresh the complete19 historical read-domain views before source inventory generation.
+main8a=subprocess.check_output([sys.executable,str(R/'docs/evidence/main8a-historical-readers-257-268-20261016/verify-or-refresh.py'),'--write-endpoints'],cwd=R);(O/'main8a19-proof.json').write_bytes(main8a)
+# Main043 follows historical views; it asserts complete old guards and all75 raw inputs.
 main043=subprocess.check_output([sys.executable,str(R/'docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py'),'--repo',str(R),'--write-endpoints'],cwd=R);(O/'main043-proof.json').write_bytes(main043)
 main44=subprocess.check_output([sys.executable,str(R/'docs/evidence/main44-independent-custody-20261016/refresh-and-prove.py'),'--refresh'],cwd=R);(R/'docs/evidence/main44-independent-custody-20261016/static-proof.json').write_bytes(main44);(O/'main44-proof.json').write_bytes(main44)
 # Extend only the predecessor overlay: each added key existed in16c and changed in this batch.

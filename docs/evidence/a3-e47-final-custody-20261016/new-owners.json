@@ -1,5 +1,10 @@
 [
   {
+    "source": "src/bounded_output/invocation_binding.rs",
+    "sha256": "e909bb7c272da23198192343dea4f185894318c85ae1d70263f3bc177195c8c2",
+    "lines": 16
+  },
+  {
     "source": "src/bounded_output/reservation_site_e47.rs",
     "sha256": "195f1ec1e2d6489c803b1ff43e9f4dfcf3af0e9c01b738bdc188b6d739343f1a",
     "lines": 73
@@ -43,6 +48,16 @@
     "source": "src/cleanup/inventory_builder/typed/traversal.rs",
     "sha256": "36d07aa06eb16c55c36a7db7650604146316a62fc8697daacb3ed282d5c7ded2",
     "lines": 385
+  },
+  {
+    "source": "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs",
+    "sha256": "2df97f25d560b80050a2e8fe2492e11587af535a3940028151ed2e66d167fb47",
+    "lines": 281
+  },
+  {
+    "source": "src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs",
+    "sha256": "bb48c7638f36cea213135773a9f3689c19273828a6b5f7272a802c4af59e4c42",
+    "lines": 33
   },
   {
     "source": "src/cleanup_plan/replay/compact_stage/source_custody_main44.rs",
@@ -170,6 +185,16 @@
     "lines": 423
   },
   {
+    "source": "src/cleanup_plan/replay/schema/ordinary_tests.rs",
+    "sha256": "cc2c8426a2b599d3f00f372c0735c7295d3b471e153efda19e3df9d82ec09ae3",
+    "lines": 97
+  },
+  {
+    "source": "src/cleanup_plan/replay/schema/original_materializer.rs",
+    "sha256": "e77a7c6e455cd65cfc78ac7480196245ae2097c49a516f071a74197e5d879c9b",
+    "lines": 94
+  },
+  {
     "source": "src/cleanup_plan/replay/selected_entry/tests/session_errors/source_maina3.rs",
     "sha256": "c8298ae10f632ea5c2fc1e0e25e81504e7d0db9e566e65b700bb5f6a4e31f6b3",
     "lines": 69
@@ -223,6 +248,11 @@
     "source": "src/hir/nominal_payload/legacy/source_tests_maina3.rs",
     "sha256": "507359e3f90fd0a6d82eb65100f13f8514a4c4436513d64af16d21301c8aebb4",
     "lines": 75
+  },
+  {
+    "source": "src/hir/validation/byte_traversal/nested/tests/source_composition.rs",
+    "sha256": "31473c03e04eece1c5f155cac724f69a6249c5076c3150443dc5d8dc7625d29c",
+    "lines": 213
   },
   {
     "source": "src/source_reflows/main043.rs",
@@ -296,23 +326,38 @@
   },
   {
     "source": "src/source_reflows_merge/main043_custody.rs",
-    "sha256": "7ce4b15be241f8ab82178648f0d2794d616c26cbe33855047f3951292b8fbb5b",
+    "sha256": "aaee39daa1bff6c3570c6ffabd6c883a35e406a4f1abf3b438f9aca3a20979d4",
     "lines": 51
   },
   {
     "source": "src/source_reflows_merge/main44_custody.rs",
-    "sha256": "97b65c631691b9502f458f32b4cf804220bcf6664caa8ae4b43487be6eba4da7",
+    "sha256": "b5a1cc9a688b47065739503b745c0ceb9a390470afc73e2a459ffd5d9382dfb7",
     "lines": 45
   },
   {
     "source": "src/source_reflows_merge/main8a_historical.rs",
-    "sha256": "672ef87917adbbbaae57e202d4b2856cae006b4d9bec68a93578142fecf901cf",
+    "sha256": "0df16089abe2a7c82acc4318c84b7a3836a1db0becab210a4852cefb666a71b8",
     "lines": 80
   },
   {
     "source": "src/source_reflows_merge/maina3_custody.rs",
-    "sha256": "686106d7dd85be786b092e03cc9dfcf0e45b6c39d2c6f9a92ceee24f9ed99270",
+    "sha256": "408def5034d1bcb845afd46237cbf205fdfd61d87577203d33bd36720796b8ba",
     "lines": 44
+  },
+  {
+    "source": "src/source_verify/declaration/record_shape.rs",
+    "sha256": "9f6aa19bea36c4914ce626d0a111f4c30a6b0413e5852fcceca0406555b2969b",
+    "lines": 177
+  },
+  {
+    "source": "src/source_verify/declaration/record_shape_before.rs",
+    "sha256": "7196e1a310c985108afd56f2726b89c0d7fa242d8aa14d8e9611bb0f4d89653e",
+    "lines": 182
+  },
+  {
+    "source": "src/workspace_graph/before_private_roots.rs",
+    "sha256": "ca6d3c18e240732db63dd819e13310003630faaefc1fbc14860433cd32bde040",
+    "lines": 178
   },
   {
     "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/before_owned_directory.rs",
@@ -328,6 +373,21 @@
     "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs",
     "sha256": "73b0bb64d9205a31dbbe55fcf4651441b4d1745e7a10c9614b3292d978fd4bef",
     "lines": 453
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs",
+    "sha256": "faeb4b64e3f99c22deb35086b78a5c2cb35a9d40d4267848a5f50a25746361c4",
+    "lines": 415
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs",
+    "sha256": "30b87388744dd575a12a83dd089622114679e86c02526622c88fe712bfda77fe",
+    "lines": 669
+  },
+  {
+    "source": "src/workspace_graph/validation/before_roots.rs",
+    "sha256": "cb4b6ad5ec8728004c0e86c63447e3b656a6c9598d65773698039a5730fcd44f",
+    "lines": 1015
   },
   {
     "source": "tests/wasm/scalar_browser_ci_contract/actual_67b.rs",

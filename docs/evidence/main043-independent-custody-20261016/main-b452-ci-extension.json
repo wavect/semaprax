@@ -1,0 +1,26 @@
+{
+  "scope": "Exact three latest-main CI source subjects only; original historical archives and all source guards retained",
+  "before_script_sha256": "ef1725aaaf0877c5da752cbcdcf9d891ddc47cedad402a267605d72436407976",
+  "after_script_sha256": "873f9a7bc7bc3ab0665813b549da7f4ecb179e32530ab81215eea1175c340172",
+  "subjects": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "reviewed_commit": "b4523cc7c46de19287a1675a3482416d860d4976",
+      "current_sha256": "a6a71c152f8f883e3a1367d3a0e8c9aa8d89dbbbe39907862597188b60d45ea3",
+      "historical_sha256": "1a5dffe99bf7a383faab2c7142440beebcb5c787637ed421e88b20a4f2fb8296"
+    },
+    {
+      "path": "scripts/ci-low-stack-trace.py",
+      "reviewed_commit": "b4523cc7c46de19287a1675a3482416d860d4976",
+      "current_sha256": "1a38d368dc1b03354ec6ac05c9000d0b50fce209e58a83ee8cfeaee50fd70f67",
+      "historical_sha256": "1a38d368dc1b03354ec6ac05c9000d0b50fce209e58a83ee8cfeaee50fd70f67"
+    },
+    {
+      "path": "scripts/tests/test_ci_low_stack_trace.py",
+      "reviewed_commit": "b4523cc7c46de19287a1675a3482416d860d4976",
+      "current_sha256": "3b56da821fad32b3f3681f1c67fb61664e5cf2f4a2d36791655043c5302380b0",
+      "historical_sha256": "36af8661d624549bcd3a8d45dc1fab719edc2f5af13a8b5e357f20d601bf45c1"
+    }
+  ],
+  "rust_executed": false
+}

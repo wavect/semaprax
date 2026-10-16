@@ -1,0 +1,82 @@
+[
+  {
+    "source": "src/cleanup_plan/renewal_profile/path_boundary_refusal.rs",
+    "sha256": "e96154ea9aaa35959ff7fdd6e4575e67755dbdd38e5ac6ee23a713b8b14ab72e",
+    "lines": 48
+  },
+  {
+    "source": "src/cleanup_plan/replay/flat_records/tests/receiving_path_boundary.rs",
+    "sha256": "77aed2e82246b4e2b30ad42e74d812b50521ef3cc107a2854c675deb78f38a38",
+    "lines": 159
+  },
+  {
+    "source": "src/cleanup_plan/replay/lexical_boundary/legacy_policy.rs",
+    "sha256": "f510ccee804c7839f4adebbcc88e597f76a9e770e4fb089b533b71906f224962",
+    "lines": 150
+  },
+  {
+    "source": "src/cleanup_plan/replay/lexical_cert/paid/chains.rs",
+    "sha256": "15790866ef3cbf756dd626d7f25d381ed43ff9755054e4ce462517f09a1a4b53",
+    "lines": 54
+  },
+  {
+    "source": "src/cleanup_plan/replay/lexical_cert/paid/chains_tests.rs",
+    "sha256": "fb83d5122403a7f70813d87ac3cf4c1fd8ffade280e4a6b79834be4d5ef6df1d",
+    "lines": 59
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/before_path_boundary.rs",
+    "sha256": "f506ca9f67874d4119f6b5d8c3f1c8244b503260ab94258e859c1178a891ed4c",
+    "lines": 1129
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main24/before.rs",
+    "sha256": "3fa771c3f26552812dfb64d4851ced843418501674c96e3847a8d14119b95e13",
+    "lines": 58
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main24/before_wrapper.rs",
+    "sha256": "291204a47157774ff167ac42ad42cb2ba8be594e5b43d298c4d7bcf8d1d132cd",
+    "lines": 64
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main24/before_wrapper_tests.rs",
+    "sha256": "38f11a53d0a21dc60470dc7ac46fda2a86d191ade68bd7abf5c40ab4da783846",
+    "lines": 295
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main24/current.rs",
+    "sha256": "7a5eb3fd67db9616b9fc5202fa8c6034c1f4002783cda233072b2b3a2a1fe331",
+    "lines": 78
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main24/helper.rs",
+    "sha256": "6d26952dc6acbd5f9f287a8de3d02e20de88cc2eca31281bdf3f4343b8dfd0fb",
+    "lines": 44
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main24/mod.rs",
+    "sha256": "bdc5bcb078cce3280d4a795e367753de4fc5c193c58b7085f37c6c642a1d29b9",
+    "lines": 13
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main24/old_current.rs",
+    "sha256": "0e98841909a7f991bf4b52351982353a0f3048465622b818d4ab93b585e7baed",
+    "lines": 68
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main24/tests.rs",
+    "sha256": "dcd8bca76ee2c0b59e7abb200d5cc7136e88fc48c176e4b54e36fad91c92374f",
+    "lines": 351
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main24/wrapper_context.rs",
+    "sha256": "396256767d71e4c19febef1bae88fafeeb86047f7283480c7482939bc63fb728",
+    "lines": 12
+  },
+  {
+    "source": "src/source_reflows_merge/release_custody.rs",
+    "sha256": "33aa6437e3b7f195df8609bf892821838802d14105ed6bc1d6a8c3bc27e9987c",
+    "lines": 82
+  }
+]

@@ -4,6 +4,8 @@
 mod joined_custody;
 #[path = "source_reflows_merge/prefix_custody.rs"]
 mod prefix_custody;
+#[path = "source_reflows_merge/release_custody.rs"]
+mod release_custody;
 #[path = "source_reflows_merge/successor_custody.rs"]
 mod successor_custody;
 use sha2::{Digest, Sha256};
@@ -728,11 +730,13 @@ fn reference_family_input(source: &str, current: &str) -> String {
 
 // A later compositor uses this normalization-only front BEFORE its raw table.
 pub(crate) fn bulk848_arm_input(source: &str, current: &str) -> String {
-    joined_custody::normalize(source, current)
+    release_custody::normalize(source, current)
 }
 
 // Main's compiled test corpus keeps every original source-domain check.
 fn main_dd0_previous(source: &str, current: &str) -> String {
+    let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);
+    let current = release.as_str();
     let joined = joined_custody::input(source, current);
     let current = joined.as_str();
     let prefix_view = prefix_custody::input(prefix_custody::Fixture::SealedB5, source, current);
@@ -751,6 +755,8 @@ fn main_dd0_previous(source: &str, current: &str) -> String {
 
 // New owner and inherited domains remain independent; all old tables stay exact.
 pub(crate) fn arena854_input(source: &str, current: &str) -> String {
+    let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);
+    let current = release.as_str();
     let joined = joined_custody::input(source, current);
     let current = joined.as_str();
     let prefix_view = prefix_custody::input(prefix_custody::Fixture::SealedB5, source, current);
@@ -771,6 +777,8 @@ pub(crate) fn arena854_previous(source: &str, current: &str) -> String {
 
 // The complete twelve-row Main receiver has an independent scoped input.
 pub(crate) fn main7c6_input(source: &str, current: &str) -> String {
+    let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);
+    let current = release.as_str();
     let joined = joined_custody::input(source, current);
     let current = joined.as_str();
     let prefix_view = prefix_custody::input(prefix_custody::Fixture::SealedB5, source, current);
@@ -783,6 +791,8 @@ pub(crate) fn main7c6_input(source: &str, current: &str) -> String {
 
 // Independent complete Main-afba receiver scope.
 pub(crate) fn main_afba_input(source: &str, current: &str) -> String {
+    let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);
+    let current = release.as_str();
     let joined = joined_custody::input(source, current);
     let current = joined.as_str();
     let prefix_view = prefix_custody::input(prefix_custody::Fixture::SealedB5, source, current);
@@ -791,7 +801,21 @@ pub(crate) fn main_afba_input(source: &str, current: &str) -> String {
 }
 
 pub(crate) fn main_f1_input(source: &str, current: &str) -> String {
+    let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);
+    let current = release.as_str();
     let joined = joined_custody::input(source, current);
     let current = joined.as_str();
     prefix_custody::input(prefix_custody::Fixture::MainF1, source, current)
+}
+
+// Updated Main24 inputs are independent of every inherited predecessor domain.
+pub(crate) fn main24_input(source: &str, current: &str) -> String {
+    release_custody::input(release_custody::Fixture::Main24, source, current)
+}
+pub(crate) fn main24_proofs(compact: bool) -> String {
+    runtime_json::release_custody(if compact {
+        release_custody::Fixture::Compact24
+    } else {
+        release_custody::Fixture::Receivers24
+    })
 }

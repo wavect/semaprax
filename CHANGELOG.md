@@ -7414,3 +7414,5 @@ are authored. Qualification is pending; Catalog corpus and limits are unchanged.
   source/layout audits. No production behavior, gate or memory benefit claim.
 
 - Source-only #781 path boundary/finalizer and borrowed-chain tranche: direct per-error-policy implementations retain complete prior algorithms and diagnostic order; closed semantic atoms use actual same-ledger child/node receiving. Earlier receiving refusal frontiers are explicit. Three focused owners remain unexecuted; raw inventory/schema/dynamic descendants keep #781 open.
+
+- Source-only #854 acceptance controls now retain independently built equivalent automata, real signature hit/miss and node counts, sticky/foreign/restored-owner checks and complete Drop; all focused outcomes remain unexecuted.

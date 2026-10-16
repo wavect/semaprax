@@ -1,0 +1,11 @@
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+    Finished `test` profile [unoptimized] target(s) in 5m 03s
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+    Finished `dev` profile [unoptimized] target(s) in 2m 14s
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+    Finished `test` profile [unoptimized] target(s) in 2m 36s
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+   Compiling semaprax-harness v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-harness)
+   Compiling semaprax-native-rust-interop v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-native-rust-interop-builder)
+   Compiling semaprax-toolchain v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-toolchain)
+    Finished `test` profile [unoptimized] target(s) in 2m 41s

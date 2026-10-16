@@ -1,0 +1,15 @@
+
+running 1 test
+test workspace_graph::tests::callable_limit_exact_advances_and_one_over_is_g171 ... 
+thread 'workspace_graph::tests::callable_limit_exact_advances_and_one_over_is_g171' (12463484) panicked at src/workspace_graph/tests.rs:1990:44:
+exact callable limit must advance: [Diagnostic { code: "SPX-G171", severity: Error, message: "Workspace Semantic Graph `builder_bytes` exceeds 67108864", path: None, span: None, help: Some("live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 19006128 bytes for 2 module(s) and fit within 67108864, with `callables.spx` the largest at 18886740 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 70176 bytes with 50554 remaining and 0 reserved floor. Authenticated internal stage: HIR final validation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.") }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::tests::callable_limit_exact_advances_and_one_over_is_g171
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9214 filtered out; finished in 5.31s
+

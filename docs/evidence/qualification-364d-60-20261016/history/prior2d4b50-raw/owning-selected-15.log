@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_nonempty_cached_query_borrows_original_rc_and_keeps_all_semantic_work_failures ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9214 filtered out; finished in 0.02s
+

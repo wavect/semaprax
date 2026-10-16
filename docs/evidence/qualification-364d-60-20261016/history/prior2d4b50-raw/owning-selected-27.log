@@ -1,0 +1,7 @@
+
+running 1 test
+test cleanup_plan::replay::path_join::singleton_tests::singleton_whole_replay_reports_real_costs_and_exact_short_zero_drop ... singleton-group whole immediate-old/current: old_paid=91088 old=Metrics { allocations: 205, reallocations: 15, allocated: 61177, freed: 61177, live: 0, highwater: 8741, invalid: false }; current_paid=41170 current=Metrics { allocations: 183, reallocations: 15, allocated: 17265, freed: 17265, live: 0, highwater: 4853, invalid: false }
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9214 filtered out; finished in 1.42s
+

@@ -1,0 +1,47 @@
+{
+  "status": "SOURCE_ONLY_NOT_EXECUTED",
+  "append_minimum_to_original87": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::structural_maps::tests::paid_reference::complete_reference_oracle_keeps_all_three_refusals_and_first_error_order"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::structural_maps::tests::paid_reference::reference_per_actual_call_banks_exact_short_zero_duplicates_and_whole_drop"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_entry::tests::driver_local_receivers::duplicated_driver_profile_and_owner_keep_raw_oracle_and_transfer_one_paid_report"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_entry::tests::driver_local_receivers::duplicated_driver_complete_legacy_bodies_and_current_sources_stay_exact"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_entry::tests::session_errors::selected_session_receipt_full_carrier_exact_short_zero_sticky_report_and_drop"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::ids::instance_match::tests::streamed_instance_matches_complete_encoder_all_forms_and_forged_bytes"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::ids::instance_match::tests::streamed_instance_exact_short_zero_sticky_floor_keep_all_key_producers_and_drop"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::ids::instance_match::tests::streamed_instance_validator_preserves_duplicate_before_canonical_refusal"
+    }
+  ],
+  "reason": "two driver-local781 owners, two reference-family owners, one unchanged Session carrier, three853 owners; exact dedup at registration",
+  "whole781": "OPEN_remaining_dynamic_families"
+}

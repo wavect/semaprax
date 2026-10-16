@@ -2240,6 +2240,10 @@ before constructing a static `semantic_refusal::Receipt`.
 `selected_owner/paid.rs` and `selected_profile/paid.rs` retain the original
 member and profile checks; the retained first receipt selects the outward
 stage. Arbitrary child Diagnostics retain their explicit Owned boundary.
+`structural_maps/paid_reference.rs` owns the finite selected reference-coverage
+receiver: actual vector/node wrappers prepay their own same-ledger receiving
+before arguments, while complete old validators remain independent. It carries
+closed refusal data and does not grant report, source or payer authority.
 Every later refusal transfers that carrier, together with
 the exact failed ledger owner. The authenticators and selected declaration
 constructors on that route refuse with the Copy `SelectedReplayRefused`. A

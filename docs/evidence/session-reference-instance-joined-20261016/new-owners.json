@@ -1,0 +1,37 @@
+[
+  {
+    "source": "src/bounded_output/checked_string.rs",
+    "sha256": "78eccbef07cbdf2f847e90fc9a7b401008da3115642bea90275e30fe5db67942",
+    "lines": 109
+  },
+  {
+    "source": "src/cleanup_plan/replay/selected_entry/tests/driver_local_receivers.rs",
+    "sha256": "5e9118fbdb2b1f581aabdf3b71b1ab0624394b2d8abdc22ce030376a687f1590",
+    "lines": 160
+  },
+  {
+    "source": "src/cleanup_plan/replay/structural_maps/paid_reference.rs",
+    "sha256": "c129d9971daf3536084baaa1c86603ff833e276b38969f8584d8936185424b4c",
+    "lines": 139
+  },
+  {
+    "source": "src/cleanup_plan/replay/structural_maps/tests/paid_reference.rs",
+    "sha256": "0509ba0f7167dbf7f65391924bb7f873fc9f595ef51c3895656246128b254ab3",
+    "lines": 160
+  },
+  {
+    "source": "src/hir/ids/instance_match.rs",
+    "sha256": "2d1ef4d1b59a2e789565da2445b134db9c19157fa144a2fb5095374480180119",
+    "lines": 139
+  },
+  {
+    "source": "src/hir/ids/instance_match/tests.rs",
+    "sha256": "5fefa8ec471bbaeaf985dfc6ac50b4974364b659c2fde2f74e126482827917e5",
+    "lines": 310
+  },
+  {
+    "source": "src/hir/nodes/instance_key.rs",
+    "sha256": "39293ad3c208bb7292b04792db409ba3de7e1dcf3fd4a3c26387b53d5542fc54",
+    "lines": 120
+  }
+]

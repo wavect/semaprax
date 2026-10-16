@@ -1,6 +1,9 @@
+<!-- OPT831 source checkpoint: closure-specific duplicate refusal owner and inner id Result removed; unchanged strict qualification pending, no measured gain claimed. -->
 <!-- Source-only #833: invocation-owned identifier census scratch reuse across
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
+
+- Execute the paid cleanup branch clone/push producer inline in its existing enumerator, removing actual Vec Result and forwarding receivers while retaining every nested charge and complete old controls; focused execution and application savings remain pending.
 
 - Reuse a sole incoming ownership-state tree as its identity control partition, retaining complete key construction, work charges, all join/replay checks and the original grouped producer while prepaying new receiving layouts.
 

@@ -2,8 +2,30 @@
 use super::*;
 use std::mem::size_of;
 
+// The producer is physically in the enumerator. Its outer Vec Result and
+// owned observation argument no longer exist; all nested Result controls stay.
+// One budget/function reference pair pays the caller's reservation boundary.
+// The payload-reference term remains for the direct clone census argument.
+pub(super) fn inline_controls<T: Clone>() -> usize {
+    size_of::<Result<(), Diagnostic>>() // caller payment result
+        + 4 * size_of::<Result<(), Diagnostic>>() // clone/push work, clone census, conversion
+        + 2 * size_of::<Result<(), Diagnostic>>() // backing wrapper and nested byte payment
+        + size_of::<Result<usize, Diagnostic>>() // checked array size conversion
+        + size_of::<Option<usize>>()
+        + 2 * size_of::<Vec<T>>() // initializer and the enumerator's named branch
+        + size_of::<&mut ReplayBudget>() + size_of::<&ResolvedFunction>()
+        + size_of::<&Vec<T>>() // direct clone census argument
+        + 2 * size_of::<&str>()
+        + 2 * size_of::<usize>()
+        + 2 * size_of::<bool>()
+        + 2 * size_of::<&mut Vec<T>>() + size_of::<&[T]>()
+        + 2 * size_of::<std::slice::Iter<'_, T>>()
+        + 2 * size_of::<std::iter::Cloned<std::slice::Iter<'_, T>>>()
+}
+
 // Paid by the enumerator before evaluating the new helper's arguments. The
 // original clone/push controls are not credited against these actual new sites.
+#[cfg(test)]
 pub(super) fn controls<T: Clone, V>() -> usize {
     size_of::<Result<Vec<T>, Diagnostic>>() // fused receiving result
         + size_of::<Result<(), Diagnostic>>() // caller payment result
@@ -23,6 +45,7 @@ pub(super) fn controls<T: Clone, V>() -> usize {
         + 2 * size_of::<std::iter::Cloned<std::slice::Iter<'_, T>>>() // initializer and extend receiver
 }
 
+#[cfg(test)]
 #[track_caller]
 pub(super) fn with_observation<T: Clone + ClonePayload, V: physical_clone::IntoReplay<T>>(
     budget: &mut ReplayBudget,
@@ -88,3 +111,9 @@ use before::{for_push, main_replay_input, plan_skeleton_paths};
 mod funded_tests;
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod inline_tests;
+
+#[cfg(test)]
+mod before_inline;

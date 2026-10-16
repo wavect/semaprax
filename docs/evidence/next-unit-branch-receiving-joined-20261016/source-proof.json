@@ -1,0 +1,31 @@
+{
+  "bac": {
+    "rows": 12,
+    "compact_bytes": 97630,
+    "complete_checkpoint_namespace_restored": true
+  },
+  "7c": {
+    "rows": 17,
+    "compact_bytes": 61775,
+    "complete_checkpoint_namespace_restored": true
+  },
+  "9e": {
+    "rows": 19,
+    "compact_bytes": 126346,
+    "complete_checkpoint_namespace_restored": true
+  },
+  "unit_component_stages": {
+    "successor_rows": 3,
+    "original_rows": 9,
+    "full_namespace_to_2d4b": true
+  },
+  "status": "SOURCE_ONLY_PASS",
+  "shipping_unit_exact_7c": true,
+  "shipping_inline_exact_9e": true,
+  "original_project_body_exact": true,
+  "original_90_runtime_fixtures_unchanged": true,
+  "new_closed_Rust_owners": 7,
+  "recursive_loaded_files": 81,
+  "Rust_executed": false,
+  "inherited_bac_proof_reuse": "Complete restored namespace equality; predecessor scripts are historical and not executed against raw final source."
+}

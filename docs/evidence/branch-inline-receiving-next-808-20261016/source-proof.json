@@ -1,0 +1,8 @@
+{
+  "status": "PASS_SOURCE_ONLY_NO_RUST",
+  "base": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+  "full_existing_inverses": 2,
+  "full_new_owners": 2,
+  "old_main_and_budget_inputs_exact": 5,
+  "new_pending_selectors": 2
+}

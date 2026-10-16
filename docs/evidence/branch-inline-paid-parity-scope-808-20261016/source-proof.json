@@ -1,0 +1,8 @@
+{
+  "status": "PASS_STATIC_ONLY",
+  "production_byteexact_9e": true,
+  "same_two_selectors": true,
+  "complete_original_assertions_retained": true,
+  "full_inverse_exact": true,
+  "new_runtime_execution": false
+}

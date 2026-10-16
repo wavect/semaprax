@@ -1,0 +1,20 @@
+[
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_keeps_complete_immediate_ids_work_and_all_six_failure_fields",
+    "status": "PENDING_NO_RUST_EXECUTION"
+  },
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_reports_whole_immediate_costs_and_exact_short_zero_drop",
+    "status": "PENDING_NO_RUST_EXECUTION"
+  },
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_keeps_full_immediate_sources_and_old_receiver_bodies_bound",
+    "status": "PENDING_NO_RUST_EXECUTION"
+  }
+]

@@ -13,10 +13,10 @@ const _: () = assert!(WIDTH <= u8::BITS as usize);
 
 pub(super) struct Memo<T> {
     chunks: Vec<Option<Box<Chunk<T>>>>,
-    binding: Option<Binding>,
-    failed: bool,
+    pub(super) binding: Option<Binding>,
+    pub(super) failed: bool,
 }
-struct Binding {
+pub(super) struct Binding {
     function: *const ResolvedFunction,
     budget: *const ReplayBudget,
     ledger: ClassifierLedger,
@@ -89,6 +89,28 @@ impl<T> Memo<T> {
         }
         Ok(())
     }
+    // Identity-only preflight precedes acquiring a fresh invocation destination.
+    // It neither asks a foreign payer nor constructs a diagnostic receiver.
+    pub(super) fn preflight(&mut self, function: &ResolvedFunction, budget: &ReplayBudget) -> bool {
+        if self.failed {
+            return false;
+        }
+        if let Some(binding) = &self.binding {
+            let ledger_matches = binding.ledger.current();
+            if binding.function != std::ptr::from_ref(function)
+                || binding.budget != std::ptr::from_ref(budget)
+                || !ledger_matches
+            {
+                self.failed = true;
+            }
+            true
+        } else {
+            false
+        }
+    }
+    pub(super) fn failed(&self) -> bool {
+        self.failed
+    }
     // Caller already holds the selected error; retain it unchanged while
     // invalidating views without querying any payer or allocating a report.
     pub(super) fn reject_after_error(&mut self) {
@@ -142,7 +164,7 @@ impl<T> Memo<T> {
         }
         result
     }
-    fn insert_bound(
+    pub(super) fn insert_bound(
         &mut self,
         function: &ResolvedFunction,
         key: usize,
@@ -184,7 +206,7 @@ impl<T> Memo<T> {
         self.chunks[index].as_mut().expect("paid chunk").values[key % WIDTH] = Some(make());
         Ok(())
     }
-    fn insert_empty_bound(
+    pub(super) fn insert_empty_bound(
         &mut self,
         function: &ResolvedFunction,
         key: usize,
@@ -228,7 +250,3 @@ impl<T> Memo<T> {
         Ok(())
     }
 }
-
-#[path = "empty_memo/retained.rs"]
-mod retained;
-pub(super) use retained::RetainedMemo;

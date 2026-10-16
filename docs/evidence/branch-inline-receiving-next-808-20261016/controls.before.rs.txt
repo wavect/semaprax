@@ -1,0 +1,18 @@
+pub(super) fn controls<T: Clone, V>() -> usize {
+    size_of::<Result<Vec<T>, Diagnostic>>() // fused receiving result
+        + size_of::<Result<(), Diagnostic>>() // caller payment result
+        + 4 * size_of::<Result<(), Diagnostic>>() // clone/push work, clone census, conversion
+        + 2 * size_of::<Result<(), Diagnostic>>() // backing wrapper and nested byte payment
+        + size_of::<Result<usize, Diagnostic>>() // reserve_array checked byte-size conversion
+        + size_of::<Option<usize>>() // reserve_array checked multiplication
+        + 2 * size_of::<Vec<T>>() // initializer and named local receiver
+        + 2 * size_of::<&mut ReplayBudget>() + 2 * size_of::<&ResolvedFunction>()
+        + size_of::<&Vec<T>>() + size_of::<V>() // new argument receivers
+        + 2 * size_of::<&str>() // fixed phase receivers
+        + 2 * size_of::<usize>() // controls() receiving value and capacity local
+        + 2 * size_of::<bool>() // empty and arithmetic overflow branch receivers
+        + 2 * size_of::<&mut Vec<T>>() // extend and push method receivers
+        + size_of::<&[T]>() // iter slice receiver
+        + 2 * size_of::<std::slice::Iter<'_, T>>() // iterator initializer and cloned receiver
+        + 2 * size_of::<std::iter::Cloned<std::slice::Iter<'_, T>>>() // initializer and extend receiver
+}

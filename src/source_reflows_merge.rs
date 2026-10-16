@@ -39,6 +39,14 @@ pub(crate) fn boxed849_previous(source: &str, current: &str) -> String {
         &boxed849_input(source, current),
     )
 }
+// Direct current831 owner; inherited guards first receive the exact2d4b input.
+pub(crate) fn unit831_input(source: &str, current: &str) -> String {
+    let joined = project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/next-unit-branch-receiving-joined-20261016/final-to-7c.json")), source, current);
+    let current = joined.as_str();
+    let preflight = project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/closure-unit-receiving-831-next-20261016/preflight-binding-successor/current-to-fac.json")), source, current);
+    let current = preflight.as_str();
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/closure-unit-receiving-831-next-20261016/current-to-2d4b.json")), source, current)
+}
 pub(crate) fn compile_fixture_input(source: &str, current: &str) -> String {
     let previous = main531_previous(source, current);
     let current = previous.as_str();
@@ -60,6 +68,8 @@ fn main531_child_input(source: &str, current: &str) -> String {
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main531-original-tests-child-20261016/current-to-7e9f.json")), source, current)
 }
 fn actual50_fixture_input(source: &str, current: &str) -> String {
+    let joined = project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/next-unit-branch-receiving-joined-20261016/final-to-bac.json")), source, current);
+    let current = joined.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/actual50-fixture-and-facade-corrections-20261016/current-to-183.json")), source, current)
 }
 fn project(rows: &str, source: &str, current: &str) -> String {

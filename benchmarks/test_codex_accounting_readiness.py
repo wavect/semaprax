@@ -73,9 +73,20 @@ class AccountingReadinessTests(unittest.TestCase):
             for missing in (None, {}, {'fingerprint_sha256': 'a' * 64}):
                 with self.assertRaisesRegex(ValueError, 'declared pinned'):
                     common.require_authored_source_tokenizer({'authored_source_tokenizer': missing})
-            with patch.object(common, 'tokenizer_metadata', return_value=declaration) as metadata:
+            with patch.object(common, 'tokenizer_metadata', return_value=declaration) as metadata, \
+                    patch.object(common, 'tokenize_texts', return_value=[1]) as runtime:
                 common.require_authored_source_tokenizer({'authored_source_tokenizer': declaration})
                 metadata.assert_called_once_with(declaration['tokenizer_dir'])
+                runtime.assert_called_once()
+            for invalid in ([], [-1], [True], [0.5], [1, 2]):
+                with patch.object(common, 'tokenizer_metadata', return_value=declaration), \
+                        patch.object(common, 'tokenize_texts', return_value=invalid):
+                    with self.assertRaisesRegex(RuntimeError, 'invalid token counts'):
+                        common.require_authored_source_tokenizer({'authored_source_tokenizer': declaration})
+            with patch.object(common, 'tokenizer_metadata', return_value=declaration), \
+                    patch.object(common, 'tokenize_texts', side_effect=RuntimeError('broken local runtime')):
+                with self.assertRaisesRegex(RuntimeError, 'broken local runtime'):
+                    common.require_authored_source_tokenizer({'authored_source_tokenizer': declaration})
             drift = copy.deepcopy(declaration); drift['fingerprint_sha256'] = 'b' * 64
             with patch.object(common, 'tokenizer_metadata', return_value=drift):
                 with self.assertRaisesRegex(ValueError, 'differs from its pinned'):
@@ -99,6 +110,12 @@ class AccountingReadinessTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'declared pinned'):
                     adapter.launch_trial.__wrapped__(root, root / 'artifacts', 'seed',
                         {'arm': 'semaprax', 'number': 1}, {'authored_source_tokenizer': None}, root / 'compiler')
+            with patch.object(common, 'tokenizer_metadata', return_value=self.declaration(root)), \
+                    patch.object(common, 'tokenize_texts', side_effect=RuntimeError('broken local runtime')):
+                for adapter in (cli, web, shift):
+                    with self.assertRaisesRegex(RuntimeError, 'broken local runtime'):
+                        adapter.launch_trial.__wrapped__(root, root / 'artifacts', 'seed',
+                            {'arm': 'semaprax', 'number': 1}, {'authored_source_tokenizer': self.declaration(root)}, root / 'compiler')
             for call in worktrees + dispatch:call.assert_not_called()
 
     def calibration(self, root, invalid):

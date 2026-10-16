@@ -19,7 +19,10 @@ class CodexShiftSimTests(unittest.TestCase):
                           "version": adapter.shiftsim.common.TOKENIZER_VERSION,
                           "encoding_identity": adapter.shiftsim.common.TOKENIZER_ENCODING,
                           "tokenizer_dir": "/fixture/tokenizer", "fingerprint_sha256": "a" * 64}
-        self.enterContext(patch.object(adapter.shiftsim.common, "tokenizer_metadata", return_value=self.tokenizer))
+        self.enterContext(patch.object(adapter.shiftsim.common, "tokenizer_metadata",
+                                     side_effect=lambda directory: self.tokenizer if directory is not None else None))
+        self.enterContext(patch.object(adapter.shiftsim.common, "tokenize_texts",
+                                     side_effect=lambda texts, metadata: [len(row["content"]) for row in texts]))
         # These fixtures fake model/acceptance execution; resource admission is
         # independently exercised with low-space and ENOSPC controls.
         self.enterContext(patch("campaign_resources.snapshot", return_value=[
@@ -30,6 +33,8 @@ class CodexShiftSimTests(unittest.TestCase):
         if not binary.exists():
             binary.write_bytes(b"fixture compiler")
         return {"timeout_seconds": 1800, "model": adapter.MODEL, "effort": adapter.EFFORT,
+                "price_book": {"date": "2026-10-08", "standard_short_context_usd_per_million":
+                    dict(adapter.codex.PRICE_USD_PER_MTOK)},
                 "codex_binary": "/fixture/codex", "authored_source_tokenizer": self.tokenizer,
                 "source_binary_sha256": adapter.shiftsim.common.digest(binary),
                 "qualification": {"scored_trials_allowed": True},
@@ -165,6 +170,10 @@ class CodexShiftSimTests(unittest.TestCase):
             artifacts.mkdir()
             settings = self.settings(root)
             self.patches(stack, root)
+            # This receiver-only fixture retains its original offline/unmeasured
+            # metric response; actual tokenizer readiness is checked separately.
+            stack.enter_context(patch.object(adapter.shiftsim.common, "authored_source_metrics",
+                return_value={"status": "unmeasured", "total_tokens": None, "files": [], "tokenizer": None}))
             acceptance = stack.enter_context(patch.object(adapter.shiftsim, "check_program", return_value={"accepted": True}))
             row = adapter.launch_trial(seed, artifacts, commit, {"arm": "semaprax", "number": 1}, settings, root / "semaprax")
             self.assertEqual(row["status"], "accepted")

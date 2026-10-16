@@ -31,7 +31,10 @@ class WebappCampaignTests(unittest.TestCase):
                           "version": campaign.common.TOKENIZER_VERSION,
                           "encoding_identity": campaign.common.TOKENIZER_ENCODING,
                           "tokenizer_dir": "/fixture/tokenizer", "fingerprint_sha256": "a" * 64}
-        self.enterContext(patch.object(campaign.common, "tokenizer_metadata", return_value=self.tokenizer))
+        self.enterContext(patch.object(campaign.common, "tokenizer_metadata",
+                                     side_effect=lambda directory: self.tokenizer if directory is not None else None))
+        self.enterContext(patch.object(campaign.common, "tokenize_texts",
+                                     side_effect=lambda texts, metadata: [len(row["content"]) for row in texts]))
         # These fixtures fake model/acceptance execution; resource admission is
         # independently exercised with low-space and ENOSPC controls.
         self.enterContext(patch("campaign_resources.snapshot", return_value=[

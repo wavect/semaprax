@@ -1,0 +1,6 @@
+test_mock_trial_uses_current_seed_prompt_usage_archive_and_cleanup_apis (test_codex_campaign.CodexShiftSimTests.test_mock_trial_uses_current_seed_prompt_usage_archive_and_cleanup_apis) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.310s
+
+OK

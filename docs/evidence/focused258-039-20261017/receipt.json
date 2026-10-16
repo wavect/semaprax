@@ -1,0 +1,66 @@
+{
+  "tested_source": "039b15f6a2a5e81110fefdc607dccf3478bf9263",
+  "build_result_sha256": "19d70e0ffb2bf493a2640708364a850bdc1b57342d26a4b3fc1bcfa4a2775017",
+  "build_commands_passed": 5,
+  "build_wall_seconds": 366.12573604198406,
+  "build_artifacts": 16,
+  "selected": 258,
+  "passed": 204,
+  "failed": 54,
+  "all_selected_groups_settled": true,
+  "full_batch_qualified": false,
+  "full_suites_run": false,
+  "current_clippy": {
+    "source": "039b15f6a2a5e81110fefdc607dccf3478bf9263",
+    "exit_code": 130,
+    "resource_refusal": "memory watchdog observation failed: KeyboardInterrupt",
+    "peak_group_rss_bytes": 3075457024,
+    "receipt_sha256": "ede68a560864f77b49214f52bcf29cd182d243b5a1d2d7420b461278922389b3",
+    "guardian_reported_settlement": {
+      "owned_pgid": 21390,
+      "confirmed_empty": false,
+      "signals": [
+        15
+      ],
+      "operation_failures": [
+        {
+          "operation": "killpg",
+          "signal": 9,
+          "error_type": "PermissionError",
+          "errno": 1
+        },
+        {
+          "operation": "membership",
+          "error_type": "ObservationError",
+          "errno": null
+        }
+      ],
+      "observation_errors": [
+        "PermissionError: [Errno 1] Operation not permitted",
+        "ObservationError: command observation failed: TimeoutExpired"
+      ],
+      "resource_refusal": "memory watchdog observation failed: KeyboardInterrupt",
+      "finished": 198879.463759125
+    },
+    "separate_later_owned_pgid_check": {
+      "pgid": 21390,
+      "members": [],
+      "confirmed_empty_now": true
+    }
+  },
+  "857_sources": [
+    {
+      "path": "docs/AGENT-QUICK-REFERENCE.md",
+      "sha256": "4d9277c5d1221ab49dcf465a0a1c988d767fbe8d497a1eba224b70645abb8c68",
+      "identical_historical_clippy_subject": "218a9583138d78ef5aed9a495a9150dee9b64619"
+    },
+    {
+      "path": "docs/AGENT-DIAGNOSTIC-HELP.json",
+      "sha256": "e9c9e86cd48695127377c01a0d94e7eb5f7c912b59662281c1deb858a773ead0",
+      "identical_historical_clippy_subject": "218a9583138d78ef5aed9a495a9150dee9b64619"
+    }
+  ],
+  "latest_main_observed": "7f8e901da66015b09a25d3a1b96b2abebf21e92f",
+  "latest_main_integrated": false,
+  "new_live_benchmark": false
+}

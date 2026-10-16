@@ -225,7 +225,7 @@ macro_rules! semantic_graph_root_source_inventory {
     () => {
         format!(
         "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
-        audit_source_join!(
+        audit_source_join!(include_str!("../../src/bounded_output/invocation_binding.rs"), include_str!("../../src/workspace_graph/before_private_roots.rs"), include_str!("../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs"), include_str!("../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs"), include_str!("../../src/workspace_graph/validation/before_roots.rs"),
             audit_source_join!(
                 audit_source_join!(
                     audit_source_join!(

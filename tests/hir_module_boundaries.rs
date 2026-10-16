@@ -2,7 +2,7 @@ macro_rules! audit_source_join { ($($piece:expr),* $(,)?) => {{ let pieces: &[&s
 #[test]
 fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
     assert_eq!(audit_source_join!("", "α", "\0", "\r\n", "β"), "α\0\r\nβ");
-    let validation_raw = audit_source_join!(
+    let validation_raw = audit_source_join!(include_str!("../src/bounded_output/invocation_binding.rs"), include_str!("../src/workspace_graph/before_private_roots.rs"), include_str!("../src/workspace_graph/cache_key_original.rs"), include_str!("../src/workspace_graph/constructor_failure/receiving/before.rs"), include_str!("../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs"), include_str!("../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs"), include_str!("../src/workspace_graph/validation/before_roots.rs"),
         audit_source_join!(
             audit_source_join!(
 include_str!("../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"), include_str!("../src/hir/validation/byte_traversal/nested/tests/source_composition.rs"), include_str!("../src/cleanup_plan/replay/allocation/tests/clone_cursor.rs"), include_str!("../src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs"),

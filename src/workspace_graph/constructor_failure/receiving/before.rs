@@ -2,12 +2,12 @@
 use crate::bounded_output::staged;
 use crate::workspace_graph::{
     AuthoredDeclaration, ResolvedCore, ResolvedModuleInput, WorkspaceSource,
-    WorkspaceValidationIndex, charge_builder_prebound, checked_retention, collect_expected_edges,
+    charge_builder_prebound, checked_retention, collect_expected_edges,
     constructor_failure, expected_projection, graph_error, identity_resolution, loan_retention,
-    owned_generics, reconstruct_workspace_declaration_facts_with_authority,
+    owned_generics,
     reserve_builder_structure, reserve_workspace_module_carrier, resolved_loan_bytes,
     retain_workspace_module, retained_validation, static_text,
-    validate_retained_declaration_shapes, validate_stub_signatures_authored,
+    validate_retained_declaration_shapes,
     verify_resolved_call_edges,
 };
 use crate::{ast::Program, diagnostic::Diagnostic, hir};
@@ -359,3 +359,6 @@ pub(in crate::workspace_graph) fn build_resolved_core_current(
         expected_edges,
     ))
 }
+
+use crate::workspace_graph::validation::before_roots::{WorkspaceValidationIndex, validate_stub_signatures_authored};
+use crate::workspace_graph::before_private_roots::reconstruct_workspace_declaration_facts_with_authority;

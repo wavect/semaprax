@@ -389,3 +389,6 @@ fn parity_run<T>(old: bool, run: impl FnOnce() -> T) -> (T, usize) {
     let count = PARITY.with(|state| state.get().unwrap().1);
     (result, count)
 }
+
+use crate::workspace_graph::validation::before_roots::{WorkspaceValidationIndex, validate_stub_signatures_authored};
+use crate::workspace_graph::before_private_roots::reconstruct_workspace_declaration_facts_with_authority;

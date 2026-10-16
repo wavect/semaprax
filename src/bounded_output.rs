@@ -1339,3 +1339,5 @@ mod loan_inner_stage_tests;
 
 mod checked_string;
 pub(crate) use checked_string::CheckedCappedString;
+
+pub(crate) mod invocation_binding;

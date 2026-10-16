@@ -6,7 +6,9 @@
 //! is live, then performs the same exact comparisons after those programs
 //! have been filtered into their workspace carriers.
 
-use super::expected_projection::private_layout::authority::invocation::Invocation;
+use super::expected_projection::private_layout::authority::invocation::scratch::{
+    Current, ScratchInvocation as Invocation,
+};
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ast::{ModuleUseKind, Program, TypeDeclarationKind};
@@ -183,12 +185,7 @@ impl WorkspaceValidationIndex {
                 prelude_binding::expected_declaration_facts_for_programs(programs, true)?;
             self.resolved_record_iterator = true;
         }
-        let private = match authority {
-            Some(owner) => owner.derive_bound(source, programs, authored)?,
-            None => super::expected_projection::private_layout::authority::PrivateTypes::derive(
-                source, programs, authored,
-            )?,
-        };
+        let private = Current::derive(authority, source, programs, authored)?;
         let expected_module_compiler = prelude_binding::expected_module_declaration_facts(
             source,
             programs,
@@ -401,14 +398,7 @@ impl WorkspaceValidationIndex {
                     ModuleUseKind::Protocol => unreachable!(),
                 }
             }
-            let private = match authority {
-                Some(owner) => owner.derive_bound(caller, programs, authored)?,
-                None => {
-                    super::expected_projection::private_layout::authority::PrivateTypes::derive(
-                        caller, programs, authored,
-                    )?
-                }
-            };
+            let private = Current::derive(authority, caller, programs, authored)?;
             private.validate_signatures(|module, id| {
                 caller_facts
                     .types
@@ -801,12 +791,7 @@ pub(super) fn validate_stub_signatures_authored(
                 ModuleUseKind::Protocol => unreachable!(),
             }
         }
-        let private = match authority {
-            Some(owner) => owner.derive_bound(caller, programs, authored)?,
-            None => super::expected_projection::private_layout::authority::PrivateTypes::derive(
-                caller, programs, authored,
-            )?,
-        };
+        let private = Current::derive(authority, caller, programs, authored)?;
         private.validate_signatures(|module, id| {
             caller_hir
                 .types
@@ -1013,3 +998,6 @@ pub(super) fn insert_expected_compiler_declaration(
     }
     Ok(())
 }
+
+#[cfg(test)]
+pub(in crate::workspace_graph) mod before_roots;

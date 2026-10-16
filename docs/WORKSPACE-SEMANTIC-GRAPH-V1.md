@@ -421,8 +421,22 @@ Its lazy complete top-level proof is charged to the first caller's existing
 work allowance; callers retain their original independent work/depth ceilings
 for import, root, contains and current-HIR signature checks. The owner reuses
 one precharged DFS frame allocation and, where class methods require the old
-lookup universe, one precharged legacy function/type map. Roots remain fresh
-per caller and charged to the same cumulative builder account. Every caller
+lookup universe, one precharged legacy function/type map. Roots remain logically fresh per caller. The current receiver retains one
+invocation-paid full-census roots Vec beside the held DFS backing. Each exact
+Program/map/caller/ledger-bound exclusive lease clears and rebuilds all roots,
+repeats the original traversal and per-caller WORK debits, and checks current
+HIR through fresh contains/signature queries. A Drop guard holds both mutable
+borrows through each complete declaration/signature consumer, then clears roots
+and DFS frames on success, error or unwind. Incomplete traversal poisons the
+owner; ordinary semantic mismatches retain their original non-poisoning meaning.
+Only replacement roots backing that is no longer acquired loses its debit;
+there is no refund, smaller census, authority/result cache or cap adjustment.
+New invocation/lease/enum/RefMut/Result/query/layout and callback carriers are
+explicitly funded before formation, including the widened ordinary fallback
+receiver. Empty or single-use cases have added controls without a backing
+saving, and retained backing can increase overlap with later HIR. Full original
+owning derivation, its sixteen-acquisition assertions, all four previous
+consumers and prior core callers remain independently executable test controls. Every caller
 and map binding is checked again, failed acquisition/traversal is sticky, and
 scratch frames are cleared on failure. No source or HIR verdict, allocation
 credit or mutable cache survives the attempt. Source-only controls require

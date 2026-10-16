@@ -1,0 +1,14 @@
+{
+  "head": "787f84774e935833cd0d8de17c6c8da21d7b4986",
+  "root": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "files": {
+    "src/workspace_graph.rs": "9eab12b59d54c41c3b71f2e0b3b3d6937390da03cd8c7d4b2fe2ed1da39ae565",
+    "src/workspace_graph/validation.rs": "efd9facda18231f7e396d7be0791716852c48a1781b6cfcbf1aba478706f6364",
+    "src/workspace_graph/expected_projection/private_layout.rs": "ca6c93a679b97cf275c83168b03d6ee550c2989b12c6d4a08db93063f43ff9a3",
+    "src/workspace_graph/expected_projection/private_layout/authority.rs": "9a66a7bb422c27e3528e7d17aaf44ef96ca868017df31d21a44e9a1abdb375fe",
+    "src/workspace_graph/expected_projection/private_layout/authority_invocation.rs": "8948b8bad000ab56b794525678ab709218675f42b9772b0e1a0499e04e7a0fd5",
+    "src/workspace_graph/expected_projection/private_layout/authority_invocation/tests.rs": "481d906a657a599afb0faadba2a362ee410f47c52709086b70d7eb0edf11fd27",
+    "docs/WORKSPACE-SEMANTIC-GRAPH-V1.md": "9b4945cbc3fe88b5f969b87f65d5733ba369617c1feb0aed4b9229c051f7d43a"
+  },
+  "qualification": "discovery only; no compilation or execution"
+}

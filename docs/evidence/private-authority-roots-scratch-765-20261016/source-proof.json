@@ -1,0 +1,1 @@
+{"status": "SOURCE_ONLY_PRIVATE_AUTHORITY_ROOTS_SCRATCH_CUSTODY_PASS", "preexisting_inputs": 20, "new_modules": 5, "old_invocation_and_three_owning_tests_unchanged": true, "all_four_old_consumers_executable": true, "three_raw_inventories_complete": true, "full_old_traversal_queries_and_work_preserved": true, "no_caps_or_ledger_algorithms_changed": true, "rust_executed": false}

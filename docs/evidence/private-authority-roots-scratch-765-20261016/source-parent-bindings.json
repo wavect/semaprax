@@ -1,0 +1,36 @@
+{
+  "status": "REQUIRES_FINAL_JOINED_GENERATION",
+  "note": "Exact registration-chain source bindings, not additional production purity scope. All actual chains must be regenerated and checked by the unchanged existing authority generator.",
+  "parents": {
+    "src/bounded_output/invocation_binding.rs": [
+      "src/lib.rs",
+      "src/bounded_output.rs"
+    ],
+    "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs": [
+      "src/lib.rs",
+      "src/workspace_graph.rs",
+      "src/workspace_graph/expected_projection.rs",
+      "src/workspace_graph/expected_projection/private_layout.rs",
+      "src/workspace_graph/expected_projection/private_layout/authority.rs",
+      "src/workspace_graph/expected_projection/private_layout/authority_invocation.rs"
+    ],
+    "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs": [
+      "src/lib.rs",
+      "src/workspace_graph.rs",
+      "src/workspace_graph/expected_projection.rs",
+      "src/workspace_graph/expected_projection/private_layout.rs",
+      "src/workspace_graph/expected_projection/private_layout/authority.rs",
+      "src/workspace_graph/expected_projection/private_layout/authority_invocation.rs",
+      "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs"
+    ],
+    "src/workspace_graph/validation/before_roots.rs": [
+      "src/lib.rs",
+      "src/workspace_graph.rs",
+      "src/workspace_graph/validation.rs"
+    ],
+    "src/workspace_graph/before_private_roots.rs": [
+      "src/lib.rs",
+      "src/workspace_graph.rs"
+    ]
+  }
+}

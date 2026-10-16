@@ -240,9 +240,7 @@ fn exact_nested_owned_and_borrowed_patterns_retain_binding_modes_and_owner() {
     }
 }
 
-#[test]
-fn excluded_owned_byte_record_shape_is_rejected_before_pattern_resolution() {
-    let source = r#"
+const ORIGINAL_STRING_PATTERN: &str = r#"
 module test.nested_pattern_closed_shape;
 record Packet { payload: Bytes, text: string, }
 fn invalid(packet: own Packet) -> i64 {
@@ -250,9 +248,19 @@ fn invalid(packet: own Packet) -> i64 {
 }
 fn main() -> i64 { 0 }
 "#;
-    let errors = diagnostics(source);
-    // The record declaration itself is outside Nested Owned-Byte Records v1,
-    // so its stable error precedes ownership-aware pattern resolution.
+
+#[test]
+fn original_mixed_string_pattern_is_admitted_by_the_current_owned_text_profile() {
+    super::byte_record_algebra::assert_mixed_string_record_current_profile(ORIGINAL_STRING_PATTERN);
+}
+
+#[test]
+fn excluded_owned_byte_record_shape_is_rejected_before_pattern_resolution() {
+    let source =
+        ORIGINAL_STRING_PATTERN.replace("text: string,", "text: string, unsupported: [u8; 1],");
+    let errors = diagnostics(&source);
+    // Arrays remain outside both the byte-only and newer text-record profiles.
+    // The same stable declaration error precedes owned pattern resolution.
     let failures = errors
         .iter()
         .filter(|diagnostic| diagnostic.severity == semaprax::diagnostic::Severity::Error)
@@ -380,8 +388,23 @@ module test.flat_update_retained;
     );
 }
 
+const ORIGINAL_STRING_COMPANION: &str = r#"
+module test.nested_string_closed;
+record Root { payload: Bytes, text: string, }
+fn main() -> i64 { 0 }
+"#;
+
+#[test]
+fn original_nested_string_companion_is_admitted_by_the_current_owned_text_profile() {
+    super::byte_record_algebra::assert_mixed_string_record_current_profile(
+        ORIGINAL_STRING_COMPANION,
+    );
+}
+
 #[test]
 fn variants_generics_classes_and_noncopy_leaves_stay_closed() {
+    let unsupported_string =
+        ORIGINAL_STRING_COMPANION.replace("text: string,", "text: string, unsupported: [u8; 1],");
     let cases = [
         r#"
 module test.nested_variant_closed;
@@ -401,11 +424,7 @@ class Metadata { marker: i64, }
 record Root { payload: Bytes, metadata: Metadata, }
 fn main() -> i64 { 0 }
 "#,
-        r#"
-module test.nested_string_closed;
-record Root { payload: Bytes, text: string, }
-fn main() -> i64 { 0 }
-"#,
+        unsupported_string.as_str(),
     ];
     for source in cases {
         assert!(

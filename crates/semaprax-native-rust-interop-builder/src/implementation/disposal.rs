@@ -339,7 +339,10 @@ fn drain_disposal_frames(
                     residual_type,
                     ..
                 } => {
-                    disposal_push(frames, ResolvedDisposeFrame::Type(residual_type));
+                    disposal_push(
+                        frames,
+                        ResolvedDisposeFrame::Type(residual_type.into_inner()),
+                    );
                     pending_expression = Some(*operand);
                 }
                 ResolvedExprKind::UpdateRecord { base, fields, .. } => {

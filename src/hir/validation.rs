@@ -7735,7 +7735,7 @@ impl<'a> HirValidator<'a> {
                 let ResolvedType::Nominal {
                     declaration: residual_option,
                     arguments: residual_arguments,
-                } = residual_type
+                } = &**residual_type
                 else {
                     return Err(hir_error(
                         "resolved Option `?` residual is not nominal Option",

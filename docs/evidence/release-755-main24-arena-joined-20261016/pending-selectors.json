@@ -1,0 +1,97 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::flat_records::tests::receiving_path_boundary::complete_old_and_paid_path_boundaries_keep_all_fields_order_and_hostile_state",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::flat_records::tests::receiving_path_boundary::paid_path_boundary_actual_limits_work_sticky_and_complete_drop",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::lexical_cert::paid::chains::tests::exact_borrowed_queries_keep_unknown_cycle_and_intentional_or_false",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::tests::complete_original_sequence_keeps_order_path_fields_work_and_materializations",
+    "expected": 1,
+    "reason": "Independent complete Main24 current protocol"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::tests::transfer_reuses_full_backing_and_preserves_each_observation_identity",
+    "expected": 1,
+    "reason": "Independent complete Main24 current protocol"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::tests::original_receiver_source_remains_complete",
+    "expected": 1,
+    "reason": "Independent complete Main24 current protocol"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+    "expected": 1,
+    "reason": "Independent complete Main24 current protocol"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::tests::bypasses_and_sticky_refusals_leave_the_complete_input_untouched",
+    "expected": 1,
+    "reason": "Independent complete Main24 current protocol"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::tests::thin_header_and_complete_shipped_wrapper_and_tests_stay_source_bound",
+    "expected": 1,
+    "reason": "Independent complete Main24 current protocol"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::before_wrapper::before_wrapper::tests::complete_original_sequence_keeps_order_path_fields_work_and_materializations",
+    "expected": 1,
+    "reason": "Independent complete pre-Main24 wrapper protocol; original five controls retained"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::before_wrapper::before_wrapper::tests::transfer_reuses_full_backing_and_preserves_each_observation_identity",
+    "expected": 1,
+    "reason": "Independent complete pre-Main24 wrapper protocol; original five controls retained"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::before_wrapper::before_wrapper::tests::original_receiver_source_remains_complete",
+    "expected": 1,
+    "reason": "Independent complete pre-Main24 wrapper protocol; original five controls retained"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::before_wrapper::before_wrapper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+    "expected": 1,
+    "reason": "Independent complete pre-Main24 wrapper protocol; original five controls retained"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::before_wrapper::before_wrapper::tests::bypasses_and_sticky_refusals_leave_the_complete_input_untouched",
+    "expected": 1,
+    "reason": "Independent complete pre-Main24 wrapper protocol; original five controls retained"
+  }
+]

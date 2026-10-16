@@ -69,6 +69,11 @@ pub(super) fn joined_custody(fixture: super::joined_custody::Fixture) -> String 
     read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
         .expect("complete authenticated joined source custody")
 }
+pub(super) fn release_custody(fixture: super::release_custody::Fixture) -> String {
+    let spec = fixture.spec();
+    read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
+        .expect("complete authenticated release source custody")
+}
 pub(super) fn load(fixture: Fixture) -> String {
     let spec = fixture.spec();
     read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)

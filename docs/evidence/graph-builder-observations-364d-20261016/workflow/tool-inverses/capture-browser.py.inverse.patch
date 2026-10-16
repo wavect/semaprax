@@ -1,0 +1,27 @@
+--- derived/capture-browser.py
++++ original/capture-browser.py
+@@ -2,8 +2,8 @@
+ import json,sys,subprocess,hashlib,os,time,argparse
+ P=argparse.ArgumentParser();P.add_argument('--out',type=Path,required=True);P.add_argument('--expected-build-receipt-sha256',required=True);P.add_argument('--expected-readiness-sha256',required=True);ARGS=P.parse_args();OUT=ARGS.out.resolve();FLOW=Path(__file__).resolve().parent
+ REPO=Path('/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang')
+-ROUND=Path('/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016')
+-HEAD='364d824194cd1df76b5c273aa0fb9cbafb602e29'
++ROUND=Path('/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016')
++HEAD='2d4b68d3a416cae5fba6ac08498cd56721878ba1'
+ sys.path.insert(0,str(ROUND/'drivers'))
+ from observed_phase import run_phase,provenance
+ sha=lambda p:hashlib.file_digest(Path(p).open('rb'),'sha256').hexdigest()
+@@ -72,13 +72,6 @@
+  observedrestore=raw.replace(actual_field,b'"used_builder_bytes":3534564',1).replace(mainfield,('"graph_digest":'+json.dumps(obs['graph_digest'])).encode(),1)
+  assert observedrestore==observed,'OTHER FIELD OR BYTE DIFFERENCE FROM ACTUAL8bb: stop without pin edits'
+  result['new_independent_bridges']={'main2600_wire_sha256':sha(mainpath),'main2600_builder_bytes':3296148,'observed8bb_wire_sha256':sha(observedpath),'observed8bb_builder_bytes':3534564,'complete_main2600_restore':True,'complete_observed8bb_restore':True}
+- observed2d_path=FLOW/'historical-observations/observed2d4b-browser'/f'calculator-{name}.json'
+- assert sha(observed2d_path)==record['browser_required_prior']['observed2d4b-'+name]['sha256']
+- observed2d_wire=observed2d_path.read_bytes().removesuffix(b'\n');observed2d=json.loads(observed2d_wire)
+- assert domain_digest(observed2d_wire)==observed2d['graph_digest'] and observed2d['budget']['used_builder_bytes']==3558886
+- observed2d_restore=raw.replace(actual_field,b'"used_builder_bytes":3558886',1).replace(mainfield,('"graph_digest":'+json.dumps(observed2d['graph_digest'])).encode(),1)
+- assert observed2d_restore==observed2d_wire,'OTHER FIELD OR BYTE DIFFERENCE FROM FULL ACTUAL2d4b: stop without pin edits'
+- result['new_independent_bridges'].update(observed2d4b_wire_sha256=sha(observed2d_path),observed2d4b_builder_bytes=3558886,complete_observed2d4b_restore=True)
+  priorpath=REPO/f'docs/evidence/browser-graph-pins-35cc-20261016/actual-capture/calculator-{name}.json';prior=priorpath.read_bytes().removesuffix(b'\n');p=json.loads(prior);assert domain_digest(prior)==p['graph_digest']
+  assert p['budget']['used_builder_bytes']==4032239
+  bill=d['budget']['used_builder_bytes'];field=f'"used_builder_bytes":{bill}'.encode();assert raw.count(field)==1

@@ -1,0 +1,11 @@
+--- derived/strict-828f-capture-only.py
++++ original/strict-828f-capture-only.py
+@@ -62,7 +62,7 @@
+     require(re.fullmatch(r"[0-9a-f]{40}", args.expected_capture_head) is not None
+             and head == args.expected_capture_head, "capture head differs from full ROOT-approved build")
+     require(head == manifest["source_head"], "capture head manifest mismatch")
+-    require(head == "364d824194cd1df76b5c273aa0fb9cbafb602e29", "this one-off updater accepts only its explicitly frozen source capture")
++    require(head == "2d4b68d3a416cae5fba6ac08498cd56721878ba1", "this one-off updater accepts only its explicitly frozen source capture")
+     source_patch = (capture / "source-local.patch").read_bytes()
+     require(not source_patch, "capture includes source drift; ROOT must audit and recapture frozen source")
+     require(hashlib.sha256(source_patch).hexdigest() == manifest["source_patch_sha256"], "capture patch manifest mismatch")

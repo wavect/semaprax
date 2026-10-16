@@ -1,0 +1,129 @@
+{
+  "source_subject": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+  "source_tree": "3935f7ee8f8ebdb86a6e04a2ed7c42e7bcfa6d65",
+  "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/semaprax",
+  "executable_sha256": "48a8be98163d58022e8768425feb57d6d78e2e43d4b5779e8d9c0e407aab5e90",
+  "build_receipt": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-build-result.json",
+  "build_receipt_sha256": "6b519dfefdb8d3239626b622b4c11d94fbe360b04d7f7e4f3c639212167744b8",
+  "build_metadata_sha256": "19ff21ca92d2bb8d2c4ffba81d6d37c2f0a20908bb84754c8527cb033f2e1250",
+  "build_log_sha256": "459c8024d752ab5a721da3e92221c70f36d2ad1124366c1e7fe161a452ffa9c2",
+  "artifact_record": {
+    "reason": "compiler-artifact",
+    "package_id": "path+file:///Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang#semaprax@0.9.0",
+    "manifest_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/Cargo.toml",
+    "target": {
+      "kind": [
+        "bin"
+      ],
+      "crate_types": [
+        "bin"
+      ],
+      "name": "semaprax",
+      "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/src/main.rs",
+      "edition": "2021",
+      "doc": true,
+      "doctest": false,
+      "test": true
+    },
+    "profile": {
+      "opt_level": "0",
+      "debuginfo": 0,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "test": false
+    },
+    "features": [
+      "default"
+    ],
+    "filenames": [
+      "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/semaprax"
+    ],
+    "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/semaprax",
+    "fresh": false
+  },
+  "guard": {
+    "observation_helper_path": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/drivers/semaprax_pressure_observation_v3.py",
+    "observation_helper_sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+    "phase_monitor_path": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/drivers/observed_phase.py",
+    "phase_monitor_sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+  },
+  "inputs": [
+    {
+      "fixture": "baseline",
+      "path": "semaprax.toml",
+      "source_path": "examples/calculator-project/semaprax.toml",
+      "git_original_sha256": "1423cbcd10a605d5abed6af6e48dfd99c96659fbbe08960faf82672d4a6d653b",
+      "actual_sha256": "1423cbcd10a605d5abed6af6e48dfd99c96659fbbe08960faf82672d4a6d653b",
+      "bytes": 308,
+      "rename_only": false
+    },
+    {
+      "fixture": "baseline",
+      "path": "src/app.spx",
+      "source_path": "examples/calculator-project/src/app.spx",
+      "git_original_sha256": "ddfedb62ccb63930d411bff62716583f075c703b72f8d5434816ff45e1469fcc",
+      "actual_sha256": "ddfedb62ccb63930d411bff62716583f075c703b72f8d5434816ff45e1469fcc",
+      "bytes": 405,
+      "rename_only": false
+    },
+    {
+      "fixture": "baseline",
+      "path": "src/core.spx",
+      "source_path": "examples/calculator-project/src/core.spx",
+      "git_original_sha256": "415255f8628535606dcecd8d7459639014d4a3437dc1199ecf7f9cc8074d801e",
+      "actual_sha256": "415255f8628535606dcecd8d7459639014d4a3437dc1199ecf7f9cc8074d801e",
+      "bytes": 548,
+      "rename_only": false
+    },
+    {
+      "fixture": "baseline",
+      "path": "src/tests.spx",
+      "source_path": "examples/calculator-project/src/tests.spx",
+      "git_original_sha256": "373d4bc3cc3b292da6fdf69c15778c363573af42dde0dc213c23360f499a7b11",
+      "actual_sha256": "373d4bc3cc3b292da6fdf69c15778c363573af42dde0dc213c23360f499a7b11",
+      "bytes": 649,
+      "rename_only": false
+    },
+    {
+      "fixture": "renamed",
+      "path": "semaprax.toml",
+      "source_path": "examples/calculator-project/semaprax.toml",
+      "git_original_sha256": "1423cbcd10a605d5abed6af6e48dfd99c96659fbbe08960faf82672d4a6d653b",
+      "actual_sha256": "1423cbcd10a605d5abed6af6e48dfd99c96659fbbe08960faf82672d4a6d653b",
+      "bytes": 308,
+      "rename_only": false
+    },
+    {
+      "fixture": "renamed",
+      "path": "src/app.spx",
+      "source_path": "examples/calculator-project/src/app.spx",
+      "git_original_sha256": "ddfedb62ccb63930d411bff62716583f075c703b72f8d5434816ff45e1469fcc",
+      "actual_sha256": "ddfedb62ccb63930d411bff62716583f075c703b72f8d5434816ff45e1469fcc",
+      "bytes": 405,
+      "rename_only": false
+    },
+    {
+      "fixture": "renamed",
+      "path": "src/core.spx",
+      "source_path": "examples/calculator-project/src/core.spx",
+      "git_original_sha256": "415255f8628535606dcecd8d7459639014d4a3437dc1199ecf7f9cc8074d801e",
+      "actual_sha256": "8b81d51affddc0e62460c7e828032262df189b393787bafe07f5b06e4c8ea9b2",
+      "bytes": 548,
+      "rename_only": true
+    },
+    {
+      "fixture": "renamed",
+      "path": "src/tests.spx",
+      "source_path": "examples/calculator-project/src/tests.spx",
+      "git_original_sha256": "373d4bc3cc3b292da6fdf69c15778c363573af42dde0dc213c23360f499a7b11",
+      "actual_sha256": "373d4bc3cc3b292da6fdf69c15778c363573af42dde0dc213c23360f499a7b11",
+      "bytes": 649,
+      "rename_only": false
+    }
+  ],
+  "producer_contract": ".github/workflows/ci.yml exact frozen2d4b / Main eb13 browser graph capture",
+  "producer_contract_sha256": "9713e6e0913494ccbff235ae30948005642d2403b5eda9ab4bc170afc5102c36",
+  "no_test_execution": true,
+  "capture_is_not_owner_test_pass": true,
+  "controller_sha256": "b3cef72148a43f8121e35fb51e9f08e3107978388d20b7693f058d73bea06951"
+}

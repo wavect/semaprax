@@ -203,7 +203,7 @@ fn closed_stdio() {
         Mode::ColdImage => "cold-image",
         Mode::WarmImage => "warm-image",
     };
-    let request_sha256 = format!("{:x}", Sha256::digest(&bytes));
+    let request_sha256 = format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(&bytes)));
     let result = execute(&request);
     let (wire, encode) = measure_with_capacity(POINTER_LIMIT, || {
         serde_json::to_vec(&json!({"protocol":"semaprax.private-847-oracle.v1","subject":subject,"mode":mode,"request_sha256":request_sha256,"decode_retained_input":metrics(decode),"observation_pointer_limit":POINTER_LIMIT,"result":result})).unwrap()

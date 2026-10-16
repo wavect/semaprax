@@ -73,7 +73,10 @@ pub(crate) fn dispatch(
     if command == super::help::CommandId::Doc {
         return super::doc::run(super::doc::parse(args)?, report);
     }
-    if args.iter().any(|arg| arg == "--retained-receipt") {
+    if args
+        .iter()
+        .any(|arg| arg == "--retained-receipt" || arg == "--receipt-stdout-seal")
+    {
         return retained_receipt::run(args, report);
     }
     if args.iter().any(|arg| arg == "--explain") {

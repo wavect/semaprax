@@ -1,0 +1,187 @@
+{
+  "schema": "semaprax.finite-source-continuation.v1",
+  "base": "57f8758749efe32ebadf99149223dd8a8abba0f2",
+  "changed": [
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "before": "docs/evidence/codec-stdout-publication-seal-20261017/before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "before_sha256": "8e92946af1cd6cfcd68c05d0879632e3b6ec602bc1ef4c158576198840bc200a",
+      "after_sha256": "5860210c7c2f45b5894df23dd1e3bd365deb343b9e4bb46ad2d35405386273fb",
+      "edits": [
+        {
+          "before_start": 267,
+          "before_end": 4932,
+          "after_start": 267,
+          "after_end": 5213,
+          "before": "        audit_source_join!( include_str!(\"../../../../../src/source_reflows_merge/main_eb2_inputs.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/sequence_minimum/optimized.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/sequence_minimum/immediate.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs\"), include_str!(\"../../../../../src/source_reflows_merge/opt858_sequence_input.rs\"), include_str!(\"../../../../../src/literal_format/funded.rs\"), include_str!(\"../../../../../src/source_verify/declaration/record_shape.rs\"), include_str!(\"../../../../../src/source_verify/declaration/record_shape_before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/schema/original_materializer.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/schema/ordinary_tests.rs\"), include_str!(\"../../../../../tests/support/production_source_inventory_original.rs\"), include_str!(\"../../../../../tests/support/new_boundary_module.rs\"), include_str!(\"../../../../../src/bounded_output/invocation_binding.rs\"), include_str!(\"../../../../../src/workspace_graph/before_private_roots.rs\"), include_str!(\"../../../../../src/workspace_graph/cache_key_original.rs\"), include_str!(\"../../../../../src/workspace_graph/constructor_failure/receiving/before.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs\"), include_str!(\"../../../../../src/workspace_graph/validation/before_roots.rs\"), include_str!(\"../../../../../src/hir/validation/byte_traversal/nested/tests/source_composition.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/allocation/tests/clone_cursor.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs\"), include_str!(\"../../../../../src/string_ops/concat_funded.rs\"), include_str!(\"../../../../../src/string_ops/conditions/funded.rs\"), include_str!(\"../../../../../src/string_ops/replacement/funded.rs\"), include_str!(\"../../../../../src/byte_ops/funded.rs\"), include_str!(\"../../../../../src/cleanup_plan/renewal_profile/funded.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/oracle_hook.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/a.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/b.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_context.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/paid.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/tests/structural_errors.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_owner.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_profile.rs\"), include_str!(\"../../../../../src/source_reflows/main043.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_0.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_1.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_2.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_3.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_4.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_5.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_6.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_7.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_8.rs\"), include_str!(\"../../../../../src/source_reflows/main043/semantic_receivers.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main043_custody.rs\"), include_str!(\"../../../../../tests/hir_module_boundaries.rs\"), include_str!(\"../../../../../tests/workspace/semantic_graph/source_inventory.rs\"), include_str!(\"../../../../../src/source_reflows_merge/current344.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main8a_historical.rs\"),\n",
+          "after": "        audit_source_join!(include_str!(\"../../../../../src/cli/json_codec/retained_receipt/stdout_seal.rs\"),include_str!(\"../../../../../src/cli/json_codec/retained_receipt/stdout_seal/tests.rs\"),include_str!(\"../../../../../tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main_eb2_inputs.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/sequence_minimum/optimized.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/sequence_minimum/immediate.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs\"), include_str!(\"../../../../../src/source_reflows_merge/opt858_sequence_input.rs\"), include_str!(\"../../../../../src/literal_format/funded.rs\"), include_str!(\"../../../../../src/source_verify/declaration/record_shape.rs\"), include_str!(\"../../../../../src/source_verify/declaration/record_shape_before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/schema/original_materializer.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/schema/ordinary_tests.rs\"), include_str!(\"../../../../../tests/support/production_source_inventory_original.rs\"), include_str!(\"../../../../../tests/support/new_boundary_module.rs\"), include_str!(\"../../../../../src/bounded_output/invocation_binding.rs\"), include_str!(\"../../../../../src/workspace_graph/before_private_roots.rs\"), include_str!(\"../../../../../src/workspace_graph/cache_key_original.rs\"), include_str!(\"../../../../../src/workspace_graph/constructor_failure/receiving/before.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs\"), include_str!(\"../../../../../src/workspace_graph/validation/before_roots.rs\"), include_str!(\"../../../../../src/hir/validation/byte_traversal/nested/tests/source_composition.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/allocation/tests/clone_cursor.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs\"), include_str!(\"../../../../../src/string_ops/concat_funded.rs\"), include_str!(\"../../../../../src/string_ops/conditions/funded.rs\"), include_str!(\"../../../../../src/string_ops/replacement/funded.rs\"), include_str!(\"../../../../../src/byte_ops/funded.rs\"), include_str!(\"../../../../../src/cleanup_plan/renewal_profile/funded.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/oracle_hook.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/a.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/b.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_context.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/paid.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/tests/structural_errors.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_owner.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_profile.rs\"), include_str!(\"../../../../../src/source_reflows/main043.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_0.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_1.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_2.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_3.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_4.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_5.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_6.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_7.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_8.rs\"), include_str!(\"../../../../../src/source_reflows/main043/semantic_receivers.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main043_custody.rs\"), include_str!(\"../../../../../tests/hir_module_boundaries.rs\"), include_str!(\"../../../../../tests/workspace/semantic_graph/source_inventory.rs\"), include_str!(\"../../../../../src/source_reflows_merge/current344.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main8a_historical.rs\"),\n"
+        }
+      ]
+    },
+    {
+      "path": "docs/JSON-CODEC-RETAINED-RECEIPT-V1.md",
+      "before": "docs/evidence/codec-stdout-publication-seal-20261017/before/docs/JSON-CODEC-RETAINED-RECEIPT-V1.md",
+      "before_sha256": "e9713b4ab96e3dfdb8f5fab3d224c450b6157190a726235d25ca850424af5fa8",
+      "after_sha256": "a7e6d579d3381f05b0da4650c2a49db46439f50a9998ee17ae9f04d80db7e8f3",
+      "edits": [
+        {
+          "before_start": 7518,
+          "before_end": 7518,
+          "after_start": 7518,
+          "after_end": 8071,
+          "before": "",
+          "after": "\n## Optional stdout publication correlation\n\nThe additive `--receipt-stdout-seal <nonce>` form, usable only with exactly one `--retained-receipt`, is specified in [JSON Codec Publication Seal v1](JSON-CODEC-PUBLICATION-SEAL-V1.md). It emits a bounded stdout record after successful exclusive publication of the identical JSON-plus-LF artifact. It creates no second artifact and grants no execution authentication. Existing forms without that flag retain their original output and diagnostic behavior. Qualification of the additive form remains pending.\n"
+        }
+      ]
+    },
+    {
+      "path": "src/cli/json_codec/retained_receipt.rs",
+      "before": "docs/evidence/codec-stdout-publication-seal-20261017/before/src/cli/json_codec/retained_receipt.rs",
+      "before_sha256": "c652e374e656d198a728d719b78cc9d07e2659aeb2df3f1455377011733729dd",
+      "after_sha256": "fab22ee424db212390a00d6cfbb3b58e42c4c1a64991cfaa675e818d0180ae8b",
+      "edits": [
+        {
+          "before_start": 184,
+          "before_end": 184,
+          "after_start": 184,
+          "after_end": 246,
+          "before": "",
+          "after": "#[path = \"retained_receipt/stdout_seal.rs\"]\nmod stdout_seal;\n\n"
+        },
+        {
+          "before_start": 277,
+          "before_end": 277,
+          "after_start": 339,
+          "after_end": 706,
+          "before": "",
+          "after": "    if args.iter().any(|arg| arg == \"--receipt-stdout-seal\") {\n        return stdout_seal::run(args, report, &mut std::io::stdout());\n    }\n    run_with_publisher(args, report, publish_new)\n}\n\nfn run_with_publisher(\n    args: &[String],\n    report: impl Fn(&[Diagnostic]) -> u8,\n    publish: impl FnOnce(&Path, &[u8]) -> Result<(), Diagnostic>,\n) -> Result<(), u8> {\n"
+        },
+        {
+          "before_start": 1422,
+          "before_end": 1501,
+          "after_start": 1851,
+          "after_end": 1926,
+          "before": "    publish_new(&options.output, &bytes).map_err(|failure| report(&[failure]))\n",
+          "after": "    publish(&options.output, &bytes).map_err(|failure| report(&[failure]))\n"
+        }
+      ]
+    },
+    {
+      "path": "src/cli/json_codec.rs",
+      "before": "docs/evidence/codec-stdout-publication-seal-20261017/before/src/cli/json_codec.rs",
+      "before_sha256": "1c69638fbafaebb285f0dfc944203a54c7d818dd272440dc438fb20852e87a36",
+      "after_sha256": "2b3e46163b36696c23ac0d37cda9414617be9edf11d35148310f91072ef7f699",
+      "edits": [
+        {
+          "before_start": 6069,
+          "before_end": 6129,
+          "after_start": 6069,
+          "after_end": 6185,
+          "before": "    if args.iter().any(|arg| arg == \"--retained-receipt\") {\n",
+          "after": "    if args\n        .iter()\n        .any(|arg| arg == \"--retained-receipt\" || arg == \"--receipt-stdout-seal\")\n    {\n"
+        }
+      ]
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "before": "docs/evidence/codec-stdout-publication-seal-20261017/before/tests/hir_module_boundaries.rs",
+      "before_sha256": "7c47d97fc6f72b7b1c87e1794f776046b6995f825bf54eddee035b52752e4840",
+      "after_sha256": "2f875f1356f83fb1be2ad0f4bbc56ecd187b5b036962aca2ef8799969d2b551b",
+      "edits": [
+        {
+          "before_start": 210,
+          "before_end": 286,
+          "after_start": 210,
+          "after_end": 531,
+          "before": "    assert_eq!(audit_source_join!(\"\", \"\u03b1\", \"\\0\", \"\\r\\n\", \"\u03b2\"), \"\u03b1\\0\\r\\n\u03b2\");\n",
+          "after": "    assert_eq!(audit_source_join!(include_str!(\"../src/cli/json_codec/retained_receipt/stdout_seal.rs\"),include_str!(\"../src/cli/json_codec/retained_receipt/stdout_seal/tests.rs\"),include_str!(\"../tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs\"),\"\", \"\u03b1\", \"\\0\", \"\\r\\n\", \"\u03b2\"), \"\u03b1\\0\\r\\n\u03b2\");\n"
+        }
+      ]
+    },
+    {
+      "path": "tests/project/standard_library/application_json/retained_receipt.rs",
+      "before": "docs/evidence/codec-stdout-publication-seal-20261017/before/tests/project/standard_library/application_json/retained_receipt.rs",
+      "before_sha256": "9d20027cfeb9ec25112b714f4ee2eac0677b638825e932397c5ffc51cdc275e6",
+      "after_sha256": "31ad4200ebb11090f0f337f0775374ccacb3a404b39e186657cb16d57a1b3d89",
+      "edits": [
+        {
+          "before_start": 8601,
+          "before_end": 8601,
+          "after_start": 8601,
+          "after_end": 8663,
+          "before": "",
+          "after": "\n#[path = \"retained_receipt/stdout_seal.rs\"]\nmod stdout_seal;\n"
+        }
+      ]
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "before": "docs/evidence/codec-stdout-publication-seal-20261017/before/tests/workspace/semantic_graph/source_inventory.rs",
+      "before_sha256": "fed18fd5e9dfa7fa9ca21d1121fb87215a307431ef4e5e660bb8c4683aa70c11",
+      "after_sha256": "dffb6be76845105cc7277625f543a033a51a910717a49d6832b9c7b5ec8a9cdd",
+      "edits": [
+        {
+          "before_start": 353,
+          "before_end": 513,
+          "after_start": 353,
+          "after_end": 767,
+          "before": "    () => { audit_source_join!(semantic_graph_private_layout_owned_source_inventory!(capacity), semantic_graph_private_layout_owned_source_inventory!(core)) };\n",
+          "after": "    () => { audit_source_join!(include_str!(\"../../src/cli/json_codec/retained_receipt/stdout_seal.rs\"),include_str!(\"../../src/cli/json_codec/retained_receipt/stdout_seal/tests.rs\"),include_str!(\"../../tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs\"),semantic_graph_private_layout_owned_source_inventory!(capacity), semantic_graph_private_layout_owned_source_inventory!(core)) };\n"
+        }
+      ]
+    }
+  ],
+  "new": [
+    {
+      "path": "src/cli/json_codec/retained_receipt/stdout_seal.rs",
+      "sha256": "80c2625dcc6adb7d568dbd0024cb986c5e789a808c7279731d4a251a9cbe5b55"
+    },
+    {
+      "path": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+      "sha256": "21a649a54cc137a6e29bc7782012feee48b3615b594793954b1570aa6a0a9ccf"
+    },
+    {
+      "path": "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs",
+      "sha256": "b8b8219a9d4476b345945f086322a24fb8c925ebdb13ba240b9212e593146ad3"
+    },
+    {
+      "path": "docs/JSON-CODEC-PUBLICATION-SEAL-V1.md",
+      "sha256": "e92a247dfc617aa028d110fc63c3474785218bc76aa60b251212cf05e4edfec3"
+    }
+  ],
+  "unchanged": [
+    {
+      "path": "src/cli/json_codec/retained_receipt/tests.rs",
+      "sha256": "9ae79e694467d8a4f327f4fa608661d5cb9f4937f88945da72f2c53facdf84eb"
+    },
+    {
+      "path": "src/project/json_codec/retained_receipt.rs",
+      "sha256": "dfddf1506d91b05580a64fdbf7f2e93593a06d0d6714cab4f8224430722306f3"
+    },
+    {
+      "path": "src/project/json_codec/retained_receipt/tests.rs",
+      "sha256": "1c5fa8416ff10a069a483ce80c5a391663ab55ce80ef1a037d145f74ca07134b"
+    },
+    {
+      "path": "src/project/authority/retained_input.rs",
+      "sha256": "2938a32b1366d5948b7511dd5b1490b99802dbf085d35454c9ce0e619ef76aed"
+    },
+    {
+      "path": "benchmarks/compiler_retained_receipt.py",
+      "sha256": "6140d98b89cd1037054d26bef1108fa3a8331c638bc181be64e719de09ebd6d2"
+    },
+    {
+      "path": "benchmarks/compiler_input_capture.py",
+      "sha256": "9e44f53edb95e8cc6bdf03527102290156540d433cdb546d8c1cc9e74534f413"
+    },
+    {
+      "path": "benchmarks/compiler_output_provenance.py",
+      "sha256": "40e4fa95039883caf2801e484f4a5d64e7f2d30779aa29a9c910111deb2fa862"
+    }
+  ],
+  "qualification": "SOURCE_ONLY; all Rust owners PENDING; no Cargo/provider/RPC execution",
+  "issues": [
+    869,
+    606
+  ]
+}

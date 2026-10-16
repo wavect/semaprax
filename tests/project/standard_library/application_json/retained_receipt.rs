@@ -270,3 +270,6 @@ fn retained_receipt_cli_exclusively_publishes_one_artifact_and_preserves_old_sou
     }));
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[path = "retained_receipt/stdout_seal.rs"]
+mod stdout_seal;

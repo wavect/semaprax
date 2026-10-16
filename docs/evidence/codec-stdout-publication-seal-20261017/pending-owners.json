@@ -1,0 +1,91 @@
+{
+  "base": "57f8758749efe32ebadf99149223dd8a8abba0f2",
+  "new": [
+    {
+      "package": "semaprax",
+      "kind": "bin",
+      "target": "semaprax",
+      "selector": "cli_driver::cli::json_codec::retained_receipt::stdout_seal::tests::nonce_grammar_is_closed_bounded_and_preserves_all_ordinary_arguments",
+      "source": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+      "line": 36,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "bin",
+      "target": "semaprax",
+      "selector": "cli_driver::cli::json_codec::retained_receipt::stdout_seal::tests::sealed_forms_require_exact_retained_route_before_project_authority",
+      "source": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+      "line": 68,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "bin",
+      "target": "semaprax",
+      "selector": "cli_driver::cli::json_codec::retained_receipt::stdout_seal::tests::seal_binds_exact_complete_buffer_including_lf_and_follows_publication",
+      "source": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+      "line": 92,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "bin",
+      "target": "semaprax",
+      "selector": "cli_driver::cli::json_codec::retained_receipt::stdout_seal::tests::publication_refusal_preserves_destination_and_never_writes_a_seal",
+      "source": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+      "line": 145,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "bin",
+      "target": "semaprax",
+      "selector": "cli_driver::cli::json_codec::retained_receipt::stdout_seal::tests::partial_stdout_failure_reports_publication_without_rollback",
+      "source": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+      "line": 170,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "bin",
+      "target": "semaprax",
+      "selector": "cli_driver::cli::json_codec::retained_receipt::stdout_seal::tests::flush_failure_is_failure_even_after_a_complete_stdout_record",
+      "source": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+      "line": 204,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test",
+      "target": "project",
+      "selector": "standard_library::application_json::retained_receipt::stdout_seal::cli_seal_matches_exact_legacy_receipt_bytes_and_no_overwrite_is_silent",
+      "source": "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs",
+      "line": 28,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test",
+      "target": "project",
+      "selector": "standard_library::application_json::retained_receipt::stdout_seal::malformed_or_failed_sealed_derivation_publishes_neither_artifact_nor_stdout",
+      "source": "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs",
+      "line": 89,
+      "status": "PENDING"
+    }
+  ],
+  "unchanged_required": [
+    {
+      "package": "semaprax",
+      "kind": "bin",
+      "target": "semaprax",
+      "selector": "cli_driver::cli::json_codec::retained_receipt::tests::receipt_selection_is_additive_exact_and_rejects_ambiguous_grammar_before_authority"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test",
+      "target": "project",
+      "selector": "standard_library::application_json::retained_receipt::retained_receipt_cli_exclusively_publishes_one_artifact_and_preserves_old_source_mode"
+    }
+  ]
+}

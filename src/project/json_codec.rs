@@ -1,5 +1,10 @@
 //! Checked, ordinary-source application JSON codecs. Generated names confer no authority.
 
+mod retained_receipt;
+pub use retained_receipt::{
+    verify_authenticated_json_codec_receipt, with_authenticated_json_codec_receipt,
+    JsonCodecRepeat, JsonCodecRetainedInput, JsonCodecRetainedReceipt,
+};
 mod suitability;
 pub use suitability::{explain_json_codec_suitability, JsonCodecSuitabilityOptions};
 mod collection_response;

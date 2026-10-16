@@ -9,6 +9,7 @@
   dynamic validator families are pending.
 <!-- Source-only #833: invocation-owned identifier census scratch reuse across
      distinct cold callers; full old receiver retained; qualification pending. -->
+- Add a source-only JSON codec retained-input receipt candidate: exact held originals, resolved source inventory and two same-process retained-revision derivations; binary binding, host adoption and executable qualification remain pending.
 # Changelog
 
 - Keep warm canonical Memo rejection ahead of the poisoned payer, and remove

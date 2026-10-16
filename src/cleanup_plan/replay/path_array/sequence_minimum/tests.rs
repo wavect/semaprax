@@ -1,6 +1,7 @@
 //! Whole shipping receiver controls; the full predecessor keeps its old macros.
 use super::super::super::*;
 use super::{before, capacity, RECEIVING};
+use super::immediate::sequence_skeleton_paths;
 use crate::bounded_output::{
     active_remaining, set_active_floor, with_limit_usage_refusal, with_limit_usage_refusal_site,
 };

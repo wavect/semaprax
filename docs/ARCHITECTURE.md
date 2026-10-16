@@ -91,6 +91,13 @@ canonical .spx source or held Project inputs
  evidence + transactions      Clang       JS/Node host
 ```
 
+`cleanup_plan/replay/path_array/sequence_minimum/optimized` owns the shipping
+paid no-growth header at the original lexical first-output work frontier. It
+pays before every new selected/iterator/arithmetic receiver, then declines a
+proved unchanged capacity or pays the complete old query envelope. The useful
+capacity predicate covers both paid frames. The complete immediate receiver,
+old minimum helper, original tests and Main44 controls remain independent.
+
 Every backend passes source verification and validated HIR. Cleanup-plan vectors
 are canonical runtime order; projections and backends must never sort or repair them.
 
@@ -5184,3 +5191,10 @@ current-HIR verdict. Exact source/map/caller and active-ledger binding precede
 reuse. The original owning Invocation, PrivateTypes and complete prior consumers
 remain independently compiled. New controls and ordinary fallback widening can
 increase tiny-case debit; execution and application impact remain pending.
+
+`canonical_shared/empty_signature.rs` owns the finite actual carrier census for
+empty canonical signatures. The lexical Exit branch authenticates the same
+held receiver and zero-length signature vector, then inserts the real empty
+key without a borrowed child query/Zip. The full immediate receiver remains
+compiled in `before_empty_signature.rs`; wider paths and all original work,
+preflight and sticky failure rules remain intact. Qualification is pending.

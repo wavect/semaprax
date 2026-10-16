@@ -1,0 +1,6 @@
+{
+  "current_sha256": "4f22f98575c40645de39c95f918240e440c2e639605aadd5b36dd553fe5b5804",
+  "original_sha256": "3e00ef845bc488dda26f32e67c81f01d6b32e8246e54e7ca911a2f37e957bbca",
+  "after": "path_array::sequence_minimum::optimized::push!(",
+  "before": "path_array::sequence_minimum::push!("
+}

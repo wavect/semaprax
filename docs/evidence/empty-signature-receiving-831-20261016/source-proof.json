@@ -1,0 +1,29 @@
+{
+  "status": "PASS_SOURCE_ONLY_PRIVATE_COMPONENT_NOT_FINAL_JOINED_ENDPOINTS",
+  "baseline": "d96247b3cb69282c3d1b835b2428779e8bde82c7",
+  "whole_preimages_and_inverses": 7,
+  "hostile_current_input_drifts_refused": 14,
+  "complete_immediate_body_verbatim_and_independent": true,
+  "general_body_and_all_existing_guards_work_refusal_bytes_preserved": true,
+  "old_strict_paid_tests_and_all_protected_controls_byte_exact": [
+    "receiving_layer_tests.rs",
+    "singleton_target_tests.rs",
+    "successor_targets.rs",
+    "before_receiving_layers.rs",
+    "inline_weighted.rs",
+    "inline_weighted/tests.rs",
+    "intern_arena.rs",
+    "arena_tests.rs",
+    "arena_source.rs",
+    "closure_receiving.rs",
+    "empty_memo.rs",
+    "empty_memo/retained.rs",
+    "ordered_weights.rs"
+  ],
+  "new_helpers_bound_in_all_three_raw_joins": 3,
+  "native_lines": 1500,
+  "new_owners_pending": 4,
+  "final_joined_input_bridge_and_endpoint_refresh": "PENDING_PARENT_NEXT_INTEGRATION",
+  "rust_executed": false,
+  "gain_claim": false
+}

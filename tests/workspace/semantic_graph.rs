@@ -1462,6 +1462,8 @@ fn current_projection_facade_input(current: &str) -> String {
 
 // The purity gate above still consumes the complete actual join. Only its
 // independent historical facade equality receives this authenticated bridge.
+#[path = "../../src/source_reflows_merge/opt858_sequence_input.rs"]
+mod opt858_sequence_input;
 mod current344_input {
     include!(concat!(
         env!("CARGO_MANIFEST_DIR"),

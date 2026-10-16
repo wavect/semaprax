@@ -993,3 +993,5 @@ pub(crate) fn release_current_input(source: &str, current: &str) -> String {
 // Exact after-inputs for the two original Main8a historical metadata owners.
 #[path = "source_reflows_merge/main8a_historical.rs"]
 pub(crate) mod main8a_historical;
+
+mod opt858_sequence_input;

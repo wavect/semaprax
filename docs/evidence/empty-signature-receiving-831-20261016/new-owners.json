@@ -1,0 +1,17 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs",
+    "sha256": "e230314af719d01043d287e0733b8526620db6f8b807dcff46afeb9281c96e13",
+    "lines": 17
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs",
+    "sha256": "a02878a7ceb064afc4b64271eb57653debc200d579f2d6acafb62ac43129587b",
+    "lines": 1317
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs",
+    "sha256": "4a13fff38d152df1a419a3f02ac8ae7ef36600a8ebeb3126255344440e4394c0",
+    "lines": 256
+  }
+]

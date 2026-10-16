@@ -95,6 +95,8 @@ mod tests {
 // collapsed condition. Authenticate the entire actual function before undoing
 // the reviewed finite shapes; no other code or assertion is normalized.
 pub(crate) fn sequence_minimum_input(current: &str) -> String {
+    let bound = super::opt858_sequence_input::sequence(current);
+    let current = bound.as_str();
     const DATA: &str = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/sequence-minimum-clippy-input-20261016/input.json"

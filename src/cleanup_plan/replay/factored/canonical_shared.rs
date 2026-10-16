@@ -1284,6 +1284,50 @@ impl<'a> Canonicalizer<'a> {
                         successors.len(),
                         "factored canonical signature construction",
                     ));
+                    // The old signature-work debit above remains first. Acquire
+                    // the actual new branch receivers before evaluating the guard.
+                    if budget.pays_allocations() {
+                        attempt!(budget.reserve_bytes(
+                            function, empty_signature::BRANCH_CONTROLS,
+                            "canonical empty signature branch receiving",
+                        ));
+                    }
+                    if successors.is_empty() {
+                        if budget.pays_allocations() {
+                            attempt!(budget.reserve_bytes(
+                                function, empty_signature::EMPTY_CONTROLS,
+                                "canonical empty signature receiving",
+                            ));
+                        }
+                        self.child_ids.clear();
+                        // Retain the original key-vector zero authentication;
+                        // no child directory, borrowed query or Zip exists here.
+                        attempt!(budget.reserve_array::<(Label, usize)>(
+                            function, 0, "factored canonical signature vector",
+                        ));
+                        let key = (accepted, Vec::new());
+                        let id = match self.ids.get(&key) {
+                            Some(id) => {
+                                #[cfg(test)]
+                                arena_tests::signature_lookup(true);
+                                *id
+                            }
+                            None => {
+                                #[cfg(test)]
+                                arena_tests::signature_lookup(false);
+                                intern_arena::prepare_insert!(self.ids, intern_arena::Signature, function, budget);
+                                let id = self.ids.len();
+                                self.ids.insert_prepaid(key, id);
+                                id
+                            }
+                        };
+                        self.child_ids.clear();
+                        if !self.states.contains_key(&state) {
+                            intern_arena::prepare_insert!(self.states, SharedWeighted, function, budget);
+                        }
+                        self.states.insert_prepaid(state, id);
+                        continue;
+                    }
                     attempt!(budget.reserve_bytes(
                         function, intern_arena::SignatureQuery::EXIT_CONTROLS,
                         "canonical borrowed signature receiving",
@@ -1383,3 +1427,9 @@ mod arena_tests;
 
 #[cfg(test)]
 mod arena_source;
+
+mod empty_signature;
+#[cfg(test)]
+mod before_empty_signature;
+#[cfg(test)]
+mod empty_signature_tests;

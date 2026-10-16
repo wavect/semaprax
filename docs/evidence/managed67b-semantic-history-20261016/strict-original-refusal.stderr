@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/provenance/managed-plan-67b1b-actual83ca-20261016.bound-tools/strict-828f-capture-only.py", line 231, in <module>
+    main()
+  File "/Volumes/Semaprax/provenance/managed-plan-67b1b-actual83ca-20261016.bound-tools/strict-828f-capture-only.py", line 138, in main
+    verify_managed_history(capture / "wires", repo)
+  File "/Volumes/Semaprax/provenance/managed-plan-67b1b-actual83ca-20261016.bound-tools/managed_history.py", line 43, in verify_managed_history
+    self_digest(raw,Path(file).stem);self_digest(before,Path(file).stem);changes=restore_exact(raw,before,allow[file]);out.append({'wire':file,'new_sha256':sha(raw),'prior83ca_sha256':h,'changed_paths':changes,'full_raw_restored':True})
+                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Semaprax/provenance/managed-plan-67b1b-actual83ca-20261016.bound-tools/managed_history.py", line 30, in restore_exact
+    walk(a,b)
+  File "/Volumes/Semaprax/provenance/managed-plan-67b1b-actual83ca-20261016.bound-tools/managed_history.py", line 22, in walk
+    for k in x:walk(x[k],y[k],path+'/'+k)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Semaprax/provenance/managed-plan-67b1b-actual83ca-20261016.bound-tools/managed_history.py", line 27, in walk
+    assert path in allowed,('non-budget/digest field drift',path)
+           ^^^^^^^^^^^^^^^
+AssertionError: ('non-budget/digest field drift', '/workspace_revision')

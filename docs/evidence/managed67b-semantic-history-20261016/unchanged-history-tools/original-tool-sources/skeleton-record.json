@@ -1,0 +1,170 @@
+{
+  "frozen_source_head": "55e805c2f6e23dda58ce4c72223914ed511b117b",
+  "frozen_source_tree": "79a200484c33a516b684f660f55e9834dbb0b4f7",
+  "repository": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "required_round": "/Volumes/Semaprax/lane-prompts/producer-55e8-closure3-20261016",
+  "required_manifest_sha256": "e8c104987198a66c1cf7afcc4f415a08aa824ee976882327b5befe68c50aa51e",
+  "required_ordered_build_commands": [
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "build",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--test",
+      "workspace",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ]
+  ],
+  "old_source_sha256": {
+    "docs/evidence/prelude-forecast-286/pin-capture/exact-source-inverses.json": "04d14712fb00b8d909c5d15766233b6009b6c6fed00ec8a76bd86372b501e9ff",
+    "src/workspace_graph/type_proof_tests.rs": "9d228fa1055bb3a5d5ec36f0dec4350714a38cf9c62e740521d8c9b5ae7e952a",
+    "tests/workspace/semantic_graph.rs": "d1c40f69e2c4e8629bc57070bd26ce8d4cf3fed7c2e31c44ffd36707a6f6b4c7"
+  },
+  "old_actual_capture": "/Volumes/Semaprax/provenance/actual35cc-pin-capture-20261015",
+  "old_actual_capture_head": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+  "old_actual_all10_wire_sha256": {
+    "capability-context.json": "cbe0ef0e127493fff8d09fd7b71902ec3fa411c05655813ba21702c268a86f06",
+    "capability-review.json": "856f47d2ea3b179156a8cb48ea7a14a3fd48908472ecd37d7c5547a62b4a34e3",
+    "context.json": "531c4928f03919cbe391636cb5a3c6e1a81e1e78ef9a6d9b870a662ba4fe64c9",
+    "custom-impact.json": "6e04aedb33f4122be228d6fd36ba8685be17fe9777d366589a8ad00cc81cb98a",
+    "forward.json": "3c1ecc805f6e8ce44e8bb5494ab6f8e2e190ea007abd491b4bc5087bae14baa5",
+    "impact.json": "0d337f90ce845ad4f6c02930ba578d8002aaf1faee4a150488df961c5a44a2f4",
+    "projection-wire.json": "74dd9cc25b0f9f331aa831d6fac0e44f1d51488d6c3a548f3c60b6a86ff8eb04",
+    "public-graph.json": "6b5cc543f824f65ea9deaeb9d713176c8c3ba2d77261fe32ed866ebb69c1f6e6",
+    "review.json": "3cdd798dc3486d371419879d8d10fd749d366797e590c14d04c06f098fac3518",
+    "type-context.json": "d9aade25e555411d208f04f257dc9ed757c2aab70f9f2f09044d3f7bb3384721"
+  },
+  "role_fixed_producer": {
+    "path": "/Volumes/Semaprax/provenance/paid-route-pin-workflow-47f-72-20261016/original-tool-sources/run-current-prelude-pin-producers-role-fixed-20261015.py",
+    "sha256": "2dc92fddf4b28ca725d540c0f449227d6c5087af7f6a78287067de912a801e76",
+    "unchanged": true
+  },
+  "template_script_sha256": {
+    "strict-828f-capture-only.py": "bbfe076312b10f5463f306e7efb465b679ce43758a7775737cdf74f4d9790be3",
+    "prepare-after-actual-capture.py": "68404cdb1d290a1e012722a5bda5b1d2221bfb0453f82233d719f69a1a5aad63",
+    "archive-actual-and-build-patch.py": "6227765d8483c884d0ab0904cc326707b70291503d6524025972fc5ab150a4a0",
+    "source_inverse_composition.py": "7219e0924d6dc42222796c96414a11a7aa90c222073e3ee188bb1a0197308946",
+    "managed_history.py": "be674e84c03cb688d30dc946fdf0266ad2f8c7484de01181eb77c2ffa69a6bf1"
+  },
+  "trusted_tool_sha256": {
+    "strict-828f-capture-only.py": "bbfe076312b10f5463f306e7efb465b679ce43758a7775737cdf74f4d9790be3",
+    "prepare-after-actual-capture.py": "68404cdb1d290a1e012722a5bda5b1d2221bfb0453f82233d719f69a1a5aad63",
+    "archive-actual-and-build-patch.py": "6227765d8483c884d0ab0904cc326707b70291503d6524025972fc5ab150a4a0",
+    "source_inverse_composition.py": "7219e0924d6dc42222796c96414a11a7aa90c222073e3ee188bb1a0197308946",
+    "managed_history.py": "be674e84c03cb688d30dc946fdf0266ad2f8c7484de01181eb77c2ffa69a6bf1",
+    "managed-allowed-paths.json": "7b24927753ec25b7319384d997e4a3361e0303642222f0a1ba94740d68a30cd3",
+    "capture-history-binding.json": "44813806a292ee9f87c3b765b4a2888bc14033a0cd74492f91c32ef7bbe2fb18",
+    "actual47-history-binding.json": "27c48fb131fbf009719ffe2ee9088dcb9c42108b017f4287938fbfa0231bbdb6"
+  },
+  "strict_checker_derived_sha256": "bbfe076312b10f5463f306e7efb465b679ce43758a7775737cdf74f4d9790be3",
+  "actual_8bb_observation_manifest": {
+    "path": "/Volumes/Semaprax/provenance/graph-builder-observations-8bb9-20261016/asset-manifest.json",
+    "sha256": "12748fd2a60467f7c16fd14c47ce936e7548914e9b76c1d515a03f0d3e3549b9"
+  },
+  "browser_required_prior": {
+    "Main2600-baseline": {
+      "path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/browser-graph-pins-2600e49eb/current-hosted-calculator-baseline.json",
+      "sha256": "9306b51988b21468229079173183bc1abbd0615869a3d064666cb71870252a4d"
+    },
+    "own35cc-baseline": {
+      "path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/browser-graph-pins-35cc-20261016/actual-capture/calculator-baseline.json",
+      "sha256": "163a5daa41c8bbfaeb4277ac7b3b51c2c88e6eb3ed7126a508c2ec196e592bcc"
+    },
+    "observed8bb-baseline": {
+      "path": "/Volumes/Semaprax/provenance/graph-builder-observations-8bb9-20261016/browser/calculator-baseline.json",
+      "sha256": "35c71fa712b5dc70212ff74809d1fdc52f910e56653ec3c220dc5b9e1219e3e7"
+    },
+    "Main2600-renamed": {
+      "path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/browser-graph-pins-2600e49eb/current-hosted-calculator-renamed.json",
+      "sha256": "750feca2e8cf84343d3389ffa5e133d594e9b8a9311d51efd890637f44ec891a"
+    },
+    "own35cc-renamed": {
+      "path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/browser-graph-pins-35cc-20261016/actual-capture/calculator-renamed.json",
+      "sha256": "2690c583312eb93da3beb977e04116d3644182baf3ac9d3cfc08f0888ff4fdad"
+    },
+    "observed8bb-renamed": {
+      "path": "/Volumes/Semaprax/provenance/graph-builder-observations-8bb9-20261016/browser/calculator-renamed.json",
+      "sha256": "2601057655d7d01c252eec97865dd453b128b382bb8c0bcda7709910b880226f"
+    },
+    "observed2d4b-baseline": {
+      "path": "/Volumes/Semaprax/provenance/paid-route-pin-workflow-47f-72-20261016/historical-observations/observed2d4b-browser/calculator-baseline.json",
+      "sha256": "fb4e25fc11542284d4ca50e984958fb53bbe029ae29ab6e3ac62f4881656f47c"
+    },
+    "observed2d4b-renamed": {
+      "path": "/Volumes/Semaprax/provenance/paid-route-pin-workflow-47f-72-20261016/historical-observations/observed2d4b-browser/calculator-renamed.json",
+      "sha256": "52d942f159c09520f5784666e3a5e7e3f3aa26abd03d64dc97df5a3b1f9333fb"
+    },
+    "observed364d-baseline": {
+      "path": "/Volumes/Semaprax/provenance/paid-route-pin-workflow-47f-72-20261016/historical-observations/observed364d-browser/calculator-baseline.json",
+      "sha256": "33a8b5daec6746e6e4d2a55f854672bdb8d21ab11f312bc81033ded5f5e59dbb"
+    },
+    "observed364d-renamed": {
+      "path": "/Volumes/Semaprax/provenance/paid-route-pin-workflow-47f-72-20261016/historical-observations/observed364d-browser/calculator-renamed.json",
+      "sha256": "c4f471baa7c0d2e241daf5179f6cc112a7a00f217b440174c4c251c69a126628"
+    }
+  },
+  "state": "PREPARED_ONLY_ACTUAL_FOUR_SUCCESS_REQUIRED_NO_NEXT_VALUES",
+  "strict_checker_full_head_locked": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+  "historical_template": {
+    "path": "/Volumes/Semaprax/provenance/paid-route-pin-workflow-2d4b-50-20261016/original-tool-sources/skeleton-record.json",
+    "sha256": "bbb2366819022f49cdcf689b7cfb4451fa48df2ad770222cec770462be413e62",
+    "source": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+    "not_current_readiness": true
+  },
+  "capture_performed": false,
+  "pin_apply": false,
+  "adaptation": "Explicit producer-only THREE-build contract; full-five checker untouched. Original strict predicates and107 inverses unchanged. BEFORE remains immutable35cc; actual83ca is immediate source-pin/history domain; complete47 history remains independent.",
+  "required_build_command_count": 3,
+  "observed364d_managed_all10_wire_sha256": {
+    "capability-review.json": "7b7434e1a7ebf30d9df8ed43ae8163c1f0d836ceab838025a0f0d2becfa031ad",
+    "projection-wire.json": "8fbedd9fb195960c9dd77fd4c25a932a1a6a9dccc48974bdce2baf97de1824f3",
+    "forward.json": "66caba7bb166a6a2ff3a27d4f85f54a2acf304932508e7638cb972f6ea403ecf",
+    "context.json": "372c6b9ae30b1c7b32023741474abc57e8220902987835d5f90ad93f140c5990",
+    "type-context.json": "f44443c0a99d1e192aad5f59800014749dc026cac70bd76b4e1f6c13718399fa",
+    "impact.json": "9a9e1dc8b7711fa1c66254f6e4a5d8a6be382e2fa8d57391fd108c6af0265ca6",
+    "public-graph.json": "b98b8c12d069044f289e179f4daf52d612bab159ba96bae0c77a5abc411cdb5d",
+    "capability-context.json": "ec4f3a7d715da2c699ae2a7f5fd0731f0152ce515dae145a096d97b30a22792a",
+    "review.json": "287e33e11b5a1a1316dca983e827186a59d3e5afcc3998eca97f92184eb36f8a",
+    "custom-impact.json": "eb6dd3dd78a1673fcd8cec0f29d75aa2e12792f61283674cdfefb588449958c5"
+  },
+  "producer_build_contract_sha256": "39af9c63496a57a6c697b6ad832e75427e1456b7c0a0797aaa7f026733484b9c"
+}

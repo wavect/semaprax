@@ -654,12 +654,14 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
             "type_reference",
         ])
     );
-    // Restoring the prior 336449-byte debit and authenticated digest chain
-    // independently reproduces all nine original whole-document KATs.
-    assert_eq!(graph.budget().used_builder_bytes(), 1_111_428);
+    // Imported Point metadata now selects graph.v10; the manifest revision and
+    // analysis digest chain follow. The separate, explicitly derived history
+    // proof restores this semantic transition before unchanged budget checks.
+    // See docs/evidence/managed67b-semantic-history-20261016/README.md.
+    assert_eq!(graph.budget().used_builder_bytes(), 1_114_864);
     assert_eq!(
         document_digest(graph.to_json().as_bytes()),
-        "sha256:5513044062c9743084dd6cb340ae2edb65a4753047ab03ad43225f3b98c63424"
+        "sha256:646c457d51240593e29cabfc1e7849dcf4c90a565504c276d6937f0e324e14b6"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -1088,14 +1090,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:ab1dd558d5cc2033dcf94540c4f648efba1e48c4f8a10cf5b0a89d49bad6908f",
-            "sha256:bd9f88f8d1b821d14ff92d0e3697ecd4a91868bb4c87bc93d0085665d470a61f",
-            "sha256:a7a13a15a56550eaa35ea6609f3fd169fe33066c054ba6ba23212b9836d848b3",
-            "sha256:45961d6e8efaeb42948626d238ca39eb966d8c15023c04356d7e27c3051762e0",
-            "sha256:a1b8abdea4abd3e4e93bfac7a80456d5a2097c8599b68fa9d5bbc5d210cb017a",
-            "sha256:239e02032ae054db62e3c3033518acb2a7ad9fa96a35c304c1e90a03a3b02b0b",
-            "sha256:004de4419f867bfc5b2abd840779901908f0fbbb1f52193e6eea28a987d47574",
-            "sha256:50bcee1a9faf8470dc076592d1b0d7625ea9949c7db363ae560c69701c500706",
+            "sha256:78d03b6cb3dd6aeb53ae240e3a3902289f580d9e663105c945eb0783a350fe9c",
+            "sha256:436b022ba05819f4a1e6a2242e35e97638436d5cb8ffe4d821977c48fd3fac9c",
+            "sha256:72f41a826d0777b00ff4aea435600ab7194c78215b3d144647f67a99df930459",
+            "sha256:9110f699840c81dcc2dbc57dd8d71e259266cf1074e6454081d4b21850cfaefc",
+            "sha256:06206cc97d637223b08742e0587a9cad09b4a37bef2579c2d24723115172b338",
+            "sha256:776bb249a5462a22a1141dadcc31ca9349ae340f59b47dbce68d6b660600b73d",
+            "sha256:5c020862f8125b587707938061997d05f3f020a4fcaf3d0823336f8e93bcbe5a",
+            "sha256:429213faf00ae672ac816d5e03c451d5bd222cd3722edc16b723b3a6dc834bb5",
         ]
     );
 

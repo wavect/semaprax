@@ -1,0 +1,17 @@
+{
+  "capture": "/Volumes/Semaprax/provenance/managed-capture-55e8-20261016",
+  "source_head": "55e805c2f6e23dda58ce4c72223914ed511b117b",
+  "candidates_sha256": "d91cf3fd964b3db70eee1f3ca556823abf5b8b84dd15f728eafa93750a72c5ba",
+  "all10_wire_sha256": {
+    "public-graph.json": "ac0c858c78637e092cfc0599fcdf558149a6f5340f0d5e69ccbb0b1e0733e6b0",
+    "context.json": "56914a90f94d97d53847df7cde2152073c794b8144db2cb51bcc1504e9b6710c",
+    "forward.json": "e209f89d22ac266336969f21fdb454bd8f85c122f3a3b3e4998d3d4f0abe8c15",
+    "capability-context.json": "dad836074636ffb5c9e5b1dc53c8fb7ba736afbe3c8d1c84e0e486d8f1b517a8",
+    "type-context.json": "cb27f9aecc48e11f4565e6eee384c338bffcbf777d5a622849e0b967ce1b6a4e",
+    "impact.json": "adbbcb1b00122b41526fb21ac899a740436706351f746a6bb39bc11dcea00d9a",
+    "custom-impact.json": "f0036325086ab73911506fc0177d9bdbbaefb9ada39b1ba342a66df43f2e719e",
+    "review.json": "0a61c0451360581a8c2546e1f7133b7a34240e751e41719279e39a3107ab755c",
+    "capability-review.json": "d77cea1e0096a8de67e721a74836918c4dc2c0ff0144f2649eba57c0b95b04a1",
+    "projection-wire.json": "2d5a82ccbd8eae46b959f4fee3a99f4256900fb56f01f42bbab6356998adc19d"
+  }
+}

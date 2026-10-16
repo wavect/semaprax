@@ -1,0 +1,27 @@
+{
+  "status": "SOURCE_ONLY_NO_CAPTURE_NO_PLAN_NO_APPLY",
+  "predecessor": "/Volumes/Semaprax/provenance/strict55e8-actual83ca-pin-plan-20261016",
+  "future_bill": null,
+  "live_before_bill": 1111428,
+  "immutable_originals": {
+    "plan-after-capture.py": "4a791ae3a9021d94f6d8919319284a4faef982888a18bd2fea4e158e44198a36",
+    "prepare-after-actual-capture.py": "68404cdb1d290a1e012722a5bda5b1d2221bfb0453f82233d719f69a1a5aad63",
+    "archive-actual-and-build-patch.py": "6227765d8483c884d0ab0904cc326707b70291503d6524025972fc5ab150a4a0",
+    "strict-828f-capture-only.py": "bbfe076312b10f5463f306e7efb465b679ce43758a7775737cdf74f4d9790be3",
+    "source_inverse_composition.py": "7219e0924d6dc42222796c96414a11a7aa90c222073e3ee188bb1a0197308946",
+    "managed_history.py": "be674e84c03cb688d30dc946fdf0266ad2f8c7484de01181eb77c2ffa69a6bf1",
+    "managed-allowed-paths.json": "7b24927753ec25b7319384d997e4a3361e0303642222f0a1ba94740d68a30cd3",
+    "capture-history-binding.json": "44813806a292ee9f87c3b765b4a2888bc14033a0cd74492f91c32ef7bbe2fb18",
+    "actual47-history-binding.json": "27c48fb131fbf009719ffe2ee9088dcb9c42108b017f4287938fbfa0231bbdb6",
+    "skeleton-record.json": "75d7b51579501d3c32e0f497aa16597e87c026f4eea4b4bafa4b56465f5795dc",
+    "tool-derivation.json": "e5cd68288a82b2c257f286b03befba53ef3f7b042f564589d31c6d5f5e3f2f9a"
+  },
+  "derived_sources": {
+    "managed_history.py": "0342a65b106a551cebee385fbbc6ac74971d83dc11cd7205fb62bebe6d46fd4f",
+    "archive-actual-and-build-patch.py": "6e7bf95adaa882dc3b41592da47972e5ccff18bb87319ef3c60ed5f71ac7d259"
+  },
+  "actual55e_manifest_sha256": "d91cf3fd964b3db70eee1f3ca556823abf5b8b84dd15f728eafa93750a72c5ba",
+  "strict_checker_and_readiness_algorithms_unchanged": true,
+  "only_runtime_strict_derivation": "one fullhead literal55e replaced by explicit expected-head after ROOT/manifest/contract binding",
+  "history_algorithms": "original all47/83ca and historical35cc/364d retained; independent55e additive only"
+}

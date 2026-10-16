@@ -1222,6 +1222,7 @@
         "src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_alias.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/before_held.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/before_held_memo.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/before_held_retained.rs",
@@ -1243,6 +1244,8 @@
         "src/cleanup_plan/replay/factored/canonical_shared/empty_closure_tests.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/empty_memo/retained.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs",
@@ -1434,6 +1437,9 @@
         "src/cleanup_plan/replay/path_array/sequence/tests.rs",
         "src/cleanup_plan/replay/path_array/sequence_minimum.rs",
         "src/cleanup_plan/replay/path_array/sequence_minimum/before.rs",
+        "src/cleanup_plan/replay/path_array/sequence_minimum/immediate.rs",
+        "src/cleanup_plan/replay/path_array/sequence_minimum/optimized.rs",
+        "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs",
         "src/cleanup_plan/replay/path_array/sequence_minimum/tests.rs",
         "src/cleanup_plan/replay/path_array/tests.rs",
         "src/cleanup_plan/replay/path_join/before.rs",
@@ -2010,6 +2016,7 @@
         "src/source_reflows_merge/main8a_historical.rs",
         "src/source_reflows_merge/maina3_custody.rs",
         "src/source_reflows_merge/metadata_json.rs",
+        "src/source_reflows_merge/opt858_sequence_input.rs",
         "src/source_reflows_merge/prefix_custody.rs",
         "src/source_reflows_merge/release_custody.rs",
         "src/source_reflows_merge/runtime_json.rs",
@@ -2178,6 +2185,7 @@
         "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/empty_closure.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/ordered_alias.rs",
@@ -2234,6 +2242,7 @@
         "src/cleanup_plan/replay/paid_type_facts/inventory_text.rs",
         "src/cleanup_plan/replay/path_array.rs",
         "src/cleanup_plan/replay/path_array/sequence_minimum.rs",
+        "src/cleanup_plan/replay/path_array/sequence_minimum/optimized.rs",
         "src/cleanup_plan/replay/path_join/boxed_states.rs",
         "src/cleanup_plan/replay/path_join/storage/atomic_controls.rs",
         "src/cleanup_plan/replay/path_join/storage/empty_renewals.rs",
@@ -2576,9 +2585,9 @@
         "src/source_verify/declaration/identity.rs",
         "src/source_verify/declaration/record_shape.rs"
       ],
-      "full_manifest_sha256": "8a633431b415467c479d401aad491a63b15c94d4e2845552be87084844fa9caf",
-      "full_raw_sha256": "ab5e8e4688ad71a31478c2cfa4caa527943d9e7bf9a1b7d070e6810a9b4b54ea",
-      "full_authenticated_production_sha256": "fa81bcc6a941592245f7790b8f82dd68ab446f702ef160e04ab93f65ac568872"
+      "full_manifest_sha256": "30df5d5f02ea90374049c50cadcaf0bf543850311bcd6d8606f9bed0b6035c4f",
+      "full_raw_sha256": "162ce456867e79b6bfcce2a975933a362636e3ddd17dc4bbb4cd8ba74019cda9",
+      "full_authenticated_production_sha256": "43de198dd2e58e0275d35c40c35f68e6ac3020f4ceb7d6f4fffc7b436020c6a2"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -2806,6 +2815,9 @@
         "src/cleanup_plan/replay/path_array/main696.rs",
         "src/cleanup_plan/replay/path_array/sequence_minimum.rs",
         "src/cleanup_plan/replay/path_array/sequence_minimum/before.rs",
+        "src/cleanup_plan/replay/path_array/sequence_minimum/immediate.rs",
+        "src/cleanup_plan/replay/path_array/sequence_minimum/optimized.rs",
+        "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs",
         "src/cleanup_plan/replay/path_array/sequence_minimum/tests.rs",
         "src/cleanup_plan/replay/path_array/tests.rs",
         "src/cleanup_plan/replay/path_join/before_final_edge.rs",
@@ -2961,6 +2973,7 @@
         "src/cleanup_plan/replay/final_output.rs",
         "src/cleanup_plan/replay/path_array.rs",
         "src/cleanup_plan/replay/path_array/sequence_minimum.rs",
+        "src/cleanup_plan/replay/path_array/sequence_minimum/optimized.rs",
         "src/cleanup_plan/replay/structural_maps/paid_reference.rs",
         "src/cli/help/authoring/tasks.rs",
         "src/hir/expr_nodes.rs",
@@ -3058,6 +3071,7 @@
         "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/empty_closure.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/ordered_alias.rs",
@@ -3539,9 +3553,9 @@
         "src/source_verify/declaration/identity.rs",
         "src/source_verify/declaration/record_shape.rs"
       ],
-      "full_manifest_sha256": "b2b4508bdd13697fc76adc9a11eedb9daba6b7554f67ce4045c6162ded292f26",
-      "full_raw_sha256": "22c8a735744099137e158aa249d4a48b0a7b0a923b839498e36aa53da49e66e4",
-      "full_authenticated_production_sha256": "70983866bd21bcc2c9ba3588ca49b3711999959eef549d77b048852d16b24e93"
+      "full_manifest_sha256": "8879d4e6d1e119f9ef8d07d552787c2e02cc318e7d42bc7b0a24b5d108a05ca0",
+      "full_raw_sha256": "eb5e89ac1538662f32f0e75c4415c69a242989c23d0cc44842abb98e0c7d4c4e",
+      "full_authenticated_production_sha256": "10282f5e634c13d8c2a9c15fc43dfdeab0a849412e7bd981af8fafbd0158945b"
     }
   }
 }

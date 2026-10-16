@@ -1,8 +1,8 @@
 {
   "status": "PASS_JOINED_SOURCE_AND_EXPLICIT_BOUNDARIES_ONLY",
-  "source_commit": "545c92c631ece84c65f57b9eef20db9fcf2d9f5f",
+  "source_commit": "1f1521e2d4f07ae06e4d1a1d90dbcbdbe92a50f3",
   "domain_counts": {
-    "Previous16c": 147,
+    "Previous16c": 151,
     "Maina3": 30,
     "Alias1ae": 2,
     "MainE47": 2
@@ -11,6 +11,7 @@
     "docs/AGENT-AUTHORING-GUIDE.md",
     "docs/BORROWED-BYTE-SLICE-FOR-TRAVERSAL-V2.md",
     "docs/CLI-HELP-V6.md",
+    "docs/FACTORED-SINGLETON-TARGETS-V1.md",
     "docs/QUALITY-GATES.md",
     "docs/WORKSPACE-SEMANTIC-GRAPH-V1.md",
     "src/ast/expression_statement/tests.rs",
@@ -26,6 +27,7 @@
     "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
     "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
     "src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs",
+    "src/cleanup_plan/replay/factored/oracle_order/tests.rs",
     "src/cleanup_plan/replay/flat_records/tests/receiving_boundary.rs",
     "src/cleanup_plan/replay/flat_records/tests/receiving_certificate.rs",
     "src/cleanup_plan/replay/flat_records/tests/receiving_families.rs",
@@ -62,6 +64,7 @@
     "src/hir/lexical_exit.rs",
     "src/hir/lexical_exit/owner_funded.rs",
     "src/hir/nodes/instance_key.rs",
+    "src/hir/validation/byte_traversal/nested.rs",
     "src/hir/validation/byte_traversal/nested/tests.rs",
     "src/hir/vec_loop_renewal.rs",
     "src/hir/vec_loop_renewal/consuming.rs",
@@ -101,17 +104,18 @@
     "tests/owned_data/nested_owned_record_frontend_hir.rs",
     "tests/project/semantic_cache.rs",
     "tests/project/standard_library/catalog.rs",
-    "tests/support/production_source_inventory.rs"
+    "tests/support/production_source_inventory.rs",
+    "tests/workspace.rs"
   ],
-  "new_owners": 83,
+  "new_owners": 90,
   "completed_authority_generations": 1,
   "pre856_generation_interrupted_before_output": true,
-  "source_proof_sha256": "2eda32ce7efba7fe117247f93e7758afc55921e036b7a013d034d750e5f60de5",
-  "authority_proof_sha256": "686e9af30ab47ac9bfa3d9aaa5355619620fcf49cf2fb28695888b68e78de114",
+  "source_proof_sha256": "af1f1678f9476d48cb165c49f6d3c672b7eaca1ac8eccb1fbfb6e3f7aa8ac0d1",
+  "authority_proof_sha256": "78c8b06aff8ac95a94e17e4dc04a2337c4caa407c477d9262f5fbbd8ef9ceeb3",
   "guard_sha256": {
-    "tests/hir_module_boundaries.rs": "e73cf92af85c0f254c3eba32b26ff1aeb1056d942a039a2f104cdcdc44111cf9",
-    "tests/workspace/semantic_graph/source_inventory.rs": "00ef4152cc4e9636ae2903f94c8b9a34cd60b23d60bf826c117681ce2bcdced9",
-    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": "9aa2c7cee02dbfc4f8971a00c3af56f4aca8821e84cf8696f4a1e9589882e349"
+    "tests/hir_module_boundaries.rs": "3d8d5c070e9ac86d005ed2356872a3be53ee6558fb5bf3a9a9cc52fbce49e627",
+    "tests/workspace/semantic_graph/source_inventory.rs": "cc7c0fefbfe05532f7ecd17d0a76acf320d11286bbe7f342562fe8e32a6a784c",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": "2cc88fefcbdd3be77aadb2894743ea4f2eeb6f544bdf364e7e1d83bea5d09d6c"
   },
   "all_six_original_static_negatives_refused": true,
   "complete_original_source_role_authentication": true,

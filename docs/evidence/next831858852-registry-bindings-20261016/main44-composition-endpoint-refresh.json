@@ -1,0 +1,14 @@
+{
+  "scope": "Sole existing full Main44 table endpoint after unchanged complete Main44 source proof; component source scripts, capsules, production bodies and target private SHA unchanged",
+  "before_sha256": "fb918b45b077b8e8f337ee4122dba02e127e7ea6bb2f4153aa3074f5b7bc0241",
+  "after_sha256": "d0f68c5b4a75ea74e16e0bd456cbdc126d26167700c7c7fca0e561394349f31c",
+  "subjects": [
+    {
+      "component": "858",
+      "path": "docs/evidence/main44-independent-custody-20261016/current-to-main44.json",
+      "current_sha256": "f698c661ebafca8e72a14c176eafa876aa8331f4d797c52715a7f3812e1e646e",
+      "private_sha256": "8db8ec8336d2a6bec6a3f9bb97431edce552e954a71b220451a38440f18a1ded"
+    }
+  ],
+  "rust_executed": false
+}

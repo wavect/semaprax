@@ -17,7 +17,19 @@ def fragments(path,current,original):
   suffix=0
   while suffix<len(before)-prefix and suffix<len(after)-prefix and before[-1-suffix]==after[-1-suffix]:suffix+=1
   assert before[prefix:len(before)-suffix if suffix else None]=='',('non-additive original guard edit',path)
-  new=after[prefix:len(after)-suffix if suffix else None];assert re.fullmatch(r'(?:\s*include_str!\("[^"\n]+"\),)+\s*',new),('foreign additive fragment',path)
+  new=after[prefix:len(after)-suffix if suffix else None]
+  grammar=r'(?:\s*include_str!\("[^"\n]+"\),)+\s*'
+  if not re.fullmatch(grammar,new):
+   # Greedy common-prefix trimming can stop INSIDE a shared include_str path.
+   # Recover only a unique complete added macro run whose exact removal
+   # restores the entire unchanged old hunk. No original byte is projected.
+   delta=len(after)-len(before);candidates=[]
+   for match in re.finditer(r'include_str!\(',after):
+    lo=match.start();piece=after[lo:lo+delta]
+    if delta>0 and re.fullmatch(grammar,piece) and after[:lo]+after[lo+delta:]==before:candidates.append(piece)
+   assert len(candidates)==1,('nonunique or foreign additive token run',path)
+   new=candidates[0]
+  assert re.fullmatch(grammar,new),('foreign additive fragment',path)
   assert current.count(new)==1,('nonunique additive fragment',path);out.append(new)
  return out
 def verify_guard(path,current,original,refresh=False):

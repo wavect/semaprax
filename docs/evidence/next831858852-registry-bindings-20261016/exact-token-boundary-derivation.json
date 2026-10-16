@@ -1,0 +1,8 @@
+{
+  "scope": "Unique complete additive include_str run only when greedy common prefix ends inside path; exact entire old hunk and guard restoration remain required",
+  "before_sha256": "45c63ddec3907e0963b1a2ab5435b0a531415e982ed3eba1c6627e96a0dcb05f",
+  "after_sha256": "cc54e0b46653ace6fbd06cd3835db79099e3f784adfd3860d03beeb11c6e179b",
+  "original_runtime_guard_text_changed": false,
+  "existing_closed_multiplicity_allowlist_unchanged": true,
+  "rust_executed": false
+}

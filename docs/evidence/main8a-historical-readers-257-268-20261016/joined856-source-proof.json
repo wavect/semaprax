@@ -8,6 +8,7 @@
     "docs/ARCHITECTURE.md",
     "src/bounded_output.rs",
     "src/bounded_output/checked_string.rs",
+    "src/cleanup_plan/replay.rs",
     "src/cleanup_plan/replay/physical_budget.rs",
     "src/hir/nodes/instance_key.rs",
     "tests/hir_module_boundaries.rs",

@@ -94,8 +94,9 @@ allowed='docs/evidence/main043-independent-custody-20261016/guard-extension-allo
 joined=json.loads(subprocess.check_output(['git','show','12e7f8a4d3fcb3c5464327a68a8e13506b43e303:'+allowed],cwd=R))
 boundary_joined=json.loads(subprocess.check_output(['git','show','f61449708234f99b2a50fa7455a2a1154b765876:'+allowed],cwd=R))
 record_joined=json.loads(subprocess.check_output(['git','show','d96247b3cb69282c3d1b835b2428779e8bde82c7:'+allowed],cwd=R))
+next_joined=json.loads(subprocess.check_output(['git','show','1f1521e2d4f07ae06e4d1a1d90dbcbdbe92a50f3:'+allowed],cwd=R))
 allowed_registry=False
-for predecessor in [before,joined,boundary_joined,record_joined]:
+for predecessor in [before,joined,boundary_joined,record_joined,next_joined]:
  expected=json.loads(json.dumps(predecessor))
  for guard in m['raw_guards']:
   for key in ['required','maximum']:

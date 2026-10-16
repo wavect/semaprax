@@ -325,14 +325,14 @@ impl<'a> Input<'a> {
         (hir::ResolvedProgram, hir::FunctionResolutionWork),
         hir::identity_resolution::NominalReceiverFailure,
     > {
-        hir::identity_resolution::resolve_source_checked_previous_with_base(
+        hir::identity_resolution::resolve_source_checked_previous_with_owner(
             self.source(),
             None,
             None,
             None,
             private,
             invocation,
-            |bytes| owner.reserve(bytes),
+            owner,
         )
     }
 }

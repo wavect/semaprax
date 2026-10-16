@@ -112,6 +112,7 @@ interface HostEcho permits { host.echo } {
     let parsed = parse(source, Path::new("resolver-oracle.spx")).unwrap();
     let resolved = hir::resolve(&parsed).unwrap();
     let resolver = Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(&parsed)),
         program: &parsed,
         byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(&parsed),
         declarations: DeclarationIndex::from_verified(&parsed).unwrap(),

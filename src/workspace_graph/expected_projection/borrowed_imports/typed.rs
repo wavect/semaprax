@@ -2,10 +2,10 @@
 #[path = "typed_cost.rs"]
 mod typed_cost;
 use super::{
-    AuthoredDeclaration, LayoutRegistry, alias_clone, budgeted_format, eligible, graph_error,
-    import_stub, iterative, refusal, type_rewrite,
+    alias_clone, budgeted_format, eligible, graph_error, import_stub, iterative, refusal,
+    type_rewrite, AuthoredDeclaration, LayoutRegistry,
 };
-use crate::ast::program_source::{SyntheticProgramView, generated_roots::GeneratedRoots};
+use crate::ast::program_source::{generated_roots::GeneratedRoots, SyntheticProgramView};
 use crate::ast::{Expr, ExprKind, Function, ModuleUseKind, Program, Type, TypeDeclaration};
 use crate::workspace_graph::constructor_failure::{receiving::Receiver, typed::Failure};
 use std::collections::BTreeMap;
@@ -263,7 +263,7 @@ fn directory<T>(count: usize, owner: &mut Receiver) -> Result<Vec<T>, Failure> {
 
 #[cfg(test)]
 mod directory_tests {
-    use super::{Failure, Receiver, directory};
+    use super::{directory, Failure, Receiver};
     use crate::bounded_output::with_limit_usage_refusal;
     use crate::test_allocation_observer::{current_metrics, measure};
     use crate::workspace_graph::constructor_failure::receiving::Setup;
@@ -481,3 +481,7 @@ pub(in crate::workspace_graph) use alias::construct_transient;
 #[cfg(test)]
 #[path = "typed/before_alias.rs"]
 mod before_alias;
+
+#[cfg(test)]
+#[path = "typed/name_equal.rs"]
+mod name_equal;

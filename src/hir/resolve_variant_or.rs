@@ -34,7 +34,7 @@ pub(super) fn has_scalar_only_syntax(arms: &[MatchArm], copy_variant_guards: boo
     })
 }
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     #[cfg(test)]
     pub(super) fn resolve_variant_guard_reference(
         &self,

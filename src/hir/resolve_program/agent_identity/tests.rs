@@ -132,6 +132,7 @@ fn complete_original_missing_entrypoint_diagnostic_precedes_every_agent_request(
     .unwrap();
     let mut seen = 0;
     let current = crate::hir::Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(&program)),
         program: &program,
         byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(&program),
         declarations,

@@ -96,6 +96,7 @@ pub(super) fn resolve_selected<'s>(
         ));
     }
     Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(source)),
         program: source,
         byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(source),
         declarations: DeclarationIndex::from_verified(source)?,

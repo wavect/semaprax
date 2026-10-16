@@ -653,6 +653,7 @@ fn resolve_source_pass(
     program: &dyn ProgramSource,
 ) -> Result<(ResolvedProgram, FunctionResolutionWork), Vec<Diagnostic>> {
     (Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(program)),
         program,
         byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(program),
         declarations: DeclarationIndex::from_verified_with_prelude(
@@ -680,6 +681,9 @@ fn resolve_verified(
     let clause_program = record_invariants::clause_program(program);
     let inventory_program = clause_program.as_ref().unwrap_or(program);
     let resolved = (Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(
+            inventory_program,
+        )),
         program: inventory_program,
         byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(inventory_program),
         declarations: DeclarationIndex::from_verified(inventory_program)?,
@@ -697,6 +701,7 @@ fn resolve_verified(
         return Ok(resolved);
     };
     (Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(&desugared)),
         program: &desugared,
         byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(&desugared),
         declarations: DeclarationIndex::from_verified(&desugared)?,
@@ -801,7 +806,8 @@ struct FunctionReuse<'a> {
     costs: &'a BTreeMap<String, usize>,
 }
 
-struct Resolver<'a> {
+struct Resolver<'v, 'a> {
+    function_cells: std::borrow::Cow<'v, [crate::ast::program_source::FunctionCell<'a>]>,
     program: &'a dyn ProgramSource,
     byte_helpers: crate::loop_calls::byte_writer::SourceIndex<'a>,
     declarations: DeclarationIndex,

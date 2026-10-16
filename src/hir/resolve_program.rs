@@ -3,6 +3,7 @@
 //! Entry point resolution, record layout validation, function and
 //! function-template lowering, instance discovery, and type lowering.
 
+use crate::ast::program_source::FunctionRef;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use crate::ast::{
@@ -28,7 +29,17 @@ use super::nodes::{
 };
 use super::{validate, Binding, Resolver};
 
-impl Resolver<'_> {
+impl<'v, 'p> Resolver<'v, 'p> {
+    /// Globals are the immutable inventory's exact prefix; class methods stay
+    /// in their original suffix and never enter ordinary global lookup.
+    pub(super) fn source_functions<'s>(
+        &'s self,
+    ) -> impl DoubleEndedIterator<Item = &'s FunctionRef<'p>> + ExactSizeIterator + 's {
+        self.function_cells[..self.program.functions().len()]
+            .iter()
+            .map(|(_, function)| function)
+    }
+
     pub(super) fn resolve_call_type_argument(
         &self,
         caller: &FunctionExecutionId,
@@ -36,10 +47,11 @@ impl Resolver<'_> {
         span: Span,
     ) -> Result<ResolvedType, Diagnostic> {
         if let FunctionExecutionId::Monomorphic(caller_id) = caller {
-            if let Some(template) = self.program.functions().iter().find(|candidate| {
-                candidate.stable_id == caller_id.as_str() && !candidate.type_parameters.is_empty()
+            if let Some(template) = self.source_functions().find(|candidate| {
+                candidate.payload().stable_id == caller_id.as_str()
+                    && !candidate.payload().type_parameters.is_empty()
             }) {
-                return self.resolve_function_type(template, argument, span);
+                return self.resolve_function_type_ref(template, argument, span);
             }
         }
         self.resolve_type(argument, span)
@@ -62,9 +74,13 @@ impl Resolver<'_> {
         function: &FunctionExecutionId,
         span: Span,
     ) -> Result<super::ResolvedResidualType, Diagnostic> {
-        let target = self.program.functions().iter().find(|candidate| matches!(function, FunctionExecutionId::Monomorphic(declaration) if candidate.stable_id == declaration.as_str()))
+        let target = self.source_functions().find(|candidate| matches!(function, FunctionExecutionId::Monomorphic(declaration) if candidate.payload().stable_id == declaration.as_str()))
             .ok_or_else(|| self.error("SPX-H006", format!("resolved `?` has unknown enclosing function `{function}`"), span))?;
-        let ty = self.resolve_function_type(target, &target.return_type, target.span)?;
+        let ty = self.resolve_function_type_ref(
+            target,
+            &target.payload().return_type,
+            target.payload().span,
+        )?;
         crate::hir::resolved_residual_type!(ty).ok_or_else(|| {
             self.error(
                 "SPX-H006",
@@ -74,23 +90,37 @@ impl Resolver<'_> {
         })
     }
 
+    #[cfg(test)]
     pub(super) fn generic_function_arguments_are_admitted(
         &self,
         caller: &FunctionExecutionId,
         function: &crate::ast::Function,
         arguments: &[ResolvedType],
     ) -> Result<bool, Diagnostic> {
-        if crate::vec_ops::source_wrapper(self.program, function).is_some()
+        self.generic_function_arguments_are_admitted_ref(
+            caller,
+            &FunctionRef::ordinary(function),
+            arguments,
+        )
+    }
+
+    pub(super) fn generic_function_arguments_are_admitted_ref(
+        &self,
+        caller: &FunctionExecutionId,
+        function: &FunctionRef<'_>,
+        arguments: &[ResolvedType],
+    ) -> Result<bool, Diagnostic> {
+        if crate::vec_ops::source_wrapper_ref(self.program, &function).is_some()
             && matches!(arguments, [argument] if crate::vec_ops::resolved_element_is_admitted(argument))
         {
             return Ok(true);
         }
-        if crate::box_ops::source_wrapper(self.program, function).is_some()
+        if crate::box_ops::source_wrapper_ref(self.program, &function).is_some()
             && matches!(arguments, [argument] if crate::box_ops::resolved_box_element_is_admitted(argument))
         {
             return Ok(true);
         }
-        if arguments.len() != function.type_parameters.len() {
+        if arguments.len() != function.payload().type_parameters.len() {
             return Ok(false);
         }
         let caller_id = match caller {
@@ -98,31 +128,34 @@ impl Resolver<'_> {
             FunctionExecutionId::Generic(_) => return Ok(false),
         };
         let caller_parameter_count = self
-            .program
-            .functions()
-            .iter()
-            .find(|candidate| candidate.stable_id == caller_id.as_str())
-            .map_or(0, |candidate| candidate.type_parameters.len());
+            .source_functions()
+            .find(|candidate| candidate.payload().stable_id == caller_id.as_str())
+            .map_or(0, |candidate| candidate.payload().type_parameters.len());
         let forwarded =
             super::generic_mapping::arguments(caller_id, caller_parameter_count, arguments);
         if forwarded {
             return Ok(true);
         }
-        if crate::source_verify::generic_collection_profile(function) {
+        if crate::source_verify::generic_collection_profile(function.payload()) {
             return Ok(super::generic_collection::arguments_for_count(
                 arguments,
-                function.type_parameters.len(),
+                function.payload().type_parameters.len(),
             ));
         }
-        if crate::source_verify::generic_variant_profile(self.program, function) {
+        if crate::source_verify::generic_variant_profile(self.program, function.payload()) {
             return Ok(super::generic_variant::arguments(arguments));
         }
-        let result_type =
-            self.resolve_function_type(function, &function.return_type, function.span)?;
+        let result_type = self.resolve_function_type_ref(
+            function,
+            &function.payload().return_type,
+            function.payload().span,
+        )?;
         if super::generic_result::slot(
             &result_type,
-            &self.declarations.held_identity(&function.stable_id),
-            function.type_parameters.len(),
+            &self
+                .declarations
+                .held_identity(&function.payload().stable_id),
+            function.payload().type_parameters.len(),
         ) {
             return Ok(super::generic_result::arguments(&result_type, arguments));
         }
@@ -131,26 +164,34 @@ impl Resolver<'_> {
         }) {
             return Ok(false);
         }
-        let owner = self.declarations.held_identity(&function.stable_id);
-        let return_type =
-            self.resolve_function_type(function, &function.return_type, function.span)?;
+        let owner = self
+            .declarations
+            .held_identity(&function.payload().stable_id);
+        let return_type = self.resolve_function_type_ref(
+            function,
+            &function.payload().return_type,
+            function.payload().span,
+        )?;
         let owned_return = super::type_reachability::is_nested_owned_byte_record_template(
             &self.declarations,
             &return_type,
             &owner,
-            function.type_parameters.len(),
+            function.payload().type_parameters.len(),
         );
         let flat_owned_return = super::type_reachability::is_flat_owned_byte_record_template(
             &self.declarations,
             &return_type,
             &owner,
-            function.type_parameters.len(),
+            function.payload().type_parameters.len(),
         );
         let owned_parameters = function
+            .payload()
             .params
             .iter()
             .filter(|parameter| parameter.mode == ParamMode::Own || parameter.ty == Type::String)
-            .map(|parameter| self.resolve_function_type(function, &parameter.ty, parameter.span))
+            .map(|parameter| {
+                self.resolve_function_type_ref(function, &parameter.ty, parameter.span)
+            })
             .collect::<Result<Vec<_>, _>>()?;
         let nested = (owned_return && !flat_owned_return)
             || owned_parameters.iter().any(|ty| {
@@ -158,12 +199,12 @@ impl Resolver<'_> {
                     &self.declarations,
                     ty,
                     &owner,
-                    function.type_parameters.len(),
+                    function.payload().type_parameters.len(),
                 ) && !super::type_reachability::is_flat_owned_byte_record_template(
                     &self.declarations,
                     ty,
                     &owner,
-                    function.type_parameters.len(),
+                    function.payload().type_parameters.len(),
                 )
             });
         let exact_owned_relay = !owned_parameters.is_empty()
@@ -173,7 +214,7 @@ impl Resolver<'_> {
                     &self.declarations,
                     parameter,
                     &owner,
-                    function.type_parameters.len(),
+                    function.payload().type_parameters.len(),
                 )
             });
         if arguments
@@ -192,7 +233,7 @@ impl Resolver<'_> {
                         &self.declarations,
                         ty,
                         &owner,
-                        function.type_parameters.len(),
+                        function.payload().type_parameters.len(),
                     )
                 }))
         }
@@ -216,11 +257,12 @@ impl Resolver<'_> {
     ) -> Result<(ResolvedProgram, super::FunctionResolutionWork), AgentIdentityFailure<E>> {
         let _lowering_stage = reservation_stage_guard(ReservationStage::HirLowering);
         let entrypoint = self
-            .program
-            .functions()
-            .iter()
-            .find(|function| function.name == "main")
-            .map(|function| self.declarations.held_identity(&function.stable_id))
+            .source_functions()
+            .find(|function| function.name() == "main")
+            .map(|function| {
+                self.declarations
+                    .held_identity(&function.payload().stable_id)
+            })
             .ok_or_else(|| {
                 self.error(
                     "SPX-H005",
@@ -432,24 +474,15 @@ impl Resolver<'_> {
             .collect::<Result<Vec<_>, Diagnostic>>()?;
         // Retention can move this exact carrier without creating a second Vec
         // when the synthetic module contains only authored local functions.
-        let function_count =
-            self.program
-                .functions()
-                .iter()
-                .chain(self.program.types().iter().flat_map(
-                    |declaration| match &declaration.kind {
-                        TypeDeclarationKind::Class { methods, .. } => methods.as_slice(),
-                        _ => &[],
-                    },
-                ))
-                .filter(|function| function.type_parameters.is_empty())
-                .count();
-        let mut functions = Vec::with_capacity(function_count);
-        for function in self
-            .program
-            .functions()
+        let function_count = self
+            .function_cells
             .iter()
-            .filter(|function| function.type_parameters.is_empty())
+            .filter(|(_, function)| function.payload().type_parameters.is_empty())
+            .count();
+        let mut functions = Vec::with_capacity(function_count);
+        for (_, function) in self.function_cells[..self.program.functions().len()]
+            .iter()
+            .filter(|(_, function)| function.payload().type_parameters.is_empty())
         {
             let (resolved, cost, reused) = self.resolve_or_reuse_function(function)?;
             if reused {
@@ -457,19 +490,12 @@ impl Resolver<'_> {
             }
             self.function_work
                 .costs
-                .insert(function.stable_id.clone(), cost);
+                .insert(function.payload().stable_id.clone(), cost);
             functions.push(resolved);
         }
-        for decl in self.program.types() {
-            if let TypeDeclarationKind::Class { methods, .. } = &decl.kind {
-                for method in methods {
-                    if method.type_parameters.is_empty() {
-                        // Class declarations are part of the exact environment,
-                        // but the first function-granular lane deliberately
-                        // resolves their methods afresh.
-                        functions.push(self.resolve_function(method)?);
-                    }
-                }
+        for (_, method) in self.function_cells[self.program.functions().len()..].iter() {
+            if method.payload().type_parameters.is_empty() {
+                functions.push(self.resolve_function_ref(method)?);
             }
         }
         if let Some(error) = self.byte_helpers.failure() {
@@ -480,11 +506,9 @@ impl Resolver<'_> {
         // Every template is resolved from the current source before calls in
         // either fresh or reused functions seed the current reachable closure.
         let function_templates = self
-            .program
-            .functions()
-            .iter()
-            .filter(|function| !function.type_parameters.is_empty())
-            .map(|function| self.resolve_function_template(function))
+            .source_functions()
+            .filter(|function| !function.payload().type_parameters.is_empty())
+            .map(|function| self.resolve_function_template_ref(function))
             .collect::<Result<Vec<_>, _>>()?;
         let function_instances =
             self.discover_function_instances(&functions, &function_templates)?;
@@ -617,26 +641,36 @@ impl Resolver<'_> {
 
     fn resolve_or_reuse_function(
         &self,
-        function: &crate::ast::Function,
+        function: &FunctionRef<'_>,
     ) -> Result<(ResolvedFunction, usize, bool), Diagnostic> {
         if let Some(reuse) = self.reuse.as_ref().filter(|reuse| {
             // Compare data addresses: trait vtables can be duplicated between
             // codegen units. Equal-text detached source is not this capability.
             std::ptr::addr_eq(reuse.current, self.program)
         }) {
-            let previous = reuse
-                .program
-                .functions()
-                .iter()
-                .find(|previous| previous.stable_id == function.stable_id);
+            let previous_matches = if !reuse.program.function_refs().has_stored_aliases() {
+                reuse
+                    .program
+                    .functions()
+                    .iter()
+                    .find(|previous| previous.stable_id == function.payload().stable_id)
+                    .is_some_and(|previous| function.same_ordinary_declaration(previous))
+            } else {
+                reuse
+                    .program
+                    .function_refs()
+                    .iter()
+                    .find(|previous| previous.payload().stable_id == function.payload().stable_id)
+                    .is_some_and(|previous| previous.same_declaration(function))
+            };
             let resolved = reuse
                 .resolved
                 .functions
                 .iter()
-                .find(|previous| previous.id.as_str() == function.stable_id);
-            let cost = reuse.costs.get(&function.stable_id).copied();
-            if let (Some(previous), Some(resolved), Some(cost)) = (previous, resolved, cost) {
-                if previous == function
+                .find(|previous| previous.id.as_str() == function.payload().stable_id);
+            let cost = reuse.costs.get(&function.payload().stable_id).copied();
+            if let (Some(resolved), Some(cost)) = (resolved, cost) {
+                if previous_matches
                     && !super::function_requires_current_byte_helper_resolution(
                         self.program,
                         resolved,
@@ -646,7 +680,7 @@ impl Resolver<'_> {
                         return Err(self.error(
                             "SPX-H006",
                             "function reuse exceeds the active builder budget",
-                            function.span,
+                            function.payload().span,
                         ));
                     }
                     return Ok((reuse_lowered::clone_for_rebuild(resolved), cost, true));
@@ -654,7 +688,7 @@ impl Resolver<'_> {
             }
         }
         let before = crate::bounded_output::active_remaining();
-        let resolved = self.resolve_function(function)?;
+        let resolved = self.resolve_function_ref(function)?;
         let cost = before
             .zip(crate::bounded_output::active_remaining())
             .map_or(0, |(before, after)| before.saturating_sub(after));
@@ -694,20 +728,40 @@ impl Resolver<'_> {
         &self,
         function: &crate::ast::Function,
     ) -> Result<ResolvedFunction, Diagnostic> {
-        let template_id = self.declarations.held_identity(&function.stable_id);
-        let function_scope = FunctionExecutionId::Monomorphic(template_id.clone());
-        self.resolve_function_in_scope(function, &function_scope, template_id)
+        self.resolve_function_ref(&FunctionRef::ordinary(function))
     }
 
+    pub(super) fn resolve_function_ref(
+        &self,
+        function: &FunctionRef<'_>,
+    ) -> Result<ResolvedFunction, Diagnostic> {
+        let template_id = self
+            .declarations
+            .held_identity(&function.payload().stable_id);
+        let function_scope = FunctionExecutionId::Monomorphic(template_id.clone());
+        self.resolve_function_in_scope_ref(function, &function_scope, template_id)
+    }
+
+    #[cfg(test)]
     pub(super) fn resolve_function_template(
         &self,
         function: &crate::ast::Function,
     ) -> Result<ResolvedFunctionTemplate, Diagnostic> {
-        let transparent_vec_wrapper = crate::vec_ops::source_wrapper(self.program, function);
-        let transparent_box_wrapper = crate::box_ops::source_wrapper(self.program, function);
-        let function_id = self.declarations.held_identity(&function.stable_id);
+        self.resolve_function_template_ref(&FunctionRef::ordinary(function))
+    }
+
+    pub(super) fn resolve_function_template_ref(
+        &self,
+        function: &FunctionRef<'_>,
+    ) -> Result<ResolvedFunctionTemplate, Diagnostic> {
+        let transparent_vec_wrapper = crate::vec_ops::source_wrapper_ref(self.program, &function);
+        let transparent_box_wrapper = crate::box_ops::source_wrapper_ref(self.program, &function);
+        let function_id = self
+            .declarations
+            .held_identity(&function.payload().stable_id);
         let function_scope = FunctionExecutionId::Monomorphic(function_id.clone());
         let type_parameters = function
+            .payload()
             .type_parameters
             .iter()
             .enumerate()
@@ -717,7 +771,10 @@ impl Resolver<'_> {
                     index: u32::try_from(index).map_err(|_| {
                         self.error(
                             "SPX-H006",
-                            format!("function `{}` has too many type parameters", function.name),
+                            format!(
+                                "function `{}` has too many type parameters",
+                                function.name()
+                            ),
                             parameter.span,
                         )
                     })?,
@@ -727,11 +784,12 @@ impl Resolver<'_> {
             .collect::<Result<Vec<_>, Diagnostic>>()?;
         let mut bindings = BTreeMap::new();
         let params = function
+            .payload()
             .params
             .iter()
             .enumerate()
             .map(|(index, param)| {
-                let ty = self.resolve_function_type(function, &param.ty, param.span)?;
+                let ty = self.resolve_function_type_ref(function, &param.ty, param.span)?;
                 let id = ValueId::parameter(&function_scope, index);
                 let ownership = if let Some(op) = transparent_vec_wrapper {
                     op.param_ownership(index)
@@ -741,21 +799,21 @@ impl Resolver<'_> {
                     &self.declarations,
                     &ty,
                     &function_id,
-                    function.type_parameters.len(),
+                    function.payload().type_parameters.len(),
                 ) || super::generic_collection::slot(
                     &ty,
                     &function_id,
-                    function.type_parameters.len(),
+                    function.payload().type_parameters.len(),
                 ) || super::generic_result::slot(
                     &ty,
                     &function_id,
-                    function.type_parameters.len(),
+                    function.payload().type_parameters.len(),
                 ) || ty == ResolvedType::String
                     || super::type_reachability::is_nested_owned_byte_record_template(
                         &self.declarations,
                         &ty,
                         &function_id,
-                        function.type_parameters.len(),
+                        function.payload().type_parameters.len(),
                     )
                 {
                     OwnershipMode::Own
@@ -781,10 +839,14 @@ impl Resolver<'_> {
                 })
             })
             .collect::<Result<Vec<_>, Diagnostic>>()?;
-        let return_type =
-            self.resolve_function_type(function, &function.return_type, function.span)?;
+        let return_type = self.resolve_function_type_ref(
+            function,
+            &function.payload().return_type,
+            function.payload().span,
+        )?;
         let result_id = ValueId::result(&function_scope);
         let requires = function
+            .payload()
             .requires
             .iter()
             .enumerate()
@@ -797,7 +859,8 @@ impl Resolver<'_> {
                 )
             })
             .collect::<Result<_, _>>()?;
-        let body = self.resolve_expr(&function_scope, &function.body, &bindings, "body")?;
+        let body =
+            self.resolve_expr(&function_scope, &function.payload().body, &bindings, "body")?;
         let mut ensures_bindings = bindings;
         ensures_bindings.insert(
             "result".to_owned(),
@@ -810,25 +873,25 @@ impl Resolver<'_> {
                     || super::generic_result::slot(
                         &return_type,
                         &function_id,
-                        function.type_parameters.len(),
+                        function.payload().type_parameters.len(),
                     )
                     || super::generic_collection::slot(
                         &return_type,
                         &function_id,
-                        function.type_parameters.len(),
+                        function.payload().type_parameters.len(),
                     )
                     || super::generic_variant::slot(
                         &self.declarations,
                         &return_type,
                         &function_id,
-                        function.type_parameters.len(),
+                        function.payload().type_parameters.len(),
                     )
                     || return_type == ResolvedType::String
                     || super::type_reachability::is_nested_owned_byte_record_template(
                         &self.declarations,
                         &return_type,
                         &function_id,
-                        function.type_parameters.len(),
+                        function.payload().type_parameters.len(),
                     ) {
                     OwnershipMode::Own
                 } else {
@@ -838,6 +901,7 @@ impl Resolver<'_> {
             },
         );
         let ensures = function
+            .payload()
             .ensures
             .iter()
             .enumerate()
@@ -852,16 +916,16 @@ impl Resolver<'_> {
             .collect::<Result<_, _>>()?;
         Ok(ResolvedFunctionTemplate {
             id: function_id,
-            name: function.name.clone(),
+            name: function.name().to_owned(),
             type_parameters,
             params,
             result_id,
             return_type,
-            effects: function.effects.clone(),
+            effects: function.payload().effects.clone(),
             requires,
             ensures,
             body,
-            span: function.span,
+            span: function.payload().span,
         })
     }
 
@@ -937,14 +1001,29 @@ impl Resolver<'_> {
         Ok(instances)
     }
 
+    #[cfg(test)]
     pub(super) fn resolve_function_in_scope(
         &self,
         function: &crate::ast::Function,
         function_scope: &FunctionExecutionId,
         function_id: DeclarationId,
     ) -> Result<ResolvedFunction, Diagnostic> {
+        self.resolve_function_in_scope_ref(
+            &FunctionRef::ordinary(function),
+            function_scope,
+            function_id,
+        )
+    }
+
+    pub(super) fn resolve_function_in_scope_ref(
+        &self,
+        function: &FunctionRef<'_>,
+        function_scope: &FunctionExecutionId,
+        function_id: DeclarationId,
+    ) -> Result<ResolvedFunction, Diagnostic> {
         let mut bindings = BTreeMap::new();
         let params = function
+            .payload()
             .params
             .iter()
             .enumerate()
@@ -991,25 +1070,27 @@ impl Resolver<'_> {
                 })
             })
             .collect::<Result<Vec<_>, Diagnostic>>()?;
-        let return_type = self.resolve_type(&function.return_type, function.span)?;
+        let return_type =
+            self.resolve_type(&function.payload().return_type, function.payload().span)?;
         if return_type == ResolvedType::Str {
             return Err(self.error(
                 "SPX-H006",
                 "borrowed `str` cannot escape through a function result",
-                function.span,
+                function.payload().span,
             ));
         }
         if return_type == ResolvedType::SliceU8 {
             return Err(self.error(
                 "SPX-H006",
                 "borrowed `Slice<u8>` cannot escape through a function result",
-                function.span,
+                function.payload().span,
             ));
         }
         let result_id = ValueId::result(function_scope);
-        let yields = self.resolve_yields_clause(function, &params)?;
+        let yields = self.resolve_yields_clause_ref(function, &params)?;
 
         let requires = function
+            .payload()
             .requires
             .iter()
             .enumerate()
@@ -1022,10 +1103,11 @@ impl Resolver<'_> {
                 )
             })
             .collect::<Result<_, _>>()?;
-        let mut body = self.resolve_expr(function_scope, &function.body, &bindings, "body")?;
+        let mut body =
+            self.resolve_expr(function_scope, &function.payload().body, &bindings, "body")?;
         if let Some(yields_clause) = &yields {
             self.finish_yields_admission(
-                &function.name,
+                &function.name(),
                 yields_clause,
                 &params,
                 &return_type,
@@ -1043,12 +1125,13 @@ impl Resolver<'_> {
                 ownership: self.expression_ownership(
                     &return_type,
                     OwnershipMode::Own,
-                    function.span,
+                    function.payload().span,
                 )?,
                 mutable: false,
             },
         );
         let ensures = function
+            .payload()
             .ensures
             .iter()
             .enumerate()
@@ -1064,11 +1147,11 @@ impl Resolver<'_> {
 
         Ok(ResolvedFunction {
             id: function_id,
-            name: function.name.clone(),
+            name: function.name().to_owned(),
             params,
             result_id,
             return_type,
-            effects: function.effects.clone(),
+            effects: function.payload().effects.clone(),
             yields,
             requires,
             ensures,
@@ -1076,7 +1159,7 @@ impl Resolver<'_> {
             cleanup: CleanupInventory::unresolved(),
             cleanup_plan: CleanupPlan::unresolved(),
             loan_plan: LoanPlan::unresolved(),
-            span: function.span,
+            span: function.payload().span,
         })
     }
 
@@ -1231,12 +1314,10 @@ impl Resolver<'_> {
     ) -> Result<ResolvedType, Diagnostic> {
         if let FunctionExecutionId::Monomorphic(owner) = execution {
             if let Some(function) = self
-                .program
-                .functions()
-                .iter()
-                .find(|candidate| candidate.stable_id == owner.as_str())
+                .source_functions()
+                .find(|candidate| candidate.payload().stable_id == owner.as_str())
             {
-                return self.resolve_function_type(function, ty, span);
+                return self.resolve_function_type_ref(function, ty, span);
             }
         }
         self.resolve_type(ty, span)
@@ -1248,6 +1329,15 @@ impl Resolver<'_> {
         ty: &Type,
         span: Span,
     ) -> Result<ResolvedType, Diagnostic> {
+        self.resolve_function_type_ref(&FunctionRef::ordinary(function), ty, span)
+    }
+
+    pub(super) fn resolve_function_type_ref(
+        &self,
+        function: &FunctionRef<'_>,
+        ty: &Type,
+        span: Span,
+    ) -> Result<ResolvedType, Diagnostic> {
         if let Type::Function { parameters, result } = ty {
             return self.resolve_generic_callable_type(function, parameters, result, span);
         }
@@ -1256,18 +1346,21 @@ impl Resolver<'_> {
         };
         if arguments.is_empty() {
             if let Some(index) = function
+                .payload()
                 .type_parameters
                 .iter()
                 .position(|parameter| parameter.name == *name)
             {
                 return Ok(ResolvedType::TypeParameter {
-                    owner: self.declarations.held_identity(&function.stable_id),
+                    owner: self
+                        .declarations
+                        .held_identity(&function.payload().stable_id),
                     index: u32::try_from(index).map_err(|_| {
                         self.error(
                             "SPX-H006",
                             format!(
                                 "function `{}` type parameter index does not fit u32",
-                                function.name
+                                function.name()
                             ),
                             span,
                         )
@@ -1282,28 +1375,32 @@ impl Resolver<'_> {
             .ok_or_else(|| self.error("SPX-H001", format!("unresolved type `{name}`"), span))?;
         let resolved = arguments
             .iter()
-            .map(|argument| self.resolve_function_type(function, argument, span))
+            .map(|argument| self.resolve_function_type_ref(function, argument, span))
             .collect::<Result<Vec<_>, _>>()?;
         let instance = ResolvedType::Nominal {
             declaration: declaration.clone(),
             arguments: resolved.clone(),
         };
-        let owner = self.declarations.held_identity(&function.stable_id);
-        let transparent_vec = crate::vec_ops::source_wrapper(self.program, function).is_some()
+        let owner = self
+            .declarations
+            .held_identity(&function.payload().stable_id);
+        let transparent_vec = crate::vec_ops::source_wrapper_ref(self.program, &function).is_some()
             && declaration.as_str() == crate::prelude::VEC_ID
             && matches!(resolved.as_slice(),
                 [ResolvedType::TypeParameter { owner: parameter_owner, index: 0 }]
                     if parameter_owner == &owner);
-        let specialized_vec_wrapper = crate::vec_ops::wrapper_by_id(function.stable_id.as_str())
-            .is_some()
-            && declaration.as_str() == crate::prelude::VEC_ID
-            && matches!(resolved.as_slice(), [argument]
+        let specialized_vec_wrapper =
+            crate::vec_ops::wrapper_by_id(function.payload().stable_id.as_str()).is_some()
+                && declaration.as_str() == crate::prelude::VEC_ID
+                && matches!(resolved.as_slice(), [argument]
                 if crate::vec_ops::resolved_element_is_admitted(argument));
-        let transparent_box = crate::box_ops::source_wrapper(self.program, function).is_some()
+        let transparent_box = crate::box_ops::source_wrapper_ref(self.program, &function).is_some()
             && declaration.as_str() == crate::prelude::BOX_ID
             && matches!(resolved.as_slice(),[ResolvedType::TypeParameter{owner:parameter_owner,index:0}] if parameter_owner==&owner);
-        let specialized_box_wrapper = crate::box_ops::wrapper_by_id(function.stable_id.as_str())
-            .is_some()
+        let specialized_box_wrapper = crate::box_ops::wrapper_by_id(
+            function.payload().stable_id.as_str(),
+        )
+        .is_some()
             && declaration.as_str() == crate::prelude::BOX_ID
             && matches!(resolved.as_slice(),[argument] if crate::box_ops::resolved_element_is_admitted(argument));
         let owned_record_vec =
@@ -1326,15 +1423,19 @@ impl Resolver<'_> {
                 && !super::generic_collection::slot(
                     &instance,
                     &owner,
-                    function.type_parameters.len(),
+                    function.payload().type_parameters.len(),
                 )
                 && !super::generic_variant::slot(
                     &self.declarations,
                     &instance,
                     &owner,
-                    function.type_parameters.len(),
+                    function.payload().type_parameters.len(),
                 )
-                && !super::generic_result::slot(&instance, &owner, function.type_parameters.len())
+                && !super::generic_result::slot(
+                    &instance,
+                    &owner,
+                    function.payload().type_parameters.len(),
+                )
                 && !admitted_owned_byte_prelude_instance(&declaration, &resolved)
                 && !crate::ast::ImportResult::container_enabled(self.program, ty)
                 && !super::type_reachability::is_flat_owned_byte_record(
@@ -1349,7 +1450,7 @@ impl Resolver<'_> {
                     &self.declarations,
                     &instance,
                     &owner,
-                    function.type_parameters.len(),
+                    function.payload().type_parameters.len(),
                 )
                 && !super::type_reachability::is_admitted_concrete_owned_byte_variant(
                     &self.declarations,

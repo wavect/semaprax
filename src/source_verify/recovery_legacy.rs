@@ -19,7 +19,7 @@ pub(super) fn check_expr_iterative_legacy(
     current: &Function,
     expr: &Expr,
     variables: &mut HashMap<String, Binding>,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
     result_type: Option<&Type>,
     allow_moves: bool,
@@ -45,7 +45,37 @@ pub(super) fn check_expr_with_helpers_legacy<'a, 'p>(
     current: &'p Function,
     expr: &'p Expr,
     variables: &mut HashMap<String, Binding>,
-    functions: &'p HashMap<&'p str, &'p Function>,
+    functions: &'p crate::source_verify::function_map::FunctionMap<'p>,
+    types: &'p TypeTable<'p>,
+    result_type: Option<&'p Type>,
+    allow_moves: bool,
+    diagnostics: &'a mut Vec<Diagnostic>,
+    helpers: Option<&'a dyn crate::loop_calls::byte_writer::SourceHelpers>,
+    fused_producer: Option<&'p Expr>,
+) -> Option<CheckedValue> {
+    let current_view = crate::ast::program_source::FunctionRef::ordinary(current);
+    check_expr_with_helpers_legacy_cell(
+        program,
+        &current_view,
+        expr,
+        variables,
+        functions,
+        types,
+        result_type,
+        allow_moves,
+        diagnostics,
+        helpers,
+        fused_producer,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn check_expr_with_helpers_legacy_cell<'a, 'p>(
+    program: &'p dyn ProgramSource,
+    current: &crate::ast::program_source::FunctionRef<'p>,
+    expr: &'p Expr,
+    variables: &mut HashMap<String, Binding>,
+    functions: &'p crate::source_verify::function_map::FunctionMap<'p>,
     types: &'p TypeTable<'p>,
     result_type: Option<&'p Type>,
     allow_moves: bool,
@@ -83,12 +113,39 @@ pub(super) fn check_expr_with_helpers_legacy<'a, 'p>(
 }
 
 #[allow(clippy::too_many_arguments)]
+#[allow(dead_code, reason = "retained complete raw old contract receiver")]
 pub(super) fn require_bool_legacy(
     program: &dyn ProgramSource,
     function: &Function,
     contract: &Expr,
     variables: &HashMap<String, Binding>,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
+    types: &TypeTable<'_>,
+    result_type: Option<&Type>,
+    diagnostics: &mut Vec<Diagnostic>,
+    kind: &str,
+) {
+    let view = crate::ast::program_source::FunctionRef::ordinary(function);
+    require_bool_legacy_cell(
+        program,
+        &view,
+        contract,
+        variables,
+        functions,
+        types,
+        result_type,
+        diagnostics,
+        kind,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn require_bool_legacy_cell(
+    program: &dyn ProgramSource,
+    function: &crate::ast::program_source::FunctionRef<'_>,
+    contract: &Expr,
+    variables: &HashMap<String, Binding>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
     result_type: Option<&Type>,
     diagnostics: &mut Vec<Diagnostic>,
@@ -97,15 +154,15 @@ pub(super) fn require_bool_legacy(
     contract.visit_calls(&mut |callee, span| {
         if variables.contains_key(callee) { return; }
         if let Some(target) = functions.get(callee) {
-            if !target.effects.is_empty() {
+            if !target.payload().effects.is_empty() {
                 diagnostics.push(
                     error(
                         program,
                         "SPX-C102",
                         format!(
                             "{kind} on `{}` calls effectful function `{callee}` with effects {{{}}}",
-                            function.name,
-                            target.effects.join(", ")
+                            function.name(),
+                            target.payload().effects.join(", ")
                         ),
                         span,
                     )
@@ -122,7 +179,7 @@ pub(super) fn require_bool_legacy(
     if let Some(ty) = result_type {
         // A provisional owned result is readable only in this postcondition
         // scope. It stays immutable and contract transfers still select O105.
-        if ty == &function.return_type
+        if ty == &function.payload().return_type
             && (matches!(ty, Type::Bytes | Type::String)
                 || matches!(ty, Type::Named { name, arguments }
                 if name == "Result" && arguments.as_slice() == [Type::Bytes, Type::Bytes]))
@@ -145,7 +202,7 @@ pub(super) fn require_bool_legacy(
             );
         }
     }
-    if let Some(value) = check_expr_iterative_legacy(
+    if let Some(value) = check_expr_with_helpers_legacy_cell(
         program,
         function,
         contract,
@@ -155,6 +212,8 @@ pub(super) fn require_bool_legacy(
         result_type,
         false,
         diagnostics,
+        None,
+        None,
     ) {
         if value.native_unit {
             reject_native_unit_value(program, contract, &value, diagnostics);
@@ -162,20 +221,20 @@ pub(super) fn require_bool_legacy(
             diagnostics.push(error(
                 program,
                 "SPX-C101",
-                format!("{kind} on `{}` must be bool", function.name),
+                format!("{kind} on `{}` must be bool", function.name()),
                 contract.span,
             ));
         }
     }
 }
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     #[allow(clippy::too_many_arguments)]
     fn new_legacy(
         program: &'p dyn ProgramSource,
-        current: &'p Function,
+        current: &'v crate::ast::program_source::FunctionRef<'p>,
         variables: HashMap<String, Binding>,
-        functions: &'p HashMap<&'p str, &'p Function>,
+        functions: &'p crate::source_verify::function_map::FunctionMap<'p>,
         types: &'p TypeTable<'p>,
         result_type: Option<&'p Type>,
         allow_moves: bool,

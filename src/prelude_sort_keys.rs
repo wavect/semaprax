@@ -46,7 +46,7 @@ pub(crate) fn selection(
         }
     };
     for function in program.functions() {
-        uses(function);
+        uses(function.payload());
     }
     for ty in program.types() {
         if let crate::ast::TypeDeclarationKind::Class { methods, .. } = &ty.kind {

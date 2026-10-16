@@ -1,7 +1,7 @@
 //! The literal descriptor is checked metadata, never a String expression.
 use super::path_arena::{ExprPath, PathArena};
 use super::*;
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(super) fn finish_vec_literal_frame(
         &self,
         function: &FunctionExecutionId,

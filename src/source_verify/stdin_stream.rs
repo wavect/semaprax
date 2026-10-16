@@ -6,7 +6,20 @@ use crate::diagnostic::Diagnostic;
 use crate::stdin_stream_ops::{ast_is_reader, ast_type_uses};
 use std::collections::{BTreeMap, BTreeSet};
 
+#[cfg_attr(
+    not(test),
+    allow(dead_code, reason = "ordinary compatibility entry retained")
+)]
 pub(super) fn check(program: &dyn ProgramSource, diagnostics: &mut Vec<Diagnostic>) {
+    let cells = crate::source_verify::function_cells(program);
+    check_with_cells(program, &cells, diagnostics)
+}
+
+pub(super) fn check_with_cells(
+    program: &dyn ProgramSource,
+    cells: &[crate::ast::program_source::FunctionCell<'_>],
+    diagnostics: &mut Vec<Diagnostic>,
+) {
     let refuse = |diagnostics: &mut Vec<Diagnostic>, message, span| {
         diagnostics.push(error(program, "SPX-T270", message, span))
     };
@@ -50,9 +63,9 @@ pub(super) fn check(program: &dyn ProgramSource, diagnostics: &mut Vec<Diagnosti
         }
     }
     let streaming = crate::stdin_stream_ops::program_uses(program);
-    for function in program.functions() {
+    for (_, function) in cells.iter().take(program.functions().len()) {
         if streaming {
-            function.body.visit_all_nodes(&mut |expression| {
+            function.payload().body.visit_all_nodes(&mut |expression| {
                 if matches!(expression.kind, ExprKind::Closure { .. }) {
                     refuse(
                         diagnostics,
@@ -62,31 +75,36 @@ pub(super) fn check(program: &dyn ProgramSource, diagnostics: &mut Vec<Diagnosti
                 }
             });
         }
-        let uses = ast_type_uses(&function.return_type)
-            || function.params.iter().any(|p| ast_type_uses(&p.ty))
-            || crate::stdin_stream_ops::ast_expression_uses(&function.body);
+        let uses = ast_type_uses(&function.payload().return_type)
+            || function
+                .payload()
+                .params
+                .iter()
+                .any(|p| ast_type_uses(&p.ty))
+            || crate::stdin_stream_ops::ast_expression_uses(&function.payload().body);
         if !uses {
             continue;
         }
-        if (ast_is_reader(&function.return_type)
+        if (ast_is_reader(&function.payload().return_type)
             || function
+                .payload()
                 .params
                 .iter()
                 .any(|param| ast_is_reader(&param.ty) && param.mode == ParamMode::Own))
-            && !crate::stdin_stream_ops::ast_forward_signature(function)
+            && !crate::stdin_stream_ops::ast_forward_signature(function.payload())
         {
             refuse(
                 diagnostics,
                 "owned reader calls must forward one exact owned reader parameter",
-                function.span,
+                function.payload().span,
             );
         }
-        if crate::stdin_stream_ops::ast_forward_signature(function) {
-            let mut tail = &function.body;
+        if crate::stdin_stream_ops::ast_forward_signature(function.payload()) {
+            let mut tail = &function.payload().body;
             while let ExprKind::Block { tail: next, .. } = &tail.kind {
                 tail = next;
             }
-            let owner = &function.params[0].name;
+            let owner = &function.payload().params[0].name;
             if !matches!(&tail.kind, ExprKind::Var(name) if name == owner)
                 && !crate::stdin_stream_ops::source_next_is_same_owner(program, owner, tail)
             {
@@ -98,24 +116,26 @@ pub(super) fn check(program: &dyn ProgramSource, diagnostics: &mut Vec<Diagnosti
             }
         }
 
-        if !function.type_parameters.is_empty()
-            || function.yields.is_some()
-            || function.follows.is_some()
+        if !function.payload().type_parameters.is_empty()
+            || function.payload().yields.is_some()
+            || function.payload().follows.is_some()
         {
             refuse(
                 diagnostics,
                 "streaming reader functions must be monomorphic and synchronous",
-                function.span,
+                function.payload().span,
             );
         }
-        if ast_type_uses(&function.return_type) && !ast_is_reader(&function.return_type) {
+        if ast_type_uses(&function.payload().return_type)
+            && !ast_is_reader(&function.payload().return_type)
+        {
             refuse(
                 diagnostics,
                 "streaming reader cannot be nested in a return carrier",
-                function.span,
+                function.payload().span,
             );
         }
-        for param in &function.params {
+        for param in &function.payload().params {
             if ast_type_uses(&param.ty)
                 && (!ast_is_reader(&param.ty)
                     || !matches!(param.mode, ParamMode::Own | ParamMode::Borrow))
@@ -127,16 +147,16 @@ pub(super) fn check(program: &dyn ProgramSource, diagnostics: &mut Vec<Diagnosti
                 );
             }
         }
-        if crate::stdin_stream_ops::pure_by_name(&function.name).is_some() {
+        if crate::stdin_stream_ops::pure_by_name(function.name()).is_some() {
             refuse(
                 diagnostics,
                 "streaming inspection function names are compiler reserved",
-                function.name_span,
+                function.payload().name_span,
             );
         }
-        let mut pending = vec![(&function.body, false)];
-        pending.extend(function.requires.iter().map(|e| (e, true)));
-        pending.extend(function.ensures.iter().map(|e| (e, true)));
+        let mut pending = vec![(&function.payload().body, false)];
+        pending.extend(function.payload().requires.iter().map(|e| (e, true)));
+        pending.extend(function.payload().ensures.iter().map(|e| (e, true)));
         while let Some((expression, contract)) = pending.pop() {
             match &expression.kind {
                 ExprKind::Call {
@@ -215,35 +235,47 @@ pub(super) fn check(program: &dyn ProgramSource, diagnostics: &mut Vec<Diagnosti
         }
     }
     if crate::stdin_stream_ops::program_uses(program) {
-        if let Err((message, span)) = open_bounds(program) {
+        if let Err((message, span)) = open_bounds(program, cells) {
             refuse(diagnostics, message, span);
         }
     }
 }
 
-fn open_bounds(program: &dyn ProgramSource) -> Result<(), (&'static str, crate::ast::Span)> {
+fn open_bounds(
+    program: &dyn ProgramSource,
+    cells: &[crate::ast::program_source::FunctionCell<'_>],
+) -> Result<(), (&'static str, crate::ast::Span)> {
     if program.functions().len() > crate::byte_data_capacity::MAX_FUNCTIONS {
         return Err((
             "streaming admission exceeds function capacity",
-            program.functions()[crate::byte_data_capacity::MAX_FUNCTIONS].span,
+            program
+                .functions()
+                .get(crate::byte_data_capacity::MAX_FUNCTIONS)
+                .expect("checked streaming count")
+                .payload()
+                .span,
         ));
     }
     let mut work = 0usize;
-    let functions = program
-        .functions()
+    let functions = cells
         .iter()
-        .map(|f| (f.name.as_str(), f))
+        .take(program.functions().len())
+        .map(|(_, function)| (function.name(), function.payload()))
         .collect::<BTreeMap<_, _>>();
     let mut reverse = BTreeMap::<String, BTreeSet<&str>>::new();
     let mut relevant = BTreeSet::new();
-    for function in program.functions() {
-        if ast_is_reader(&function.return_type)
-            || function.params.iter().any(|p| ast_is_reader(&p.ty))
-            || crate::stdin_stream_ops::ast_expression_uses(&function.body)
+    for (_, function) in cells.iter().take(program.functions().len()) {
+        if ast_is_reader(&function.payload().return_type)
+            || function
+                .payload()
+                .params
+                .iter()
+                .any(|p| ast_is_reader(&p.ty))
+            || crate::stdin_stream_ops::ast_expression_uses(&function.payload().body)
         {
-            relevant.insert(function.name.as_str());
+            relevant.insert(function.name());
         }
-        let mut expressions = vec![&function.body];
+        let mut expressions = vec![&function.payload().body];
         while let Some(expression) = expressions.pop() {
             work += 1;
             if work > crate::loan_plan::MAX_LOAN_PLAN_WORK_V1 {
@@ -254,7 +286,7 @@ fn open_bounds(program: &dyn ProgramSource) -> Result<(), (&'static str, crate::
                     reverse
                         .entry(callee.clone())
                         .or_default()
-                        .insert(function.name.as_str());
+                        .insert(function.name());
                 }
             }
             let mut index = 0;
@@ -274,16 +306,19 @@ fn open_bounds(program: &dyn ProgramSource) -> Result<(), (&'static str, crate::
     }
     let mut summaries = BTreeMap::new();
     let mut active = BTreeSet::new();
-    for function in program.functions() {
-        if !relevant.contains(function.name.as_str()) {
-            summaries.insert(function.name.as_str(), 0);
+    for (_, function) in cells.iter().take(program.functions().len()) {
+        if !relevant.contains(function.name()) {
+            summaries.insert(function.name(), 0);
             continue;
         }
-        let mut pending = vec![(function.name.as_str(), false)];
+        let mut pending = vec![(function.name(), false)];
         while let Some((name, finishing)) = pending.pop() {
             work += 1;
             if work > crate::loan_plan::MAX_LOAN_PLAN_WORK_V1 {
-                return Err(("streaming admission exceeds bounded work", function.span));
+                return Err((
+                    "streaming admission exceeds bounded work",
+                    function.payload().span,
+                ));
             }
             if summaries.contains_key(name) {
                 continue;
@@ -292,11 +327,17 @@ fn open_bounds(program: &dyn ProgramSource) -> Result<(), (&'static str, crate::
                 continue;
             };
             if finishing {
-                let cost = expression_open_bound(&function.body, &summaries, &mut work)?;
-                if function.params.iter().any(|param| ast_is_reader(&param.ty)) && cost != 0 {
+                let cost = expression_open_bound(&function.payload().body, &summaries, &mut work)?;
+                if function
+                    .payload()
+                    .params
+                    .iter()
+                    .any(|param| ast_is_reader(&param.ty))
+                    && cost != 0
+                {
                     return Err((
                         "reader forwarding helpers cannot open a second reader",
-                        function.span,
+                        function.payload().span,
                     ));
                 }
                 summaries.insert(name, cost);
@@ -304,10 +345,13 @@ fn open_bounds(program: &dyn ProgramSource) -> Result<(), (&'static str, crate::
                 continue;
             }
             if !active.insert(name) {
-                return Err(("streaming stdin call graph must be acyclic", function.span));
+                return Err((
+                    "streaming stdin call graph must be acyclic",
+                    function.payload().span,
+                ));
             }
             pending.push((name, true));
-            let mut expressions = vec![&function.body];
+            let mut expressions = vec![&function.payload().body];
             while let Some(expression) = expressions.pop() {
                 work += 1;
                 if work > crate::loan_plan::MAX_LOAN_PLAN_WORK_V1 {

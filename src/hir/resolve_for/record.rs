@@ -13,7 +13,7 @@ pub(in crate::hir) struct Row {
 
 #[allow(clippy::too_many_arguments)]
 pub(in crate::hir) fn schedule<'expr>(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     frames: &mut Vec<Frame<'expr>>,
     paths: &mut PathArena<'_>,
@@ -78,7 +78,7 @@ pub(in crate::hir) fn schedule<'expr>(
 }
 
 pub(in crate::hir) fn project<'p>(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     expression: &crate::ast::Expr,
     bindings: &BTreeMap<String, Binding>,
@@ -273,7 +273,7 @@ type PreparedTraversal<'expr> = (ResolvedBinding, ResolvedType, Scope<'expr>);
 
 #[allow(clippy::too_many_arguments)]
 fn prepare<'expr>(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     scope: Scope<'expr>,
     item: &str,
@@ -379,7 +379,7 @@ fn prepare<'expr>(
 
 #[cfg(test)]
 pub(in crate::hir) fn resolve_reference(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     scope: &BTreeMap<String, Binding>,
     path: &str,

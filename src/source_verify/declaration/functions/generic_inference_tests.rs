@@ -7,11 +7,12 @@ fn parsed(source: &str) -> Program {
 }
 
 fn mapping_diagnostics(program: &Program) -> Vec<Diagnostic> {
-    let functions = program
-        .functions
+    let function_cells = crate::source_verify::capacity::source_capacity_functions(program);
+    let functions = function_cells
         .iter()
-        .map(|function| (function.name.as_str(), function))
-        .collect::<HashMap<_, _>>();
+        .take(program.functions.len())
+        .map(|(_, function)| (function.name(), function))
+        .collect::<crate::source_verify::function_map::FunctionMap<'_>>();
     let function_value_targets =
         crate::source_verify::function_value_inventory::function_value_targets(program, &functions);
     let call_graph = program

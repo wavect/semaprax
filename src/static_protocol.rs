@@ -38,11 +38,21 @@ pub fn member_matches(
     receiver: &TypeDeclaration,
     function: &Function,
 ) -> bool {
+    member_matches_named(protocol, method, receiver, &function.name, function)
+}
+
+fn member_matches_named(
+    protocol: &ProtocolDeclaration,
+    method: &ProtocolMethod,
+    receiver: &TypeDeclaration,
+    name: &str,
+    function: &Function,
+) -> bool {
     if !receiver.explicit_id
         || !receiver.type_parameters.is_empty()
         || !matches!(receiver.kind, TypeDeclarationKind::Record { .. })
         || !function.explicit_id
-        || function.name == "main"
+        || name == "main"
         || !function.type_parameters.is_empty()
         || !function.effects.is_empty()
         || !function.requires.is_empty()
@@ -71,6 +81,12 @@ pub fn validate(program: &Program) -> Result<(), Diagnostic> {
     validate_source(program)
 }
 pub(crate) fn validate_source(program: &dyn ProgramSource) -> Result<(), Diagnostic> {
+    validate_source_with_cells(program, None)
+}
+pub(crate) fn validate_source_with_cells(
+    program: &dyn ProgramSource,
+    cells: Option<&[crate::ast::program_source::FunctionCell<'_>]>,
+) -> Result<(), Diagnostic> {
     if program.protocols().is_empty() && program.implementations().is_empty() {
         return Ok(());
     }
@@ -131,8 +147,8 @@ pub(crate) fn validate_source(program: &dyn ProgramSource) -> Result<(), Diagnos
             ))
         }
     };
-    for function in program.functions() {
-        insert(&function.stable_id)?;
+    for function in program.function_refs() {
+        insert(&function.payload().stable_id)?;
     }
     for declaration in program.types() {
         insert(&declaration.stable_id)?;
@@ -189,10 +205,21 @@ pub(crate) fn validate_source(program: &dyn ProgramSource) -> Result<(), Diagnos
         .iter()
         .map(|item| (item.stable_id.as_str(), item))
         .collect::<BTreeMap<_, _>>();
-    let functions = program
-        .functions()
+    let ordinary_cells;
+    let cells = if let Some(cells) = cells {
+        cells
+    } else {
+        ordinary_cells = program
+            .function_refs()
+            .iter()
+            .map(|item| (None, item))
+            .collect::<Vec<_>>();
+        &ordinary_cells
+    };
+    let functions = cells
         .iter()
-        .map(|item| (item.stable_id.as_str(), item))
+        .take(program.function_refs().len())
+        .map(|(_, item)| (item.payload().stable_id.as_str(), item))
         .collect::<BTreeMap<_, _>>();
     let mut pairs = BTreeSet::new();
     let mut total = 0usize;
@@ -301,7 +328,7 @@ fn require_import(
 fn validate_mapping<'a>(
     protocol: &ProtocolDeclaration,
     receiver: &TypeDeclaration,
-    functions: &BTreeMap<&'a str, &'a Function>,
+    functions: &BTreeMap<&'a str, &'a crate::ast::program_source::FunctionRef<'a>>,
     implementation: &ProtocolImplementation,
 ) -> Result<(), Diagnostic> {
     if implementation.members.len() != protocol.methods.len() {
@@ -331,7 +358,13 @@ fn validate_mapping<'a>(
                 "static impl member must name an ordinary function",
             )
         })?;
-        if !member_matches(protocol, method, receiver, function) {
+        if !member_matches_named(
+            protocol,
+            method,
+            receiver,
+            function.name(),
+            function.payload(),
+        ) {
             return Err(error("SPX-Q107", "static impl function signature, modes, effects, or preconditions do not satisfy its requirement"));
         }
     }
@@ -643,8 +676,8 @@ fn visit_ids<'a>(
     program: &'a dyn ProgramSource,
     mut visit: impl FnMut(&'a str) -> Result<(), Diagnostic>,
 ) -> Result<(), Diagnostic> {
-    for function in program.functions() {
-        visit(&function.stable_id)?;
+    for function in program.function_refs() {
+        visit(&function.payload().stable_id)?;
     }
     for declaration in program.types() {
         visit(&declaration.stable_id)?;

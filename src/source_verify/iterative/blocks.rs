@@ -12,7 +12,7 @@ use crate::source_verify::loans::{
 use crate::source_verify::IterativeVerifier;
 use std::collections::{BTreeSet, HashMap, HashSet};
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     pub(in crate::source_verify) fn check_string_replacement_entry(
         &mut self,
         statement: &Statement,
@@ -334,7 +334,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     self.diagnostics.push(error(
                         self.program,
                         "SPX-T202",
-                        format!("unknown value `{name}` in `{}`", self.current.name),
+                        format!("unknown value `{name}` in `{}`", self.current.name()),
                         *name_span,
                     ));
                 }
@@ -478,6 +478,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 );
                                 if self
                                     .current
+                                    .payload()
                                     .params
                                     .iter()
                                     .any(|parameter| parameter.name == *name)
@@ -503,7 +504,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 if mutable
                                     && (actual.mode != ParamMode::Value
                                         || !crate::source_verify::closure::scoped_scalar(
-                                            self.current,
+                                            self.current.payload(),
                                             &actual.ty,
                                         ))
                                     && !owned_reopen
@@ -772,7 +773,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         || (borrowing && crate::source_verify::record_traversal::admitted(self.types, ty))
                         || (consuming && (*ty == Type::Bytes
                             || crate::source_verify::declared_type::owned_leaf_collection::runtime_element(self.types, ty)
-                            || crate::source_verify::declared_type::generic_collection::slot(self.current, &actual.ty))))
+                            || crate::source_verify::declared_type::generic_collection::slot(self.current.payload(), &actual.ty))))
                     && (!consuming || actual.mode == ParamMode::Own) => Some(arguments[0].clone()),
             _ => None,
         });

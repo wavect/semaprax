@@ -1,7 +1,7 @@
 //! Resolve a checked literal selector; only vector and index become children.
 use super::path_arena::ExprPath;
 use super::*;
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(in crate::hir) fn prepare_vec_field(
         &self,
         function: &FunctionExecutionId,
@@ -87,7 +87,7 @@ impl Resolver<'_> {
     }
 }
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(in crate::hir) fn fuse_vec_field_bytes<'p>(
         &self,
         function: &FunctionExecutionId,
@@ -131,7 +131,7 @@ impl Resolver<'_> {
     }
 }
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(super) fn vec_field_frames<'e>(
         &self,
         function: &FunctionExecutionId,

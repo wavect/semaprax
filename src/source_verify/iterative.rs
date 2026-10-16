@@ -26,7 +26,7 @@ mod records;
 mod run;
 mod while_rules;
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     /// Class Inheritance v1: `true` when consuming `child` as `ancestor`
     /// would leave owned child-declared state behind. The suffix is every
     /// effective child field beyond the ancestor prefix length.
@@ -279,7 +279,7 @@ pub(super) fn check_expr_iterative(
     current: &Function,
     expr: &Expr,
     variables: &mut HashMap<String, Binding>,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
     result_type: Option<&Type>,
     allow_moves: bool,
@@ -306,7 +306,7 @@ pub(super) fn check_expr_with_helpers<'a, 'p>(
     current: &'p Function,
     expr: &'p Expr,
     variables: &mut HashMap<String, Binding>,
-    functions: &'p HashMap<&'p str, &'p Function>,
+    functions: &'p crate::source_verify::function_map::FunctionMap<'p>,
     types: &'p TypeTable<'p>,
     result_type: Option<&'p Type>,
     allow_moves: bool,
@@ -336,7 +336,7 @@ pub(super) fn check_expr_with_helpers_view<'a, 'p>(
     current: &'p Function,
     expr: &'p Expr,
     variables: &mut HashMap<String, Binding>,
-    functions: &'p HashMap<&'p str, &'p Function>,
+    functions: &'p crate::source_verify::function_map::FunctionMap<'p>,
     types: &'p TypeTable<'p>,
     result_type: Option<&'p Type>,
     allow_moves: bool,
@@ -369,7 +369,76 @@ pub(super) fn check_expr_with_signature_view<'a, 'p>(
     current: &'p Function,
     expr: &'p Expr,
     variables: &mut HashMap<String, Binding>,
-    functions: &'p HashMap<&'p str, &'p Function>,
+    functions: &'p crate::source_verify::function_map::FunctionMap<'p>,
+    types: &'p TypeTable<'p>,
+    result_type: Option<&'p Type>,
+    allow_moves: bool,
+    diagnostics: &'a mut Vec<Diagnostic>,
+    helpers: Option<&'a dyn crate::loop_calls::byte_writer::SourceHelpers>,
+    fused_producer: Option<&'p Expr>,
+    signature: Option<super::declaration::SignatureOrigin<'p>>,
+) -> (
+    Option<CheckedValue>,
+    Option<super::recovery::RefusalView<'p>>,
+) {
+    let current = crate::ast::program_source::FunctionRef::ordinary(current);
+    check_expr_with_signature_cell(
+        program,
+        &current,
+        expr,
+        variables,
+        functions,
+        types,
+        result_type,
+        allow_moves,
+        diagnostics,
+        helpers,
+        fused_producer,
+        signature,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn check_expr_with_signature_view_ref<'a, 'p>(
+    program: &'p dyn ProgramSource,
+    current: crate::ast::program_source::FunctionRef<'p>,
+    expr: &'p Expr,
+    variables: &mut HashMap<String, Binding>,
+    functions: &'p crate::source_verify::function_map::FunctionMap<'p>,
+    types: &'p TypeTable<'p>,
+    result_type: Option<&'p Type>,
+    allow_moves: bool,
+    diagnostics: &'a mut Vec<Diagnostic>,
+    helpers: Option<&'a dyn crate::loop_calls::byte_writer::SourceHelpers>,
+    fused_producer: Option<&'p Expr>,
+    signature: Option<super::declaration::SignatureOrigin<'p>>,
+) -> (
+    Option<CheckedValue>,
+    Option<super::recovery::RefusalView<'p>>,
+) {
+    check_expr_with_signature_cell(
+        program,
+        &current,
+        expr,
+        variables,
+        functions,
+        types,
+        result_type,
+        allow_moves,
+        diagnostics,
+        helpers,
+        fused_producer,
+        signature,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn check_expr_with_signature_cell<'a, 'v, 'p>(
+    program: &'p dyn ProgramSource,
+    current: &'v crate::ast::program_source::FunctionRef<'p>,
+    expr: &'p Expr,
+    variables: &mut HashMap<String, Binding>,
+    functions: &'p crate::source_verify::function_map::FunctionMap<'p>,
     types: &'p TypeTable<'p>,
     result_type: Option<&'p Type>,
     allow_moves: bool,
@@ -382,7 +451,7 @@ pub(super) fn check_expr_with_signature_view<'a, 'p>(
     Option<super::recovery::RefusalView<'p>>,
 ) {
     let initial = std::mem::take(variables);
-    let mut verifier = IterativeVerifier::new(
+    let mut verifier = IterativeVerifier::new_ref(
         program,
         current,
         initial,
@@ -397,7 +466,7 @@ pub(super) fn check_expr_with_signature_view<'a, 'p>(
     // Authenticate the original receipt against that environment and the real
     // specialized bindings; no source lookup or span-only inference is used.
     if let Some(recovery) = signature.as_ref().and_then(|origin| {
-        super::recovery::Recovery::signature_origin(
+        super::recovery::Recovery::signature_origin_ref(
             program,
             current,
             &verifier.scopes[0].bindings,
@@ -411,7 +480,7 @@ pub(super) fn check_expr_with_signature_view<'a, 'p>(
         super::declaration::record_shape::seed(
             &mut verifier.recovery,
             program,
-            current,
+            current.payload(),
             &verifier.scopes[0].bindings,
             types,
             verifier.diagnostics,
@@ -436,11 +505,11 @@ pub(super) fn check_expr_with_signature_view<'a, 'p>(
     }
 }
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
-    fn byte_helper_target(&self, target: &Function) -> bool {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
+    fn byte_helper_target(&self, target: &crate::ast::program_source::FunctionRef<'p>) -> bool {
         self.byte_helpers.map_or_else(
-            || crate::loop_calls::byte_writer::source_target(self.program, target),
-            |index| index.target(target),
+            || crate::loop_calls::byte_writer::SourceIndex::new(self.program).target_ref(target),
+            |index| index.target_ref(target),
         )
     }
     pub(in crate::source_verify) fn byte_helper_assignment(

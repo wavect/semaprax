@@ -6,7 +6,7 @@ use crate::diagnostic::Diagnostic;
 
 use super::{DeclarationKind, ResolvedImportResultKind, ResolvedType, Resolver};
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(super) fn resolve_native_rust_result(
         &self,
         result: &crate::ast::ImportResult,

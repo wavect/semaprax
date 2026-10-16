@@ -8,7 +8,7 @@ use crate::source_verify::loans::{
 };
 use crate::source_verify::IterativeVerifier;
 use std::collections::{BTreeSet, HashMap, HashSet};
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     #[allow(clippy::too_many_arguments)]
     pub(in crate::source_verify) fn recovery_old_frame_resume_block_statement(
         &mut self,
@@ -235,7 +235,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     self.diagnostics.push(error(
                         self.program,
                         "SPX-T202",
-                        format!("unknown value `{name}` in `{}`", self.current.name),
+                        format!("unknown value `{name}` in `{}`", self.current.name()),
                         *name_span,
                     ));
                 }
@@ -379,6 +379,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 );
                                 if self
                                     .current
+                                    .payload()
                                     .params
                                     .iter()
                                     .any(|parameter| parameter.name == *name)
@@ -404,7 +405,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 if mutable
                                     && (actual.mode != ParamMode::Value
                                         || !crate::source_verify::closure::scoped_scalar(
-                                            self.current,
+                                            self.current.payload(),
                                             &actual.ty,
                                         ))
                                     && !owned_reopen

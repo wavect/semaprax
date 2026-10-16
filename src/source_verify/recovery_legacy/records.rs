@@ -4,7 +4,7 @@ use crate::source_verify::diagnostics::error;
 use crate::source_verify::scope::VerifierFrame;
 use crate::source_verify::IterativeVerifier;
 use std::collections::HashSet;
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     #[allow(clippy::too_many_arguments)]
     pub(in crate::source_verify) fn recovery_old_frame_prepare_record_field(
         &mut self,

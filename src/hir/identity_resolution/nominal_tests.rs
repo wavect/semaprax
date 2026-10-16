@@ -25,6 +25,7 @@ fn old(program: &Program) -> Result<(ResolvedProgram, FunctionResolutionWork), D
     // Full frozen receiver with the independently saved complete index. No
     // shared constructor, payload oracle, schema substitute, or partial view.
     (Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(program)),
         program,
         byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(program),
         declarations: DeclarationIndex::nominal_original_with_prelude(

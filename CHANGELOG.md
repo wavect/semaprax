@@ -1,3 +1,38 @@
+- Private #847 propagates byte-only source stops with their exact diagnostic
+  prefix through the actual owner route. A prepaid fixed abort slot retains
+  refusal ownership without allocating after refusal; specialization views are
+  acquired before formation. Invariant-bearing inputs preselect the complete
+  owning producer, with an explicit bypass backstop. Ordinary checked reuse
+  retains raw pointer-width scans. Focused execution and renamed producer
+  qualification remain pending; no measured-gain claim is made.
+- Private #847 lends frozen cells into declaration-index construction and gives
+  invariant-pass cell acquisition the real invocation allocation/refusal owner.
+  Structural effective-name queries avoid wide temporary views; raw byte-proof
+  entry, assignment and transitive lookup exclude borrowed aliases, retaining
+  the complete Bytes-alias owning fallback. New controls await focused parent
+  execution; remaining receiving/materialization boundaries keep rename
+  admission closed, with no measured-gain or completion claim.
+- Continue private #847 with borrowed body-template/origin/contract receivers
+  and a class-declaration pointer in the frozen capacity tuple, preserving its
+  exact class name and method suffix. Add old/current target-layout and class
+  identity controls. Runtime/layout results and the remaining physical owners
+  are pending; renamed producer admission remains closed.
+- Private #847 HIR receivers now lend current and target presentations from
+  the verifier inventory on the paid ordinary-source route, with independent
+  inventory/AST lifetimes and preserved global/class-method order. Genuine
+  invariant materialization copies the effective name once. Compatibility owned
+  inventories, invariant physical owners, remaining proof copies and focused
+  qualification are still pending; renamed admission stays closed.
+- Continue private #847 by borrowing the verifier current cell independently
+  from AST recovery, lending frozen call targets/signatures through frames, and
+  borrowing generic-inference and Vec/Box classifier receivers. Renamed admission
+  and measured-gain claims remain closed pending the remaining HIR and ownership
+  boundaries and focused qualification.
+- Private #847 source checkpoint migrates effective function names and lends
+  immutable capacity cells through unchanged declaration maps on the real byte
+  owner. Renamed producer admission remains closed pending current/target/frame
+  and HIR borrowing, exact receiving owners and focused qualification. No gain
+  or feature-completion claim is made.
 - Source-only #831 cold terminal singleton receiving and deferred empty-memo payload promotion; complete old receivers and strict width0..4 gates retained, actual qualification pending.
 - Admit only the exact owned-clone setup work in compact residual floor controls,
   retaining the complete zero-funded refusal and all target checks; qualification pending.
@@ -7535,3 +7570,5 @@ are authored. Qualification is pending; Catalog corpus and limits are unchanged.
 - Source-only OPT831 follow-up: empty canonical signatures omit actual borrowed
   child-query and Zip receivers, retaining the full immediate d962 receiver,
   unchanged strict paid gate and all wider-case controls. Qualification pending.
+
+- Private OPT847 retained-wrapper rename source tranche: lend provider payloads through paid stable presentation cells, verifier/HIR receivers and typed specialization refusal; invariant and unsupported shapes retain owning production. Focused compile/runtime qualification and independent frozen-engine execution remain pending.

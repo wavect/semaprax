@@ -17,7 +17,7 @@ use super::nodes::{
 };
 use super::{Binding, Resolver};
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(super) fn validate_match_ownership(
         &self,
         function: &FunctionExecutionId,
@@ -27,13 +27,13 @@ impl Resolver<'_> {
         span: Span,
     ) -> Result<(), Diagnostic> {
         let template_owned = matches!(function, FunctionExecutionId::Monomorphic(owner)
-            if self.program.functions().iter().any(|candidate|
-                candidate.stable_id == owner.as_str() && !candidate.type_parameters.is_empty())
+            if self.source_functions().any(|candidate|
+                candidate.payload().stable_id == owner.as_str() && !candidate.payload().type_parameters.is_empty())
             && super::type_reachability::is_nested_owned_byte_record_template(
                 &self.declarations, &scrutinee.ty, owner,
-                self.program.functions().iter().find(|candidate| candidate.stable_id == owner.as_str())
-                    .map_or(0, |candidate| candidate.type_parameters.len())));
-        let template_variant = matches!(function,FunctionExecutionId::Monomorphic(owner) if self.program.functions().iter().find(|candidate|candidate.stable_id==owner.as_str()).is_some_and(|candidate|super::generic_variant::slot(&self.declarations,&scrutinee.ty,owner,candidate.type_parameters.len())));
+                self.source_functions().find(|candidate| candidate.payload().stable_id == owner.as_str())
+                    .map_or(0, |candidate| candidate.payload().type_parameters.len())));
+        let template_variant = matches!(function,FunctionExecutionId::Monomorphic(owner) if self.source_functions().find(|candidate|candidate.payload().stable_id==owner.as_str()).is_some_and(|candidate|super::generic_variant::slot(&self.declarations,&scrutinee.ty,owner,candidate.payload().type_parameters.len())));
         let facts = self.declarations.type_flags(&scrutinee.ty);
         let copy = facts.as_ref().is_some_and(|facts| facts.copy);
         let owned = template_owned

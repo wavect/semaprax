@@ -225,8 +225,9 @@ fn named(name: &str, arguments: Vec<Type>) -> Type {
     }
 }
 
-fn index_resolver(program: &Program) -> Resolver<'_> {
+fn index_resolver(program: &Program) -> Resolver<'_, '_> {
     Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(program)),
         program,
         byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(program),
         declarations: DeclarationIndex::from_verified(program).expect("declarations index"),
@@ -750,7 +751,7 @@ fn repeated_generic_owner_queries_share_one_carrier_and_remove_exact_reconstruct
         result: Box::new(parameter.clone()),
     };
     let query =
-        |resolver: &Resolver<'_>, template: &crate::ast::Function, ty: &Type, rounds: usize| {
+        |resolver: &Resolver<'_, '_>, template: &crate::ast::Function, ty: &Type, rounds: usize| {
             for _ in 0..rounds {
                 drop(resolver.resolve_function_type(template, ty, span));
             }

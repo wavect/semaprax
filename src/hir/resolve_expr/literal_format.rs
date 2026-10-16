@@ -3,7 +3,7 @@ use super::path_arena::{ExprPath, PathArena};
 use super::*;
 use crate::ast::{Span, Type};
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(super) fn queue_literal_format_argument<'e>(
         frames: &mut Vec<Frame<'e>>,
         paths: &mut PathArena<'_>,

@@ -7,14 +7,16 @@ enum Frame<'a> {
 }
 
 pub(crate) fn nonallocating(program: &dyn ProgramSource, target: &Function) -> bool {
+    if !program.function_refs().contains_unaliased_payload(target) {
+        return false;
+    }
     nonallocating_with(
         program,
         target,
         |owner, name| {
             owner
-                .functions()
-                .iter()
-                .find(|f| f.name == name)
+                .function_refs()
+                .unaliased_payload_by_name(name)
                 .map(|f| (owner, f))
         },
         ast_param,

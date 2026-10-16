@@ -8,7 +8,7 @@ use crate::ast::{
 use crate::diagnostic::Diagnostic;
 use crate::source_verify::binding::{Availability, Binding};
 use crate::source_verify::declared_type::{
-    check_declared_type, check_ownership_mode, function_reaches, function_reaches_any,
+    check_declared_type, check_ownership_mode_ref, function_reaches, function_reaches_any,
     generic_function_arguments_are_forwarded, generic_function_contains_nested_owned_record_slot,
     generic_function_expression_is_direct_scalar,
     generic_function_expression_is_owned_record_composition,
@@ -18,146 +18,148 @@ use crate::source_verify::declared_type::{
 };
 use crate::source_verify::declared_type::{declared_collection::reject_function, generic_result};
 use crate::source_verify::diagnostics::{
-    error, invalid_stable_id, reject_native_unit_value, reject_reserved_host_id, require_bool,
-    source_identifier,
+    error, invalid_stable_id, reject_native_unit_value, reject_reserved_host_id,
+    require_bool_with_signature_ref as require_bool, source_identifier,
 };
-use crate::source_verify::iterative::check_expr_with_helpers_view;
+use crate::source_verify::iterative::check_expr_with_signature_cell as check_expr_with_helpers_view;
 use crate::source_verify::type_table::TypeTable;
 use std::collections::{BTreeSet, HashMap, HashSet};
 pub(in crate::source_verify) fn check_function_declarations<'p>(
     program: &'p dyn ProgramSource,
+    cells: &'p [crate::ast::program_source::FunctionCell<'p>],
     types: &TypeTable<'p>,
-    functions: &mut HashMap<&'p str, &'p Function>,
+    functions: &mut crate::source_verify::function_map::FunctionMap<'p>,
     ids: &mut HashSet<&'p str>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
-    for function in program.functions() {
-        if !source_identifier(&function.name) {
+    for (_, function) in cells.iter().take(program.function_refs().len()) {
+        if !source_identifier(function.name()) {
             diagnostics.push(error(
                 program,
                 "SPX-S104",
-                format!("`{}` is not a valid function identifier", function.name),
-                function.name_span,
+                format!("`{}` is not a valid function identifier", function.name()),
+                function.payload().name_span,
             ));
         }
-        if function.name == crate::literal_format::NAME
-            || crate::string_ops::by_name(&function.name).is_some()
-            || crate::map_ops::by_name(&function.name).is_some()
+        if function.name() == crate::literal_format::NAME
+            || crate::string_ops::by_name(function.name()).is_some()
+            || crate::map_ops::by_name(function.name()).is_some()
         {
             diagnostics.push(error(
                 program,
                 "SPX-S113",
                 format!(
                     "function name `{}` is reserved by the compiler-owned string operations",
-                    function.name
+                    function.name()
                 ),
-                function.name_span,
+                function.payload().name_span,
             ));
         }
-        if crate::str_ops::by_name(&function.name).is_some() {
+        if crate::str_ops::by_name(function.name()).is_some() {
             diagnostics.push(error(
                 program,
                 "SPX-S113",
                 format!(
                     "function name `{}` is reserved by the compiler-owned borrowed string operations",
-                    function.name
+                    function.name()
                 ),
-                function.name_span,
+                function.payload().name_span,
             ));
         }
-        if crate::byte_ops::by_name(&function.name).is_some() {
+        if crate::byte_ops::by_name(function.name()).is_some() {
             diagnostics.push(error(
                 program,
                 "SPX-S113",
                 format!(
                     "function name `{}` is reserved by the compiler-owned byte operations",
-                    function.name
+                    function.name()
                 ),
-                function.name_span,
+                function.payload().name_span,
             ));
         }
-        if crate::source_verify::vec_field::reserved_function(function) {
+        if crate::source_verify::vec_field::reserved_function_ref(function) {
             diagnostics.push(error(
                 program,
                 "SPX-S113",
                 format!(
                     "function name `{}` is reserved by the compiler-owned vector operations",
-                    function.name
+                    function.name()
                 ),
-                function.name_span,
+                function.payload().name_span,
             ));
         }
-        if crate::box_ops::by_name(&function.name).is_some()
-            || crate::iterator_ops::by_name(&function.name).is_some()
-            || crate::list_ops::by_name(&function.name).is_some()
+        if crate::box_ops::by_name(function.name()).is_some()
+            || crate::iterator_ops::by_name(function.name()).is_some()
+            || crate::list_ops::by_name(function.name()).is_some()
         {
             diagnostics.push(error(
                 program,
                 "SPX-S113",
                 format!(
                     "function name `{}` is reserved by the compiler-owned box operations",
-                    function.name
+                    function.name()
                 ),
-                function.name_span,
+                function.payload().name_span,
             ));
         }
-        if crate::host_io_ops::by_name(&function.name).is_some() {
+        if crate::host_io_ops::by_name(function.name()).is_some() {
             diagnostics.push(error(
                 program,
                 "SPX-S113",
                 format!(
                     "function name `{}` is reserved by the compiler-owned host I/O operations",
-                    function.name
+                    function.name()
                 ),
-                function.name_span,
+                function.payload().name_span,
             ));
         }
-        if crate::command_io_ops::by_name(&function.name).is_some()
-            || crate::stdin_stream_ops::pure_by_name(&function.name).is_some()
+        if crate::command_io_ops::by_name(function.name()).is_some()
+            || crate::stdin_stream_ops::pure_by_name(function.name()).is_some()
         {
             diagnostics.push(error(
                 program,
                 "SPX-S113",
                 format!(
                     "function name `{}` is reserved by the compiler-owned command I/O operations",
-                    function.name
+                    function.name()
                 ),
-                function.name_span,
+                function.payload().name_span,
             ));
         }
         reject_reserved_host_id(
             program,
-            &function.stable_id,
+            &function.payload().stable_id,
             "function",
-            function.span,
+            function.payload().span,
             diagnostics,
         );
-        if functions.insert(function.name.as_str(), function).is_some() {
+        if functions.insert(function.name(), function).is_some() {
             diagnostics.push(error(
                 program,
                 "SPX-S101",
-                format!("duplicate function `{}`", function.name),
-                function.name_span,
+                format!("duplicate function `{}`", function.name()),
+                function.payload().name_span,
             ));
         }
-        if function.stable_id.is_empty() {
+        if function.payload().stable_id.is_empty() {
             diagnostics.push(
                 error(
                     program,
                     "SPX-S102",
-                    format!("function `{}` has an empty stable id", function.name),
-                    function.name_span,
+                    format!("function `{}` has an empty stable id", function.name()),
+                    function.payload().name_span,
                 )
                 .with_help("give the declaration a dotted stable identity with @id(\"your.namespace.symbol\")"),
             );
-        } else if function.stable_id.contains('\0') {
+        } else if function.payload().stable_id.contains('\0') {
             diagnostics.push(invalid_stable_id(
                 program,
                 "SPX-S102",
-                format!("function `{}`", function.name),
-                function.span,
+                format!("function `{}`", function.name()),
+                function.payload().span,
             ));
         } else if function
+            .payload()
             .stable_id
             .starts_with("semaprax.function-execution.v1:")
         {
@@ -166,33 +168,33 @@ pub(in crate::source_verify) fn check_function_declarations<'p>(
                 "SPX-T225",
                 format!(
                     "function `{}` uses the reserved generic execution identity domain",
-                    function.name
+                    function.name()
                 ),
-                function.span,
+                function.payload().span,
             ));
-        } else if !ids.insert(function.stable_id.as_str()) {
+        } else if !ids.insert(function.payload().stable_id.as_str()) {
             diagnostics.push(error(
                 program,
                 "SPX-S102",
-                format!("duplicate stable id `{}`", function.stable_id),
-                function.span,
+                format!("duplicate stable id `{}`", function.payload().stable_id),
+                function.payload().span,
             ));
         }
-        if !function.explicit_id {
+        if !function.payload().explicit_id {
             diagnostics.push(
                 Diagnostic::warning(
                     "SPX-S103",
                     format!(
                         "function `{}` has an automatic identity that changes when renamed",
-                        function.name
+                        function.name()
                     ),
-                    function.name_span,
+                    function.payload().name_span,
                 )
                 .at_path(program.path())
                 .with_help("add @id(\"your.namespace.symbol\") before the declaration"),
             );
         }
-        if crate::vec_ops::wrapper_by_id(&function.stable_id).is_some()
+        if crate::vec_ops::wrapper_by_id(&function.payload().stable_id).is_some()
             && !crate::vec_ops::source_module_is_authenticated(program)
         {
             diagnostics.push(error(
@@ -200,14 +202,14 @@ pub(in crate::source_verify) fn check_function_declarations<'p>(
                 "SPX-T283",
                 format!(
                     "vector wrapper identity `{}` is reserved for module `{}`",
-                    function.stable_id,
+                    function.payload().stable_id,
                     crate::vec_ops::MODULE
                 ),
-                function.span,
+                function.payload().span,
             ));
             continue;
         }
-        if crate::box_ops::wrapper_by_id(&function.stable_id).is_some()
+        if crate::box_ops::wrapper_by_id(&function.payload().stable_id).is_some()
             && !crate::box_ops::source_module_is_authenticated(program)
         {
             diagnostics.push(error(
@@ -215,15 +217,15 @@ pub(in crate::source_verify) fn check_function_declarations<'p>(
                 "SPX-T286",
                 format!(
                     "box wrapper identity `{}` is reserved for module `{}`",
-                    function.stable_id,
+                    function.payload().stable_id,
                     crate::box_ops::MODULE
                 ),
-                function.span,
+                function.payload().span,
             ));
             continue;
         }
-        if crate::box_ops::wrapper_by_id(&function.stable_id).is_some()
-            && crate::box_ops::source_wrapper(program, function).is_none()
+        if crate::box_ops::wrapper_by_id(&function.payload().stable_id).is_some()
+            && crate::box_ops::source_wrapper_ref(program, &*function).is_none()
         {
             diagnostics.push(error(
                 program,
@@ -231,14 +233,14 @@ pub(in crate::source_verify) fn check_function_declarations<'p>(
                 format!(
                     "`{}.{}` must be one exact transparent compiler-owned box wrapper",
                     program.module(),
-                    function.name
+                    function.name()
                 ),
-                function.span,
+                function.payload().span,
             ));
             continue;
         }
-        if crate::vec_ops::wrapper_by_id(&function.stable_id).is_some()
-            && crate::vec_ops::source_wrapper(program, function).is_none()
+        if crate::vec_ops::wrapper_by_id(&function.payload().stable_id).is_some()
+            && crate::vec_ops::source_wrapper_ref(program, &*function).is_none()
         {
             diagnostics.push(error(
                 program,
@@ -246,16 +248,16 @@ pub(in crate::source_verify) fn check_function_declarations<'p>(
                 format!(
                     "`{}.{}` must be one exact transparent compiler-owned vector wrapper",
                     program.module(),
-                    function.name
+                    function.name()
                 ),
-                function.span,
+                function.payload().span,
             ));
             continue;
         }
-        if !function.type_parameters.is_empty() {
-            let transparent_vec_wrapper = crate::vec_ops::source_wrapper(program, function);
-            let transparent_box_wrapper = crate::box_ops::source_wrapper(program, function);
-            if crate::vec_ops::is_source_candidate(program, function)
+        if !function.payload().type_parameters.is_empty() {
+            let transparent_vec_wrapper = crate::vec_ops::source_wrapper_ref(program, &*function);
+            let transparent_box_wrapper = crate::box_ops::source_wrapper_ref(program, &*function);
+            if crate::vec_ops::is_source_candidate_ref(program, &*function)
                 && transparent_vec_wrapper.is_none()
             {
                 diagnostics.push(error(
@@ -264,16 +266,16 @@ pub(in crate::source_verify) fn check_function_declarations<'p>(
                     format!(
                         "`{}.{}` must be one exact transparent compiler-owned vector wrapper",
                         program.module(),
-                        function.name
+                        function.name()
                     ),
-                    function.span,
+                    function.payload().span,
                 ));
                 continue;
             }
             if transparent_vec_wrapper.is_some() {
                 continue;
             }
-            if crate::box_ops::is_source_candidate(program, function)
+            if crate::box_ops::is_source_candidate_ref(program, &*function)
                 && transparent_box_wrapper.is_none()
             {
                 diagnostics.push(error(
@@ -282,28 +284,28 @@ pub(in crate::source_verify) fn check_function_declarations<'p>(
                     format!(
                         "`{}.{}` must be one exact transparent compiler-owned box wrapper",
                         program.module(),
-                        function.name
+                        function.name()
                     ),
-                    function.span,
+                    function.payload().span,
                 ));
                 continue;
             }
             if transparent_box_wrapper.is_some() {
                 continue;
             }
-            if !(1..=2).contains(&function.type_parameters.len()) {
+            if !(1..=2).contains(&function.payload().type_parameters.len()) {
                 diagnostics.push(error(
                     program,
                     "SPX-T224",
                     format!(
                         "generic function `{}` requires one or two type parameters",
-                        function.name
+                        function.name()
                     ),
-                    function.span,
+                    function.payload().span,
                 ));
             }
             let mut parameter_names = HashSet::new();
-            for parameter in &function.type_parameters {
+            for parameter in &function.payload().type_parameters {
                 if !source_identifier(&parameter.name)
                     || !parameter_names.insert(parameter.name.as_str())
                 {
@@ -312,35 +314,41 @@ pub(in crate::source_verify) fn check_function_declarations<'p>(
                         "SPX-T224",
                         format!(
                             "invalid or duplicate type parameter `{}` on function `{}`",
-                            parameter.name, function.name
+                            parameter.name,
+                            function.name()
                         ),
                         parameter.span,
                     ));
                 }
             }
-            if !function.effects.is_empty() {
+            if !function.payload().effects.is_empty() {
                 diagnostics.push(error(
                     program,
                     "SPX-T226",
                     format!(
                         "generic function `{}` must be effect-free in this slice",
-                        function.name
+                        function.name()
                     ),
-                    function.span,
+                    function.payload().span,
                 ));
             }
-            let variant =
-                crate::source_verify::declared_type::generic_variant::profile(function, types);
-            let owned_result = generic_result::profile(function);
-            let collection =
-                crate::source_verify::declared_type::generic_collection::profile(function);
-            for param in &function.params {
-                let owned_record = generic_function_owned_record_slot(function, &param.ty, types);
+            let variant = crate::source_verify::declared_type::generic_variant::profile(
+                function.payload(),
+                types,
+            );
+            let owned_result = generic_result::profile(function.payload());
+            let collection = crate::source_verify::declared_type::generic_collection::profile(
+                function.payload(),
+            );
+            for param in &function.payload().params {
+                let owned_record =
+                    generic_function_owned_record_slot(function.payload(), &param.ty, types);
                 if !((param.mode == ParamMode::Value
                     && (generic_function_signature_slot(&param.ty, &parameter_names)
                         || (collection
                             && crate::source_verify::declared_type::generic_collection::callback(
-                                function, &param.ty,
+                                function.payload(),
+                                &param.ty,
                             ))
                         || ((collection || variant)
                             && crate::vec_ops::ast_element_is_admitted(&param.ty))))
@@ -348,20 +356,24 @@ pub(in crate::source_verify) fn check_function_declarations<'p>(
                         && (owned_record
                             || (variant
                                 && crate::source_verify::declared_type::generic_variant::slot(
-                                    function, &param.ty, types,
+                                    function.payload(),
+                                    &param.ty,
+                                    types,
                                 ))
                             || (collection
                                 && crate::source_verify::declared_type::generic_collection::slot(
-                                    function, &param.ty,
+                                    function.payload(),
+                                    &param.ty,
                                 ))
-                            || (owned_result && generic_result::slot(function, &param.ty)))))
+                            || (owned_result
+                                && generic_result::slot(function.payload(), &param.ty)))))
                 {
                     diagnostics.push(error(
                         program,
                         "SPX-T224",
                         format!(
                             "generic function `{}.{}` must use the direct-scalar profile by value or one admitted flat owned-record template by ownership",
-                            function.name, param.name
+                            function.name(), param.name
                         ),
                         param.span,
                     ));
@@ -370,64 +382,73 @@ pub(in crate::source_verify) fn check_function_declarations<'p>(
             if !owned_result
                 && !variant
                 && !collection
-                && !generic_function_signature_slot(&function.return_type, &parameter_names)
-                && !generic_function_owned_record_slot(function, &function.return_type, types)
+                && !generic_function_signature_slot(
+                    &function.payload().return_type,
+                    &parameter_names,
+                )
+                && !generic_function_owned_record_slot(
+                    function.payload(),
+                    &function.payload().return_type,
+                    types,
+                )
             {
                 diagnostics.push(error(
                     program,
                     "SPX-T224",
                     format!(
                         "generic function `{}` must return the direct-scalar profile or one admitted flat owned-record template",
-                        function.name
+                        function.name()
                     ),
-                    function.span,
+                    function.payload().span,
                 ));
             }
-            if generic_function_contains_nested_owned_record_slot(function, types)
-                && !generic_function_has_owned_record_composition(function, types)
+            if generic_function_contains_nested_owned_record_slot(function.payload(), types)
+                && !generic_function_has_owned_record_composition(function.payload(), types)
             {
                 diagnostics.push(error(
                     program,
                     "SPX-T224",
                     format!(
                         "generic function `{}` must transfer exactly one bounded owned-record parameter into an identical result type",
-                        function.name
+                        function.name()
                     ),
-                    function.span,
+                    function.payload().span,
                 ));
             }
             if let Err(diagnostic) =
-                crate::source_verify::closure::validate_generic_syntax(program, function)
+                crate::source_verify::closure::validate_generic_syntax(program, function.payload())
             {
                 diagnostics.push(diagnostic);
             }
             let invalid_contract = function
+                .payload()
                 .requires
                 .iter()
-                .chain(&function.ensures)
+                .chain(&function.payload().ensures)
                 .any(|expression| !generic_function_expression_is_direct_scalar(expression));
-            let invalid_body = !crate::source_verify::declared_type::generic_variant::body(
-                function,
-                types,
-                &function.body,
-            ) && !generic_result::body(function, &function.body)
-                && !generic_function_expression_is_direct_scalar(&function.body)
-                && !generic_function_expression_is_owned_record_composition(
-                    function,
+            let invalid_body =
+                !crate::source_verify::declared_type::generic_variant::body(
+                    function.payload(),
                     types,
-                    &function.body,
-                );
-            let invalid_body = invalid_body && !(crate::source_verify::generic_collection_profile(function)
-                && crate::source_verify::declared_type::generic_collection_expression_is_admitted(&function.body));
+                    &function.payload().body,
+                ) && !generic_result::body(function.payload(), &function.payload().body)
+                    && !generic_function_expression_is_direct_scalar(&function.payload().body)
+                    && !generic_function_expression_is_owned_record_composition(
+                        function.payload(),
+                        types,
+                        &function.payload().body,
+                    );
+            let invalid_body = invalid_body && !(crate::source_verify::generic_collection_profile(function.payload())
+                && crate::source_verify::declared_type::generic_collection_expression_is_admitted(&function.payload().body));
             if invalid_contract || invalid_body {
                 diagnostics.push(error(
                     program,
                     "SPX-T226",
                     format!(
                         "generic function `{}` uses an expression outside the direct-scalar slice",
-                        function.name
+                        function.name()
                     ),
-                    function.span,
+                    function.payload().span,
                 ));
             }
         }
@@ -440,30 +461,33 @@ pub(in crate::source_verify) fn check_generic_function_cycles_with_types<'p>(
     types: &TypeTable<'p>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
-    let functions = program
-        .functions()
+    let function_cells = crate::source_verify::capacity::source_capacity_functions(program);
+    let functions = function_cells
         .iter()
-        .map(|function| (function.name.as_str(), function))
-        .collect::<HashMap<_, _>>();
+        .take(program.function_refs().len())
+        .map(|(_, function)| (function.name(), function))
+        .collect::<crate::source_verify::function_map::FunctionMap<'_>>();
     for function in program
-        .functions()
+        .function_refs()
         .iter()
-        .filter(|function| !function.type_parameters.is_empty())
+        .filter(|function| !function.payload().type_parameters.is_empty())
     {
         let mut bindings = function
+            .payload()
             .params
             .iter()
             .map(|parameter| (parameter.name.clone(), static_binding(parameter.ty.clone())))
             .collect::<HashMap<_, _>>();
         for expression in function
+            .payload()
             .requires
             .iter()
-            .chain(std::iter::once(&function.body))
-            .chain(&function.ensures)
+            .chain(std::iter::once(&function.payload().body))
+            .chain(&function.payload().ensures)
         {
             check_omitted_generic_mappings(
                 program,
-                function,
+                &function,
                 expression,
                 &mut bindings,
                 &functions,
@@ -472,19 +496,19 @@ pub(in crate::source_verify) fn check_generic_function_cycles_with_types<'p>(
                 0,
             );
             expression.visit_call_instances(&mut |callee, arguments, span| {
-                if let Some(target) = program.functions().iter().find(|target| {
-                    target.name == callee && !target.type_parameters.is_empty()
+                if let Some(target) = program.function_refs().iter().find(|target| {
+                    target.name() == callee && !target.payload().type_parameters.is_empty()
                 }) {
                     if arguments.is_empty() {
                         return;
                     }
-                    if !generic_function_arguments_are_forwarded(function, target, arguments) {
+                    if !generic_function_arguments_are_forwarded(function.payload(), target.payload(), arguments) {
                         diagnostics.push(error(
                             program,
                             "SPX-T225",
                             format!(
                                 "generic function `{}` must supply admitted explicit type-argument mappings when calling generic function `{callee}`",
-                                function.name
+                                function.name()
                             ),
                             span,
                         ));
@@ -492,9 +516,9 @@ pub(in crate::source_verify) fn check_generic_function_cycles_with_types<'p>(
                 }
             });
         }
-        let participates_in_cycle = call_graph.get(&function.name).is_some_and(|callees| {
+        let participates_in_cycle = call_graph.get(function.name()).is_some_and(|callees| {
             callees.iter().any(|callee| {
-                function_reaches(call_graph, callee, &function.name, &mut HashSet::new())
+                function_reaches(call_graph, callee, function.name(), &mut HashSet::new())
             })
         });
         if participates_in_cycle {
@@ -503,17 +527,17 @@ pub(in crate::source_verify) fn check_generic_function_cycles_with_types<'p>(
                 "SPX-T226",
                 format!(
                     "generic function `{}` participates in a recursive call cycle",
-                    function.name
+                    function.name()
                 ),
-                function.span,
+                function.payload().span,
             ));
         }
-        let direct_generic_call = call_graph.get(&function.name).is_some_and(|callees| {
+        let direct_generic_call = call_graph.get(function.name()).is_some_and(|callees| {
             callees
                 .iter()
                 .any(|callee| generic_functions.contains(callee.as_str()))
         });
-        let reaches_other_generic = call_graph.get(&function.name).is_some_and(|callees| {
+        let reaches_other_generic = call_graph.get(function.name()).is_some_and(|callees| {
             callees.iter().any(|callee| {
                 function_reaches_any(call_graph, callee, generic_functions, &mut HashSet::new())
             })
@@ -524,9 +548,9 @@ pub(in crate::source_verify) fn check_generic_function_cycles_with_types<'p>(
                 "SPX-T226",
                 format!(
                     "generic function `{}` transitively reaches another generic function",
-                    function.name
+                    function.name()
                 ),
-                function.span,
+                function.payload().span,
             ));
         }
     }
@@ -544,10 +568,10 @@ const MAX_STATIC_MAPPING_DEPTH: usize = 128;
 #[allow(clippy::too_many_arguments)]
 fn check_omitted_generic_mappings(
     program: &dyn ProgramSource,
-    current: &Function,
+    current: &crate::ast::program_source::FunctionRef<'_>,
     expression: &Expr,
     bindings: &mut HashMap<String, Binding>,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
     depth: usize,
@@ -557,14 +581,14 @@ fn check_omitted_generic_mappings(
             if arguments.is_empty()
                 && functions
                     .get(callee)
-                    .is_some_and(|target| !target.type_parameters.is_empty())
+                    .is_some_and(|target| !target.payload().type_parameters.is_empty())
             {
                 diagnostics.push(error(
                     program,
                     "SPX-T225",
                     format!(
                         "generic function `{}` has an omitted type-argument mapping beyond the bounded static traversal",
-                        current.name
+                        current.name()
                     ),
                     span,
                 ));
@@ -593,24 +617,28 @@ fn check_omitted_generic_mappings(
                     next,
                 );
             }
-            let Some(target) = functions.get(name.as_str()) else {
+            let Some(target) = functions.get(name.as_str()).copied() else {
                 return;
             };
-            if target.type_parameters.is_empty() || !type_arguments.is_empty() {
+            if target.payload().type_parameters.is_empty() || !type_arguments.is_empty() {
                 return;
             }
-            let inferred = crate::source_verify::generic_inference::arguments(
-                program, current, target, args, bindings, functions, types,
+            let inferred = crate::source_verify::generic_inference::arguments_ref(
+                program, &current, &target, args, bindings, functions, types,
             );
             if !inferred.as_ref().is_some_and(|arguments| {
-                generic_function_arguments_are_forwarded(current, target, arguments)
+                generic_function_arguments_are_forwarded(
+                    current.payload(),
+                    target.payload(),
+                    arguments,
+                )
             }) {
                 diagnostics.push(error(
                     program,
                     "SPX-T225",
                     format!(
                         "generic function `{}` must supply admitted explicit type-argument mappings when calling generic function `{name}`",
-                        current.name
+                        current.name()
                     ),
                     expression.span,
                 ));
@@ -637,8 +665,8 @@ fn check_omitted_generic_mappings(
                             next,
                         );
                         let ty = declared.clone().or_else(|| {
-                            crate::source_verify::generic_inference::expression_type(
-                                program, current, value, &scope, functions, types,
+                            crate::source_verify::generic_inference::expression_type_ref(
+                                program, &current, value, &scope, functions, types,
                             )
                         });
                         scope.remove(name);
@@ -961,7 +989,8 @@ fn clear_record_pattern_bindings(
 }
 pub(in crate::source_verify) fn check_function_bodies<'p>(
     program: &'p dyn ProgramSource,
-    functions: &HashMap<&'p str, &'p Function>,
+    cells: &'p [crate::ast::program_source::FunctionCell<'p>],
+    functions: &crate::source_verify::function_map::FunctionMap<'p>,
     import_keys: &HashMap<&'p str, (&'p InterfaceDeclaration, &'p ImportDeclaration)>,
     types: &TypeTable<'p>,
     diagnostics: &mut Vec<Diagnostic>,
@@ -970,9 +999,10 @@ pub(in crate::source_verify) fn check_function_bodies<'p>(
     let byte_helpers = crate::loop_calls::byte_writer::SourceIndex::new(program);
     let function_value_targets =
         crate::source_verify::function_value_inventory::function_value_targets(program, functions);
-    for template in program.functions() {
-        reject_function(program, template, types, diagnostics);
+    for (_, template) in cells.iter().take(program.functions().len()) {
+        reject_function(program, template.payload(), types, diagnostics);
         let type_parameters = template
+            .payload()
             .type_parameters
             .iter()
             .map(|parameter| parameter.name.as_str())
@@ -980,8 +1010,8 @@ pub(in crate::source_verify) fn check_function_bodies<'p>(
         let return_frontier = diagnostics.len();
         check_declared_type(
             program,
-            &template.return_type,
-            template.span,
+            &template.payload().return_type,
+            template.payload().span,
             types,
             &type_parameters,
             diagnostics,
@@ -989,7 +1019,7 @@ pub(in crate::source_verify) fn check_function_bodies<'p>(
         let return_unknown = diagnostics[return_frontier..]
             .iter()
             .any(|diagnostic| diagnostic.code == "SPX-T001");
-        for param in &template.params {
+        for param in &template.payload().params {
             check_declared_type(
                 program,
                 &param.ty,
@@ -999,112 +1029,129 @@ pub(in crate::source_verify) fn check_function_bodies<'p>(
                 diagnostics,
             );
         }
-        if !template.type_parameters.is_empty()
-            && !crate::source_verify::declared_type::generic_collection::profile(template)
+        if !template.payload().type_parameters.is_empty()
+            && !crate::source_verify::declared_type::generic_collection::profile(template.payload())
             && (template
+                .payload()
                 .params
                 .iter()
                 .any(|parameter| matches!(parameter.ty, Type::Function { .. }))
-                || matches!(template.return_type, Type::Function { .. }))
+                || matches!(template.payload().return_type, Type::Function { .. }))
         {
             diagnostics.push(error(
                 program,
                 "SPX-T287",
                 "generic function signatures cannot contain function values",
-                template.span,
+                template.payload().span,
             ));
         }
-        let generic_parameter_list_is_valid = (1..=2).contains(&template.type_parameters.len())
+        let generic_parameter_list_is_valid = (1..=2)
+            .contains(&template.payload().type_parameters.len())
             && template
+                .payload()
                 .type_parameters
                 .iter()
                 .all(|parameter| source_identifier(&parameter.name))
             && template
+                .payload()
                 .type_parameters
                 .iter()
                 .map(|parameter| parameter.name.as_str())
                 .collect::<HashSet<_>>()
                 .len()
-                == template.type_parameters.len();
-        let transparent_vec_wrapper = crate::vec_ops::source_wrapper(program, template);
-        let transparent_box_wrapper = crate::box_ops::source_wrapper(program, template);
-        let specializations: std::borrow::Cow<'_, [Function]> = if template
-            .type_parameters
-            .is_empty()
-            || transparent_vec_wrapper.is_some()
-            || transparent_box_wrapper.is_some()
-        {
-            std::borrow::Cow::Borrowed(std::slice::from_ref(template))
-        } else if generic_parameter_list_is_valid {
-            // These clones exist only to validate every admitted direct-scalar
-            // substitution. Executable HIR instances are discovered separately
-            // from reachable explicit calls and never originate here.
-            let owned_record = template
-                .params
-                .iter()
-                .any(|param| generic_function_owned_record_slot(template, &param.ty, types))
-                || generic_function_owned_record_slot(template, &template.return_type, types);
-            let substitutions = if generic_result::profile(template) {
-                generic_result::substitutions(template)
-            } else if owned_record
-                || crate::source_verify::declared_type::generic_variant::profile(template, types)
-                || crate::source_verify::declared_type::generic_collection::profile(template)
+                == template.payload().type_parameters.len();
+        let transparent_vec_wrapper = crate::vec_ops::source_wrapper_ref(program, &template);
+        let transparent_box_wrapper = crate::box_ops::source_wrapper_ref(program, &template);
+        let specializations: std::borrow::Cow<'_, [Function]> =
+            if template.payload().type_parameters.is_empty()
+                || transparent_vec_wrapper.is_some()
+                || transparent_box_wrapper.is_some()
             {
-                owned_record_function_substitutions(template.type_parameters.len())
+                std::borrow::Cow::Borrowed(std::slice::from_ref(template.payload()))
+            } else if generic_parameter_list_is_valid {
+                // These clones exist only to validate every admitted direct-scalar
+                // substitution. Executable HIR instances are discovered separately
+                // from reachable explicit calls and never originate here.
+                let owned_record = template.payload().params.iter().any(|param| {
+                    generic_function_owned_record_slot(template.payload(), &param.ty, types)
+                }) || generic_function_owned_record_slot(
+                    template.payload(),
+                    &template.payload().return_type,
+                    types,
+                );
+                let substitutions = if generic_result::profile(template.payload()) {
+                    generic_result::substitutions(template.payload())
+                } else if owned_record
+                    || crate::source_verify::declared_type::generic_variant::profile(
+                        template.payload(),
+                        types,
+                    )
+                    || crate::source_verify::declared_type::generic_collection::profile(
+                        template.payload(),
+                    )
+                {
+                    owned_record_function_substitutions(template.payload().type_parameters.len())
+                } else {
+                    scalar_function_substitutions(template.payload().type_parameters.len())
+                };
+                std::borrow::Cow::Owned(
+                    substitutions
+                        .iter()
+                        .filter_map(|arguments| {
+                            crate::source_verify::closure::specialize_checked(
+                                program,
+                                template.payload(),
+                                arguments,
+                                diagnostics,
+                            )
+                        })
+                        .collect(),
+                )
             } else {
-                scalar_function_substitutions(template.type_parameters.len())
+                std::borrow::Cow::Owned(Vec::new())
             };
-            std::borrow::Cow::Owned(
-                substitutions
-                    .iter()
-                    .filter_map(|arguments| {
-                        crate::source_verify::closure::specialize_checked(
-                            program,
-                            template,
-                            arguments,
-                            diagnostics,
-                        )
-                    })
-                    .collect(),
-            )
-        } else {
-            std::borrow::Cow::Owned(Vec::new())
-        };
         let mut specialized_diagnostics = HashSet::new();
         for function in specializations.iter() {
+            let specialized_view;
+            let function = if std::ptr::eq(function, template.payload()) {
+                template
+            } else {
+                specialized_view = template.specialized_payload(function);
+                &specialized_view
+            };
             let specialized_diagnostic_start = diagnostics.len();
             let mut variables = HashMap::new();
-            if function.return_type == Type::Str {
+            if function.payload().return_type == Type::Str {
                 diagnostics.push(error(
                     program,
                     "SPX-O116",
                     format!(
                         "function `{}` cannot return borrowed `str`; borrowed text is confined to the invocation",
-                        function.name
+                        function.name()
                     ),
-                    function.span,
+                    function.payload().span,
                 ).with_help("return an owned `string` instead: a literal, `string_concat`, or `string_from_i64` result is owned"));
             }
             crate::source_verify::declared_type::string_record::reject(
                 program,
-                &function.return_type,
+                &function.payload().return_type,
                 "returned",
-                function.span,
+                function.payload().span,
                 types,
                 diagnostics,
             );
-            if function.return_type == Type::SliceU8 {
+            if function.payload().return_type == Type::SliceU8 {
                 diagnostics.push(error(
                     program,
                     "SPX-T264",
                     format!(
                         "function `{}` cannot return borrowed `Slice<u8>`; byte views cannot escape their invocation",
-                        function.name
+                        function.name()
                     ),
-                    function.span,
+                    function.payload().span,
                 ));
             }
-            for param in &function.params {
+            for param in &function.payload().params {
                 if !source_identifier(&param.name) {
                     diagnostics.push(error(
                         program,
@@ -1114,7 +1161,7 @@ pub(in crate::source_verify) fn check_function_bodies<'p>(
                     ));
                 }
                 if transparent_vec_wrapper.is_none() && transparent_box_wrapper.is_none() {
-                    check_ownership_mode(program, function, param, types, diagnostics);
+                    check_ownership_mode_ref(program, function, param, types, diagnostics);
                 }
                 // By-value `string` parameters carry unique ownership. Bytes
                 // use explicit `own Bytes`, but the shared predicate keeps
@@ -1153,7 +1200,7 @@ pub(in crate::source_verify) fn check_function_bodies<'p>(
                 }
             }
 
-            for contract in &function.requires {
+            for contract in &function.payload().requires {
                 contract.visit_calls(&mut |callee, span| {
                     if crate::host_io_ops::by_name(callee).is_some() {
                         diagnostics.push(error(
@@ -1182,13 +1229,14 @@ pub(in crate::source_verify) fn check_function_bodies<'p>(
                     None,
                     diagnostics,
                     "precondition",
+                    None,
                 );
             }
 
             let (body_value, refusal_view) = check_expr_with_helpers_view(
                 program,
                 function,
-                &function.body,
+                &function.payload().body,
                 &mut variables,
                 functions,
                 types,
@@ -1197,38 +1245,45 @@ pub(in crate::source_verify) fn check_function_bodies<'p>(
                 diagnostics,
                 Some(&byte_helpers),
                 fused_producer,
+                None,
             );
             if let Some(actual) = body_value {
                 if actual.native_unit {
-                    reject_native_unit_value(program, &function.body, &actual, diagnostics);
+                    reject_native_unit_value(
+                        program,
+                        &function.payload().body,
+                        &actual,
+                        diagnostics,
+                    );
                 }
                 if !actual.native_unit
                     && actual.ty != Type::Never
-                    && actual.ty != function.return_type
+                    && actual.ty != function.payload().return_type
                     && !return_unknown
-                    && !refusal_view.is_some_and(|view| view.declared == &function.return_type)
+                    && !refusal_view
+                        .is_some_and(|view| view.declared == &function.payload().return_type)
                 {
                     diagnostics.push(error(
                         program,
                         "SPX-T103",
                         format!(
                             "function `{}` returns {}, but its signature declares {}",
-                            function.name,
+                            function.name(),
                             crate::source_verify::private_names::type_name(
                                 program, types, &actual.ty
                             ),
                             crate::source_verify::private_names::type_name(
                                 program,
                                 types,
-                                &function.return_type
+                                &function.payload().return_type
                             )
                         ),
-                        function.body.span,
+                        function.payload().body.span,
                     ));
                 }
                 if actual.ty != Type::Never
-                    && (actual.native_unit || actual.ty == function.return_type)
-                    && types.needs_drop(&function.return_type)
+                    && (actual.native_unit || actual.ty == function.payload().return_type)
+                    && types.needs_drop(&function.payload().return_type)
                     && actual.mode != ParamMode::Own
                 {
                     diagnostics.push(
@@ -1237,10 +1292,10 @@ pub(in crate::source_verify) fn check_function_bodies<'p>(
                             "SPX-O104",
                             format!(
                                 "function `{}` cannot return a {} resource as owned",
-                                function.name,
+                                function.name(),
                                 actual.mode.text()
                             ),
-                            function.body.span,
+                            function.payload().body.span,
                         )
                         .with_help(
                             "return an owned resource or declare a future lifetime-bound view",
@@ -1249,7 +1304,7 @@ pub(in crate::source_verify) fn check_function_bodies<'p>(
                 }
             }
 
-            for contract in &function.ensures {
+            for contract in &function.payload().ensures {
                 contract.visit_calls(&mut |callee, span| {
                     if crate::host_io_ops::by_name(callee).is_some() {
                         diagnostics.push(error(
@@ -1275,30 +1330,37 @@ pub(in crate::source_verify) fn check_function_bodies<'p>(
                     &variables,
                     functions,
                     types,
-                    Some(&function.return_type),
+                    Some(&function.payload().return_type),
                     diagnostics,
                     "postcondition",
+                    None,
                 );
             }
 
-            let declared: HashSet<_> = function.effects.iter().map(String::as_str).collect();
+            let declared: HashSet<_> = function
+                .payload()
+                .effects
+                .iter()
+                .map(String::as_str)
+                .collect();
             let mut required_lifecycle_effects = BTreeSet::new();
-            for param in &function.params {
+            for param in &function.payload().params {
                 if param.mode == ParamMode::Own {
                     required_lifecycle_effects
                         .extend(types.lifecycle_effects(&param.ty, import_keys));
                 }
             }
             required_lifecycle_effects
-                .extend(types.lifecycle_effects(&function.return_type, import_keys));
+                .extend(types.lifecycle_effects(&function.payload().return_type, import_keys));
             for callee in crate::source_verify::function_value_inventory::calls(
-                function,
+                function.payload(),
                 functions,
                 &function_value_targets,
             ) {
                 if let Some(target) = functions.get(callee.as_str()) {
-                    required_lifecycle_effects
-                        .extend(types.lifecycle_effects(&target.return_type, import_keys));
+                    required_lifecycle_effects.extend(
+                        types.lifecycle_effects(&target.payload().return_type, import_keys),
+                    );
                 }
             }
             for effect in required_lifecycle_effects {
@@ -1309,9 +1371,9 @@ pub(in crate::source_verify) fn check_function_bodies<'p>(
                         "SPX-E103",
                         format!(
                             "function `{}` can own a resource; automatic finalization requires effect `{effect}`",
-                            function.name
+                            function.name()
                         ),
-                        function.span,
+                        function.payload().span,
                     )
                     .with_help(format!(
                         "add `{effect}` to the function's `uses` set and module permits"
@@ -1319,24 +1381,24 @@ pub(in crate::source_verify) fn check_function_bodies<'p>(
                 );
                 }
             }
-            for effect in &function.effects {
+            for effect in &function.payload().effects {
                 if !program.permits().iter().any(|permit| permit == effect) {
-                    diagnostics.push(crate::source_verify::hints::unpermitted_effect(
+                    diagnostics.push(crate::source_verify::hints::unpermitted_effect_ref(
                         program, function, effect,
                     ));
                 }
             }
             for callee in crate::source_verify::function_value_inventory::calls(
-                function,
+                function.payload(),
                 functions,
                 &function_value_targets,
             ) {
-                let span = function.body.span;
+                let span = function.payload().body.span;
                 if let Some(effect) = crate::string_ops::by_name(&callee)
                     .and_then(crate::string_ops::StringOp::effect)
                 {
                     if !declared.contains(effect) {
-                        diagnostics.push(crate::source_verify::hints::missing_effect(
+                        diagnostics.push(crate::source_verify::hints::missing_effect_ref(
                             program, &callee, effect, function, span,
                         ));
                     }
@@ -1344,7 +1406,7 @@ pub(in crate::source_verify) fn check_function_bodies<'p>(
                 }
                 if let Some(op) = crate::host_io_ops::by_name(&callee) {
                     if !declared.contains(op.effect()) {
-                        diagnostics.push(crate::source_verify::hints::missing_effect(
+                        diagnostics.push(crate::source_verify::hints::missing_effect_ref(
                             program,
                             &callee,
                             op.effect(),
@@ -1357,7 +1419,7 @@ pub(in crate::source_verify) fn check_function_bodies<'p>(
                 if let Some(op) = crate::command_io_ops::by_name(&callee) {
                     for effect in crate::command_io_ops::required_effects(op) {
                         if !declared.contains(effect) {
-                            diagnostics.push(crate::source_verify::hints::missing_effect(
+                            diagnostics.push(crate::source_verify::hints::missing_effect_ref(
                                 program, &callee, effect, function, span,
                             ));
                         }
@@ -1365,16 +1427,16 @@ pub(in crate::source_verify) fn check_function_bodies<'p>(
                     continue;
                 }
                 if let Some(target) = functions.get(callee.as_str()) {
-                    for effect in &target.effects {
+                    for effect in &target.payload().effects {
                         if !declared.contains(effect.as_str()) {
-                            diagnostics.push(crate::source_verify::hints::missing_effect(
+                            diagnostics.push(crate::source_verify::hints::missing_effect_ref(
                                 program, &callee, effect, function, span,
                             ));
                         }
                     }
                 }
             }
-            if !template.type_parameters.is_empty() {
+            if !template.payload().type_parameters.is_empty() {
                 let added = diagnostics
                     .drain(specialized_diagnostic_start..)
                     .collect::<Vec<_>>();

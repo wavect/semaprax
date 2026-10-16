@@ -2,6 +2,7 @@
 use super::*;
 fn pass(program: &Program) -> Result<(ResolvedProgram, FunctionResolutionWork), Diagnostic> {
     (Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(program)),
         program,
         byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(program),
         declarations: DeclarationIndex::nominal_original_with_prelude(

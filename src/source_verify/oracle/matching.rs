@@ -71,7 +71,7 @@ pub(super) fn oracle_match(
     current: &Function,
     expr: &Expr,
     variables: &mut HashMap<String, Binding>,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
     result_type: Option<&Type>,
     allow_moves: bool,
@@ -494,11 +494,12 @@ pub(super) fn oracle_match(
             merge_moved(variables, &arm_variables, &outer_names);
         }
         let generic_template = functions.get(current.name.as_str()).copied();
-        let generic_owned_result = generic_template
-            .is_some_and(|function| generic_function_has_owned_record_composition(function, types));
+        let generic_owned_result = generic_template.is_some_and(|function| {
+            generic_function_has_owned_record_composition(function.payload(), types)
+        });
         if result.as_ref().is_some_and(|value| {
             value.ty != Type::Never && (!matches!(value.ty, Type::I64 | Type::Bool) || value.mode != ParamMode::Value)
-                && !(generic_template.is_some_and(|function| function.type_parameters.is_empty())
+                && !(generic_template.is_some_and(|function| function.payload().type_parameters.is_empty())
                     && (value.mode == ParamMode::Value
                         || (*mode == MatchMode::Own && scrutinee_value.mode == ParamMode::Own && types.is_nested_owned_byte_record(&scrutinee_value.ty)))
                     && crate::source_verify::declared_type::ordinary_record_match_result(&value.ty, value.mode, types))
@@ -507,7 +508,7 @@ pub(super) fn oracle_match(
                         || (value.mode == ParamMode::Value
                             && (crate::source_verify::type_table::owned_byte_record_copy_field_is_admitted(&value.ty)
                                 || matches!(&value.ty, Type::Named { name, arguments }
-                                    if arguments.is_empty() && generic_template.is_some_and(|function| function.type_parameters.iter().any(|parameter| parameter.name == *name)))))))
+                                    if arguments.is_empty() && generic_template.is_some_and(|function| function.payload().type_parameters.iter().any(|parameter| parameter.name == *name)))))))
         }) {
             diagnostics.push(error(
                 program,
@@ -889,7 +890,9 @@ pub(super) fn oracle_match(
                     types, &input.ty, *mode, &value.ty, value.mode,
                 )
             }) && !crate::source_verify::declared_type::generic_variant::match_result(
-                functions.get(current.name.as_str()).copied(),
+                functions
+                    .get(current.name.as_str())
+                    .map(|function| function.payload()),
                 types,
                 *mode,
                 &value.ty,
@@ -912,7 +915,9 @@ pub(super) fn oracle_match(
                     )
                 })
                 && !crate::source_verify::declared_type::generic_variant::match_result(
-                    functions.get(current.name.as_str()).copied(),
+                    functions
+                        .get(current.name.as_str())
+                        .map(|function| function.payload()),
                     types,
                     *mode,
                     &arm_value.ty,

@@ -2,7 +2,7 @@
 //! The ordinary declared-type owner still publishes the authoritative receipt
 //! in body preparation. This scratch result neither admits source nor erases
 //! independent profile errors on other parameters.
-use crate::ast::program_source::ProgramSource;
+use crate::ast::program_source::{FunctionRef, ProgramSource};
 use crate::ast::{Span, Type};
 use crate::source_verify::type_table::TypeTable;
 use std::collections::HashSet;
@@ -46,40 +46,50 @@ pub(super) fn unknown_component(
 /// equality of IDs or spans alone cannot construct a receiving origin.
 pub(in crate::source_verify) struct SignatureOrigin<'p> {
     subject: crate::ast::program_source::Subject<'p>,
-    template: &'p crate::ast::Function,
+    template: &'p FunctionRef<'p>,
     current: &'p crate::ast::Function,
 }
 
+#[cfg(test)]
 pub(super) fn origin<'p>(
     program: &'p dyn ProgramSource,
-    template: &'p crate::ast::Function,
+    template: &'p FunctionRef<'p>,
     current: &'p crate::ast::Function,
 ) -> Option<SignatureOrigin<'p>> {
+    origin_ref(program, template, &FunctionRef::ordinary(current))
+}
+
+pub(super) fn origin_ref<'p>(
+    program: &'p dyn ProgramSource,
+    template: &'p FunctionRef<'p>,
+    current: &FunctionRef<'p>,
+) -> Option<SignatureOrigin<'p>> {
     // Ordinary, un-specialized bodies already use their own exact environment.
-    if std::ptr::eq(template, current) {
+    if template.same_presentation(&current) {
         return None;
     }
-    if !program
-        .functions()
-        .iter()
-        .any(|source| std::ptr::eq(source, template))
-        || !(1..=2).contains(&template.type_parameters.len())
+    if !template.same_alias_cell(current)
+        || !program.function_refs().contains_presentation(template)
+        || !(1..=2).contains(&template.payload().type_parameters.len())
         || template
+            .payload()
             .type_parameters
             .iter()
             .any(|parameter| !crate::source_verify::diagnostics::source_identifier(&parameter.name))
-        || template.type_parameters.len() == 2
-            && template.type_parameters[0].name == template.type_parameters[1].name
-        || !current.type_parameters.is_empty()
-        || template.stable_id != current.stable_id
-        || template.name != current.name
-        || template.span != current.span
-        || template.name_span != current.name_span
-        || template.params.len() != current.params.len()
+        || template.payload().type_parameters.len() == 2
+            && template.payload().type_parameters[0].name
+                == template.payload().type_parameters[1].name
+        || !current.payload().type_parameters.is_empty()
+        || template.payload().stable_id != current.payload().stable_id
+        || template.name() != current.name()
+        || template.payload().span != current.payload().span
+        || template.payload().name_span != current.payload().name_span
+        || template.payload().params.len() != current.payload().params.len()
         || !template
+            .payload()
             .params
             .iter()
-            .zip(&current.params)
+            .zip(&current.payload().params)
             .all(|(raw, concrete)| {
                 raw.name == concrete.name && raw.mode == concrete.mode && raw.span == concrete.span
             })
@@ -89,7 +99,7 @@ pub(super) fn origin<'p>(
     Some(SignatureOrigin {
         subject: program.subject(),
         template,
-        current,
+        current: current.payload(),
     })
 }
 
@@ -101,7 +111,17 @@ impl<'p> SignatureOrigin<'p> {
         types: &TypeTable<'_>,
         diagnostics: &[crate::diagnostic::Diagnostic],
     ) -> Option<usize> {
-        let template = self.template_for(program, current)?;
+        self.return_refusal_ref(program, &FunctionRef::ordinary(current), types, diagnostics)
+    }
+
+    pub(in crate::source_verify) fn return_refusal_ref(
+        &self,
+        program: &dyn ProgramSource,
+        current: &FunctionRef<'_>,
+        types: &TypeTable<'_>,
+        diagnostics: &[crate::diagnostic::Diagnostic],
+    ) -> Option<usize> {
+        let template = self.template_for_ref(program, current)?.payload();
         let Type::Named { name, .. } = &template.return_type else {
             return None;
         };
@@ -157,8 +177,19 @@ impl<'p> SignatureOrigin<'p> {
         program: &dyn ProgramSource,
         current: &crate::ast::Function,
     ) -> Option<&'p crate::ast::Function> {
-        (self.subject.same(program.subject()) && std::ptr::eq(current, self.current))
-            .then_some(self.template)
+        self.template_for_ref(program, &FunctionRef::ordinary(current))
+            .map(|function| function.payload())
+    }
+
+    pub(in crate::source_verify) fn template_for_ref(
+        &self,
+        program: &dyn ProgramSource,
+        current: &FunctionRef<'_>,
+    ) -> Option<&'p FunctionRef<'p>> {
+        (self.subject.same(program.subject())
+            && std::ptr::eq(current.payload(), self.current)
+            && current.same_alias_cell(self.template))
+        .then_some(self.template)
     }
 }
 

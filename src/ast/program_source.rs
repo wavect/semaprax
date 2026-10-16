@@ -7,7 +7,8 @@ use super::{
 
 mod decl_slices;
 pub(crate) mod function_alias;
-pub(crate) use decl_slices::DeclSlices;
+pub(crate) use decl_slices::{DeclIter, DeclSlices};
+pub(crate) use function_alias::presentation::{FunctionCell, FunctionRef, FunctionSlices};
 #[cfg(test)]
 mod decl_slices_original;
 
@@ -51,6 +52,9 @@ pub(crate) trait ProgramSource: sealed::Sealed {
     fn session_protocols(&self) -> &[SessionProtocolDeclaration];
     fn agents(&self) -> &[AgentDeclaration];
     fn functions(&self) -> DeclSlices<'_, Function>;
+    /// Explicit effective-name presentation during the verifier/resolver
+    /// migration. The raw facade is removed only after all receivers move.
+    fn function_refs(&self) -> FunctionSlices<'_>;
 }
 impl ProgramSource for Program {
     fn subject(&self) -> Subject<'_> {
@@ -88,6 +92,9 @@ impl ProgramSource for Program {
     }
     fn functions(&self) -> DeclSlices<'_, Function> {
         DeclSlices::one(&self.functions)
+    }
+    fn function_refs(&self) -> FunctionSlices<'_> {
+        FunctionSlices::one(&self.functions)
     }
 }
 
@@ -214,6 +221,10 @@ impl ProgramSource for SyntheticProgramView<'_> {
     }
     fn functions(&self) -> DeclSlices<'_, Function> {
         DeclSlices::append(&self.authored.functions, self.generated.functions())
+            .expect("constructor checked declaration count")
+    }
+    fn function_refs(&self) -> FunctionSlices<'_> {
+        FunctionSlices::append(&self.authored.functions, self.generated.functions())
             .expect("constructor checked declaration count")
     }
 }

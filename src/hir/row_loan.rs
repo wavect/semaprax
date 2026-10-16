@@ -82,7 +82,7 @@ fn call_argument_path(path: &str) -> bool {
     })
 }
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     /// `None` when `expr` is not a source row. A row reaching an argument slot
     /// becomes an unbound descriptor that only `bind_row_loans` on an ordinary
     /// call can complete; every other row use is refused.
@@ -151,13 +151,11 @@ impl Resolver<'_> {
                 return Err(refuse());
             }
             let target = self
-                .program
-                .functions()
-                .iter()
-                .find(|function| function.stable_id == callee.as_str())
+                .source_functions()
+                .find(|function| function.payload().stable_id == callee.as_str())
                 .ok_or_else(refuse)?;
-            let parameter = target.params.get(index).ok_or_else(refuse)?;
-            if !target.type_parameters.is_empty()
+            let parameter = target.payload().params.get(index).ok_or_else(refuse)?;
+            if !target.payload().type_parameters.is_empty()
                 || parameter.mode != crate::ast::ParamMode::Borrow
                 || self.resolve_type(&parameter.ty, span)? != loan.element
             {

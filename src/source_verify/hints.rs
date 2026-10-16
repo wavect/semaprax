@@ -134,7 +134,7 @@ fn foreign_function_help(name: &str) -> Option<&'static str> {
 pub(super) fn unknown_function(
     program: &dyn ProgramSource,
     name: &str,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     span: Span,
 ) -> Diagnostic {
     let diagnostic = error(
@@ -174,7 +174,10 @@ pub(super) fn unknown_function(
     }
 }
 
-fn nearest_function_name(name: &str, functions: &HashMap<&str, &Function>) -> Option<String> {
+fn nearest_function_name(
+    name: &str,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
+) -> Option<String> {
     let threshold = 1 + name.len() / 5;
     let mut candidates = functions
         .keys()
@@ -648,9 +651,25 @@ pub(super) const IMMUTABLE_TRAVERSAL_HELP: &str = "move the finished vector into
                                                    values { … }`";
 
 /// A function declares an effect its module does not permit.
+#[cfg_attr(
+    not(test),
+    allow(dead_code, reason = "ordinary diagnostic adapter retained")
+)]
 pub(super) fn unpermitted_effect(
     program: &dyn ProgramSource,
     function: &Function,
+    effect: &str,
+) -> Diagnostic {
+    unpermitted_effect_ref(
+        program,
+        &crate::ast::program_source::FunctionRef::ordinary(function),
+        effect,
+    )
+}
+
+pub(super) fn unpermitted_effect_ref(
+    program: &dyn ProgramSource,
+    function: &crate::ast::program_source::FunctionRef<'_>,
     effect: &str,
 ) -> Diagnostic {
     error(
@@ -658,10 +677,10 @@ pub(super) fn unpermitted_effect(
         "SPX-E101",
         format!(
             "function `{}` uses `{effect}` but module `{}` does not permit it",
-            function.name,
+            function.name(),
             program.module()
         ),
-        function.span,
+        function.payload().span,
     )
     .with_help(format!(
         "add `permit {{ {effect} }}` at module level, below the `module` line"
@@ -670,11 +689,31 @@ pub(super) fn unpermitted_effect(
 
 /// A call needs an effect its caller does not declare. Name both edits, so
 /// fixing `uses` does not surface the module `permit` as a second round trip.
+#[cfg_attr(
+    not(test),
+    allow(dead_code, reason = "ordinary diagnostic adapter retained")
+)]
 pub(super) fn missing_effect(
     program: &dyn ProgramSource,
     callee: &str,
     effect: &str,
     caller: &Function,
+    span: Span,
+) -> Diagnostic {
+    missing_effect_ref(
+        program,
+        callee,
+        effect,
+        &crate::ast::program_source::FunctionRef::ordinary(caller),
+        span,
+    )
+}
+
+pub(super) fn missing_effect_ref(
+    program: &dyn ProgramSource,
+    callee: &str,
+    effect: &str,
+    caller: &crate::ast::program_source::FunctionRef<'_>,
     span: Span,
 ) -> Diagnostic {
     let uses = format!("add `uses {{ {effect} }}` on its own line between the signature and `{{`");
@@ -688,7 +727,7 @@ pub(super) fn missing_effect(
         "SPX-E102",
         format!(
             "call to `{callee}` requires effect `{effect}`; add it to `{}`",
-            caller.name
+            caller.name()
         ),
         span,
     )

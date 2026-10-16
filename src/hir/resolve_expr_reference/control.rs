@@ -1,7 +1,7 @@
 //! Differential lexical target resolution; no production resolver frames are reused.
 use super::*;
 pub(super) fn exit(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     expr: &Expr,
     bindings: &BTreeMap<String, Binding>,
@@ -48,7 +48,7 @@ pub(super) fn exit(
     ))
 }
 pub(super) fn while_loop(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     condition: &Expr,
     body: &Expr,
@@ -98,7 +98,7 @@ pub(super) fn while_loop(
 }
 
 pub(super) fn if_expression(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     expr: &Expr,
     bindings: &BTreeMap<String, Binding>,
@@ -153,7 +153,7 @@ pub(super) fn if_expression(
     ))
 }
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     #[cfg(test)]
     #[allow(dead_code)]
     pub(in crate::hir) fn resolve_expr_recursive_reference(

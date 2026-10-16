@@ -24,7 +24,7 @@ pub(super) fn check_while_statement(
     body: &Expr,
     statement_span: Span,
     variables: &mut HashMap<String, Binding>,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
     result_type: Option<&Type>,
     allow_moves: bool,
@@ -131,7 +131,7 @@ pub(super) fn check_while_statement(
 pub(in crate::source_verify) fn reject_while_disallowed_oracle(
     program: &dyn ProgramSource,
     expression: &Expr,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<(), ()> {
@@ -141,7 +141,7 @@ pub(in crate::source_verify) fn reject_finite_iterator_body_oracle(
     program: &dyn ProgramSource,
     current: &Function,
     expression: &Expr,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<(), ()> {
@@ -158,7 +158,7 @@ pub(in crate::source_verify) fn reject_finite_iterator_body_oracle(
 pub(in crate::source_verify) fn reject_with_scratch(
     program: &dyn ProgramSource,
     expression: &Expr,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
     scratch: Option<&crate::finite_byte_scratch::SourceScratch<'_>>,
@@ -346,11 +346,11 @@ pub(in crate::source_verify) fn reject_with_scratch(
                 }
             }
             if let Some(declared) = functions.get(name.as_str()) {
-                let scalar_signature = crate::loop_calls::byte_writer::source_target(program, declared)
-                    || crate::stdin_stream_ops::ast_forward_signature(declared)
-                    || (crate::loop_calls::effects_admitted(&declared.effects)
-                        && crate::loop_calls::ast_result_admitted(program, &declared.return_type)
-                        && declared.params.iter().zip(args).all(|(param, argument)| {
+                let scalar_signature = crate::loop_calls::byte_writer::SourceIndex::new(program).target_ref(declared)
+                    || crate::stdin_stream_ops::ast_forward_signature(declared.payload())
+                    || (crate::loop_calls::effects_admitted(&declared.payload().effects)
+                        && crate::loop_calls::ast_result_admitted(program, &declared.payload().return_type)
+                        && declared.payload().params.iter().zip(args).all(|(param, argument)| {
                             crate::loop_calls::ast_param_admitted(program, param.mode, &param.ty)
                                 || (param.mode == crate::ast::ParamMode::Borrow
                                     && crate::source_verify::declared_type::owned_record_collection::is_owner_renewal_record(
@@ -537,7 +537,7 @@ pub(in crate::source_verify) fn reject_with_scratch(
 pub(super) fn reject_statement_with_scratch(
     program: &dyn ProgramSource,
     statement: &Statement,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
     scratch: Option<&crate::finite_byte_scratch::SourceScratch<'_>>,
@@ -597,7 +597,7 @@ pub(super) fn reject_statement_with_scratch(
 #[cfg(test)]
 fn source_record_owner_renewal(
     program: &dyn ProgramSource,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     binding: &str,
     value: &Expr,
 ) -> bool {
@@ -618,28 +618,34 @@ fn source_record_owner_renewal(
     };
     let types = TypeTable::new(program);
     type_arguments.is_empty()
-        && target.type_parameters.is_empty()
-        && target.effects.is_empty()
+        && target.payload().type_parameters.is_empty()
+        && target.payload().effects.is_empty()
         && crate::source_verify::declared_type::owned_record_collection::is_owner_renewal_record(
             &types,
-            &target.return_type,
+            &target.payload().return_type,
         )
-        && target.params.len() == args.len()
+        && target.payload().params.len() == args.len()
         && target
+            .payload()
             .params
             .iter()
             .zip(args)
             .filter(|(parameter, argument)| {
                 parameter.mode == crate::ast::ParamMode::Own
-                    && parameter.ty == target.return_type
+                    && parameter.ty == target.payload().return_type
                     && matches!(&argument.kind, ExprKind::Var(name) if name == binding)
             })
             .count()
             == 1
-        && target.params.iter().zip(args).all(|(parameter, argument)| {
-            match parameter.mode {
+        && target
+            .payload()
+            .params
+            .iter()
+            .zip(args)
+            .all(|(parameter, argument)| {
+                match parameter.mode {
                 crate::ast::ParamMode::Own => {
-                    parameter.ty == target.return_type
+                    parameter.ty == target.payload().return_type
                         && matches!(&argument.kind, ExprKind::Var(name) if name == binding)
                 }
                 crate::ast::ParamMode::Borrow => {
@@ -651,5 +657,5 @@ fn source_record_owner_renewal(
                 crate::ast::ParamMode::Value => true,
                 crate::ast::ParamMode::Shared => false,
             }
-        })
+            })
 }

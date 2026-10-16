@@ -1,7 +1,7 @@
 //! Independent recursive record projection reference resolution.
 use super::*;
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(super) fn resolve_projection_reference(
         &self,
         function: &FunctionExecutionId,

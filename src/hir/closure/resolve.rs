@@ -25,7 +25,7 @@ fn source_type(ty: &ResolvedType, scope: &crate::ast::Function) -> Type {
     }
 }
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(in crate::hir) fn resolve_closure(
         &self,
         parent: &FunctionExecutionId,
@@ -65,14 +65,12 @@ impl Resolver<'_> {
         let source_function = parent
             .monomorphic_declaration()
             .and_then(|id| {
-                self.program
-                    .functions()
-                    .iter()
-                    .find(|f| f.stable_id == id.as_str())
+                self.source_functions()
+                    .find(|f| f.payload().stable_id == id.as_str())
             })
             .ok_or_else(|| hir_error("nested closures are not admitted"))?;
-        if !source_function.type_parameters.is_empty()
-            && !crate::source_verify::generic_collection_profile(source_function)
+        if !source_function.payload().type_parameters.is_empty()
+            && !crate::source_verify::generic_collection_profile(source_function.payload())
         {
             return Err(hir_error(
                 "generic closures require the bounded collection profile",
@@ -80,12 +78,17 @@ impl Resolver<'_> {
         }
         let types = outer
             .iter()
-            .map(|(name, binding)| (name.as_str(), source_type(&binding.ty, source_function)))
+            .map(|(name, binding)| {
+                (
+                    name.as_str(),
+                    source_type(&binding.ty, source_function.payload()),
+                )
+            })
             .collect::<BTreeMap<_, _>>();
         let type_refs = types.iter().map(|(name, ty)| (*name, ty)).collect();
         let borrowed = crate::source_verify::borrowed_closure::profile(
             self.program,
-            source_function,
+            source_function.payload(),
             expression,
             &type_refs,
         )?;
@@ -98,7 +101,7 @@ impl Resolver<'_> {
                 return_type,
                 body,
                 &type_refs,
-                Some(source_function),
+                Some(source_function.payload()),
             )?
         };
         names.sort_by(|a, b| outer[a].id.cmp(&outer[b].id));
@@ -124,8 +127,10 @@ impl Resolver<'_> {
                     || (super::super::function_value::scalar(&captured.ty)
                         || super::super::generic_collection::parameter(
                             &captured.ty,
-                            &self.declarations.held_identity(&source_function.stable_id),
-                            source_function.type_parameters.len(),
+                            &self
+                                .declarations
+                                .held_identity(&source_function.payload().stable_id),
+                            source_function.payload().type_parameters.len(),
                         )))
             {
                 return Err(hir_error(
@@ -165,7 +170,7 @@ impl Resolver<'_> {
         }
         let mut parameters = Vec::new();
         for (index, param) in params.iter().enumerate() {
-            let ty = self.resolve_function_type(source_function, &param.ty, param.span)?;
+            let ty = self.resolve_function_type_ref(source_function, &param.ty, param.span)?;
             let binding = ResolvedBinding {
                 id: ValueId::parameter(&execution, captures.len() + index),
                 name: param.name.clone(),
@@ -187,7 +192,7 @@ impl Resolver<'_> {
         }
         let ty = ResolvedType::Function {
             parameters: parameters.iter().map(|p| p.ty.clone()).collect(),
-            result: Box::new(self.resolve_function_type(
+            result: Box::new(self.resolve_function_type_ref(
                 source_function,
                 return_type,
                 expression.span,
@@ -218,7 +223,7 @@ impl Resolver<'_> {
     }
 }
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     // Private closure execution IDs do not name source declarations. Their
     // scalar parameter/capture types retain the checked lexical generic owner.
     pub(in crate::hir) fn resolve_binding_annotation(
@@ -234,14 +239,15 @@ impl Resolver<'_> {
                     let ResolvedType::TypeParameter { owner, .. } = &binding.ty else {
                         continue;
                     };
-                    if let Some(function) = self.program.functions().iter().find(|function| {
-                        function.stable_id == owner.as_str()
+                    if let Some(function) = self.source_functions().find(|function| {
+                        function.payload().stable_id == owner.as_str()
                             && function
+                                .payload()
                                 .type_parameters
                                 .iter()
                                 .any(|parameter| parameter.name == *name)
                     }) {
-                        return self.resolve_function_type(function, ty, span);
+                        return self.resolve_function_type_ref(function, ty, span);
                     }
                 }
             }

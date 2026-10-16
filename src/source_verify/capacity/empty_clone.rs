@@ -171,7 +171,7 @@ pub(super) fn clone_capacity_flow(
         && context
             .ordinary
             .values()
-            .any(|function| refused(function, context.types, expression))
+            .any(|function| refused(function.payload(), context.types, expression))
     {
         Some(crate::byte_data_capacity::CapacityFlow::Empty)
     } else {

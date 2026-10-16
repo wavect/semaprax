@@ -13,8 +13,9 @@ fn program(body: &str) -> crate::ast::Program {
     )
     .unwrap()
 }
-fn resolver(program: &crate::ast::Program) -> Resolver<'_> {
+fn resolver(program: &crate::ast::Program) -> Resolver<'_, '_> {
     Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(program)),
         program,
         byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(program),
         declarations: DeclarationIndex::from_verified(program).unwrap(),
@@ -148,22 +149,37 @@ fn nested_byte_actual_resolver_keeps_ancestry_local_and_entry_scope_fixed() {
     // Retain both original unreachable fixtures. The first actual P209 was
     // the inner Break tail; the Return tail has the same independent gate.
     for (loops, stopped) in [
-        ("for outer in view { for inner in view { break; 0 } continue; 0 } 0", "break; "),
-        ("for outer in view { for inner in view { return 0; 0 } 0 } 0", "return 0; "),
+        (
+            "for outer in view { for inner in view { break; 0 } continue; 0 } 0",
+            "break; ",
+        ),
+        (
+            "for outer in view { for inner in view { return 0; 0 } 0 } 0",
+            "return 0; ",
+        ),
     ] {
-        let unreachable = format!("module gate.nested; @id(\"gate.main\") fn main()->i64 {{ {PRE} {loops} }}");
+        let unreachable =
+            format!("module gate.nested; @id(\"gate.main\") fn main()->i64 {{ {PRE} {loops} }}");
         let error = crate::parse(&unreachable, Path::new("gate-nested.spx")).unwrap_err();
         let span_start = unreachable.find(stopped).unwrap() + stopped.len();
-        assert_eq!(error, crate::diagnostic::Diagnostic {
-            code: "SPX-P209",
-            severity: crate::diagnostic::Severity::Error,
-            message: "code after an unconditional return is unreachable".into(),
-            path: Some("gate-nested.spx".to_owned()),
-            span: Some(crate::ast::Span {
-                start: span_start, end: span_start + 1, line: 1, column: span_start + 1,
-            }),
-            help: Some("remove the unreachable code or put it on a non-returning guard path".into()),
-        });
+        assert_eq!(
+            error,
+            crate::diagnostic::Diagnostic {
+                code: "SPX-P209",
+                severity: crate::diagnostic::Severity::Error,
+                message: "code after an unconditional return is unreachable".into(),
+                path: Some("gate-nested.spx".to_owned()),
+                span: Some(crate::ast::Span {
+                    start: span_start,
+                    end: span_start + 1,
+                    line: 1,
+                    column: span_start + 1,
+                }),
+                help: Some(
+                    "remove the unreachable code or put it on a non-returning guard path".into()
+                ),
+            }
+        );
     }
     // A completed byte region must not lend ancestry to a later ordinary While.
     for loops in [

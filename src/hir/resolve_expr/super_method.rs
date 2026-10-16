@@ -6,7 +6,7 @@ use super::path_arena::ExprPath;
 use super::*;
 use crate::ast::Span;
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     #[allow(clippy::too_many_arguments)]
     pub(super) fn finish_super_method(
         &self,

@@ -3,7 +3,7 @@ use crate::list_ops::ListOp;
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn schedule<'expr>(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     frames: &mut Vec<Frame<'expr>>,
     type_arguments: &[Type],
@@ -76,7 +76,7 @@ pub(super) fn finish<'p>(
 
 #[cfg(test)]
 pub(super) fn reference(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     call: ReferenceCall<'_>,
     op: ListOp,

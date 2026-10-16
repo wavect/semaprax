@@ -205,11 +205,12 @@ fn compare_scalar_receivers(source: &str, intentional: bool) {
         ExprKind::Block { statements, tail } if statements.is_empty() => tail.as_ref(),
         _ => &current.body,
     };
-    let functions = program
-        .functions
+    let function_cells = crate::source_verify::capacity::source_capacity_functions(&program);
+    let functions = function_cells
         .iter()
-        .map(|function| (function.name.as_str(), function))
-        .collect::<HashMap<_, _>>();
+        .take(program.functions.len())
+        .map(|(_, function)| (function.name(), function))
+        .collect::<crate::source_verify::function_map::FunctionMap<'_>>();
     let types = TypeTable::new(&program);
     let mut oracle_scope = HashMap::new();
     for parameter in &current.params {
@@ -247,7 +248,9 @@ fn compare_scalar_receivers(source: &str, intentional: bool) {
     let mut iterative_diagnostics = Vec::new();
     let mut iterative = IterativeVerifier::new(
         &program,
-        current,
+        functions
+            .get(current.name.as_str())
+            .expect("frozen current declaration cell"),
         iterative_scope,
         &functions,
         &types,
@@ -280,7 +283,9 @@ fn compare_scalar_receivers(source: &str, intentional: bool) {
     let mut live_diagnostics = Vec::new();
     let mut live = IterativeVerifier::new(
         &program,
-        current,
+        functions
+            .get(current.name.as_str())
+            .expect("frozen current declaration cell"),
         live_entry_scope,
         &functions,
         &types,
@@ -785,13 +790,10 @@ fn source_type_inference_mutates_one_owned_scope_for_many_inferred_lets() {
         .find(|function| function.name == "wide")
         .unwrap();
     let types = TypeTable::new(&program);
-    let ordinary = source_capacity_functions(&program)
-        .into_iter()
-        .filter_map(|(owner, function)| {
-            owner
-                .is_none()
-                .then_some((function.name.as_str(), function))
-        })
+    let capacity_cells = source_capacity_functions(&program);
+    let ordinary = capacity_cells
+        .iter()
+        .filter_map(|(owner, function)| owner.is_none().then_some((function.name(), function)))
         .collect();
     let context = SourceCapacityContext {
         program: &program,

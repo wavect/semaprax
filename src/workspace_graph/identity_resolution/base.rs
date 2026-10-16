@@ -79,6 +79,9 @@ pub(in crate::workspace_graph) fn resolve_module_with_base<'s>(
     })
     .map_err(|failure| match failure {
         BaseSelectiveFailure::Project(report) => ModuleFailure::Report(report),
+        BaseSelectiveFailure::Resolve(NominalReceiverFailure::SourceStop(abort)) => {
+            ModuleFailure::SourceStop(abort)
+        }
         BaseSelectiveFailure::Resolve(NominalReceiverFailure::Resolve(Failure::Source(report))) => {
             ModuleFailure::Report(report)
         }

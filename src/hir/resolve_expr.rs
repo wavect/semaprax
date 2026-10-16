@@ -36,7 +36,7 @@ mod variable;
 pub(super) mod vec_constructor;
 mod vec_field;
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(super) fn resolve_expr_iterative(
         &self,
         function: &FunctionExecutionId,
@@ -483,10 +483,8 @@ impl Resolver<'_> {
                                     )
                                 })?;
                             let target = self
-                                .program
-                                .functions()
-                                .iter()
-                                .find(|function| function.stable_id == template.as_str())
+                                .source_functions()
+                                .find(|function| function.payload().stable_id == template.as_str())
                                 .ok_or_else(|| {
                                     self.error(
                                         "SPX-H003",
@@ -497,7 +495,7 @@ impl Resolver<'_> {
                                     )
                                 })?;
                             let (resolved_arguments, instance, return_source_type) = self
-                                .ordinary_call_signature(
+                                .ordinary_call_signature_ref(
                                     function,
                                     target,
                                     type_arguments,
@@ -512,7 +510,7 @@ impl Resolver<'_> {
                                 type_arguments: resolved_arguments,
                                 instance,
                                 return_source_type,
-                                target_span: target.span,
+                                target_span: target.payload().span,
                                 argument_count: args.len(),
                             });
                             frames.push(Frame::ChildNext {
@@ -622,13 +620,13 @@ impl Resolver<'_> {
                                 )
                             })?;
                         let template_record = matches!(function, FunctionExecutionId::Monomorphic(owner)
-                        if self.program.functions().iter().any(|candidate|
-                            candidate.stable_id == owner.as_str() && !candidate.type_parameters.is_empty())
+                        if self.source_functions().any(|candidate|
+                            candidate.payload().stable_id == owner.as_str() && !candidate.payload().type_parameters.is_empty())
                         && super::type_reachability::is_nested_owned_byte_record_template(
                             &self.declarations,
                             &ResolvedType::Nominal { declaration: record.clone(), arguments: arguments.clone() },
                             owner,
-                            self.program.functions().iter().find(|candidate| candidate.stable_id == owner.as_str()).map_or(0, |candidate| candidate.type_parameters.len()),
+                            self.source_functions().find(|candidate| candidate.payload().stable_id == owner.as_str()).map_or(0, |candidate| candidate.payload().type_parameters.len()),
                         ));
                         if arguments.len() != parameters.len()
                             || (!template_record

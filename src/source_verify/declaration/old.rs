@@ -12,14 +12,13 @@ use super::functions::old::{
     check_function_bodies, check_function_declarations, check_generic_function_cycles,
 };
 use super::identity::{check_interface_identities, check_type_identities};
-use crate::source_verify::capacity::{source_capacity_functions, verify_selected_capacity};
-use crate::source_verify::diagnostics::error;
-use crate::source_verify::type_table::TypeTable;
 use crate::ast::program_source::ProgramSource;
 use crate::ast::{Span, Type};
 use crate::diagnostic::Diagnostic;
+use crate::source_verify::capacity::{source_capacity_functions, verify_selected_capacity};
+use crate::source_verify::diagnostics::error;
+use crate::source_verify::type_table::TypeTable;
 use std::collections::{HashMap, HashSet};
-
 
 pub(crate) fn verify(program: &dyn ProgramSource) -> Vec<Diagnostic> {
     verify_selected(program, None, None)
@@ -87,10 +86,11 @@ fn verify_profile<'p>(
         let mut private_call = None;
         for (_, function) in &capacity_functions {
             for root in function
+                .payload()
                 .requires
                 .iter()
-                .chain(std::iter::once(&function.body))
-                .chain(&function.ensures)
+                .chain(std::iter::once(&function.payload().body))
+                .chain(&function.payload().ensures)
             {
                 root.visit_calls(&mut |name, span| {
                     if name == crate::construction_fusion::partition::NAME && private_call.is_none()
@@ -130,13 +130,13 @@ fn verify_profile<'p>(
                     "module declares more than the admitted {} functions",
                     crate::byte_data_capacity::MAX_FUNCTIONS
                 ),
-                function.name_span,
+                function.payload().name_span,
             )
             .with_help("split the program into modules with at most 4096 functions each"),
         );
         return diagnostics;
     }
-    let mut functions = HashMap::new();
+    let mut functions = crate::source_verify::function_map::FunctionMap::new();
     let mut ids = crate::prelude::all_reserved_ids()
         .into_iter()
         .collect::<HashSet<_>>();
@@ -164,7 +164,13 @@ fn verify_profile<'p>(
     let mut checked_layouts = HashSet::new();
     check_record_layouts(program, &types, &mut checked_layouts, &mut diagnostics);
 
-    check_function_declarations(program, &mut functions, &mut ids, &mut diagnostics);
+    check_function_declarations(
+        program,
+        &capacity_functions,
+        &mut functions,
+        &mut ids,
+        &mut diagnostics,
+    );
     diagnostics.extend(crate::session_protocol::source::check(program));
     diagnostics.extend(crate::session_protocol::typestate::check(program));
 
@@ -181,13 +187,13 @@ fn verify_profile<'p>(
     let function_value_targets =
         crate::source_verify::function_value_inventory::function_value_targets(program, &functions);
     let call_graph = program
-        .functions()
+        .function_refs()
         .iter()
         .map(|function| {
             (
-                function.name.clone(),
+                function.name().to_owned(),
                 crate::source_verify::function_value_inventory::calls(
-                    function,
+                    function.payload(),
                     &functions,
                     &function_value_targets,
                 ),
@@ -195,16 +201,17 @@ fn verify_profile<'p>(
         })
         .collect::<HashMap<_, _>>();
     let generic_functions = program
-        .functions()
+        .function_refs()
         .iter()
-        .filter(|function| !function.type_parameters.is_empty())
-        .map(|function| function.name.as_str())
+        .filter(|function| !function.payload().type_parameters.is_empty())
+        .map(|function| function.name())
         .collect::<HashSet<_>>();
     check_generic_function_cycles(program, &call_graph, &generic_functions, &mut diagnostics);
 
     crate::source_verify::lexical_exit::validate(program, &mut diagnostics);
     check_function_bodies(
         program,
+        &capacity_functions,
         &functions,
         &import_keys,
         &types,
@@ -219,18 +226,20 @@ fn verify_profile<'p>(
     );
 
     if let Some(main) = functions.get("main") {
-        if !main.type_parameters.is_empty()
-            || !main.params.is_empty()
-            || main.return_type != Type::I64
+        if !main.payload().type_parameters.is_empty()
+            || !main.payload().params.is_empty()
+            || main.payload().return_type != Type::I64
         {
             diagnostics.push(
                 error(
                     program,
                     "SPX-T104",
                     "entry function must be monomorphic with signature `fn main() -> i64`",
-                    main.span,
+                    main.payload().span,
                 )
-                .with_help(crate::source_verify::hints::entry_signature_help(main)),
+                .with_help(crate::source_verify::hints::entry_signature_help(
+                    main.payload(),
+                )),
             );
         }
     } else {
@@ -239,9 +248,9 @@ fn verify_profile<'p>(
                 "SPX-T105",
                 "executable module must define `fn main() -> i64`",
                 program
-                    .functions()
+                    .function_refs()
                     .first()
-                    .map_or(Span::default(), |function| function.span),
+                    .map_or(Span::default(), |function| function.payload().span),
             )
             .at_path(program.path())
             .with_help(crate::source_verify::hints::LIBRARY_MODULE_HELP),
@@ -260,9 +269,9 @@ fn verify_profile<'p>(
                     capacity_functions
                         .iter()
                         .copied()
-                        .find(|(_, function)| function.stable_id == identity)
+                        .find(|(_, function)| function.payload().stable_id == identity)
                 })
-                .map_or(Span::default(), |(_, function)| function.span);
+                .map_or(Span::default(), |(_, function)| function.payload().span);
             let help = (capacity.diagnostic
                 == crate::byte_data_capacity::CapacityDiagnostic::Allocation)
                 .then(|| super::fusion::refusal_help(program))

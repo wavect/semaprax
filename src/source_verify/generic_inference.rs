@@ -6,7 +6,7 @@ use super::declared_type::{
     substitute_function_type,
 };
 use super::type_table::TypeTable;
-use crate::ast::program_source::ProgramSource;
+use crate::ast::program_source::{FunctionRef, ProgramSource};
 use crate::ast::{BinaryOp, Expr, ExprKind, Function, Type, UnaryOp};
 use std::collections::HashMap;
 
@@ -25,13 +25,13 @@ impl EvidenceBudget {
     }
 }
 
-pub(super) fn arguments(
+pub(super) fn arguments_ref(
     program: &dyn ProgramSource,
-    current: &Function,
-    target: &Function,
+    current: &FunctionRef<'_>,
+    target: &FunctionRef<'_>,
     args: &[Expr],
     bindings: &HashMap<String, Binding>,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
 ) -> Option<Vec<Type>> {
     let mut budget = EvidenceBudget::default();
@@ -51,12 +51,12 @@ pub(super) fn arguments(
 /// One bounded static type fact for the template-forwarding precheck. This
 /// observes the same expression forms as call inference and never checks or
 /// evaluates the expression.
-pub(super) fn expression_type(
+pub(super) fn expression_type_ref(
     program: &dyn ProgramSource,
-    current: &Function,
+    current: &FunctionRef<'_>,
     expression: &Expr,
     bindings: &HashMap<String, Binding>,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
 ) -> Option<Type> {
     evidence(
@@ -76,26 +76,27 @@ pub(super) fn expression_type(
 #[allow(clippy::too_many_arguments)]
 fn infer_arguments(
     program: &dyn ProgramSource,
-    current: &Function,
-    target: &Function,
+    current: &FunctionRef<'_>,
+    target: &FunctionRef<'_>,
     args: &[Expr],
     bindings: &HashMap<String, Binding>,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
     budget: &mut EvidenceBudget,
     depth: usize,
 ) -> Option<Vec<Type>> {
-    if target.type_parameters.is_empty() || args.len() != target.params.len() {
+    if target.payload().type_parameters.is_empty() || args.len() != target.payload().params.len() {
         return None;
     }
     let parameters = target
+        .payload()
         .type_parameters
         .iter()
         .enumerate()
         .map(|(index, parameter)| (parameter.name.as_str(), index))
         .collect::<HashMap<_, _>>();
-    let mut inferred = vec![None; target.type_parameters.len()];
-    for (formal, expression) in target.params.iter().zip(args) {
+    let mut inferred = vec![None; target.payload().type_parameters.len()];
+    for (formal, expression) in target.payload().params.iter().zip(args) {
         let actual = evidence(
             program, current, expression, bindings, functions, types, budget, depth,
         )?;
@@ -161,10 +162,10 @@ fn ordered(ty: &Type) -> bool {
 #[allow(clippy::too_many_arguments)]
 fn evidence(
     program: &dyn ProgramSource,
-    current: &Function,
+    current: &FunctionRef<'_>,
     expression: &Expr,
     bindings: &HashMap<String, Binding>,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
     budget: &mut EvidenceBudget,
     depth: usize,
@@ -278,19 +279,19 @@ fn evidence(
             args,
         } => {
             let target = functions.get(name.as_str())?;
-            if args.len() != target.params.len() {
+            if args.len() != target.payload().params.len() {
                 return None;
             }
-            let arguments = if target.type_parameters.is_empty() {
+            let arguments = if target.payload().type_parameters.is_empty() {
                 if !type_arguments.is_empty() {
                     return None;
                 }
-                return Some(target.return_type.clone());
+                return Some(target.payload().return_type.clone());
             } else if type_arguments.is_empty() {
                 infer_arguments(
                     program, current, target, args, bindings, functions, types, budget, next,
                 )?
-            } else if type_arguments.len() != target.type_parameters.len() {
+            } else if type_arguments.len() != target.payload().type_parameters.len() {
                 return None;
             } else {
                 type_arguments.clone()
@@ -298,7 +299,7 @@ fn evidence(
             if !generic_arguments_are_admitted(program, current, target, &arguments, types) {
                 return None;
             }
-            substitute_function_type(target, &arguments, &target.return_type)?
+            substitute_function_type(target.payload(), &arguments, &target.payload().return_type)?
         }
         _ => return None,
     })
@@ -306,13 +307,52 @@ fn evidence(
 
 fn generic_arguments_are_admitted(
     program: &dyn ProgramSource,
-    current: &Function,
-    target: &Function,
+    current: &FunctionRef<'_>,
+    target: &FunctionRef<'_>,
     arguments: &[Type],
     types: &TypeTable<'_>,
 ) -> bool {
-    generic_function_arguments_are_admitted(target, arguments, types)
-        || generic_function_arguments_are_forwarded(current, target, arguments)
-        || crate::vec_ops::source_arguments_are_admitted(program, target, arguments)
-        || crate::box_ops::source_arguments_are_admitted(program, target, arguments)
+    generic_function_arguments_are_admitted(target.payload(), arguments, types)
+        || generic_function_arguments_are_forwarded(current.payload(), target.payload(), arguments)
+        || crate::vec_ops::source_arguments_are_admitted_ref(program, &target, arguments)
+        || crate::box_ops::source_arguments_are_admitted_ref(program, &target, arguments)
+}
+
+// Ordinary callers retain their AST input contracts; live projected callers
+// use the explicit siblings above and never erase an alias before admission.
+pub(super) fn arguments(
+    program: &dyn ProgramSource,
+    current: &Function,
+    target: &Function,
+    args: &[Expr],
+    bindings: &HashMap<String, Binding>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
+    types: &TypeTable<'_>,
+) -> Option<Vec<Type>> {
+    arguments_ref(
+        program,
+        &FunctionRef::ordinary(current),
+        &FunctionRef::ordinary(target),
+        args,
+        bindings,
+        functions,
+        types,
+    )
+}
+pub(super) fn expression_type(
+    program: &dyn ProgramSource,
+    current: &Function,
+    expression: &Expr,
+    bindings: &HashMap<String, Binding>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
+    types: &TypeTable<'_>,
+) -> Option<Type> {
+    expression_type_ref(
+        program,
+        &FunctionRef::ordinary(current),
+        expression,
+        bindings,
+        functions,
+        types,
+    )
 }

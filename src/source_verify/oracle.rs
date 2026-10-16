@@ -48,7 +48,7 @@ pub(super) fn check_expr(
     current: &Function,
     expr: &Expr,
     variables: &mut HashMap<String, Binding>,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
     result_type: Option<&Type>,
     allow_moves: bool,
@@ -197,7 +197,7 @@ pub(super) fn check_expr(
             .or_else(|| {
                 functions
                     .get(name.as_str())
-                    .and_then(|function| function_value_signature(function))
+                    .and_then(|function| function_value_signature(function.payload()))
                     .map(CheckedValue::value)
             })
             .or_else(|| {

@@ -15,7 +15,7 @@ use crate::source_verify::scope::{VerifierFrame, VerifierScope};
 use crate::source_verify::IterativeVerifier;
 use std::collections::HashMap;
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     pub(super) fn before_799_frame_resume_unary(
         &mut self,
         expression: &'p Expr,

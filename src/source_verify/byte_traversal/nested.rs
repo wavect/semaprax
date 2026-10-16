@@ -5,7 +5,7 @@ use crate::source_verify::binding::Availability;
 use crate::source_verify::scope::VerifierFrame;
 use crate::source_verify::IterativeVerifier;
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     /// None also covers mixed source-for ancestry, including through while.
     pub(in crate::source_verify) fn active_byte_entry_scope(&self) -> Option<usize> {
         let mut outer = None;

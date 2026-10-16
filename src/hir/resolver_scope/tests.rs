@@ -156,6 +156,7 @@ fn complete_map_detach_keeps_siblings_every_field_and_real_drop() {
 fn receiver(source: &str, require_success: bool) {
     let parsed = crate::parse(source, Path::new("borrowed-root.spx")).unwrap();
     let resolver = crate::hir::Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(&parsed)),
         program: &parsed,
         byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(&parsed),
         declarations: DeclarationIndex::from_verified(&parsed).unwrap(),

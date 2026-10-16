@@ -10,7 +10,7 @@ use super::ids::DeclarationId;
 use super::nodes::{DeclarationKind, OwnershipMode, ResolvedType};
 use super::Resolver;
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(super) fn error(
         &self,
         code: &'static str,
@@ -147,30 +147,37 @@ impl Resolver<'_> {
         span: Span,
     ) -> Result<OwnershipMode, Diagnostic> {
         if let super::FunctionExecutionId::Monomorphic(owner) = function {
-            if let Some(template) = self.program.functions().iter().find(|candidate| {
-                candidate.stable_id == owner.as_str() && !candidate.type_parameters.is_empty()
+            if let Some(template) = self.source_functions().find(|candidate| {
+                candidate.payload().stable_id == owner.as_str()
+                    && !candidate.payload().type_parameters.is_empty()
             }) {
                 if super::generic_variant::slot(
                     &self.declarations,
                     ty,
                     owner,
-                    template.type_parameters.len(),
-                ) || super::generic_collection::slot(ty, owner, template.type_parameters.len())
-                    || super::generic_result::slot(ty, owner, template.type_parameters.len())
-                {
+                    template.payload().type_parameters.len(),
+                ) || super::generic_collection::slot(
+                    ty,
+                    owner,
+                    template.payload().type_parameters.len(),
+                ) || super::generic_result::slot(
+                    ty,
+                    owner,
+                    template.payload().type_parameters.len(),
+                ) {
                     return Ok(non_copy_mode);
                 }
                 if super::type_reachability::is_nested_owned_byte_record_template(
                     &self.declarations,
                     ty,
                     owner,
-                    template.type_parameters.len(),
+                    template.payload().type_parameters.len(),
                 ) {
                     return Ok(non_copy_mode);
                 }
                 if matches!(ty, ResolvedType::TypeParameter { owner: parameter_owner, index }
                     if parameter_owner == owner
-                        && usize::try_from(*index).ok().is_some_and(|index| index < template.type_parameters.len()))
+                        && usize::try_from(*index).ok().is_some_and(|index| index < template.payload().type_parameters.len()))
                 {
                     return Ok(OwnershipMode::Value);
                 }

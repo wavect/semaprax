@@ -45,11 +45,12 @@ fn receive_route(source: &str, receiver: u8) -> (Option<(Type, ParamMode, bool)>
         .iter()
         .find(|function| function.name == "main")
         .unwrap();
-    let functions = program
-        .functions
+    let function_cells = crate::source_verify::capacity::source_capacity_functions(&program);
+    let functions = function_cells
         .iter()
-        .map(|function| (function.name.as_str(), function))
-        .collect::<HashMap<_, _>>();
+        .take(program.functions.len())
+        .map(|(_, function)| (function.name(), function))
+        .collect::<crate::source_verify::function_map::FunctionMap<'_>>();
     let types = TypeTable::new(&program);
     let mut variables = HashMap::new();
     for parameter in &current.params {
@@ -88,7 +89,9 @@ fn receive_route(source: &str, receiver: u8) -> (Option<(Type, ParamMode, bool)>
     } else if receiver == 3 {
         let mut verifier = super::IterativeVerifier::new(
             &program,
-            current,
+            functions
+                .get(current.name.as_str())
+                .expect("frozen current declaration cell"),
             variables,
             &functions,
             &types,

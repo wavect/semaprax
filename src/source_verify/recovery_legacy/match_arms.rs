@@ -12,7 +12,7 @@ use crate::source_verify::variant_or::{
 };
 use crate::source_verify::IterativeVerifier;
 use std::collections::{BTreeSet, HashMap, HashSet};
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     pub(in crate::source_verify) fn recovery_old_frame_prepare_variant_match_arm(
         &mut self,
         mut state: VariantMatchState<'p>,

@@ -19,7 +19,7 @@ use std::collections::HashSet;
 #[cfg(test)]
 mod matching_before_799;
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     pub(super) fn frame_resume_match_scrutinee(
         &mut self,
         checkpoint: crate::source_verify::recovery::Checkpoint,
@@ -43,7 +43,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         if scrutinee_value.as_ref().is_some_and(|value| {
             self.recovery.view(scrutinee).is_some_and(|view| {
                 crate::source_verify::declaration::record_shape::origin(
-                    self.program, self.types, &value.ty, self.diagnostics,
+                    self.program,
+                    self.types,
+                    &value.ty,
+                    self.diagnostics,
                 ) == Some(view.origin)
             })
         }) {
@@ -60,7 +63,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     if self.owned_iterator_items.last().is_some_and(|item| item == name));
             if self.loop_depth != 0
                 && !exact_owned_record_item
-                && !crate::finite_owned_record_loop::source_permits(self.current, expression)
+                && !crate::finite_owned_record_loop::source_permits(
+                    self.current.payload(),
+                    expression,
+                )
             {
                 reject_loop_match_scrutinee(
                     self.program,

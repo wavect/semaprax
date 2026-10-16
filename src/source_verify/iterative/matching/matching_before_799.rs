@@ -16,7 +16,7 @@ use crate::source_verify::variant_or::AGGREGATE_REFUTABLE_HELP;
 use crate::source_verify::IterativeVerifier;
 use std::collections::HashSet;
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     pub(super) fn before_match_799_frame_resume_match_scrutinee(
         &mut self,
         expression: &'p Expr,
@@ -39,7 +39,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     if self.owned_iterator_items.last().is_some_and(|item| item == name));
             if self.loop_depth != 0
                 && !exact_owned_record_item
-                && !crate::finite_owned_record_loop::source_permits(self.current, expression)
+                && !crate::finite_owned_record_loop::source_permits(
+                    self.current.payload(),
+                    expression,
+                )
             {
                 reject_loop_match_scrutinee(
                     self.program,

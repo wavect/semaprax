@@ -1,0 +1,214 @@
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+error[E0425]: cannot find type `CleanupSlot` in module `super::super`
+  --> src/cleanup_plan/replay/flat_records/paid_leaves.rs:17:26
+   |
+17 |     slot: &super::super::CleanupSlot,
+   |                          ^^^^^^^^^^^ not found in `super::super`
+   |
+help: consider importing this struct
+   |
+ 2 + use crate::cleanup_plan::CleanupSlot;
+   |
+help: if you import `CleanupSlot`, refer to it directly
+   |
+17 -     slot: &super::super::CleanupSlot,
+17 +     slot: &CleanupSlot,
+   |
+
+error: unused import: `index`
+  --> src/cleanup_plan/replay/structural_maps/paid.rs:23:41
+   |
+23 | pub(in crate::cleanup_plan::replay) use index;
+   |                                         ^^^^^
+   |
+   = note: `-D unused-imports` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(unused_imports)]`
+
+error[E0614]: type `cleanup::LivenessFlagId` cannot be dereferenced
+  --> src/cleanup_plan/replay/flat_records/paid_leaves.rs:28:20
+   |
+28 |             (None, *flag, lifecycle),
+   |                    ^^^^^ can't be dereferenced
+
+error[E0308]: mismatched types
+  --> src/cleanup_plan/replay/flat_records/paid_leaves.rs:28:27
+   |
+28 |             (None, *flag, lifecycle),
+   |                           ^^^^^^^^^ expected `&DeclarationId`, found `DeclarationId`
+   |
+help: consider borrowing here
+   |
+28 |             (None, *flag, &lifecycle),
+   |                           +
+
+error[E0277]: can't compare `hir::ids::ExpressionId` with `&hir::ids::ExpressionId`
+   --> src/cleanup_plan/replay/lexical_boundary/paid.rs:76:35
+    |
+ 76 |                     if expression == site {
+    |                                   ^^ no implementation for `hir::ids::ExpressionId == &hir::ids::ExpressionId`
+...
+120 |         admit!(site, None, None, false);
+    |         ------------------------------- in this macro invocation
+    |
+help: the trait `std::cmp::PartialEq<&hir::ids::ExpressionId>` is not implemented for `hir::ids::ExpressionId`
+   --> src/hir/ids.rs:422:1
+    |
+422 | pub struct ExpressionId(Option<Arc<String>>);
+    | ^^^^^^^^^^^^^^^^^^^^^^^
+    = note: required for `&hir::ids::ExpressionId` to implement `std::cmp::PartialEq<&&hir::ids::ExpressionId>`
+    = note: this error originates in the macro `admit` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider dereferencing here
+    |
+ 76 |                     if expression == *site {
+    |                                      +
+
+error[E0277]: can't compare `hir::ids::ExpressionId` with `&hir::ids::ExpressionId`
+   --> src/cleanup_plan/replay/lexical_boundary/paid.rs:98:27
+    |
+ 98 |             || &item.site != site
+    |                           ^^ no implementation for `hir::ids::ExpressionId == &hir::ids::ExpressionId`
+...
+120 |         admit!(site, None, None, false);
+    |         ------------------------------- in this macro invocation
+    |
+help: the trait `std::cmp::PartialEq<&hir::ids::ExpressionId>` is not implemented for `hir::ids::ExpressionId`
+   --> src/hir/ids.rs:422:1
+    |
+422 | pub struct ExpressionId(Option<Arc<String>>);
+    | ^^^^^^^^^^^^^^^^^^^^^^^
+    = note: required for `&hir::ids::ExpressionId` to implement `std::cmp::PartialEq<&&hir::ids::ExpressionId>`
+    = note: this error originates in the macro `admit` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider dereferencing here
+    |
+ 98 |             || &item.site != *site
+    |                              +
+
+error[E0277]: can't compare `hir::ids::ExpressionId` with `&hir::ids::ExpressionId`
+   --> src/cleanup_plan/replay/lexical_boundary/paid.rs:76:35
+    |
+ 76 |                     if expression == site {
+    |                                   ^^ no implementation for `hir::ids::ExpressionId == &hir::ids::ExpressionId`
+...
+123 |         admit!(site, None, None, false);
+    |         ------------------------------- in this macro invocation
+    |
+help: the trait `std::cmp::PartialEq<&hir::ids::ExpressionId>` is not implemented for `hir::ids::ExpressionId`
+   --> src/hir/ids.rs:422:1
+    |
+422 | pub struct ExpressionId(Option<Arc<String>>);
+    | ^^^^^^^^^^^^^^^^^^^^^^^
+    = note: required for `&hir::ids::ExpressionId` to implement `std::cmp::PartialEq<&&hir::ids::ExpressionId>`
+    = note: this error originates in the macro `admit` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider dereferencing here
+    |
+ 76 |                     if expression == *site {
+    |                                      +
+
+error[E0277]: can't compare `hir::ids::ExpressionId` with `&hir::ids::ExpressionId`
+   --> src/cleanup_plan/replay/lexical_boundary/paid.rs:98:27
+    |
+ 98 |             || &item.site != site
+    |                           ^^ no implementation for `hir::ids::ExpressionId == &hir::ids::ExpressionId`
+...
+123 |         admit!(site, None, None, false);
+    |         ------------------------------- in this macro invocation
+    |
+help: the trait `std::cmp::PartialEq<&hir::ids::ExpressionId>` is not implemented for `hir::ids::ExpressionId`
+   --> src/hir/ids.rs:422:1
+    |
+422 | pub struct ExpressionId(Option<Arc<String>>);
+    | ^^^^^^^^^^^^^^^^^^^^^^^
+    = note: required for `&hir::ids::ExpressionId` to implement `std::cmp::PartialEq<&&hir::ids::ExpressionId>`
+    = note: this error originates in the macro `admit` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider dereferencing here
+    |
+ 98 |             || &item.site != *site
+    |                              +
+
+error[E0277]: can't compare `hir::ids::ExpressionId` with `&hir::ids::ExpressionId`
+   --> src/cleanup_plan/replay/lexical_boundary/paid.rs:76:35
+    |
+ 76 |                     if expression == site {
+    |                                   ^^ no implementation for `hir::ids::ExpressionId == &hir::ids::ExpressionId`
+...
+127 |             admit!(site, None, None, false);
+    |             ------------------------------- in this macro invocation
+    |
+help: the trait `std::cmp::PartialEq<&hir::ids::ExpressionId>` is not implemented for `hir::ids::ExpressionId`
+   --> src/hir/ids.rs:422:1
+    |
+422 | pub struct ExpressionId(Option<Arc<String>>);
+    | ^^^^^^^^^^^^^^^^^^^^^^^
+    = note: required for `&hir::ids::ExpressionId` to implement `std::cmp::PartialEq<&&hir::ids::ExpressionId>`
+    = note: this error originates in the macro `admit` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider dereferencing here
+    |
+ 76 |                     if expression == *site {
+    |                                      +
+
+error[E0277]: can't compare `hir::ids::ExpressionId` with `&hir::ids::ExpressionId`
+   --> src/cleanup_plan/replay/lexical_boundary/paid.rs:98:27
+    |
+ 98 |             || &item.site != site
+    |                           ^^ no implementation for `hir::ids::ExpressionId == &hir::ids::ExpressionId`
+...
+127 |             admit!(site, None, None, false);
+    |             ------------------------------- in this macro invocation
+    |
+help: the trait `std::cmp::PartialEq<&hir::ids::ExpressionId>` is not implemented for `hir::ids::ExpressionId`
+   --> src/hir/ids.rs:422:1
+    |
+422 | pub struct ExpressionId(Option<Arc<String>>);
+    | ^^^^^^^^^^^^^^^^^^^^^^^
+    = note: required for `&hir::ids::ExpressionId` to implement `std::cmp::PartialEq<&&hir::ids::ExpressionId>`
+    = note: this error originates in the macro `admit` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider dereferencing here
+    |
+ 98 |             || &item.site != *site
+    |                              +
+
+error[E0277]: can't compare `hir::ids::ExpressionId` with `&hir::ids::ExpressionId`
+   --> src/cleanup_plan/replay/lexical_boundary/paid.rs:76:35
+    |
+ 76 |                     if expression == site {
+    |                                   ^^ no implementation for `hir::ids::ExpressionId == &hir::ids::ExpressionId`
+...
+147 |             admit!(site, Some(domain), Some(certificate.exit), false);
+    |             --------------------------------------------------------- in this macro invocation
+    |
+help: the trait `std::cmp::PartialEq<&hir::ids::ExpressionId>` is not implemented for `hir::ids::ExpressionId`
+   --> src/hir/ids.rs:422:1
+    |
+422 | pub struct ExpressionId(Option<Arc<String>>);
+    | ^^^^^^^^^^^^^^^^^^^^^^^
+    = note: required for `&hir::ids::ExpressionId` to implement `std::cmp::PartialEq<&&hir::ids::ExpressionId>`
+    = note: this error originates in the macro `admit` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider dereferencing here
+    |
+ 76 |                     if expression == *site {
+    |                                      +
+
+error[E0277]: can't compare `hir::ids::ExpressionId` with `&hir::ids::ExpressionId`
+   --> src/cleanup_plan/replay/lexical_boundary/paid.rs:98:27
+    |
+ 98 |             || &item.site != site
+    |                           ^^ no implementation for `hir::ids::ExpressionId == &hir::ids::ExpressionId`
+...
+147 |             admit!(site, Some(domain), Some(certificate.exit), false);
+    |             --------------------------------------------------------- in this macro invocation
+    |
+help: the trait `std::cmp::PartialEq<&hir::ids::ExpressionId>` is not implemented for `hir::ids::ExpressionId`
+   --> src/hir/ids.rs:422:1
+    |
+422 | pub struct ExpressionId(Option<Arc<String>>);
+    | ^^^^^^^^^^^^^^^^^^^^^^^
+    = note: required for `&hir::ids::ExpressionId` to implement `std::cmp::PartialEq<&&hir::ids::ExpressionId>`
+    = note: this error originates in the macro `admit` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider dereferencing here
+    |
+ 98 |             || &item.site != *site
+    |                              +
+
+Some errors have detailed explanations: E0277, E0308, E0425, E0614.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `semaprax` (lib) due to 12 previous errors

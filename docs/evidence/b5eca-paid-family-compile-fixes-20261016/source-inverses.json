@@ -1,0 +1,47 @@
+{
+  "base": "b5eca55b96890e1a815f0d8d9e7b42c78d743b07",
+  "rows": [
+    {
+      "source": "src/cleanup_plan/replay/flat_records/paid_leaves.rs",
+      "before_sha256": "ff5688be42817ac84c79a94455281455d045b740b59092e8a3beda78fb93e37d",
+      "after_sha256": "b0c4362fb34d7169e09379d23336d5338a2afc8db9cd858fe7cc2e4c017ff88c",
+      "before_archive": "before/src/cleanup_plan/replay/flat_records/paid_leaves.rs",
+      "edits": [
+        {
+          "before": "slot: &super::super::CleanupSlot,",
+          "after": "slot: &crate::cleanup_plan::CleanupSlot,",
+          "old_offset": 729,
+          "new_offset": 729
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_boundary/paid.rs",
+      "before_sha256": "03a8a084b6fde205d7a970bcc8ef1312d1f638f45561fe6db7b21328d4e1ff5c",
+      "after_sha256": "5efffe7a2e3dea9e0dc673a9bec80d51cba864ed8405a5a00454087e5cab795d",
+      "before_archive": "before/src/cleanup_plan/replay/lexical_boundary/paid.rs",
+      "edits": [
+        {
+          "before": "let site=$site;let domain=$domain;",
+          "after": "let site:&crate::hir::ExpressionId=$site;let domain=$domain;",
+          "old_offset": 2412,
+          "new_offset": 2412
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/structural_maps/paid.rs",
+      "before_sha256": "2c9a3b5436fe519929c30ca2fdd840ab566b4d7b12583e33c779c1555f32f575",
+      "after_sha256": "a07b081475fd830e0187d5526c830de4ea4363670e49b9c5b5f5aa5586038d97",
+      "before_archive": "before/src/cleanup_plan/replay/structural_maps/paid.rs",
+      "edits": [
+        {
+          "before": "pub(in crate::cleanup_plan::replay) use index;",
+          "after": "#[cfg(test)]\npub(in crate::cleanup_plan::replay) use index;",
+          "old_offset": 1108,
+          "new_offset": 1108
+        }
+      ]
+    }
+  ]
+}

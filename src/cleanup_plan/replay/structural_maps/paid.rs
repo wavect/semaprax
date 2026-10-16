@@ -20,6 +20,7 @@ macro_rules! index {
         }
     };
 }
+#[cfg(test)]
 pub(in crate::cleanup_plan::replay) use index;
 
 pub(in crate::cleanup_plan::replay) fn slots(

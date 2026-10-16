@@ -1,0 +1,18 @@
+[
+  {
+    "status": "REFUSED_UNCLASSIFIED_PRIOR_EVIDENCE_EDIT",
+    "reason": "Generic seal initially refused intentional Main531 Darwin-reference README difference versus2d4b-based components; no oldJSON changed",
+    "resolution": "Allow only that exact Main531 README, preserve full before/inverse for each branch, and bind its current bytes toMain531 in final verifier",
+    "Rust_executed": false
+  },
+  {
+    "status": "VERIFIER_EXTRACTION_CORRECTED",
+    "reason": "Initial project comparison included preceding input frontdoors; corrected verifier bound to exact project function span. No source mutation.",
+    "Rust_executed": false
+  },
+  {
+    "status": "STALE_AUTHORITY_MANIFEST_REFUSED",
+    "reason": "Authority check before generator completion correctly refused the new5651 test source hash; regenerated unchanged generator output is checked separately.",
+    "Rust_executed": false
+  }
+]

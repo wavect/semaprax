@@ -23,6 +23,8 @@ mod before_ordered;
 mod before_scratch;
 #[cfg(test)]
 mod before_targets;
+#[cfg(test)]
+mod before_unit;
 pub(in crate::cleanup_plan::replay) mod closure_receiving;
 mod empty_closure;
 #[cfg(test)]
@@ -41,11 +43,58 @@ mod scratch_tests;
 #[cfg(test)]
 mod singleton_target_tests;
 mod successor_targets;
+#[cfg(test)]
+mod unit_receiving_tests;
 
 #[cfg(test)]
 mod before_inline_weighted;
 mod inline_weighted;
 use inline_weighted::SmallWeighted;
+
+// Lexical unit publication deliberately introduces no forwarding borrowed
+// receiver: preflight replaces the old RetainedMemo auth method boundary, and
+// the old zero-auth call borrows the already-live invocation refusal field here.
+macro_rules! authenticate_closure {
+    ($this:ident, $function:ident, $budget:ident, $receiving:ident) => {{
+        // The returned branch predicate replaces the former controls_paid /
+        // binding branch; no second Option<Binding> borrow or named local exists.
+        if $this.closures.preflight($function, $budget) {
+            if $this.closures.failed() {
+                $receiving.refusal = Some(Diagnostic::io("SPX-H006", String::new()));
+            } else {
+                $budget.authenticate_zero_into(
+                    $function,
+                    "factored closure memo authentication",
+                    &mut $receiving.refusal,
+                );
+                if $receiving.refusal.is_some() {
+                    $this.closures.failed = true;
+                }
+            }
+        } else if $this.closures.failed() {
+            $receiving.refusal = Some(Diagnostic::io("SPX-H006", String::new()));
+        } else {
+            // Preserve complete original cold admission/receipt/binding order.
+            if let Err(error) = $this.closures.authenticate($function, $budget) {
+                $receiving.refusal = Some(error);
+            }
+        }
+    }};
+}
+macro_rules! publish_closure {
+    ($this:ident, $function:ident, $budget:ident, $receiving:ident, $operation:expr) => {{
+        authenticate_closure!($this, $function, $budget, $receiving);
+        if $receiving.refusal.is_some() {
+            $receiving.ready = true;
+            return;
+        }
+        if let Err(error) = $operation {
+            $this.closures.failed = true;
+            $receiving.refuse(error);
+            return;
+        }
+    }};
+}
 
 type SharedWeighted = Rc<SmallWeighted>;
 
@@ -120,7 +169,7 @@ fn share_weighted(
 pub(super) struct Canonicalizer<'a> {
     automaton: &'a Automaton,
     sink: usize,
-    closures: empty_memo::RetainedMemo<Rc<ordered_weights::OrderedWeights>>,
+    closures: empty_memo::Memo<Rc<ordered_weights::OrderedWeights>>,
     states: BTreeMap<SharedWeighted, usize>,
     ids: BTreeMap<(u64, Vec<(Label, usize)>), usize>,
     cursor: Vec<(usize, bool)>,
@@ -134,7 +183,7 @@ impl<'a> Canonicalizer<'a> {
         Self {
             automaton,
             sink,
-            closures: empty_memo::RetainedMemo::new(),
+            closures: empty_memo::Memo::new(),
             states: BTreeMap::new(),
             ids: BTreeMap::new(),
             cursor: Vec::new(),
@@ -157,9 +206,15 @@ impl<'a> Canonicalizer<'a> {
     ) -> Result<Option<usize>, Diagnostic> {
         // Preserve the old entry's owner rejection before a fresh test-only slot
         // can query or charge a foreign payer. A valid call still pays acquisition.
-        self.closures.authenticate_retained(function, budget);
-        if self.closures.failed() {
-            return Err(self.closures.failure());
+        if self.closures.preflight(function, budget) {
+            if self.closures.failed() {
+                return Err(Diagnostic::io("SPX-H006", String::new()));
+            }
+        } else {
+            if self.closures.failed() {
+                return Err(Diagnostic::io("SPX-H006", String::new()));
+            }
+            self.closures.authenticate(function, budget)?;
         }
         if budget.pays_allocations() {
             budget.reserve_bytes(
@@ -196,9 +251,15 @@ impl<'a> Canonicalizer<'a> {
         budget: &mut ReplayBudget,
     ) -> Result<Option<empty_closure::Closure>, Diagnostic> {
         // Reject foreign/sticky owners before any adapter payment.
-        self.closures.authenticate_retained(function, budget);
-        if self.closures.failed() {
-            return Err(self.closures.failure());
+        if self.closures.preflight(function, budget) {
+            if self.closures.failed() {
+                return Err(Diagnostic::io("SPX-H006", String::new()));
+            }
+        } else {
+            if self.closures.failed() {
+                return Err(Diagnostic::io("SPX-H006", String::new()));
+            }
+            self.closures.authenticate(function, budget)?;
         }
         if budget.pays_allocations() {
             budget.reserve_bytes(
@@ -249,9 +310,9 @@ impl<'a> Canonicalizer<'a> {
             self.closures.reject_after_error();
             return Err(Diagnostic::io("SPX-H006", String::new()));
         }
-        self.closures.authenticate_retained(function, budget);
-        if self.closures.failed() {
-            return Err(self.closures.failure());
+        authenticate_closure!(self, function, budget, receiving);
+        if receiving.refusal.is_some() {
+            return Err(receiving.refusal.take().expect("published refusal"));
         }
         if budget.pays_allocations() {
             budget.reserve_bytes(
@@ -289,9 +350,8 @@ impl<'a> Canonicalizer<'a> {
             receiving.ready = true;
             return;
         }
-        self.closures.authenticate_retained(function, budget);
-        if self.closures.failed() {
-            receiving.refusal = Some(self.closures.failure());
+        authenticate_closure!(self, function, budget, receiving);
+        if receiving.refusal.is_some() {
             receiving.ready = true;
             return;
         }
@@ -409,7 +469,13 @@ impl<'a> Canonicalizer<'a> {
                 let Some(inner) = self.closures.get(&state.epsilon()[0]) else {
                     if self.closures.contains_key(&state.epsilon()[0]) {
                         attempt!(budget.charge(function, 1, "factored skeleton closure"));
-                        attempt!(self.closures.insert_empty_retained(function, node, budget));
+                        publish_closure!(
+                            self,
+                            function,
+                            budget,
+                            receiving,
+                            self.closures.insert_empty_bound(function, node, budget)
+                        );
                         #[cfg(test)]
                         app_census::published();
                         if node == root {
@@ -432,16 +498,27 @@ impl<'a> Canonicalizer<'a> {
                 };
                 #[cfg(test)]
                 app_census::acquired();
-                attempt!(self
-                    .closures
-                    .insert_retained(function, node, budget, || shared));
+                publish_closure!(
+                    self,
+                    function,
+                    budget,
+                    receiving,
+                    self.closures
+                        .insert_bound(function, node, budget, || shared)
+                );
                 #[cfg(test)]
                 app_census::published();
                 continue;
             }
             if node != self.sink && state.moves().is_empty() && state.epsilon().is_empty() {
                 attempt!(budget.charge(function, 1, "factored skeleton closure"));
-                attempt!(self.closures.insert_empty_retained(function, node, budget));
+                publish_closure!(
+                    self,
+                    function,
+                    budget,
+                    receiving,
+                    self.closures.insert_empty_bound(function, node, budget)
+                );
                 if node == root {
                     receiving.empty = true;
                 }
@@ -497,9 +574,14 @@ impl<'a> Canonicalizer<'a> {
                 physical_clone::rc_backing_bytes::<ordered_weights::OrderedWeights>(),
                 "factored closure shared header",
             ));
-            attempt!(self
-                .closures
-                .insert_retained(function, node, budget, || Rc::new(closure)));
+            publish_closure!(
+                self,
+                function,
+                budget,
+                receiving,
+                self.closures
+                    .insert_bound(function, node, budget, || Rc::new(closure))
+            );
         }
         receiving.ready = true;
     }
@@ -985,27 +1067,32 @@ impl<'a> Canonicalizer<'a> {
             self.closures.reject_after_error();
             return Err(Diagnostic::io("SPX-H006", String::new()));
         }
-        self.closures.authenticate_retained(function, budget);
-        if self.closures.failed() {
-            return Err(self.closures.failure());
+        authenticate_closure!(self, function, budget, receiving);
+        if receiving.refusal.is_some() {
+            return Err(receiving.refusal.take().expect("published refusal"));
         }
         if budget.pays_allocations() {
             budget.reserve_bytes(
                 function,
-                std::mem::size_of::<Result<Option<usize>, Diagnostic>>()
-                    + std::mem::size_of::<Weighted>()
-                    + std::mem::size_of::<Result<(), Diagnostic>>(),
+                std::mem::size_of::<Weighted>() + std::mem::size_of::<Result<(), Diagnostic>>(),
                 "factored canonical scratch receiving and moved root",
             )?;
         }
         self.prepare_scratch(function, budget)?;
-        let result = self.id_inner(function, root, budget, receiving);
+        self.id_inner_into(function, root, budget, receiving);
         // Retain capacity, never owned references, across either root and all
         // success, arithmetic, work, physical and semantic failure exits.
         self.cursor.clear();
         self.frames.clear();
         self.open.clear();
-        result
+        receiving.ready = false;
+        if receiving.refusal.is_some() {
+            return Err(receiving.refusal.take().expect("published refusal"));
+        }
+        if receiving.overflow {
+            return Ok(None);
+        }
+        Ok(Some(receiving.id))
     }
 
     fn prepare_scratch(
@@ -1029,69 +1116,87 @@ impl<'a> Canonicalizer<'a> {
         Ok(())
     }
 
-    fn id_inner(
+    fn id_inner_into(
         &mut self,
         function: &ResolvedFunction,
         root: Weighted,
         budget: &mut ReplayBudget,
         receiving: &mut closure_receiving::ClosureReceiving,
-    ) -> Result<Option<usize>, Diagnostic> {
-        budget.reserve_vec(
+    ) {
+        macro_rules! attempt {
+            ($operation:expr) => {
+                match $operation {
+                    Ok(value) => value,
+                    Err(error) => {
+                        receiving.refusal = Some(error);
+                        receiving.ready = true;
+                        return;
+                    }
+                }
+            };
+        }
+        receiving.overflow = false;
+        attempt!(budget.reserve_vec(
             function,
             &mut self.frames,
             1,
             "factored canonical initial frame",
-        )?;
+        ));
         // This direct root construction has no Diagnostic-bearing helper Result.
         // Both enum values, actual Rc initializer/receiving values and payment
         // Result remain real and prepaid; the general successor helper is unchanged.
         if budget.pays_allocations() {
-            budget.reserve_bytes(
+            attempt!(budget.reserve_bytes(
                 function,
                 2 * std::mem::size_of::<SmallWeighted>()
                     + 2 * std::mem::size_of::<SharedWeighted>()
                     + std::mem::size_of::<Result<(), Diagnostic>>(),
                 "factored direct root enum receiving",
-            )?;
+            ));
         }
-        budget.reserve_bytes(
+        attempt!(budget.reserve_bytes(
             function,
             physical_clone::rc_backing_bytes::<SmallWeighted>(),
             "factored weighted shared header",
-        )?;
+        ));
         let shared = SmallWeighted::Many(root);
         let root = Rc::new(shared);
-        let root_copy = share_weighted(function, budget, &root)?;
+        let root_copy = attempt!(share_weighted(function, budget, &root));
         self.frames.push(CanonicalFrame::Enter(root_copy));
         while let Some(frame) = self.frames.pop() {
-            budget.charge(function, 1, "factored canonical frame")?;
+            attempt!(budget.charge(function, 1, "factored canonical frame"));
             match frame {
                 CanonicalFrame::Enter(state) => {
                     if self.states.contains_key(&state) {
                         continue;
                     }
                     if self.open.contains(&state) {
-                        return Err(replay_error(function, "cleanup CFG contains a cycle"));
+                        receiving.refusal =
+                            Some(replay_error(function, "cleanup CFG contains a cycle"));
+                        receiving.ready = true;
+                        return;
                     }
-                    budget.reserve_vec(
+                    attempt!(budget.reserve_vec(
                         function,
                         &mut self.open,
                         1,
                         "factored retained open-state identity slots",
-                    )?;
-                    self.open.push(share_weighted(function, budget, &state)?);
-                    let Some((accepted, successors)) =
-                        self.successors_with_receiving(function, &state, budget, receiving)?
-                    else {
-                        return Ok(None);
+                    ));
+                    self.open
+                        .push(attempt!(share_weighted(function, budget, &state)));
+                    let Some((accepted, successors)) = attempt!(
+                        self.successors_with_receiving(function, &state, budget, receiving)
+                    ) else {
+                        receiving.finish_overflow();
+                        return;
                     };
                     let child_count = successors.len();
-                    budget.reserve_vec(
+                    attempt!(budget.reserve_vec(
                         function,
                         &mut self.frames,
                         1,
                         "factored canonical exit frame",
-                    )?;
+                    ));
                     let exit_index = self.frames.len();
                     self.frames
                         .push(CanonicalFrame::Exit(state, accepted, successors));
@@ -1100,32 +1205,36 @@ impl<'a> Canonicalizer<'a> {
                         else {
                             unreachable!("canonical exit retained below child frames");
                         };
-                        let child = share_weighted(function, budget, &successors[index].1)?;
-                        budget.reserve_vec(
+                        let child =
+                            attempt!(share_weighted(function, budget, &successors[index].1));
+                        attempt!(budget.reserve_vec(
                             function,
                             &mut self.frames,
                             1,
                             "factored canonical child frames",
-                        )?;
+                        ));
                         self.frames.push(CanonicalFrame::Enter(child));
                     }
                 }
                 CanonicalFrame::Exit(state, accepted, successors) => {
                     self.open.retain(|entry| entry != &state);
-                    budget.charge(
+                    attempt!(budget.charge(
                         function,
                         successors.len(),
                         "factored canonical signature construction",
-                    )?;
-                    budget.reserve_array::<(Label, usize)>(
+                    ));
+                    attempt!(budget.reserve_array::<(Label, usize)>(
                         function,
                         successors.len(),
                         "factored canonical signature vector",
-                    )?;
+                    ));
                     let mut key = Vec::with_capacity(successors.len());
                     for (label, child) in successors {
                         let Some(id) = self.states.get(&child) else {
-                            return Err(replay_error(function, "cleanup CFG contains a cycle"));
+                            receiving.refusal =
+                                Some(replay_error(function, "cleanup CFG contains a cycle"));
+                            receiving.ready = true;
+                            return;
                         };
                         key.push((label, *id));
                     }
@@ -1133,26 +1242,31 @@ impl<'a> Canonicalizer<'a> {
                     let id = match self.ids.get(&key) {
                         Some(id) => *id,
                         None => {
-                            budget.reserve_btree_node::<(u64, Vec<(Label, usize)>), usize>(
-                                function,
-                                "factored canonical signature node",
-                            )?;
+                            attempt!(budget
+                                .reserve_btree_node::<(u64, Vec<(Label, usize)>), usize>(
+                                    function,
+                                    "factored canonical signature node",
+                                ));
                             let id = self.ids.len();
                             self.ids.insert(key, id);
                             id
                         }
                     };
                     if !self.states.contains_key(&state) {
-                        budget.reserve_btree_node::<SharedWeighted, usize>(
+                        attempt!(budget.reserve_btree_node::<SharedWeighted, usize>(
                             function,
                             "factored canonical state memo node",
-                        )?;
+                        ));
                     }
                     self.states.insert(state, id);
                 }
             }
         }
-        Ok(self.states.get(&root).copied())
+        match self.states.get(&root) {
+            Some(id) => receiving.id = *id,
+            None => receiving.overflow = true,
+        }
+        receiving.ready = true;
     }
 }
 

@@ -1,0 +1,8 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "three_whole_fac_inputs": 3,
+  "composed_whole_2d4b_inputs": 9,
+  "protected_fac_tables_and_test_owners": "UNCHANGED",
+  "extra_option_borrow": "ELIMINATED_DIRECT_BRANCH_PREDICATE",
+  "execution": false
+}

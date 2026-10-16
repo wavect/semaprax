@@ -1,0 +1,15 @@
+{
+  "status": "PENDING_NOT_EXECUTED",
+  "selectors": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::inline_tests::inline_branch_keeps_complete_paths_work_and_all_six_refusal_fields"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::inline_tests::inline_whole_enumerator_reports_cost_and_exact_short_zero_complete_drop"
+    }
+  ]
+}

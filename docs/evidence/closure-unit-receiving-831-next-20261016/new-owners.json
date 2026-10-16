@@ -1,0 +1,27 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/before_unit.rs",
+    "sha256": "87fd1f290d85fed32cba9f92a5b58b528712031121007b1f2a6875bde2e6fa5e",
+    "lines": 1131
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/before_unit/empty_memo.rs",
+    "sha256": "d1b8869334481a09172954e782e209ffb189394c614c71745f566a4af942a2fc",
+    "lines": 234
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/before_unit/empty_memo/retained.rs",
+    "sha256": "c2972e6cef57f9e7f828088e2d9cab614e8d1c8e238f5b8ad5fa1ecab4f82335",
+    "lines": 145
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/before_unit/closure_receiving.rs",
+    "sha256": "cb3e603ceac68970037e57ccc7667d4b77c5d152c7a0c7a3f302346c5ce226bd",
+    "lines": 128
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/unit_receiving_tests.rs",
+    "sha256": "8c4026175e6ed2ec76c5cdfe6bceeb0baa6596cb37a37ef6899aa927d0b40139",
+    "lines": 189
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "base": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+  "whole_input_rows": 9,
+  "independent_new_owners": 5,
+  "ordinary_and_strict_exact": [
+    "src/cleanup_plan/replay/factored/canonical_shared/memo.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/memo/retained.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/empty_closure_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/empty_memo/retained.rs"
+  ],
+  "shipping_sources": {
+    "src/cleanup_plan/replay/factored/canonical_shared.rs": "b57d6cf39f4d07affd2b911982bebf6eb0265a9a0172ffbc10bc60432df985a3",
+    "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs": "006a2efb76b4d30c6062d0af713a7d2b4f650c01b43a6e0a3b80c11c3b986a66",
+    "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs": "85a1b439ee4367950093949ab5cb595d419ae83809b6c6037aff791984e9ae9a"
+  },
+  "rust_execution": false,
+  "gain_claim": false
+}

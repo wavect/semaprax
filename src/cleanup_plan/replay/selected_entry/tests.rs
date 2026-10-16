@@ -167,3 +167,6 @@ mod structural_errors;
 mod transition_errors;
 
 mod session_errors;
+
+#[path = "tests/driver_local_receivers.rs"]
+mod driver_local_receivers;

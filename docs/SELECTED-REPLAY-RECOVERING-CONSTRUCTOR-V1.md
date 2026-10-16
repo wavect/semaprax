@@ -577,3 +577,31 @@ This finite adoption does not complete arbitrary later Session/replay/renewal
 owned diagnostic propagation. Those residuals, unsupported admission profiles,
 and outward legacy rendering remain explicit; issue #781 is not closed by the
 source-only successor or by observing its tests before qualification.
+
+## Duplicated driver-local receiving cut (#781, source-only)
+
+The actual paid lexical and scalar driver bodies call the existing paid profile
+and member-owner twins at their original positions. Their complete generic
+Diagnostic-policy bodies remain independent legacy references. Specializing the
+paid bodies removes the previous fact-builder callback/forwarding arguments; no
+new helper Result, aggregate allowance, cap change or old-header credit is added.
+The paid twins retain their actual receiving permits and initializer work, so
+this repeated validation can reserve more cumulative controls than the former
+legacy calls. No savings or admission claim follows.
+
+The direct receiving owner compares both complete old driver entries with
+profile and identity-by-address failures, checks all six legacy diagnostic fields
+through the explicit renderer, and transfers the actual prepaid semantic receipt
+into the same report/ledger owner through sticky rejection and complete Drop.
+These are internal hostile receiving controls, not a bypass of public source
+authentication. Source-only qualification is pending. Initial report acquisition,
+inline zero/short setup, fixed outward publication and named unfunded legacy
+boundaries are unchanged.
+
+This is not transitive Session funding. Lexical-exit validation, structure bounds,
+inventory/status construction, region/entry/exit/certificate/CFG validation, path
+replay, factored comparison, and the scalar signature/body/schema/trace families
+still include Diagnostic-returning children converted to EngineError::Owned.
+Budget failures also retain their genuinely prepaid original Diagnostic. An
+already-owned semantic Diagnostic is not retroactively paid by report transfer;
+#781 remains open.

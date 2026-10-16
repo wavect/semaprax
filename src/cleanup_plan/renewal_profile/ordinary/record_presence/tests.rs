@@ -249,6 +249,8 @@ fn prior_enclosing_refusal_cannot_be_hidden_by_a_prepared_presence_proof() {
 fn full_original_collector_and_phase_source_inverses_remain_exact() {
     use sha2::{Digest, Sha256};
     fn immediate_main_input(path: &str, current: &str) -> String {
+        let direct_previous = super::super::direct_presence_tests::previous(path, current);
+        let current = direct_previous.as_str();
         let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/record-presence-controls-850-20261016/runtime-inputs.json"

@@ -32,6 +32,7 @@ impl<'a> RecordPresence<'a> {
             + 2 * size_of::<&mut Admission<'_>>()
             + size_of::<Refusal>()
     }
+    #[cfg(test)]
     pub(crate) fn transport_controls() -> usize {
         use std::mem::size_of;
         // Actual None/Some initializer, parameter and match operand, captured
@@ -41,18 +42,34 @@ impl<'a> RecordPresence<'a> {
             + size_of::<&mut Admission<'_>>()
             + size_of::<Result<(), Refusal>>()
     }
+    #[cfg(test)]
     pub(crate) fn shared_transport_controls() -> usize {
         // Only Some reaches get: None never reserves a statically dead read.
         // Five refs: caller initializer, factory parameter, Some payload,
         // match binding, consuming parameter. get's own receiver is below.
         Self::transport_controls() + 5 * std::mem::size_of::<&Self>() + Self::read_controls()
     }
+    #[cfg(test)]
     pub(crate) fn shared_caller_controls() -> usize {
         // The same single transport payment now occurs in ModuleIndex, before
         // its presence borrow/receiver exists. Its map_err is a new receiver.
         Self::shared_transport_controls()
             + std::mem::size_of::<Result<(), crate::diagnostic::Diagnostic>>()
             + std::mem::size_of::<Refusal>()
+    }
+    pub(crate) fn direct_caller_controls() -> usize {
+        use std::mem::size_of;
+        // Same one caller payment and mapped refusal, before borrowed arguments.
+        // Three real refs: caller initializer, factory parameter, consuming arg.
+        // The closure captures its presence parameter by borrow (&&Self).
+        // No Option initializer/parameter/match, or Some/match payload refs exist.
+        size_of::<&mut Admission<'_>>()
+            + size_of::<Result<(), Refusal>>()
+            + size_of::<Result<(), crate::diagnostic::Diagnostic>>()
+            + size_of::<Refusal>()
+            + 3 * size_of::<&Self>()
+            + size_of::<&&Self>()
+            + Self::read_controls()
     }
     pub(crate) fn read_controls() -> usize {
         use std::mem::size_of;

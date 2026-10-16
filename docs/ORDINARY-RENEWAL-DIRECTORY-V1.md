@@ -89,3 +89,25 @@ debits stay phase-owned; dropping current facts never refunds admission.
 Current-member selection uses direct authored/instance ordinal lookup. Current-cell lookup is also constant-time and retains no prior member facts. The 128/512 plain-member whole-phase
 observer records that overhead without assuming a gain; repeated helper and
 dense String controls separately require actual allocation/debit savings.
+
+
+## Direct shared presence receiver (#850 next component)
+
+The production ModuleIndex factory pays its real direct shared receiver bank
+before constructing any presence arguments. A specialized mandatory-presence
+closure retains the same ordered iterator/Vec/consuming/byte-set/String/helper
+collectors. No optional presence value, Some payload or match is constructed.
+The closure still borrows its presence parameter, and that actual borrowed
+receiver is paid. The underlying presence constructor and get authentication,
+work, exact immutable index check, nested Results and failure order stay exact.
+No surviving fee, backing, work, refusal or cap is waived.
+
+The complete preceding optional factory, collect_impl and get remain compiled
+as the independent test arm, with every original phase and limit assertion.
+New controls compare complete directories and actual old/direct debits and
+allocation through Drop; exact/one-short/zero/work/floor/foreign cases remain
+closed. Source, helper inventory and callback ledgers are caller inputs outside
+both directory windows; presence and real directory owners drop inside them.
+The historical47f callable1024 refusal requested70176 with22717 remaining in
+HIR final validation. Its inner operation was unknown: this source change does
+not attribute that refusal, promise admission, or claim observed savings.

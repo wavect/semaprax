@@ -82,15 +82,11 @@ impl<'a> ModuleIndex<'a> {
                 continue;
             }
             admission
-                .reserve(RecordPresence::shared_caller_controls())
+                .reserve(RecordPresence::direct_caller_controls())
                 .map_err(|_| resolved::census_error())?;
-            let directory = Directory::collect_current_with_presence(
-                member,
-                self,
-                &record_presence,
-                &mut admission,
-            )
-            .map_err(|_| resolved::census_error())?;
+            let directory =
+                Directory::collect_current_shared(member, self, &record_presence, &mut admission)
+                    .map_err(|_| resolved::census_error())?;
             directories
                 .push(directory, &mut admission)
                 .map_err(|_| resolved::census_error())?;

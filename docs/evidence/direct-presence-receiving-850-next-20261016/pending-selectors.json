@@ -1,0 +1,12 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::renewal_profile::ordinary::direct_presence_tests::direct_presence_keeps_complete_old_directory_work_and_real_receiving_drop"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::renewal_profile::ordinary::direct_presence_tests::direct_presence_preserves_original_subject_and_sticky_work_order"
+  }
+]

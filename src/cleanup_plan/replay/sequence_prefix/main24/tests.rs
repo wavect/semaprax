@@ -343,7 +343,10 @@ fn thin_header_and_complete_shipped_wrapper_and_tests_stay_source_bound() {
         format!(
             "{:x}",
             crate::digest_hex::LowerHex(Sha256::digest(
-                include_str!("before_wrapper_tests.rs").as_bytes()
+                crate::source_reflows_merge::current344::project(
+                    "src/cleanup_plan/replay/sequence_prefix/main24/before_wrapper_tests.rs",
+                    include_str!("before_wrapper_tests.rs"),
+                ).as_bytes()
             ))
         ),
         "38f11a53d0a21dc60470dc7ac46fda2a86d191ade68bd7abf5c40ab4da783846"

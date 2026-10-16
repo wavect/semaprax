@@ -2,7 +2,10 @@ use super::undo;
 #[test]
 fn complete_original_sources_and_compiled_owning_receivers_remain_exact() {
     {
-        let mut current = include_str!("../../../../hir/function_value/funded.rs").to_owned();
+        let mut current = crate::source_reflows_merge::current344::project(
+            "src/hir/function_value/funded.rs",
+            include_str!("../../../../hir/function_value/funded.rs"),
+        );
         undo(
             &mut current,
             r#"        }

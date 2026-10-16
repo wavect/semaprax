@@ -482,7 +482,7 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
         "pub(super) fn pay_teardown_minimum(owner: &mut Receiver) -> Result<(), Setup> {",
     ]);
     current_facade.push("pub(super) fn verify(");
-    let current_facade_input = current_projection_facade_input(&current_projection_root);
+    let current_facade_input = current_projection_facade_input(&facade_input);
     assert_eq!(
         current_facade_input
             .lines()

@@ -106,7 +106,13 @@ fn exact_original_fixture_prefix() {
         include_str!("string_vectors.rs"),
     );
     assert_eq!(current, original);
-    assert_eq!(include_str!("../codec_allocation.rs"), parent);
+    assert_eq!(
+        crate::source_reflows_merge::current344::project(
+            "tests/native/string_settlement/codec_allocation.rs",
+            include_str!("../codec_allocation.rs"),
+        ),
+        parent
+    );
     let original = original.split_once("fn generated_v2(").unwrap().1;
     let start = original
         .find("    let root = std::env::temp_dir()")

@@ -1,0 +1,15 @@
+[
+  "python3",
+  "/Volumes/Semaprax/provenance/paid-route-pin-workflow-2d4b-50-20261016/strict-828f-capture-only.py",
+  "/Volumes/Semaprax/provenance/actual2d4b-managed-pin-capture-20261016",
+  "--repo",
+  "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "--expected-capture-head",
+  "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+  "--round",
+  "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016",
+  "--expected-build-receipt-sha256",
+  "7a509591c68c82f0badf1027ce70a1e3d738d49083f36782b1b5de0f41406053",
+  "--expected-producer-receipt-sha256",
+  "a578f8625e4dc94ec9489613da5753c3058653c9f47c68a5a8e59de801445fef"
+]

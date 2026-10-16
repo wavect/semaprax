@@ -965,3 +965,10 @@ mod main44_custody;
 pub(crate) use main44_custody::Fixture as Main44Fixture;
 pub(crate) fn main44_metadata(fixture: Main44Fixture) -> String { runtime_json::main44_metadata(fixture) }
 pub(crate) fn main44_input(source: &str, current: &str) -> String { main44_custody::input(source, current) }
+
+#[path = "source_reflows_merge/main043_custody.rs"]
+mod main043_custody;
+pub(crate) use main043_custody::Fixture as Main043Fixture;
+pub(crate) fn main043_metadata(fixture: Main043Fixture) -> String { runtime_json::main043_metadata(fixture) }
+pub(crate) fn main043_input(source: &str, current: &str) -> String { main043_custody::input(source, current) }
+pub(crate) fn main043_historical_ci_extra(source: &str, current: &str) -> String { main043_custody::historical_ci_extra(source, current) }

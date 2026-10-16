@@ -2116,6 +2116,14 @@ jobs:
           cargo test --locked --offline -p semaprax --all-features --test useful_data \
             task_service_project::task_service_frontend_byte_audit -- \
             --exact --ignored --nocapture
+      - name: Trace the unchanged low-stack case after the Linux unit shard fails
+        if: failure() && runner.os == 'Linux' && matrix.shard == 'unit' && steps.workspace_target_shard_unix.outcome == 'failure'
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s scripts/tests -p test_ci_low_stack_trace.py
+          python3 scripts/ci-low-stack-trace.py
       - name: Capture complete private-layout cache wires after the owning shard fails
         if: failure() && runner.os == 'Linux' && matrix.shard == 'integration-4' && steps.workspace_target_shard_unix.outcome == 'failure'
         shell: bash

@@ -1,0 +1,65 @@
+{
+  "definitions": [
+    {
+      "path": "src/source_reflows/main043/audit_0.rs",
+      "bytes": 5959,
+      "sha256": "644134e886e77a26db499c306cc7cf80b0d780976b936b645b2154ee7ea62151"
+    },
+    {
+      "path": "src/source_reflows/main043/audit_1.rs",
+      "bytes": 5404,
+      "sha256": "73bb1109d363d687e48d9853df40e4dc4bcb9cdca1f2eebc1325b67b97529fe6"
+    },
+    {
+      "path": "src/source_reflows/main043/audit_2.rs",
+      "bytes": 6937,
+      "sha256": "6904955884f9cc22e02ac9cd5c4f731ce79b5bc26db74e993e9971253b674ec1"
+    },
+    {
+      "path": "src/source_reflows/main043/audit_3.rs",
+      "bytes": 3285,
+      "sha256": "dde82cea9c41e282e790d96d14c2dc5ddc6f74275e0af16aed136e46969a338f"
+    },
+    {
+      "path": "src/source_reflows/main043/audit_4.rs",
+      "bytes": 2014,
+      "sha256": "16fd3536f3d776497504a42191690e5e4995cd0d695dd928cdc0fda1bd1aaf2a"
+    },
+    {
+      "path": "src/source_reflows/main043/audit_5.rs",
+      "bytes": 5027,
+      "sha256": "938898f8da7d4cc572bcf295aed97bf29f48603b534a4647409b1a060761e928"
+    },
+    {
+      "path": "src/source_reflows/main043/audit_6.rs",
+      "bytes": 6451,
+      "sha256": "f0bea2cf6be741cb35ea69e64e0cb4f1031038b9176108c75199b8f32b69d08a"
+    },
+    {
+      "path": "src/source_reflows/main043/audit_7.rs",
+      "bytes": 7948,
+      "sha256": "c89714442c5087e8216d799a9a953ce6e01bc67198b90b07df6e86a51fc41508"
+    },
+    {
+      "path": "src/source_reflows/main043/audit_8.rs",
+      "bytes": 4510,
+      "sha256": "7dbe0b6df7339be760564fd5af2a8c3ecfe1036ff211f82ca0549e746a7e4b3e"
+    },
+    {
+      "path": "src/source_reflows/main043.rs",
+      "bytes": 4322,
+      "sha256": "aa2286e2c9b1a78c91075334ca7cc52dbfff632128b9d96725a4d42979870b2c"
+    },
+    {
+      "path": "src/source_reflows/main043/semantic_receivers.rs",
+      "bytes": 4318,
+      "sha256": "2ef2eb1aa9ceff7702f991a45b42c87d397936dca612d2e8ce25f93bbdd4d09d"
+    },
+    {
+      "path": "src/source_reflows_merge/main043_custody.rs",
+      "bytes": 6465,
+      "sha256": "5994f6ec2e8184b579cd187fb40a729f49a80493ce8d9b82a989d6ac7b39948b"
+    }
+  ],
+  "verification_script_sha256": "b8b72537f880da2655f102002275dbe0c5a7eb0aee72982eae017204d15266c7"
+}

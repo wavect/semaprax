@@ -1,0 +1,6 @@
+
+running 1 test
+test agent_quick_reference::diagnostic_help_is_pinned_and_covers_compiler_checked_examples ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 84 filtered out; finished in 0.02s
+

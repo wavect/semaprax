@@ -1,0 +1,39 @@
+{
+  "incoming_main": "3d5bef332272ee54c998a836045c99b62a9c859a",
+  "base": "cde3e6afd2f6d2b07aff999da11513acc326a957",
+  "current_selection_modified": false,
+  "additions": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::moderate_tests::moderate_scalar_route_keeps_owned_fallbacks_and_complete_enumerated_multisets",
+      "source": "src/cleanup_plan/replay/factored/moderate_tests.rs",
+      "line": 28,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::moderate_tests::weighted_representation_cannot_hide_a_changed_boolean_route_or_its_multiplicity",
+      "source": "src/cleanup_plan/replay/factored/moderate_tests.rs",
+      "line": 77,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::moderate_tests::moderate_comparison_actual_builder_keeps_exact_short_zero_and_floor_refusals",
+      "source": "src/cleanup_plan/replay/factored/moderate_tests.rs",
+      "line": 105,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::moderate_tests::original_selector_and_whole_source_receivers_remain_bound",
+      "source": "src/cleanup_plan/replay/factored/moderate_tests.rs",
+      "line": 141,
+      "status": "PENDING"
+    }
+  ]
+}

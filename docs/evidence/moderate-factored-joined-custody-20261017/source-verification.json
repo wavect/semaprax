@@ -1,0 +1,16 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "base": "cde3e6afd2f6d2b07aff999da11513acc326a957",
+  "complete_changed_preimages": 6,
+  "complete_raw_guards_restored": 3,
+  "complete_unchanged_original_tables": 2,
+  "negative_controls": 33,
+  "new_pending_owners": 4,
+  "old_moderate_assertion_calls": 32,
+  "whole_incoming_domains": 3,
+  "whole_joined_original_archives": 8,
+  "whole_original_moderate_inverses": 3,
+  "rust_executed": false,
+  "format": "rustfmt --edition 2021 --config skip_children=true src/cleanup_plan/replay/factored/moderate_tests.rs PASS",
+  "diff_check": "PASS"
+}

@@ -157,6 +157,7 @@ fn original_selector_and_whole_source_receivers_remain_bound() {
             row["sha256"].as_str().unwrap()
         );
         let current = std::fs::read_to_string(root.join(row["path"].as_str().unwrap())).unwrap();
+        let current = joined_input(row["path"].as_str().unwrap(), &current);
         let restore = |text: &str| -> Option<String> {
             let mut text = text.to_owned();
             for edit in row["edits"].as_array().unwrap().iter().rev() {
@@ -190,4 +191,96 @@ fn original_selector_and_whole_source_receivers_remain_bound() {
     let current = include_str!("moderate_tests/before.rs");
     let prefix = "use super::*;\nconst FACTORED_PATH_THRESHOLD: usize = 4_096;\n\npub(super) fn selected_paid(";
     assert_eq!(current.strip_prefix(prefix).unwrap().trim_end(), selector);
+    joined_hostiles();
+}
+
+// Only this incoming historical owner receives a finite view. Production and
+// complete raw source inventories continue to inspect the actual joined bytes.
+const JOINED_LENGTH: usize = 319918;
+const JOINED_SHA256: &str = "3c8e81fe794761cd061189a17ac6c003311920c299599c9b1cbb57b771fda258";
+const JOINED_PATH: &str =
+    "docs/evidence/moderate-factored-joined-custody-20261017/joined-inputs.json";
+fn joined_digest(bytes: &[u8]) -> String {
+    use sha2::{Digest, Sha256};
+    format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
+}
+fn joined_data() -> String {
+    use std::io::Read;
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut file = std::fs::File::open(root.join(JOINED_PATH)).unwrap();
+    let metadata = file.metadata().unwrap();
+    assert!(metadata.is_file());
+    assert!(JOINED_LENGTH <= 2 * 1024 * 1024);
+    assert_eq!(metadata.len(), JOINED_LENGTH as u64);
+    let mut bytes = Vec::new();
+    bytes.try_reserve_exact(JOINED_LENGTH).unwrap();
+    bytes.resize(JOINED_LENGTH, 0);
+    file.read_exact(&mut bytes).unwrap();
+    assert_eq!(file.read(&mut [0]).unwrap(), 0);
+    assert_eq!(joined_digest(&bytes), JOINED_SHA256);
+    String::from_utf8(bytes).unwrap()
+}
+fn joined_checked(data: &str, path: &str, current: &str) -> Option<String> {
+    if data.len() != JOINED_LENGTH || joined_digest(data.as_bytes()) != JOINED_SHA256 {
+        return None;
+    }
+    let rows: serde_json::Value = serde_json::from_str(data).ok()?;
+    let rows = rows.as_array()?;
+    if rows.len() != 3 || rows.iter().filter(|row| row["path"] == path).count() != 1 {
+        return None;
+    }
+    let row = rows.iter().find(|row| row["path"] == path)?;
+    if current.len() != row["current_length"].as_u64()? as usize
+        || joined_digest(current.as_bytes()) != row["current_sha256"].as_str()?
+    {
+        return None;
+    }
+    let mut restored = current.to_owned();
+    for edit in row["edits"].as_array()?.iter().rev() {
+        let start = usize::try_from(edit["start"].as_u64()?).ok()?;
+        let end = usize::try_from(edit["end"].as_u64()?).ok()?;
+        if restored.get(start..end)? != edit["current"].as_str()? {
+            return None;
+        }
+        restored.replace_range(start..end, edit["incoming"].as_str()?);
+    }
+    if restored.len() != row["incoming_length"].as_u64()? as usize
+        || joined_digest(restored.as_bytes()) != row["incoming_sha256"].as_str()?
+    {
+        return None;
+    }
+    Some(restored)
+}
+fn joined_input(path: &str, current: &str) -> String {
+    joined_checked(&joined_data(), path, current)
+        .expect("complete joined-to-incoming source domain")
+}
+fn joined_hostiles() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let data = joined_data();
+    let rows: serde_json::Value = serde_json::from_str(&data).unwrap();
+    for row in rows.as_array().unwrap() {
+        let path = row["path"].as_str().unwrap();
+        let raw = std::fs::read_to_string(root.join(path)).unwrap();
+        let target =
+            std::fs::read_to_string(root.join(row["incoming_archive"].as_str().unwrap())).unwrap();
+        assert_eq!(
+            joined_checked(&data, path, &raw).as_deref(),
+            Some(target.as_str())
+        );
+        for wrong in [
+            String::new(),
+            raw[..raw.len() / 2].to_owned(),
+            format!("{raw} "),
+            format!("!{}", &raw[1..]),
+        ] {
+            assert!(joined_checked(&data, path, &wrong).is_none());
+        }
+        if raw != target {
+            assert!(joined_checked(&data, path, &target).is_none());
+        }
+    }
+    assert!(joined_checked(&data, "src/foreign.rs", "foreign").is_none());
+    assert!(joined_checked(&data[..data.len() - 1], "src/foreign.rs", "foreign").is_none());
+    assert!(joined_checked(&format!("!{}", &data[1..]), "src/foreign.rs", "foreign").is_none());
 }

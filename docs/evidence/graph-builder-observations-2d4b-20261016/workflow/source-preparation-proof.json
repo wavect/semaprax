@@ -1,0 +1,14 @@
+{
+  "status": "SOURCE_ONLY_PREPARED_NO_BUILD_PRODUCER_PIN_EXECUTION",
+  "source_head": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+  "qualification_round": "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016",
+  "manifest_sha256": "db7076908874ab299285b9fe29dfd6e061acc1d800513af4a26bf288070a3968",
+  "full_current_to391_rows": 2,
+  "all_original_inverse_edits": 107,
+  "immutable_legacy_table_sha256": "04d14712fb00b8d909c5d15766233b6009b6c6fed00ec8a76bd86372b501e9ff",
+  "unchanged_compositor_sha256": "7219e0924d6dc42222796c96414a11a7aa90c222073e3ee188bb1a0197308946",
+  "role_fixed_producer_byteexact": true,
+  "actual_next_values": null,
+  "capture_execution": false,
+  "pin_apply": false
+}

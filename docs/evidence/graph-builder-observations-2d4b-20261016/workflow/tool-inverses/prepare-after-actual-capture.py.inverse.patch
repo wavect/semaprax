@@ -1,0 +1,13 @@
+--- derived/prepare-after-actual-capture.py
++++ original/prepare-after-actual-capture.py
+@@ -13,8 +13,8 @@
+ p.add_argument('--out',required=True,type=Path)
+ a=p.parse_args();capture=a.capture.resolve();round=a.round.resolve();out=a.out.resolve()
+ assert not out.exists(),'new actual output directory required; preserve earlier receipts'
+-assert round==Path(RECORD['required_round']).resolve(), 'exact50 round required'
+-assert hashlib.sha256((round/'expected-counts.json').read_bytes()).hexdigest()==RECORD['required_manifest_sha256'], 'exact50 manifest required'
++assert round==Path(RECORD['required_round']).resolve(), 'exact76 round required'
++assert hashlib.sha256((round/'expected-counts.json').read_bytes()).hexdigest()==RECORD['required_manifest_sha256'], 'exact76 manifest required'
+ assert not out.is_relative_to(capture) and not out.is_relative_to(ROOT),'output cannot recurse into capture or ROOT'
+ assert subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()==HEAD,'ROOT drift; no historical adaptation authorized by this live checker'
+ assert not subprocess.check_output(['git','status','--porcelain','--untracked-files=all'],cwd=ROOT).strip(),'ROOT including untracked must be clean'

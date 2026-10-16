@@ -1,0 +1,104 @@
+{
+  "status": "ACTUAL_COMPLETED_BUILD_ARTIFACTS_VALIDATED_NO_CAPTURE",
+  "source_subject": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+  "actual_build_receipt_sha256": "7a509591c68c82f0badf1027ce70a1e3d738d49083f36782b1b5de0f41406053",
+  "manifest_sha256": "db7076908874ab299285b9fe29dfd6e061acc1d800513af4a26bf288070a3968",
+  "raw_Cargo_log_sha256": "666edc2f256cb21acd4772d3b0a4bdd74cb4062ab6a47137b7c7b81bf8828104",
+  "producer_harnesses": {
+    "semaprax": {
+      "package": "semaprax",
+      "target": {
+        "kind": [
+          "lib"
+        ],
+        "crate_types": [
+          "lib"
+        ],
+        "name": "semaprax",
+        "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/src/lib.rs",
+        "edition": "2021",
+        "doc": true,
+        "doctest": true,
+        "test": true
+      },
+      "profile_test": true,
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04",
+      "executable_sha256": "9a0387199bb6fcafb75e59af29f1a7511a14c0f0b5e039d8161935f053a68d85",
+      "source_head": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+      "raw_Cargo_log_sha256": "666edc2f256cb21acd4772d3b0a4bdd74cb4062ab6a47137b7c7b81bf8828104",
+      "completed_build_receipt_sha256": "7a509591c68c82f0badf1027ce70a1e3d738d49083f36782b1b5de0f41406053"
+    },
+    "workspace": {
+      "package": "semaprax",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "workspace",
+        "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/tests/workspace.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "profile_test": true,
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/workspace-1d89468226fe8696",
+      "executable_sha256": "cef3cbaaa3e3681f62d9ebc062f46ec86c7d6ffb62e35b42be805ff5ed6d43e0",
+      "source_head": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+      "raw_Cargo_log_sha256": "666edc2f256cb21acd4772d3b0a4bdd74cb4062ab6a47137b7c7b81bf8828104",
+      "completed_build_receipt_sha256": "7a509591c68c82f0badf1027ce70a1e3d738d49083f36782b1b5de0f41406053"
+    }
+  },
+  "production_CLI_artifacts_from_same_completed_build": {
+    "semaprax": {
+      "package": "semaprax",
+      "target": {
+        "kind": [
+          "bin"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "semaprax",
+        "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/src/main.rs",
+        "edition": "2021",
+        "doc": true,
+        "doctest": false,
+        "test": true
+      },
+      "profile_test": false,
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/semaprax",
+      "executable_sha256": "f6c9049afb2c38e500dfef266d29e1292a87f4473a0491834c435eda287b79e8",
+      "source_head": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+      "raw_Cargo_log_sha256": "666edc2f256cb21acd4772d3b0a4bdd74cb4062ab6a47137b7c7b81bf8828104",
+      "completed_build_receipt_sha256": "7a509591c68c82f0badf1027ce70a1e3d738d49083f36782b1b5de0f41406053"
+    },
+    "semaprax-full": {
+      "package": "semaprax-toolchain",
+      "target": {
+        "kind": [
+          "bin"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "semaprax-full",
+        "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-toolchain/src/main.rs",
+        "edition": "2021",
+        "doc": true,
+        "doctest": false,
+        "test": true
+      },
+      "profile_test": false,
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/semaprax-full",
+      "executable_sha256": "7e9d44356f0fcf819a26e105f50353932cc306fa78800d2ddc8031b304595622",
+      "source_head": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+      "raw_Cargo_log_sha256": "666edc2f256cb21acd4772d3b0a4bdd74cb4062ab6a47137b7c7b81bf8828104",
+      "completed_build_receipt_sha256": "7a509591c68c82f0badf1027ce70a1e3d738d49083f36782b1b5de0f41406053"
+    }
+  },
+  "capture_performed": false
+}

@@ -1,0 +1,41 @@
+--- derived/capture-browser.py
++++ original/capture-browser.py
+@@ -2,8 +2,8 @@
+ import json,sys,subprocess,hashlib,os,time,argparse
+ P=argparse.ArgumentParser();P.add_argument('--out',type=Path,required=True);P.add_argument('--expected-build-receipt-sha256',required=True);P.add_argument('--expected-readiness-sha256',required=True);ARGS=P.parse_args();OUT=ARGS.out.resolve();FLOW=Path(__file__).resolve().parent
+ REPO=Path('/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang')
+-ROUND=Path('/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016')
+-HEAD='2d4b68d3a416cae5fba6ac08498cd56721878ba1'
++ROUND=Path('/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016')
++HEAD='8bb9f5b7b99e1e71a797460c46180daf716b234b'
+ sys.path.insert(0,str(ROUND/'drivers'))
+ from observed_phase import run_phase,provenance
+ sha=lambda p:hashlib.file_digest(Path(p).open('rb'),'sha256').hexdigest()
+@@ -37,7 +37,7 @@
+    assert raw.count(b'\nfn add(')==1;raw=raw.replace(b'\nfn add(',b'\nfn sum(',1)
+   (root/p).write_bytes(raw)
+   inputs.append({'fixture':name,'path':p,'source_path':source_path,'git_original_sha256':hashlib.sha256(original).hexdigest(),'actual_sha256':sha(root/p),'bytes':len(raw),'rename_only':raw!=original})
+-binding={'source_subject':HEAD,'source_tree':build['source_tree'],'executable':str(EXE),'executable_sha256':EXESHA,'build_receipt':str(receipt),'build_receipt_sha256':sha(receipt),'build_metadata_sha256':sha(ROUND/'owning-build.jsonl'),'build_log_sha256':sha(ROUND/'owning-build.log'),'artifact_record':records[0],'guard':provenance(),'inputs':inputs,'producer_contract':'.github/workflows/ci.yml exact frozen2d4b / Main eb13 browser graph capture','producer_contract_sha256':sha(REPO/'.github/workflows/ci.yml'),'no_test_execution':True,'capture_is_not_owner_test_pass':True,'controller_sha256':sha(__file__)}
++binding={'source_subject':HEAD,'source_tree':build['source_tree'],'executable':str(EXE),'executable_sha256':EXESHA,'build_receipt':str(receipt),'build_receipt_sha256':sha(receipt),'build_metadata_sha256':sha(ROUND/'owning-build.jsonl'),'build_log_sha256':sha(ROUND/'owning-build.log'),'artifact_record':records[0],'guard':provenance(),'inputs':inputs,'producer_contract':'.github/workflows/ci.yml:979-1005','no_test_execution':True,'capture_is_not_owner_test_pass':True,'controller_sha256':sha(__file__)}
+ (OUT/'binding.json').write_text(json.dumps(binding,indent=2)+'\n')
+ def bound():
+  assert subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()==HEAD and not subprocess.check_output(['git','status','--porcelain','--untracked-files=all'],cwd=REPO).strip()
+@@ -60,18 +60,6 @@
+  print(name,result['exit_code'],result.get('resource_refusal'),flush=True)
+  if result['exit_code']!=0 or result.get('resource_refusal'):raise SystemExit('producer refused; evidence preserved')
+  raw=wire.read_bytes();assert raw.endswith(b'\n');raw=raw[:-1];d=json.loads(raw);assert domain_digest(raw)==d['graph_digest']
+- mainpath=REPO/f'docs/evidence/browser-graph-pins-2600e49eb/current-hosted-calculator-{name}.json';assert sha(mainpath)==record['browser_required_prior']['Main2600-'+name]['sha256'];mainwire=mainpath.read_bytes().removesuffix(b'\n');maindata=json.loads(mainwire)
+- assert domain_digest(mainwire)==maindata['graph_digest'] and maindata['budget']['used_builder_bytes']==3296148
+- actual_bill=d['budget']['used_builder_bytes'];actual_field=f'"used_builder_bytes":{actual_bill}'.encode();assert raw.count(actual_field)==1
+- mainrestore=raw.replace(actual_field,b'"used_builder_bytes":3296148',1)
+- mainfield=('"graph_digest":'+json.dumps(d['graph_digest'])).encode();assert mainrestore.count(mainfield)==1
+- mainrestore=mainrestore.replace(mainfield,('"graph_digest":'+json.dumps(maindata['graph_digest'])).encode(),1)
+- assert mainrestore==mainwire,'OTHER FIELD OR BYTE DIFFERENCE FROM FULL MAIN2600: stop without pin edits'
+- observedpath=Path('/Volumes/Semaprax/provenance/graph-builder-observations-8bb9-20261016/browser')/f'calculator-{name}.json';assert sha(observedpath)==record['browser_required_prior']['observed8bb-'+name]['sha256'];observed=observedpath.read_bytes().removesuffix(b'\n');obs=json.loads(observed)
+- assert domain_digest(observed)==obs['graph_digest'] and obs['budget']['used_builder_bytes']==3534564
+- observedrestore=raw.replace(actual_field,b'"used_builder_bytes":3534564',1).replace(mainfield,('"graph_digest":'+json.dumps(obs['graph_digest'])).encode(),1)
+- assert observedrestore==observed,'OTHER FIELD OR BYTE DIFFERENCE FROM ACTUAL8bb: stop without pin edits'
+- result['new_independent_bridges']={'main2600_wire_sha256':sha(mainpath),'main2600_builder_bytes':3296148,'observed8bb_wire_sha256':sha(observedpath),'observed8bb_builder_bytes':3534564,'complete_main2600_restore':True,'complete_observed8bb_restore':True}
+  priorpath=REPO/f'docs/evidence/browser-graph-pins-35cc-20261016/actual-capture/calculator-{name}.json';prior=priorpath.read_bytes().removesuffix(b'\n');p=json.loads(prior);assert domain_digest(prior)==p['graph_digest']
+  assert p['budget']['used_builder_bytes']==4032239
+  bill=d['budget']['used_builder_bytes'];field=f'"used_builder_bytes":{bill}'.encode();assert raw.count(field)==1

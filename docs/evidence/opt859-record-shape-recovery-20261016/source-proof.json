@@ -1,0 +1,16 @@
+{
+  "mode": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "complete_preimages": 16,
+  "changed_whole_endpoints": 15,
+  "whole_current_drift_negatives_refused": 48,
+  "complete_original_fixture_prefix": true,
+  "complete_original_declaration_producer_body": true,
+  "recovery_and_signature_origin_byte_exact": true,
+  "valid_pattern_and_function_body_owners_byte_exact": true,
+  "complete_original_assertions_preserved": 110,
+  "new_complete_rust_subjects": 2,
+  "raw_joins": 3,
+  "native_inventory_lines": 1500,
+  "runtime_result": "PENDING",
+  "six_field_runtime_controls": "PENDING"
+}

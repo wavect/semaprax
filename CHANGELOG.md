@@ -1489,6 +1489,7 @@ format: `Unreleased` then release buckets, grouped by impact.
 ## Unreleased
 
 - Share complete cleanup inventory validation with the ordinary schema summary receiver, avoiding discarded inventory storage while retaining the original materializer as an executable control. Source-only candidate; scoped runtime qualification remains pending.
+- Bind dependent invalid owned-record pattern recovery to the original declaration diagnostic, preserving independent body/mode/declaration errors. Source-only #859 candidate; focused qualification pending.
 
 - Source-only #808 moves an owned prefix into the sole HIR suffix or final
   two-edge plan sibling when its existing buffer has spare capacity. Original

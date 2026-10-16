@@ -797,3 +797,65 @@ fn subtree_binding_counts_the_entire_hidden_type_closure_at_inherited_limits() {
         }
     }
 }
+
+fn assert_shape_recovery_diagnostic_fields(
+    actual: &semaprax::diagnostic::Diagnostic,
+    expected: &semaprax::diagnostic::Diagnostic,
+) {
+    assert_eq!(actual.code, expected.code);
+    assert_eq!(actual.severity, expected.severity);
+    assert_eq!(actual.message, expected.message);
+    assert_eq!(actual.path, expected.path);
+    assert_eq!(actual.span, expected.span);
+    assert_eq!(actual.help, expected.help);
+}
+
+#[test]
+fn excluded_record_recovery_retains_independent_arm_body_parameter_and_declaration_errors() {
+    let excluded = ORIGINAL_STRING_PATTERN.replace("text: string,", "text: string, unsupported: [u8; 1],");
+    let baseline = diagnostics(&excluded);
+    let primary = baseline.iter().find(|d| d.code == "SPX-T268").unwrap();
+    for (source, independent_codes) in [
+        (excluded.replace("=> 0,", "=> independent_unknown,"), vec!["SPX-T202"]),
+        (excluded.replace("packet: own Packet", "packet: own Packet, independent: Bytes"), vec!["SPX-T263"]),
+        (format!("{excluded}\nfn unrelated()->i64{{outside_unknown}}\n"), vec!["SPX-T202"]),
+        (format!("{excluded}\nrecord Unrelated {{ payload: Bytes, unsupported: [u8; 1], }}\n"), vec!["SPX-T268"]),
+        (excluded.replace("Packet { payload, text }", "Packet { payload: same, text: same }"), vec!["SPX-M104"]),
+    ] {
+        // Blank only this excluded field, retaining every following byte offset.
+        // The independent valid-record route therefore supplies exact six-field
+        // expected diagnostics, without source-position normalization.
+        let field = "unsupported: [u8; 1],";
+        let valid = source.replacen(field, &" ".repeat(field.len()), 1);
+        let actual = diagnostics(&source).into_iter().filter(|d| d.severity.is_error()).collect::<Vec<_>>();
+        let expected = diagnostics(&valid).into_iter().filter(|d| d.severity.is_error()).collect::<Vec<_>>();
+        assert_eq!(expected.iter().map(|d| d.code).collect::<Vec<_>>(), independent_codes);
+        assert_eq!(actual.len(), expected.len() + 1, "{actual:?}");
+        assert_shape_recovery_diagnostic_fields(&actual[0], primary);
+        for (actual, expected) in actual[1..].iter().zip(&expected) {
+            assert_shape_recovery_diagnostic_fields(actual, expected);
+        }
+    }
+}
+
+#[test]
+fn valid_record_missing_field_and_plain_match_mode_diagnostics_remain_independent() {
+    let missing = ORIGINAL_STRING_PATTERN.replace("Packet { payload, text }", "Packet { payload }");
+    let failures = diagnostics(&missing).into_iter().filter(|d| d.severity.is_error()).collect::<Vec<_>>();
+    assert_eq!(failures.iter().map(|d| d.code).collect::<Vec<_>>(), vec!["SPX-M104"]);
+    assert_eq!(failures[0].message, "record pattern `Packet` is missing field `text`");
+    assert_eq!(failures[0].path.as_deref(), Some("nested-owned-records-v1.spx"));
+    assert!(failures[0].span.is_some());
+    assert_eq!(failures[0].help, None);
+
+    let plain = ORIGINAL_STRING_PATTERN.replace("match own packet", "match packet");
+    let failures = diagnostics(&plain).into_iter().filter(|d| d.severity.is_error()).collect::<Vec<_>>();
+    assert_eq!(failures.iter().map(|d| d.code).collect::<Vec<_>>(), vec!["SPX-O111", "SPX-M103"]);
+    assert_eq!(failures[0].message, "plain record match requires a Copy scrutinee");
+    assert_eq!(failures[1].message, "record pattern `Packet` is incompatible with `Packet`");
+    for diagnostic in failures {
+        assert_eq!(diagnostic.path.as_deref(), Some("nested-owned-records-v1.spx"));
+        assert!(diagnostic.span.is_some());
+        assert_eq!(diagnostic.help, None);
+    }
+}

@@ -408,6 +408,14 @@ pub(super) fn check_expr_with_signature_view<'a, 'p>(
         )
     }) {
         verifier.recovery = recovery;
+        super::declaration::record_shape::seed(
+            &mut verifier.recovery,
+            program,
+            current,
+            &verifier.scopes[0].bindings,
+            types,
+            verifier.diagnostics,
+        );
     }
     verifier.byte_helpers = helpers;
     verifier.fused_producer = fused_producer;

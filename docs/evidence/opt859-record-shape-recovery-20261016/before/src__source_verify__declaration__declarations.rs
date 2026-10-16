@@ -1,0 +1,711 @@
+//! Declaration body checks: byte-data storage rules, native Rust imports,
+//! resource lifecycles, declared field types, and recursive record layouts.
+
+use crate::ast::program_source::ProgramSource;
+use crate::ast::{
+    ImportDeclaration, ImportFailure, InterfaceDeclaration, ParamMode, ResourceLifecycleKind, Type,
+    TypeDeclarationKind,
+};
+use crate::conformance::STATUS_DOMAIN_MAX_BYTES_V1;
+use crate::diagnostic::Diagnostic;
+use crate::source_verify::declared_type::{
+    check_declared_type, native_rust_status_domain, record_layout_is_recursive,
+};
+use crate::source_verify::diagnostics::error;
+use crate::source_verify::type_table::{
+    classify_nested_owned_byte_record, owned_byte_record_copy_field_is_admitted,
+    NestedOwnedRecordAdmission, TypeTable,
+};
+use std::collections::{HashMap, HashSet};
+
+pub(super) fn check_byte_data_declarations<'p>(
+    program: &'p dyn ProgramSource,
+    types: &TypeTable<'p>,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    for declaration in program.types() {
+        match &declaration.kind {
+            TypeDeclarationKind::Record { fields } => {
+                // The nested owned-Bytes profile is monomorphic, and a generic
+                // declaration has no arguments to substitute into its fields,
+                // so classifying its root would read an unsubstituted parameter
+                // as owning. Ask each declared field instead: a type parameter
+                // resolves to no declaration and so owns nothing, while a
+                // `Bytes` field or a field whose record reaches one is refused
+                // here. Concrete instances are admitted through HIR type
+                // reachability.
+                if !declaration.type_parameters.is_empty() {
+                    if fields
+                        .iter()
+                        .any(|field| types.contains_owned_bytes(&field.ty))
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T268",
+                            format!(
+                                "owned-Bytes record `{}` must be monomorphic in this tranche",
+                                declaration.name
+                            ),
+                            declaration.span,
+                        ));
+                    }
+                    continue;
+                }
+                let root = Type::Named {
+                    name: declaration.name.clone(),
+                    arguments: Vec::new(),
+                };
+                if types.contains_owned_bytes(&root)
+                    && !super::super::declared_type::string_record::runtime_admitted(&root, types)
+                {
+                    match classify_nested_owned_byte_record(types, &root) {
+                        NestedOwnedRecordAdmission::Admitted
+                        | NestedOwnedRecordAdmission::Recursive => {}
+                        NestedOwnedRecordAdmission::NoOwnedBytes => unreachable!(
+                            "owned-byte precheck and structural classifier disagree"
+                        ),
+                        NestedOwnedRecordAdmission::OutsideProfile => diagnostics.push(error(
+                            program,
+                            "SPX-T268",
+                            format!(
+                                "owned-Bytes record `{}` must be a monomorphic acyclic record tree with only `Bytes` or direct Copy scalar leaves",
+                                declaration.name
+                            ),
+                            declaration.span,
+                        )),
+                        NestedOwnedRecordAdmission::LimitExceeded => diagnostics.push(error(
+                            program,
+                            "SPX-T268",
+                            format!(
+                                "owned-Bytes record `{}` exceeds the nested record depth, owned-leaf, or field bound",
+                                declaration.name
+                            ),
+                            declaration.span,
+                        )),
+                    }
+                }
+            }
+            TypeDeclarationKind::Class { fields, .. } => {
+                for field in fields {
+                    if field.ty == Type::Bytes || types.contains_owned_bytes(&field.ty) {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T268",
+                            format!(
+                                "class field `{}.{}` cannot contain owned `Bytes` directly or transitively",
+                                declaration.name, field.name
+                            ),
+                            field.span,
+                        ));
+                    }
+                }
+            }
+            // Site 1 of the five admitted-variant-payload-profile classifiers
+            // named in issue #261. The owned-string field admission test just
+            // below (`types.is_admitted_owned_string_variant_field`) is the
+            // one owning source-level ("Type") predicate this site shares
+            // with site 2, `TypeTable::is_flat_owned_string_variant` in
+            // `type_table.rs` (`SPX-O002`/`SPX-O104`). The other three sites
+            // run after HIR resolution, on `ResolvedType` rather than `Type`,
+            // and share their own owning predicate,
+            // `type_reachability::is_admitted_owned_string_variant_field`:
+            // site 3, `is_admitted_owned_string_variant` in
+            // `hir/type_reachability.rs` (`SPX-O117`); site 4, the variant
+            // profile gate in `hir/validation.rs` (`SPX-H006`); and site 5,
+            // `Interpreter::value_has_type` in `interpreter.rs` (`SPX-F105`),
+            // which checks a runtime value rather than a field type but
+            // consults the same resolved-level copy-aggregate predicate.
+            TypeDeclarationKind::Variant { cases } => {
+                let fields = cases
+                    .iter()
+                    .flat_map(|case| &case.fields)
+                    .collect::<Vec<_>>();
+                let has_direct_bytes = fields.iter().any(|field| field.ty == Type::Bytes);
+                let has_direct_string = fields.iter().any(|field| field.ty == Type::String);
+                if has_direct_bytes && !declaration.type_parameters.is_empty() {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T268",
+                        format!(
+                            "owned-Bytes variant `{}` must be monomorphic in this tranche",
+                            declaration.name
+                        ),
+                        declaration.span,
+                    ));
+                }
+                if has_direct_string && !has_direct_bytes && !declaration.type_parameters.is_empty()
+                {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T268",
+                        format!(
+                            "owned-string variant `{}` must be monomorphic in this tranche",
+                            declaration.name
+                        ),
+                        declaration.span,
+                    ));
+                }
+                for field in fields {
+                    if has_direct_bytes
+                        && field.ty != Type::Bytes
+                        && !owned_byte_record_copy_field_is_admitted(&field.ty)
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T268",
+                            format!(
+                                "owned-Bytes variant field `{}.{}` must be direct `Bytes` or a direct Copy scalar",
+                                declaration.name, field.name
+                            ),
+                            field.span,
+                        ));
+                    } else if !has_direct_bytes && types.contains_owned_bytes(&field.ty)
+                        && !super::super::declared_type::collection_outcome::runtime_declaration_admitted(types, declaration) {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T268",
+                            format!(
+                                "variant `{}` nests owned `Bytes`; this tranche admits only direct `Bytes` payloads",
+                                declaration.name
+                            ),
+                            field.span,
+                        ));
+                    } else if has_direct_string
+                        && !has_direct_bytes
+                        && !types.is_admitted_owned_string_variant_field(&field.ty)
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T268",
+                            format!(
+                                "owned-string variant field `{}.{}` must be direct `string`, a direct Copy scalar, or a drop-free Copy aggregate record",
+                                declaration.name, field.name
+                            ),
+                            field.span,
+                        ));
+                    }
+                }
+            }
+            TypeDeclarationKind::Resource { .. } => {}
+        }
+    }
+}
+
+pub(super) fn check_native_rust_imports<'p>(
+    program: &'p dyn ProgramSource,
+    types: &TypeTable<'p>,
+    native_rust_names: &mut HashSet<&'p str>,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    for interface in program.interfaces() {
+        let permits = interface
+            .permits
+            .iter()
+            .map(String::as_str)
+            .collect::<HashSet<_>>();
+        for import in &interface.imports {
+            if import.index_selected
+                && (import.selected_signature.is_none() || import.selected_index_digest.is_none())
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-B147",
+                    "selected Rust import requires an authenticated API index",
+                    import.span,
+                ));
+            }
+            if let Some(path) = &import.rust_path {
+                if !import.native_rust || !crate::native_rust_binding::valid_rust_api_path(path) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-B143",
+                        "Rust API path must be a bounded package-qualified path",
+                        import.span,
+                    ));
+                }
+            }
+            if import.native_rust && !native_rust_names.insert(import.name.as_str()) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-B107",
+                    "Native Rust Interop declaration set is unsupported: symbol collision",
+                    import.span,
+                ));
+            }
+            if import.native_rust
+                && program
+                    .functions()
+                    .iter()
+                    .any(|function| function.name == import.name)
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-B107",
+                    "Native Rust Interop declaration set is unsupported: symbol collision",
+                    import.span,
+                ));
+            }
+            for param in &import.params {
+                if param.ty == Type::SliceU8 {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T268",
+                        "`Slice<u8>` cannot cross an import boundary",
+                        param.span,
+                    ));
+                }
+                if matches!(
+                    param.ty,
+                    Type::ArrayU8(_)
+                        | Type::Bytes
+                        | Type::OnceFunction
+                        | Type::OnceFunctionI64
+                        | Type::OnceFunctionI64Pair
+                        | Type::MutFunctionI64
+                        | Type::Function { .. }
+                ) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T268",
+                        "fixed arrays, `Bytes`, and function values cannot cross an import boundary",
+                        param.span,
+                    ));
+                }
+                check_declared_type(
+                    program,
+                    &param.ty,
+                    param.span,
+                    types,
+                    &HashSet::new(),
+                    diagnostics,
+                );
+            }
+            let native_result_is_valid = match &import.result {
+                crate::ast::ImportResult::Unit
+                | crate::ast::ImportResult::I64
+                | crate::ast::ImportResult::Bool
+                | crate::ast::ImportResult::ResultI64I64
+                | crate::ast::ImportResult::OwnedString
+                | crate::ast::ImportResult::OwnedOptionString
+                | crate::ast::ImportResult::OwnedResultStringI64
+                | crate::ast::ImportResult::OwnedResultStringOptionI64 => true,
+                crate::ast::ImportResult::BorrowedStr { owner } => {
+                    crate::native_rust_binding::admitted_url_view(import)
+                        && types.is_opaque_resource(&Type::Named {
+                            name: owner.clone(),
+                            arguments: Vec::new(),
+                        })
+                }
+                crate::ast::ImportResult::OwnedResultResourceI64 { name }
+                | crate::ast::ImportResult::OwnedResource { name } => {
+                    types.is_opaque_resource(&Type::Named {
+                        name: name.clone(),
+                        arguments: Vec::new(),
+                    })
+                }
+            };
+            let ri06_regex_borrow_shape = import.index_selected
+                && match (&import.result, import.params.as_slice()) {
+                    (crate::ast::ImportResult::BorrowedStr { owner }, [receiver]) => {
+                        crate::native_rust_binding::admitted_url_view(import)
+                            && receiver.mode == ParamMode::Borrow
+                            && receiver.ty
+                                == (Type::Named {
+                                    name: owner.clone(),
+                                    arguments: Vec::new(),
+                                })
+                    }
+                    (crate::ast::ImportResult::OwnedResultResourceI64 { .. }, [parameter]) => {
+                        parameter.mode == ParamMode::Borrow && parameter.ty == Type::String
+                    }
+                    (crate::ast::ImportResult::Bool, [receiver, text]) => {
+                        receiver.mode == ParamMode::Borrow
+                            && types.is_opaque_resource(&receiver.ty)
+                            && text.mode == ParamMode::Borrow
+                            && text.ty == Type::String
+                    }
+                    _ => false,
+                };
+            let valid_shape = if import.native_rust {
+                import.params.len() <= 8
+                    && import.consumes.is_empty()
+                    && (ri06_regex_borrow_shape
+                        || import.params.iter().all(|parameter| {
+                            (parameter.mode == ParamMode::Value
+                                && matches!(parameter.ty, Type::I64 | Type::Bool))
+                                || (parameter.mode == ParamMode::Own
+                                    && (parameter.ty == Type::String
+                                        || crate::ast::ImportResult::container_for_type(
+                                            &parameter.ty,
+                                        )
+                                        .is_some()
+                                        || types.is_opaque_resource(&parameter.ty)))
+                        }))
+                    && native_result_is_valid
+            } else {
+                import.result == crate::ast::ImportResult::Unit
+                    && import.params.len() == 1
+                    && import.params[0].mode == ParamMode::Own
+                    && types.is_opaque_resource(&import.params[0].ty)
+                    && import.consumes == import.params[0].name
+            };
+            if !valid_shape {
+                diagnostics.push(error(
+                    program,
+                    if import.native_rust { "SPX-B107" } else { "SPX-I404" },
+                    if import.native_rust {
+                        "Native Rust Interop declaration set is unsupported: scalar value signature required".to_owned()
+                    } else {
+                        format!(
+                            "import `{}.{}` must take one owned resource parameter and consume it always",
+                            interface.name, import.name
+                        )
+                    },
+                    import.span,
+                ));
+            }
+            if let ImportFailure::Status { domain_id } = &import.failure {
+                if (import.native_rust && !native_rust_status_domain(domain_id))
+                    || (!import.native_rust
+                        && (domain_id.is_empty()
+                            || domain_id.len() > STATUS_DOMAIN_MAX_BYTES_V1
+                            || domain_id.contains('\0')))
+                {
+                    diagnostics.push(error(
+                        program,
+                        if import.native_rust { "SPX-B107" } else { "SPX-I403" },
+                        if import.native_rust {
+                            "Native Rust Interop declaration set is unsupported: status domain is invalid".to_owned()
+                        } else {
+                            format!(
+                                "import `{}.{}` has an invalid failure domain",
+                                interface.name, import.name
+                            )
+                        },
+                        import.span,
+                    ));
+                }
+            }
+            let mut effects = HashSet::new();
+            if import.native_rust
+                && import
+                    .effects
+                    .windows(2)
+                    .any(|pair| pair[0].as_str() >= pair[1].as_str())
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-B107",
+                    "Native Rust Interop declaration set is unsupported: effect or capability mismatch",
+                    import.span,
+                ));
+            }
+            for effect in &import.effects {
+                if !effects.insert(effect.as_str()) {
+                    diagnostics.push(if import.native_rust {
+                        error(
+                            program,
+                            "SPX-B107",
+                            "Native Rust Interop declaration set is unsupported: effect or capability mismatch",
+                            import.span,
+                        )
+                    } else {
+                        error(
+                            program,
+                            "SPX-I403",
+                            format!(
+                                "import `{}.{}` declares duplicate effect `{effect}`",
+                                interface.name, import.name
+                            ),
+                            import.span,
+                        )
+                    });
+                }
+                if !permits.contains(effect.as_str()) {
+                    diagnostics.push(if import.native_rust {
+                        error(
+                            program,
+                            "SPX-B107",
+                            "Native Rust Interop declaration set is unsupported: effect or capability mismatch",
+                            import.span,
+                        )
+                    } else {
+                        error(
+                            program,
+                            "SPX-I404",
+                            format!(
+                                "import `{}.{}` requires effect `{effect}` outside interface `{}` permits",
+                                interface.name, import.name, interface.name
+                            ),
+                            import.span,
+                        )
+                    });
+                }
+            }
+        }
+    }
+}
+
+pub(super) fn check_resource_lifecycles<'p>(
+    program: &'p dyn ProgramSource,
+    import_keys: &HashMap<&'p str, (&'p InterfaceDeclaration, &'p ImportDeclaration)>,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    for declaration in program.types() {
+        let TypeDeclarationKind::Resource { lifecycles } = &declaration.kind else {
+            continue;
+        };
+        if let [lifecycle] = lifecycles.as_slice() {
+            if let ResourceLifecycleKind::Imported { import_key } = &lifecycle.kind {
+                if import_key.contains('\0') {
+                    continue;
+                }
+                let compatible = import_keys
+                    .get(import_key.as_str())
+                    .is_some_and(|(_, import)| {
+                        !import.native_rust
+                            && import.params.len() == 1
+                            && import.params[0].mode == ParamMode::Own
+                            && import.params[0].ty
+                                == (Type::Named {
+                                    name: declaration.name.clone(),
+                                    arguments: Vec::new(),
+                                })
+                            && import.consumes == import.params[0].name
+                            && matches!(import.failure, ImportFailure::Infallible)
+                    });
+                if !compatible {
+                    let message = if import_keys.contains_key(import_key.as_str()) {
+                        format!(
+                            "logical import `{import_key}` is incompatible with automatic finalization of `{}`",
+                            declaration.name
+                        )
+                    } else {
+                        format!(
+                            "resource `{}` references unknown logical import `{import_key}`",
+                            declaration.name
+                        )
+                    };
+                    diagnostics.push(error(program, "SPX-O113", message, lifecycle.span));
+                }
+            }
+        }
+    }
+}
+
+pub(super) fn check_declared_fields<'p>(
+    program: &'p dyn ProgramSource,
+    types: &TypeTable<'p>,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    for declaration in program.types() {
+        if let TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } =
+            &declaration.kind
+        {
+            let parameters = declaration
+                .type_parameters
+                .iter()
+                .map(|parameter| parameter.name.as_str())
+                .collect::<HashSet<_>>();
+            let is_class = matches!(declaration.kind, TypeDeclarationKind::Class { .. });
+            for field in fields {
+                if matches!(
+                    field.ty,
+                    Type::OnceFunction
+                        | Type::OnceFunctionI64
+                        | Type::OnceFunctionI64Pair
+                        | Type::MutFunctionI64
+                        | Type::Function { .. }
+                ) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T287",
+                        "function values cannot be stored in records, variants, or classes",
+                        field.span,
+                    ));
+                }
+                // Class Inheritance v1: owned strings inside class members are
+                // closed. The cleanup plan deliberately keeps strings out of
+                // the resource-lifecycle inventory, so an aggregate carrying
+                // one has no finalizer representation yet; classes fail closed
+                // here instead of at cleanup-plan construction.
+                if is_class && types.contains_string(&field.ty) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T234",
+                        format!(
+                            "class `{}` member `{}` carries `string`; string-bearing members are outside Class Inheritance v1",
+                            declaration.name, field.name
+                        ),
+                        field.span,
+                    ));
+                }
+                check_declared_type(
+                    program,
+                    &field.ty,
+                    field.span,
+                    types,
+                    &parameters,
+                    diagnostics,
+                );
+                if !parameters.is_empty() {
+                    let is_parameter = matches!(
+                        &field.ty,
+                        Type::Named { name, arguments }
+                            if arguments.is_empty() && parameters.contains(name.as_str())
+                    );
+                    let is_unknown_parameter = matches!(
+                        &field.ty,
+                        Type::Named { name, arguments }
+                            if arguments.is_empty() && types.declaration(name).is_none()
+                    );
+                    if !matches!(field.ty, Type::I64 | Type::Bool)
+                        && !is_parameter
+                        && !is_unknown_parameter
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T223",
+                            format!(
+                                "generic record field `{}.{}` must have direct `i64`, `bool`, or an in-scope record type parameter",
+                                declaration.name, field.name
+                            ),
+                            field.span,
+                        ));
+                    }
+                } else if matches!(
+                    &field.ty,
+                    Type::Named { name, arguments }
+                        if !arguments.is_empty()
+                            && matches!(
+                                types.declaration(name).map(|item| &item.kind),
+                                Some(TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. })
+                            )
+                ) && !crate::map_ops::ast_collection(&field.ty)
+                    && !super::super::declared_type::declared_collection::vector(types, &field.ty)
+                    && !(super::super::declared_type::collection_record::vector(types, &field.ty)
+                        && super::super::declared_type::collection_record::admitted(
+                            &Type::Named {
+                                name: declaration.name.clone(),
+                                arguments: Vec::new(),
+                            },
+                            types,
+                        ))
+                    && !(types.contains_owned_bytes(&field.ty)
+                        && matches!(
+                            classify_nested_owned_byte_record(types, &field.ty),
+                            NestedOwnedRecordAdmission::Admitted
+                        ))
+                {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T223",
+                        format!(
+                            "record field `{}.{}` has a generic instance outside bounded concrete owned-record storage",
+                            declaration.name, field.name
+                        ),
+                        field.span,
+                    ));
+                }
+            }
+        }
+        if let TypeDeclarationKind::Variant { cases } = &declaration.kind {
+            let parameters = declaration
+                .type_parameters
+                .iter()
+                .map(|parameter| parameter.name.as_str())
+                .collect::<HashSet<_>>();
+            let owned_byte_variant = parameters.is_empty()
+                && cases
+                    .iter()
+                    .flat_map(|case| &case.fields)
+                    .any(|field| field.ty == Type::Bytes);
+            let owned_string_variant = parameters.is_empty()
+                && !owned_byte_variant
+                && cases
+                    .iter()
+                    .flat_map(|case| &case.fields)
+                    .any(|field| field.ty == Type::String);
+            for case in cases {
+                for field in &case.fields {
+                    check_declared_type(
+                        program,
+                        &field.ty,
+                        field.span,
+                        types,
+                        &parameters,
+                        diagnostics,
+                    );
+                    let is_parameter = matches!(
+                        &field.ty,
+                        Type::Named { name, arguments }
+                            if arguments.is_empty() && parameters.contains(name.as_str())
+                    );
+                    let is_unknown_parameter = matches!(
+                        &field.ty,
+                        Type::Named { name, arguments }
+                            if arguments.is_empty()
+                                && !parameters.is_empty()
+                                && types.declaration(name).is_none()
+                    );
+                    let is_copy_aggregate = parameters.is_empty()
+                        && types.is_admitted_copy_aggregate_variant_field(&field.ty);
+                    if !owned_byte_variant
+                        && !super::super::declared_type::collection_outcome::runtime_declaration_admitted(
+                            types,
+                            declaration,
+                        )
+                        && !owned_string_variant
+                        && !owned_byte_record_copy_field_is_admitted(&field.ty)
+                        && !is_parameter
+                        && !is_unknown_parameter
+                        && !is_copy_aggregate
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T215",
+                            format!(
+                                "case field `{}::{}.{}` must have a direct admitted Copy scalar or an in-scope variant type parameter in Copy Variants v1",
+                                declaration.name, case.name, field.name
+                            ),
+                            field.span,
+                        ));
+                    }
+                }
+            }
+        }
+    }
+}
+
+pub(super) fn check_record_layouts<'p>(
+    program: &'p dyn ProgramSource,
+    types: &TypeTable<'p>,
+    checked_layouts: &mut HashSet<String>,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    for declaration in program.types() {
+        if matches!(
+            declaration.kind,
+            TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. }
+        ) && record_layout_is_recursive(
+            declaration.name.as_str(),
+            types,
+            &mut HashSet::new(),
+            checked_layouts,
+        ) {
+            diagnostics.push(error(
+                program,
+                "SPX-T217",
+                format!(
+                    "record `{}` has an illegal recursive by-value layout",
+                    declaration.name
+                ),
+                declaration.span,
+            ));
+            break;
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests;

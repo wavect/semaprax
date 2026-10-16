@@ -1,0 +1,314 @@
+{
+  "base": "12e7f8a4d3fcb3c5464327a68a8e13506b43e303",
+  "rows": [
+    {
+      "source": "CHANGELOG.md",
+      "archive": "before/CHANGELOG.md",
+      "before_sha256": "cf0b5e18d763176bdb17b047657fac85be1a0fff992028be363ed1be743cdd42",
+      "current_sha256": "32774cef602922b30d1a72bb6e590bde62fd8b2480b43d53c86d002e66579f5a",
+      "current_length": 556649,
+      "inverse": [
+        {
+          "start": 158959,
+          "end": 159167,
+          "after": "\n- Bind dependent invalid owned-record pattern recovery to the original declaration diagnostic, preserving independent body/mode/declaration errors. Source-only #859 candidate; focused qualification pending.\n",
+          "before": ""
+        }
+      ],
+      "changed": true
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "archive": "before/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs",
+      "before_sha256": "429529456a9697f1e228a7c553d4b1dfe6c8d493f151678a2f5d6aa09927f78b",
+      "current_sha256": "f0b32e82a75dc21afe316714dc5e3437853b2b2b7604e21f4892b12ba198ce8b",
+      "current_length": 147255,
+      "inverse": [
+        {
+          "start": 267,
+          "end": 4153,
+          "after": "        audit_source_join!( include_str!(\"../../../../../src/source_verify/declaration/record_shape.rs\"), include_str!(\"../../../../../src/source_verify/declaration/record_shape_before.rs\"), include_str!(\"../../../../../src/literal_format/funded.rs\"), include_str!(\"../../../../../src/bounded_output/invocation_binding.rs\"), include_str!(\"../../../../../src/workspace_graph/before_private_roots.rs\"), include_str!(\"../../../../../src/workspace_graph/cache_key_original.rs\"), include_str!(\"../../../../../src/workspace_graph/constructor_failure/receiving/before.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs\"), include_str!(\"../../../../../src/workspace_graph/validation/before_roots.rs\"), include_str!(\"../../../../../src/hir/validation/byte_traversal/nested/tests/source_composition.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/allocation/tests/clone_cursor.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs\"), include_str!(\"../../../../../src/string_ops/concat_funded.rs\"), include_str!(\"../../../../../src/string_ops/conditions/funded.rs\"), include_str!(\"../../../../../src/string_ops/replacement/funded.rs\"), include_str!(\"../../../../../src/byte_ops/funded.rs\"), include_str!(\"../../../../../src/cleanup_plan/renewal_profile/funded.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/oracle_hook.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/a.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/b.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_context.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/paid.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/tests/structural_errors.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_owner.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_profile.rs\"), include_str!(\"../../../../../src/source_reflows/main043.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_0.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_1.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_2.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_3.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_4.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_5.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_6.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_7.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_8.rs\"), include_str!(\"../../../../../src/source_reflows/main043/semantic_receivers.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main043_custody.rs\"), include_str!(\"../../../../../tests/hir_module_boundaries.rs\"), include_str!(\"../../../../../tests/workspace/semantic_graph/source_inventory.rs\"), include_str!(\"../../../../../src/source_reflows_merge/current344.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main8a_historical.rs\"),\n",
+          "before": "        audit_source_join!( include_str!(\"../../../../../src/literal_format/funded.rs\"), include_str!(\"../../../../../src/bounded_output/invocation_binding.rs\"), include_str!(\"../../../../../src/workspace_graph/before_private_roots.rs\"), include_str!(\"../../../../../src/workspace_graph/cache_key_original.rs\"), include_str!(\"../../../../../src/workspace_graph/constructor_failure/receiving/before.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs\"), include_str!(\"../../../../../src/workspace_graph/validation/before_roots.rs\"), include_str!(\"../../../../../src/hir/validation/byte_traversal/nested/tests/source_composition.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/allocation/tests/clone_cursor.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs\"), include_str!(\"../../../../../src/string_ops/concat_funded.rs\"), include_str!(\"../../../../../src/string_ops/conditions/funded.rs\"), include_str!(\"../../../../../src/string_ops/replacement/funded.rs\"), include_str!(\"../../../../../src/byte_ops/funded.rs\"), include_str!(\"../../../../../src/cleanup_plan/renewal_profile/funded.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/oracle_hook.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/a.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/b.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_context.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/paid.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/tests/structural_errors.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_owner.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_profile.rs\"), include_str!(\"../../../../../src/source_reflows/main043.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_0.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_1.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_2.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_3.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_4.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_5.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_6.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_7.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_8.rs\"), include_str!(\"../../../../../src/source_reflows/main043/semantic_receivers.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main043_custody.rs\"), include_str!(\"../../../../../tests/hir_module_boundaries.rs\"), include_str!(\"../../../../../tests/workspace/semantic_graph/source_inventory.rs\"), include_str!(\"../../../../../src/source_reflows_merge/current344.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main8a_historical.rs\"),\n"
+        }
+      ],
+      "changed": true
+    },
+    {
+      "source": "docs/ARCHITECTURE.md",
+      "archive": "before/docs__ARCHITECTURE.md",
+      "before_sha256": "f8db2a1869079f423fe0d715baa1eec7f981ebbb4179849344a8ca7b69d688ea",
+      "current_sha256": "5b8017c4b24a8ca73a07ae8811ae708afb7c05558d644ad4099f2ca77c5cff0a",
+      "current_length": 377357,
+      "inverse": [
+        {
+          "start": 29755,
+          "end": 30204,
+          "after": "\n`source_verify/declaration/record_shape` owns the ordinary owned-Bytes record\nshape diagnostic and exact six-field diagnostic dependency used by error-only\nrecovery. Real parameter bindings retain their original type and ownership;\nonly a dependent match shape is unavailable after the same declaration refusal.\nIndependent body expressions, parameter modes, lexical pattern checks and valid\nrecord patterns continue through their existing owners.\n",
+          "before": ""
+        }
+      ],
+      "changed": true
+    },
+    {
+      "source": "docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json",
+      "archive": "before/docs__evidence__main043-independent-custody-20261016__guard-extension-allowed.json",
+      "before_sha256": "8d2c3d4904051593a6955b90e708142a15c766731317c4c62456c3796b8fb3a8",
+      "current_sha256": "950b4e630fea09937c2f345116b74e445c45ad6b5d6599238ebc6f3b91dc4d0c",
+      "current_length": 18310,
+      "inverse": [
+        {
+          "start": 2078,
+          "end": 2281,
+          "after": "      \"src/hir/validation/byte_traversal/nested/tests/source_composition.rs\": 1,\n      \"src/source_verify/declaration/record_shape.rs\": 1,\n      \"src/source_verify/declaration/record_shape_before.rs\": 1\n",
+          "before": "      \"src/hir/validation/byte_traversal/nested/tests/source_composition.rs\": 1\n"
+        },
+        {
+          "start": 4597,
+          "end": 4800,
+          "after": "      \"src/hir/validation/byte_traversal/nested/tests/source_composition.rs\": 1,\n      \"src/source_verify/declaration/record_shape.rs\": 1,\n      \"src/source_verify/declaration/record_shape_before.rs\": 1\n",
+          "before": "      \"src/hir/validation/byte_traversal/nested/tests/source_composition.rs\": 1\n"
+        },
+        {
+          "start": 8915,
+          "end": 9118,
+          "after": "      \"src/hir/validation/byte_traversal/nested/tests/source_composition.rs\": 1,\n      \"src/source_verify/declaration/record_shape.rs\": 1,\n      \"src/source_verify/declaration/record_shape_before.rs\": 1\n",
+          "before": "      \"src/hir/validation/byte_traversal/nested/tests/source_composition.rs\": 1\n"
+        },
+        {
+          "start": 13170,
+          "end": 13373,
+          "after": "      \"src/hir/validation/byte_traversal/nested/tests/source_composition.rs\": 1,\n      \"src/source_verify/declaration/record_shape.rs\": 1,\n      \"src/source_verify/declaration/record_shape_before.rs\": 1\n",
+          "before": "      \"src/hir/validation/byte_traversal/nested/tests/source_composition.rs\": 1\n"
+        },
+        {
+          "start": 15691,
+          "end": 15894,
+          "after": "      \"src/hir/validation/byte_traversal/nested/tests/source_composition.rs\": 1,\n      \"src/source_verify/declaration/record_shape.rs\": 1,\n      \"src/source_verify/declaration/record_shape_before.rs\": 1\n",
+          "before": "      \"src/hir/validation/byte_traversal/nested/tests/source_composition.rs\": 1\n"
+        },
+        {
+          "start": 18095,
+          "end": 18298,
+          "after": "      \"src/hir/validation/byte_traversal/nested/tests/source_composition.rs\": 1,\n      \"src/source_verify/declaration/record_shape.rs\": 1,\n      \"src/source_verify/declaration/record_shape_before.rs\": 1\n",
+          "before": "      \"src/hir/validation/byte_traversal/nested/tests/source_composition.rs\": 1\n"
+        }
+      ],
+      "changed": true
+    },
+    {
+      "source": "src/source_verify.rs",
+      "archive": "before/src__source_verify.rs",
+      "before_sha256": "f5e7d3b71296dac8651bcfff0e771f3c8ddcb0a4f6c5adf164ab41273d4f751c",
+      "current_sha256": "256ac8dfb791e37b71596000b188715ae467025571029b911529d54b9c3019ff",
+      "current_length": 12083,
+      "inverse": [
+        {
+          "start": 9510,
+          "end": 9537,
+          "after": "        let mut recovery =\n",
+          "before": "        let recovery =\n"
+        },
+        {
+          "start": 9630,
+          "end": 9759,
+          "after": "        declaration::record_shape::seed(\n            &mut recovery, program, current, &variables, types, diagnostics,\n        );\n",
+          "before": ""
+        }
+      ],
+      "changed": true
+    },
+    {
+      "source": "src/source_verify/constructor_tests.rs",
+      "archive": "before/src__source_verify__constructor_tests.rs",
+      "before_sha256": "79fc6385f511d98cdae7404b9100abc21dbd1e793dec7e004509f5f545def0e3",
+      "current_sha256": "3bb066087c62d99a1169a6eabb6a24af2c786afb3561a18e6fd0641ac33d944d",
+      "current_length": 17238,
+      "inverse": [
+        {
+          "start": 15450,
+          "end": 15563,
+          "after": "        include_str!(\"declaration/record_shape.rs\"),\n        include_str!(\"declaration/record_shape_before.rs\"),\n",
+          "before": ""
+        }
+      ],
+      "changed": true
+    },
+    {
+      "source": "src/source_verify/declaration.rs",
+      "archive": "before/src__source_verify__declaration.rs",
+      "before_sha256": "61c807e1dc05a4f559830b4fa3d25eb79c73aac11a066aa7e3e775caaa655dec",
+      "current_sha256": "a1cc16e547c5a873afc6763487e04f38ff5983843d3635c05b79841b9084d221",
+      "current_length": 11636,
+      "inverse": [
+        {
+          "start": 1037,
+          "end": 1104,
+          "after": "pub(super) mod record_shape;\n#[cfg(test)]\nmod record_shape_before;\n",
+          "before": ""
+        }
+      ],
+      "changed": true
+    },
+    {
+      "source": "src/source_verify/declaration/declarations.rs",
+      "archive": "before/src__source_verify__declaration__declarations.rs",
+      "before_sha256": "b8063ba1d0fce447cee5fc884190c03389f52a156f81a08113e9adb9bb4eb634",
+      "current_sha256": "2c9e52ddd0453357328e6ac770dc15e8fac9df34119a593792ff8bba5f41b8a6",
+      "current_length": 29135,
+      "inverse": [
+        {
+          "start": 1044,
+          "end": 1251,
+          "after": "            TypeDeclarationKind::Record { .. } => {\n                if let Some(diagnostic) = super::record_shape::diagnostic(program, types, declaration) {\n                    diagnostics.push(diagnostic);\n",
+          "before": "            TypeDeclarationKind::Record { fields } => {\n                // The nested owned-Bytes profile is monomorphic, and a generic\n                // declaration has no arguments to substitute into its fields,\n                // so classifying its root would read an unsubstituted parameter\n                // as owning. Ask each declared field instead: a type parameter\n                // resolves to no declaration and so owns nothing, while a\n                // `Bytes` field or a field whose record reaches one is refused\n                // here. Concrete instances are admitted through HIR type\n                // reachability.\n                if !declaration.type_parameters.is_empty() {\n                    if fields\n                        .iter()\n                        .any(|field| types.contains_owned_bytes(&field.ty))\n                    {\n                        diagnostics.push(error(\n                            program,\n                            \"SPX-T268\",\n                            format!(\n                                \"owned-Bytes record `{}` must be monomorphic in this tranche\",\n                                declaration.name\n                            ),\n                            declaration.span,\n                        ));\n                    }\n                    continue;\n                }\n                let root = Type::Named {\n                    name: declaration.name.clone(),\n                    arguments: Vec::new(),\n                };\n                if types.contains_owned_bytes(&root)\n                    && !super::super::declared_type::string_record::runtime_admitted(&root, types)\n                {\n                    match classify_nested_owned_byte_record(types, &root) {\n                        NestedOwnedRecordAdmission::Admitted\n                        | NestedOwnedRecordAdmission::Recursive => {}\n                        NestedOwnedRecordAdmission::NoOwnedBytes => unreachable!(\n                            \"owned-byte precheck and structural classifier disagree\"\n                        ),\n                        NestedOwnedRecordAdmission::OutsideProfile => diagnostics.push(error(\n                            program,\n                            \"SPX-T268\",\n                            format!(\n                                \"owned-Bytes record `{}` must be a monomorphic acyclic record tree with only `Bytes` or direct Copy scalar leaves\",\n                                declaration.name\n                            ),\n                            declaration.span,\n                        )),\n                        NestedOwnedRecordAdmission::LimitExceeded => diagnostics.push(error(\n                            program,\n                            \"SPX-T268\",\n                            format!(\n                                \"owned-Bytes record `{}` exceeds the nested record depth, owned-leaf, or field bound\",\n                                declaration.name\n                            ),\n                            declaration.span,\n                        )),\n                    }\n"
+        }
+      ],
+      "changed": true
+    },
+    {
+      "source": "src/source_verify/declared_type/string_record.rs",
+      "archive": "before/src__source_verify__declared_type__string_record.rs",
+      "before_sha256": "68482d11f7f10c4eeee7842459c35ffbe9d1ae775a6bb4f4c8ce8c67be793320",
+      "current_sha256": "1ab4639a6fbd215e5581b5f4bcd4015ef727b8ac5561c4ed303f733cd7b299b9",
+      "current_length": 5449,
+      "inverse": [
+        {
+          "start": 1534,
+          "end": 1825,
+          "after": "    // A complete existing declaration refusal already owns this shape error.\n    // Other roles, parameters and body checks continue through their owners.\n    if crate::source_verify::declaration::record_shape::origin(program, types, ty, diagnostics).is_some() {\n        return true;\n    }\n",
+          "before": ""
+        }
+      ],
+      "changed": true
+    },
+    {
+      "source": "src/source_verify/iterative.rs",
+      "archive": "before/src__source_verify__iterative.rs",
+      "before_sha256": "ab396db1af79d103ff988289513111d8ee8c902378320bcde9c04bce98b7e3c8",
+      "current_sha256": "dfc5153b385372f7f01db31ae3203a3e1545a67cd35430d61ac974350f1aba59",
+      "current_length": 13724,
+      "inverse": [
+        {
+          "start": 12332,
+          "end": 12564,
+          "after": "        super::declaration::record_shape::seed(\n            &mut verifier.recovery,\n            program,\n            current,\n            &verifier.scopes[0].bindings,\n            types,\n            verifier.diagnostics,\n        );\n",
+          "before": ""
+        }
+      ],
+      "changed": true
+    },
+    {
+      "source": "src/source_verify/iterative/match_arms/refused_patterns.rs",
+      "archive": "before/src__source_verify__iterative__match_arms__refused_patterns.rs",
+      "before_sha256": "55abef6437cb2f1ef619144a9233bd166bb9c9be0b1eba5fc302d650b7d1322f",
+      "current_sha256": "1ac936e1a546eea8ea58b1a87be8b7677f0a60b2232c61fef80b690fb6b3a697",
+      "current_length": 12168,
+      "inverse": [
+        {
+          "start": 7067,
+          "end": 7284,
+          "after": "                    let rejected_shape = crate::source_verify::declaration::record_shape::origin_named(\n                        self.program, self.types, name, self.diagnostics,\n                    ) == Some(origin);\n",
+          "before": ""
+        },
+        {
+          "start": 7943,
+          "end": 8006,
+          "after": "                    if declared.is_none() && !rejected_shape {\n",
+          "before": "                    if declared.is_none() {\n"
+        },
+        {
+          "start": 8420,
+          "end": 8500,
+          "after": "                        declared: if rejected_shape { None } else { declared },\n",
+          "before": "                        declared,\n"
+        }
+      ],
+      "changed": true
+    },
+    {
+      "source": "src/source_verify/iterative/matching.rs",
+      "archive": "before/src__source_verify__iterative__matching.rs",
+      "before_sha256": "1d1f534e9e536b658bd72cd4027eb72344bf6490000d55efbf354fec871439fd",
+      "current_sha256": "7e83bbae4b5b8a5d5684c6998086df8ea7b0d6451b465b416282cec739d1f8ee",
+      "current_length": 26942,
+      "inverse": [
+        {
+          "start": 1657,
+          "end": 2185,
+          "after": "        // A real value/ownership check still ran. Only its rejected declaration\n        // shape is unavailable to dependent pattern resolution.\n        if scrutinee_value.as_ref().is_some_and(|value| {\n            self.recovery.view(scrutinee).is_some_and(|view| {\n                crate::source_verify::declaration::record_shape::origin(\n                    self.program, self.types, &value.ty, self.diagnostics,\n                ) == Some(view.origin)\n            })\n        }) {\n            scrutinee_value = None;\n        }\n",
+          "before": ""
+        }
+      ],
+      "changed": true
+    },
+    {
+      "source": "src/source_verify/recovery.rs",
+      "archive": "before/src__source_verify__recovery.rs",
+      "before_sha256": "745a95b3875bb3b6b7e35b42a2787fbdd5b4c6822c8c2218e6740400d8256402",
+      "current_sha256": "745a95b3875bb3b6b7e35b42a2787fbdd5b4c6822c8c2218e6740400d8256402",
+      "current_length": 14627,
+      "inverse": [],
+      "changed": false
+    },
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "archive": "before/tests__hir_module_boundaries.rs",
+      "before_sha256": "ead8c205ffcd4ef53485a5104429ec429fce93ac63d11fe8b4e922bb57f8403f",
+      "current_sha256": "aeb3f200af526dbbeb362b753488a563fee54939f5a9d8e737666b4e47da8586",
+      "current_length": 90401,
+      "inverse": [
+        {
+          "start": 286,
+          "end": 1023,
+          "after": "    let validation_raw = audit_source_join!(include_str!(\"../src/source_verify/declaration/record_shape.rs\"), include_str!(\"../src/source_verify/declaration/record_shape_before.rs\"), include_str!(\"../src/bounded_output/invocation_binding.rs\"), include_str!(\"../src/workspace_graph/before_private_roots.rs\"), include_str!(\"../src/workspace_graph/cache_key_original.rs\"), include_str!(\"../src/workspace_graph/constructor_failure/receiving/before.rs\"), include_str!(\"../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs\"), include_str!(\"../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs\"), include_str!(\"../src/workspace_graph/validation/before_roots.rs\"),\n",
+          "before": "    let validation_raw = audit_source_join!(include_str!(\"../src/bounded_output/invocation_binding.rs\"), include_str!(\"../src/workspace_graph/before_private_roots.rs\"), include_str!(\"../src/workspace_graph/cache_key_original.rs\"), include_str!(\"../src/workspace_graph/constructor_failure/receiving/before.rs\"), include_str!(\"../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs\"), include_str!(\"../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs\"), include_str!(\"../src/workspace_graph/validation/before_roots.rs\"),\n"
+        }
+      ],
+      "changed": true
+    },
+    {
+      "source": "tests/owned_data/nested_owned_record_frontend_hir.rs",
+      "archive": "before/tests__owned_data__nested_owned_record_frontend_hir.rs",
+      "before_sha256": "543e4897042a99d6d62628364d054e3a9ac5ca8f5a45c68b02a5bc3f7d702a56",
+      "current_sha256": "0a23846e8bdd24c3d3ea97f7a1181a0fbf2d68ed6e0a72fbd0f3e4cdff05ec24",
+      "current_length": 30371,
+      "inverse": [
+        {
+          "start": 26768,
+          "end": 30371,
+          "after": "\nfn assert_shape_recovery_diagnostic_fields(\n    actual: &semaprax::diagnostic::Diagnostic,\n    expected: &semaprax::diagnostic::Diagnostic,\n) {\n    assert_eq!(actual.code, expected.code);\n    assert_eq!(actual.severity, expected.severity);\n    assert_eq!(actual.message, expected.message);\n    assert_eq!(actual.path, expected.path);\n    assert_eq!(actual.span, expected.span);\n    assert_eq!(actual.help, expected.help);\n}\n\n#[test]\nfn excluded_record_recovery_retains_independent_arm_body_parameter_and_declaration_errors() {\n    let excluded = ORIGINAL_STRING_PATTERN.replace(\"text: string,\", \"text: string, unsupported: [u8; 1],\");\n    let baseline = diagnostics(&excluded);\n    let primary = baseline.iter().find(|d| d.code == \"SPX-T268\").unwrap();\n    for (source, independent_codes) in [\n        (excluded.replace(\"=> 0,\", \"=> independent_unknown,\"), vec![\"SPX-T202\"]),\n        (excluded.replace(\"packet: own Packet\", \"packet: own Packet, independent: Bytes\"), vec![\"SPX-T263\"]),\n        (format!(\"{excluded}\\nfn unrelated()->i64{{outside_unknown}}\\n\"), vec![\"SPX-T202\"]),\n        (format!(\"{excluded}\\nrecord Unrelated {{ payload: Bytes, unsupported: [u8; 1], }}\\n\"), vec![\"SPX-T268\"]),\n        (excluded.replace(\"Packet { payload, text }\", \"Packet { payload: same, text: same }\"), vec![\"SPX-M104\"]),\n    ] {\n        // Blank only this excluded field, retaining every following byte offset.\n        // The independent valid-record route therefore supplies exact six-field\n        // expected diagnostics, without source-position normalization.\n        let field = \"unsupported: [u8; 1],\";\n        let valid = source.replacen(field, &\" \".repeat(field.len()), 1);\n        let actual = diagnostics(&source).into_iter().filter(|d| d.severity.is_error()).collect::<Vec<_>>();\n        let expected = diagnostics(&valid).into_iter().filter(|d| d.severity.is_error()).collect::<Vec<_>>();\n        assert_eq!(expected.iter().map(|d| d.code).collect::<Vec<_>>(), independent_codes);\n        assert_eq!(actual.len(), expected.len() + 1, \"{actual:?}\");\n        assert_shape_recovery_diagnostic_fields(&actual[0], primary);\n        for (actual, expected) in actual[1..].iter().zip(&expected) {\n            assert_shape_recovery_diagnostic_fields(actual, expected);\n        }\n    }\n}\n\n#[test]\nfn valid_record_missing_field_and_plain_match_mode_diagnostics_remain_independent() {\n    let missing = ORIGINAL_STRING_PATTERN.replace(\"Packet { payload, text }\", \"Packet { payload }\");\n    let failures = diagnostics(&missing).into_iter().filter(|d| d.severity.is_error()).collect::<Vec<_>>();\n    assert_eq!(failures.iter().map(|d| d.code).collect::<Vec<_>>(), vec![\"SPX-M104\"]);\n    assert_eq!(failures[0].message, \"record pattern `Packet` is missing field `text`\");\n    assert_eq!(failures[0].path.as_deref(), Some(\"nested-owned-records-v1.spx\"));\n    assert!(failures[0].span.is_some());\n    assert_eq!(failures[0].help, None);\n\n    let plain = ORIGINAL_STRING_PATTERN.replace(\"match own packet\", \"match packet\");\n    let failures = diagnostics(&plain).into_iter().filter(|d| d.severity.is_error()).collect::<Vec<_>>();\n    assert_eq!(failures.iter().map(|d| d.code).collect::<Vec<_>>(), vec![\"SPX-O111\", \"SPX-M103\"]);\n    assert_eq!(failures[0].message, \"plain record match requires a Copy scrutinee\");\n    assert_eq!(failures[1].message, \"record pattern `Packet` is incompatible with `Packet`\");\n    for diagnostic in failures {\n        assert_eq!(diagnostic.path.as_deref(), Some(\"nested-owned-records-v1.spx\"));\n        assert!(diagnostic.span.is_some());\n        assert_eq!(diagnostic.help, None);\n    }\n}\n",
+          "before": ""
+        }
+      ],
+      "changed": true
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "archive": "before/tests__workspace__semantic_graph__source_inventory.rs",
+      "before_sha256": "1ef5b5c450255f741f9dcee64665a4bf0e6c2fac91c02c25c7a4ace157b98f8c",
+      "current_sha256": "5f7b1e381f0bb7512940a0d7e03d3b35c4e85a91089cd59920a4306a407f4a98",
+      "current_length": 83228,
+      "inverse": [
+        {
+          "start": 553,
+          "end": 1085,
+          "after": "include_str!(\"../../src/source_verify/declaration/record_shape.rs\"), include_str!(\"../../src/source_verify/declaration/record_shape_before.rs\"), include_str!(\"../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\"), include_str!(\"../../src/hir/validation/byte_traversal/nested/tests/source_composition.rs\"), include_str!(\"../../src/cleanup_plan/replay/allocation/tests/clone_cursor.rs\"), include_str!(\"../../src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs\"),\n",
+          "before": "include_str!(\"../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\"), include_str!(\"../../src/hir/validation/byte_traversal/nested/tests/source_composition.rs\"), include_str!(\"../../src/cleanup_plan/replay/allocation/tests/clone_cursor.rs\"), include_str!(\"../../src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs\"),\n"
+        }
+      ],
+      "changed": true
+    }
+  ],
+  "new_sources": [
+    {
+      "source": "src/source_verify/declaration/record_shape.rs",
+      "sha256": "9f6aa19bea36c4914ce626d0a111f4c30a6b0413e5852fcceca0406555b2969b",
+      "length": 7793
+    },
+    {
+      "source": "src/source_verify/declaration/record_shape_before.rs",
+      "sha256": "7196e1a310c985108afd56f2726b89c0d7fa242d8aa14d8e9611bb0f4d89653e",
+      "length": 9030
+    }
+  ]
+}

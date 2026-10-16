@@ -1,0 +1,177 @@
+{
+  "base": "0bebc326e050b4211f556c2feb76a6b7e38b52cf",
+  "path": "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs",
+  "current_sha256": "0ded630242e9a63fa6152daa450753eb9dad71e2666d144e812a4fe22ccede6c",
+  "before_sha256": "ed1a28f5f57be809f5ebe5b28999f1d118c019167dd603b91e8b0c248d4e90b6",
+  "inverse": [
+    {
+      "start_line": 8,
+      "end_line": 10,
+      "current": "#[path = \"../../sequence_vector/observation_parity.rs\"]\nmod observation_parity;\n",
+      "previous": ""
+    },
+    {
+      "start_line": 87,
+      "end_line": 92,
+      "current": "        if observations.prefix.is_some() || old_observations.prefix.is_some() {\n            observation_parity::assert_equal(observations, old_observations);\n        } else {\n            assert_eq!(observations, old_observations);\n        }\n",
+      "previous": "        assert_eq!(observations, old_observations);\n"
+    },
+    {
+      "start_line": 204,
+      "end_line": 205,
+      "current": "            assert_eq!(actual.len(), expected.len());\n",
+      "previous": "            assert_expr_paths_equal(&actual, &expected);\n"
+    },
+    {
+      "start_line": 215,
+      "end_line": 243,
+      "current": "\n    // Full DAG values are compared outside the allocation observer: both\n    // independent drivers allocate their own new concatenation roots. Keep the\n    // measured construction-through-Drop/pointer/work controls above intact.\n    observation_parity::verify_contract(&function.body.id, &program.functions[1].body.id);\n    let ((), refused, _, first) = with_limit_usage_refusal(usize::MAX, || {\n        let mut old = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n        let mut current = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n        let mut old_work = SkeletonWork::new(&program, function, &mut old);\n        let mut work = SkeletonWork::new(&program, function, &mut current);\n        let old_inputs = dag_seed(64, &mut old_work).unwrap();\n        let inputs = dag_seed(64, &mut work).unwrap();\n        let old_suffixes = dag_seed(3, &mut old_work).unwrap();\n        let suffixes = dag_seed(3, &mut work).unwrap();\n        let before = skeleton_materializations();\n        let expected =\n            before::sequence_skeleton_paths(old_inputs, &old_suffixes, &mut old_work).unwrap();\n        let materializations = skeleton_materializations() - before;\n        let before = skeleton_materializations();\n        let actual = sequence_skeleton_paths(inputs, &suffixes, &mut work).unwrap();\n        assert_eq!(skeleton_materializations() - before, materializations);\n        assert_expr_paths_equal(&actual, &expected);\n        assert_eq!(actual.capacity(), expected.capacity());\n        assert_eq!(current.skeleton_spent, old.skeleton_spent);\n        assert_eq!(current.skeleton_remaining, old.skeleton_remaining);\n        drop((actual, expected, suffixes, old_suffixes));\n    });\n    assert!(!refused && first.is_none());\n",
+      "previous": ""
+    },
+    {
+      "start_line": 303,
+      "end_line": 316,
+      "current": "        let added = if count + 1 <= old_capacity {\n            HEADER\n        } else {\n            RECEIVING\n        };\n        assert_eq!(\n            old_allocation.allocated + old_saved,\n            allocation.allocated + saved\n        );\n        assert_eq!(\n            old_paid + old_saved + added,\n            exact + saved + super::RECEIVING\n        );\n",
+      "previous": "        let added = if count + 1 <= old_capacity { HEADER } else { RECEIVING };\n        assert_eq!(old_allocation.allocated + old_saved, allocation.allocated + saved);\n        assert_eq!(old_paid + old_saved + added, exact + saved + super::RECEIVING);\n"
+    },
+    {
+      "start_line": 373,
+      "end_line": 376,
+      "current": "        budget\n            .reserve_skeleton(function, MAX_REPLAY_WORK_UNITS)\n            .unwrap();\n",
+      "previous": ""
+    },
+    {
+      "start_line": 440,
+      "end_line": 449,
+      "current": "        super::push!(\n            work,\n            first,\n            minimum,\n            pending,\n            &mut result,\n            empty_expr_path(),\n            \"sequenced skeleton path\"\n        );\n",
+      "previous": "        super::push!(work, first, minimum, pending, &mut result, empty_expr_path(), \"sequenced skeleton path\");\n"
+    },
+    {
+      "start_line": 450,
+      "end_line": 459,
+      "current": "        super::optimized::push!(\n            work,\n            first,\n            minimum,\n            pending,\n            &mut result,\n            empty_expr_path(),\n            \"sequenced skeleton path\"\n        );\n",
+      "previous": "        super::optimized::push!(work, first, minimum, pending, &mut result, empty_expr_path(), \"sequenced skeleton path\");\n"
+    },
+    {
+      "start_line": 475,
+      "end_line": 478,
+      "current": "            budget\n                .reserve_skeleton(function, MAX_REPLAY_WORK_UNITS)\n                .unwrap();\n",
+      "previous": "            budget.reserve_skeleton(function, MAX_REPLAY_WORK_UNITS).unwrap();\n"
+    },
+    {
+      "start_line": 486,
+      "end_line": 489,
+      "current": "                    if selected {\n                        assert_eq!(result.capacity(), 16);\n                    }\n",
+      "previous": "                    if selected { assert_eq!(result.capacity(), 16); }\n"
+    },
+    {
+      "start_line": 495,
+      "end_line": 499,
+      "current": "            let paid = budget\n                .physical\n                .as_deref()\n                .map_or(0, |ledger| ledger.charged());\n",
+      "previous": "            let paid = budget.physical.as_deref().map_or(0, |ledger| ledger.charged());\n"
+    },
+    {
+      "start_line": 527,
+      "end_line": 529,
+      "current": "            let scope =\n                allocation::OracleScope::open_with_work(1 << 20, MAX_REPLAY_WORK_UNITS).unwrap();\n",
+      "previous": "            let scope = allocation::OracleScope::open_with_work(1 << 20, MAX_REPLAY_WORK_UNITS).unwrap();\n"
+    },
+    {
+      "start_line": 532,
+      "end_line": 533,
+      "current": "            // Authenticate the actual source inventory before retiring its owner.\n",
+      "previous": "            drop(scope);\n            let live = foreign.then(|| allocation::OracleScope::open_with_work(1 << 20, MAX_REPLAY_WORK_UNITS).unwrap());\n            let before = live.as_ref().map(|scope| scope.receipt().charged);\n"
+    },
+    {
+      "start_line": 534,
+      "end_line": 539,
+      "current": "            drop(scope);\n            let live = foreign.then(|| {\n                allocation::OracleScope::open_with_work(1 << 20, MAX_REPLAY_WORK_UNITS).unwrap()\n            });\n            let before = live.as_ref().map(|scope| scope.receipt().charged);\n",
+      "previous": ""
+    },
+    {
+      "start_line": 542,
+      "end_line": 546,
+      "current": "            assert_eq!(\n                after, before,\n                \"foreign account cannot pay an expired source owner\"\n            );\n",
+      "previous": "            assert_eq!(after, before, \"foreign account cannot pay an expired source owner\");\n"
+    },
+    {
+      "start_line": 576,
+      "end_line": 578,
+      "current": "                        let minimum =\n                            path_array::count!(work, true, prefixes, \"floor sequencing count\");\n",
+      "previous": "                        let minimum = path_array::count!(\n                            work, true, prefixes, \"floor sequencing count\"\n                        );\n"
+    },
+    {
+      "start_line": 586,
+      "end_line": 588,
+      "current": "                        let before_probe =\n                            path_array::capacity_controls() + if full_query { HEADER } else { 0 };\n",
+      "previous": "                        let before_probe = path_array::capacity_controls()\n                            + if full_query { HEADER } else { 0 };\n"
+    },
+    {
+      "start_line": 593,
+      "end_line": 602,
+      "current": "                                super::push!(\n                                    work,\n                                    first,\n                                    minimum,\n                                    pending,\n                                    &mut target,\n                                    empty_expr_path(),\n                                    \"sequenced skeleton path\"\n                                );\n",
+      "previous": "                                super::push!(work, first, minimum, pending, &mut target,\n                                    empty_expr_path(), \"sequenced skeleton path\");\n"
+    },
+    {
+      "start_line": 603,
+      "end_line": 612,
+      "current": "                                super::optimized::push!(\n                                    work,\n                                    first,\n                                    minimum,\n                                    pending,\n                                    &mut target,\n                                    empty_expr_path(),\n                                    \"sequenced skeleton path\"\n                                );\n",
+      "previous": "                                super::optimized::push!(work, first, minimum, pending, &mut target,\n                                    empty_expr_path(), \"sequenced skeleton path\");\n"
+    },
+    {
+      "start_line": 617,
+      "end_line": 619,
+      "current": "                    })()\n                    .map_err(failure);\n",
+      "previous": "                    })().map_err(failure);\n"
+    },
+    {
+      "start_line": 625,
+      "end_line": 628,
+      "current": "                    let retry = work\n                        .budget\n                        .reserve_bytes(function, 0, \"floor probe retry\")\n",
+      "previous": "                    let retry = work.budget.reserve_bytes(function, 0, \"floor probe retry\")\n"
+    },
+    {
+      "start_line": 629,
+      "end_line": 633,
+      "current": "                    assert_eq!(\n                        retry,\n                        Err(failure(Diagnostic::io(\"SPX-H006\", String::new())))\n                    );\n",
+      "previous": "                    assert_eq!(retry, Err(failure(Diagnostic::io(\"SPX-H006\", String::new()))));\n"
+    },
+    {
+      "start_line": 641,
+      "end_line": 648,
+      "current": "        let (\n            ((expected, old_floor, old_initial), old_allocation),\n            old_refused,\n            _,\n            old_first,\n            old_site,\n        ) = run(true);\n",
+      "previous": "        let (((expected, old_floor, old_initial), old_allocation), old_refused, _, old_first, old_site) = run(true);\n"
+    },
+    {
+      "start_line": 649,
+      "end_line": 654,
+      "current": "        assert_eq!(\n            actual,\n            expected.unwrap_err(),\n            \"all six original Diagnostic fields\"\n        );\n",
+      "previous": "        assert_eq!(actual, expected.unwrap_err(), \"all six original Diagnostic fields\");\n"
+    },
+    {
+      "start_line": 664,
+      "end_line": 668,
+      "current": "        assert_eq!(\n            first.requested,\n            if full_query { super::RECEIVING } else { HEADER }\n        );\n",
+      "previous": "        assert_eq!(first.requested, if full_query { super::RECEIVING } else { HEADER });\n"
+    },
+    {
+      "start_line": 671,
+      "end_line": 675,
+      "current": "        assert_eq!(\n            old_first.remaining,\n            old_floor + if full_query { HEADER } else { 0 }\n        );\n",
+      "previous": "        assert_eq!(old_first.remaining, old_floor + if full_query { HEADER } else { 0 });\n"
+    },
+    {
+      "start_line": 678,
+      "end_line": 682,
+      "current": "        assert!(\n            site.is_some() && old_site.is_some(),\n            \"both actual first sites survive retry\"\n        );\n",
+      "previous": "        assert!(site.is_some() && old_site.is_some(), \"both actual first sites survive retry\");\n"
+    }
+  ],
+  "pending_exact_indices": [
+    234,
+    237,
+    239
+  ],
+  "shared_comparator_from_commit": "0bebc326e050b4211f556c2feb76a6b7e38b52cf",
+  "runtime_qualified": false
+}

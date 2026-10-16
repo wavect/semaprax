@@ -1,0 +1,6 @@
+{
+  "complete_before_reconstructed": true,
+  "whole_source_drifts_rejected": 4,
+  "rustfmt_parsed": true,
+  "cargo_or_runtime_performed": false
+}

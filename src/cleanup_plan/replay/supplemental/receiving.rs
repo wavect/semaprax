@@ -154,10 +154,17 @@ fn reserve_frames<'a>(
     if required <= frames.capacity() {
         return Ok(());
     }
-    let target = frames
-        .capacity()
-        .saturating_mul(2)
-        .clamp(required.max(2), FRAME_CAPACITY);
+    // Unobserved replay keeps the original fixed cursor and performs no
+    // relocation. Growing storage belongs to allocation-paying invocations;
+    // applying it to legacy callers would add work absent from their receiver.
+    let target = if budget.pays_allocations() {
+        frames
+            .capacity()
+            .saturating_mul(2)
+            .clamp(required.max(2), FRAME_CAPACITY)
+    } else {
+        FRAME_CAPACITY
+    };
     if !frames.is_empty() {
         budget.charge(function, frames.len(), "supplemental cursor relocation")?;
     }

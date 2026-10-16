@@ -1143,6 +1143,7 @@ Audience: all documentation readers.
 - [Storage-backed test comparison refusal](evidence/storage-oracle-refusal-v1/README.md)
 - [Structural call cursor storage](evidence/structural-call-cursor-v1/README.md)
 - [Supplemental receiving cursor growth](evidence/supplemental-cursor-growth-v1/README.md)
+- [Preserve the legacy supplemental cursor work](evidence/supplemental-legacy-cursor-v1/README.md)
 - [Reuse the complete unit-weight closure](evidence/unit-weight-closure-v1/README.md)
 - [Compact borrowed child cursor](evidence/compact-child-cursor-v1/README.md)
 - [Ordinary scalar type clone cursor](evidence/scalar-clone-cursor-v1/README.md)

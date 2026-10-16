@@ -76,6 +76,12 @@ fn complete_original_and_growing_walks_receive_the_same_owned_argument_slots() {
                 assert_eq!(result, reference);
                 assert_eq!(actual, original);
                 assert_eq!(flags, old_flags);
+                assert_eq!(current_budget.remaining, old_budget.remaining);
+                assert_eq!(
+                    current_budget.skeleton_remaining,
+                    old_budget.skeleton_remaining
+                );
+                assert_eq!(current_budget.skeleton_spent, old_budget.skeleton_spent);
                 received += actual.len();
                 assert!(cursor.frames.is_empty());
             }
@@ -246,3 +252,5 @@ fn complete_original_receiving_walk_is_preserved_by_only_storage_substitutions()
     }
     assert_eq!(restored.strip_suffix('\n').unwrap(), original);
 }
+
+mod legacy;

@@ -1,4 +1,4 @@
-//! Explicit funded twin of `same_owner_set_bindings` (test only). The census
+//! Explicit funded twin of `same_owner_set_bindings` (explicit payer). The census
 //! order, closure skip and mutable filter are the original ones; every Vec,
 //! set/map entry and tree node is reserved on the supplied payer first.
 use crate::hir::funded::{self, FundedError, Reserve};

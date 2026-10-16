@@ -1,6 +1,5 @@
 //! Renewal site identity is derived from HIR, independently of attached transitions.
 pub(crate) mod child_refusal;
-#[cfg(test)]
 mod funded;
 pub(crate) mod ordinary;
 pub(crate) mod profile_refusal;
@@ -116,6 +115,7 @@ pub(crate) fn bindings<'a>(
 ) -> RenewalBindings<'a> {
     bindings_with_index(program, function, None)
 }
+#[cfg(test)]
 pub(crate) fn bindings_with_index<'a>(
     program: &'a dyn crate::cleanup::ReplayContext,
     function: &'a ResolvedFunction,
@@ -318,3 +318,5 @@ pub(crate) mod boundary_refusal;
 pub(crate) mod type_drop_refusal;
 
 pub(crate) mod path_boundary_refusal;
+
+pub(crate) use funded::bindings_with_index_funded;

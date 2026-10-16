@@ -1,4 +1,4 @@
-//! Test-only funded twin of `checked_moving_string_operands`. Precedence is the
+//! Explicit-payer funded twin of `checked_moving_string_operands`. Precedence is the
 //! original's: same-owner concat operands first, then every `take` operand and
 //! every direct owning String Place passed to a `LiteralFormat`, in
 //! `function_value::walk` order. Each insertion debits its tree node (only for a

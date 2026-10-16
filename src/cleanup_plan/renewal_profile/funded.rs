@@ -1,4 +1,4 @@
-//! Test-only funded assembly of the per-function renewal lookup. Same census
+//! Explicit-payer funded assembly of the per-function renewal lookup. Same census
 //! order and `extend` precedence as `bindings_with_index`; every receiver and
 //! map merge is debited on the caller's payer first and its refusal returned
 //! unchanged. Nothing reads the production ACTIVE ledger.
@@ -55,6 +55,7 @@ pub(crate) fn bindings_with_index_funded_with_work<'a, E>(
 /// Funded single-site helper lookup for the standalone (no held index) route;
 /// a census work/depth verdict is "no site", every other failure propagates.
 /// Held-index and primitive routes allocate nothing and stay the originals.
+#[cfg(test)]
 pub(crate) fn helper_binding_funded<'a, E>(
     program: &'a dyn crate::cleanup::ReplayContext,
     function: &'a ResolvedFunction,
@@ -75,6 +76,7 @@ pub(crate) fn helper_binding_funded<'a, E>(
 /// acquires anything and only runs when every earlier route found nothing. The
 /// census work/depth verdict is the original absence of a helper site; payer,
 /// physical and account refusals propagate and are never read as absence.
+#[cfg(test)]
 pub(crate) fn binding_with_index_funded<'a, E>(
     program: &'a dyn crate::cleanup::ReplayContext,
     function: &'a ResolvedFunction,
@@ -120,6 +122,7 @@ pub(crate) fn binding_with_index_funded<'a, E>(
     crate::hir::iterator_loop::renewal_binding_funded(program, function, at, reserve)
 }
 
+#[cfg(test)]
 pub(crate) fn bindings_funded<'a, E>(
     program: &'a dyn crate::cleanup::ReplayContext,
     function: &'a ResolvedFunction,

@@ -1,0 +1,15 @@
+
+running 1 test
+test cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits ... 
+thread 'cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits' (19019647) panicked at src/cleanup_plan/replay/sequence_prefix/main_c11/tests.rs:273:9:
+assertion failed: alloc.allocated <= paid
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9448 filtered out; finished in 0.79s
+

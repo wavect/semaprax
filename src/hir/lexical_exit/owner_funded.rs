@@ -1,4 +1,4 @@
-//! Test-only funded twin of `owner`. Candidate order, the `validate_owner`
+//! Explicit-payer funded twin of `owner`. Candidate order, the `validate_owner`
 //! predicate and the first-duplicate ambiguity stop are the original's. Nothing
 //! builds the discarded legacy diagnostics: a missing or ambiguous owner is the
 //! plain `OwnerVerdict`, whose `diagnostic()` rebuilds the original text only
@@ -8,6 +8,7 @@
 //! identity text. A payer refusal is returned unchanged, never read as a
 //! missing owner.
 use super::FunctionExecutionId;
+#[cfg(test)]
 use crate::diagnostic::Diagnostic;
 use crate::hir::funded::{self, FundedError, Reserve};
 use crate::hir::ResolvedFunction;
@@ -19,6 +20,7 @@ pub(crate) enum OwnerVerdict {
 }
 
 impl OwnerVerdict {
+    #[cfg(test)]
     pub(crate) fn diagnostic(self) -> Diagnostic {
         match self {
             Self::Ambiguous => Diagnostic::io(
@@ -226,5 +228,7 @@ mod tests {
     }
 }
 
+#[cfg(test)]
 mod work;
+#[cfg(test)]
 pub(crate) use work::{owner_funded_with_work, requires_funded_with_work};

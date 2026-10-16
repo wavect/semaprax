@@ -1,4 +1,4 @@
-//! Explicit funded twin of `renewal_bindings` (test only). Record-then-default
+//! Explicit funded twin of `renewal_bindings` (explicit payer). Record-then-default
 //! precedence, traversal order and the admission predicates are the original
 //! ones; every Vec, map entry and tree node is reserved on the supplied payer
 //! first, and a refusal is returned instead of a smaller binding set.
@@ -39,6 +39,7 @@ pub(crate) fn renewal_bindings_funded<'a, E>(
 /// Funded single-site twin of `renewal_binding`: default profile first, then
 /// record owners, each collector fully funded; the first map is dropped before
 /// the second is built, as in the original.
+#[cfg(test)]
 pub(crate) fn renewal_binding_funded<'a, E>(
     program: &'a dyn crate::cleanup::ReplayContext,
     function: &'a ResolvedFunction,

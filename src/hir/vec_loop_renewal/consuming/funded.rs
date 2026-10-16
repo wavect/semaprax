@@ -1,4 +1,4 @@
-//! Explicit funded twin of `append_bindings` (test only). The scan, its nested
+//! Explicit funded twin of `append_bindings` (explicit payer). The scan, its nested
 //! candidate/declaration walks and the one-before-publish discipline are the
 //! original ones. Every fixed cursor and entry is reserved on the supplied
 //! payer first, and a refusal is returned instead of skipping the entry.

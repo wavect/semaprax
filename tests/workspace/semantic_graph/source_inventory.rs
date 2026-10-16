@@ -229,6 +229,19 @@ macro_rules! semantic_graph_root_source_inventory {
             audit_source_join!(
                 audit_source_join!(
                     audit_source_join!(
+include_str!("../../src/hir/funded.rs"),
+include_str!("../../src/hir/function_value/funded.rs"),
+include_str!("../../src/hir/iterator_loop/renewal/funded.rs"),
+include_str!("../../src/hir/vec_loop_renewal/funded.rs"),
+include_str!("../../src/hir/vec_loop_renewal/consuming/funded.rs"),
+include_str!("../../src/hir/lexical_exit/owner_funded.rs"),
+include_str!("../../src/literal_format/funded.rs"),
+include_str!("../../src/string_ops/concat_funded.rs"),
+include_str!("../../src/string_ops/conditions/funded.rs"),
+include_str!("../../src/string_ops/replacement/funded.rs"),
+include_str!("../../src/byte_ops/funded.rs"),
+include_str!("../../src/cleanup_plan/renewal_profile/funded.rs"),
+include_str!("../../src/loop_calls/byte_writer/resolved/funded.rs"),
                     audit_source_join!(audit_source_join!(audit_source_join!(include_str!("../../src/workspace_graph.rs"), include_str!("../../src/workspace_graph/initial_report.rs"), include_str!("../../src/workspace_graph/initial_report/before.rs"), include_str!("../../src/workspace_graph/initial_report/before_mappers.rs"), include_str!("../../src/workspace_graph/initial_report/build.rs"), include_str!("../../src/workspace_graph/initial_report/tests.rs"),
         include_str!("../../src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs"),
         include_str!("../../src/cleanup_plan/replay/live_oracle/source_custody/presence.rs"),

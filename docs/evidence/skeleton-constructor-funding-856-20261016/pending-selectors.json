@@ -1,0 +1,44 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::skeleton_work::constructor_funding_tests::ordinary_constructor_matches_complete_previous_collectors_and_order",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::skeleton_work::constructor_funding_tests::ordinary_constructor_prepays_real_scratch_at_zero_short_exact_and_sticky_limits",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::before_wrapper::before_wrapper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::before_wrapper::before_wrapper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+    "status": "PENDING_NOT_EXECUTED"
+  }
+]

@@ -1,0 +1,1 @@
+{"status": "SOURCE_ONLY_CONSTRUCTOR_FUNDING_CUSTODY_PASS", "preexisting_inputs": 38, "promoted_modules": 13, "unchanged_five_owner_assertions": true, "old_constructor_body_exact": true, "old_helper_bodies_exact": true, "three_raw_inventories_complete": true, "unchanged_transfer_algorithms_and_caps": true, "rust_executed": false}

@@ -1,4 +1,4 @@
-//! Test-only funded twins of `condition_reads`, `function_reads` and
+//! Explicit-payer funded twins of `condition_reads`, `function_reads` and
 //! `needs_cleanup`. Same pop-from-the-end discipline, same `While`-condition
 //! only statement rule inside condition blocks, and the interpreter
 //! `trace_child_expressions` order for every other node. The pending stacks,
@@ -77,6 +77,7 @@ pub(crate) fn function_reads_funded<E>(
     Ok(reads)
 }
 
+#[cfg(test)]
 pub(crate) fn needs_cleanup_funded<E>(
     condition: &ResolvedExpr,
     reserve: Reserve<'_, E>,

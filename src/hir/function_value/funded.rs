@@ -1,4 +1,4 @@
-//! Test-only funded twin of `function_value::walk`. Root order (requires, body,
+//! Explicit-payer funded twin of `function_value::walk`. Root order (requires, body,
 //! ensures), the pop-from-the-end discipline and the authored child order are
 //! the original's. The pending root vector and every child growth are debited
 //! on the caller's payer first; the visitor is fallible and its error comes
@@ -7,6 +7,7 @@ use super::*;
 use crate::hir::funded::{self, FundedError, Reserve};
 
 /// Visitor that owns no payer of its own: its error is the payer's `E`.
+#[cfg(test)]
 pub(crate) fn walk_funded<'a, E>(
     function: &'a ResolvedFunction,
     mut visit: impl FnMut(&'a ResolvedExpr) -> Result<(), E>,

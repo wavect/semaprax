@@ -1,13 +1,13 @@
 use super::*;
-#[cfg(test)]
 mod funded;
 #[cfg(test)]
 mod selected;
 mod selected_inline;
 pub(crate) use selected_inline::checked_bindings_with_reservation_and_work_inline;
 pub(super) mod validation;
+pub(crate) use funded::checked_bindings_funded_with_work;
 #[cfg(test)]
-pub(crate) use funded::{checked_bindings_funded, checked_bindings_funded_with_work};
+pub(crate) use funded::checked_bindings_funded;
 #[cfg(test)]
 pub(crate) use selected::checked_absent_with_work_reservation;
 #[cfg(test)]
@@ -170,7 +170,6 @@ pub(crate) fn nonallocating_with_cursor<'a>(
 }
 
 #[allow(clippy::too_many_arguments)]
-#[cfg(test)]
 fn nonallocating_with_cursor_and_work<'a>(
     target: &'a ResolvedFunction,
     lookup: impl Fn(
@@ -409,9 +408,7 @@ pub(crate) fn checked_bindings<'a>(
     })
 }
 const CENSUS_DEPTH: usize = 514;
-#[cfg(test)]
 const CENSUS_CODE: &str = "SPX-H006";
-#[cfg(test)]
 const CENSUS_MESSAGE: &str = "byte helper renewal census exceeds admitted scratch, work or depth";
 pub(super) fn census_error() -> crate::diagnostic::Diagnostic {
     crate::diagnostic::Diagnostic::io(

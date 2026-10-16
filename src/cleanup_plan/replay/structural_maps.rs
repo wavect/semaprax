@@ -210,16 +210,17 @@ pub(super) fn validate_reference_coverage(
     Ok(())
 }
 
-fn insert_status(
+fn insert_status<'plan>(
     function: &ResolvedFunction,
-    statuses: &mut BTreeSet<StatusSourceId>,
-    source: &StatusSourceId,
+    statuses: &mut BTreeSet<&'plan StatusSourceId>,
+    source: &'plan StatusSourceId,
     budget: &mut ReplayBudget,
 ) -> Result<(), Diagnostic> {
     if !statuses.contains(source) {
-        budget.reserve_btree_node::<StatusSourceId, ()>(function, "status reference set")?;
-        budget.reserve_clone(function, source, "status reference identity")?;
-        statuses.insert(source.clone());
+        // Both sets are local to validation and all identities belong to the
+        // immutable plan. Reference order still compares every identity field.
+        budget.reserve_btree_node::<&StatusSourceId, ()>(function, "status reference set")?;
+        statuses.insert(source);
     }
     Ok(())
 }

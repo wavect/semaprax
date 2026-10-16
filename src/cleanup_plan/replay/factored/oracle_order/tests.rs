@@ -12,6 +12,65 @@ fn fixture() -> ResolvedProgram {
     )
     .unwrap()
 }
+
+#[test]
+fn compact_staged_order_preserves_canonical_fields_work_and_refusals() {
+    use super::super::super::compact_stage::CopySource;
+    let checked = crate::check(
+        r#"module oracle.staged;
+@id("result_path") fn result_path(value: Result<i64, i64>) -> Result<i64, i64> {
+    let payload = value?;
+    Result<i64, i64>::Ok { value: payload }
+}
+@id("option_path") fn option_path(value: Option<i64>) -> Option<i64> {
+    let payload = value?;
+    Option<i64>::Some { value: payload }
+}
+@id("main") fn main() -> i64 { 0 }
+"#,
+        "oracle-staged.spx",
+    )
+    .unwrap();
+    let program = crate::hir::resolve(&checked).unwrap();
+    let function = &program.functions[0];
+    let sources: Vec<_> = program
+        .functions
+        .iter()
+        .flat_map(|function| &function.cleanup_plan.blocks)
+        .flat_map(|block| &block.transitions)
+        .filter_map(|transition| match transition {
+            CleanupTransition::StageCopyResult { source } => Some(source),
+            _ => None,
+        })
+        .collect();
+    for ordinal in 0..3 {
+        assert!(sources
+            .iter()
+            .any(|source| staged_ordinal(source) == ordinal));
+    }
+    let mut construction = ReplayBudget::new();
+    for a in &sources {
+        for b in &sources {
+            let x = CopySource::new(function, &mut construction, (*a).clone()).unwrap();
+            let y = CopySource::new(function, &mut construction, (*b).clone()).unwrap();
+            for work in [0, 1, 2, MAX_REPLAY_WORK_UNITS] {
+                let mut original = ReplayBudget::new();
+                let mut compact = ReplayBudget::new();
+                original.remaining = work;
+                compact.remaining = work;
+                let expected = staged(a, b, function, &mut original);
+                let actual = compact_staged(&x, &y, function, &mut compact);
+                assert_eq!(actual, expected);
+                assert_eq!(compact.remaining, original.remaining);
+                assert_eq!(compact.skeleton_remaining, original.skeleton_remaining);
+                if let Ok(order) = actual {
+                    assert_eq!(order, a.cmp(b));
+                }
+            }
+        }
+    }
+}
+
 fn types() -> Vec<ResolvedType> {
     use ResolvedType::*;
     let mut values = vec![

@@ -1,4 +1,5 @@
 use super::super::*;
+use super::super::compact_stage::before::SkeletonPath;
 use super::before;
 use crate::bounded_output::with_limit_usage_refusal;
 use crate::test_allocation_observer::measure;
@@ -55,7 +56,7 @@ fn plan(
     if old {
         before::plan_skeleton_paths(function, budget)
     } else {
-        super::super::plan_skeleton_paths(function, budget)
+        super::before_compaction::plan_skeleton_paths(function, budget)
     }
 }
 
@@ -315,7 +316,7 @@ fn final_output_whole_owners_report_capacities_exact_short_zero_and_drop() {
 }
 
 // Complete input custody checks occur after all measured scopes.
-fn assert_complete_old_sources() {
+pub(super) fn assert_complete_old_sources() {
     let sequence = include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/final-output-transfer-808-next-20261016/sequence_skeleton_paths.before.rs.txt"));
     let plan = include_str!(concat!(
@@ -336,11 +337,17 @@ fn assert_complete_old_sources() {
         "pub(in crate::cleanup_plan::replay) fn plan_skeleton_paths(",
         1,
     ));
-    assert_eq!(include_str!("before.rs"), expected);
+    let compiled = crate::source_reflows_merge::main_b80_prior_input(
+        "src/cleanup_plan/replay/final_output/before.rs", include_str!("before.rs"),
+    );
+    assert_eq!(compiled, expected);
     let historical = include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/final-output-transfer-808-next-20261016/before/src__cleanup_plan__replay__branch_clone__inline_tests.rs"));
     let expected = historical.replace(
         "        super::super::plan_skeleton_paths(function, budget)",
         "        // Historical inline-fusion claim: the subsequent final-output transfer\n        // has its own complete shipping observer in final_output::tests.\n        super::super::final_output::before::plan_skeleton_paths(function, budget)");
-    assert_eq!(include_str!("../branch_clone/inline_tests.rs"), expected);
+    let compiled = crate::source_reflows_merge::main_b80_prior_input(
+        "src/cleanup_plan/replay/branch_clone/inline_tests.rs", include_str!("../branch_clone/inline_tests.rs"),
+    );
+    assert_eq!(compiled, expected);
 }

@@ -343,6 +343,42 @@ pub(super) fn resolved_type(
 
 // --------------------------------------------------------- staged source ----
 
+fn compact_staged(
+    a: &super::super::compact_stage::CopySource,
+    b: &super::super::compact_stage::CopySource,
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<Ordering, Diagnostic> {
+    use super::super::compact_stage::CopySource;
+    match (a, b) {
+        (CopySource::Residual(a), CopySource::Residual(b)) => {
+            staged(a.canonical(), b.canonical(), function, budget)
+        }
+        (
+            CopySource::Body {
+                expression: xe,
+                instance: xi,
+            },
+            CopySource::Body {
+                expression: ye,
+                instance: yi,
+            },
+        ) => {
+            budget.charge(function, 1, "oracle staged source kind")?;
+            decide!(text(xe.as_str(), ye.as_str(), function, budget)?);
+            resolved_type(xi, yi, function, budget)
+        }
+        (CopySource::Body { .. }, CopySource::Residual(_)) => {
+            budget.charge(function, 1, "oracle staged source kind")?;
+            Ok(Ordering::Less)
+        }
+        (CopySource::Residual(_), CopySource::Body { .. }) => {
+            budget.charge(function, 1, "oracle staged source kind")?;
+            Ok(Ordering::Greater)
+        }
+    }
+}
+
 fn staged_ordinal(source: &StagedCopyResultSource) -> u8 {
     match source {
         StagedCopyResultSource::Body { .. } => 0,
@@ -593,7 +629,7 @@ pub(super) fn observation(
             )?);
             scalar(xv, yv, function, budget, "oracle status success flag")
         }
-        (O::StageCopyResult(x), O::StageCopyResult(y)) => staged(x, y, function, budget),
+        (O::StageCopyResult(x), O::StageCopyResult(y)) => compact_staged(x, y, function, budget),
         (
             O::LexicalExit {
                 site: xs,

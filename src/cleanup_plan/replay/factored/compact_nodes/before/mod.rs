@@ -42,6 +42,10 @@ const FACTORED_PATH_THRESHOLD: usize = 4_096;
 
 // Byte-exact original Label shared; old Node/Automaton remain independent.
 use super::super::Label;
+// The immediate-parent observation representation is common to both Node
+// stores. Import the one funded transition producer directly, without a new
+// forwarding Result or routing through the current compact Node/Automaton.
+use super::super::transition_observation;
 
 #[derive(Default)]
 pub(in crate::cleanup_plan::replay::factored) struct Node {
@@ -701,11 +705,12 @@ impl Automaton {
 
 /// The skeleton observation one cleanup transition contributes, exactly as
 /// the enumerating `plan_skeleton_paths` records it.
-fn transition_observation(
+pub(super) fn transition_observation_historical(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
     transition: &CleanupTransition,
-) -> Result<Option<SkeletonObservation>, Diagnostic> {
+) -> Result<Option<crate::cleanup_plan::replay::compact_stage::before::SkeletonObservation>, Diagnostic> {
+    use crate::cleanup_plan::replay::compact_stage::before::SkeletonObservation;
     reserve_transition_observation(function, budget, transition)?;
     Ok(Some(match transition {
         CleanupTransition::Initialize { at, destination }

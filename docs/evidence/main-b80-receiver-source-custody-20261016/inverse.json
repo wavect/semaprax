@@ -1,0 +1,202 @@
+[
+  {
+    "path": "src/cleanup_plan/replay.rs",
+    "after_sha256": "6dabd9057ffe5ec0a1ad0e552c2a3f437e20487d7b0ce64d54b2ff0798ac62db",
+    "before_sha256": "1ee09bd6f221d0eb3e272016f243a00c67815d56fcc246b794975c9ee00a5220",
+    "archive": "src__cleanup_plan__replay.rs.before.txt",
+    "inverse": [
+      {
+        "after": "//! Independent structural validation of attached cleanup plans without invoking the builder.\n// Private prerequisite only: no selected replay admission hook.\nmod branch_clone;\nmod compact_stage;\nmod constructed_variant;\n#[cfg(test)]\nmod context_closure;\n",
+        "before": "//! Independent structural validation of attached cleanup plans without invoking the builder.\n// Private prerequisite only: no selected replay admission hook.\nmod branch_clone;\nmod constructed_variant;\n#[cfg(test)]\nmod context_closure;\n"
+      },
+      {
+        "after": "mod skeleton_bound;\nmod skeleton_work;\nmod typed_storage;\nuse compact_stage::CopySource;\nuse path_summary::{\n    cleanup_inert_large_decisions_can_be_summarized, cleanup_inert_path_product_can_be_summarized,\n    or_arm_path_counts, plan_structure_units, status_only_paths_can_be_summarized,\n",
+        "before": "mod skeleton_bound;\nmod skeleton_work;\nmod typed_storage;\nuse path_summary::{\n    cleanup_inert_large_decisions_can_be_summarized, cleanup_inert_path_product_can_be_summarized,\n    or_arm_path_counts, plan_structure_units, status_only_paths_can_be_summarized,\n"
+      },
+      {
+        "after": "        source: StatusSourceId,\n        success: bool,\n    },\n    StageCopyResult(CopySource),\n    /// A lexical `return`, `break` or `continue` that left its contour.\n    LexicalExit {\n        site: ExpressionId,\n",
+        "before": "        source: StatusSourceId,\n        success: bool,\n    },\n    StageCopyResult(StagedCopyResultSource),\n    /// A lexical `return`, `break` or `continue` that left its contour.\n    LexicalExit {\n        site: ExpressionId,\n"
+      },
+      {
+        "after": "                let instance = work.clone_owned(&function.return_type, \"body result type clone\")?;\n                work.push_observation(\n                    path,\n                    SkeletonObservation::StageCopyResult(CopySource::Body {\n                        expression,\n                        instance,\n                    }),\n",
+        "before": "                let instance = work.clone_owned(&function.return_type, \"body result type clone\")?;\n                work.push_observation(\n                    path,\n                    SkeletonObservation::StageCopyResult(StagedCopyResultSource::Body {\n                        expression,\n                        instance,\n                    }),\n"
+      },
+      {
+        "after": "        )?;\n        if let Some(source) = &source {\n            let staged_source = work.clone_owned(source, \"try staged-result source clone\")?;\n            let staged_source = CopySource::new(work.function, work.budget, staged_source)?;\n            work.push_observation(\n                &mut residual,\n                SkeletonObservation::StageCopyResult(staged_source),\n",
+        "before": "        )?;\n        if let Some(source) = &source {\n            let staged_source = work.clone_owned(source, \"try staged-result source clone\")?;\n            work.push_observation(\n                &mut residual,\n                SkeletonObservation::StageCopyResult(staged_source),\n"
+      },
+      {
+        "after": "                        source,\n                        \"plan staged-result source clone\",\n                    )?;\n                    let source = CopySource::new(function, budget, source)?;\n                    skeleton_push(\n                        budget,\n                        function,\n",
+        "before": "                        source,\n                        \"plan staged-result source clone\",\n                    )?;\n                    skeleton_push(\n                        budget,\n                        function,\n"
+      },
+      {
+        "after": "mod continuation_storage;\nmod path_array;\n",
+        "before": "mod continuation_storage;\n"
+      },
+      {
+        "after": "    if !suffixes.is_empty() {\n        path_array::minimum(\n            &mut combined,\n            prefixes.len(),\n            work,\n            \"sequenced path capacity\",\n        )?;\n    }\n",
+        "before": ""
+      },
+      {
+        "after": "    path_array::minimum(target, paths.len(), work, phase)?;\n",
+        "before": ""
+      },
+      {
+        "after": "    path_array::minimum(&mut results, paths.len(), work, \"status path capacity\")?;\n",
+        "before": ""
+      },
+      {
+        "after": "    path_array::minimum(&mut results, paths.len(), work, \"contract path capacity\")?;\n",
+        "before": ""
+      },
+      {
+        "after": "// Private prerequisite only: no selected replay admission hook.\nmod branch_clone;\nmod constructed_variant;\n",
+        "before": "// Private prerequisite only: no selected replay admission hook.\nmod constructed_variant;\n"
+      },
+      {
+        "after": "\n#[track_caller]\nfn skeleton_clone<T: Clone + ClonePayload>(\n",
+        "before": "\nfn skeleton_clone<T: Clone + ClonePayload>(\n"
+      },
+      {
+        "after": "\n#[track_caller]\nfn skeleton_push<T>(\n",
+        "before": "\nfn skeleton_push<T>(\n"
+      },
+      {
+        "after": "\n#[track_caller]\nfn skeleton_queue_push<T>(\n",
+        "before": "\nfn skeleton_queue_push<T>(\n"
+      },
+      {
+        "after": "                    };\n                    let mut branch = branch_clone::for_push(\n                        budget,\n",
+        "before": "                    };\n                    let mut branch = skeleton_clone(\n                        budget,\n"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/oracle_hook.rs",
+    "after_sha256": "0126d25150ca4b96f11995293fc9043d23fc8fff2008485e9560abe5c85cb7ae",
+    "before_sha256": "aefe0d06e3f7a6b4ae36bc11160a9c7aed2bd9b30b6041308f619ada3266f707",
+    "archive": "src__cleanup_plan__replay__factored__oracle_hook.rs.before.txt",
+    "inverse": [
+      {
+        "after": "                storage.authenticate(program, function, budget)?;\n                super::continuation_receiver::cross_check(program, function, storage)?;\n            }\n",
+        "before": "                storage.authenticate(program, function, budget)?;\n                super::continuation_receiver::cross_check(program, function, storage);\n            }\n"
+      }
+    ]
+  },
+  {
+    "path": "tests/hir_module_boundaries.rs",
+    "after_sha256": "72ab59ee5adca20d1ea19366bf58cbfece2c5f0a95be5340d85a43b1ba0a9891",
+    "before_sha256": "444261bea247a81d21553b5c52d19dbad5b3f3cd55304774479aa9fb8ef9938d",
+    "archive": "tests__hir_module_boundaries.rs.before.txt",
+    "inverse": [
+      {
+        "after": "        include_str!(\"../src/cleanup_plan/replay/path_join/grouping.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/path_join/grouping/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/path_join/grouping/source_custody.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/compact_stage.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/compact_stage/before.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/compact_stage/lexical_before.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/compact_stage/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/compact_stage/source_custody.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/path_array.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/path_array/before.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/path_array/tests.rs\"),\n",
+        "before": "        include_str!(\"../src/cleanup_plan/replay/path_join/grouping.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/path_join/grouping/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/path_join/grouping/source_custody.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/path_array.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/path_array/before.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/path_array/tests.rs\"),\n"
+      },
+      {
+        "after": "        include_str!(\"../src/cleanup_plan/replay/path_array.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/path_array/before.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/path_array/tests.rs\"),\n",
+        "before": ""
+      },
+      {
+        "after": "        ),\n        include_str!(\"../src/cleanup_plan/replay/path_join/grouping.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/path_join/grouping/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/path_join/grouping/source_custody.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/branch_clone.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/branch_clone/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared.rs\"),\n",
+        "before": "        ),\n        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared.rs\"),\n"
+      },
+      {
+        "after": "        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/memo.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/unit_weight.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/unit_weight/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/unit_weight_tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_unit.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/memo/tests.rs\"),\n",
+        "before": "        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/memo.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/memo/tests.rs\"),\n"
+      },
+      {
+        "after": "            include_str!(\"../src/cleanup_plan/renewal_profile/ordinary/mod.rs\"),\n            include_str!(\"../src/cleanup_plan/renewal_profile/ordinary/record_presence.rs\"),\n            include_str!(\"../src/cleanup_plan/renewal_profile/ordinary/record_presence/tests.rs\"),\n            include_str!(\"../src/cleanup_plan/renewal_profile/ordinary/scratch.rs\"),\n",
+        "before": "            include_str!(\"../src/cleanup_plan/renewal_profile/ordinary/mod.rs\"),\n            include_str!(\"../src/cleanup_plan/renewal_profile/ordinary/scratch.rs\"),\n"
+      }
+    ]
+  },
+  {
+    "path": "tests/workspace/semantic_graph/source_inventory.rs",
+    "before_sha256": "ed939b86f3382619c6d610582c724b899dbfd332f10ee4ccec4933b37bc10a9a",
+    "archive": "tests__workspace__semantic_graph__source_inventory.rs.before.txt",
+    "inverse": [
+      {
+        "after": "        include_str!(\"../../src/cleanup_plan/replay/path_join/grouping.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/path_join/grouping/tests.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/path_join/grouping/source_custody.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/compact_stage.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/compact_stage/before.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/compact_stage/lexical_before.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/compact_stage/tests.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/compact_stage/source_custody.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/path_array.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/path_array/before.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/path_array/tests.rs\"),\n",
+        "before": "        include_str!(\"../../src/cleanup_plan/replay/path_join/grouping.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/path_join/grouping/tests.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/path_join/grouping/source_custody.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/path_array.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/path_array/before.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/path_array/tests.rs\"),\n"
+      },
+      {
+        "after": "        include_str!(\"../../src/cleanup_plan/replay/path_array.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/path_array/before.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/path_array/tests.rs\"),\n",
+        "before": ""
+      }
+    ],
+    "after_sha256": "c649ef7b81ac26cc7efc769330148a860509a6b0b5fdec7d877e4eb3bfcea4cf"
+  },
+  {
+    "path": "src/source_verify/declaration.rs",
+    "after_sha256": "61c807e1dc05a4f559830b4fa3d25eb79c73aac11a066aa7e3e775caaa655dec",
+    "before_sha256": "11b26f1bc56c129657268cf90436753cfaf037fa7c37ec49596284fd5d1bdcd8",
+    "archive": "src__source_verify__declaration.rs.before.txt",
+    "inverse": [
+      {
+        "after": "diagnostic = super::hints::with_capacity_witness(diagnostic, witness_help);",
+        "before": "diagnostic = diagnostic.with_help(witness_help);"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/branch_clone/tests.rs",
+    "before_sha256": "e9c4c72bcfad51ee7936c3e4b302c4440ea6862c4b771bcfc3202885b63ebbb7",
+    "archive": "src__cleanup_plan__replay__branch_clone__tests.rs.before.txt",
+    "inverse": [
+      {
+        "after": "                let mut current = ReplayBudget::new();\n                assert!(old.pays_allocations() && current.pays_allocations());\n                let before = skeleton_materializations();\n                let expected =\n                    with_original(|| compact_stage::original_paths(function, &mut old)).unwrap();\n                let old_count = skeleton_materializations() - before;\n                let before = skeleton_materializations();\n                let actual = plan_skeleton_paths(function, &mut current).unwrap();\n                assert_eq!(skeleton_materializations() - before, old_count);\n                assert!(compact_stage::paths_match(&actual, &expected));\n                assert_eq!(current.remaining, old.remaining);\n                assert_eq!(current.skeleton_remaining, old.skeleton_remaining);\n                drop(expected);\n",
+        "before": "                let mut current = ReplayBudget::new();\n                assert!(old.pays_allocations() && current.pays_allocations());\n                let before = skeleton_materializations();\n                let expected = with_original(|| plan_skeleton_paths(function, &mut old)).unwrap();\n                let old_count = skeleton_materializations() - before;\n                let before = skeleton_materializations();\n                let actual = plan_skeleton_paths(function, &mut current).unwrap();\n                assert_eq!(skeleton_materializations() - before, old_count);\n                assert_eq!(actual, expected);\n                assert_eq!(current.remaining, old.remaining);\n                assert_eq!(current.skeleton_remaining, old.skeleton_remaining);\n                drop(expected);\n"
+      },
+      {
+        "after": "#[test]\nfn whole_original_enumerator_and_clone_push_helpers_remain_byte_exact() {\n    use sha2::{Digest, Sha256};\n    let root = compact_stage::source_custody::before_root(include_str!(\"../../replay.rs\"));\n    let packets = [\n        (\n            include_str!(concat!(\n",
+        "before": "#[test]\nfn whole_original_enumerator_and_clone_push_helpers_remain_byte_exact() {\n    use sha2::{Digest, Sha256};\n    let root = include_str!(\"../../replay.rs\");\n    let packets = [\n        (\n            include_str!(concat!(\n"
+      }
+    ],
+    "after_sha256": "053dbd5dee8d05d3ed56db80729de01e2f0e572c0299779bed1cfbf6a0f64303"
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored.rs",
+    "before_sha256": "ca11b94661cd07264ef2b6da61f2dca28ac70aac3ffc4a362395c12e780beb7c",
+    "archive": "src__cleanup_plan__replay__factored.rs.before.txt",
+    "inverse": [
+      {
+        "after": "                .collect(),\n        },\n        CleanupTransition::StageCopyResult { source } => {\n            SkeletonObservation::StageCopyResult(CopySource::new(function, budget, source.clone())?)\n        }\n        CleanupTransition::AuthenticateVariantCase { .. }\n        | CleanupTransition::SelectFailure { .. } => return Ok(None),\n",
+        "before": "                .collect(),\n        },\n        CleanupTransition::StageCopyResult { source } => {\n            SkeletonObservation::StageCopyResult(source.clone())\n        }\n        CleanupTransition::AuthenticateVariantCase { .. }\n        | CleanupTransition::SelectFailure { .. } => return Ok(None),\n"
+      }
+    ],
+    "after_sha256": "88ed9119b1af09c4875cf3ec8d07a0b0ced6af6b47528eae581647d401348dd1"
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs",
+    "before_sha256": "a37b4da6cef36a9249dd30031bab14a710c32cea7b259159983978f390529643",
+    "archive": "src__cleanup_plan__replay__factored__borrowed_canonical__dictionary__keys.rs.before.txt",
+    "inverse": [
+      {
+        "after": "//! Exact derived key order, with debit at each evaluated field or byte.\nuse super::*;\nuse crate::cleanup_plan::replay::compact_stage::CopySource;\nmacro_rules! numeric {\n    ($($ty:ty),+) => {$(impl Key for $ty {\n        fn compare(&self, other: &Self, function: &ResolvedFunction, budget: &mut ReplayBudget) -> Result<Ordering, Diagnostic> {\n",
+        "before": "//! Exact derived key order, with debit at each evaluated field or byte.\nuse super::*;\nmacro_rules! numeric {\n    ($($ty:ty),+) => {$(impl Key for $ty {\n        fn compare(&self, other: &Self, function: &ResolvedFunction, budget: &mut ReplayBudget) -> Result<Ordering, Diagnostic> {\n"
+      },
+      {
+        "after": "                boolean(*av, *bv, function, budget)\n            }\n            (\n                SkeletonObservation::StageCopyResult(CopySource::Body {\n                    expression: a,\n                    instance: at,\n                }),\n                SkeletonObservation::StageCopyResult(CopySource::Body {\n                    expression: b,\n                    instance: bt,\n                }),\n",
+        "before": "                boolean(*av, *bv, function, budget)\n            }\n            (\n                SkeletonObservation::StageCopyResult(StagedCopyResultSource::Body {\n                    expression: a,\n                    instance: at,\n                }),\n                SkeletonObservation::StageCopyResult(StagedCopyResultSource::Body {\n                    expression: b,\n                    instance: bt,\n                }),\n"
+      }
+    ],
+    "after_sha256": "01b3e408874930f2aad015d20cf8317fc1507183f92aae740d11985b99d223e1"
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs",
+    "before_sha256": "603d7c7bfcbc1d6163b7395f048b7421665539806d7643cc0d9f38b61e48bfc6",
+    "archive": "src__cleanup_plan__replay__factored__borrowed_canonical__tests.rs.before.txt",
+    "inverse": [
+      {
+        "after": "            success: true,\n        })),\n        Label::Observation(Rc::new(SkeletonObservation::StageCopyResult(\n            CopySource::Body {\n                expression: function.body.id.clone(),\n                instance: ResolvedType::I64,\n            },\n",
+        "before": "            success: true,\n        })),\n        Label::Observation(Rc::new(SkeletonObservation::StageCopyResult(\n            StagedCopyResultSource::Body {\n                expression: function.body.id.clone(),\n                instance: ResolvedType::I64,\n            },\n"
+      },
+      {
+        "after": "            selected: true,\n        })),\n        Label::Observation(Rc::new(SkeletonObservation::StageCopyResult(\n            CopySource::Body {\n                expression: function.body.id.clone(),\n                instance: ResolvedType::Bool,\n            },\n",
+        "before": "            selected: true,\n        })),\n        Label::Observation(Rc::new(SkeletonObservation::StageCopyResult(\n            StagedCopyResultSource::Body {\n                expression: function.body.id.clone(),\n                instance: ResolvedType::Bool,\n            },\n"
+      }
+    ],
+    "after_sha256": "c9c42329ff2e2ee3802de78f0da6484b42a7c58ae6636532024c4e955b743033"
+  }
+]

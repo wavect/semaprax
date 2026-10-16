@@ -24,6 +24,9 @@ static RECORDS: OnceLock<serde_json::Value> = OnceLock::new();
 // those edits separate from the original formatting/lint repair registry.
 #[path = "source_reflows/semantic_receivers.rs"]
 mod semantic_receivers;
+#[cfg(test)]
+#[path = "source_reflows/semantic_receivers_mainb80.rs"]
+mod semantic_receivers_mainb80;
 
 fn records() -> &'static [serde_json::Value] {
     RECORDS

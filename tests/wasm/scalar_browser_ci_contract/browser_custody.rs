@@ -269,6 +269,14 @@ pub(super) fn main_c451_before_2600(current: &str) -> String {
 }
 
 fn actual83ca_input(source: &str, current: &str) -> String {
+    let main65 = pin_project(
+        include_str!(
+            "../../../docs/evidence/main65-private-merge-20261016/browser-current-to-75d8.json"
+        ),
+        source,
+        current,
+    );
+    let current = main65.as_str();
     pin_project(
         include_str!(
             "../../../docs/evidence/actual83ca-pin-successor-20261016/browser-current-to-83ca.json"

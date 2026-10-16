@@ -1450,3 +1450,8 @@ mod terminal_leaf_tests;
 mod before_terminal_leaf;
 #[cfg(test)]
 mod before_terminal_leaf_empty_memo;
+
+// Independent incoming receiver; paid Many production integration is OPT870.
+#[cfg(test)]
+#[path = "canonical_shared/incoming_flat_targets.rs"]
+mod targets;

@@ -571,6 +571,7 @@ mod targets {
                     .unwrap();
             let current =
                 std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
+            let current = super::super::targets::incoming_input(record["path"].as_str().unwrap(), &current);
             assert_eq!(digest(&before), record["before_sha256"]);
             assert_eq!(digest(&current), record["after_sha256"]);
             let restore = |input: &str| -> Option<String> {

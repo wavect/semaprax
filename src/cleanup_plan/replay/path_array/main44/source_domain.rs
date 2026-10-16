@@ -1,5 +1,4 @@
 //! Exact full-source custody for frozen Main44 source predicates.
-use super::*;
 const INPUTS: &[(&str, &str, &str)] = &[
     ("src/cleanup_plan/replay.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main44-independent-custody-20261016/raw/src/cleanup_plan/replay.rs.txt"))),
     ("src/cleanup_plan/replay/branch_clone/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/branch_clone/tests.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main44-independent-custody-20261016/raw/src/cleanup_plan/replay/branch_clone/tests.rs.txt"))),

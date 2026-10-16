@@ -1,0 +1,358 @@
+[
+  {
+    "domain": "incoming",
+    "path": "docs/evidence/replay-clone-cursor-v1/sources.json",
+    "current_sha256": "14f8bdcb6060ac8d6a5d265a99d65d9030795f068416bbc14f8a31f10a737a08",
+    "incoming_sha256": "14f8bdcb6060ac8d6a5d265a99d65d9030795f068416bbc14f8a31f10a737a08",
+    "edits": []
+  },
+  {
+    "domain": "incoming",
+    "path": "src/cleanup_plan/replay/allocation/tests.rs",
+    "current_sha256": "45a58a61a33d6136f77184cde24cd0ba1a4731dbcac37e949a6c270a4e8a7152",
+    "incoming_sha256": "45a58a61a33d6136f77184cde24cd0ba1a4731dbcac37e949a6c270a4e8a7152",
+    "edits": []
+  },
+  {
+    "domain": "incoming",
+    "path": "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs",
+    "current_sha256": "6c031f6fc2ed45f973c12da9b84d84ccab8ac76467d7ffdde3e2b313526fee17",
+    "incoming_sha256": "c8ea197ff1b15c88d59168d00df95cbfce3db239007dd51ae085b9adf33c5974",
+    "edits": [
+      {
+        "start": 10124,
+        "end": 10215,
+        "after": "        let current = crate::source_reflows_merge::main_eb2_inputs::input(path, &current);\n",
+        "before": ""
+      },
+      {
+        "start": 19513,
+        "end": 19632,
+        "after": "        let current = crate::source_reflows_merge::main_eb2_inputs::input(record[\"path\"].as_str().unwrap(), &current);\n",
+        "before": ""
+      }
+    ]
+  },
+  {
+    "domain": "incoming",
+    "path": "src/cleanup_plan/replay/lexical_skeleton.rs",
+    "current_sha256": "91de23652defef6b379c89db62ddb9450ab68b3db25feb50a594424203fb4664",
+    "incoming_sha256": "91de23652defef6b379c89db62ddb9450ab68b3db25feb50a594424203fb4664",
+    "edits": []
+  },
+  {
+    "domain": "incoming",
+    "path": "src/cleanup_plan/replay/live_oracle/source_custody/presence.json",
+    "current_sha256": "77d0bf38a2cb58814fb3a64224fbda6fdf918677e162465ee38857dd83102f87",
+    "incoming_sha256": "77d0bf38a2cb58814fb3a64224fbda6fdf918677e162465ee38857dd83102f87",
+    "edits": []
+  },
+  {
+    "domain": "incoming",
+    "path": "src/cleanup_plan/replay/physical_budget.rs",
+    "current_sha256": "5ea16ac3902b45761e55635a694339537659ba0c33ad74b695648703c1905224",
+    "incoming_sha256": "da05cdcb29d7868ad0144c11c5b05da214bb229f918a44a88b5c93d2cd202a88",
+    "edits": [
+      {
+        "start": 107,
+        "end": 163,
+        "after": "pub(in crate::cleanup_plan::replay) mod authentication;\n",
+        "before": ""
+      }
+    ]
+  },
+  {
+    "domain": "incoming",
+    "path": "src/cleanup_plan/replay/physical_clone.rs",
+    "current_sha256": "fbd90dcfb034d3b630f383958a37baf2e4dedbbfbc7445b926d6431923558afe",
+    "incoming_sha256": "fbd90dcfb034d3b630f383958a37baf2e4dedbbfbc7445b926d6431923558afe",
+    "edits": []
+  },
+  {
+    "domain": "incoming",
+    "path": "src/hir/lexical_exit/walk.rs",
+    "current_sha256": "c2a9b9390407c685a73aaa610e41fa4f64b27221bec9f4830636b5f407c5aa50",
+    "incoming_sha256": "c2a9b9390407c685a73aaa610e41fa4f64b27221bec9f4830636b5f407c5aa50",
+    "edits": []
+  },
+  {
+    "domain": "incoming",
+    "path": "src/hir/lexical_exit/walk/tests.rs",
+    "current_sha256": "412a9092ccdf367c7db50e42c75ec2f514f6102e8435b4084d17e9a8a45d6d70",
+    "incoming_sha256": "ba5e449c3fc1b6507812d1edd6022c20e781f3d7950e393428a31e90aeb332a1",
+    "edits": [
+      {
+        "start": 21385,
+        "end": 21504,
+        "after": "        let current = crate::source_reflows_merge::main_eb2_inputs::input(record[\"path\"].as_str().unwrap(), &current);\n",
+        "before": ""
+      }
+    ]
+  },
+  {
+    "domain": "incoming",
+    "path": "src/wasm/aggregate.rs",
+    "current_sha256": "7e9c2482bd5a536c3c103185f97df60fc758ded55142f6e7a4a73e400617afce",
+    "incoming_sha256": "bb0930513ac89eb0fd44d487cd3ead9d83be01a5f2e72f222a3179a9ff9fa82c",
+    "edits": [
+      {
+        "start": 250307,
+        "end": 250420,
+        "after": "        if op == crate::vec_ops::VecOp::UpdateField {\n            return self.emit_field_update(expr);\n        }\n",
+        "before": ""
+      },
+      {
+        "start": 264508,
+        "end": 264608,
+        "after": "            | crate::vec_ops::VecOp::UniqueBy\n            | crate::vec_ops::VecOp::UpdateField => {\n",
+        "before": "            | crate::vec_ops::VecOp::UniqueBy => {\n"
+      }
+    ]
+  },
+  {
+    "domain": "incoming",
+    "path": "src/wasm/aggregate/semantic_work.rs",
+    "current_sha256": "c341401652ff0c7cc6be923c455fec316ff7e5c11e303b024a0a24ea59767cff",
+    "incoming_sha256": "ee94b118976a453568dfeec1fabd6fc7b18139c94a2d9b40236a7a8f69cb0483",
+    "edits": [
+      {
+        "start": 15690,
+        "end": 15813,
+        "after": "            let current = crate::source_reflows_merge::main_eb2_inputs::input(record[\"path\"].as_str().unwrap(), &current);\n",
+        "before": ""
+      }
+    ]
+  },
+  {
+    "domain": "presence",
+    "path": "src/hir/lexical_exit/walk.rs",
+    "current_sha256": "47adb85ccd9863fbaaf765f7948ee69cd2782d572063f39a8e190a97454fdded",
+    "incoming_sha256": "c2a9b9390407c685a73aaa610e41fa4f64b27221bec9f4830636b5f407c5aa50",
+    "edits": [
+      {
+        "start": 271,
+        "end": 428,
+        "after": "/// Block statements and match arms are visited once rather than rescanned for\n/// each flattened child index. Consumers retain their own depth/work bounds.\n",
+        "before": "/// The immutable expression kind supplies the state discriminator. `inner`\n/// stores only a statement child (at most two) or a match guard phase, so its\n/// maximum value can mark a fresh cursor without limiting any outer index.\n"
+      },
+      {
+        "start": 521,
+        "end": 564,
+        "after": "    position: Position,\n    started: bool,\n",
+        "before": "    outer: usize,\n    inner: usize,\n"
+      },
+      {
+        "start": 566,
+        "end": 589,
+        "after": "#[derive(Clone, Copy)]\n",
+        "before": "#[cfg(test)]\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\n"
+      },
+      {
+        "start": 801,
+        "end": 1163,
+        "after": "        let position = match &expression.kind {\n            K::Block { .. } | K::VecConstructor { .. } => Position::Block {\n                statement: 0,\n                child: 0,\n            },\n            K::Match { .. } => Position::Match {\n                arm: 0,\n                guard: true,\n            },\n            _ => Position::Indexed(0),\n        };\n",
+        "before": ""
+      },
+      {
+        "start": 1202,
+        "end": 1252,
+        "after": "            position,\n            started: false,\n",
+        "before": "            outer: 0,\n            inner: usize::MAX,\n"
+      },
+      {
+        "start": 1438,
+        "end": 1509,
+        "after": "    /// This uses the saved position and never rescans a block prefix.\n",
+        "before": "    /// This uses saved progress and never rescans a block prefix.\n"
+      },
+      {
+        "start": 1626,
+        "end": 1954,
+        "after": "        match (&self.expression.kind, self.position) {\n            (\n                K::Block { statements, .. } | K::VecConstructor { statements, .. },\n                Position::Block { statement, child },\n            ) if self.started && child != 0 => {\n                statements.get(statement).map(|item| (item, child - 1))\n",
+        "before": "        match &self.expression.kind {\n            K::Block { statements, .. } | K::VecConstructor { statements, .. }\n                if self.is_started() && self.inner != 0 =>\n            {\n                statements\n                    .get(self.outer)\n                    .map(|item| (item, self.inner - 1))\n"
+      },
+      {
+        "start": 2053,
+        "end": 2074,
+        "after": "        self.started\n",
+        "before": "        self.inner != usize::MAX\n    }\n    #[cfg(test)]\n    fn position(&self) -> Position {\n        match &self.expression.kind {\n            K::Block { .. } | K::VecConstructor { .. } => Position::Block {\n                statement: self.outer,\n                child: if self.is_started() { self.inner } else { 0 },\n            },\n            K::Match { .. } => Position::Match {\n                arm: self.outer,\n                guard: !self.is_started() || self.inner == 0,\n            },\n            _ => Position::Indexed(self.outer),\n        }\n"
+      },
+      {
+        "start": 2203,
+        "end": 2837,
+        "after": "        let first = !self.started;\n        self.started = true;\n        match (&self.expression.kind, &mut self.position) {\n            (\n                K::Block { statements, tail }\n                | K::VecConstructor {\n                    statements, tail, ..\n                },\n                Position::Block {\n                    statement,\n                    child: index,\n                },\n            ) => {\n                while let Some(item) = statements.get(*statement) {\n                    if *index < item.child_count() {\n                        let result = item.child(*index);\n                        *index += 1;\n",
+        "before": "        let first = !self.is_started();\n        if first {\n            self.inner = 0;\n        }\n        match &self.expression.kind {\n            K::Block { statements, tail }\n            | K::VecConstructor {\n                statements, tail, ..\n            } => {\n                while let Some(item) = statements.get(self.outer) {\n                    if self.inner < item.child_count() {\n                        let result = item.child(self.inner);\n                        self.inner += 1;\n"
+      },
+      {
+        "start": 2898,
+        "end": 2967,
+        "after": "                    *statement += 1;\n                    *index = 0;\n",
+        "before": "                    self.outer += 1;\n                    self.inner = 0;\n"
+      },
+      {
+        "start": 2985,
+        "end": 3050,
+        "after": "                if *index == 0 {\n                    *index = 1;\n",
+        "before": "                if self.inner == 0 {\n                    self.inner = 1;\n"
+      },
+      {
+        "start": 3163,
+        "end": 3330,
+        "after": "            (\n                K::Match {\n                    scrutinee, arms, ..\n                },\n                Position::Match { arm, guard },\n            ) => {\n",
+        "before": "            K::Match {\n                scrutinee, arms, ..\n            } => {\n"
+      },
+      {
+        "start": 3419,
+        "end": 3544,
+        "after": "                if let Some(item) = arms.get(*arm) {\n                    if *guard {\n                        *guard = false;\n",
+        "before": "                if let Some(item) = arms.get(self.outer) {\n                    if self.inner == 0 {\n                        self.inner = 1;\n"
+      },
+      {
+        "start": 3699,
+        "end": 3765,
+        "after": "                    *arm += 1;\n                    *guard = true;\n",
+        "before": "                    self.outer += 1;\n                    self.inner = 0;\n"
+      },
+      {
+        "start": 3864,
+        "end": 3972,
+        "after": "            (_, Position::Indexed(index)) => {\n                let result = child(self.expression, *index);\n",
+        "before": "            _ => {\n                let result = child(self.expression, self.outer);\n"
+      },
+      {
+        "start": 4010,
+        "end": 4043,
+        "after": "                    *index += 1;\n",
+        "before": "                    self.outer += 1;\n"
+      },
+      {
+        "start": 4098,
+        "end": 4187,
+        "after": "            _ => unreachable!(\"child cursor position matches its immutable expression\"),\n",
+        "before": ""
+      },
+      {
+        "start": 11378,
+        "end": 11800,
+        "after": "        let first = !self.started;\n        self.started = true;\n        Ok(match (&self.expression.kind, &mut self.position) {\n            (\n                K::Block { statements, tail }\n                | K::VecConstructor {\n                    statements, tail, ..\n                },\n                Position::Block {\n                    statement,\n                    child: index,\n                },\n            ) => {\n",
+        "before": "        let first = !self.is_started();\n        if first {\n            self.inner = 0;\n        }\n        Ok(match &self.expression.kind {\n            K::Block { statements, tail }\n            | K::VecConstructor {\n                statements, tail, ..\n            } => {\n"
+      },
+      {
+        "start": 11853,
+        "end": 11924,
+        "after": "                    let Some(item) = statements.get(*statement) else {\n",
+        "before": "                    let Some(item) = statements.get(self.outer) else {\n"
+      },
+      {
+        "start": 11978,
+        "end": 12125,
+        "after": "                    if *index < item.child_count() {\n                        let result = item.child(*index);\n                        *index += 1;\n",
+        "before": "                    if self.inner < item.child_count() {\n                        let result = item.child(self.inner);\n                        self.inner += 1;\n"
+      },
+      {
+        "start": 12190,
+        "end": 12259,
+        "after": "                    *statement += 1;\n                    *index = 0;\n",
+        "before": "                    self.outer += 1;\n                    self.inner = 0;\n"
+      },
+      {
+        "start": 12277,
+        "end": 12342,
+        "after": "                if *index == 0 {\n                    *index = 1;\n",
+        "before": "                if self.inner == 0 {\n                    self.inner = 1;\n"
+      },
+      {
+        "start": 12455,
+        "end": 12622,
+        "after": "            (\n                K::Match {\n                    scrutinee, arms, ..\n                },\n                Position::Match { arm, guard },\n            ) => {\n",
+        "before": "            K::Match {\n                scrutinee, arms, ..\n            } => {\n"
+      },
+      {
+        "start": 12715,
+        "end": 12840,
+        "after": "                if let Some(item) = arms.get(*arm) {\n                    if *guard {\n                        *guard = false;\n",
+        "before": "                if let Some(item) = arms.get(self.outer) {\n                    if self.inner == 0 {\n                        self.inner = 1;\n"
+      },
+      {
+        "start": 12999,
+        "end": 13065,
+        "after": "                    *arm += 1;\n                    *guard = true;\n",
+        "before": "                    self.outer += 1;\n                    self.inner = 0;\n"
+      },
+      {
+        "start": 13168,
+        "end": 13276,
+        "after": "            (_, Position::Indexed(index)) => {\n                let result = child(self.expression, *index);\n",
+        "before": "            _ => {\n                let result = child(self.expression, self.outer);\n"
+      },
+      {
+        "start": 13314,
+        "end": 13347,
+        "after": "                    *index += 1;\n",
+        "before": "                    self.outer += 1;\n"
+      },
+      {
+        "start": 13402,
+        "end": 13491,
+        "after": "            _ => unreachable!(\"child cursor position matches its immutable expression\"),\n",
+        "before": ""
+      }
+    ],
+    "input_archive": "docs/evidence/main-eb2-source-composition-20261016/presence-inputs/11.txt"
+  },
+  {
+    "domain": "presence",
+    "path": "src/hir/lexical_exit/walk.rs",
+    "current_sha256": "c2a9b9390407c685a73aaa610e41fa4f64b27221bec9f4830636b5f407c5aa50",
+    "incoming_sha256": "c2a9b9390407c685a73aaa610e41fa4f64b27221bec9f4830636b5f407c5aa50",
+    "edits": [],
+    "input_archive": "docs/evidence/main-eb2-source-composition-20261016/presence-inputs/12.txt"
+  },
+  {
+    "domain": "presence",
+    "path": "src/hir/lexical_exit/owner_funded.rs",
+    "current_sha256": "f878e34c443587af8b97cc49c3c8fa719b60c355e388369ace6d0c5e60ed9a0c",
+    "incoming_sha256": "8dc737500f805a4146c372358a562933bfdad1884e5a82068ced301c8048e049",
+    "edits": [
+      {
+        "start": 0,
+        "end": 81,
+        "after": "//! Explicit-payer funded twin of `owner`. Candidate order, the `validate_owner`\n",
+        "before": "//! Test-only funded twin of `owner`. Candidate order, the `validate_owner`\n"
+      },
+      {
+        "start": 685,
+        "end": 698,
+        "after": "#[cfg(test)]\n",
+        "before": ""
+      },
+      {
+        "start": 949,
+        "end": 966,
+        "after": "    #[cfg(test)]\n",
+        "before": ""
+      },
+      {
+        "start": 10237,
+        "end": 10250,
+        "after": "#[cfg(test)]\n",
+        "before": ""
+      },
+      {
+        "start": 10260,
+        "end": 10273,
+        "after": "#[cfg(test)]\n",
+        "before": ""
+      }
+    ],
+    "input_archive": "docs/evidence/main-eb2-source-composition-20261016/presence-inputs/13.txt"
+  },
+  {
+    "domain": "presence",
+    "path": "src/hir/lexical_exit/owner_funded.rs",
+    "current_sha256": "8dc737500f805a4146c372358a562933bfdad1884e5a82068ced301c8048e049",
+    "incoming_sha256": "8dc737500f805a4146c372358a562933bfdad1884e5a82068ced301c8048e049",
+    "edits": [],
+    "input_archive": "docs/evidence/main-eb2-source-composition-20261016/presence-inputs/14.txt"
+  }
+]

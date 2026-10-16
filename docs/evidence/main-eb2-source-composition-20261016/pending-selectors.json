@@ -1,0 +1,232 @@
+{
+  "status": "SOURCE_ONLY_PENDING_APPEND_DEDUP_KEEP246_PREFIX",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::allocation::tests::clone_cursor::ordinary_scalar_types_clone_without_cursor_and_keep_all_backing_authenticated",
+      "source": "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs",
+      "reason": "Incoming scalar clone, compound refusal frontier, and both unchanged whole-source owners",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::allocation::tests::clone_cursor::scalar_clone_then_compound_pays_the_full_original_cursor_and_owned_payload",
+      "source": "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs",
+      "reason": "Incoming scalar clone, compound refusal frontier, and both unchanged whole-source owners",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::allocation::tests::clone_cursor::scalar_cursor_complete_sources_and_original_census_remain_bound",
+      "source": "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs",
+      "reason": "Incoming scalar clone, compound refusal frontier, and both unchanged whole-source owners",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::allocation::tests::clone_cursor::complete_clone_sources_restore_the_original_bodies_and_recursive_control",
+      "source": "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs",
+      "reason": "Incoming scalar clone, compound refusal frontier, and both unchanged whole-source owners",
+      "already_selected": true,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::lexical_exit::walk::tests::compact_cursor_keeps_complete_before_order_and_state_for_every_checked_node",
+      "source": "src/hir/lexical_exit/walk/tests.rs",
+      "reason": "Incoming compact cursor full-state/order/work equivalence and source custody",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::lexical_exit::walk::tests::compact_cursor_preserves_every_original_work_refusal_and_partial_progress",
+      "source": "src/hir/lexical_exit/walk/tests.rs",
+      "reason": "Incoming compact cursor full-state/order/work equivalence and source custody",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::lexical_exit::walk::tests::compact_cursor_complete_before_sources_and_compiled_control_stay_bound",
+      "source": "src/hir/lexical_exit/walk/tests.rs",
+      "reason": "Incoming compact cursor full-state/order/work equivalence and source custody",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::validation::iterative_while_admission_tests::exact_512_nested_indexed_matches_validate_on_a_low_stack",
+      "source": "src/hir/validation/iterative_while_admission_tests.rs",
+      "reason": "Incoming compact cursor explicitly requires unchanged original128KiB constructor owner",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "wasm::aggregate::semantic_work::storage_tests::private_string_storage_selection_is_scoped_and_does_not_authorize_a_public_profile",
+      "source": "src/wasm/aggregate/semantic_work.rs",
+      "reason": "Incoming private storage scope and public authority refusal",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "wasm::aggregate::semantic_work::storage_source_tests::metered_storage_selection_keeps_complete_original_receivers",
+      "source": "src/wasm/aggregate/semantic_work.rs",
+      "reason": "Incoming complete original storage receiver source control",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "wasm::aggregate::tests::owned_utf8_usage::private_metered_lexical_string_storage_does_not_widen_unmetered_public_data",
+      "source": "src/wasm/aggregate/tests/owned_utf8_usage.rs",
+      "reason": "Incoming HIR/emitter validator/determinism and original unmetered refusals",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:agent_runtime_v1",
+      "selector": "stage_backend_parity::interpreter_native_o0_o2_and_core_wasm_agree_on_stage_bodies",
+      "source": "tests/agent_runtime_v1/stage_backend_parity.rs",
+      "reason": "Unchanged incoming-required lexical stage interpreter/nativeO0/O2/CoreWasm fuel cleanup/reentry owner",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs",
+      "source": "src/source_reflows_merge/main_eb2_inputs.rs",
+      "reason": "New finite full-input adapter positive and closed-domain hostile controls",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    }
+  ],
+  "new_rows": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::allocation::tests::clone_cursor::ordinary_scalar_types_clone_without_cursor_and_keep_all_backing_authenticated",
+      "source": "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs",
+      "reason": "Incoming scalar clone, compound refusal frontier, and both unchanged whole-source owners",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::allocation::tests::clone_cursor::scalar_clone_then_compound_pays_the_full_original_cursor_and_owned_payload",
+      "source": "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs",
+      "reason": "Incoming scalar clone, compound refusal frontier, and both unchanged whole-source owners",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::allocation::tests::clone_cursor::scalar_cursor_complete_sources_and_original_census_remain_bound",
+      "source": "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs",
+      "reason": "Incoming scalar clone, compound refusal frontier, and both unchanged whole-source owners",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::lexical_exit::walk::tests::compact_cursor_keeps_complete_before_order_and_state_for_every_checked_node",
+      "source": "src/hir/lexical_exit/walk/tests.rs",
+      "reason": "Incoming compact cursor full-state/order/work equivalence and source custody",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::lexical_exit::walk::tests::compact_cursor_preserves_every_original_work_refusal_and_partial_progress",
+      "source": "src/hir/lexical_exit/walk/tests.rs",
+      "reason": "Incoming compact cursor full-state/order/work equivalence and source custody",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::lexical_exit::walk::tests::compact_cursor_complete_before_sources_and_compiled_control_stay_bound",
+      "source": "src/hir/lexical_exit/walk/tests.rs",
+      "reason": "Incoming compact cursor full-state/order/work equivalence and source custody",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::validation::iterative_while_admission_tests::exact_512_nested_indexed_matches_validate_on_a_low_stack",
+      "source": "src/hir/validation/iterative_while_admission_tests.rs",
+      "reason": "Incoming compact cursor explicitly requires unchanged original128KiB constructor owner",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "wasm::aggregate::semantic_work::storage_tests::private_string_storage_selection_is_scoped_and_does_not_authorize_a_public_profile",
+      "source": "src/wasm/aggregate/semantic_work.rs",
+      "reason": "Incoming private storage scope and public authority refusal",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "wasm::aggregate::semantic_work::storage_source_tests::metered_storage_selection_keeps_complete_original_receivers",
+      "source": "src/wasm/aggregate/semantic_work.rs",
+      "reason": "Incoming complete original storage receiver source control",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "wasm::aggregate::tests::owned_utf8_usage::private_metered_lexical_string_storage_does_not_widen_unmetered_public_data",
+      "source": "src/wasm/aggregate/tests/owned_utf8_usage.rs",
+      "reason": "Incoming HIR/emitter validator/determinism and original unmetered refusals",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:agent_runtime_v1",
+      "selector": "stage_backend_parity::interpreter_native_o0_o2_and_core_wasm_agree_on_stage_bodies",
+      "source": "tests/agent_runtime_v1/stage_backend_parity.rs",
+      "reason": "Unchanged incoming-required lexical stage interpreter/nativeO0/O2/CoreWasm fuel cleanup/reentry owner",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs",
+      "source": "src/source_reflows_merge/main_eb2_inputs.rs",
+      "reason": "New finite full-input adapter positive and closed-domain hostile controls",
+      "already_selected": false,
+      "status": "PENDING_FRESH_RUNTIME"
+    }
+  ]
+}

@@ -243,6 +243,7 @@ fn complete_clone_sources_restore_the_original_bodies_and_recursive_control() {
             expected
         );
         let current = std::fs::read_to_string(root.join(path)).unwrap();
+        let current = crate::source_reflows_merge::main_eb2_inputs::input(path, &current);
         let restore = |source: &str| -> Option<String> {
             let mut restored = source.to_owned();
             for edit in record["edits"].as_array().unwrap().iter().rev() {
@@ -464,6 +465,7 @@ fn scalar_cursor_complete_sources_and_original_census_remain_bound() {
             record["sha256"].as_str().unwrap()
         );
         let current = std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
+        let current = crate::source_reflows_merge::main_eb2_inputs::input(record["path"].as_str().unwrap(), &current);
         let restore = |source: &str| -> Option<String> {
             let mut restored = source.to_owned();
             for edit in record["edits"].as_array().unwrap().iter().rev() {

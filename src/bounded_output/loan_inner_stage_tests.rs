@@ -140,7 +140,18 @@ fn loan_inner_stages_keep_complete_old_enum_budget_receipt_guard_and_carrier_lay
     same!(ReservationStage, BeforeStage);
     same!(Option<ReservationStage>, Option<BeforeStage>);
     same!(ReservationRefusal, BeforeReceipt);
-    same!(Budget, BeforeBudget);
+    // The independent call-site diagnostic added one pointer after this
+    // stage's original control. Retain the entire old budget comparison.
+    #[allow(
+        dead_code,
+        reason = "independent full old budget plus the added call-site pointer"
+    )]
+    struct BudgetWithSite {
+        before: BeforeBudget,
+        site: Cell<Option<&'static std::panic::Location<'static>>>,
+    }
+    same!(super::canonical_stage_tests::HistoricalBudget, BeforeBudget);
+    same!(Budget, BudgetWithSite);
     same!(ReservationStageGuard, BeforeGuard);
     same!(Refused, BeforeRefused);
     same!(Option<Refused>, Option<BeforeRefused>);

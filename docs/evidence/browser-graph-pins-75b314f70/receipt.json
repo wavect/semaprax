@@ -1,0 +1,34 @@
+{
+  "source_head": "75b314f7001f42c48ec5569f1182171b47ad526d",
+  "run": 38902117832,
+  "job": 116977210355,
+  "fixtures": {
+    "calculator-baseline.json": {
+      "bytes": 9894,
+      "sha256": "f4bc3195723a4c168352d4a7c8507fb42a4aa0c6361130e2e46fcd45fe597d55",
+      "digest": "sha256:976674d942dc68b6c0030cf023e5c525b7f063ed137a17b9294baf3b23ccf649",
+      "builder": 2954152,
+      "previous_builder": 2958908,
+      "bytes_saved": 4756,
+      "entire_prior_restored": true
+    },
+    "calculator-renamed.json": {
+      "bytes": 9894,
+      "sha256": "3657f1376dc51e84cfe616a15e7e3c0295df79a3e161bfce3bfcc2a31025baa6",
+      "digest": "sha256:29bd5762d29a6880170890dda6ec000a7fee23fa8680e8b03d6a51b6b720fc57",
+      "builder": 2954152,
+      "previous_builder": 2958908,
+      "bytes_saved": 4756,
+      "entire_prior_restored": true
+    },
+    "provenance.json": {
+      "bytes": 354,
+      "sha256": "3feb24e035ef35f25b62e7d104d6716d72d2c794affa382a4e846ff703fff74c"
+    }
+  },
+  "source_snapshots": {
+    "historical_builder.before.rs.txt": "78eebbc0534c0742c0e7184c0bfa0ef4b7af761ec87c3ce90b7adec1ebfb6dc5",
+    "test-fixtures.before.mjs": "9d948189ad72776458ac959b7573da65f5b2803f6689671fbb1319ea8df74b3b"
+  },
+  "scope": "Exact75b hosted records with strict base64/length/rawSHA/exactsourceprovenance and graph-domain SHA. Restoring only builder bill+selfdigest reproduces entire f82 wires. Prior-head fixture/accounting evidence, not current-main/browser/fullCI qualification."
+}

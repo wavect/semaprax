@@ -1,6 +1,6 @@
 //! Fixed incoming a3 source metadata. No arbitrary path or compiler authority.
 #[derive(Clone, Copy)]
-pub(crate) enum Fixture { Compact7, Receivers12, LegacyNominal18, PrefixCertified3, SelectedSession19 }
+pub(crate) enum Fixture { Compact7, Receivers12, LegacyNominal18, PrefixCertified3, SelectedSession19, LoanEndpoint827, LoanInner829 }
 pub(super) struct Spec { pub(super) path: &'static str, pub(super) length: usize, pub(super) sha256: [u8; 32] }
 impl Fixture { pub(super) fn spec(self) -> Spec { match self {
 Self::Compact7 => Spec { path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/maina3-independent-custody-20261016/compact-inverse7.json"), length: 60728, sha256: [67, 62, 228, 145, 74, 239, 210, 245, 150, 169, 59, 40, 88, 88, 218, 70, 208, 67, 235, 241, 150, 111, 65, 48, 68, 9, 228, 36, 60, 133, 79, 61] },
@@ -8,5 +8,37 @@ Self::LegacyNominal18 => Spec { path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs
 Self::PrefixCertified3 => Spec { path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/maina3-independent-custody-20261016/prefix-certified-inverse3.json"), length: 1056800, sha256: [56, 41, 42, 41, 152, 147, 210, 2, 100, 102, 68, 23, 78, 152, 93, 106, 99, 232, 126, 150, 213, 235, 147, 161, 168, 239, 93, 235, 92, 217, 226, 61] },
 Self::Receivers12 => Spec { path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/maina3-independent-custody-20261016/receiver-inverse12.json"), length: 87333, sha256: [217, 134, 104, 74, 157, 27, 149, 227, 26, 59, 41, 248, 36, 192, 243, 37, 91, 74, 203, 44, 48, 101, 100, 214, 161, 38, 11, 217, 67, 126, 234, 155] },
 Self::SelectedSession19 => Spec { path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/maina3-independent-custody-20261016/selected-session-inverse19.json"), length: 2040968, sha256: [123, 18, 246, 176, 128, 106, 138, 141, 170, 112, 137, 252, 56, 95, 18, 45, 236, 124, 123, 234, 173, 231, 151, 225, 67, 202, 25, 248, 7, 72, 134, 255] },
+Self::LoanEndpoint827 => Spec { path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/maine47-independent-custody-20261016/loan-endpoint-inverses.json"), length: 960683, sha256: [33, 206, 246, 39, 244, 187, 13, 223, 217, 208, 83, 90, 165, 98, 140, 3, 215, 26, 69, 48, 112, 26, 1, 84, 47, 237, 179, 102, 245, 209, 193, 245] },
+Self::LoanInner829 => Spec { path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/maine47-independent-custody-20261016/loan-inner-inverses.json"), length: 1737536, sha256: [48, 148, 155, 253, 152, 159, 186, 28, 42, 92, 179, 142, 179, 155, 61, 239, 156, 103, 104, 55, 129, 52, 187, 74, 141, 88, 167, 190, 225, 93, 110, 94] },
 }}}
-// Final Input/normalizer definitions are bound once all batch source is quiet.
+
+#[derive(Clone, Copy)]
+pub(super) enum Input { Previous16c, Maina3, Alias1ae, MainE47 }
+impl Input {
+ pub(super) fn keys(self) -> &'static [&'static str] { match self {
+Self::Previous16c => &[".github/workflows/ci.yml", "CHANGELOG.md", "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", "docs/ARCHITECTURE.md", "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md", "docs/SUMMARY.md", "src/bounded_output/canonical_stage_tests.rs", "src/bounded_output/loan_inner_stage_tests.rs", "src/cleanup.rs", "src/cleanup/inventory_builder.rs", "src/cleanup_plan.rs", "src/cleanup_plan/renewal_profile/child_refusal.rs", "src/cleanup_plan/replay.rs", "src/cleanup_plan/replay/compact_stage.rs", "src/cleanup_plan/replay/expression_facts/arena/prefix.rs", "src/cleanup_plan/replay/final_output.rs", "src/cleanup_plan/replay/inventory_coverage.rs", "src/cleanup_plan/replay/lexical_replay.rs", "src/cleanup_plan/replay/path_array/main8a/mod.rs", "src/cleanup_plan/replay/scalar_replay.rs", "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs", "src/cleanup_plan/replay/sequence_prefix/main8a/helper.rs", "src/hir/nominal_payload/legacy.rs", "src/hir/validation/ownership_flags.rs", "src/hir/validation/ownership_flags/before.rs", "src/hir/validation/ownership_flags/tests.rs", "src/source_reflows.rs", "src/source_reflows_merge.rs", "src/source_reflows_merge/runtime_json.rs", "src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs", "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs", "tests/hir_module_boundaries.rs", "tests/project/standard_library/application_json/nested_request.rs", "tests/wasm/scalar_browser_ci_contract/before_f82.rs", "tests/wasm/scalar_browser_ci_contract/browser_custody.rs", "tests/wasm/scalar_browser_ci_contract/historical_builder.rs", "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs", "tests/wasm/scalar_browser_ci_contract/historical_main_f82.rs", "tests/workspace/semantic_graph.rs", "tests/workspace/semantic_graph/source_inventory.rs"],
+Self::Maina3 => &["crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", "src/cleanup_plan/replay.rs", "src/cleanup_plan/replay/branch_clone/tests.rs", "src/cleanup_plan/replay/compact_stage/before.rs", "src/cleanup_plan/replay/compact_stage/lexical_before.rs", "src/cleanup_plan/replay/factored.rs", "src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs", "src/cleanup_plan/replay/live_oracle/source_custody/b.rs", "src/cleanup_plan/replay/selected_context.rs", "src/cleanup_plan/replay/selected_context/paid.rs", "src/cleanup_plan/replay/selected_entry.rs", "src/cleanup_plan/replay/selected_entry/tests.rs", "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs", "src/cleanup_plan/replay/selected_entry/tests/session_errors/source.rs", "src/cleanup_plan/replay/selected_owner.rs", "src/cleanup_plan/replay/selected_owner/paid.rs", "src/cleanup_plan/replay/selected_profile.rs", "src/cleanup_plan/replay/selected_profile/paid.rs", "src/cleanup_plan/replay/semantic_refusal.rs", "src/cleanup_plan/replay/semantic_refusal/tests.rs", "src/cleanup_plan/replay/sequence_prefix/before.rs", "src/hir.rs", "src/hir/expr_nodes.rs", "src/hir/identity_resolution/nominal_tests/legacy.rs", "src/hir/nominal_payload/legacy.rs", "src/hir/nominal_payload/legacy/source_tests.rs", "src/hir/validation.rs", "src/source_reflows.rs", "tests/hir_module_boundaries.rs", "tests/workspace/semantic_graph/source_inventory.rs"],
+Self::Alias1ae => &["src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth.rs", "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs"],
+Self::MainE47 => &["src/bounded_output.rs", "src/bounded_output/canonical_stage_tests.rs"],
+}}
+ pub(super) fn spec(self) -> Spec {match self {
+Self::Previous16c => Spec {path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/a3-e47-final-custody-20261016/current-to-Previous16c.json"), length: 1318116, sha256: [145, 121, 162, 103, 147, 169, 93, 39, 109, 156, 206, 181, 15, 202, 26, 245, 250, 132, 117, 219, 228, 184, 158, 143, 55, 241, 163, 222, 90, 162, 106, 244]},
+Self::Maina3 => Spec {path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/a3-e47-final-custody-20261016/current-to-Maina3.json"), length: 1544599, sha256: [30, 66, 53, 19, 160, 109, 146, 19, 196, 187, 200, 213, 249, 90, 112, 181, 167, 223, 82, 49, 190, 220, 77, 74, 111, 69, 82, 54, 90, 48, 62, 184]},
+Self::Alias1ae => Spec {path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/a3-e47-final-custody-20261016/current-to-Alias1ae.json"), length: 1947, sha256: [179, 152, 179, 41, 18, 169, 168, 79, 83, 55, 111, 219, 235, 174, 3, 95, 141, 134, 57, 1, 39, 19, 81, 120, 245, 229, 225, 7, 9, 175, 72, 19]},
+Self::MainE47 => Spec {path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/a3-e47-final-custody-20261016/current-to-MainE47.json"), length: 864, sha256: [173, 230, 192, 36, 248, 244, 151, 213, 242, 161, 97, 117, 143, 2, 37, 194, 78, 195, 48, 150, 124, 224, 24, 81, 76, 135, 79, 3, 160, 61, 226, 0]},
+}}}
+pub(super) fn input(which: Input, source: &str, current: &str) -> String {
+ if which.keys().binary_search(&source).is_err() {return current.to_owned();}
+ super::project(&super::runtime_json::maina3_input(which), source, current)
+}
+pub(super) fn normalize(source: &str, current: &str) -> String {
+ if source != "src/source_reflows_merge/runtime_json.rs" {return current.to_owned();}
+ use sha2::{Digest,Sha256};
+ let digest: [u8;32] = Sha256::digest(current.as_bytes()).into();
+ if digest == [154, 34, 35, 8, 113, 238, 73, 37, 31, 170, 221, 155, 141, 235, 73, 97, 233, 116, 151, 14, 201, 176, 246, 101, 186, 141, 223, 203, 99, 37, 225, 253] {return current.to_owned();}
+ assert_eq!(digest, [91, 98, 57, 70, 12, 7, 66, 46, 110, 12, 235, 130, 20, 76, 189, 201, 220, 68, 33, 165, 26, 221, 97, 168, 181, 141, 232, 112, 186, 63, 79, 214], "complete a3/e47 transport arm");
+ assert_eq!(current.matches("runtime_json/transport_embedded.rs").count(),1);
+ let normalized=current.replacen("runtime_json/transport_embedded.rs","runtime_json/transport_runtime.rs",1);
+ assert_eq!(<[u8;32]>::from(Sha256::digest(normalized.as_bytes())),[154, 34, 35, 8, 113, 238, 73, 37, 31, 170, 221, 155, 141, 235, 73, 97, 233, 116, 151, 14, 201, 176, 246, 101, 186, 141, 223, 203, 99, 37, 225, 253]);
+ normalized
+}

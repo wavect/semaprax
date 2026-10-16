@@ -1,0 +1,28 @@
+[
+  {
+    "source": "src/bounded_output.rs",
+    "current_sha256": "cc888c9e04f11302031cdcbf9b17d2c55de14e589bca9bdea12146ccc47aaf25",
+    "original_sha256": "768679e2270f871eca624a95d1e047d74738e783d5ba326d7d041de0379baa54",
+    "edits": [
+      {
+        "new": "pub(crate) mod format_acceptance;\n",
+        "old": ""
+      },
+      {
+        "new": "\nmod checked_string;\npub(crate) use checked_string::CheckedCappedString;\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "src/bounded_output/canonical_stage_tests.rs",
+    "current_sha256": "efa1f4d50b7412c64e141aaef0d4c22ade9d6ee4265c7661c8f202de3c6aee96",
+    "original_sha256": "6d6540c226defb51e4074ba9685b337b9c7b5e48fb7d34a8292454fd6f35fde8",
+    "edits": [
+      {
+        "new": "\n#[path = \"reservation_site_e47.rs\"]\nmod reservation_site_e47;\n",
+        "old": ""
+      }
+    ]
+  }
+]

@@ -380,3 +380,8 @@ pub(super) fn current83ca_drift_controls(graph: &str) {
 
 #[path = "historical_main_f82.rs"]
 mod main_f82;
+
+#[path = "browser_75b_controls.rs"]
+mod browser_75b_controls;
+#[path = "historical_main_75b.rs"]
+mod main_75b;

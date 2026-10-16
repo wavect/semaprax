@@ -1,0 +1,85 @@
+{
+  "status": "SOURCE_ONLY_NOT_REGISTERED",
+  "rows": [
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::sequence_vector::funded_tests::lexical_vector_transfer_keeps_complete_fields_work_and_reports_all_shapes",
+      "source_path": "src/cleanup_plan/replay/sequence_vector/funded_tests.rs",
+      "source_sha256": "e8e405f5ec40b966ad75d8949b26c9a3a1453bf93f00735a848b3475f8d90d10",
+      "status": "UNEXECUTED_SOURCE_AUTHORED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::sequence_vector::funded_tests::lexical_vector_first_work_keeps_six_fields_before_selection_floor_and_real_limits",
+      "source_path": "src/cleanup_plan/replay/sequence_vector/funded_tests.rs",
+      "source_sha256": "e8e405f5ec40b966ad75d8949b26c9a3a1453bf93f00735a848b3475f8d90d10",
+      "status": "UNEXECUTED_SOURCE_AUTHORED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::sequence_vector_maina3::helper::tests::complete_previous_receiver_keeps_every_field_capacity_work_and_paid_drop",
+      "source_path": "src/cleanup_plan/replay/sequence_vector/main_a3/tests.rs",
+      "source_sha256": "ace89cbcff58cee2543d2c56e0ff1374cb2c94d9a83993f3db8569d4f623899c",
+      "status": "UNEXECUTED_SOURCE_AUTHORED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::sequence_vector_maina3::helper::tests::complete_vector_backing_is_removed_with_zero_exact_short_and_future_growth",
+      "source_path": "src/cleanup_plan/replay/sequence_vector/main_a3/tests.rs",
+      "source_sha256": "ace89cbcff58cee2543d2c56e0ff1374cb2c94d9a83993f3db8569d4f623899c",
+      "status": "UNEXECUTED_SOURCE_AUTHORED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::sequence_vector_maina3::helper::tests::complete_hir_receiver_retains_original_fields_order_work_and_materializations",
+      "source_path": "src/cleanup_plan/replay/sequence_vector/main_a3/tests.rs",
+      "source_sha256": "ace89cbcff58cee2543d2c56e0ff1374cb2c94d9a83993f3db8569d4f623899c",
+      "status": "UNEXECUTED_SOURCE_AUTHORED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::sequence_vector_maina3::helper::tests::complete_predecessor_and_original_push_operations_stay_source_bound",
+      "source_path": "src/cleanup_plan/replay/sequence_vector/main_a3/tests.rs",
+      "source_sha256": "ace89cbcff58cee2543d2c56e0ff1374cb2c94d9a83993f3db8569d4f623899c",
+      "status": "UNEXECUTED_SOURCE_AUTHORED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::sequence_vector_maina3::helper::tests::a_larger_input_backing_keeps_the_complete_original_output_growth_route",
+      "source_path": "src/cleanup_plan/replay/sequence_vector/main_a3/tests.rs",
+      "source_sha256": "ace89cbcff58cee2543d2c56e0ff1374cb2c94d9a83993f3db8569d4f623899c",
+      "status": "UNEXECUTED_SOURCE_AUTHORED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::sequence_vector_maina3::path_array_source::complete_old_functions_are_compiled_and_only_capacity_hooks_change",
+      "source_path": "src/cleanup_plan/replay/sequence_vector/main_a3/path_array_source.rs",
+      "source_sha256": "bf332aaa81cefb76bbe17c610523c3b2916a24cbb1bf1fced10617f35f2d6473",
+      "status": "UNEXECUTED_SOURCE_AUTHORED"
+    }
+  ],
+  "new_compiled_paths": [
+    "src/cleanup_plan/replay/sequence_vector/funded_tests.rs",
+    "src/cleanup_plan/replay/sequence_vector/before_funded.rs",
+    "src/cleanup_plan/replay/sequence_vector/main_a3/current.rs",
+    "src/cleanup_plan/replay/sequence_vector/main_a3/before.rs",
+    "src/cleanup_plan/replay/sequence_vector/main_a3/mod.rs",
+    "src/cleanup_plan/replay/sequence_vector/main_a3/path_array_source.rs",
+    "src/cleanup_plan/replay/sequence_vector/main_a3/tests.rs",
+    "src/cleanup_plan/replay/sequence_vector/main_a3/helper.rs"
+  ],
+  "removed_orphan_Main_paths": [
+    "src/cleanup_plan/replay/sequence_vector/before.rs",
+    "src/cleanup_plan/replay/sequence_vector/tests.rs"
+  ],
+  "receiving_ledger": "/Volumes/Semaprax/provenance/a3-vector-author-20261016/VECTOR-RECEIVING.md",
+  "source_proof": "/Volumes/Semaprax/provenance/a3-vector-author-20261016/source-check.json"
+}

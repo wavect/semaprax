@@ -1,0 +1,17 @@
+{
+  "original": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+  "incoming": "e47b64ffd25abc69545165f73b1ac5f9bb6eec82",
+  "complete_originals_preserved": true,
+  "guards": [
+    {
+      "source": "src/bounded_output/canonical_stage_tests.rs",
+      "original16c_sha256": "72a10f8320f21718cc149790c80a488296fa908588dd40be75037db601e65a63",
+      "main_e47_sha256": "6d6540c226defb51e4074ba9685b337b9c7b5e48fb7d34a8292454fd6f35fde8"
+    },
+    {
+      "source": "src/bounded_output/loan_inner_stage_tests.rs",
+      "original16c_sha256": "fa843c3ee3cda17ecffd6956650902e8e5d41561448b9fc1d6569d0053546256",
+      "main_e47_sha256": "8fc7869389e4d5a9364fb78b843c4f49abb1493be7e503740a4de9d107c3118c"
+    }
+  ]
+}

@@ -953,3 +953,9 @@ pub(crate) fn maina3_847_input(source: &str, current: &str) -> String {
     let normalized = maina3_custody::normalize(source, current);
     maina3_custody::input(maina3_custody::Input::Alias1ae, source, &normalized)
 }
+
+// The incoming test-only e47 owning inputs form their own raw domain.
+pub(crate) fn main_e47_input(source: &str, current: &str) -> String {
+    let normalized = maina3_custody::normalize(source, current);
+    maina3_custody::input(maina3_custody::Input::MainE47, source, &normalized)
+}

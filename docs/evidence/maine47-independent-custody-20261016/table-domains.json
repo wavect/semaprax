@@ -1,0 +1,22 @@
+[
+  {
+    "original_source": "docs/evidence/loan-endpoint-ordered-union-827/exact-source-inverses.json",
+    "original_head": "4251a9f6ba13db02c230f9bc547358d61434fbce",
+    "original_sha256": "b7e68e028f3f5b7203e0689f33131cd784be310db1c0820584c300dca9e08a88",
+    "e47_head": "e47b64ffd25abc69545165f73b1ac5f9bb6eec82",
+    "fixed_copy": "docs/evidence/maine47-independent-custody-20261016/loan-endpoint-inverses.json",
+    "sha256": "21cef627f4bb0ddfd9d0535aa5628c03d71a4530701a01542fedb366f5d1c1f5",
+    "bytes": 960683,
+    "rows": 6
+  },
+  {
+    "original_source": "docs/evidence/loan-inner-stages-829/exact-source-inverses.json",
+    "original_head": "4251a9f6ba13db02c230f9bc547358d61434fbce",
+    "original_sha256": "afc99a64f323c6dde427bc22024579296e70dcd4d0dd731bec7b3b348b5c2551",
+    "e47_head": "e47b64ffd25abc69545165f73b1ac5f9bb6eec82",
+    "fixed_copy": "docs/evidence/maine47-independent-custody-20261016/loan-inner-inverses.json",
+    "sha256": "30949bfd989fba1c2a5cb38eb39b3def9c6768378134bb4a8d58a7bee15d6e5e",
+    "bytes": 1737536,
+    "rows": 9
+  }
+]

@@ -129,7 +129,7 @@ fn the_complete_old_bridge_changes_only_its_retained_runner_include() {
     assert_eq!(current.replacen(new, old, 1), original);
 }
 
-fn c11_before2600_input(current: &str) -> String {
+pub(super) fn c11_before2600_input(current: &str) -> String {
     assert_eq!(
         format!(
             "{:x}",
@@ -150,7 +150,7 @@ fn c11_before2600_input(current: &str) -> String {
     restored
 }
 
-fn c11_before451_input(current: &str) -> String {
+pub(super) fn c11_before451_input(current: &str) -> String {
     assert_eq!(
         format!(
             "{:x}",
@@ -180,7 +180,7 @@ fn c11_before451_input(current: &str) -> String {
     restored
 }
 
-fn c11_before_input(current: &str) -> String {
+pub(super) fn c11_before_input(current: &str) -> String {
     assert_eq!(
         format!(
             "{:x}",

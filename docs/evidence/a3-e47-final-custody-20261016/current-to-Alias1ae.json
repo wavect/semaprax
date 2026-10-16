@@ -1,0 +1,44 @@
+[
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth.rs",
+    "current_sha256": "9a6053ae31c2f69d35309f6972b0292292650b7c904b7329119296b4e42eeae1",
+    "original_sha256": "5492d84c2e3827ef4731477f70a073bd3547341108bdd79cc2b14571051857fe",
+    "edits": [
+      {
+        "new": "// querying the owned directory. Each method has its actual caller reborrow\n// and callee-self slot; no surviving primitive bank is charged twice.\n// There is no forwarded helper/callee Result.\n",
+        "old": "// querying the owned directory. There is no forwarded helper/callee Result.\n"
+      },
+      {
+        "new": "    2 * size_of::<&Vec<Function>>() + 2 * size_of::<usize>() + size_of::<bool>();\n",
+        "old": "    size_of::<&Vec<Function>>() + 2 * size_of::<usize>() + size_of::<bool>();\n"
+      },
+      {
+        "new": "pub(super) const ACQUIRE_CONTROLS: usize = 2 * size_of::<&Vec<FunctionEntry<'static>>>()\n",
+        "old": "pub(super) const ACQUIRE_CONTROLS: usize = size_of::<&Vec<FunctionEntry<'static>>>()\n"
+      },
+      {
+        "new": "    + 2 * size_of::<&std::alloc::Layout>()\n",
+        "old": "    + size_of::<&std::alloc::Layout>()\n"
+      },
+      {
+        "new": "    + 2 * size_of::<&mut Vec<Function>>()\n",
+        "old": "    + size_of::<&mut Vec<Function>>()\n"
+      },
+      {
+        "new": "    + 2 * size_of::<&Vec<Function>>()\n",
+        "old": "    + size_of::<&Vec<Function>>()\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs",
+    "current_sha256": "73b0bb64d9205a31dbbe55fcf4651441b4d1745e7a10c9614b3292d978fd4bef",
+    "original_sha256": "073e417ad1f67742652e880a6a153bcea530981b50e60a7d2a0b9b093622a247",
+    "edits": [
+      {
+        "new": "    let current = crate::source_reflows_merge::maina3_847_input(source, current);\n",
+        "old": ""
+      }
+    ]
+  }
+]

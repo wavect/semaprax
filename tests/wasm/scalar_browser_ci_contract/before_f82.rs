@@ -1,5 +1,8 @@
 //! Whole-wire bridge from the hosted c11a63509 capture to every older control.
 use super::digest_without_checked_value_cursor_budget;
+use crate::scalar_browser_ci_contract::main_c11::{
+    c11_before2600_input, c11_before451_input, c11_before_input,
+};
 use sha2::{Digest, Sha256};
 
 #[path = "before_c11.rs"]
@@ -118,6 +121,7 @@ fn the_complete_old_bridge_changes_only_its_retained_runner_include() {
         );
     }
     let current = include_str!("before_c11.rs");
+    let current = c11_before_input(current);
     let new = concat!(
         "include_str!(\n",
         "        \"../../../docs/evidence/browser-graph-pins-c11a63509/test-fixtures.before.mjs\"\n",

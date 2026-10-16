@@ -11,6 +11,11 @@
 - Reconcile Main8a finished-path capacity, arbitrary final-suffix transfer and borrowed nominal context with lexical paid receiving; preserve original work-before-optional-payment priority and complete Main controls. Qualification and net application cost remain pending.
 
 - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.
+- Preserve complete pre-site budget layout controls while explicitly checking the later sticky call-site pointer against the full current budget definition.
+
+- Refresh browser graph pins from complete hosted 75b314f70 records after an observed 4,756-byte builder-bill decrease, preserving every prior whole-wire bridge and source control.
+
+
 - Compare every private expression-path field explicitly in vector-reuse controls, retaining the production carrier's existing traits and all parity assertions.
 
 - Clone ownership-classifier leaf types without acquiring a recursive census cursor, preserving sticky authentication and the full paid recursive fallback.

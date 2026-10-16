@@ -1,0 +1,65 @@
+{
+  "scope": "Literal whole-source follow-up to exact prior-head files; original archives/hashes retained. The two older inverse packets compose this reviewed layout bridge. Historical reports retain their original bytes and claims. No production or broader runtime qualification.",
+  "composed_packets": [
+    {
+      "packet": "docs/evidence/loan-inner-stages-829/exact-source-inverses.json",
+      "source": "src/bounded_output/loan_inner_stage_tests.rs",
+      "current_sha256": "8fc7869389e4d5a9364fb78b843c4f49abb1493be7e503740a4de9d107c3118c",
+      "preserved_original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "preserved_archive": null,
+      "complete_original_reproduced": true,
+      "changed_current_rejected": true
+    },
+    {
+      "packet": "docs/evidence/loan-endpoint-ordered-union-827/exact-source-inverses.json",
+      "source": "src/bounded_output/loan_inner_stage_tests.rs",
+      "current_sha256": "8fc7869389e4d5a9364fb78b843c4f49abb1493be7e503740a4de9d107c3118c",
+      "preserved_original_sha256": "f5203dc9850b2f2a99a83e1eefaf07894c7a5098914a134ebccb78b1a28cd7eb",
+      "preserved_archive": "docs/evidence/loan-endpoint-ordered-union-827/src__bounded_output__loan_inner_stage_tests.rs.before.txt",
+      "complete_original_reproduced": true,
+      "changed_current_rejected": true
+    }
+  ],
+  "whole_source_overlays": [
+    {
+      "source": "src/bounded_output/canonical_stage_tests.rs",
+      "before_commit": "1abbeae28ca02bb8a654922835767f3d04036d5f",
+      "before_sha256": "72a10f8320f21718cc149790c80a488296fa908588dd40be75037db601e65a63",
+      "after_sha256": "6d6540c226defb51e4074ba9685b337b9c7b5e48fb7d34a8292454fd6f35fde8",
+      "inverse": [
+        {
+          "after": "    assert_eq!(used, 0);\n    assert_eq!(first.unwrap().stage, Some(ReservationStage::HirValidation));\n    assert!(active().is_none());\n}\n\n// Compiled complete pre-site subject, projected from the actual budget below.\n#[allow(dead_code, reason = \"exact historical layout subject\")]\npub(super) struct HistoricalBudget {\n    initial: usize,\n    remaining: Cell<usize>,\n    floor: Cell<usize>,\n    overflowed: Cell<bool>,\n    first_refusal: Cell<Option<ReservationRefusal>>,\n    stage: Cell<Option<ReservationStage>>,\n}\n\n#[test]\nfn reservation_site_layout_binds_both_complete_original_controls_and_the_full_current_budget() {\n    use sha2::{Digest, Sha256};\n    let record: serde_json::Value = serde_json::from_str(include_str!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/docs/evidence/reservation-site-layout-v1/subjects.json\"\n    )))\n    .unwrap();\n    for (name, expected) in [\n        (\n            \"budget_before_site\",\n            \"0c5bb18e9f5e2860ccf6aaaf997df73790ceb5c9fb6c226ad2777c298d6bd1cf\",\n        ),\n        (\n            \"budget_with_site\",\n            \"9fd668330c1496e9b97fc36bba33faf1b8e23bd90fa78440ded3ff7e61f939e1\",\n        ),\n        (\n            \"canonical_stage_tests.rs\",\n            \"44a01dc211f3c29f82abcbad190de40ed682e7d44ffb3798db2eb3654bab60ea\",\n        ),\n        (\n            \"loan_inner_stage_tests.rs\",\n            \"2ff543efc4371754cbb456c79a93e3378471a1a1db482b9c4f81ed43b3add425\",\n        ),\n    ] {\n        let body = record[name][\"body\"].as_str().unwrap();\n        assert_eq!(record[name][\"sha256\"], expected);\n        assert_eq!(\n            format!(\n                \"{:x}\",\n                crate::digest_hex::LowerHex(Sha256::digest(body.as_bytes()))\n            ),\n            expected\n        );\n    }\n    let before = record[\"budget_before_site\"][\"body\"].as_str().unwrap();\n    let current = record[\"budget_with_site\"][\"body\"].as_str().unwrap();\n    let field = \"    first_site: Cell<Option<ReservationSite>>,\\n\";\n    assert_eq!(current.matches(field).count(), 1);\n    assert_eq!(current.replacen(field, \"\", 1), before);\n    let live = include_str!(\"../bounded_output.rs\");\n    assert_eq!(live.matches(current).count(), 1);\n    assert_eq!(\n        live.matches(\"pub(crate) type ReservationSite = &'static std::panic::Location<'static>;\")\n            .count(),\n        1\n    );\n    let historical = before.replacen(\"struct Budget {\", \"pub(super) struct HistoricalBudget {\", 1);\n    assert_eq!(\n        include_str!(\"canonical_stage_tests.rs\")\n            .matches(&historical)\n            .count(),\n        1\n    );\n    {\n        let original = record[\"canonical_stage_tests.rs\"][\"body\"].as_str().unwrap();\n        let old = \"    same_layout!(Budget, BeforeBudget);\";\n        let bridge = \"    // The independent call-site diagnostic added one pointer after this\\n    // stage's original control. Retain the entire old budget comparison.\\n    #[allow(\\n        dead_code,\\n        reason = \\\"independent full old budget plus the added call-site pointer\\\"\\n    )]\\n    struct BudgetWithSite {\\n        before: BeforeBudget,\\n        site: Cell<Option<&'static std::panic::Location<'static>>>,\\n    }\\n    same_layout!(HistoricalBudget, BeforeBudget);\\n    same_layout!(Budget, BudgetWithSite);\";\n        assert_eq!(original.matches(old).count(), 1);\n        let current = original.replacen(old, bridge, 1);\n        assert_eq!(\n            include_str!(\"canonical_stage_tests.rs\")\n                .matches(&current)\n                .count(),\n            1\n        );\n    }\n    {\n        let original = record[\"loan_inner_stage_tests.rs\"][\"body\"]\n            .as_str()\n            .unwrap();\n        let old = \"    same!(Budget, BeforeBudget);\";\n        let bridge = \"    // The independent call-site diagnostic added one pointer after this\\n    // stage's original control. Retain the entire old budget comparison.\\n    #[allow(\\n        dead_code,\\n        reason = \\\"independent full old budget plus the added call-site pointer\\\"\\n    )]\\n    struct BudgetWithSite {\\n        before: BeforeBudget,\\n        site: Cell<Option<&'static std::panic::Location<'static>>>,\\n    }\\n    same!(super::canonical_stage_tests::HistoricalBudget, BeforeBudget);\\n    same!(Budget, BudgetWithSite);\";\n        assert_eq!(original.matches(old).count(), 1);\n        let current = original.replacen(old, bridge, 1);\n        assert_eq!(\n            include_str!(\"loan_inner_stage_tests.rs\")\n                .matches(&current)\n                .count(),\n            1\n        );\n    }\n}\n",
+          "before": "    assert_eq!(used, 0);\n    assert_eq!(first.unwrap().stage, Some(ReservationStage::HirValidation));\n    assert!(active().is_none());\n}\n"
+        },
+        {
+          "after": "    same_layout!(ReservationStage, BeforeStage);\n    same_layout!(Option<ReservationStage>, Option<BeforeStage>);\n    same_layout!(Refused, BeforeRefused);\n    same_layout!(Option<Refused>, Option<BeforeRefused>);\n    // The independent call-site diagnostic added one pointer after this\n    // stage's original control. Retain the entire old budget comparison.\n    #[allow(\n        dead_code,\n        reason = \"independent full old budget plus the added call-site pointer\"\n    )]\n    struct BudgetWithSite {\n        before: BeforeBudget,\n        site: Cell<Option<&'static std::panic::Location<'static>>>,\n    }\n    same_layout!(HistoricalBudget, BeforeBudget);\n    same_layout!(Budget, BudgetWithSite);\n    same_layout!(ReservationRefusal, BeforeReceipt);\n    same_layout!(ReservationStageGuard, BeforeGuard);\n    same_layout!(CfgReservation, BeforePaidCarrier);\n}\n",
+          "before": "    same_layout!(ReservationStage, BeforeStage);\n    same_layout!(Option<ReservationStage>, Option<BeforeStage>);\n    same_layout!(Refused, BeforeRefused);\n    same_layout!(Option<Refused>, Option<BeforeRefused>);\n    same_layout!(Budget, BeforeBudget);\n    same_layout!(ReservationRefusal, BeforeReceipt);\n    same_layout!(ReservationStageGuard, BeforeGuard);\n    same_layout!(CfgReservation, BeforePaidCarrier);\n}\n"
+        }
+      ]
+    },
+    {
+      "source": "src/bounded_output/loan_inner_stage_tests.rs",
+      "before_commit": "1abbeae28ca02bb8a654922835767f3d04036d5f",
+      "before_sha256": "fa843c3ee3cda17ecffd6956650902e8e5d41561448b9fc1d6569d0053546256",
+      "after_sha256": "8fc7869389e4d5a9364fb78b843c4f49abb1493be7e503740a4de9d107c3118c",
+      "inverse": [
+        {
+          "after": "    }\n    same!(ReservationStage, BeforeStage);\n    same!(Option<ReservationStage>, Option<BeforeStage>);\n    same!(ReservationRefusal, BeforeReceipt);\n    // The independent call-site diagnostic added one pointer after this\n    // stage's original control. Retain the entire old budget comparison.\n    #[allow(\n        dead_code,\n        reason = \"independent full old budget plus the added call-site pointer\"\n    )]\n    struct BudgetWithSite {\n        before: BeforeBudget,\n        site: Cell<Option<&'static std::panic::Location<'static>>>,\n    }\n    same!(super::canonical_stage_tests::HistoricalBudget, BeforeBudget);\n    same!(Budget, BudgetWithSite);\n    same!(ReservationStageGuard, BeforeGuard);\n    same!(Refused, BeforeRefused);\n    same!(Option<Refused>, Option<BeforeRefused>);\n    same!(CfgReservation, BeforePaid);\n",
+          "before": "    }\n    same!(ReservationStage, BeforeStage);\n    same!(Option<ReservationStage>, Option<BeforeStage>);\n    same!(ReservationRefusal, BeforeReceipt);\n    same!(Budget, BeforeBudget);\n    same!(ReservationStageGuard, BeforeGuard);\n    same!(Refused, BeforeRefused);\n    same!(Option<Refused>, Option<BeforeRefused>);\n    same!(CfgReservation, BeforePaid);\n"
+        }
+      ]
+    }
+  ],
+  "historical_reports_preserved": [
+    {
+      "path": "docs/evidence/canonical-preparation-stage-829/source-binding.json",
+      "sha256": "d5ba62d3180cf8e20cd36902a89fd96104e9d131f9e277d473c5373a638f1f9b",
+      "scope": "Unchanged historical report; not relabelled current execution"
+    },
+    {
+      "path": "docs/evidence/combined-receiving-dense-source-integration-1b70/full-inverse-proof.json",
+      "sha256": "8e0c29374f14faea9c1c10610da17c234ccc0db9027437918488022d082275ce",
+      "scope": "Unchanged historical report; not relabelled current execution"
+    }
+  ]
+}

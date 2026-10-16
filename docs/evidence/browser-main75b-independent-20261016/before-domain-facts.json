@@ -1,0 +1,28 @@
+{
+  "source75b": "75b314f7001f42c48ec5569f1182171b47ad526d",
+  "capture55e": "55e805c2f6e23dda58ce4c72223914ed511b117b",
+  "run": 38902117832,
+  "job": 116977210355,
+  "status": "historical-raw-facts-only-no-new-capture-no-browser-pass",
+  "future_bill": null,
+  "facts": [
+    {
+      "arm": "baseline",
+      "actual55e_raw_sha256": "e8fee72ba5e46f44f51fefe1e28e7ed1abfe4f4d9bc58eaf348a9daaa02b3366",
+      "actual55e_bill": 3439179,
+      "hosted75b_raw_sha256": "f4bc3195723a4c168352d4a7c8507fb42a4aa0c6361130e2e46fcd45fe597d55",
+      "hosted75b_bill": 2954152,
+      "hosted75b_digest": "sha256:976674d942dc68b6c0030cf023e5c525b7f063ed137a17b9294baf3b23ccf649",
+      "complete_raw_bill_and_selfdigest_restoration": true
+    },
+    {
+      "arm": "renamed",
+      "actual55e_raw_sha256": "ad132bc209cddba23570013d0f73d6c3bd82b01e888ee0a809d9a0f0bf1c000b",
+      "actual55e_bill": 3439179,
+      "hosted75b_raw_sha256": "3657f1376dc51e84cfe616a15e7e3c0295df79a3e161bfce3bfcc2a31025baa6",
+      "hosted75b_bill": 2954152,
+      "hosted75b_digest": "sha256:29bd5762d29a6880170890dda6ec000a7fee23fa8680e8b03d6a51b6b720fc57",
+      "complete_raw_bill_and_selfdigest_restoration": true
+    }
+  ]
+}

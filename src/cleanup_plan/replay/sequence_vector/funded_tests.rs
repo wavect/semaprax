@@ -6,8 +6,13 @@ use crate::bounded_output::{
 use crate::test_allocation_observer::measure;
 #[path = "before_funded.rs"]
 mod before;
-const OLD_HIR_SELECTION_CONTROLS: usize =
-    final_output::HIR_SELECTION_CONTROLS - 2 * std::mem::size_of::<bool>();
+const OLD_HIR_SELECTION_CONTROLS: usize = std::mem::size_of::<Result<(), Diagnostic>>()
+    + std::mem::size_of::<&mut ReplayBudget>() + std::mem::size_of::<&ResolvedFunction>() + std::mem::size_of::<&str>()
+    + 2 * std::mem::size_of::<usize>() // price and length
+    + 2 * std::mem::size_of::<bool>() // predicate initializer/receiving slot
+    + std::mem::size_of::<&std::borrow::Cow<'_, [ExprSkeletonPath]>>()
+    + std::mem::size_of::<&[ExprSkeletonPath]>();
+
 #[derive(Debug, Eq, PartialEq)]
 struct Failure {
     code: &'static str,

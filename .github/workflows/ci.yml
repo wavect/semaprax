@@ -2122,6 +2122,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if ! command -v gdb >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install --yes --no-install-recommends gdb
+          fi
           python3 -m unittest discover -s scripts/tests -p test_ci_low_stack_trace.py
           python3 scripts/ci-low-stack-trace.py
       - name: Capture complete private-layout cache wires after the owning shard fails

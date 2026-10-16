@@ -1,0 +1,26 @@
+{
+  "status": "HISTORY_ONLY_BOTH_SIDES_RETAINED",
+  "inputs": [
+    {
+      "side": "ours",
+      "commit": "27b1067e5",
+      "archive": "ours-CHANGELOG.md.txt",
+      "sha256": "fd14ddc8d5d29eea28c292c43e13589598c4b3106c1500a7b1a5b1935300629c"
+    },
+    {
+      "side": "incoming",
+      "commit": "b4523cc7c46de19287a1675a3482416d860d4976",
+      "archive": "incoming-CHANGELOG.md.txt",
+      "sha256": "d27f5e39a16b1e2af9ee88e1a0fcca9311779ee934418a32829bafa26094b1f6"
+    },
+    {
+      "side": "base",
+      "commit": "a9a75e1ba5461fd16d16baf9c8f96a765009d081",
+      "archive": "base-CHANGELOG.md.txt",
+      "sha256": "dafe91b4dc3c488bf164260aa76cd195c9fbae147887d10b61df77c1431cea08"
+    }
+  ],
+  "conflicts_resolved": 1,
+  "compiler_sources_changed_by_incoming_commits": false,
+  "full_gates_executed": false
+}

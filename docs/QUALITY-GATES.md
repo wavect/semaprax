@@ -375,6 +375,12 @@ test executable from Cargo artifact messages and checks its exact runnable test
 inventory before invoking GDB. It captures bounded frames from the original
 128 KiB indexed-match test without changing its stack, depth or assertions. This
 trace is diagnostic evidence; the owning shard's failure remains authoritative.
+The manual `Stack diagnostic` workflow reuses the same script, compiler, test
+profile and workspace feature unification when the unit shard is still queued.
+Its separate concurrency group survives subsequent CI pushes. It checks the
+exact checkout and executable identity and captures the same original test;
+a completed diagnostic job does not qualify the unit shard or any quality gate.
+
 
 ## Documentation changes
 

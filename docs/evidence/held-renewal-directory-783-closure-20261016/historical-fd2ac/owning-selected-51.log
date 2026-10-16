@@ -1,0 +1,12 @@
+
+running 7 tests
+test cleanup_plan::build::helper_index::tests::attached_owned_variant_spare_backing_rebuilds_at_exact_phase_reservation ... ok
+test cleanup_plan::build::helper_index::tests::construction_exact_one_short_and_zero_budget_leave_attached_plans_unchanged ... ok
+test cleanup_plan::build::helper_index::tests::construction_index_reuses_exact_sites_and_preserves_independent_plan_bytes ... ok
+test cleanup_plan::build::helper_index::tests::construction_rejects_copied_function_foreign_program_and_reproves_changed_provider ... ok
+test cleanup_plan::build::helper_index::tests::irrelevant_and_allocating_legacy_helpers_keep_old_schemas_and_canonical_order ... ok
+test cleanup_plan::build::helper_index::tests::old_attached_spare_backing_refuses_before_any_index_or_builder_starts ... ok
+test cleanup_plan::build::helper_index::tests::prior_sticky_refusal_prevents_construction_and_publication ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 6530 filtered out; finished in 0.12s
+

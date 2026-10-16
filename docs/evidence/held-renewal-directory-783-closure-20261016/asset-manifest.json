@@ -1,0 +1,72 @@
+{
+  "current_source": "b3a53367d4def76240d14dca25ee414785bed9d6",
+  "historical_source": "fd2ac721b6e2764414239429c1c2657152a69e8a",
+  "new_execution": false,
+  "assets": [
+    {
+      "path": "ACCEPTANCE.md",
+      "bytes": 6335,
+      "sha256": "46b7dfecd2868916c7fef705abb808a47d9ede30972580581cc86c89b0ad22a2",
+      "original": "/Volumes/Semaprax/provenance/closure-783-b3a-audit-20261016/ACCEPTANCE.md"
+    },
+    {
+      "path": "audit-binding.json",
+      "bytes": 31621,
+      "sha256": "f519484da7e79f3c4763eb4737935a788f7e37501aaadd4273f96a10c4ed7d74",
+      "original": "/Volumes/Semaprax/provenance/closure-783-b3a-audit-20261016/audit-binding.json"
+    },
+    {
+      "path": "audit.py",
+      "bytes": 4759,
+      "sha256": "4794134200c880298303a0a5f7b9be13a38aa7da9bbbc7bd5eb6118551f472b6",
+      "original": "/Volumes/Semaprax/provenance/closure-783-b3a-audit-20261016/audit.py"
+    },
+    {
+      "path": "issue-783-live.json",
+      "bytes": 3058,
+      "sha256": "fdf1b08e0a43a1acb04ca869f873c859f578b1ebf01e5fd04ea721499e4d4770",
+      "original": "/Volumes/Semaprax/provenance/closure-783-b3a-audit-20261016/issue-783-live.json"
+    },
+    {
+      "path": "historical-fd2ac/owning-selected-results.json",
+      "bytes": 250640,
+      "sha256": "5007f10e813e9dec920e2b0b3d0822720c5cd798c2271935a21fd997d8818e43",
+      "original": "/Volumes/Semaprax/lane-prompts/final-repair-rebind-171cece20-20261010/repair-fd2ac721b-final/owning-selected-results.json"
+    },
+    {
+      "path": "historical-fd2ac/owning-selected-51.log",
+      "bytes": 1008,
+      "sha256": "b46a056a18a7a30542fe69ed46e122a68bfbd5049cf683774080163813b07928",
+      "original": "/Volumes/Semaprax/lane-prompts/final-repair-rebind-171cece20-20261010/repair-fd2ac721b-final/owning-selected-51.log"
+    },
+    {
+      "path": "historical-fd2ac/owning-build-result.json",
+      "bytes": 15763,
+      "sha256": "4d1a6870992622ac4f962915ec4daf62d7a4769031617f910a886c0eb85fbd25",
+      "original": "/Volumes/Semaprax/lane-prompts/final-repair-rebind-171cece20-20261010/repair-fd2ac721b-final/owning-build-result.json"
+    },
+    {
+      "path": "historical-fd2ac/owning-build.jsonl",
+      "bytes": 484935,
+      "sha256": "aa81450ea5bef98c150d7b93dad5c5bdadb040c1108d04d05a8a31a1747f48f8",
+      "original": "/Volumes/Semaprax/lane-prompts/final-repair-rebind-171cece20-20261010/repair-fd2ac721b-final/owning-build.jsonl"
+    },
+    {
+      "path": "historical-fd2ac/owning-build.log",
+      "bytes": 303,
+      "sha256": "dab3fd0cce99d26e90933c5e6739f0a954420cc6dc191490c1ee3326874f28fe",
+      "original": "/Volumes/Semaprax/lane-prompts/final-repair-rebind-171cece20-20261010/repair-fd2ac721b-final/owning-build.log"
+    },
+    {
+      "path": "historical-fd2ac/expected-counts.json",
+      "bytes": 263903,
+      "sha256": "9f612fe91aa3d9eeb142006c6313ac876704ec7d3e7cf8e2f135aee88dbe9468",
+      "original": "/Volumes/Semaprax/lane-prompts/final-repair-rebind-171cece20-20261010/repair-fd2ac721b-final/expected-counts.json"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1525,
+      "sha256": "36a41acc7f34408a9ae7b21a3178d5cbb43ef02b48d5d4ec8928cabee8ccd7db"
+    }
+  ]
+}

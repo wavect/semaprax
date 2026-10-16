@@ -1,0 +1,638 @@
+{
+  "current": "b3a53367d4def76240d14dca25ee414785bed9d6",
+  "byte_exact_from": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+  "byte_exact_cut": [
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/compare.rs",
+      "sha256": "0e9d6fe4c4eaa6fa1201f458f69ce431df0da05f55b1fa8bf6460e0df42ea6fd",
+      "bytes": 2511
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/consuming.rs",
+      "sha256": "5621537e690fb5fdd0325964147e4840bfbbfd479238bf501c8eb7b677c94861",
+      "bytes": 12453
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/consuming/old.rs",
+      "sha256": "407d4f111b7b432fdbeea0ecffcf227c718cb84a7687576e8c3f7d624c5f7a7a",
+      "bytes": 8601
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/consuming/stack.rs",
+      "sha256": "9456807802137d646f4e5224c5958854f820474e8632d620c0ed0beecfc503ed",
+      "bytes": 3631
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/debug_contains.rs",
+      "sha256": "c58e3605113abe7c9a41ca834d707b1477db4dbfd953af9f68c92737ef4b5b37",
+      "bytes": 6026
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/iterator.rs",
+      "sha256": "e1b56d44c43e514786ea0e69053b20cfe3dcb4e64aa384fe17477d63fe87e85d",
+      "bytes": 11160
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/iterator_shape.rs",
+      "sha256": "00cb27d4f0a3b13a1ce0df1d8f0f0432665f024062f605e20567650c6f5e9f37",
+      "bytes": 8326
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/leaf.rs",
+      "sha256": "c76abdb6f8ed5ce8586dae260fe2c773b0d083111b023a746ca8916b8fd80ce8",
+      "bytes": 6183
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/mod.rs",
+      "sha256": "fe66614ad571ad4f537dc57d471d2850f15b093769259d67d814c0c99ccd3533",
+      "bytes": 11352
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/record_presence.rs",
+      "sha256": "0d2df070cb4ce3494feb5e383b621ea58082eb0c84ea862181c090dddf78d001",
+      "bytes": 4559
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/record_presence/tests.rs",
+      "sha256": "eb7b354b482a176b2576405130f4e43bc593ee570dd19809cf042b70bb811ddd",
+      "bytes": 14763
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/scratch.rs",
+      "sha256": "5b51c5d7c5168618cfe101cc5ec323b55175cc60d6937b8cf2099fc495ca2dfe",
+      "bytes": 4113
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/sort.rs",
+      "sha256": "a3ece1225adf8c2484aa3b07b2a08aaf39d401baa4b8d723f62ecdb18f59ba3f",
+      "bytes": 3654
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/tests.rs",
+      "sha256": "4dcc9cfaed3ee672d00d31f660f2ada5ca427d85d14c6f0ddc9316196a4bdf3b",
+      "bytes": 17628
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/validation.rs",
+      "sha256": "d740a3489ab46338a8f49ca43ffb699a78638fa21bfcbda0d03c2ebb7b253c22",
+      "bytes": 1132
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/ordinary/vector.rs",
+      "sha256": "b0347ee282e9d67381ba9680566db8845bc11b036e986c48fecc2401414ba53c",
+      "bytes": 7928
+    },
+    {
+      "source": "src/loop_calls/byte_writer/module_index/directory.rs",
+      "sha256": "2adb5671cbf0736ffafd125f02320c633a10dea99653b8f86d1c79e65e71ece7",
+      "bytes": 3345
+    },
+    {
+      "source": "src/loop_calls/byte_writer/module_index/ordinary.rs",
+      "sha256": "0c0d8f77c073ee56d5ee578bd102c28bd862d405a748a76950052cad7f3ce1fe",
+      "bytes": 8181
+    },
+    {
+      "source": "src/loop_calls/byte_writer/module_index/ordinary/numeric.rs",
+      "sha256": "201b18c792d37bdae77f4211eccb52971524e80c16fd1928e2869729a8a9a0ae",
+      "bytes": 5273
+    },
+    {
+      "source": "src/loop_calls/byte_writer/module_index/tests.rs",
+      "sha256": "7bad1fc83f55bd1bae808b70e5ec1e7a4b5b179ae4e550a05798cd22a6aed0c4",
+      "bytes": 19403
+    },
+    {
+      "source": "src/loop_calls/byte_writer/module_index/textual.rs",
+      "sha256": "b3270b65c7384f8f590995b99b1e099fd780f873431ff7f2fed934640ddd5691",
+      "bytes": 3912
+    },
+    {
+      "source": "src/cleanup_plan/build/helper_index/attached_capacity.rs",
+      "sha256": "e8112ed7d08940e8c350c71d60bff4091bc055e1502714dddabaf2725141a647",
+      "bytes": 5577
+    },
+    {
+      "source": "src/cleanup_plan/build/helper_index/attached_capacity/flat.rs",
+      "sha256": "de697c6334b61f8b58c66804ba815c177e794f12937116f11977ae746e68fb35",
+      "bytes": 6235
+    },
+    {
+      "source": "src/cleanup_plan/build/helper_index/ordinary_view.rs",
+      "sha256": "31974bd3fa4e40989529b3560bf56b78bd074499a657d06323ec7443513c9847",
+      "bytes": 1295
+    },
+    {
+      "source": "src/cleanup_plan/build/helper_index/original_plans.rs",
+      "sha256": "89391ec695d7d2a91e5d1dfa1c67ffedb0a49a89ce319f04ab94faa651416ecf",
+      "bytes": 3974
+    },
+    {
+      "source": "src/cleanup_plan/build/helper_index/tests.rs",
+      "sha256": "6a3cd3b407ecef9c4599378158a2740838a75d1c3e2a3df6fd28a8ed756ae1a1",
+      "bytes": 12470
+    },
+    {
+      "source": "src/cleanup_plan/build/helper_index/validation.rs",
+      "sha256": "b5c2a59bc8e144056d3cf4c5bdea6d31a46abd769f9f8ed20d8143330b5156e2",
+      "bytes": 2166
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile.rs",
+      "sha256": "46f3c87a7d1bd762ea86895c8dada6d980331f1e6cf13e63820a49c254219008",
+      "bytes": 11923
+    },
+    {
+      "source": "src/loop_calls/byte_writer/module_index.rs",
+      "sha256": "03a144b1e7238042511a0f2a125c4f8f83e16d8bb88ea909d67dd1e1980f9faa",
+      "bytes": 11370
+    },
+    {
+      "source": "src/cleanup_plan/build/helper_index.rs",
+      "sha256": "bc24cea055827f125c3355353971c5bab336c9b47014e2dc8e1509ba7ad304ff",
+      "bytes": 16453
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_renewals.rs",
+      "sha256": "1e4f19953ba49c70ce532905cde5a0151ab86aed5ceac9b1b8c2d0d0603e6232",
+      "bytes": 4767
+    },
+    {
+      "source": "src/cleanup_plan/replay/phase_measurement.rs",
+      "sha256": "ac9df518b6582cc1e45e3cdb6de672bcef89f16d9d5b3b60e791a8472f5c49cc",
+      "bytes": 1029
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work.rs",
+      "sha256": "f6163b3cc48322bf40549c18cccf8ea412a52a450daadd82d7f93e5daa6b8716",
+      "bytes": 30170
+    }
+  ],
+  "changed_test_only": [
+    "src/cleanup_plan/renewal_profile/ordinary/consuming/tests.rs"
+  ],
+  "exact_historical_negative_items": [
+    {
+      "source": "src/cleanup_plan/build/helper_index/tests.rs",
+      "item": "construction_rejects_copied_function_foreign_program_and_reproves_changed_provider",
+      "sha256": "11fb1ecb4bd00dd3e1482eeaf9615e64f511e6143141031da9d88d6e805219fd",
+      "before": "fd2ac721b6e2764414239429c1c2657152a69e8a"
+    },
+    {
+      "source": "src/cleanup_plan/build/helper_index/tests.rs",
+      "item": "construction_exact_one_short_and_zero_budget_leave_attached_plans_unchanged",
+      "sha256": "ce58f7e769d812ae92a17a8f698400fd0449f39e90ce3903cbb7633a8c2366b8",
+      "before": "fd2ac721b6e2764414239429c1c2657152a69e8a"
+    }
+  ],
+  "actual_rows": [
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/byte-slice-traversal-780-closure-20261016/raw/receipts/f71f15b8e0043a65-owning-selected-results.json",
+      "receipt_sha256": "f71f15b8e0043a657d7c2855d86d9266a47839b32cc8055f456c88675ef6e77b",
+      "subject": "3f7f7381cfaf3385de9996e33ad09d18362056d8",
+      "row": 130,
+      "selector": "cleanup_plan::renewal_profile::ordinary::tests::scratch_exact_replacement_overlap_one_short_and_spare_slot_failure",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/large-batch-pinned-receiver-check-20261012/owning-selected-130.log",
+      "log_sha256": "966a448fa776f89d4aa8efca7c15f22a0e6ea75e4d3d75b1daa440ff6d4bf27d",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::renewal_profile::ordinary::tests::scratch_exact_replacement_overlap_one_short_and_spare_slot_failure"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/byte-slice-traversal-780-closure-20261016/raw/receipts/f71f15b8e0043a65-owning-selected-results.json",
+      "receipt_sha256": "f71f15b8e0043a657d7c2855d86d9266a47839b32cc8055f456c88675ef6e77b",
+      "subject": "3f7f7381cfaf3385de9996e33ad09d18362056d8",
+      "row": 131,
+      "selector": "cleanup_plan::renewal_profile::ordinary::tests::exact_debug_stream_matches_saved_contains_and_literal_work_backing",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/large-batch-pinned-receiver-check-20261012/owning-selected-131.log",
+      "log_sha256": "58dc3bac727fc8c65f8b4fadc8953ef7d0e568e0ad9fc57e72a1252a3fc19d6c",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::renewal_profile::ordinary::tests::exact_debug_stream_matches_saved_contains_and_literal_work_backing"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/byte-slice-traversal-780-closure-20261016/raw/receipts/f71f15b8e0043a65-owning-selected-results.json",
+      "receipt_sha256": "f71f15b8e0043a657d7c2855d86d9266a47839b32cc8055f456c88675ef6e77b",
+      "subject": "3f7f7381cfaf3385de9996e33ad09d18362056d8",
+      "row": 132,
+      "selector": "cleanup_plan::renewal_profile::ordinary::tests::borrowed_directory_preserves_family_bits_priority_opposing_keys_and_literal_backing",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/large-batch-pinned-receiver-check-20261012/owning-selected-132.log",
+      "log_sha256": "4014aa96ad7f27112ddada1ae062ba767a1cb09a45ab1f3ea740b79912134af5",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::renewal_profile::ordinary::tests::borrowed_directory_preserves_family_bits_priority_opposing_keys_and_literal_backing"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/byte-slice-traversal-780-closure-20261016/raw/receipts/f71f15b8e0043a65-owning-selected-results.json",
+      "receipt_sha256": "f71f15b8e0043a657d7c2855d86d9266a47839b32cc8055f456c88675ef6e77b",
+      "subject": "3f7f7381cfaf3385de9996e33ad09d18362056d8",
+      "row": 133,
+      "selector": "cleanup_plan::renewal_profile::ordinary::tests::paid_whole_family_collectors_match_saved_per_query_oracle_and_current_subject",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/large-batch-pinned-receiver-check-20261012/owning-selected-133.log",
+      "log_sha256": "8f45b5b1a58affe2303d5b28fefbe971dd86a40bf4d727359271c3e325065d97",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::renewal_profile::ordinary::tests::paid_whole_family_collectors_match_saved_per_query_oracle_and_current_subject"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/byte-slice-traversal-780-closure-20261016/raw/receipts/f71f15b8e0043a65-owning-selected-results.json",
+      "receipt_sha256": "f71f15b8e0043a657d7c2855d86d9266a47839b32cc8055f456c88675ef6e77b",
+      "subject": "3f7f7381cfaf3385de9996e33ad09d18362056d8",
+      "row": 137,
+      "selector": "cleanup_plan::build::helper_index::tests::construction_index_reuses_exact_sites_and_preserves_independent_plan_bytes",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/large-batch-pinned-receiver-check-20261012/owning-selected-137.log",
+      "log_sha256": "fc99e311a634d41ed5db2fbd15e2081b9111ab319845813b16236972b9f375b2",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::build::helper_index::tests::construction_index_reuses_exact_sites_and_preserves_independent_plan_bytes"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/byte-slice-traversal-780-closure-20261016/raw/receipts/f71f15b8e0043a65-owning-selected-results.json",
+      "receipt_sha256": "f71f15b8e0043a657d7c2855d86d9266a47839b32cc8055f456c88675ef6e77b",
+      "subject": "3f7f7381cfaf3385de9996e33ad09d18362056d8",
+      "row": 138,
+      "selector": "cleanup_plan::build::helper_index::tests::construction_exact_one_short_and_zero_budget_leave_attached_plans_unchanged",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/large-batch-pinned-receiver-check-20261012/owning-selected-138.log",
+      "log_sha256": "3eb902fb5e265219b81e883c58ccafe50c7d421d58ed6f31816ff3821bed11ac",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::build::helper_index::tests::construction_exact_one_short_and_zero_budget_leave_attached_plans_unchanged"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/byte-slice-traversal-780-closure-20261016/raw/receipts/f71f15b8e0043a65-owning-selected-results.json",
+      "receipt_sha256": "f71f15b8e0043a657d7c2855d86d9266a47839b32cc8055f456c88675ef6e77b",
+      "subject": "3f7f7381cfaf3385de9996e33ad09d18362056d8",
+      "row": 140,
+      "selector": "cleanup_plan::build::helper_index::tests::irrelevant_and_allocating_legacy_helpers_keep_old_schemas_and_canonical_order",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/large-batch-pinned-receiver-check-20261012/owning-selected-140.log",
+      "log_sha256": "40a68b2878988bd8a41025b664801dff0803539752c1570d630063f903f51aae",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::build::helper_index::tests::irrelevant_and_allocating_legacy_helpers_keep_old_schemas_and_canonical_order"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/byte-slice-traversal-780-closure-20261016/raw/receipts/7ad94b4a4c33b3ee-owning-selected-results.json",
+      "receipt_sha256": "7ad94b4a4c33b3eef9bcc21d7c5589b04cd0dced057b98c7d752a67e6fee5ee2",
+      "subject": "033caf93a2028d0aaa0da5b755d021ee9b1b6640",
+      "row": 130,
+      "selector": "cleanup_plan::renewal_profile::ordinary::tests::scratch_exact_replacement_overlap_one_short_and_spare_slot_failure",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/large-foundation-final-selected-check-20261012/owning-selected-130.log",
+      "log_sha256": "e4646bc2a5d56985c1eeb39cef480bc499f623aed256b6de28496fb705e96346",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::renewal_profile::ordinary::tests::scratch_exact_replacement_overlap_one_short_and_spare_slot_failure"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/byte-slice-traversal-780-closure-20261016/raw/receipts/7ad94b4a4c33b3ee-owning-selected-results.json",
+      "receipt_sha256": "7ad94b4a4c33b3eef9bcc21d7c5589b04cd0dced057b98c7d752a67e6fee5ee2",
+      "subject": "033caf93a2028d0aaa0da5b755d021ee9b1b6640",
+      "row": 131,
+      "selector": "cleanup_plan::renewal_profile::ordinary::tests::exact_debug_stream_matches_saved_contains_and_literal_work_backing",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/large-foundation-final-selected-check-20261012/owning-selected-131.log",
+      "log_sha256": "1c2ef2c48d9c84f3652d0b444a038744ae1a0802addca2ebaedfc7ccd658f1f3",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::renewal_profile::ordinary::tests::exact_debug_stream_matches_saved_contains_and_literal_work_backing"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/byte-slice-traversal-780-closure-20261016/raw/receipts/7ad94b4a4c33b3ee-owning-selected-results.json",
+      "receipt_sha256": "7ad94b4a4c33b3eef9bcc21d7c5589b04cd0dced057b98c7d752a67e6fee5ee2",
+      "subject": "033caf93a2028d0aaa0da5b755d021ee9b1b6640",
+      "row": 132,
+      "selector": "cleanup_plan::renewal_profile::ordinary::tests::borrowed_directory_preserves_family_bits_priority_opposing_keys_and_literal_backing",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/large-foundation-final-selected-check-20261012/owning-selected-132.log",
+      "log_sha256": "a9afda87d18159fc7733ec0b93501150424bae2b434093759cfa94b904797835",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::renewal_profile::ordinary::tests::borrowed_directory_preserves_family_bits_priority_opposing_keys_and_literal_backing"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/byte-slice-traversal-780-closure-20261016/raw/receipts/7ad94b4a4c33b3ee-owning-selected-results.json",
+      "receipt_sha256": "7ad94b4a4c33b3eef9bcc21d7c5589b04cd0dced057b98c7d752a67e6fee5ee2",
+      "subject": "033caf93a2028d0aaa0da5b755d021ee9b1b6640",
+      "row": 133,
+      "selector": "cleanup_plan::renewal_profile::ordinary::tests::paid_whole_family_collectors_match_saved_per_query_oracle_and_current_subject",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/large-foundation-final-selected-check-20261012/owning-selected-133.log",
+      "log_sha256": "104c2df10e0d18ea7fd7e91ab48760028411b030cb2f9cedad3488ff2a33679a",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::renewal_profile::ordinary::tests::paid_whole_family_collectors_match_saved_per_query_oracle_and_current_subject"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/byte-slice-traversal-780-closure-20261016/raw/receipts/7ad94b4a4c33b3ee-owning-selected-results.json",
+      "receipt_sha256": "7ad94b4a4c33b3eef9bcc21d7c5589b04cd0dced057b98c7d752a67e6fee5ee2",
+      "subject": "033caf93a2028d0aaa0da5b755d021ee9b1b6640",
+      "row": 137,
+      "selector": "cleanup_plan::build::helper_index::tests::construction_index_reuses_exact_sites_and_preserves_independent_plan_bytes",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/large-foundation-final-selected-check-20261012/owning-selected-137.log",
+      "log_sha256": "81817aececf7cdfaeb04c1a4758726869fb62a5514dad38ef8bd18a890c386cb",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::build::helper_index::tests::construction_index_reuses_exact_sites_and_preserves_independent_plan_bytes"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/byte-slice-traversal-780-closure-20261016/raw/receipts/7ad94b4a4c33b3ee-owning-selected-results.json",
+      "receipt_sha256": "7ad94b4a4c33b3eef9bcc21d7c5589b04cd0dced057b98c7d752a67e6fee5ee2",
+      "subject": "033caf93a2028d0aaa0da5b755d021ee9b1b6640",
+      "row": 138,
+      "selector": "cleanup_plan::build::helper_index::tests::construction_exact_one_short_and_zero_budget_leave_attached_plans_unchanged",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/large-foundation-final-selected-check-20261012/owning-selected-138.log",
+      "log_sha256": "0b72818a5a4c028a7a53ac58375e0ec86ac2e002e347b78919b5e311fab78d2f",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::build::helper_index::tests::construction_exact_one_short_and_zero_budget_leave_attached_plans_unchanged"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/byte-slice-traversal-780-closure-20261016/raw/receipts/7ad94b4a4c33b3ee-owning-selected-results.json",
+      "receipt_sha256": "7ad94b4a4c33b3eef9bcc21d7c5589b04cd0dced057b98c7d752a67e6fee5ee2",
+      "subject": "033caf93a2028d0aaa0da5b755d021ee9b1b6640",
+      "row": 140,
+      "selector": "cleanup_plan::build::helper_index::tests::irrelevant_and_allocating_legacy_helpers_keep_old_schemas_and_canonical_order",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/large-foundation-final-selected-check-20261012/owning-selected-140.log",
+      "log_sha256": "4ad12763365024db9ea6aa05e33f66588257147a7ba47f824e2c4fe5e3ace08a",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::build::helper_index::tests::irrelevant_and_allocating_legacy_helpers_keep_old_schemas_and_canonical_order"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-8bb9-76-resume-20261016/raw/owning-selected-results.json",
+      "receipt_sha256": "cd95ec6a0b385cecba18aeca28554e6b142e1578fbb111b8f0b6f2aeb3eba5f1",
+      "subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+      "row": 60,
+      "selector": "cleanup_plan::renewal_profile::ordinary::record_presence::tests::presence_matches_complete_old_prefix_and_authenticates_the_exact_immutable_index",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-8bb9-76-resume-20261016/raw/owning-selected-60.log",
+      "log_sha256": "54baa31f34d1999dd4171fd54c9cdd2ae127996359f293ca088d49dad4dee165",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::renewal_profile::ordinary::record_presence::tests::presence_matches_complete_old_prefix_and_authenticates_the_exact_immutable_index"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-8bb9-76-resume-20261016/raw/owning-selected-results.json",
+      "receipt_sha256": "cd95ec6a0b385cecba18aeca28554e6b142e1578fbb111b8f0b6f2aeb3eba5f1",
+      "subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+      "row": 61,
+      "selector": "cleanup_plan::renewal_profile::ordinary::record_presence::tests::exact_metadata_and_census_work_and_one_short_fail_closed_without_allocation",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-8bb9-76-resume-20261016/raw/owning-selected-61.log",
+      "log_sha256": "09de5ad99b6d2437553cd2bda2b90f990cf26506698db70be3e3232ad00f2c06",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::renewal_profile::ordinary::record_presence::tests::exact_metadata_and_census_work_and_one_short_fail_closed_without_allocation"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-8bb9-76-resume-20261016/raw/owning-selected-results.json",
+      "receipt_sha256": "cd95ec6a0b385cecba18aeca28554e6b142e1578fbb111b8f0b6f2aeb3eba5f1",
+      "subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+      "row": 62,
+      "selector": "cleanup_plan::renewal_profile::ordinary::record_presence::tests::scalar_callable_boundary_reuses_one_census_under_the_unchanged_work_limit",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-8bb9-76-resume-20261016/raw/owning-selected-62.log",
+      "log_sha256": "9632880d7dcf952c0ce33b84ff2fa28bed566f22e3ec2579e8e6fbd05117fc5c",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::renewal_profile::ordinary::record_presence::tests::scalar_callable_boundary_reuses_one_census_under_the_unchanged_work_limit"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-8bb9-76-resume-20261016/raw/owning-selected-results.json",
+      "receipt_sha256": "cd95ec6a0b385cecba18aeca28554e6b142e1578fbb111b8f0b6f2aeb3eba5f1",
+      "subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+      "row": 63,
+      "selector": "cleanup_plan::renewal_profile::ordinary::record_presence::tests::prior_enclosing_refusal_cannot_be_hidden_by_a_prepared_presence_proof",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-8bb9-76-resume-20261016/raw/owning-selected-63.log",
+      "log_sha256": "e824fb3f9af544da892bd0185d62f7361dcbede490537d49f7f026f8df77c161",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::renewal_profile::ordinary::record_presence::tests::prior_enclosing_refusal_cannot_be_hidden_by_a_prepared_presence_proof"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-8bb9-76-resume-20261016/raw/owning-selected-results.json",
+      "receipt_sha256": "cd95ec6a0b385cecba18aeca28554e6b142e1578fbb111b8f0b6f2aeb3eba5f1",
+      "subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+      "row": 64,
+      "selector": "cleanup_plan::renewal_profile::ordinary::record_presence::tests::full_original_collector_and_phase_source_inverses_remain_exact",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-8bb9-76-resume-20261016/raw/owning-selected-64.log",
+      "log_sha256": "55251439be2d23b8c1ac3ec28653b3fa8775622f7da17ce3386d37a3a28e5c2e",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::renewal_profile::ordinary::record_presence::tests::full_original_collector_and_phase_source_inverses_remain_exact"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-8bb9-76-resume-20261016/raw/owning-selected-results.json",
+      "receipt_sha256": "cd95ec6a0b385cecba18aeca28554e6b142e1578fbb111b8f0b6f2aeb3eba5f1",
+      "subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+      "row": 65,
+      "selector": "cleanup_plan::renewal_profile::ordinary::consuming::tests::phase_presence_keeps_full_current_directories_and_every_consuming_entry",
+      "exit_code": 101,
+      "log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-8bb9-76-resume-20261016/raw/owning-selected-65.log",
+      "log_sha256": "192d1e5942e978577b77c221c70c9432fa27bdebe732310e080b370953052a9d",
+      "summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::renewal_profile::ordinary::consuming::tests::phase_presence_keeps_full_current_directories_and_every_consuming_entry"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-8bb9-76-resume-20261016/raw/owning-selected-results.json",
+      "receipt_sha256": "cd95ec6a0b385cecba18aeca28554e6b142e1578fbb111b8f0b6f2aeb3eba5f1",
+      "subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+      "row": 75,
+      "selector": "cleanup_plan::renewal_profile::ordinary::consuming::tests::full_consuming_collector_matches_unchanged_original",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-8bb9-76-resume-20261016/raw/owning-selected-75.log",
+      "log_sha256": "ac176f5ff35e323d3d7920886dad8cdf41f9141e8e3a544e85e976a2db215279",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::renewal_profile::ordinary::consuming::tests::full_consuming_collector_matches_unchanged_original"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-364d-60-20261016/raw/owning-selected-results.json",
+      "receipt_sha256": "b8d64b2ab56903eca8bccff962aa357c144d99e81f58ef77ca0cac4a8b9eab9c",
+      "subject": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+      "row": 11,
+      "selector": "cleanup_plan::renewal_profile::ordinary::consuming::tests::phase_presence_keeps_full_current_directories_and_every_consuming_entry",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-364d-60-20261016/raw/owning-selected-11.log",
+      "log_sha256": "f2576d21e91353aa1a94cc1fdc6b14a1ba4f6bb21d3cef2c58350e0052bfdb61",
+      "summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::renewal_profile::ordinary::consuming::tests::phase_presence_keeps_full_current_directories_and_every_consuming_entry"
+      ]
+    },
+    {
+      "receipt": "/Volumes/Semaprax/lane-prompts/final-repair-rebind-171cece20-20261010/repair-fd2ac721b-final/owning-selected-results.json",
+      "receipt_sha256": "5007f10e813e9dec920e2b0b3d0822720c5cd798c2271935a21fd997d8818e43",
+      "subject": "fd2ac721b6e2764414239429c1c2657152a69e8a",
+      "row": 3,
+      "selector": "cleanup_plan::build::helper_index::tests::",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/final-repair-rebind-171cece20-20261010/repair-fd2ac721b-final/owning-selected-51.log",
+      "log_sha256": "b46a056a18a7a30542fe69ed46e122a68bfbd5049cf683774080163813b07928",
+      "summary": [
+        "ok",
+        "7",
+        "0",
+        "0"
+      ],
+      "discovered_names": [
+        "cleanup_plan::build::helper_index::tests::attached_owned_variant_spare_backing_rebuilds_at_exact_phase_reservation",
+        "cleanup_plan::build::helper_index::tests::construction_exact_one_short_and_zero_budget_leave_attached_plans_unchanged",
+        "cleanup_plan::build::helper_index::tests::construction_index_reuses_exact_sites_and_preserves_independent_plan_bytes",
+        "cleanup_plan::build::helper_index::tests::construction_rejects_copied_function_foreign_program_and_reproves_changed_provider",
+        "cleanup_plan::build::helper_index::tests::irrelevant_and_allocating_legacy_helpers_keep_old_schemas_and_canonical_order",
+        "cleanup_plan::build::helper_index::tests::old_attached_spare_backing_refuses_before_any_index_or_builder_starts",
+        "cleanup_plan::build::helper_index::tests::prior_sticky_refusal_prevents_construction_and_publication"
+      ]
+    }
+  ],
+  "pass_rows": 22,
+  "fail_rows": 1,
+  "new_execution": false,
+  "current_global_pass_claim": false,
+  "publication_dependency": "fd2ac original prefix7 receipt/log/build receipt are physically present but not located in pushed docs; publish originals before closure if using this negative provenance"
+}

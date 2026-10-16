@@ -1,0 +1,472 @@
+{
+  "schema": "semaprax.owning-build-bound.v2",
+  "source_subject": "fd2ac721b6e2764414239429c1c2657152a69e8a",
+  "source_tree": "29abe4fd9d37d63a0f21fbfbd5d8ee68a1d9865b",
+  "cargo_lock_sha256": "7549892c22d2e25ecd2d7c2082456b5b1e80e300c4ee8d10fb988f5534da2046",
+  "manifest_sha256": "9f612fe91aa3d9eeb142006c6313ac876704ec7d3e7cf8e2f135aee88dbe9468",
+  "driver_sha256": "ad3dc90f37a340e508ca7cebe36b9738923fb838545606926513076d0d49654d",
+  "command": [
+    "/Users/kevin/.cargo/bin/rustup",
+    "run",
+    "1.97.1",
+    "cargo",
+    "build",
+    "--locked",
+    "--offline",
+    "-p",
+    "semaprax",
+    "--bin",
+    "semaprax",
+    "--keep-going",
+    "--message-format=json",
+    "--test",
+    "cleanup_backends",
+    "--test",
+    "cli_help_surface_v1",
+    "--test",
+    "desktop_native_ui_ci_contract",
+    "--test",
+    "doctor_production_provisioner_v1",
+    "--test",
+    "documentation",
+    "--test",
+    "hir_module_boundaries",
+    "--test",
+    "language",
+    "--test",
+    "native",
+    "--test",
+    "owned_data",
+    "--test",
+    "project",
+    "--test",
+    "project_cli_v1",
+    "--test",
+    "quality_routing",
+    "--test",
+    "source_locked_contracts",
+    "--test",
+    "useful_data",
+    "--test",
+    "workspace"
+  ],
+  "unit_command": [
+    "/Users/kevin/.cargo/bin/rustup",
+    "run",
+    "1.97.1",
+    "cargo",
+    "test",
+    "--locked",
+    "--offline",
+    "-p",
+    "semaprax",
+    "--lib",
+    "--bin",
+    "semaprax",
+    "--no-run",
+    "--message-format=json"
+  ],
+  "results": [
+    {
+      "command": [
+        "/Users/kevin/.cargo/bin/rustup",
+        "run",
+        "1.97.1",
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--bin",
+        "semaprax",
+        "--keep-going",
+        "--message-format=json",
+        "--test",
+        "cleanup_backends",
+        "--test",
+        "cli_help_surface_v1",
+        "--test",
+        "desktop_native_ui_ci_contract",
+        "--test",
+        "doctor_production_provisioner_v1",
+        "--test",
+        "documentation",
+        "--test",
+        "hir_module_boundaries",
+        "--test",
+        "language",
+        "--test",
+        "native",
+        "--test",
+        "owned_data",
+        "--test",
+        "project",
+        "--test",
+        "project_cli_v1",
+        "--test",
+        "quality_routing",
+        "--test",
+        "source_locked_contracts",
+        "--test",
+        "useful_data",
+        "--test",
+        "workspace"
+      ],
+      "exit_code": 0,
+      "resource_refusal": null,
+      "wall_seconds": 127.23249816699536
+    },
+    {
+      "command": [
+        "/Users/kevin/.cargo/bin/rustup",
+        "run",
+        "1.97.1",
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "--bin",
+        "semaprax",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "exit_code": 0,
+      "resource_refusal": null,
+      "wall_seconds": 152.71873150000465
+    }
+  ],
+  "exit_code": 0,
+  "wall_seconds": 282.3402965419955,
+  "executed_test_bodies": 0,
+  "artifacts": [
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "doctor_production_provisioner_v1",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/tests/doctor_production_provisioner_v1.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/target/final-batch-20261010/debug/deps/doctor_production_provisioner_v1-383741daf0751d6c",
+      "executable_sha256": "377aae0cdadd82168e66ef2f7859eeda36715ebb005b4126773c4e8294da2730"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "workspace",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/tests/workspace.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/target/final-batch-20261010/debug/deps/workspace-dd5711e218ff3da9",
+      "executable_sha256": "61156e423322d26501d8202db5b7eb731e780f91f05b63d411e2c4164baedcda"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "hir_module_boundaries",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/tests/hir_module_boundaries.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/target/final-batch-20261010/debug/deps/hir_module_boundaries-e6a7ea38aca24ed7",
+      "executable_sha256": "b699ba13657b362d70c86edbbca0dfc78d9634b6724dcc2483104005f8f3cbd9"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "owned_data",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/tests/owned_data.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/target/final-batch-20261010/debug/deps/owned_data-ba57de47a84533f4",
+      "executable_sha256": "f6117d94bd1c179f205cc13252bb9372632e10da897ee8cb0b8f42f8f970ab1a"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "project_cli_v1",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/tests/project_cli_v1.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/target/final-batch-20261010/debug/deps/project_cli_v1-a2fd73cec09dbcdc",
+      "executable_sha256": "60110b0b11bfa31edc04d81e6b62f1467ac12020141ead6cfdf75c6deabfa47c"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "native",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/tests/native.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/target/final-batch-20261010/debug/deps/native-de7fdaa7ceb6f2a9",
+      "executable_sha256": "1b513f7ba4b8b84301e934c16f7da363cb2f88b0c1ed2af39c45072a77396c41"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "project",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/tests/project.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/target/final-batch-20261010/debug/deps/project-9bc7c8c1113ee95a",
+      "executable_sha256": "cf2249c81a08e736f6a0e050316851f21706270a94c0202e342c72581285fa29"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "useful_data",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/tests/useful_data.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/target/final-batch-20261010/debug/deps/useful_data-50eb46388b20b614",
+      "executable_sha256": "b740f3cb2a084ecb72fa6ad566f65d47d250321a6dc2e4d0281547245b5051b7"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "language",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/tests/language.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/target/final-batch-20261010/debug/deps/language-63abefdf82f4560b",
+      "executable_sha256": "14228705f39f1be22964841fa9f4aefcfc9d140970bbbab262062bd06b2782a1"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "cli_help_surface_v1",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/tests/cli_help_surface_v1.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/target/final-batch-20261010/debug/deps/cli_help_surface_v1-e54e776d9fbff214",
+      "executable_sha256": "68902d75dffaf7d7aee14876a5907b6c81b824323e3c0d916dfc47aa3c8238e8"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "quality_routing",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/tests/quality_routing.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/target/final-batch-20261010/debug/deps/quality_routing-352f122fdaca7da7",
+      "executable_sha256": "4ca5845a7fef78308d242ef410afb28efc891b1ce373b6a08d0ce6c88e81a994"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "source_locked_contracts",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/tests/source_locked_contracts.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/target/final-batch-20261010/debug/deps/source_locked_contracts-2fb5cd7ccc61fbb3",
+      "executable_sha256": "55f7f58b19632d11405be6632c354f70aad97a02aa1c8ee74071bb1c935a1d78"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "cleanup_backends",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/tests/cleanup_backends.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/target/final-batch-20261010/debug/deps/cleanup_backends-bdc7ed78704fc24d",
+      "executable_sha256": "2e676181b829cb9ccfa3d6480d98ce6bf7891bcead6b153404b7ca36fadefd31"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "desktop_native_ui_ci_contract",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/tests/desktop_native_ui_ci_contract.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/target/final-batch-20261010/debug/deps/desktop_native_ui_ci_contract-2a0aed27a1f35313",
+      "executable_sha256": "41bb15558458a7c3520bba1da1ac784e483b60a3cbee025a9a74b7bce2fbb2df"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "documentation",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/tests/documentation.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/target/final-batch-20261010/debug/deps/documentation-e59a354914352edb",
+      "executable_sha256": "e60f3fdd11f1bbebdd11ca9710192df4ee5ad1da470e62adedff12d7bcf14a5a"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "bin"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "semaprax",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/src/main.rs",
+        "edition": "2021",
+        "doc": true,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-0fdb73a06f01a484",
+      "executable_sha256": "56dd8ea1af9086a1301ee12188ab0dee869654111f96f355f9c82ab4d8d9acb1"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "lib"
+        ],
+        "crate_types": [
+          "lib"
+        ],
+        "name": "semaprax",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/src/lib.rs",
+        "edition": "2021",
+        "doc": true,
+        "doctest": true,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-lexical-exit-proof/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "executable_sha256": "ab4bdf8f070e53a06dee8ce1b7c6dc82eec2615c9f972567c8f5e2b2842d20e9"
+    }
+  ],
+  "owning_build_metadata_sha256": "aa81450ea5bef98c150d7b93dad5c5bdadb040c1108d04d05a8a31a1747f48f8",
+  "log_sha256": "dab3fd0cce99d26e90933c5e6739f0a954420cc6dc191490c1ee3326874f28fe"
+}

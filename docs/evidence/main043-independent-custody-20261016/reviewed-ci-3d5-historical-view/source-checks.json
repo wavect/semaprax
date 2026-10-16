@@ -1,0 +1,41 @@
+{
+  "status": "PASS_SOURCE_ONLY_REVIEWED_CI_VIEW",
+  "base_head": "cde3e6afd2f6d2b07aff999da11513acc326a957",
+  "old_head": "b4523cc7c46de19287a1675a3482416d860d4976",
+  "incoming_head": "3d5bef332",
+  "complete_original_verifier_sha256": "c9fab785eeb01979c454ab32e9c83bd908a8c8fc5ba0d6a33d2aed481f65d817",
+  "original_immutable_verifier_sha256": "b8b72537f880da2655f102002275dbe0c5a7eb0aee72982eae017204d15266c7",
+  "old_recipe_prefix_preserved": true,
+  "whole_verifier_recipe_reconstruction": true,
+  "pinned_helper_sha256": "65bebec36af234e9860777e986ad4563ca24db02ce7a6266403168a241df770f",
+  "checks": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "raw_sha256": "a6a71c152f8f883e3a1367d3a0e8c9aa8d89dbbbe39907862597188b60d45ea3",
+      "historical_sha256": "a6a71c152f8f883e3a1367d3a0e8c9aa8d89dbbbe39907862597188b60d45ea3",
+      "actual_code_untouched": true
+    },
+    {
+      "path": "scripts/ci-low-stack-trace.py",
+      "raw_sha256": "e6ca089a7c1e6f69f24fc5ee49e7659cddc32bd93165622e17229c1367b276fe",
+      "historical_sha256": "1a38d368dc1b03354ec6ac05c9000d0b50fce209e58a83ee8cfeaee50fd70f67",
+      "actual_code_untouched": true
+    },
+    {
+      "path": "scripts/tests/test_ci_low_stack_trace.py",
+      "raw_sha256": "3a45e45ab7322d18179551974acd4b603638a67f23e66e21f9ebd57db5444f14",
+      "historical_sha256": "3b56da821fad32b3f3681f1c67fb61664e5cf2f4a2d36791655043c5302380b0",
+      "actual_code_untouched": true
+    }
+  ],
+  "hostile_controls_per_changed_file": [
+    "missing",
+    "extra",
+    "duplicate",
+    "tampered",
+    "forged_old"
+  ],
+  "raw_CI_files_and_tests_unchanged": true,
+  "new_Rust": false,
+  "Cargo_or_common_generator_executed": false
+}

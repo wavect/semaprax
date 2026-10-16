@@ -22,7 +22,7 @@
     {
       "domain": "Compact7",
       "path": "src/cleanup_plan/replay/factored.rs",
-      "current_sha256": "7afc44dd102565baa22046294541c357940a3efedadc793879df5c61daa620f3",
+      "current_sha256": "9341bf91df1a247e4f381daac02ad7b0feec94b1c5c4a5a94157a698bc592ffe",
       "historical_after_sha256": "88ed9119b1af09c4875cf3ec8d07a0b0ced6af6b47528eae581647d401348dd1",
       "archive_before_sha256": "ca11b94661cd07264ef2b6da61f2dca28ac70aac3ffc4a362395c12e780beb7c",
       "reverse_operations": 1,
@@ -49,7 +49,7 @@
     {
       "domain": "Compact7",
       "path": "tests/hir_module_boundaries.rs",
-      "current_sha256": "975d32ee3ce5380479890a5d1f2129babc1b706cc64006802ff4620ab5c58865",
+      "current_sha256": "4035569ab4338dbf174988b6cda7b7c649857be3262cbc1524ea4af38f3203a9",
       "historical_after_sha256": "a9da48544bca29656b1c453998e1c56ccbf96ab34261bde9a58111805d973568",
       "archive_before_sha256": "0fe29b4e9a4c1aea7e6ff38c608e4bc3f8b82c4c3c3a4484f35cf7f2490842bb",
       "reverse_operations": 10,
@@ -58,7 +58,7 @@
     {
       "domain": "Compact7",
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "current_sha256": "cc97c47b89f1750c0c595184124fdc824d19e96c33a53d4c67f4481fc1255e64",
+      "current_sha256": "4fcef1a7ffb231ff1b42995db0b4b85326c5fc44f91880e09a9a85c4effcc2c7",
       "historical_after_sha256": "27f8d194a798710c290af1cf47452527f5e53ccd6df670af293d9d15dc03a9cd",
       "archive_before_sha256": "401c904b0941c4dc7e4677936366d23375d7503944692061ee024f9278d40cb1",
       "reverse_operations": 10,
@@ -107,7 +107,7 @@
     {
       "domain": "Receivers12",
       "path": "tests/hir_module_boundaries.rs",
-      "current_sha256": "975d32ee3ce5380479890a5d1f2129babc1b706cc64006802ff4620ab5c58865",
+      "current_sha256": "4035569ab4338dbf174988b6cda7b7c649857be3262cbc1524ea4af38f3203a9",
       "historical_after_sha256": "a9da48544bca29656b1c453998e1c56ccbf96ab34261bde9a58111805d973568",
       "archive_before_sha256": "444261bea247a81d21553b5c52d19dbad5b3f3cd55304774479aa9fb8ef9938d",
       "reverse_operations": 14,
@@ -131,7 +131,7 @@
     {
       "domain": "Receivers12",
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "current_sha256": "cc97c47b89f1750c0c595184124fdc824d19e96c33a53d4c67f4481fc1255e64",
+      "current_sha256": "4fcef1a7ffb231ff1b42995db0b4b85326c5fc44f91880e09a9a85c4effcc2c7",
       "historical_after_sha256": "27f8d194a798710c290af1cf47452527f5e53ccd6df670af293d9d15dc03a9cd",
       "archive_before_sha256": "ed939b86f3382619c6d610582c724b899dbfd332f10ee4ccec4933b37bc10a9a",
       "reverse_operations": 11,
@@ -152,7 +152,7 @@
     {
       "domain": "Receivers12",
       "path": "src/source_verify/declaration.rs",
-      "current_sha256": "a1cc16e547c5a873afc6763487e04f38ff5983843d3635c05b79841b9084d221",
+      "current_sha256": "74f8b49a70fc80d44c952098b5d11e0da59c7e9ecc47fdbb890f63f366d00c23",
       "historical_after_sha256": "61c807e1dc05a4f559830b4fa3d25eb79c73aac11a066aa7e3e775caaa655dec",
       "archive_before_sha256": "11b26f1bc56c129657268cf90436753cfaf037fa7c37ec49596284fd5d1bdcd8",
       "reverse_operations": 1,
@@ -170,7 +170,7 @@
     {
       "domain": "Receivers12",
       "path": "src/cleanup_plan/replay/factored.rs",
-      "current_sha256": "7afc44dd102565baa22046294541c357940a3efedadc793879df5c61daa620f3",
+      "current_sha256": "9341bf91df1a247e4f381daac02ad7b0feec94b1c5c4a5a94157a698bc592ffe",
       "historical_after_sha256": "88ed9119b1af09c4875cf3ec8d07a0b0ced6af6b47528eae581647d401348dd1",
       "archive_before_sha256": "ca11b94661cd07264ef2b6da61f2dca28ac70aac3ffc4a362395c12e780beb7c",
       "reverse_operations": 1,
@@ -197,7 +197,7 @@
     {
       "domain": "Receivers12",
       "path": "src/hir.rs",
-      "current_sha256": "ec7b9720f0546603ca02c56e26fbc68e7ce4ded927f662de4fb8e11cf3aead8c",
+      "current_sha256": "e3aaf1c870be500fa794ec24d393f8dc94fcd996990abf388222ce079f4e0b04",
       "historical_after_sha256": "897bb10c195fcbc116cffaf86c3501d918770080a64c0112f86d147fadbb0faf",
       "archive_before_sha256": "432395d875a954de8aee03c3fcbd827ecbb5066e0c6fa9fd0cc0ec2c2a36db7f",
       "reverse_operations": 2,

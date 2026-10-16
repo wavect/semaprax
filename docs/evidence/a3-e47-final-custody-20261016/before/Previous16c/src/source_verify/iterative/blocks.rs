@@ -1,0 +1,1170 @@
+//! Block and `while` frames: statement sequencing, block tails, and the
+//! loop-invariance checks a `while` body must satisfy.
+
+use crate::ast::{Expr, ParamMode, Span, Statement, Type};
+use crate::diagnostic::Diagnostic;
+use crate::source_verify::binding::{Availability, Binding};
+use crate::source_verify::diagnostics::{error, is_scalar_source_type, reject_native_unit_value};
+use crate::source_verify::loans::{
+    activate_local_loan, has_active_overlapping_loan, local_borrow_origin,
+    mark_value_sources_moved, merge_moved, release_dead_local_loans,
+};
+use crate::source_verify::IterativeVerifier;
+use std::collections::{BTreeSet, HashMap, HashSet};
+
+impl<'a, 'p> IterativeVerifier<'a, 'p> {
+    pub(in crate::source_verify) fn check_string_replacement_entry(
+        &mut self,
+        statement: &Statement,
+        scope: usize,
+    ) {
+        if let Statement::Assign {
+            name,
+            name_span,
+            field: None,
+            ..
+        } = statement
+        {
+            if let Some(binding) = self.scopes[scope].bindings.get(name) {
+                if binding.ty == Type::String && binding.availability != Availability::Available {
+                    self.diagnostics.push(error(
+                        self.program,
+                        "SPX-O101",
+                        "String replacement starts with an unavailable owner",
+                        *name_span,
+                    ));
+                }
+            }
+        }
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn frame_resume_block_statement(
+        &mut self,
+        expression: &'p Expr,
+        statements: &'p [Statement],
+        tail: &'p Expr,
+        parent_scope: usize,
+        block_scope: usize,
+        index: usize,
+        outer_names: Vec<String>,
+        recovery_checkpoint: crate::source_verify::recovery::Checkpoint,
+    ) -> Result<(), Diagnostic> {
+        #[cfg(test)]
+        if self.recovery_legacy {
+            return self.recovery_old_frame_resume_block_statement(
+                expression,
+                statements,
+                tail,
+                parent_scope,
+                block_scope,
+                index,
+                outer_names,
+            );
+        }
+
+        let actual = self.values.pop().unwrap_or(None);
+        match &statements[index] {
+            Statement::Let {
+                name,
+                name_span,
+                mutable,
+                declared,
+                value,
+                ..
+            } => {
+                #[cfg(test)]
+                let check_refused_name = !self.operators_before_799;
+                #[cfg(not(test))]
+                let check_refused_name = true;
+                let refused_name =
+                    check_refused_name && self.recovery.reads_refused(block_scope, name);
+                if self.scopes[block_scope].bindings.contains_key(name) || refused_name {
+                    self.diagnostics.push(
+                        error(
+                            self.program,
+                            "SPX-T209",
+                            format!("local binding `{name}` shadows an existing value"),
+                            *name_span,
+                        )
+                        .with_help(crate::source_verify::hints::SHADOW_HELP),
+                    );
+                } else if let Some(actual) = actual {
+                    if let Some(diagnostic) = crate::source_verify::expression_statement::check(
+                        self.program,
+                        &statements[index],
+                        &actual,
+                    ) {
+                        self.diagnostics.push(diagnostic);
+                    }
+                    if matches!(actual.ty, Type::SliceU8 | Type::Str) && *mutable {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T264",
+                            format!(
+                                "byte-slice alias `{name}` must be immutable and cannot be reassigned"
+                            ),
+                            *name_span,
+                        ));
+                    }
+                    // Class Inheritance v1: a declared type accepts
+                    // the value's exact type or an ancestor class
+                    // whose prefix consumes the value cleanly; the
+                    // binding carries the declared type.
+                    let mut annotation_refused = false;
+                    let mut annotation_origin = None;
+                    let mut binding_ty = actual.ty.clone();
+                    let mut binding_mode = actual.mode;
+                    if let Some(declared_ty) = declared {
+                        let exact = actual.ty == *declared_ty;
+                        let mut upcast = false;
+                        if !exact {
+                            if let (
+                                Type::Named { name: child, .. },
+                                Type::Named { name: ancestor, .. },
+                            ) = (&actual.ty, declared_ty)
+                            {
+                                if self.types.class_extends(child, ancestor) {
+                                    if self.upcast_discards_owned_state(child, ancestor) {
+                                        self.diagnostics.push(error(
+                                            self.program,
+                                            "SPX-T233",
+                                            format!(
+                                                "upcast from `{child}` to `{ancestor}` would discard owned state; only cleanup-inert child fields are admitted in this slice"
+                                            ),
+                                            value.span,
+                                        ));
+                                    }
+                                    upcast = true;
+                                }
+                            }
+                        }
+                        if exact || upcast {
+                            binding_ty = declared_ty.clone();
+                            binding_mode = if matches!(declared_ty, Type::SliceU8 | Type::Str) {
+                                ParamMode::Borrow
+                            } else if self.types.needs_drop(declared_ty)
+                                || declared_ty.is_uniquely_owned()
+                            {
+                                ParamMode::Own
+                            } else {
+                                ParamMode::Value
+                            };
+                        } else {
+                            annotation_refused = match declared_ty {
+                                Type::Named { name, .. } => self.types.declaration(name).is_some(),
+                                Type::I64
+                                | Type::I32
+                                | Type::Char
+                                | Type::U8
+                                | Type::Usize
+                                | Type::F32
+                                | Type::F64
+                                | Type::Bool
+                                | Type::String
+                                | Type::Bytes => true,
+                                _ => false,
+                            };
+                            let diagnostic = if matches!(
+                                (&actual.ty, declared_ty),
+                                (Type::ArrayU8(_), Type::ArrayU8(_))
+                            ) {
+                                "SPX-T262"
+                            } else {
+                                "SPX-T232"
+                            };
+                            let help = (diagnostic == "SPX-T232")
+                                .then(|| {
+                                    crate::source_verify::hints::declared_binding_help(
+                                        declared_ty,
+                                        value,
+                                    )
+                                })
+                                .flatten();
+                            if !self.recovery.explains(value, declared_ty) {
+                                if annotation_refused {
+                                    annotation_origin = Some(self.diagnostics.len());
+                                }
+                                self.diagnostics.push(crate::source_verify::hints::with_optional_help(
+                                error(
+                                    self.program,
+                                    diagnostic,
+                                    format!(
+                                        "declared binding type `{}` does not accept value type `{}`",
+                                        // Generic validation specialization
+                                        // substitutes `let` annotations, so a
+                                        // declared type can carry a private copy.
+                                        crate::source_verify::private_names::type_name(
+                                            self.program,
+                                            self.types,
+                                            declared_ty
+                                        ),
+                                        crate::source_verify::private_names::type_name(
+                                            self.program,
+                                            self.types,
+                                            &actual.ty
+                                        )
+                                    ),
+                                    value.span,
+                                ),
+                                help,
+                            ));
+                            }
+                        }
+                    }
+                    let contract_local = !self.allow_moves
+                        && actual.mode == ParamMode::Own
+                        && crate::source_verify::contract_owners::fresh(
+                            value,
+                            &actual.ty,
+                            &self.scopes[block_scope].bindings,
+                        );
+                    if self.types.needs_drop(&actual.ty) && actual.mode == ParamMode::Own {
+                        if self.allow_moves || contract_local {
+                            mark_value_sources_moved(
+                                self.program,
+                                value,
+                                &mut self.scopes[block_scope].bindings,
+                                self.types,
+                                self.diagnostics,
+                            );
+                        } else {
+                            self.diagnostics.push(error(
+                                self.program,
+                                "SPX-O105",
+                                "contract expression cannot transfer an owned resource into a local binding",
+                                value.span,
+                            ));
+                        }
+                    }
+                    let borrow_origin = matches!(binding_ty, Type::SliceU8 | Type::Str)
+                        .then(|| {
+                            local_borrow_origin(
+                                self.program,
+                                value,
+                                name,
+                                *name_span,
+                                &self.scopes[block_scope].bindings,
+                                self.types,
+                            )
+                        })
+                        .flatten();
+                    if let Some(origin) = &borrow_origin {
+                        activate_local_loan(&mut self.scopes[block_scope].bindings, origin);
+                        self.scopes[block_scope].local_borrow_count += 1;
+                    }
+                    self.recovery.clear(block_scope, name);
+                    self.scopes[block_scope].bindings.insert(
+                        name.clone(),
+                        Binding {
+                            contract_local,
+                            traversal_row: None,
+                            ty: binding_ty,
+                            mode: binding_mode,
+                            availability: Availability::Available,
+                            moved_places: HashMap::new(),
+                            definitely_partial: HashSet::new(),
+                            native_unit_discard: actual.native_unit,
+                            mutable: *mutable,
+                            active_loans: BTreeSet::new(),
+                            borrow_origin,
+                        },
+                    );
+                    // The refusal view is independent of the actual type,
+                    // mode, place state, move effects and activated loan above.
+                    // A successful explicit annotation provides a fresh type
+                    // obligation; an unannotated alias retains the old view.
+                    if !actual.native_unit && !*mutable {
+                        match (declared, annotation_origin) {
+                            (Some(declared), Some(origin)) => self.recovery.refused_annotation(
+                                block_scope,
+                                name,
+                                declared,
+                                origin,
+                            ),
+                            (None, _) => self.recovery.inherit_binding(block_scope, name, value),
+                            (Some(declared), None)
+                                if annotation_refused
+                                    && self.recovery.explains(value, declared) =>
+                            {
+                                self.recovery.inherit_binding(block_scope, name, value);
+                            }
+                            _ => {}
+                        }
+                    }
+                } else {
+                    self.recovery.refused_let(
+                        block_scope,
+                        name,
+                        recovery_checkpoint,
+                        self.diagnostics,
+                    );
+                }
+            }
+            Statement::Assign { value, .. } if !self.allow_moves => {
+                // Contract expressions stay pure: no stores.
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-U106",
+                    "assignment statements are not allowed in contract expressions",
+                    value.span,
+                ));
+            }
+            Statement::Assign {
+                name,
+                name_span,
+                field,
+                value,
+                ..
+            } => {
+                let assigned_projections = field
+                    .iter()
+                    .map(|field| field.name.clone())
+                    .collect::<Vec<_>>();
+                let target = self.scopes[block_scope]
+                    .bindings
+                    .get(name.as_str())
+                    .map(|binding| {
+                        (
+                            binding.mutable,
+                            binding.ty.clone(),
+                            has_active_overlapping_loan(binding, &assigned_projections),
+                        )
+                    });
+                if target.is_none() {
+                    self.diagnostics.push(error(
+                        self.program,
+                        "SPX-T202",
+                        format!("unknown value `{name}` in `{}`", self.current.name),
+                        *name_span,
+                    ));
+                }
+                if let Some((mutable, binding_ty, has_active_loans)) = target {
+                    if has_active_loans {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T265",
+                            "assignment would replace storage held by a lexical byte view",
+                            *name_span,
+                        ));
+                    }
+                    match field {
+                        Some(field) => {
+                            // Field Mutation v1: one direct scalar
+                            // Copy field of a `let mut` record or
+                            // class local.
+                            if !mutable {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-U107",
+                                    format!(
+                                        "cannot assign to field of immutable binding `{name}`; declare it with `let mut`"
+                                    ),
+                                    *name_span,
+                                ));
+                            }
+                            match self.types.record_fields(&binding_ty) {
+                                None => {
+                                    self.diagnostics.push(error(
+                                        self.program,
+                                        "SPX-U112",
+                                        format!(
+                                            "cannot mutate a field of non-record value `{binding_ty}`"
+                                        ),
+                                        field.span,
+                                    ));
+                                }
+                                Some(fields) => {
+                                    let declared = fields
+                                        .iter()
+                                        .find(|candidate| candidate.name == field.name);
+                                    if let Some(declared) = declared {
+                                        let field_ty = self
+                                            .types
+                                            .record_field_type(&binding_ty, declared)
+                                            .unwrap_or_else(|| declared.ty.clone());
+                                        if !is_scalar_source_type(&field_ty) {
+                                            self.diagnostics.push(error(
+                                                self.program,
+                                                "SPX-U109",
+                                                "field mutation v1 supports only direct scalar Copy record fields",
+                                                field.span,
+                                            ));
+                                        }
+                                        if let Some(actual) = &actual {
+                                            if actual.ty != field_ty {
+                                                self.diagnostics.push(error(
+                                                    self.program,
+                                                    "SPX-U110",
+                                                    format!(
+                                                        "assigned value type `{}` does not exactly match field type `{}`",
+                                                        actual.ty, field_ty
+                                                    ),
+                                                    value.span,
+                                                ));
+                                            }
+                                        }
+                                    } else {
+                                        self.diagnostics.push(error(
+                                            self.program,
+                                            "SPX-U108",
+                                            format!(
+                                                "record `{binding_ty}` has no field `{}`",
+                                                field.name
+                                            ),
+                                            field.span,
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                        None => {
+                            // The source verifier runs before HIR has the
+                            // enclosing `yields Request -> Response` clause
+                            // available to retag this direct expression. Its
+                            // initial type is therefore the request type;
+                            // defer only this whole-binding mismatch to
+                            // `finish_yields_admission`, which checks the
+                            // binding against the declared response type.
+                            // Field assignments and every non-yield value
+                            // retain the ordinary exact-type diagnostic here.
+                            let direct_yield =
+                                matches!(&value.kind, crate::ast::ExprKind::Yield { .. });
+                            // Same-owner replacement: a `Vec<T>` reopen such as
+                            // `values = vec_push(values, v)` and the byte-buffer
+                            // `buffer = bytes_set(buffer, index, value)` and the
+                            // Owned String Loops v1 append
+                            // `text = string_concat(text, more)` are the
+                            // admitted owned reopen shapes. The right-hand side
+                            // evaluates before publication, so exactly one
+                            // generation of the owner is ever live.
+                            let owned_reopen = (binding_ty == crate::ast::Type::Bytes
+                                && self.byte_helper_assignment(name, value))
+                                || (binding_ty == crate::ast::Type::String
+                                    && actual.as_ref().is_some_and(|v| {
+                                        v.ty == crate::ast::Type::String && v.mode == ParamMode::Own
+                                    }))
+                                || crate::vec_ops::is_same_owner_reassignment_source(
+                                    self.program,
+                                    value,
+                                    name,
+                                    &binding_ty,
+                                )
+                                || crate::byte_ops::is_same_owner_set_source(
+                                    value,
+                                    name,
+                                    &binding_ty,
+                                )
+                                || crate::string_ops::is_same_owner_concat_source(
+                                    value,
+                                    name,
+                                    &binding_ty,
+                                )
+                                || (self.loop_depth != 0
+                                    && self.admits_record_owner_renewal(name, value))
+                                || (crate::stdin_stream_ops::ast_is_reader(&binding_ty)
+                                    && crate::stdin_stream_ops::source_next_is_same_owner(
+                                        self.program,
+                                        name,
+                                        value,
+                                    ));
+                            if !mutable {
+                                let mut diagnostic = error(
+                                    self.program,
+                                    "SPX-U101",
+                                    format!(
+                                        "cannot assign to immutable binding `{name}`; declare it with `let mut`"
+                                    ),
+                                    *name_span,
+                                );
+                                if self
+                                    .current
+                                    .params
+                                    .iter()
+                                    .any(|parameter| parameter.name == *name)
+                                {
+                                    diagnostic = diagnostic.with_help(format!(
+                                        "parameters are immutable; copy `{name}` into a new mutable local and use that: `let mut current_{name} = {name};`"
+                                    ));
+                                }
+                                self.diagnostics.push(diagnostic);
+                            }
+                            if let Some(actual) = &actual {
+                                if mutable && actual.ty != binding_ty && !direct_yield {
+                                    self.diagnostics.push(error(
+                                        self.program,
+                                        "SPX-U102",
+                                        format!(
+                                            "assigned value type `{}` does not exactly match binding type `{}`",
+                                            actual.ty, binding_ty
+                                        ),
+                                        value.span,
+                                    ));
+                                }
+                                if mutable
+                                    && (actual.mode != ParamMode::Value
+                                        || !crate::source_verify::closure::scoped_scalar(
+                                            self.current,
+                                            &actual.ty,
+                                        ))
+                                    && !owned_reopen
+                                {
+                                    self.diagnostics.push(error(
+                                        self.program,
+                                        "SPX-U105",
+                                        "explicit mutation v1 supports only scalar Copy values",
+                                        value.span,
+                                    ));
+                                }
+                            }
+                            if mutable && owned_reopen {
+                                if binding_ty == Type::String
+                                    && !crate::string_ops::is_same_owner_concat_source(
+                                        value,
+                                        name,
+                                        &binding_ty,
+                                    )
+                                {
+                                    mark_value_sources_moved(
+                                        self.program,
+                                        value,
+                                        &mut self.scopes[block_scope].bindings,
+                                        self.types,
+                                        self.diagnostics,
+                                    );
+                                }
+                                if let Some(binding) =
+                                    self.scopes[block_scope].bindings.get_mut(name.as_str())
+                                {
+                                    binding.availability = Availability::Available;
+                                    binding.moved_places.clear();
+                                    binding.definitely_partial.clear();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Statement::Unsafe { body, span, .. } => {
+                // Unsafe Boundary Mechanics v1: the module must
+                // explicitly permit the `unsafe` capability and
+                // the discarded body result must be a scalar Copy
+                // value. Contract expressions reject boundaries.
+                if !self.allow_moves {
+                    self.diagnostics.push(error(
+                        self.program,
+                        "SPX-N105",
+                        "unsafe boundary statements are not allowed in contract expressions",
+                        *span,
+                    ));
+                } else {
+                    if !self
+                        .program
+                        .permits()
+                        .iter()
+                        .any(|permit| permit == "unsafe")
+                    {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-N101",
+                            "unsafe block requires the module capability declaration `permit { unsafe }`",
+                            *span,
+                        ));
+                    }
+                    if let Some(actual) = &actual {
+                        if actual.mode != ParamMode::Value || !is_scalar_source_type(&actual.ty) {
+                            self.diagnostics.push(error(
+                                self.program,
+                                "SPX-N104",
+                                "unsafe boundary bodies must produce a scalar Copy value",
+                                body.span,
+                            ));
+                        }
+                    }
+                }
+            }
+            // While statements never route through this frame:
+            // they complete through ResumeWhileBody instead.
+            Statement::While { .. }
+            | Statement::For { .. }
+            | Statement::ForBorrow { .. }
+            | Statement::ForOwn { .. } => {}
+        }
+        // Most blocks have no borrowed local at all. Avoid rescanning every
+        // accumulated scalar binding after each statement in that common
+        // case; the full liveness walk remains exact once a borrow exists.
+        if self.scopes[block_scope].local_borrow_count != 0 {
+            let released = release_dead_local_loans(
+                &mut self.scopes[block_scope].bindings,
+                statements.get(index + 1..).unwrap_or_default(),
+                tail,
+            );
+            self.scopes[block_scope].local_borrow_count = self.scopes[block_scope]
+                .local_borrow_count
+                .saturating_sub(released);
+        }
+        self.advance_block_statement(
+            expression,
+            statements,
+            tail,
+            parent_scope,
+            block_scope,
+            index,
+            outer_names,
+        );
+        Ok(())
+    }
+
+    pub(super) fn frame_resume_while_condition(
+        &mut self,
+        condition: &'p Expr,
+        block_scope: usize,
+        baseline: HashMap<String, Binding>,
+    ) -> Result<(), Diagnostic> {
+        // The condition is re-evaluated before every iteration and
+        // must be exactly `bool`.
+        let condition_value = self.values.pop().unwrap_or(None);
+        if let Some(value) = condition_value {
+            if value.native_unit {
+                reject_native_unit_value(self.program, condition, &value, self.diagnostics);
+            } else if value.ty != Type::Bool && !self.recovery.explains(condition, &Type::Bool) {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T251",
+                    "`while` condition must be bool",
+                    condition.span,
+                ));
+            }
+        }
+        let mut names = baseline.keys().collect::<Vec<_>>();
+        names.sort();
+        for name in names {
+            let before = &baseline[name];
+            if self.scopes[block_scope]
+                .bindings
+                .get(name)
+                .is_none_or(|now| {
+                    now.availability != before.availability
+                        || now.moved_places != before.moved_places
+                        || now.definitely_partial != before.definitely_partial
+                })
+            {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T252",
+                    format!("ownership of `{name}` changes inside a while condition"),
+                    condition.span,
+                ));
+            }
+        }
+        // The body is an ordinary block; it verifies with its own
+        // child scope and its value is discarded by
+        // ResumeWhileBody.
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn frame_resume_while_body(
+        &mut self,
+        expression: &'p Expr,
+        statements: &'p [Statement],
+        tail: &'p Expr,
+        parent_scope: usize,
+        block_scope: usize,
+        index: usize,
+        outer_names: Vec<String>,
+        statement_span: Span,
+        baseline_names: Vec<String>,
+        baseline_bindings: HashMap<String, Binding>,
+    ) -> Result<(), Diagnostic> {
+        // Discard the body block's value: while statements
+        // produce none. The body block merged its own child scope
+        // through ResumeBlockTail. Because the v1 admission
+        // profile admits only Copy-scalar operations inside the
+        // loop, every outer binding must be exactly as available
+        // as it was on entry; any drift means a move happened
+        // inside the loop and is rejected fail-closed.
+        let exits = self
+            .values
+            .pop()
+            .flatten()
+            .is_some_and(|value| value.ty == Type::Never);
+        if exits && crate::ast::returns_only(statements[index].child(1).expect("while body")) {
+            for name in &baseline_names {
+                if let Some(before) = baseline_bindings.get(name) {
+                    self.scopes[block_scope]
+                        .bindings
+                        .insert(name.clone(), before.clone());
+                }
+            }
+        }
+        self.loop_depth = self.loop_depth.saturating_sub(1);
+        for name in &baseline_names {
+            let drifted = match (
+                self.scopes[block_scope].bindings.get(name),
+                baseline_bindings.get(name),
+            ) {
+                (Some(now), Some(before)) => {
+                    now.availability != before.availability
+                        || now.moved_places != before.moved_places
+                        || now.definitely_partial != before.definitely_partial
+                }
+                (Some(_), None) | (None, Some(_)) => true,
+                (None, None) => false,
+            };
+            if drifted {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T252",
+                    format!(
+                        "ownership of `{name}` changes inside a while loop, which is not yet admitted"
+                    ),
+                    statement_span,
+                ));
+            }
+        }
+        let _ = baseline_names;
+        release_dead_local_loans(
+            &mut self.scopes[block_scope].bindings,
+            statements.get(index + 1..).unwrap_or_default(),
+            tail,
+        );
+        self.advance_block_statement(
+            expression,
+            statements,
+            tail,
+            parent_scope,
+            block_scope,
+            index,
+            outer_names,
+        );
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn frame_resume_for_source(
+        &mut self,
+        expression: &'p Expr,
+        statements: &'p [Statement],
+        tail: &'p Expr,
+        parent_scope: usize,
+        block_scope: usize,
+        index: usize,
+        outer_names: Vec<String>,
+        item: &'p str,
+        item_span: Span,
+        values: &'p Expr,
+        body: &'p Expr,
+    ) -> Result<(), Diagnostic> {
+        let actual = self.values.pop().unwrap_or(None);
+        let consuming = matches!(statements[index], Statement::ForOwn { .. });
+        let borrowing = matches!(statements[index], Statement::ForBorrow { .. });
+        let source = match &values.kind {
+            crate::ast::ExprKind::Var(name) if !consuming => Some(name.as_str()),
+            _ => None,
+        };
+        let element = actual.as_ref().and_then(|actual| match &actual.ty {
+            ty @ Type::SliceU8 if !consuming && !borrowing => {
+                crate::source_verify::byte_traversal::element(ty)
+            }
+            Type::Named { name, arguments }
+                if name == (if consuming { "Iter" } else { "Vec" })
+                    && matches!(arguments.as_slice(), [ty] if crate::vec_ops::ast_element_is_admitted(ty) && !borrowing
+                        || (borrowing && crate::source_verify::record_traversal::admitted(self.types, ty))
+                        || (consuming && (*ty == Type::Bytes
+                            || crate::source_verify::declared_type::owned_leaf_collection::runtime_element(self.types, ty)
+                            || crate::source_verify::declared_type::generic_collection::slot(self.current, &actual.ty))))
+                    && (!consuming || actual.mode == ParamMode::Own) => Some(arguments[0].clone()),
+            _ => None,
+        });
+        if (!consuming && source.is_none()) || element.is_none() {
+            self.diagnostics.push(error(self.program, "SPX-T284",
+                if consuming { "for own traversal requires an owned Iter<T> for an admitted scalar, Bytes, or owned-record T" }
+                else { "for traversal requires a simple immutable binding of exact Vec<T> for a Copy scalar T" }, values.span));
+        }
+        if consuming {
+            if !self.allow_moves {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T253",
+                    "for own statements are not allowed in contract expressions",
+                    values.span,
+                ));
+            } else if element.is_some() {
+                mark_value_sources_moved(
+                    self.program,
+                    values,
+                    &mut self.scopes[block_scope].bindings,
+                    self.types,
+                    self.diagnostics,
+                );
+            }
+        }
+        let byte_entry_scope = self.byte_body_entry_scope(
+            block_scope,
+            actual
+                .as_ref()
+                .is_some_and(|value| value.ty == Type::SliceU8)
+                && !consuming
+                && !borrowing,
+        );
+        if let Some(source) = source {
+            if self.scopes[block_scope]
+                .bindings
+                .get(source)
+                .is_some_and(|binding| binding.mutable)
+            {
+                self.diagnostics.push(
+                    error(
+                        self.program,
+                        "SPX-T284",
+                        "for traversal source must be an immutable Vec binding",
+                        values.span,
+                    )
+                    .with_help(crate::source_verify::hints::IMMUTABLE_TRAVERSAL_HELP),
+                );
+            }
+            let _ = self.reject_for_body_in_scope(body, source, byte_entry_scope);
+        }
+        let baseline = consuming.then(|| self.scopes[block_scope].bindings.clone());
+        let owned_record_item = element.as_ref().is_some_and(|element| {
+            crate::source_verify::declared_type::owned_leaf_collection::runtime_element(
+                self.types, element,
+            )
+        });
+        let _ = self.reject_iterator_body_in_scope(
+            body,
+            (consuming && (element == Some(Type::Bytes) || owned_record_item)).then_some(item),
+            byte_entry_scope,
+        );
+        let item_inserted = !self.scopes[block_scope].bindings.contains_key(item);
+        if !item_inserted {
+            self.diagnostics.push(error(
+                self.program,
+                "SPX-T209",
+                format!("loop item `{item}` shadows an existing value"),
+                item_span,
+            ));
+        }
+        if item_inserted {
+            if let Some(element) = element {
+                self.scopes[block_scope].bindings.insert(
+                    item.to_owned(),
+                    Binding { contract_local: false, traversal_row: None,
+                        mode: if consuming
+                            && (element == Type::Bytes
+                                || crate::source_verify::declared_type::owned_leaf_collection::runtime_element(
+                                        self.types,
+                                        &element,
+                                    ))
+                        {
+                            ParamMode::Own
+                        } else {
+                            ParamMode::Value
+                        },
+                        ty: element,
+                        availability: Availability::Available,
+                        moved_places: HashMap::new(),
+                        definitely_partial: HashSet::new(),
+                        native_unit_discard: false,
+                        mutable: false,
+                        active_loans: BTreeSet::new(),
+                        borrow_origin: None,
+                    },
+                );
+            }
+        }
+        if borrowing && item_inserted {
+            if let Some(source) = source {
+                let selected_index = match &statements[index] {
+                    Statement::ForBorrow {
+                        index: Some(selected),
+                        ..
+                    } => Some(selected.name.as_str()),
+                    _ => None,
+                };
+                match crate::source_verify::record_traversal::body_binding_conflict(
+                    body,
+                    source,
+                    item,
+                    selected_index,
+                ) {
+                    Ok(Some(span)) => {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T284",
+                            "record traversal cannot shadow its carrier, row or index binding",
+                            span,
+                        ));
+                    }
+                    Ok(None) => {}
+                    Err(()) => self.diagnostics.push(error(
+                        self.program,
+                        "SPX-T284",
+                        "record traversal binding scan exceeds its source scratch, depth or work budget",
+                        body.span,
+                    )),
+                }
+
+                if let Some(binding) = self.scopes[block_scope].bindings.get_mut(item) {
+                    binding.mode = ParamMode::Borrow;
+                    binding.traversal_row =
+                        Some(Box::new(crate::source_verify::record_traversal::Row {
+                            root: source.to_owned(),
+                            element: binding.ty.clone(),
+                            index_inserted: false,
+                            freeze: crate::source_verify::binding::SourceLoanId {
+                                borrower: item.to_owned(),
+                                start: values.span.start,
+                                end: body.span.end,
+                            },
+                        }));
+                }
+            }
+            if let Some(row) = self.scopes[block_scope]
+                .bindings
+                .get(item)
+                .and_then(|binding| binding.traversal_row.as_deref())
+                .cloned()
+            {
+                if let Some(owner) = self.scopes[block_scope].bindings.get_mut(&row.root) {
+                    owner
+                        .active_loans
+                        .insert(crate::source_verify::binding::SourceLoan {
+                            id: row.freeze,
+                            projections: Vec::new(),
+                        });
+                }
+            }
+            if let Statement::ForBorrow {
+                index: Some(selected),
+                ..
+            } = &statements[index]
+            {
+                if selected.name == item
+                    || self.scopes[block_scope]
+                        .bindings
+                        .contains_key(&selected.name)
+                {
+                    self.diagnostics.push(error(
+                        self.program,
+                        "SPX-T209",
+                        "record traversal index must be a fresh distinct binding",
+                        selected.span,
+                    ));
+                } else {
+                    self.scopes[block_scope].bindings.insert(
+                        selected.name.clone(),
+                        Binding {
+                            contract_local: false,
+                            ty: Type::Usize,
+                            mode: ParamMode::Value,
+                            availability: Availability::Available,
+                            moved_places: HashMap::new(),
+                            definitely_partial: HashSet::new(),
+                            native_unit_discard: false,
+                            mutable: false,
+                            active_loans: BTreeSet::new(),
+                            borrow_origin: None,
+                            traversal_row: None,
+                        },
+                    );
+                    if let Some(row) = self.scopes[block_scope]
+                        .bindings
+                        .get_mut(item)
+                        .and_then(|binding| binding.traversal_row.as_deref_mut())
+                    {
+                        row.index_inserted = true;
+                    }
+                }
+            }
+        }
+        let byte_source = actual
+            .as_ref()
+            .is_some_and(|actual| actual.ty == Type::SliceU8)
+            && !consuming
+            && !borrowing;
+        if let (true, Some(source)) = (byte_source && item_inserted, source) {
+            crate::source_verify::byte_traversal::freeze(
+                &mut self.scopes[block_scope].bindings,
+                source,
+                &crate::source_verify::byte_traversal::freeze_id(item, values.span, body.span),
+            );
+        }
+        self.frames
+            .push(crate::source_verify::scope::VerifierFrame::ResumeForBody {
+                expression,
+                statements,
+                tail,
+                parent_scope,
+                block_scope,
+                index,
+                outer_names,
+                item,
+                item_inserted,
+                source,
+                baseline,
+            });
+        self.loop_depth += 1;
+        if item_inserted && consuming && owned_record_item {
+            self.owned_iterator_items.push(item.to_owned());
+        }
+        self.frames
+            .push(crate::source_verify::scope::VerifierFrame::Enter {
+                expression: body,
+                scope: block_scope,
+            });
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn frame_resume_for_body(
+        &mut self,
+        expression: &'p Expr,
+        statements: &'p [Statement],
+        tail: &'p Expr,
+        parent_scope: usize,
+        block_scope: usize,
+        index: usize,
+        outer_names: Vec<String>,
+        item: &str,
+        item_inserted: bool,
+        source: Option<&str>,
+        baseline: Option<HashMap<String, Binding>>,
+    ) -> Result<(), Diagnostic> {
+        let _ = self.values.pop();
+        self.loop_depth = self.loop_depth.saturating_sub(1);
+        if item_inserted
+            && self
+                .owned_iterator_items
+                .last()
+                .is_some_and(|active| active == item)
+        {
+            self.owned_iterator_items.pop();
+        }
+        if let Some(row) = self.scopes[block_scope]
+            .bindings
+            .get(item)
+            .and_then(|binding| binding.traversal_row.as_deref())
+            .cloned()
+        {
+            if let Some(owner) = self.scopes[block_scope].bindings.get_mut(&row.root) {
+                owner.active_loans.retain(|loan| loan.id != row.freeze);
+            }
+        }
+        if let Statement::For { values, body, .. } = &statements[index] {
+            crate::source_verify::byte_traversal::release(
+                &mut self.scopes[block_scope].bindings,
+                &crate::source_verify::byte_traversal::freeze_id(item, values.span, body.span),
+            );
+        }
+        let index_inserted = self.scopes[block_scope]
+            .bindings
+            .get(item)
+            .and_then(|binding| binding.traversal_row.as_deref())
+            .is_some_and(|row| row.index_inserted);
+        if item_inserted {
+            self.scopes[block_scope].bindings.remove(item);
+        }
+        if let Statement::ForBorrow {
+            index: Some(selected),
+            ..
+        } = &statements[index]
+        {
+            // Remove only a successfully inserted index. A hostile collision
+            // leaves the authoritative outer binding in place.
+            if index_inserted {
+                self.scopes[block_scope].bindings.remove(&selected.name);
+            }
+        }
+        if let Some(baseline) = baseline {
+            if statements[index]
+                .child(1)
+                .is_some_and(crate::ast::returns_only)
+            {
+                for (name, binding) in &baseline {
+                    self.scopes[block_scope]
+                        .bindings
+                        .insert(name.clone(), binding.clone());
+                }
+            }
+
+            let mut names = baseline.keys().collect::<Vec<_>>();
+            names.sort();
+            for name in names {
+                let before = &baseline[name];
+                if self.scopes[block_scope]
+                    .bindings
+                    .get(name)
+                    .is_none_or(|after| {
+                        after.availability != before.availability
+                            || after.moved_places != before.moved_places
+                            || after.definitely_partial != before.definitely_partial
+                    })
+                {
+                    self.diagnostics.push(error(
+                        self.program,
+                        "SPX-T252",
+                        format!("ownership of `{name}` changes inside a for own loop"),
+                        statements[index]
+                            .child(1)
+                            .map_or(Span::default(), |body| body.span),
+                    ));
+                }
+            }
+        }
+        if let Some(source) = source {
+            let changed = self.scopes[block_scope]
+                .bindings
+                .get(source)
+                .is_none_or(|after| {
+                    after.availability != Availability::Available
+                        || !after.moved_places.is_empty()
+                        || !after.definitely_partial.is_empty()
+                });
+            if changed {
+                self.diagnostics.push(error(
+                    self.program, "SPX-T284",
+                    format!("for traversal source `{source}` cannot be consumed or mutated in the loop body"),
+                    statements[index].child(1).map_or(Span::default(), |body| body.span),
+                ));
+            }
+        }
+        self.advance_block_statement(
+            expression,
+            statements,
+            tail,
+            parent_scope,
+            block_scope,
+            index,
+            outer_names,
+        );
+        Ok(())
+    }
+
+    pub(super) fn frame_resume_block_tail(
+        &mut self,
+        parent_scope: usize,
+        block_scope: usize,
+        outer_names: Vec<String>,
+    ) -> Result<(), Diagnostic> {
+        if block_scope + 1 != self.scopes.len() {
+            return Err(Diagnostic::io(
+                "SPX-H006",
+                "block verifier scope is not the active child",
+            ));
+        }
+        let actual = self.values.pop().unwrap_or(None);
+        let block_bindings = self
+            .scopes
+            .pop()
+            .expect("active block scope index checked above")
+            .bindings;
+        merge_moved(
+            &mut self.scopes[parent_scope].bindings,
+            &block_bindings,
+            &outer_names,
+        );
+        self.values.push(actual);
+        Ok(())
+    }
+}

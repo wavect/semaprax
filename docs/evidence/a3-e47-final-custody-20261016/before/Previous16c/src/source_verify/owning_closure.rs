@@ -1,0 +1,391 @@
+//! SPX-AI-021 bounded owning-capture closure admission: `own fn() -> R { body }`.
+//!
+//! This is a separately checked profile from the Copy-scalar snapshot
+//! closures in [`super::closure`] (Closures v1/v2): it admits exactly one
+//! lexical owned `Bytes` capture, zero explicit parameters, and a body that
+//! is exactly one call transferring that capture to an ordinary function.
+//! See `docs/CLOSURES-OWNING-V1.md` for the full design and its bounded
+//! restrictions.
+//!
+//! The construction and the one admitted call are both checked here, at the
+//! source level, entirely through the existing move/availability lattice
+//! (`Availability`, `SPX-O101`) that already governs every other owned
+//! value in this language. The legacy `own fn` remains a lexical sentinel.
+//! The distinct `once fn` profile produces an owned `FnOnce() -> i64` carrier
+//! that can move through monomorphic helper parameters and results. Its one
+//! Bytes capture is settled by the canonical retained-closure cleanup plan.
+use super::binding::{Availability, Binding, CheckedValue};
+use super::diagnostics::error;
+use super::loans::has_active_overlapping_loan;
+use super::type_table::TypeTable;
+use crate::ast::program_source::ProgramSource;
+use crate::ast::{Expr, ExprKind, Function, ParamMode, Span, Type};
+use crate::diagnostic::Diagnostic;
+use std::collections::HashMap;
+
+/// No authored identifier can begin with NUL, so this name can never collide
+/// with a user-declared type and can never be spelled in source.
+const SENTINEL_NAME: &str = "\u{0}owning-closure.v1";
+
+fn sentinel_type(target: &str, result: &Type) -> Type {
+    Type::Named {
+        name: SENTINEL_NAME.to_owned(),
+        arguments: vec![
+            Type::Named {
+                name: target.to_owned(),
+                arguments: Vec::new(),
+            },
+            result.clone(),
+        ],
+    }
+}
+
+/// `true` for the checked type of an owning-capture closure value. Exposed
+/// so `type_table::needs_drop` can recognize the shape without duplicating
+/// this module's sentinel encoding.
+pub(super) fn is_sentinel(ty: &Type) -> bool {
+    matches!(ty, Type::Named { name, .. } if name == SENTINEL_NAME)
+}
+
+fn sentinel_parts(ty: &Type) -> Option<(&str, &Type)> {
+    let Type::Named { name, arguments } = ty else {
+        return None;
+    };
+    if name != SENTINEL_NAME {
+        return None;
+    }
+    let [Type::Named {
+        name: target,
+        arguments: empty,
+    }, result] = arguments.as_slice()
+    else {
+        return None;
+    };
+    if !empty.is_empty() {
+        return None;
+    }
+    Some((target.as_str(), result))
+}
+
+/// Check the construction of `own fn() -> R { body }`. `expression` is the
+/// whole closure literal (for diagnostic spans); `return_type` and `body`
+/// are its declared result and body. On success, marks the captured local
+/// moved (exactly once, matching every other owned value in this language)
+/// and returns the closure's checked value, whose `mode` is always `Own`.
+#[allow(clippy::too_many_arguments)]
+pub(super) fn check_construction(
+    program: &dyn ProgramSource,
+    current: &Function,
+    expression: &Expr,
+    return_type: &Type,
+    body: &Expr,
+    allow_moves: bool,
+    variables: &mut HashMap<String, Binding>,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Option<CheckedValue> {
+    let retained = matches!(
+        expression.kind,
+        ExprKind::Closure {
+            retained: true,
+            owning: true,
+            ..
+        }
+    );
+    if retained && *return_type != Type::I64 {
+        diagnostics.push(error(
+            program,
+            "SPX-T308",
+            "retained affine closures require an i64 result",
+            expression.span,
+        ));
+        return None;
+    }
+    if !current.type_parameters.is_empty() {
+        diagnostics.push(error(
+            program,
+            "SPX-T291",
+            "owning-capture closures are not admitted inside a generic function",
+            expression.span,
+        ));
+        return None;
+    }
+    if !allow_moves {
+        diagnostics.push(error(
+            program,
+            "SPX-O119",
+            "owning-capture closures cannot be constructed in a contract expression",
+            expression.span,
+        ));
+        return None;
+    }
+    // The parsed body is always a block (`{ ... }`); this bounded profile
+    // admits only the trivial shape of exactly one tail call and no
+    // statements, so unwrap that one layer before checking the call.
+    let call_expr = match &body.kind {
+        ExprKind::Block { statements, tail } if statements.is_empty() => tail.as_ref(),
+        _ => body,
+    };
+    let ExprKind::Call {
+        name: target_name,
+        type_arguments,
+        args,
+    } = &call_expr.kind
+    else {
+        diagnostics.push(error(
+            program,
+            "SPX-T292",
+            "an owning-capture closure body must be exactly one call transferring its captured `Bytes` payload",
+            call_expr.span,
+        ));
+        return None;
+    };
+    let mixed = retained && args.len() == 2;
+    let pair = retained && args.len() == 3;
+    if !type_arguments.is_empty() || (!mixed && !pair && args.len() != 1) {
+        diagnostics.push(error(
+            program,
+            "SPX-T292",
+            "an owning-capture closure body must call its target with exactly one argument: the captured `Bytes` payload",
+            body.span,
+        ));
+        return None;
+    }
+    let Some(captured_name) = (match &args[0].kind {
+        ExprKind::Var(name) => Some(name.as_str()),
+        _ => None,
+    }) else {
+        diagnostics.push(error(
+            program,
+            "SPX-T292",
+            "an owning-capture closure body's one argument must be a direct lexical capture, not a computed expression",
+            args[0].span,
+        ));
+        return None;
+    };
+    let Some(target) = program.functions().iter().find(|f| f.name == *target_name) else {
+        diagnostics.push(error(
+            program,
+            "SPX-T293",
+            format!("owning-capture closure target `{target_name}` is not declared"),
+            body.span,
+        ));
+        return None;
+    };
+    if !target.type_parameters.is_empty()
+        || target.params.len() != args.len()
+        || target.params[0].mode != ParamMode::Own
+        || target.params[0].ty != Type::Bytes
+        || target.return_type != *return_type
+        || (retained && !target.effects.is_empty())
+    {
+        diagnostics.push(error(
+            program,
+            "SPX-T293",
+            format!(
+                "owning-capture closure target `{target_name}` must be an ordinary monomorphic function taking exactly one `own Bytes` parameter and returning the closure's declared result type"
+            ),
+            body.span,
+        ));
+        return None;
+    }
+    if mixed || pair {
+        let valid = args[1..].iter().enumerate().all(|(offset, argument)| {
+            matches!(&argument.kind, ExprKind::Var(name) if variables.get(name).is_some_and(|binding| binding.ty == Type::I64 && binding.mode == ParamMode::Value && binding.availability == Availability::Available))
+                && target.params[offset + 1].ty == Type::I64
+                && target.params[offset + 1].mode == ParamMode::Value
+        });
+        if !valid {
+            diagnostics.push(error(
+                program,
+                "SPX-T308",
+                "mixed affine capture requires a direct available i64 value after own Bytes",
+                args[1].span,
+            ));
+            return None;
+        }
+    }
+    let Some(binding) = variables.get(captured_name) else {
+        diagnostics.push(error(
+            program,
+            "SPX-T202",
+            format!("unknown value `{captured_name}` in `{}`", current.name),
+            args[0].span,
+        ));
+        return None;
+    };
+    if binding.ty != Type::Bytes || binding.mode != ParamMode::Own {
+        diagnostics.push(error(
+            program,
+            "SPX-T294",
+            "an owning-capture closure captures exactly one lexical owned `Bytes` value",
+            args[0].span,
+        ));
+        return None;
+    }
+    match binding.availability {
+        Availability::Moved => {
+            diagnostics.push(
+                error(
+                    program,
+                    "SPX-O101",
+                    format!("use of resource `{captured_name}` after ownership was moved"),
+                    args[0].span,
+                )
+                .with_help("borrow the resource if the callee does not need ownership"),
+            );
+            return None;
+        }
+        Availability::MaybeMoved => {
+            diagnostics.push(error(
+                program,
+                "SPX-O107",
+                format!(
+                    "resource `{captured_name}` may have been moved on another control-flow path"
+                ),
+                args[0].span,
+            ));
+            return None;
+        }
+        Availability::Available => {}
+    }
+    if has_active_overlapping_loan(binding, &[]) {
+        diagnostics.push(error(
+            program,
+            "SPX-T265",
+            "move or call transfer would invalidate a lexical byte view",
+            args[0].span,
+        ));
+        return None;
+    }
+    variables
+        .get_mut(captured_name)
+        .expect("checked above")
+        .availability = Availability::Moved;
+    Some(CheckedValue {
+        ty: if pair {
+            Type::OnceFunctionI64Pair
+        } else if mixed {
+            Type::OnceFunctionI64
+        } else if retained {
+            Type::OnceFunction
+        } else {
+            sentinel_type(target_name, return_type)
+        },
+        mode: ParamMode::Own,
+        native_unit: false,
+    })
+}
+
+/// If `name` is bound to a checked owning-capture closure value, check its
+/// zero-argument invocation and mark it consumed. Returns `None` when `name`
+/// is not such a binding, so ordinary Call dispatch proceeds unchanged;
+/// returns `Some(result)` -- possibly `None` after pushing a diagnostic --
+/// when it is, so the caller never falls through to treat the sentinel type
+/// as an unrelated bound value or unknown function.
+#[allow(clippy::too_many_arguments)]
+pub(super) fn check_call(
+    program: &dyn ProgramSource,
+    name: &str,
+    type_arguments: &[Type],
+    args: &[Expr],
+    span: Span,
+    allow_moves: bool,
+    variables: &mut HashMap<String, Binding>,
+    types: &TypeTable<'_>,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Option<Option<CheckedValue>> {
+    let binding_ty = variables.get(name).map(|binding| binding.ty.clone())?;
+    let result = if binding_ty.is_once_function() {
+        Type::I64
+    } else {
+        sentinel_parts(&binding_ty)?.1.clone()
+    };
+    if !allow_moves || variables[name].mode != ParamMode::Own {
+        diagnostics.push(error(
+            program,
+            "SPX-O119",
+            "an affine callable invocation must transfer its owner outside contracts",
+            span,
+        ));
+        return Some(None);
+    }
+    if !type_arguments.is_empty() || !args.is_empty() {
+        diagnostics.push(error(
+            program,
+            "SPX-T295",
+            format!("owning-capture closure `{name}` takes no explicit arguments in this bounded profile"),
+            span,
+        ));
+        return Some(None);
+    }
+    let binding = variables.get_mut(name).expect("checked above");
+    match binding.availability {
+        Availability::Moved => {
+            diagnostics.push(
+                error(
+                    program,
+                    "SPX-O101",
+                    format!("use of resource `{name}` after ownership was moved"),
+                    span,
+                )
+                .with_help("an owning-capture closure may be invoked at most once"),
+            );
+            return Some(None);
+        }
+        Availability::MaybeMoved => {
+            diagnostics.push(error(
+                program,
+                "SPX-O107",
+                format!("resource `{name}` may have been moved on another control-flow path"),
+                span,
+            ));
+            return Some(None);
+        }
+        Availability::Available => {}
+    }
+    binding.availability = Availability::Moved;
+    Some(Some(CheckedValue::returned(
+        result.clone(),
+        types.needs_drop(&result),
+    )))
+}
+
+/// `true` when reading `name` as a plain value (anywhere other than the
+/// direct call this module checks) must be rejected: passing it as an
+/// argument, returning it, storing it in a field, aliasing it into another
+/// `let`, comparing it, and so on all reduce to exactly this check, since
+/// the callee of a call expression is never itself a `Var` node.
+pub(super) fn reject_escaping_read(
+    program: &dyn ProgramSource,
+    name: &str,
+    ty: &Type,
+    span: Span,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> bool {
+    if *ty == Type::MutFunctionI64 {
+        diagnostics.push(error(
+            program,
+            "SPX-T308",
+            format!("mutable callback `{name}` is noncopyable and may only be invoked directly"),
+            span,
+        ));
+        return true;
+    }
+    if !is_sentinel(ty) {
+        return false;
+    }
+    diagnostics.push(
+        error(
+            program,
+            "SPX-T296",
+            format!(
+                "owning-capture closure `{name}` may only be invoked directly as `{name}()`; it cannot be passed, returned, stored, or otherwise read as a value"
+            ),
+            span,
+        )
+        .with_help(format!(
+            "call it directly, e.g. `let result = {name}();`, or drop it uncalled"
+        )),
+    );
+    true
+}

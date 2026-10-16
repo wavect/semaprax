@@ -1,0 +1,1475 @@
+//! Bounded, invocation-local Project v1 input authority.
+//!
+//! A project names every source explicitly. Loading authenticates those exact
+//! files, runs the existing Semantic Workspace Phase-A build once in memory,
+//! and retains held identities for a final caller-boundary recheck. It creates
+//! no managed workspace and grants no publication authority.
+
+mod admission;
+mod agent_contract_facts;
+pub(crate) mod agent_linked;
+mod agent_lowering;
+mod authority;
+mod build;
+mod candidate;
+pub use candidate::apply_protected_law_publication;
+pub use candidate::{
+    apply_strict_law_publication, prepare_strict_law_publication, StrictCandidateLawInputs,
+    StrictLawPublication, STRICT_CANDIDATE_LAW_SCHEMA, STRICT_LAW_PUBLICATION_SCHEMA,
+};
+mod canonical_sources;
+mod canonical_workspace_revision;
+mod contracts_and_tests_facts;
+mod create;
+mod application_starter;
+pub use application_starter::{derive_application_starter, ApplicationCommandSource, ApplicationStarter};
+mod cxx_owned_data;
+mod environment;
+mod exact_program_context;
+mod execution;
+mod external_dependencies;
+mod filesystem;
+mod flat_owned_record;
+mod json_codec;
+pub use json_codec::{
+    decode_json_codec_plan, parse_json_codec_bound, parse_json_codec_profile, derive_json_codec_plan, derive_json_codec_source, derive_json_codec_source_with_profile,
+    explain_json_codec_suitability, verify_json_codec_plan, verify_json_codec_source,
+    verify_json_codec_source_with_profile, JsonCodecBundle, JsonCodecBundleSource,
+    JsonCodecEntryReceipt, JsonCodecPlanEntry, JsonCodecProfile, JsonCodecSuitabilityOptions,
+};
+pub(crate) mod host_policy;
+mod hot_reload;
+mod hot_reload_watcher;
+pub use host_policy::{
+    install_host_strict_law_policy, with_authenticated_project_inspection,
+    with_selected_law_diagnostics, with_strict_authenticated_project, ProjectInspection,
+    StrictProjectSession, HOST_STRICT_LAW_DIRECTORY, HOST_STRICT_LAW_SCHEMA,
+};
+pub use hot_reload::{
+    HotReloadDecision, HotReloadFailure, HotReloadLifecycle, HotReloadPlan, HotReloadReason,
+    HotReloadSession, HotReloadSourceAgentHandoff, HotReloadSourceAgentHandoffStatus,
+    HOT_RELOAD_PLAN_SCHEMA, HOT_RELOAD_SOURCE_AGENT_HANDOFF_SCHEMA,
+};
+pub use hot_reload_watcher::{
+    HotReloadAdmissionTimings, HotReloadWatchControl, HotReloadWatchEvent, HotReloadWatchState,
+    HotReloadWatcher, HotReloadWatcherFailure, HotReloadWatcherUpdate,
+};
+mod image;
+mod image_coverage;
+mod image_dependencies;
+mod image_facets;
+mod image_protocols;
+mod image_reference;
+mod image_store;
+mod image_targets;
+pub(crate) mod incremental;
+pub(crate) mod indexed_rust;
+pub use indexed_rust::{with_authenticated_indexed_rust_project, ProjectIndexedRustImport};
+mod interface_artifact_facts;
+mod manifest;
+mod native_publication;
+mod native_test;
+pub use native_test::{ProjectNativeTestRoot, ProjectNativeTestProfile};
+mod native_sdk;
+mod nested_owned_record;
+mod next_construct_query;
+mod npm;
+mod oci;
+mod prepared_interpreter;
+mod process;
+mod profile;
+mod program_root;
+mod project_lock;
+mod public_api;
+mod public_utf8_api;
+#[cfg(test)]
+mod publication_tests;
+mod rename;
+mod revision;
+mod scaffold;
+mod scalar_wit;
+mod scalar_wit_compare;
+mod semantic;
+mod semantic_explorer;
+mod semantic_query;
+mod semantic_query_facts;
+mod semantic_service;
+mod semantic_service_indexes;
+mod semantic_transaction;
+mod semantic_transaction_composition;
+mod semantic_transaction_v2;
+mod semantic_transaction_v2_workflow;
+pub mod service_host_adapter_request;
+mod snapshot_building;
+mod source_command;
+use snapshot_building::load_snapshot_building;
+mod source_hint;
+pub(crate) mod standard_dependencies;
+mod std_collections;
+mod std_mem;
+mod target_cache;
+#[cfg(test)]
+mod tests;
+mod v8_promotion;
+mod workspace_execution;
+
+use std::collections::BTreeSet;
+use std::ops::Deref;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+use crate::diagnostic::Diagnostic;
+use crate::semantic_workspace::SemanticWorkspaceSource;
+
+pub use crate::interpreter::{
+    FlatOwnedRecordEvaluation, FlatOwnedRecordEvaluationOutcome, FlatOwnedRecordMember,
+    FlatOwnedRecordMemberValue, FlatOwnedRecordValue, OwnedUtf8ApiEvaluation,
+    OwnedUtf8ApiEvaluationOutcome, OwnedUtf8ApiValue, OwnedUtf8SettlementEvent, PublicApiArgument,
+    PublicApiEvaluation, PublicApiEvaluationOutcome, PublicApiValue,
+    MAX_OWNED_UTF8_LOGICAL_ALLOCATIONS, MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES,
+};
+pub use crate::wasm::{ProjectWebBuild, MAX_PROJECT_WEB_BUILD_BYTES, PROJECT_WEB_BUILD_SCHEMA};
+pub use agent_contract_facts::{
+    AgentInteractionContractFact, AgentInteractionContractFacts,
+    AGENT_INTERACTION_CONTRACT_FACTS_SCHEMA, MAX_AGENT_INTERACTION_CONTRACT_FACTS_BYTES,
+};
+pub use agent_lowering::{
+    compile_source_agent_declaration, compile_source_agent_proposal_schema,
+    compile_source_program_agents, compile_source_project_agents, CompiledSourceAgents,
+    ResolvedSourceAgent, MAX_SOURCE_AGENTS_PER_PROJECT, SOURCE_AGENT_LOWERING_SCHEMA,
+};
+use authority::{authentication, DeclaredPathSelection, HeldDirectory, HeldFile};
+#[cfg(all(test, windows))]
+use authority::{declared_absolute_path, has_declared_alias_component};
+pub use candidate::{
+    apply_approved_owned_workflow_publication, prepare_approved_owned_workflow_publication,
+    require_owned_targets_unchanged, reselect_owned_workflow, OwnedWorkflowApproval,
+    OwnedWorkflowCandidate, MAX_OWNED_WORKFLOW_APPROVAL_BYTES, OWNED_WORKFLOW_APPROVAL_SCHEMA,
+};
+pub use candidate::{
+    apply_candidate_git_publication, apply_candidate_publication, prepare_candidate_publication,
+    CandidateExplorerView, CandidateGitAuthority, CandidateGitCommitMetadata, CandidateGitObject,
+    CandidateGitObjectKind, CandidateGitProcessAuthority, CandidateGitRefUpdate,
+    CandidateGitRepository, CandidateGitTarget, CandidateTestPolicy, CandidateTestReport,
+    GitObjectFormat, ProjectCandidate, ProjectCandidateAttempt, ProjectCandidateAttemptOutcome,
+    ProjectCandidateDraft, ProjectCandidatePublication, ProjectCandidateRebase,
+    ProjectCandidateTestTaskOutcome, SemanticChange, MAX_CANDIDATE_TEST_STEPS,
+    MAX_PROJECT_CANDIDATE_BYTES, MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE, MAX_PROJECT_CANDIDATE_HOLES,
+    MAX_PROJECT_CANDIDATE_PUBLICATION_BYTES, MAX_PROJECT_CANDIDATE_RECOVERY_BYTES,
+    MAX_PROJECT_CANDIDATE_SEMANTIC_DELTA_BYTES, MAX_PROJECT_CANDIDATE_SEMANTIC_DELTA_CATALOG_BYTES,
+    MAX_PROJECT_CANDIDATE_TEST_PLAN_BYTES, MAX_PROJECT_CANDIDATE_TEST_REPORT_BYTES,
+    MAX_PROJECT_DRAFT_EXPRESSION_CATALOG_BYTES, MAX_SEMANTIC_CHANGE_BYTES,
+    PROJECT_CANDIDATE_ATTEMPT_SCHEMA, PROJECT_CANDIDATE_DRAFT_LINEAGE_SCHEMA,
+    PROJECT_CANDIDATE_DRAFT_SCHEMA, PROJECT_CANDIDATE_GIT_PUBLICATION_SCHEMA,
+    PROJECT_CANDIDATE_HOLE_CONTEXT_SCHEMA, PROJECT_CANDIDATE_PUBLICATION_SCHEMA,
+    PROJECT_CANDIDATE_REBASE_SCHEMA, PROJECT_CANDIDATE_RECOVERY_COMPATIBILITY,
+    PROJECT_CANDIDATE_RECOVERY_SCHEMA, PROJECT_CANDIDATE_REPAIR_CATALOG_SCHEMA,
+    PROJECT_CANDIDATE_SCHEMA, PROJECT_CANDIDATE_SEMANTIC_DELTA_CATALOG_SCHEMA,
+    PROJECT_CANDIDATE_SEMANTIC_DELTA_SCHEMA, PROJECT_CANDIDATE_TEST_PLAN_SCHEMA,
+    PROJECT_CANDIDATE_TEST_REPORT_SCHEMA, PROJECT_DRAFT_EXPRESSION_CATALOG_SCHEMA,
+    SEMANTIC_CHANGE_REQUIREMENTS, SEMANTIC_CHANGE_SCHEMA,
+};
+pub use candidate::{
+    record_scheduling_comparison, AgentProposal, CoordinationParticipant, OperationClass,
+    SchedulingObservation, COORDINATION_EVALUATION_SCHEMA, COORDINATION_SESSION_SCHEMA,
+    MAX_COORDINATION_EVALUATION_BYTES, MAX_COORDINATION_IDENTITY_BYTES,
+    MAX_COORDINATION_PARTICIPANTS, MAX_COORDINATION_SESSION_BYTES, MAX_INTENTION_BYTES,
+    MAX_PROPOSALS, MAX_SCHEDULING_COMPARISON_BYTES, MAX_SCHEDULING_METRIC,
+    MAX_SCOPE_IDS_PER_PARTICIPANT, MAX_TARGET_IDS_PER_PROPOSAL, SCHEDULING_COMPARISON_SCHEMA,
+};
+pub use candidate::{
+    CandidateAnalysisCoverageBoundaryInput, CandidateAnalysisCoverageChangeInput,
+    MAX_PROJECT_CANDIDATE_ANALYSIS_COVERAGE_CHANGE_BYTES,
+    PROJECT_CANDIDATE_ANALYSIS_COVERAGE_CHANGE_SCHEMA,
+};
+pub use candidate::{
+    CandidateAssuranceInput, MAX_CANDIDATE_ACCEPTANCE_IDENTITY_BYTES,
+    MAX_CANDIDATE_ASSURANCE_INPUTS, MAX_PROJECT_CANDIDATE_ACCEPTANCE_BYTES,
+    MAX_PROJECT_CANDIDATE_ASSURANCE_SUMMARY_BYTES, PROJECT_CANDIDATE_ACCEPTANCE_SCHEMA,
+    PROJECT_CANDIDATE_ASSURANCE_SUMMARY_SCHEMA,
+};
+pub use candidate::{
+    CandidateImpactPageOptions, CandidateImpactView, MAX_PROJECT_CANDIDATE_IMPACT_PAGE_BYTES,
+    MAX_PROJECT_CANDIDATE_IMPACT_SUMMARY_BYTES, PROJECT_CANDIDATE_IMPACT_ITEM_SCHEMA,
+    PROJECT_CANDIDATE_IMPACT_PAGE_SCHEMA, PROJECT_CANDIDATE_IMPACT_SUMMARY_SCHEMA,
+};
+pub use candidate::{
+    CandidatePackageConsumerMigrationInput, CandidatePackageConsumerReplayInput,
+    CandidatePackageSignatureConflictInput, MAX_PROJECT_CANDIDATE_PACKAGE_CONSUMER_MIGRATION_BYTES,
+    MAX_PROJECT_CANDIDATE_PACKAGE_CONSUMER_REPLAY_BYTES,
+    MAX_PROJECT_CANDIDATE_PACKAGE_SIGNATURE_CONFLICTS_BYTES,
+    PROJECT_CANDIDATE_PACKAGE_CONSUMER_MIGRATION_SCHEMA,
+    PROJECT_CANDIDATE_PACKAGE_CONSUMER_REPLAY_SCHEMA,
+    PROJECT_CANDIDATE_PACKAGE_SIGNATURE_CONFLICTS_SCHEMA,
+};
+pub use candidate::{
+    ProjectCandidateArchive, MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES, PROJECT_CANDIDATE_ARCHIVE_SCHEMA,
+};
+pub use candidate::{
+    ProjectCandidateDraftArchive, MAX_PROJECT_CANDIDATE_DRAFT_ARCHIVE_BYTES,
+    PROJECT_CANDIDATE_DRAFT_ARCHIVE_COMPATIBILITY, PROJECT_CANDIDATE_DRAFT_ARCHIVE_SCHEMA,
+};
+pub use candidate::{
+    ProjectCandidateDraftMerge, MAX_PROJECT_CANDIDATE_DRAFT_MERGE_BYTES,
+    PROJECT_CANDIDATE_DRAFT_LINEAGE_MERGE_SCHEMA, PROJECT_CANDIDATE_DRAFT_MERGE_SCHEMA,
+};
+pub use candidate::{
+    ProjectCandidateDraftRebase, MAX_PROJECT_CANDIDATE_DRAFT_REBASE_BYTES,
+    PROJECT_CANDIDATE_DRAFT_LINEAGE_REBASE_SCHEMA, PROJECT_CANDIDATE_DRAFT_REBASE_SCHEMA,
+};
+pub use candidate::{
+    ProjectPatchReceiptComparisonInput, ProjectPatchReceiptEvidencePageOptions,
+    MAX_PROJECT_PATCH_RECEIPT_BYTES, MAX_PROJECT_PATCH_RECEIPT_COMPARISON_BYTES,
+    MAX_PROJECT_PATCH_RECEIPT_COMPARISON_INPUTS, PROJECT_PATCH_RECEIPT_SCHEMA,
+    PROJECT_PATCH_RECEIPT_SET_COMPARISON_SCHEMA, PROJECT_PATCH_RECEIPT_VERIFICATION_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_ABI_DELTA_BYTES, PROJECT_CANDIDATE_ABI_DELTA_SCHEMA,
+    PROJECT_CANDIDATE_ABI_DELTA_VERIFICATION_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_ANALYSIS_ARTIFACT_EVIDENCE_BYTES,
+    PROJECT_CANDIDATE_ANALYSIS_ARTIFACT_EVIDENCE_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_ANALYSIS_BOUNDARY_BUNDLE_BYTES,
+    MAX_PROJECT_CANDIDATE_ANALYSIS_BOUNDARY_BUNDLE_REPORT_BYTES,
+    PROJECT_CANDIDATE_ANALYSIS_BOUNDARY_BUNDLE_REPORT_SCHEMA,
+    PROJECT_CANDIDATE_ANALYSIS_BOUNDARY_BUNDLE_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_ANALYSIS_COVERAGE_BYTES, PROJECT_CANDIDATE_ANALYSIS_COVERAGE_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_ANALYSIS_EVIDENCE_BYTES, PROJECT_CANDIDATE_ANALYSIS_EVIDENCE_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_ANALYSIS_RUNTIME_EVIDENCE_BYTES,
+    PROJECT_CANDIDATE_ANALYSIS_RUNTIME_EVIDENCE_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_ARTIFACT_DELTA_BYTES, PROJECT_CANDIDATE_ARTIFACT_DELTA_SCHEMA,
+    PROJECT_CANDIDATE_ARTIFACT_DELTA_VERIFICATION_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_CLEANUP_DEPENDENCIES_BYTES,
+    PROJECT_CANDIDATE_CLEANUP_DEPENDENCIES_SCHEMA,
+    PROJECT_CANDIDATE_CLEANUP_DEPENDENCIES_VERIFICATION_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_CONTRACT_DELTA_BYTES, PROJECT_CANDIDATE_CONTRACT_DELTA_SCHEMA,
+    PROJECT_CANDIDATE_CONTRACT_DELTA_VERIFICATION_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_DEPENDENCY_PAGE_BYTES, MAX_PROJECT_CANDIDATE_DEPENDENCY_SUMMARY_BYTES,
+    PROJECT_CANDIDATE_DEPENDENCY_PAGE_SCHEMA, PROJECT_CANDIDATE_DEPENDENCY_SUMMARY_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_DEPLOYMENT_CONFIGURATION_KEYS,
+    MAX_PROJECT_CANDIDATE_DEPLOYMENT_CONFIGURATION_KEY_BYTES,
+    MAX_PROJECT_CANDIDATE_DEPLOYMENT_CONTRACT_DECLARATION_BYTES,
+    MAX_PROJECT_CANDIDATE_DEPLOYMENT_CONTRACT_EVIDENCE_BYTES,
+    PROJECT_CANDIDATE_DEPLOYMENT_CONTRACT_DECLARATION_SCHEMA,
+    PROJECT_CANDIDATE_DEPLOYMENT_CONTRACT_EVIDENCE_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_DRAFT_RECOVERY_BYTES,
+    PROJECT_CANDIDATE_DRAFT_LINEAGE_RECOVERY_COMPATIBILITY,
+    PROJECT_CANDIDATE_DRAFT_LINEAGE_RECOVERY_SCHEMA,
+    PROJECT_CANDIDATE_DRAFT_RECOVERY_COMPATIBILITY, PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_ENVIRONMENT_CONSUMER_REVIEW_BYTES,
+    PROJECT_CANDIDATE_ENVIRONMENT_CONSUMER_COVERAGE_SCHEMA,
+    PROJECT_CANDIDATE_ENVIRONMENT_CONSUMER_REVIEW_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_ENVIRONMENT_REVIEW_BYTES, PROJECT_CANDIDATE_ENVIRONMENT_REVIEW_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_EXTERNAL_API_CONTRACT_DECLARATION_BYTES,
+    MAX_PROJECT_CANDIDATE_EXTERNAL_API_CONTRACT_EVIDENCE_BYTES,
+    PROJECT_CANDIDATE_EXTERNAL_API_CONTRACT_DECLARATION_SCHEMA,
+    PROJECT_CANDIDATE_EXTERNAL_API_CONTRACT_EVIDENCE_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_EXTERNAL_API_CONTRACT_DELTA_BYTES,
+    PROJECT_CANDIDATE_EXTERNAL_API_CONTRACT_BASE_DECLARATION_SCHEMA,
+    PROJECT_CANDIDATE_EXTERNAL_API_CONTRACT_DELTA_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_FUNCTION_FACET_BYTES, MAX_PROJECT_CANDIDATE_FUNCTION_SUMMARY_BYTES,
+    PROJECT_CANDIDATE_FUNCTION_FACET_ITEM_SCHEMA, PROJECT_CANDIDATE_FUNCTION_FACET_SCHEMA,
+    PROJECT_CANDIDATE_FUNCTION_SUMMARY_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_FUNCTION_REFERENCE_REBIND_BYTES,
+    PROJECT_CANDIDATE_FUNCTION_REFERENCE_REBIND_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_DECLARATION_BYTES,
+    MAX_PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_EVIDENCE_BYTES,
+    MAX_PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_FILES,
+    PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_DECLARATION_SCHEMA,
+    PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_EVIDENCE_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_INTERFACE_DELTA_BYTES, PROJECT_CANDIDATE_INTERFACE_DELTA_SCHEMA,
+    PROJECT_CANDIDATE_INTERFACE_DELTA_VERIFICATION_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_MERGE_PREVIEW_BYTES, PROJECT_CANDIDATE_MERGE_PREVIEW_SCHEMA,
+    PROJECT_CANDIDATE_MERGE_PREVIEW_VERIFICATION_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_OWNERSHIP_DELTA_BYTES, PROJECT_CANDIDATE_OWNERSHIP_DELTA_SCHEMA,
+    PROJECT_CANDIDATE_OWNERSHIP_DELTA_VERIFICATION_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_PUBLIC_GENERIC_DELTA_BYTES,
+    PROJECT_CANDIDATE_PUBLIC_GENERIC_DELTA_SCHEMA,
+    PROJECT_CANDIDATE_PUBLIC_GENERIC_DELTA_VERIFICATION_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_SOURCE_REVIEW_BYTES, PROJECT_CANDIDATE_SOURCE_REVIEW_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_HOLE_FILL_SUGGESTIONS_BYTES, PROJECT_HOLE_FILL_SUGGESTIONS_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_HOLE_NAVIGATION_BYTES, MAX_PROJECT_HOLE_NAVIGATION_ITEMS, PROJECT_HOLE_PAGE_SCHEMA,
+    PROJECT_HOLE_SUMMARY_SCHEMA,
+};
+pub use canonical_workspace_revision::{
+    AgentDefinitions, AuthorityPolicies, ContractsAndTests, DependencyClosure, ProjectionMetadata,
+    SemanticProgram, SemanticWorkspaceRevision, SourceProjection, StableIdentityIndex,
+    TargetProfiles, MAX_SEMANTIC_WORKSPACE_AGENT_DEFINITIONS,
+    MAX_SEMANTIC_WORKSPACE_AGENT_DEFINITION_INPUT_BYTES, MAX_SEMANTIC_WORKSPACE_REVISION_BYTES,
+    SEMANTIC_WORKSPACE_REVISION_COMPATIBILITY, SEMANTIC_WORKSPACE_REVISION_SCHEMA,
+};
+pub use contracts_and_tests_facts::{
+    ContractSourceFact, ContractsAndTestsFacts, DeclaredFunctionContractFacts, DeclaredTestFact,
+    CONTRACTS_AND_TESTS_FACTS_SCHEMA, MAX_CONTRACTS_AND_TESTS_FACTS_BYTES,
+    MAX_CONTRACT_SOURCE_FACT_BYTES, MAX_DECLARED_CONTRACT_CLAUSES, MAX_DECLARED_CONTRACT_FUNCTIONS,
+    MAX_DECLARED_TESTS,
+};
+pub use cxx_owned_data::{
+    render_owned_data_c_header, replay_cxx_owned_data_package, CxxOwnedDataPackage,
+    MAX_CXX_OWNED_DATA_PACKAGE_BYTES, PROJECT_CXX_OWNED_DATA_PACKAGE_SCHEMA,
+};
+pub use exact_program_context::{
+    ExactProgramContext, ExactProgramContextV2, EXACT_PROGRAM_CONTEXT_SCHEMA,
+    EXACT_PROGRAM_CONTEXT_V2_SCHEMA, MAX_EXACT_PROGRAM_CONTEXT_BYTES,
+    MAX_EXACT_PROGRAM_CONTEXT_V2_BYTES,
+};
+pub use execution::{
+    verify_execution_envelope, ProjectContractArgument, ProjectContractFailure, ProjectExecution,
+    ProjectExecutionOptions, ProjectExecutionOutcome, ProjectExecutionRole, ProjectTestCase,
+    SkippedTestCase, PROJECT_EXECUTION_SCHEMA, TEST_CASE_PREFIX,
+};
+pub use flat_owned_record::{
+    derive_flat_owned_record_api_descriptor, render_flat_owned_record_c_header,
+    render_flat_owned_record_cpp_header, render_flat_owned_record_metadata,
+    render_flat_owned_record_rust, render_flat_owned_record_typescript,
+    replay_flat_owned_record_api_descriptor, replay_flat_owned_record_metadata,
+    FlatOwnedRecordApiDescriptor, FlatOwnedRecordCarrierPlan, FlatOwnedRecordExport,
+    FlatOwnedRecordField, FlatOwnedRecordFieldType, FlatOwnedRecordSettlement,
+    FLAT_OWNED_RECORD_API_SCHEMA, FLAT_OWNED_RECORD_METADATA_SCHEMA,
+    FLAT_OWNED_RECORD_NPM_BUILD_SCHEMA, FLAT_OWNED_RECORD_PROJECT_SCHEMA, MAX_FLAT_RECORD_FIELDS,
+};
+pub use image::{
+    ProjectSemanticImage, MAX_SEMANTIC_IMAGE_BYTES, PROJECT_SEMANTIC_IMAGE_COMPATIBILITY,
+    PROJECT_SEMANTIC_IMAGE_SCHEMA, PROJECT_SEMANTIC_IMAGE_SYMBOL_SCHEMA,
+};
+pub use image_coverage::{IMAGE_ANALYSIS_COVERAGE_SCHEMA, MAX_IMAGE_ANALYSIS_COVERAGE_BYTES};
+pub use image_dependencies::{
+    ImageDependencyPageOptions, ImageDependencyView, IMAGE_CLEANUP_DEPENDENCIES_SCHEMA,
+    IMAGE_CLEANUP_DEPENDENCIES_VERIFICATION_SCHEMA, IMAGE_DECLARATION_DEPENDENCIES_SCHEMA,
+    IMAGE_DEPENDENCY_PAGE_SCHEMA, IMAGE_DEPENDENCY_SUMMARY_SCHEMA,
+    MAX_IMAGE_CLEANUP_DEPENDENCIES_BYTES, MAX_IMAGE_DECLARATION_DEPENDENCIES_BYTES,
+};
+pub use image_facets::{
+    ImageFacet, ImageFacetOptions, IMAGE_FACET_SCHEMA, IMAGE_FUNCTION_INSTANCES_SCHEMA,
+    IMAGE_FUNCTION_SUMMARY_SCHEMA, IMAGE_INSTANCE_FACET_SCHEMA,
+};
+pub use image_protocols::{
+    IMAGE_PROTOCOL_CONFORMANCE_SCHEMA, MAX_IMAGE_PROTOCOL_CONFORMANCE_BYTES,
+};
+pub use image_reference::{
+    IMAGE_FUNCTION_REFERENCE_REBIND_SCHEMA, IMAGE_FUNCTION_REFERENCE_RESOLUTION_SCHEMA,
+    IMAGE_FUNCTION_REFERENCE_SCHEMA, MAX_IMAGE_FUNCTION_REFERENCE_BYTES,
+    MAX_IMAGE_FUNCTION_REFERENCE_REBIND_BYTES, MAX_IMAGE_FUNCTION_REFERENCE_RESOLUTION_BYTES,
+};
+pub use image_store::{
+    load_semantic_image, persist_semantic_image, ImageRefreshReport, ImageStoreReceipt,
+    ImageWorkspace, MAX_IMAGE_REFRESH_REPORT_BYTES, MAX_SEMANTIC_IMAGE_STORE_RECEIPT_BYTES,
+    SEMANTIC_IMAGE_REFRESH_SCHEMA, SEMANTIC_IMAGE_STORE_SCHEMA,
+};
+pub use image_targets::{
+    ImageArtifactKind, IMAGE_ARTIFACT_PROJECTION_SCHEMA, IMAGE_TARGET_ADMISSION_SCHEMA,
+    MAX_IMAGE_ARTIFACT_BUILD_BYTES, MAX_IMAGE_ARTIFACT_REPORT_BYTES,
+};
+pub use incremental::{
+    ProjectFrontendBuild, ProjectFrontendCache, ProjectFrontendSource,
+    MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND, MAX_PROJECT_FRONTEND_CACHE_AST_BUDGET,
+    MAX_PROJECT_FRONTEND_CACHE_SOURCE_BYTES, MAX_PROJECT_FRONTEND_REPORT_BYTES,
+    PROJECT_FRONTEND_CACHE_COMPATIBILITY, PROJECT_FRONTEND_CACHE_SCHEMA,
+    PROJECT_SEMANTIC_CACHE_COMPATIBILITY, PROJECT_SEMANTIC_CACHE_SCHEMA,
+};
+pub use interface_artifact_facts::{
+    GeneratedArtifactFact, InterfaceArtifactFacts, SourceInterfaceFact,
+    INTERFACE_ARTIFACT_FACTS_COMPATIBILITY, INTERFACE_ARTIFACT_FACTS_SCHEMA,
+    MAX_INTERFACE_ARTIFACT_FACTS, MAX_INTERFACE_ARTIFACT_FACTS_BYTES,
+    MAX_INTERFACE_ARTIFACT_FACT_INPUT_BYTES,
+};
+use manifest::{capacity, grammar};
+pub use manifest::{
+    ManifestLayout, PackageDependency, PackageDependencySource, ProjectManifest, RustDependency,
+    MAX_DEPENDENCIES, MAX_DEPENDENCY_SOURCES, MAX_MANIFEST_BYTES, MAX_MODULE_BYTES, MAX_NAME_BYTES,
+    MAX_PATH_BYTES, MAX_RUST_DEPENDENCIES, MAX_SOURCES, MAX_STABLE_ID_BYTES,
+    MAX_TOTAL_SOURCE_BYTES, MAX_VERSION_BYTES, MAX_WEB_EXPORTS, PACKAGE_MANIFEST_RESERVED_TABLES,
+    PACKAGE_MANIFEST_SCHEMA, PACKAGE_MANIFEST_SCHEMA_V2, PACKAGE_MANIFEST_TABLES,
+    PACKAGE_RESERVED_KEYS, PACKAGE_TARGET_NATIVE64, PACKAGE_TARGET_WASM32, PROJECT_SCHEMA,
+    PROJECT_SCHEMA_V10, PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V12, PROJECT_SCHEMA_V13,
+    PROJECT_SCHEMA_V14, PROJECT_SCHEMA_V15, PROJECT_SCHEMA_V16, PROJECT_SCHEMA_V17,
+    PROJECT_SCHEMA_V18, PROJECT_SCHEMA_V19, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V20,
+    PROJECT_SCHEMA_V21, PROJECT_SCHEMA_V22, PROJECT_SCHEMA_V23, PROJECT_SCHEMA_V24,
+    PROJECT_SCHEMA_V25, PROJECT_SCHEMA_V26, PROJECT_SCHEMA_V27, PROJECT_SCHEMA_V28,
+    PROJECT_SCHEMA_V29, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V30, PROJECT_SCHEMA_V4,
+    PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
+};
+pub use native_sdk::{
+    with_native_owned_data_sdk_subject, ProjectNativeRustPackage, ProjectNativeRustPackageMode,
+    ProjectNativeSdkExport, ProjectNativeSdkSubject, ProjectOwnedDataNativeSdkSubject,
+};
+pub use nested_owned_record::{
+    derive_nested_owned_record_api_descriptor, render_nested_owned_record_c_header,
+    replay_nested_owned_record_api_descriptor, NestedOwnedRecordApiDescriptor,
+    NestedOwnedRecordExport, NestedOwnedRecordField, NestedOwnedRecordFieldType,
+    NestedOwnedRecordLeaf, NestedOwnedRecordLeafType, NestedOwnedRecordType,
+    MAX_NESTED_RECORD_DEPTH, MAX_NESTED_RECORD_DESCRIPTOR_BYTES, MAX_NESTED_RECORD_OWNED_LEAVES,
+    MAX_NESTED_RECORD_OWNED_OUTPUT_BYTES, MAX_NESTED_RECORD_VISITED_FIELDS,
+    NESTED_OWNED_RECORD_API_SCHEMA, NESTED_OWNED_RECORD_PROJECT_SCHEMA,
+};
+pub use npm::{
+    ProjectNpmBuild, ProjectNpmPublication, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
+    PROJECT_NPM_BUILD_SCHEMA_V10, PROJECT_NPM_BUILD_SCHEMA_V11, PROJECT_NPM_BUILD_SCHEMA_V12,
+    PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4,
+    PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6, PROJECT_NPM_BUILD_SCHEMA_V7,
+    PROJECT_NPM_BUILD_SCHEMA_V8, PROJECT_NPM_BUILD_SCHEMA_V9,
+};
+pub use prepared_interpreter::{
+    prepare_project_interpreter, verify_project_source_trace,
+    verify_project_source_trace_against_revision, PreparedProjectExecution,
+    PreparedProjectExecutionOptions, PreparedProjectInterpreter, PreparedProjectInterpreterOptions,
+    ProjectExecutionCancellation, ProjectPreparedExecutionOutcome, ProjectSourceTrace,
+    ProjectSourceTraceEvent, UntracedPreparedProjectExecution, DEFAULT_PROJECT_SOURCE_TRACE_BYTES,
+    DEFAULT_PROJECT_SOURCE_TRACE_EVENTS, MAX_PROJECT_SOURCE_TRACE_BYTES,
+    MAX_PROJECT_SOURCE_TRACE_EVENTS, MIN_PROJECT_SOURCE_TRACE_BYTES, PROJECT_SOURCE_TRACE_SCHEMA,
+};
+pub use program_root::{
+    ProgramRoot, ProgramRootDependencyLockAssociation, ProgramRootRelationship, ProgramRootSegment,
+    ProgramRootV2, ProgramRootV3, MAX_PROGRAM_ROOT_BYTES,
+    MAX_PROGRAM_ROOT_DEPENDENCY_LOCK_ASSOCIATION_BYTES, MAX_PROGRAM_ROOT_RELATIONSHIP_BYTES,
+    MAX_PROGRAM_ROOT_SEGMENT_BYTES, MAX_PROGRAM_ROOT_V2_BYTES, MAX_PROGRAM_ROOT_V3_BYTES,
+    PROGRAM_ROOT_COMPATIBILITY, PROGRAM_ROOT_DEPENDENCY_LOCK_ASSOCIATION_SCHEMA,
+    PROGRAM_ROOT_RELATIONSHIP_SCHEMA, PROGRAM_ROOT_SCHEMA, PROGRAM_ROOT_SEGMENT_SCHEMA,
+    PROGRAM_ROOT_V2_COMPATIBILITY, PROGRAM_ROOT_V2_SCHEMA, PROGRAM_ROOT_V3_COMPATIBILITY,
+    PROGRAM_ROOT_V3_SCHEMA,
+};
+pub use project_lock::{
+    classify_lock_change, render_project_lock, verify_project_lock, LockCompatibility,
+    VerifiedProjectLock, MAX_PROJECT_LOCK_BYTES, PROJECT_LOCK_FILE, PROJECT_LOCK_SCHEMA,
+};
+pub use scalar_wit_compare::{
+    classify_scalar_wit_change, ScalarWitCompatibility, SCALAR_WIT_COMPATIBILITY_SCHEMA,
+};
+pub use semantic_explorer::{
+    ExplorerDirection, ExplorerMode, ExplorerPageOptions, ExplorerQuery, ExplorerSide,
+    ExplorerView, EXPLORER_VIEW_SCHEMA, MAX_EXPLORER_PAGE_BYTES, MAX_EXPLORER_SUMMARY_BYTES,
+};
+pub use semantic_query::{
+    AgentDefinitionsQuery, AgentDefinitionsQueryResult, SemanticQuery, SemanticQueryResult,
+    MAX_SEMANTIC_QUERY_BYTES, MAX_SEMANTIC_QUERY_CONSUMER_LIMIT,
+    MAX_SEMANTIC_QUERY_CONSUMER_OFFSET, MAX_SEMANTIC_QUERY_DECLARATION_LIMIT,
+    MAX_SEMANTIC_QUERY_DECLARATION_OFFSET, MAX_SEMANTIC_QUERY_RESULT_BYTES,
+    SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA, SEMANTIC_QUERY_DECLARATIONS_SCHEMA,
+    SEMANTIC_QUERY_DECLARATION_CONSUMERS_SCHEMA, SEMANTIC_QUERY_NEXT_CONSTRUCTS_SCHEMA,
+    SEMANTIC_QUERY_OWNERSHIP_AT_EXPRESSION_SCHEMA, SEMANTIC_QUERY_RESULT_SCHEMA,
+    SEMANTIC_QUERY_SCHEMA,
+};
+pub use semantic_service::{
+    SemanticWorkspaceGeneration, SemanticWorkspaceService, SemanticWorkspaceServiceHistoryEntry,
+    SemanticWorkspaceServiceHistoryQuery, SemanticWorkspaceServiceHistoryResult,
+    SemanticWorkspaceServiceHistorySnapshot, SemanticWorkspaceServiceRefresh,
+    SemanticWorkspaceServiceWork, SemanticWorkspaceSnapshot,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_ENTRIES,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_BYTES,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_LIMIT,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_RESULT_BYTES,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_PATCH_RECEIPT_COMPARISON_INPUTS,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_RECEIPT_BYTES, SEMANTIC_WORKSPACE_SERVICE_HISTORY_ENTRY_SCHEMA,
+    SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_SCHEMA,
+    SEMANTIC_WORKSPACE_SERVICE_HISTORY_RESULT_SCHEMA, SEMANTIC_WORKSPACE_SERVICE_REFRESH_SCHEMA,
+    SEMANTIC_WORKSPACE_SERVICE_WORK_SCHEMA,
+};
+pub use semantic_service_indexes::{
+    SemanticServiceIndexItem, SemanticServiceIndexItemKind, SemanticServiceIndexOperation,
+    SemanticServiceIndexQuery, SemanticServiceIndexResult, MAX_SEMANTIC_SERVICE_INDEX_ITEMS,
+    MAX_SEMANTIC_SERVICE_INDEX_QUERY_BYTES, MAX_SEMANTIC_SERVICE_INDEX_RESULT_BYTES,
+    SEMANTIC_SERVICE_INDEX_QUERY_SCHEMA, SEMANTIC_SERVICE_INDEX_RESULT_SCHEMA,
+};
+pub use semantic_transaction::{
+    SemanticTransaction, SemanticTransactionAddContract, SemanticTransactionAddDeclaration,
+    SemanticTransactionArtifacts, SemanticTransactionOperation,
+    SemanticTransactionRenameDisplayName, SemanticTransactionReplaceBlock,
+    MAX_SEMANTIC_TRANSACTION_ARTIFACT_BYTES, MAX_SEMANTIC_TRANSACTION_BYTES,
+    SEMANTIC_TRANSACTION_EVIDENCE_SCHEMA, SEMANTIC_TRANSACTION_IMPACT_SCHEMA,
+    SEMANTIC_TRANSACTION_RESULT_SCHEMA, SEMANTIC_TRANSACTION_REVIEW_SCHEMA,
+    SEMANTIC_TRANSACTION_SCHEMA,
+};
+pub use semantic_transaction_composition::{
+    SemanticTransactionMerge, SemanticTransactionMergeOrder, SemanticTransactionRebase,
+    SemanticWorkspaceStructuralDiff, MAX_SEMANTIC_TRANSACTION_COMPOSITION_BYTES,
+    MAX_SEMANTIC_WORKSPACE_STRUCTURAL_DIFF_BYTES, SEMANTIC_TRANSACTION_MERGE_SCHEMA,
+    SEMANTIC_TRANSACTION_REBASE_SCHEMA, SEMANTIC_WORKSPACE_STRUCTURAL_DIFF_SCHEMA,
+};
+pub use semantic_transaction_v2::{
+    validate_semantic_transaction_v2, SemanticTransactionArtifactsV2,
+    SemanticTransactionReplaceExpression, SemanticTransactionV2,
+    MAX_SEMANTIC_TRANSACTION_V2_ARTIFACT_BYTES, MAX_SEMANTIC_TRANSACTION_V2_BYTES,
+    SEMANTIC_TRANSACTION_V2_EVIDENCE_SCHEMA, SEMANTIC_TRANSACTION_V2_IMPACT_SCHEMA,
+    SEMANTIC_TRANSACTION_V2_RESULT_SCHEMA, SEMANTIC_TRANSACTION_V2_REVIEW_SCHEMA,
+    SEMANTIC_TRANSACTION_V2_SCHEMA,
+};
+pub use semantic_transaction_v2_workflow::{
+    SemanticTransactionV2Workflow, MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_BYTES,
+    MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_STEPS, SEMANTIC_TRANSACTION_V2_WORKFLOW_SCHEMA,
+};
+pub use target_cache::{
+    ProjectCTargetBuild, ProjectNpmTargetBuild, ProjectTargetBuild, ProjectTargetCache,
+    MAX_PROJECT_TARGET_CACHE_REPORT_BYTES, PROJECT_C_TARGET_CACHE_COMPATIBILITY,
+    PROJECT_NPM_TARGET_CACHE_COMPATIBILITY, PROJECT_TARGET_CACHE_COMPATIBILITY,
+    PROJECT_TARGET_CACHE_SCHEMA,
+};
+pub use v8_promotion::{
+    derive_project_v8_promotion_receipt, parse_project_v8_promotion_receipt,
+    replay_project_v8_promotion_receipt, ProjectV8PromotionArtifact,
+    ProjectV8PromotionGateObservation, ProjectV8PromotionGateOutcome, ProjectV8PromotionReceipt,
+    ProjectV8PromotionSubject, MAX_PROJECT_V8_PROMOTION_RECEIPT_BYTES,
+    PROJECT_V8_PROMOTION_RECEIPT_SCHEMA,
+};
+pub use workspace_execution::{
+    prepare_workspace_migration, resume_workspace_migration, WorkspaceExecution,
+    WorkspaceExecutionBinding, WorkspaceExecutionEvidence, WorkspaceExecutionRootVersion,
+    WorkspaceMigrationEvidence, WorkspaceMigrationExecution, WorkspaceMigrationFailure,
+    WorkspaceSuspensionEvidence, MAX_WORKSPACE_EXECUTION_BINDING_BYTES,
+    MAX_WORKSPACE_MIGRATION_RECEIPT_BYTES, WORKSPACE_EXECUTION_BINDING_SCHEMA,
+    WORKSPACE_MIGRATION_ASSOCIATION_SCHEMA, WORKSPACE_MIGRATION_EVIDENCE_SCHEMA,
+    WORKSPACE_RUNTIME_ASSOCIATION_SCHEMA, WORKSPACE_RUNTIME_EVIDENCE_SCHEMA,
+};
+
+/// Prepare the additive WP-10/WP-11 owned-data package from held HIR and the
+/// canonical descriptor. This does not activate a Project manifest profile.
+pub fn prepare_owned_data_npm_build(
+    program: &crate::hir::ResolvedProgram,
+    descriptor: &PublicApiDescriptor,
+    package: &str,
+    version: &str,
+    max_bytes: usize,
+) -> Result<ProjectNpmBuild, Diagnostic> {
+    npm::prepare_owned_data(program, descriptor, package, version, max_bytes)
+}
+pub use create::{create_project, CreateProjectError};
+pub use profile::{
+    ProjectProfile, PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2, PROJECT_COMMAND_ARGS_READ_CAPABILITY,
+    PROJECT_COMMAND_INPUT_V1, PROJECT_COMMAND_STDERR_WRITE_CAPABILITY,
+    PROJECT_COMMAND_STDIN_READ_CAPABILITY, PROJECT_COMMAND_STDOUT_CAPABILITY,
+    PROJECT_ENVIRONMENT_CAPABILITIES_V1, PROJECT_FILESYSTEM_CAPABILITIES_V1,
+    PROJECT_HTTPS_COMMAND_CAPABILITIES_V1, PROJECT_LANGUAGE_COMMAND_INPUT_V1,
+    PROJECT_LANGUAGE_COMMAND_STREAM_INPUT_V1, PROJECT_NETWORK_COMMAND_CAPABILITIES_V1,
+    PROJECT_PROCESS_CAPABILITIES_V1, PROJECT_PROFILE_ENVIRONMENT_IO_V1,
+    PROJECT_PROFILE_FILESYSTEM_IO_V1, PROJECT_PROFILE_FILESYSTEM_IO_V2,
+    PROJECT_PROFILE_FILESYSTEM_IO_V3, PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1,
+    PROJECT_PROFILE_HTTPS_COMMAND_IO_V1, PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1,
+    PROJECT_PROFILE_LINE_COMMAND_IO_V1, PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1,
+    PROJECT_PROFILE_NETWORK_COMMAND_IO_V1, PROJECT_PROFILE_OWNED_DATA_API_V1,
+    PROJECT_PROFILE_OWNED_UTF8_API_V1, PROJECT_PROFILE_PROCESS_IO_V1,
+    PROJECT_PROFILE_PUBLIC_GENERIC_WASM_PROVIDER_V1,
+    PROJECT_PROFILE_SOURCE_COMMAND_RESOURCE_OUTPUT_V1,
+    PROJECT_PROFILE_SOURCE_COMMAND_SELECTED_FILE_RESOURCE_V1,
+    PROJECT_PROFILE_SOURCE_COMMAND_SELECTED_FILE_V1, PROJECT_PROFILE_SOURCE_COMMAND_V1,
+    PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1,
+    PROJECT_PROFILE_STDIN_STREAM_COLLECTION_RECORD_COMMAND_IO_V1,
+    PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V1, PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2,
+    PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V1,
+    PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V2,
+    PROJECT_PROFILE_STDIN_STREAM_NESTED_OUTCOME_COMMAND_IO_V1,
+    PROJECT_PROFILE_STDIN_STREAM_OWNED_DATA_COMMAND_IO_V1,
+    PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
+    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
+    PROJECT_PROFILE_USEFUL_DATA_V2, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1, PROJECT_SCHEMA_V31,
+    PROJECT_SCHEMA_V32, PROJECT_SCHEMA_V33, PROJECT_SCHEMA_V34, PROJECT_SOURCE_COMMAND_INPUT_V1,
+    PROJECT_SOURCE_COMMAND_SELECTED_FILE_INPUT_V1,
+    PROJECT_SOURCE_COMMAND_SELECTED_FILE_RESOURCE_INPUT_V1,
+};
+pub use public_api::{
+    derive_public_api_descriptor, replay_public_api_descriptor, PublicApiDescriptor,
+    PublicApiExport, PublicApiLimits, PublicApiParameter, PublicApiParameterType,
+    PublicApiResultType, PublicApiSubject, MAX_PUBLIC_API_BORROWED_INPUT_BYTES,
+    MAX_PUBLIC_API_CLOSURE_FUNCTIONS, MAX_PUBLIC_API_DESCRIPTOR_BYTES, MAX_PUBLIC_API_EXPORTS,
+    MAX_PUBLIC_API_OWNED_OUTPUT_BYTES, MAX_PUBLIC_API_PARAMETERS, PUBLIC_OPTION_NONE_TAG,
+    PUBLIC_OPTION_SOME_TAG, PUBLIC_OWNED_DATA_API_SCHEMA, PUBLIC_OWNED_DATA_PROJECT_SCHEMA,
+    PUBLIC_RESULT_ERR_TAG, PUBLIC_RESULT_OK_TAG,
+};
+pub use public_utf8_api::{PUBLIC_OWNED_UTF8_API_SCHEMA, PUBLIC_OWNED_UTF8_PROJECT_SCHEMA};
+pub use scaffold::{
+    derive_project_scaffold_v1, derive_project_scaffold_v1_with_layout,
+    derive_service_host_adapter_request_v1, project_scaffold_inventory,
+    project_scaffold_inventory_with_layout, replay_project_scaffold_v1, ProjectScaffoldFileV1,
+    ProjectScaffoldV1, ScaffoldLayout, MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES,
+    MAX_PROJECT_SCAFFOLD_NAME_BYTES, PROJECT_SCAFFOLD_FILE_COUNT, PROJECT_SCAFFOLD_INVENTORY,
+    PROJECT_SCAFFOLD_LIBRARY_FILE_COUNT, PROJECT_SCAFFOLD_LIBRARY_INVENTORY,
+    PROJECT_SCAFFOLD_SCHEMA, PROJECT_SCAFFOLD_SCHEMA_V3, PROJECT_SCAFFOLD_SCHEMA_V4,
+    PROJECT_SCAFFOLD_SCHEMA_V5, PROJECT_SCAFFOLD_SCHEMA_V6, PROJECT_SCAFFOLD_SCHEMA_V7,
+    PROJECT_SCAFFOLD_SCHEMA_V8, PROJECT_SCAFFOLD_SOURCE_COMMAND_FILE_TEXT_FILE_COUNT,
+    PROJECT_SCAFFOLD_SOURCE_COMMAND_FILE_TEXT_INVENTORY,
+    PROJECT_SCAFFOLD_STDIN_STREAM_COLLECTION_RECORD_FILE_COUNT,
+    PROJECT_SCAFFOLD_STDIN_STREAM_COLLECTION_RECORD_INVENTORY,
+    PROJECT_SCAFFOLD_STDIN_STREAM_DATA_FILE_COUNT, PROJECT_SCAFFOLD_STDIN_STREAM_DATA_INVENTORY,
+    PROJECT_SCAFFOLD_TABLES_FILE_COUNT, PROJECT_SCAFFOLD_TABLES_INVENTORY,
+    PROJECT_SCAFFOLD_TEMPLATES, PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR,
+    PROJECT_SCAFFOLD_TEMPLATE_LIBRARY, PROJECT_SCAFFOLD_TEMPLATE_SERVICE,
+    PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT,
+    PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_COLLECTION_RECORD,
+    PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA, PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT,
+};
+pub use scalar_wit::{
+    ScalarWitExportV1, ScalarWitInterfaceArtifactV1, ScalarWitTypeV1,
+    MAX_SCALAR_WIT_DESCRIPTOR_BYTES, MAX_SCALAR_WIT_INTERFACE_BYTES, SCALAR_WIT_INTERFACE_SCHEMA,
+};
+
+pub(crate) fn validate_owned_utf8_closure_function(
+    function: &crate::hir::ResolvedFunction,
+) -> Result<(), String> {
+    public_api::validate_closure_function(function).map_err(|error| error.message.into_owned())?;
+    public_utf8_api::validate_closure_shape(function)
+}
+pub(crate) use rename::{PreparedProjectRename, ProjectRenameDerivation};
+pub use revision::{ForeignCallerCertificate, ProjectRevision};
+pub use semantic::{
+    PROJECT_SEMANTIC_CONTEXT_SCHEMA, PROJECT_SEMANTIC_GRAPH_SCHEMA, PROJECT_SEMANTIC_IMPACT_SCHEMA,
+};
+
+#[cfg(any(
+    windows,
+    target_os = "linux",
+    target_os = "android",
+    target_vendor = "apple",
+    target_os = "redox"
+))]
+pub(crate) fn rebuild_owned_revision(
+    manifest: ProjectManifest,
+    sources: Vec<SemanticWorkspaceSource>,
+) -> Result<ProjectRevision, Vec<Diagnostic>> {
+    let built = build::build_owned(&manifest, sources)?;
+    Ok(ProjectRevision::from_built(manifest, built))
+}
+
+const MANIFEST_FILE: &str = "semaprax.toml";
+const MAX_HELD_DIRECTORIES: usize = 128;
+
+/// One authenticated canonical source fact returned by the shared Workspace
+/// Phase-A preflight.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProjectSource {
+    path: String,
+    source_graph_schema: String,
+    source_revision: String,
+    source_digest: String,
+    source: crate::workspace_graph::current_source::SourceBytes,
+}
+
+impl ProjectSource {
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+
+    pub fn source_graph_schema(&self) -> &str {
+        &self.source_graph_schema
+    }
+
+    pub fn source_revision(&self) -> &str {
+        &self.source_revision
+    }
+
+    pub fn source_digest(&self) -> &str {
+        &self.source_digest
+    }
+
+    pub fn source(&self) -> &str {
+        &self.source
+    }
+}
+
+/// An invocation-local authenticated project snapshot.
+pub struct ProjectSnapshot {
+    root: PathBuf,
+    revision: Arc<ProjectRevision>,
+    host_policy: Option<host_policy::SelectedStrictLaw>,
+    declared_inputs: Vec<DeclaredPathSelection>,
+    held_manifest: HeldFile,
+    held_sources: Vec<HeldFile>,
+    held_dependency_sources: Vec<HeldFile>,
+    held_directories: Vec<HeldDirectory>,
+    published_subject: Option<&'static str>,
+    request_invalidation: Option<Vec<Diagnostic>>,
+}
+
+impl Deref for ProjectSnapshot {
+    type Target = ProjectRevision;
+
+    fn deref(&self) -> &Self::Target {
+        &self.revision
+    }
+}
+
+impl ProjectSnapshot {
+    /// Consume one retained session snapshot after a final complete held-input
+    /// recheck. Dropping the returned value releases every retained handle.
+    pub(crate) fn finish_session(mut self) -> Result<(), Vec<Diagnostic>> {
+        self.recheck()
+            .map_err(|drift| self.publication_uncertainty(drift))
+    }
+
+    pub fn root(&self) -> &Path {
+        &self.root
+    }
+
+    // Keep the established ProjectSnapshot API as inherent methods. Deref
+    // makes ordinary calls ergonomic, but it does not preserve UFCS or
+    // function-item uses such as `ProjectSnapshot::check`.
+    pub fn manifest(&self) -> &ProjectManifest {
+        self.revision.manifest()
+    }
+
+    pub fn sources(&self) -> &[ProjectSource] {
+        self.revision.sources()
+    }
+
+    /// Exact canonical paths authenticated for this invocation.
+    ///
+    /// This inventory is descriptive only. It does not retain or transfer the
+    /// held file authority; callers that read these paths must acquire their
+    /// own authority and reauthenticate through the Project loader.
+    pub fn authoritative_input_paths(&self) -> Vec<PathBuf> {
+        self.declared_inputs
+            .iter()
+            .map(|input| input.canonical_path.clone())
+            .collect()
+    }
+
+    pub fn workspace_manifest(&self) -> &str {
+        self.revision.workspace_manifest()
+    }
+
+    pub fn workspace_revision(&self) -> &str {
+        self.revision.workspace_revision()
+    }
+
+    pub fn project_revision(&self) -> &str {
+        self.revision.project_revision()
+    }
+
+    pub fn entry_program(&self) -> &crate::hir::ResolvedProgram {
+        self.revision.entry_program()
+    }
+
+    pub(super) fn public_api_program(&self) -> &crate::hir::ResolvedProgram {
+        self.revision.public_api_program()
+    }
+
+    pub fn test_program(&self) -> &crate::hir::ResolvedProgram {
+        self.revision.test_program()
+    }
+
+    pub fn semantic_graph(&self) -> &str {
+        self.revision.semantic_graph()
+    }
+
+    pub fn semantic_context(
+        &self,
+        target_kind: crate::workspace_analysis::WorkspaceAnalysisTargetKind,
+        target: &str,
+        options: crate::workspace_analysis::WorkspaceContextOptions,
+    ) -> Result<String, Vec<Diagnostic>> {
+        self.revision.semantic_context(target_kind, target, options)
+    }
+
+    pub fn semantic_impact(
+        &self,
+        target_kind: crate::workspace_analysis::WorkspaceAnalysisTargetKind,
+        target: &str,
+        options: crate::workspace_analysis::WorkspaceImpactOptions,
+    ) -> Result<String, Vec<Diagnostic>> {
+        self.revision.semantic_impact(target_kind, target, options)
+    }
+
+    pub fn check(&self) -> Result<(), Vec<Diagnostic>> {
+        self.revision.check()
+    }
+
+    pub fn execute_entry(
+        &self,
+        options: &ProjectExecutionOptions,
+    ) -> Result<ProjectExecution, Vec<Diagnostic>> {
+        self.revision.execute_entry(options)
+    }
+
+    pub fn execute_test(
+        &self,
+        options: &ProjectExecutionOptions,
+    ) -> Result<ProjectExecution, Vec<Diagnostic>> {
+        self.revision.execute_test(options)
+    }
+
+    pub fn execute(
+        &self,
+        role: ProjectExecutionRole,
+        options: &ProjectExecutionOptions,
+    ) -> Result<ProjectExecution, Vec<Diagnostic>> {
+        self.revision.execute(role, options)
+    }
+
+    /// Execute a manifest-selected Project-v12/v13 network command with one explicit,
+    /// invocation-owned provider. This route grants no ambient socket access.
+    pub fn execute_network_command(
+        &self,
+        input: &crate::hosted_interpreter::HostedCommandInput,
+        provider: &mut dyn crate::network_provider::NetworkProvider,
+        max_steps: usize,
+    ) -> Result<crate::hosted_interpreter::HostedCommandResult, Vec<Diagnostic>> {
+        if !matches!(
+            self.manifest.project_profile(),
+            ProjectProfile::NetworkCommandIoV1 | ProjectProfile::HttpsCommandIoV1
+        ) {
+            return Err(vec![Diagnostic::io(
+                "SPX-B104",
+                "fixture-backed network execution requires network-command-io.v1 or https-command-io.v1",
+            )]);
+        }
+        crate::hosted_interpreter::execute_network_command(
+            &self.public_api_program,
+            self.manifest.command().unwrap_or(""),
+            input,
+            provider,
+            max_steps,
+        )
+        .map_err(|error| vec![error])
+    }
+
+    pub fn build_web_inline(&self, max_bytes: usize) -> Result<ProjectWebBuild, Vec<Diagnostic>> {
+        self.revision.build_web_inline(max_bytes)
+    }
+
+    pub fn build_npm_inline(&self, max_bytes: usize) -> Result<ProjectNpmBuild, Vec<Diagnostic>> {
+        self.revision.build_npm_inline(max_bytes)
+    }
+
+    pub fn scalar_wit_interface_v1(&self) -> Result<ScalarWitInterfaceArtifactV1, Vec<Diagnostic>> {
+        self.revision.scalar_wit_interface_v1()
+    }
+
+    pub fn replay_scalar_wit_interface_v1(
+        &self,
+        descriptor_bytes: &[u8],
+        digest: &str,
+    ) -> Result<ScalarWitInterfaceArtifactV1, Vec<Diagnostic>> {
+        self.revision
+            .replay_scalar_wit_interface_v1(descriptor_bytes, digest)
+    }
+
+    pub fn public_api_descriptor(&self) -> Result<PublicApiDescriptor, Vec<Diagnostic>> {
+        self.revision.public_api_descriptor()
+    }
+
+    /// Derive and replay the exact Project v9 flat owned-record descriptor
+    /// without granting target or publication authority.
+    pub fn flat_owned_record_api_descriptor(
+        &self,
+    ) -> Result<FlatOwnedRecordApiDescriptor, Vec<Diagnostic>> {
+        self.revision.flat_owned_record_api_descriptor()
+    }
+
+    /// Derive and replay the exact Project v10 owned UTF-8 descriptor without
+    /// granting target or publication authority.
+    pub fn owned_utf8_api_descriptor(&self) -> Result<PublicApiDescriptor, Vec<Diagnostic>> {
+        self.revision.owned_utf8_api_descriptor()
+    }
+
+    /// Derive and replay Project v11's target-neutral nested record descriptor.
+    pub fn nested_owned_record_api_descriptor(
+        &self,
+    ) -> Result<NestedOwnedRecordApiDescriptor, Vec<Diagnostic>> {
+        self.revision.nested_owned_record_api_descriptor()
+    }
+
+    pub fn test_wasm_module(&self) -> Result<Vec<u8>, Vec<Diagnostic>> {
+        self.revision.test_wasm_module()
+    }
+
+    /// Retain the immutable, authority-neutral Project revision independently
+    /// of this live authenticated snapshot and its held filesystem handles.
+    pub fn retain_revision(&self) -> Arc<ProjectRevision> {
+        Arc::clone(&self.revision)
+    }
+
+    /// Prepare one read-only stable-ID display rename over the complete
+    /// authenticated Project without granting commit authority.
+    pub(crate) fn prepare_rename(
+        &self,
+        target_id: &str,
+        from: &str,
+        to: &str,
+    ) -> Result<PreparedProjectRename, Vec<Diagnostic>> {
+        rename::prepare(self, target_id, from, to)
+    }
+
+    /// Reauthenticate immediately before and after one complete read-only
+    /// request. Any observed drift permanently invalidates this snapshot so a
+    /// later request cannot act on retained state.
+    pub fn with_authenticated_request<T>(
+        &mut self,
+        operation: impl FnOnce(&ProjectSnapshot) -> Result<T, Vec<Diagnostic>>,
+    ) -> Result<T, Vec<Diagnostic>> {
+        if let Some(invalidation) = &self.request_invalidation {
+            return Err(invalidation.clone());
+        }
+        if let Err(drift) = self.recheck() {
+            let invalidation = self.publication_uncertainty(drift);
+            self.request_invalidation = Some(invalidation.clone());
+            return Err(invalidation);
+        }
+        let result = operation(self);
+        match self.recheck() {
+            Ok(()) => result,
+            Err(drift) => {
+                let mut invalidation = self.publication_uncertainty(drift);
+                self.request_invalidation = Some(invalidation.clone());
+                match result {
+                    Ok(_) => Err(invalidation),
+                    Err(mut primary) => {
+                        primary.append(&mut invalidation);
+                        Err(primary)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Build the authenticated project entry closure as its profile-selected
+    /// Web product.
+    pub fn build_web(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
+        if self.manifest.project_profile().is_source_local_future() {
+            return Err(vec![Diagnostic::io(
+                "SPX-W120",
+                "source-local-future.v1 has no Web emitter",
+            )]);
+        }
+        if self.manifest.project_profile() == ProjectProfile::PublicGenericWasmProviderV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-W120",
+                "public-generic-wasm-provider.v1 has no Core Wasm provider emitter yet",
+            )]);
+        }
+        // Project v2-v7 each have one public JavaScript product: their exact
+        // schema-selected npm/Web package. Keeping `web` and the default route as
+        // aliases avoids a scalar-v1 fallback while `npm` remains the explicit
+        // package-manager spelling. Frozen Project v1 bytes and publication
+        // behavior stay on the scalar route below.
+        if self.manifest.project_profile() != ProjectProfile::ScalarV1 {
+            let prepared = npm::prepare(
+                &self.manifest,
+                &self.public_api_program,
+                &self.project_revision,
+                &self.workspace_revision,
+                self.semantic.graph_digest(),
+                MAX_PROJECT_NPM_BUILD_BYTES,
+            )
+            .map_err(|error| vec![error])?;
+            self.recheck()?;
+            prepared.publish_web(output).map_err(|error| vec![error])?;
+            self.published_subject = Some(WEB_PUBLICATION_SUBJECT);
+            return self
+                .recheck()
+                .map_err(|drift| self.publication_uncertainty(drift));
+        }
+        let prepared = crate::wasm::prepare_project_web_with_scalar_exports(
+            &self.public_api_program,
+            self.manifest.name(),
+            &self.project_revision,
+            &self.workspace_revision,
+            self.semantic.graph_digest(),
+            self.manifest.entry(),
+            self.manifest.web_exports(),
+        )
+        .map_err(|error| vec![error])?;
+        self.recheck()?;
+        prepared.publish(output).map_err(|error| vec![error])?;
+        self.published_subject = Some(WEB_PUBLICATION_SUBJECT);
+        self.recheck()
+            .map_err(|drift| self.publication_uncertainty(drift))
+    }
+
+    /// Build and publish the exact installable schema-selected npm package.
+    pub fn build_npm(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
+        if self.manifest.project_profile().is_source_local_future() {
+            return Err(vec![Diagnostic::io(
+                "SPX-W120",
+                "source-local-future.v1 has no npm emitter",
+            )]);
+        }
+        if self.manifest.project_profile() == ProjectProfile::PublicGenericWasmProviderV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-W120",
+                "public-generic-wasm-provider.v1 has no npm/package provider route yet",
+            )]);
+        }
+        let prepared = npm::prepare(
+            &self.manifest,
+            &self.public_api_program,
+            &self.project_revision,
+            &self.workspace_revision,
+            self.semantic.graph_digest(),
+            MAX_PROJECT_NPM_BUILD_BYTES,
+        )
+        .map_err(|error| vec![error])?;
+        self.recheck()?;
+        prepared.publish(output).map_err(|error| vec![error])?;
+        self.published_subject = Some(NPM_PUBLICATION_SUBJECT);
+        self.recheck()
+            .map_err(|drift| self.publication_uncertainty(drift))
+    }
+
+    /// Build and publish one admitted profile as a deterministic, offline OCI
+    /// Image Layout carrying the project's already-verified Wasm module as its
+    /// sole content artifact. Project v1 scalar and Project v3/v16 Useful
+    /// Data have separate replayed carrier bridges; no other profile is
+    /// admitted.
+    /// See `docs/OCI-DEPLOYABLE-ARTIFACT-V1.md`.
+    pub fn build_oci(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
+        match self.manifest.project_profile() {
+            ProjectProfile::ScalarV1 => {
+                let build = self.build_web_inline(MAX_PROJECT_WEB_BUILD_BYTES)?;
+                self.recheck()?;
+                oci::build_and_publish(&build, output).map_err(|error| vec![error])?;
+            }
+            ProjectProfile::UsefulDataV1 | ProjectProfile::UsefulDataV2 => {
+                let build = self.build_npm_inline(MAX_PROJECT_NPM_BUILD_BYTES)?;
+                self.recheck()?;
+                oci::build_and_publish_useful_data(&build, self.manifest.entry(), output)
+                    .map_err(|error| vec![error])?;
+            }
+            _ => {
+                return Err(vec![Diagnostic::io(
+                    "SPX-J142",
+                    "the oci target requires the Project v1 scalar or Project v3/v16 Useful Data profile; no other profile is wired to OCI packaging",
+                )]);
+            }
+        }
+        self.published_subject = Some(OCI_PUBLICATION_SUBJECT);
+        self.recheck()
+            .map_err(|drift| self.publication_uncertainty(drift))
+    }
+
+    /// Prepare an exact owned npm package for an explicitly supplied trusted
+    /// publication host. The callback owns filesystem effects, not source or
+    /// capsule authority. Errors do not authorize cleanup or promise rollback.
+    pub fn build_owned_npm_with(
+        &mut self,
+        output: &Path,
+        publish: impl FnOnce(&ProjectNpmPublication, &Path) -> Result<(), Vec<Diagnostic>>,
+    ) -> Result<(), Vec<Diagnostic>> {
+        if !self.manifest.is_v8()
+            && !self.manifest.is_v9()
+            && !self.manifest.is_v10()
+            && !self.manifest.is_v11()
+        {
+            return Err(vec![Diagnostic::io(
+                "SPX-J114",
+                "owned npm publication requires the exact Project v8, v9, v10, or v11 profile",
+            )]);
+        }
+        let prepared = npm::prepare(
+            &self.manifest,
+            &self.public_api_program,
+            &self.project_revision,
+            &self.workspace_revision,
+            self.semantic.graph_digest(),
+            MAX_PROJECT_NPM_BUILD_BYTES,
+        )
+        .map_err(|error| vec![error])?;
+        let plan = ProjectNpmPublication::prepare(&prepared, self.manifest.schema())
+            .map_err(|error| vec![error])?;
+        self.recheck()?;
+        publish(&plan, output)?;
+        self.published_subject = Some(NPM_PUBLICATION_SUBJECT);
+        self.recheck()
+            .map_err(|drift| self.publication_uncertainty(drift))
+    }
+
+    /// Build one authenticated native executable. Ordinary profiles use the
+    /// entry-only closure; command profiles use the admitted entry-plus-command
+    /// public closure selected by the manifest stable ID.
+    ///
+    /// The executable is compiled from exactly the linked entry HIR that Web
+    /// publication and internal lowering-equivalence evidence consume. The
+    /// destination must not exist, so publication never clobbers a file the
+    /// caller did not create for this exact operation.
+    pub fn build_native(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
+        if self.manifest.project_profile().is_source_local_future() {
+            return Err(vec![Diagnostic::io(
+                "SPX-B116",
+                "source-local-future.v1 has no ordinary native emitter",
+            )]);
+        }
+        if self.manifest.project_profile() == ProjectProfile::PublicGenericWasmProviderV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-B104",
+                "public-generic-wasm-provider.v1 does not admit native executable publication",
+            )]);
+        }
+        if self.manifest.project_profile() == ProjectProfile::OwnedDataApiV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-I308",
+                "Project v8 owned-data-api.v1 does not admit native executable publication",
+            )]);
+        }
+        if self.manifest.project_profile() == ProjectProfile::FlatOwnedRecordApiV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-B104",
+                "Project v9 does not expose a native executable aggregate ABI",
+            )]);
+        }
+        if self.manifest.project_profile() == ProjectProfile::OwnedUtf8ApiV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-I308",
+                "Project v10 owned-utf8-api.v1 does not admit native executable publication",
+            )]);
+        }
+        if self.manifest.project_profile() == ProjectProfile::NestedOwnedRecordApiV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-B104",
+                "Project v11 does not expose a native executable aggregate ABI",
+            )]);
+        }
+        if self.manifest.project_profile().is_filesystem() {
+            return Err(vec![Diagnostic::io(
+                "SPX-I308",
+                "filesystem execution requires an explicitly injected provider",
+            )]);
+        }
+        let mut destination =
+            native_publication::NativeOutput::prepare(output).map_err(|error| vec![error])?;
+        let profile = self.manifest.project_profile();
+        let prepared = match profile {
+            ProjectProfile::SourceCommandSelectedFileV1 => {
+                crate::codegen::emit_hir_c_with_selected_file_command(&self.entry_program)
+            }
+            ProjectProfile::SourceCommandSelectedFileResourceV1 => {
+                crate::codegen::emit_hir_c_with_selected_file_resource_command(&self.entry_program)
+            }
+            ProjectProfile::SourceCommandV1 => {
+                crate::codegen::emit_hir_c_with_source_command(&self.entry_program)
+            }
+            ProjectProfile::SourceCommandResourceOutputV1 => {
+                crate::codegen::emit_hir_c_with_source_resource_command(&self.entry_program)
+            }
+            ProjectProfile::UsefulDataCommandV2 => crate::codegen::emit_hir_c_with_native_command(
+                &self.public_api_program,
+                self.manifest.command().unwrap_or(""),
+            ),
+            ProjectProfile::LanguageCommandIoV1 => {
+                crate::codegen::emit_hir_c_with_language_command_io(
+                    &self.public_api_program,
+                    self.manifest.command().unwrap_or(""),
+                )
+            }
+            ProjectProfile::StdinStreamCommandIoV1 => crate::codegen::emit_hir_c_with_stdin_stream(
+                &self.public_api_program,
+                self.manifest.command().unwrap_or(""),
+            ),
+            ProjectProfile::StdinStreamCommandIoV2 => {
+                crate::codegen::emit_hir_c_with_stdin_stream_exit_status(
+                    &self.public_api_program,
+                    self.manifest.command().unwrap_or(""),
+                )
+            }
+            ProjectProfile::StdinStreamTextCommandIoV1 => {
+                crate::codegen::emit_hir_c_with_stdin_stream_text(
+                    &self.public_api_program,
+                    self.manifest.command().unwrap_or(""),
+                )
+            }
+            ProjectProfile::StdinStreamDataCommandIoV1 => {
+                crate::codegen::emit_hir_c_with_stdin_stream_data(
+                    &self.public_api_program,
+                    self.manifest.command().unwrap_or(""),
+                )
+            }
+            ProjectProfile::StdinStreamDataCommandIoV2 => {
+                crate::codegen::emit_hir_c_with_stdin_stream_records(
+                    &self.public_api_program,
+                    self.manifest.command().unwrap_or(""),
+                )
+            }
+            ProjectProfile::StdinStreamOwnedDataCommandIoV1 => {
+                crate::codegen::emit_hir_c_with_stdin_stream_owned_data(
+                    &self.public_api_program,
+                    self.manifest.command().unwrap_or(""),
+                )
+            }
+            ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => {
+                crate::codegen::emit_hir_c_with_stdin_stream_collection_records(
+                    &self.public_api_program,
+                    self.manifest.command().unwrap_or(""),
+                )
+            }
+            ProjectProfile::StdinStreamNestedOutcomeCommandIoV1 => {
+                crate::codegen::emit_hir_c_with_stdin_stream_nested_outcomes(
+                    &self.public_api_program,
+                    self.manifest.command().unwrap_or(""),
+                )
+            }
+            ProjectProfile::LineCommandIoV1 => crate::codegen::emit_hir_c_with_line_command_io(
+                &self.public_api_program,
+                self.manifest.command().unwrap_or(""),
+            ),
+            ProjectProfile::NetworkCommandIoV1 => crate::codegen::emit_hir_c_with_network_io(
+                &self.public_api_program,
+                self.manifest.command().unwrap_or(""),
+            ),
+            ProjectProfile::HttpsCommandIoV1 => crate::codegen::emit_hir_c_with_https_io(
+                &self.public_api_program,
+                self.manifest.command().unwrap_or(""),
+            ),
+            _ => crate::codegen::emit_hir_c(&self.entry_program),
+        }
+        .map_err(|error| vec![error])?;
+        self.recheck()?;
+        if matches!(
+            profile,
+            ProjectProfile::UsefulDataCommandV2
+                | ProjectProfile::LanguageCommandIoV1
+                | ProjectProfile::StdinStreamCommandIoV1
+                | ProjectProfile::StdinStreamCommandIoV2
+                | ProjectProfile::StdinStreamTextCommandIoV1
+                | ProjectProfile::StdinStreamDataCommandIoV1
+                | ProjectProfile::StdinStreamDataCommandIoV2
+                | ProjectProfile::StdinStreamOwnedDataCommandIoV1
+                | ProjectProfile::StdinStreamCollectionRecordCommandIoV1
+                | ProjectProfile::StdinStreamNestedOutcomeCommandIoV1
+                | ProjectProfile::LineCommandIoV1
+                | ProjectProfile::NetworkCommandIoV1
+                | ProjectProfile::HttpsCommandIoV1
+        ) {
+            match profile {
+                ProjectProfile::HttpsCommandIoV1 => {
+                    crate::codegen::compile_native_https_command_executable_into(
+                        &prepared,
+                        destination.file(),
+                    )
+                }
+                // The network runtime owns a resolver worker, so its
+                // translation unit links the platform thread library.
+                ProjectProfile::NetworkCommandIoV1 => {
+                    crate::codegen::compile_native_network_command_executable_into(
+                        &prepared,
+                        destination.file(),
+                    )
+                }
+                _ => crate::codegen::compile_native_command_executable_into(
+                    &prepared,
+                    destination.file(),
+                ),
+            }
+        } else {
+            crate::codegen::compile_native_executable_into(&prepared, destination.file())
+        }
+        .map_err(|error| vec![error])?;
+        destination.retain().map_err(|error| vec![error])?;
+        self.published_subject = Some(NATIVE_PUBLICATION_SUBJECT);
+        self.recheck()
+            .map_err(|drift| self.publication_uncertainty(drift))
+    }
+
+    fn publication_uncertainty(&self, mut drift: Vec<Diagnostic>) -> Vec<Diagnostic> {
+        let Some(subject) = self.published_subject else {
+            return drift;
+        };
+        let mut diagnostics = vec![Diagnostic::io(
+            "SPX-J103",
+            format!("Project v1 inputs drifted after one complete {subject} was published"),
+        )];
+        diagnostics.append(&mut drift);
+        diagnostics
+    }
+
+    fn recheck(&mut self) -> Result<(), Vec<Diagnostic>> {
+        match &mut self.host_policy {
+            Some(selection) => selection.recheck()?,
+            None => host_policy::require_unselected(&self.root)?,
+        }
+        for declared in &self.declared_inputs {
+            declared.recheck()?;
+        }
+        for directory in &self.held_directories {
+            directory.recheck()?;
+        }
+        self.held_manifest.recheck()?;
+        for source in &mut self.held_sources {
+            source.recheck()?;
+        }
+        for subject in &mut self.held_dependency_sources {
+            subject.recheck()?;
+        }
+        Ok(())
+    }
+}
+
+/// Authenticate, resolve, and retain one project for exactly one caller
+/// operation. A final held-object recheck runs regardless of operation result.
+pub fn with_authenticated_project<T>(
+    manifest_path: &Path,
+    operation: impl FnOnce(&mut ProjectSnapshot) -> Result<T, Vec<Diagnostic>>,
+) -> Result<T, Vec<Diagnostic>> {
+    with_snapshot_operation(load_snapshot(manifest_path)?, operation)
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum ProjectHostAccess {
+    Generic,
+    Inspection,
+    Strict,
+}
+
+pub(crate) fn require_unselected_host_law_policy(root: &Path) -> Result<(), Vec<Diagnostic>> {
+    host_policy::require_unselected(root)
+}
+
+pub(crate) fn require_host_law_workspace_admission(
+    root: &Path,
+    permit: Option<&mut host_policy::StrictWorkspacePermit>,
+) -> Result<(), Vec<Diagnostic>> {
+    host_policy::require_workspace_admission(root, permit)
+}
+
+fn with_snapshot_operation<T>(
+    mut snapshot: ProjectSnapshot,
+    operation: impl FnOnce(&mut ProjectSnapshot) -> Result<T, Vec<Diagnostic>>,
+) -> Result<T, Vec<Diagnostic>> {
+    let result = operation(&mut snapshot);
+    let recheck = snapshot
+        .recheck()
+        .map_err(|drift| snapshot.publication_uncertainty(drift));
+    match (result, recheck) {
+        (Ok(value), Ok(())) => Ok(value),
+        (Ok(_), Err(drift)) => Err(drift),
+        (Err(primary), Ok(())) => Err(primary),
+        (Err(mut primary), Err(mut drift)) => {
+            if !primary
+                .iter()
+                .any(|diagnostic| matches!(diagnostic.code, "SPX-J102" | "SPX-J103"))
+            {
+                primary.append(&mut drift);
+            }
+            Err(primary)
+        }
+    }
+}
+
+/// Build, check, and execute the declared test closure from exact caller-owned
+/// bytes. This path has no filesystem, handle, process, or publication
+/// authority; it is intended for immutable rendered subjects that must be
+/// admitted before any publication authority is acquired.
+#[doc(hidden)]
+pub fn validate_owned_project_test(
+    manifest_source: &str,
+    sources: &[(&str, &str)],
+    options: &ProjectExecutionOptions,
+) -> Result<ProjectExecution, Vec<Diagnostic>> {
+    let manifest = ProjectManifest::parse(manifest_source)?;
+    if sources.len() != manifest.sources().len()
+        || sources
+            .iter()
+            .zip(manifest.sources())
+            .any(|((actual, _), expected)| *actual != expected.as_str())
+    {
+        return Err(grammar(
+            "owned Project source bytes must exactly match the ordered manifest inventory",
+        ));
+    }
+    let mut total_source_bytes = 0usize;
+    let mut workspace_sources = Vec::with_capacity(sources.len());
+    for (path, source) in sources {
+        total_source_bytes = total_source_bytes
+            .checked_add(source.len())
+            .ok_or_else(|| capacity("total_source_bytes", MAX_TOTAL_SOURCE_BYTES))?;
+        if total_source_bytes > MAX_TOTAL_SOURCE_BYTES {
+            return Err(capacity("total_source_bytes", MAX_TOTAL_SOURCE_BYTES));
+        }
+        workspace_sources.push(SemanticWorkspaceSource {
+            path: (*path).to_owned(),
+            source: (*source).to_owned(),
+        });
+    }
+    let built = build::build_owned(&manifest, workspace_sources)?;
+    let revision = ProjectRevision::from_built(manifest, built);
+    revision.check()?;
+    revision.execute_test(options)
+}
+
+pub(crate) fn load_snapshot(manifest_path: &Path) -> Result<ProjectSnapshot, Vec<Diagnostic>> {
+    load_snapshot_for_host_access(manifest_path, ProjectHostAccess::Generic)
+}
+
+fn load_snapshot_for_host_access(
+    manifest_path: &Path,
+    access: ProjectHostAccess,
+) -> Result<ProjectSnapshot, Vec<Diagnostic>> {
+    load_snapshot_building(manifest_path, access, |manifest, sources| {
+        if manifest.project_profile() == ProjectProfile::SourceLocalFutureIndexedRustV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-H006",
+                "source-local-future-indexed-rust.v1 requires authenticated indexed Rust selections",
+            )]);
+        }
+        let built = build::build_owned(&manifest, sources)?;
+        Ok((Arc::new(ProjectRevision::from_built(manifest, built)), ()))
+    })
+    .map(|(snapshot, ())| snapshot)
+}
+
+/// The cache is staged by value: failed authentication or admission cannot alter
+/// a caller's retained cache. No filesystem check is bypassed on a cache hit.
+pub(crate) fn load_snapshot_with_frontend(
+    manifest_path: &Path,
+    mut cache: ProjectFrontendCache,
+) -> Result<(ProjectSnapshot, ProjectFrontendCache, serde_json::Value), Vec<Diagnostic>> {
+    let (snapshot, work) = load_snapshot_building(
+        manifest_path,
+        ProjectHostAccess::Generic,
+        |manifest, sources| {
+            let build = cache.build_authenticated_sources(&manifest, sources)?;
+            let work = incremental::work_value(&build)?;
+            Ok((build.into_revision(), work))
+        },
+    )?;
+    Ok((snapshot, cache, work))
+}
+
+const WEB_PUBLICATION_SUBJECT: &str = "digest-bound Web package";
+const NPM_PUBLICATION_SUBJECT: &str = "installable npm package";
+const NATIVE_PUBLICATION_SUBJECT: &str = "native executable";
+const OCI_PUBLICATION_SUBJECT: &str = "OCI deployable artifact";
+const AUTHENTICATED_PROJECT_SUBJECT_OPERATION: &str = "authenticated Project subject operation";

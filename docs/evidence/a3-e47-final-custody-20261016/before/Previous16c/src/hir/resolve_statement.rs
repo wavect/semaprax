@@ -1,0 +1,611 @@
+//! Assignment-target lowering and bounded-loop admission.
+//!
+//! Also owns the `resolve_expr` entry point that drives the iterative
+//! expression resolver.
+
+use std::collections::BTreeMap;
+
+use crate::ast::{Expr, ExprKind, ParamMode, Span, Statement, Type};
+use crate::diagnostic::Diagnostic;
+use crate::source_verify::is_scalar_source_type;
+
+use super::expr_nodes::ResolvedExpr;
+use super::ids::{DeclarationId, FunctionExecutionId};
+use super::monomorphize::substitute_type;
+use super::nodes::{DeclarationKind, ResolvedBinding, ResolvedType, is_scalar_resolved_type};
+use super::{Binding, Resolver};
+
+#[cfg(test)]
+mod nested_byte_tests;
+#[cfg(test)]
+pub(in crate::hir) mod text_reference;
+
+impl Resolver<'_> {
+    pub(super) fn resolve_expr(
+        &self,
+        function: &FunctionExecutionId,
+        expr: &Expr,
+        bindings: &BTreeMap<String, Binding>,
+        path: &str,
+    ) -> Result<ResolvedExpr, Diagnostic> {
+        #[cfg(test)]
+        if text_reference::active() {
+            text_reference::note_expression();
+            return self.resolve_expr_recursive_reference(function, expr, bindings, path);
+        }
+        self.resolve_expr_iterative(function, expr, bindings, path)
+    }
+
+    /// Resolve one assignment target against the enclosing scope. The target
+    /// must name an existing `let mut` local; parameters, contracts bindings,
+    /// and immutable locals are rejected before the assigned value resolves.
+    /// Resolve one assignment target against the enclosing scope. The target
+    /// must name an existing `let mut` local; parameters, contracts bindings,
+    /// and immutable locals are rejected before the assigned value resolves.
+    /// Simple assignments report `SPX-U101`; Field Mutation v1 targets report
+    /// `SPX-U107`.
+    pub(super) fn resolve_assign_target(
+        &self,
+        name: &str,
+        name_span: Span,
+        bindings: &BTreeMap<String, Binding>,
+        immutable_code: &'static str,
+    ) -> Result<ResolvedBinding, Diagnostic> {
+        let binding = bindings.get(name).ok_or_else(|| {
+            self.error("SPX-H002", format!("unresolved value `{name}`"), name_span)
+        })?;
+        if !binding.mutable {
+            return Err(self.error(
+                immutable_code,
+                format!("cannot assign to immutable binding `{name}`; declare it with `let mut`"),
+                name_span,
+            ));
+        }
+        Ok(ResolvedBinding {
+            id: binding.id.clone(),
+            name: name.to_owned(),
+            ownership: binding.ownership,
+            ty: binding.ty.clone(),
+            span: name_span,
+        })
+    }
+
+    /// Field Mutation v1: resolve the one direct `<binding>.<field>` level.
+    /// The base must be a record/class-typed mutable local and the field must
+    /// be a checked Copy scalar; everything else fails closed before the
+    /// assigned value resolves.
+    pub(super) fn resolve_assign_field_target(
+        &self,
+        binding: &ResolvedBinding,
+        field: &crate::ast::FieldTarget,
+    ) -> Result<(DeclarationId, ResolvedType), Diagnostic> {
+        let ResolvedType::Nominal {
+            declaration: owner,
+            arguments,
+        } = &binding.ty
+        else {
+            return Err(self.error(
+                "SPX-U112",
+                format!(
+                    "cannot mutate a field of non-record value `{}`",
+                    binding.ty.identity_key()
+                ),
+                field.span,
+            ));
+        };
+        if self.declarations.declaration(owner).is_none_or(|item| {
+            !matches!(item.kind, DeclarationKind::Record | DeclarationKind::Class)
+        }) {
+            return Err(self.error(
+                "SPX-U112",
+                format!(
+                    "cannot mutate a field of non-record value `{}`",
+                    binding.ty.identity_key()
+                ),
+                field.span,
+            ));
+        }
+        let field_id = self
+            .declarations
+            .field_id(owner, &field.name)
+            .cloned()
+            .ok_or_else(|| {
+                self.error(
+                    "SPX-U108",
+                    format!("record `{owner}` has no field `{}`", field.name),
+                    field.span,
+                )
+            })?;
+        let declared = self
+            .declarations
+            .record_fields(owner)
+            .and_then(|fields| fields.iter().find(|item| item.id == field_id))
+            .map(|item| item.ty.clone())
+            .ok_or_else(|| {
+                self.error(
+                    "SPX-H001",
+                    format!("field `{field_id}` has no resolved type"),
+                    field.span,
+                )
+            })?;
+        let field_ty = substitute_type(&declared, owner, arguments)?;
+        if !is_scalar_resolved_type(&field_ty) {
+            return Err(self.error(
+                "SPX-U109",
+                "field mutation v1 supports only direct scalar Copy record fields",
+                field.span,
+            ));
+        }
+        Ok((field_id, field_ty))
+    }
+
+    /// Bounded While-Loops v1 plus Indexed Byte Loop v2 admission profile: a
+    /// loop condition or body may contain Copy-scalar operations — scalar
+    /// literals, names, checked
+    /// scalar arithmetic and comparisons, nested `if`s over scalars, blocks
+    /// with scalar statements, scalar `let`/assignment statements, nested
+    /// while loops, monomorphic calls to scalar-value functions, exact
+    /// read-only `byte_len`/`byte_get`, and one guard-free direct
+    /// `byte_get`/`Option<u8>` match. Every other construct (records, variants,
+    /// general matches, `?`, projections, method
+    /// calls, strings, unsafe boundaries, generic calls, non-scalar calls)
+    /// is rejected fail-closed outside the admitted per-iteration lifetime profile.
+    /// Computed String conditions have a separate per-iteration cleanup region.
+    pub(super) fn reject_while_disallowed(&self, expression: &Expr) -> Result<(), Diagnostic> {
+        self.reject_while_disallowed_scoped(expression, None)
+    }
+    pub(super) fn reject_while_disallowed_scoped(
+        &self,
+        expression: &Expr,
+        execution: Option<&FunctionExecutionId>,
+    ) -> Result<(), Diagnostic> {
+        self.reject_while_disallowed_in_scope(expression, execution, None)
+    }
+
+    /// Source verification owns outermost-byte ancestry and entry availability.
+    /// This lowering pre-scan independently narrows each nested source against
+    /// the current immutable typed bindings, then scans its COMPLETE body with
+    /// the unchanged bounded-loop restrictions. The old contextless receiver
+    /// remains strict, including for Vec/record/owned traversal callers.
+    pub(super) fn reject_while_disallowed_in_scope(
+        &self,
+        expression: &Expr,
+        execution: Option<&FunctionExecutionId>,
+        byte_scope: Option<&BTreeMap<String, Binding>>,
+    ) -> Result<(), Diagnostic> {
+        if execution
+            .and_then(FunctionExecutionId::monomorphic_declaration)
+            .and_then(|owner| {
+                self.program
+                    .functions()
+                    .iter()
+                    .find(|f| f.stable_id == owner.as_str())
+            })
+            .is_some_and(|function| {
+                crate::finite_owned_record_loop::source(function, expression).is_some()
+            })
+        {
+            return Ok(());
+        }
+        let generic = execution
+            .and_then(FunctionExecutionId::monomorphic_declaration)
+            .and_then(|owner| {
+                self.program
+                    .functions()
+                    .iter()
+                    .find(|f| f.stable_id == owner.as_str())
+            })
+            .filter(|f| crate::source_verify::generic_collection_profile(f));
+        enum Item<'a> {
+            Expression(&'a Expr),
+            Statement(&'a Statement),
+        }
+
+        let mut pending = vec![Item::Expression(expression)];
+        while let Some(item) = pending.pop() {
+            let expression = match item {
+                Item::Statement(statement) => match statement {
+                    Statement::Assign {
+                        name,
+                        field: None,
+                        value,
+                        ..
+                    } if self.source_record_owner_renewal(name, value) => {
+                        let ExprKind::Call { args, .. } = &value.kind else {
+                            unreachable!("record renewal admission requires a call")
+                        };
+                        pending.extend(args.iter().rev().map(Item::Expression));
+                        continue;
+                    }
+                    Statement::Let { value, .. } | Statement::Assign { value, .. } => value,
+                    Statement::Unsafe { span, .. } => {
+                        return Err(self.error(
+                            "SPX-T252",
+                            "unsafe boundary statements are not yet admitted in while bodies",
+                            *span,
+                        ));
+                    }
+                    Statement::While {
+                        condition, body, ..
+                    } => {
+                        pending.push(Item::Expression(body));
+                        pending.push(Item::Expression(condition));
+                        continue;
+                    }
+                    Statement::For { values, body, .. }
+                        if byte_scope.is_some_and(|scope| {
+                            matches!(&values.kind, ExprKind::Var(name)
+                                if scope.get(name).is_some_and(super::resolve_for::bytes::admits))
+                                && execution.is_none_or(|owner| {
+                                    owner
+                                        .monomorphic_declaration()
+                                        .and_then(|id| {
+                                            self.program
+                                                .functions()
+                                                .iter()
+                                                .find(|f| f.stable_id == id.as_str())
+                                        })
+                                        .is_some_and(|function| {
+                                            super::resolve_for::bytes::source_byte_ancestry(
+                                                &function.body,
+                                                expression,
+                                                scope,
+                                            )
+                                        })
+                                })
+                        }) =>
+                    {
+                        // Same left-to-right pre-scan order as While. Never
+                        // skip an inner subtree or its unsafe/call/alloc gates.
+                        pending.push(Item::Expression(body));
+                        pending.push(Item::Expression(values));
+                        continue;
+                    }
+                    Statement::For { span, .. }
+                    | Statement::ForBorrow { span, .. }
+                    | Statement::ForOwn { span, .. } => {
+                        return Err(self.error(
+                            "SPX-H006",
+                            "nested for traversal reached bounded-loop HIR admission",
+                            *span,
+                        ));
+                    }
+                },
+                Item::Expression(expression) => expression,
+            };
+
+            match &expression.kind {
+                ExprKind::LexicalExit { kind, value } => {
+                    if let Some(value) = value {
+                        if *kind != crate::ast::LexicalExitKind::Return
+                            || !crate::hir::lexical_exit::return_operand::source_named_handoff(
+                                value,
+                            )
+                        {
+                            pending.push(Item::Expression(value));
+                        }
+                    }
+                }
+                ExprKind::Closure { .. } => {}
+
+                ExprKind::Int(_)
+                | ExprKind::Int32(_)
+                | ExprKind::Char(_)
+                | ExprKind::Uint8(_)
+                | ExprKind::Usize(_)
+                | ExprKind::Float32(_)
+                | ExprKind::Float64(_)
+                | ExprKind::Bool(_)
+                | ExprKind::Var(_) => {}
+                // Owned String Loops v1: a literal allocates one owned
+                // String in the per-iteration body region.
+                ExprKind::String(_) => {}
+                ExprKind::BorrowedUtf8Literal(text) => {
+                    crate::hir::static_text::validate_literal(text)?
+                }
+                ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. } => {
+                    return Err(self.error(
+                        "SPX-T252",
+                        "fixed-array literals are not admitted in bounded while bodies",
+                        expression.span,
+                    ));
+                }
+                ExprKind::VecConstructor { value, .. } | ExprKind::Unary { value, .. } => {
+                    pending.push(Item::Expression(value))
+                }
+                ExprKind::Binary { left, right, .. } => {
+                    pending.push(Item::Expression(right));
+                    pending.push(Item::Expression(left));
+                }
+                ExprKind::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } => {
+                    pending.push(Item::Expression(else_branch));
+                    pending.push(Item::Expression(then_branch));
+                    pending.push(Item::Expression(condition));
+                }
+                ExprKind::Block { statements, tail } => {
+                    pending.push(Item::Expression(tail));
+                    pending.extend(statements.iter().rev().map(Item::Statement));
+                }
+                ExprKind::Call {
+                    type_arguments,
+                    args,
+                    name,
+                    ..
+                } => {
+                    let vec_operation = crate::vec_ops::by_name(name);
+                    if !type_arguments.is_empty()
+                        && vec_operation.is_none()
+                        && name != crate::vec_field::NAME
+                        && crate::map_ops::by_generic_name(name, type_arguments).is_none()
+                    {
+                        return Err(self.error(
+                            "SPX-T252",
+                            "generic calls are not yet admitted in while bodies",
+                            expression.span,
+                        ));
+                    }
+                    if let Some(operation) = vec_operation {
+                        if !operation.admitted_in_while()
+                            || (if operation == crate::vec_ops::VecOp::StrAt {
+                                !type_arguments.is_empty()
+                                    || !matches!(args.as_slice(), [source, _] if matches!(source.kind, ExprKind::Var(_)))
+                            } else {
+                                type_arguments.len() != 1
+                                    || !(crate::vec_ops::ast_element_is_admitted(&type_arguments[0]) || crate::source_verify::copy_record_source_admitted(self.program, &type_arguments[0]) || crate::source_verify::owned_leaf_source_admitted(self.program, &type_arguments[0]) || generic.is_some_and(|f| matches!(&type_arguments[0], Type::Named { name, arguments } if arguments.is_empty() && f.type_parameters.iter().any(|parameter| parameter.name == *name))))
+                            })
+                            || args.len()
+                                != if operation == crate::vec_ops::VecOp::UpdateField {
+                                    // The source-only literal selector is removed before HIR.
+                                    4
+                                } else {
+                                    operation.arity()
+                                }
+                        {
+                            return Err(self.error(
+                                "SPX-T283",
+                                "only exact typed scalar Vec update/read operations are admitted in while bodies",
+                                expression.span,
+                            ));
+                        }
+                    }
+                    if let Some(operation) = crate::byte_ops::by_name(name) {
+                        if (!operation.admitted_in_while()
+                            && !crate::source_verify::finite_row_allocation(
+                                self.program,
+                                expression,
+                            )
+                            && !self
+                                .fused_producer
+                                .is_some_and(|producer| std::ptr::eq(producer, expression)))
+                            || args.len() != operation.arity()
+                        {
+                            return Err(self.error(
+                                "SPX-T252",
+                                format!(
+                                    "byte operation `{name}` is not admitted in while bodies; only exact byte_len, byte_get and byte_range reads and the loop-carried bytes_set/bytes_set5/bytes_set1_or5_from_slice/bytes_set1_or6_or48_from_slice fills qualify"
+                                ),
+                                expression.span,
+                            ));
+                        }
+                    }
+                    // Only calls that resolve to a monomorphic function with
+                    // by-value scalar parameters and a scalar result keep the
+                    // loop cleanup-edge-free; everything else is rejected
+                    // before any argument in the same order as the recursive
+                    // admission scan.
+                    let declared = self
+                        .program
+                        .functions()
+                        .iter()
+                        .find(|function| function.name == *name);
+                    if let Some(declared) = declared {
+                        let scalar_signature = self.byte_helpers.target(declared)
+                            || crate::stdin_stream_ops::ast_forward_signature(declared)
+                            || (crate::loop_calls::effects_admitted(&declared.effects)
+                                && crate::loop_calls::ast_result_admitted(
+                                    self.program,
+                                    &declared.return_type,
+                                )
+                                && declared.params.iter().all(|param| {
+                                    crate::loop_calls::ast_param_admitted(
+                                        self.program,
+                                        param.mode,
+                                        &param.ty,
+                                    ) || (param.mode == crate::ast::ParamMode::Borrow
+                                        && self.resolve_type(&param.ty, expression.span).is_ok_and(
+                                            |ty| {
+                                                crate::hir::iterator_loop::is_owner_renewal_record(
+                                                    &self.declarations,
+                                                    &ty,
+                                                )
+                                            },
+                                        ))
+                                }));
+                        if !scalar_signature {
+                            return Err(self.error(
+                                "SPX-T252",
+                                format!(
+                                    "call `{name}` is not admitted in loop bodies; use scalar/text signatures with read-only input effects. For output, build one string in the loop and write it once afterwards"
+                                ),
+                                expression.span,
+                            ));
+                        }
+                    }
+                    pending.extend(args.iter().rev().map(Item::Expression));
+                }
+                ExprKind::MethodCall { .. } => {
+                    return Err(self.error(
+                        "SPX-T252",
+                        "method calls are not yet admitted in while bodies",
+                        expression.span,
+                    ));
+                }
+                ExprKind::SuperMethod { .. } => {
+                    return Err(self.error(
+                        "SPX-T252",
+                        "super method calls are not yet admitted in while bodies",
+                        expression.span,
+                    ));
+                }
+                ExprKind::Project { base, .. } => pending.push(Item::Expression(base)),
+                ExprKind::ConstructRecord {
+                    type_name,
+                    type_arguments,
+                    fields,
+                    ..
+                } => {
+                    let ty = Type::Named {
+                        name: type_name.clone(),
+                        arguments: type_arguments.clone(),
+                    };
+                    if !crate::source_verify::copy_record_source_admitted(self.program, &ty)
+                        && !crate::source_verify::owned_leaf_source_admitted(self.program, &ty)
+                    {
+                        return Err(self.error(
+                            "SPX-T252",
+                            "record construction is not yet admitted in while bodies",
+                            expression.span,
+                        ));
+                    }
+                    pending.extend(
+                        fields
+                            .iter()
+                            .rev()
+                            .map(|field| Item::Expression(&field.value)),
+                    );
+                }
+                ExprKind::ConstructVariant {
+                    type_name,
+                    type_arguments,
+                    fields,
+                    ..
+                } => {
+                    let ty = Type::Named {
+                        name: type_name.clone(),
+                        arguments: type_arguments.clone(),
+                    };
+                    let resolved = self.resolve_type(&ty, expression.span)?;
+                    if !crate::loop_calls::resolved_match_scrutinee_admitted(
+                        &self.declarations,
+                        &resolved,
+                    ) {
+                        return Err(self.error(
+                            "SPX-T252",
+                            "variant construction in a loop requires only Copy scalar payloads",
+                            expression.span,
+                        ));
+                    }
+                    pending.extend(
+                        fields
+                            .iter()
+                            .rev()
+                            .map(|field| Item::Expression(&field.value)),
+                    );
+                }
+                ExprKind::UpdateRecord { .. } => {
+                    return Err(self.error(
+                        "SPX-T252",
+                        "record updates are not yet admitted in while bodies",
+                        expression.span,
+                    ));
+                }
+                // Owned String Loops v2: HIR validation narrows the
+                // scrutinee to Copy scalars and Copy-payload variants.
+                ExprKind::Match {
+                    scrutinee, arms, ..
+                } => {
+                    for arm in arms.iter().rev() {
+                        pending.push(Item::Expression(&arm.value));
+                        if let Some(guard) = &arm.guard {
+                            pending.push(Item::Expression(guard));
+                        }
+                    }
+                    pending.push(Item::Expression(scrutinee));
+                }
+                ExprKind::Try { .. } => {
+                    return Err(self.error(
+                        "SPX-T252",
+                        "postfix `?` propagation is not yet admitted in while bodies",
+                        expression.span,
+                    ));
+                }
+                // Resumable Effects control profile (issue #296):
+                // `parser::yields` admits a `yield` only as a direct
+                // statement value here; its request is an ordinary scalar
+                // expression, and `hir::resolve_yield` owns the typing.
+                ExprKind::Yield { request } => pending.push(Item::Expression(request)),
+            }
+        }
+        Ok(())
+    }
+
+    fn source_record_owner_renewal(&self, binding: &str, value: &Expr) -> bool {
+        if self.byte_helpers.assignment(binding, value) {
+            return true;
+        }
+        let ExprKind::Call {
+            name,
+            type_arguments,
+            args,
+            ..
+        } = &value.kind
+        else {
+            return false;
+        };
+        let Some(target) = self
+            .program
+            .functions()
+            .iter()
+            .find(|function| function.name == *name)
+        else {
+            return false;
+        };
+        type_arguments.is_empty()
+            && target.type_parameters.is_empty()
+            && target.effects.is_empty()
+            && self
+                .resolve_type(&target.return_type, value.span)
+                .is_ok_and(|ty| {
+                    crate::hir::iterator_loop::is_owner_renewal_record(&self.declarations, &ty)
+                })
+            && target.params.len() == args.len()
+            && target
+                .params
+                .iter()
+                .zip(args)
+                .filter(|(parameter, argument)| {
+                    parameter.mode == crate::ast::ParamMode::Own
+                        && parameter.ty == target.return_type
+                        && matches!(&argument.kind, ExprKind::Var(name) if name == binding)
+                })
+                .count()
+                == 1
+            && target
+                .params
+                .iter()
+                .zip(args)
+                .all(|(parameter, argument)| match parameter.mode {
+                    crate::ast::ParamMode::Own => {
+                        parameter.ty == target.return_type
+                            && matches!(&argument.kind, ExprKind::Var(name) if name == binding)
+                    }
+                    crate::ast::ParamMode::Borrow => {
+                        matches!(argument.kind, ExprKind::Var(_))
+                            && self
+                                .resolve_type(&parameter.ty, value.span)
+                                .is_ok_and(|ty| {
+                                    crate::hir::iterator_loop::is_owner_renewal_record(
+                                        &self.declarations,
+                                        &ty,
+                                    ) || crate::loop_calls::resolved_renewal_view(&ty)
+                                })
+                    }
+                    crate::ast::ParamMode::Value => true,
+                    crate::ast::ParamMode::Shared => false,
+                })
+    }
+}

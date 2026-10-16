@@ -1,0 +1,655 @@
+//! Test-only recursive `while` statement checking and the oracle form of the
+//! `while` admission rules.
+
+use crate::ast::program_source::ProgramSource;
+use crate::ast::{Expr, ExprKind, Function, Span, Statement, Type};
+#[cfg(test)]
+use crate::diagnostic::Diagnostic;
+use crate::source_verify::binding::Binding;
+use crate::source_verify::diagnostics::{error, reject_native_unit_value};
+use crate::source_verify::oracle::check_expr;
+use crate::source_verify::type_table::TypeTable;
+use std::collections::HashMap;
+
+/// Recursive-oracle twin of the iterative verifier's `while` handling: the
+/// contract-context rejection, the collect-all admission scan, the condition
+/// typing check, ordinary body-block checking, and ownership-drift detection,
+/// emitted in exactly the same diagnostic order.
+#[cfg(test)]
+#[allow(clippy::too_many_arguments)]
+pub(super) fn check_while_statement(
+    program: &dyn ProgramSource,
+    current: &Function,
+    condition: &Expr,
+    body: &Expr,
+    statement_span: Span,
+    variables: &mut HashMap<String, Binding>,
+    functions: &HashMap<&str, &Function>,
+    types: &TypeTable<'_>,
+    result_type: Option<&Type>,
+    allow_moves: bool,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    if !allow_moves {
+        diagnostics.push(error(
+            program,
+            "SPX-T253",
+            "while statements are not allowed in contract expressions",
+            condition.span,
+        ));
+    }
+    let _ = reject_while_disallowed_oracle(program, condition, functions, types, diagnostics);
+    if crate::finite_owned_record_loop::source(current, body).is_none() {
+        let _ = reject_while_disallowed_oracle(program, body, functions, types, diagnostics);
+    }
+    let baseline = variables.clone();
+    let condition_value = super::matching::in_loop(|| {
+        check_expr(
+            program,
+            current,
+            condition,
+            variables,
+            functions,
+            types,
+            result_type,
+            allow_moves,
+            diagnostics,
+        )
+    });
+    if let Some(value) = condition_value {
+        if value.native_unit {
+            reject_native_unit_value(program, condition, &value, diagnostics);
+        } else if value.ty != Type::Bool {
+            diagnostics.push(error(
+                program,
+                "SPX-T251",
+                "`while` condition must be bool",
+                condition.span,
+            ));
+        }
+    }
+    let mut names = baseline.keys().collect::<Vec<_>>();
+    names.sort();
+    for name in names {
+        let before = &baseline[name];
+        if variables.get(name).is_none_or(|now| {
+            now.availability != before.availability
+                || now.moved_places != before.moved_places
+                || now.definitely_partial != before.definitely_partial
+        }) {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                format!("ownership of `{name}` changes inside a while condition"),
+                condition.span,
+            ));
+        }
+    }
+    let body_value = super::matching::in_loop(|| {
+        check_expr(
+            program,
+            current,
+            body,
+            variables,
+            functions,
+            types,
+            result_type,
+            allow_moves,
+            diagnostics,
+        )
+    });
+    if body_value.as_ref().is_some_and(|v| v.ty == Type::Never) && crate::ast::returns_only(body) {
+        for (name, before) in &baseline {
+            variables.insert(name.clone(), before.clone());
+        }
+    }
+    for (name, before) in &baseline {
+        let drifted = match variables.get(name) {
+            Some(now) => {
+                now.availability != before.availability
+                    || now.moved_places != before.moved_places
+                    || now.definitely_partial != before.definitely_partial
+            }
+            None => true,
+        };
+        if drifted {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                format!(
+                    "ownership of `{name}` changes inside a while loop, which is not yet admitted"
+                ),
+                statement_span,
+            ));
+        }
+    }
+}
+
+/// Collect-all admission scan used by the recursive oracle; mirrors
+/// `IterativeVerifier::reject_while_disallowed` diagnostic for diagnostic.
+#[cfg(test)]
+pub(in crate::source_verify) fn reject_while_disallowed_oracle(
+    program: &dyn ProgramSource,
+    expression: &Expr,
+    functions: &HashMap<&str, &Function>,
+    types: &TypeTable<'_>,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Result<(), ()> {
+    reject_with_scratch(program, expression, functions, types, diagnostics, None)
+}
+pub(in crate::source_verify) fn reject_finite_iterator_body_oracle(
+    program: &dyn ProgramSource,
+    current: &Function,
+    expression: &Expr,
+    functions: &HashMap<&str, &Function>,
+    types: &TypeTable<'_>,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Result<(), ()> {
+    let scratch = crate::finite_byte_scratch::source(current, expression);
+    reject_with_scratch(
+        program,
+        expression,
+        functions,
+        types,
+        diagnostics,
+        scratch.as_ref(),
+    )
+}
+pub(in crate::source_verify) fn reject_with_scratch(
+    program: &dyn ProgramSource,
+    expression: &Expr,
+    functions: &HashMap<&str, &Function>,
+    types: &TypeTable<'_>,
+    diagnostics: &mut Vec<Diagnostic>,
+    scratch: Option<&crate::finite_byte_scratch::SourceScratch<'_>>,
+) -> Result<(), ()> {
+    match &expression.kind {
+        ExprKind::LexicalExit { value, .. } => match value {
+            Some(value) => {
+                reject_with_scratch(program, value, functions, types, diagnostics, scratch)
+            }
+            None => Ok(()),
+        },
+        ExprKind::Closure { .. } => Ok(()),
+
+        ExprKind::Int(_)
+        | ExprKind::Int32(_)
+        | ExprKind::Char(_)
+        | ExprKind::Uint8(_)
+        | ExprKind::Usize(_)
+        | ExprKind::Float32(_)
+        | ExprKind::Float64(_)
+        | ExprKind::Bool(_)
+        | ExprKind::Var(_) => Ok(()),
+        ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                "fixed-array literals are not admitted in bounded while bodies",
+                expression.span,
+            ));
+            Err(())
+        }
+        ExprKind::SuperMethod { .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                "super method calls are not yet admitted in while bodies",
+                expression.span,
+            ));
+            Err(())
+        }
+        // Owned String Loops v1: a literal allocates one owned String in the
+        // per-iteration body region.
+        ExprKind::String(_) => Ok(()),
+        ExprKind::BorrowedUtf8Literal(text) => {
+            match crate::source_verify::static_text::checked(program, expression.span, text) {
+                Ok(_) => Ok(()),
+                Err(error) => {
+                    diagnostics.push(error);
+                    Err(())
+                }
+            }
+        }
+        ExprKind::VecConstructor { value, .. } | ExprKind::Unary { value, .. } => {
+            reject_with_scratch(program, value, functions, types, diagnostics, scratch)
+        }
+        ExprKind::Binary { left, right, .. } => {
+            let left = reject_with_scratch(program, left, functions, types, diagnostics, scratch);
+            let right = reject_with_scratch(program, right, functions, types, diagnostics, scratch);
+            left.and(right)
+        }
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            let condition =
+                reject_with_scratch(program, condition, functions, types, diagnostics, scratch);
+            let then =
+                reject_with_scratch(program, then_branch, functions, types, diagnostics, scratch);
+            let else_branch =
+                reject_with_scratch(program, else_branch, functions, types, diagnostics, scratch);
+            condition.and(then).and(else_branch)
+        }
+        ExprKind::Block { statements, tail } => {
+            let mut result = Ok(());
+            for statement in statements {
+                result = reject_statement_with_scratch(
+                    program,
+                    statement,
+                    functions,
+                    types,
+                    diagnostics,
+                    scratch,
+                );
+                result?;
+            }
+            result.and(reject_with_scratch(
+                program,
+                tail,
+                functions,
+                types,
+                diagnostics,
+                scratch,
+            ))
+        }
+        ExprKind::Call {
+            type_arguments,
+            args,
+            name,
+            ..
+        } => {
+            let vec_operation = crate::vec_ops::by_name(name);
+            if !type_arguments.is_empty()
+                && vec_operation.is_none()
+                && name != crate::vec_field::NAME
+                && crate::map_ops::by_generic_name(name, type_arguments).is_none()
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T252",
+                    "generic calls are not yet admitted in while bodies",
+                    expression.span,
+                ));
+                return Err(());
+            }
+            if let Some(operation) = vec_operation {
+                if !operation.admitted_in_while()
+                    || (if operation == crate::vec_ops::VecOp::StrAt {
+                        !crate::source_verify::string_slot::while_shape(type_arguments, args)
+                    } else {
+                        type_arguments.len() != 1
+                    || !(crate::vec_ops::ast_element_is_admitted(&type_arguments[0])
+                                || crate::source_verify::declared_type::copy_record_collection::source_admitted(program, &type_arguments[0]) || crate::source_verify::declared_type::owned_leaf_collection::source_admitted(program, &type_arguments[0]))
+                    })
+                    || args.len()
+                        != if operation == crate::vec_ops::VecOp::UpdateField {
+                            // The source-only literal selector is removed before HIR.
+                            4
+                        } else {
+                            operation.arity()
+                        }
+                {
+                    #[cfg(test)]
+                    crate::source_verify::string_slot::trace_while_refusal(
+                        "oracle",
+                        operation,
+                        type_arguments,
+                        args,
+                    );
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T283",
+                        "only exact typed scalar Vec update/read operations are admitted in while bodies",
+                        expression.span,
+                    ));
+                    return Err(());
+                }
+            }
+            if crate::command_io_ops::by_name(name)
+                .is_some_and(|operation| !crate::command_io_ops::admitted_in_while(operation))
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T270",
+                    format!("command I/O operation `{name}` is not admitted in while bodies"),
+                    expression.span,
+                ));
+                return Err(());
+            }
+            if crate::command_io_ops::by_name(name)
+                .is_some_and(|operation| args.len() != crate::command_io_ops::arity(operation))
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T270",
+                    format!("invalid command I/O operation `{name}` call shape"),
+                    expression.span,
+                ));
+                return Err(());
+            }
+            if let Some(operation) = crate::byte_ops::by_name(name) {
+                if (!operation.admitted_in_while()
+                    && !scratch.is_some_and(|proof| proof.permits(expression)))
+                    || args.len() != operation.arity()
+                {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T252",
+                        format!(
+                            "byte operation `{name}` is not admitted in while bodies; only exact byte_len, byte_get and byte_range reads and the loop-carried bytes_set fill qualify"
+                        ),
+                        expression.span,
+                    ));
+                    return Err(());
+                }
+            }
+            if let Some(declared) = functions.get(name.as_str()) {
+                let scalar_signature = crate::loop_calls::byte_writer::source_target(program, declared)
+                    || crate::stdin_stream_ops::ast_forward_signature(declared)
+                    || (crate::loop_calls::effects_admitted(&declared.effects)
+                        && crate::loop_calls::ast_result_admitted(program, &declared.return_type)
+                        && declared.params.iter().zip(args).all(|(param, argument)| {
+                            crate::loop_calls::ast_param_admitted(program, param.mode, &param.ty)
+                                || (param.mode == crate::ast::ParamMode::Borrow
+                                    && crate::source_verify::declared_type::owned_record_collection::is_owner_renewal_record(
+                                        types,
+                                        &param.ty,
+                                    ))
+                                || (param.mode == crate::ast::ParamMode::Own
+                                    && matches!(&argument.kind, ExprKind::Var(argument_name)
+                                    if super::matching::is_owned_iterator_item(
+                                        argument_name,
+                                        &param.ty,
+                                    )))
+                        }));
+                if !scalar_signature {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T252",
+                        format!(
+                            "call `{name}` is not admitted in loop bodies; use scalar/text signatures with read-only input effects. For output, build one string in the loop and write it once afterwards"
+                        ),
+                        expression.span,
+                    ));
+                    return Err(());
+                }
+            }
+            let mut result = Ok(());
+            for argument in args {
+                result =
+                    reject_with_scratch(program, argument, functions, types, diagnostics, scratch);
+                result?;
+            }
+            result
+        }
+        ExprKind::MethodCall { .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                "method calls are not yet admitted in while bodies",
+                expression.span,
+            ));
+            Err(())
+        }
+        ExprKind::Project { base, .. } => {
+            reject_with_scratch(program, base, functions, types, diagnostics, scratch)
+        }
+        ExprKind::ConstructRecord {
+            type_name,
+            type_arguments,
+            fields,
+            ..
+        } => {
+            let ty = Type::Named {
+                name: type_name.clone(),
+                arguments: type_arguments.clone(),
+            };
+            if crate::source_verify::declared_type::owned_leaf_collection::copy_or_leaf_admitted(
+                types, &ty,
+            ) {
+                let mut result = Ok(());
+                for field in fields {
+                    if reject_with_scratch(
+                        program,
+                        &field.value,
+                        functions,
+                        types,
+                        diagnostics,
+                        scratch,
+                    )
+                    .is_err()
+                    {
+                        result = Err(());
+                    }
+                }
+                result
+            } else {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T252",
+                    "record construction is not yet admitted in while bodies",
+                    expression.span,
+                ));
+                Err(())
+            }
+        }
+        ExprKind::ConstructVariant {
+            type_name,
+            type_arguments,
+            fields,
+            ..
+        } => {
+            let ty = Type::Named {
+                name: type_name.clone(),
+                arguments: type_arguments.clone(),
+            };
+            if !crate::source_verify::variant_guards::copy_variant(types, &ty) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T252",
+                    "variant construction in a loop requires only Copy scalar payloads",
+                    expression.span,
+                ));
+                return Err(());
+            }
+            for field in fields {
+                reject_with_scratch(
+                    program,
+                    &field.value,
+                    functions,
+                    types,
+                    diagnostics,
+                    scratch,
+                )?;
+            }
+            Ok(())
+        }
+        ExprKind::UpdateRecord { .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                "record updates are not yet admitted in while bodies",
+                expression.span,
+            ));
+            Err(())
+        }
+        // Owned String Loops v2: the typed scrutinee rule lives in the
+        // match checker; the admission scan visits every operand.
+        ExprKind::Match {
+            scrutinee, arms, ..
+        } => {
+            reject_with_scratch(program, scrutinee, functions, types, diagnostics, scratch)?;
+            let mut result = Ok(());
+            for arm in arms {
+                result = match &arm.guard {
+                    Some(guard) => {
+                        let guard = reject_with_scratch(
+                            program,
+                            guard,
+                            functions,
+                            types,
+                            diagnostics,
+                            scratch,
+                        );
+                        let value = reject_with_scratch(
+                            program,
+                            &arm.value,
+                            functions,
+                            types,
+                            diagnostics,
+                            scratch,
+                        );
+                        guard.and(value)
+                    }
+                    None => reject_with_scratch(
+                        program,
+                        &arm.value,
+                        functions,
+                        types,
+                        diagnostics,
+                        scratch,
+                    ),
+                };
+                result?;
+            }
+            result
+        }
+        ExprKind::Try { .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                "postfix `?` propagation is not yet admitted in while bodies",
+                expression.span,
+            ));
+            Err(())
+        }
+        // Resumable Effects control profile (issue #296): the parser admits a
+        // direct statement-value `yield`; its request is an ordinary operand.
+        ExprKind::Yield { request } => {
+            reject_with_scratch(program, request, functions, types, diagnostics, scratch)
+        }
+    }
+}
+
+#[cfg(test)]
+pub(super) fn reject_statement_with_scratch(
+    program: &dyn ProgramSource,
+    statement: &Statement,
+    functions: &HashMap<&str, &Function>,
+    types: &TypeTable<'_>,
+    diagnostics: &mut Vec<Diagnostic>,
+    scratch: Option<&crate::finite_byte_scratch::SourceScratch<'_>>,
+) -> Result<(), ()> {
+    match statement {
+        Statement::Assign {
+            name,
+            field: None,
+            value,
+            ..
+        } if source_record_owner_renewal(program, functions, name, value) => {
+            let ExprKind::Call { args, .. } = &value.kind else {
+                unreachable!("record renewal admission requires a call")
+            };
+            let mut result = Ok(());
+            for argument in args {
+                result =
+                    reject_with_scratch(program, argument, functions, types, diagnostics, scratch);
+                result?;
+            }
+            result
+        }
+        Statement::Let { value, .. } | Statement::Assign { value, .. } => {
+            reject_with_scratch(program, value, functions, types, diagnostics, scratch)
+        }
+        Statement::Unsafe { span, .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                "unsafe boundary statements are not yet admitted in while bodies",
+                *span,
+            ));
+            Err(())
+        }
+        Statement::While {
+            condition, body, ..
+        } => {
+            let condition =
+                reject_with_scratch(program, condition, functions, types, diagnostics, scratch);
+            let body = reject_with_scratch(program, body, functions, types, diagnostics, scratch);
+            condition.and(body)
+        }
+        Statement::For { span, .. }
+        | Statement::ForBorrow { span, .. }
+        | Statement::ForOwn { span, .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T284",
+                "nested for traversal is not admitted in this bounded profile",
+                *span,
+            ));
+            Err(())
+        }
+    }
+}
+
+#[cfg(test)]
+fn source_record_owner_renewal(
+    program: &dyn ProgramSource,
+    functions: &HashMap<&str, &Function>,
+    binding: &str,
+    value: &Expr,
+) -> bool {
+    if crate::loop_calls::byte_writer::source_assignment(program, binding, value) {
+        return true;
+    }
+    let ExprKind::Call {
+        name,
+        type_arguments,
+        args,
+        ..
+    } = &value.kind
+    else {
+        return false;
+    };
+    let Some(target) = functions.get(name.as_str()) else {
+        return false;
+    };
+    let types = TypeTable::new(program);
+    type_arguments.is_empty()
+        && target.type_parameters.is_empty()
+        && target.effects.is_empty()
+        && crate::source_verify::declared_type::owned_record_collection::is_owner_renewal_record(
+            &types,
+            &target.return_type,
+        )
+        && target.params.len() == args.len()
+        && target
+            .params
+            .iter()
+            .zip(args)
+            .filter(|(parameter, argument)| {
+                parameter.mode == crate::ast::ParamMode::Own
+                    && parameter.ty == target.return_type
+                    && matches!(&argument.kind, ExprKind::Var(name) if name == binding)
+            })
+            .count()
+            == 1
+        && target.params.iter().zip(args).all(|(parameter, argument)| {
+            match parameter.mode {
+                crate::ast::ParamMode::Own => {
+                    parameter.ty == target.return_type
+                        && matches!(&argument.kind, ExprKind::Var(name) if name == binding)
+                }
+                crate::ast::ParamMode::Borrow => {
+                    (crate::source_verify::declared_type::owned_record_collection::
+                        is_owner_renewal_record(&types, &parameter.ty)
+                        || crate::loop_calls::ast_renewal_view(&parameter.ty))
+                        && matches!(argument.kind, ExprKind::Var(_))
+                }
+                crate::ast::ParamMode::Value => true,
+                crate::ast::ParamMode::Shared => false,
+            }
+        })
+}

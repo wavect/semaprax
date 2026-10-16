@@ -202,6 +202,8 @@ pub(in crate::workspace_graph) fn construct_transient<'p>(
             )?;
             if let Some(view) = FunctionView::checked(provider, original, &import.alias) {
                 entries.push(FunctionEntry::Borrowed(view));
+                #[cfg(test)]
+                crate::workspace_graph::constructor_failure::typed::before_function_alias_core::borrowed_entry();
                 continue;
             }
         }

@@ -93,3 +93,85 @@ fn actual_uncached_core_old_and_current_include_new_entry_controls_and_all_drop(
         assert!(!m.invalid && m.live == 0 && m.allocated == m.freed);
     }
 }
+
+#[test]
+fn actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core() {
+    use crate::project::{ProjectManifest, ProjectSemanticImage};
+    use crate::semantic_workspace::SemanticWorkspaceSource;
+    use std::sync::Arc;
+    const MANIFEST: &str = r#"schema = "semaprax.manifest.v1"
+[package]
+name = "alias-parity"
+version = "1.0.0"
+[modules]
+entry = "alias.current"
+sources = ["src/app.spx", "src/tests.spx"]
+tests = ["alias.tests"]
+[exports]
+web = ["alias.current.main"]
+[dependencies]
+std.collections = "=0.1.0"
+"#;
+    const TESTS: &str = r#"module alias.tests;
+use function @id("alias.current.main") from alias.current as current;
+@id("alias.tests.main") fn main()->i64 {if current()==42 {0} else {1}}
+"#;
+    let build = || {
+        let canonical =
+            |text: &str, path: &str| crate::format::canonical(&crate::parse(text, path).unwrap());
+        let manifest = ProjectManifest::parse(MANIFEST).unwrap();
+        let sources = vec![
+            SemanticWorkspaceSource::new(
+                "src/app.spx".to_owned(),
+                canonical(CALLER, "src/app.spx"),
+            ),
+            SemanticWorkspaceSource::new(
+                "src/tests.spx".to_owned(),
+                canonical(TESTS, "src/tests.spx"),
+            ),
+        ];
+        Arc::new(crate::project::rebuild_owned_revision(manifest, sources).unwrap())
+    };
+    // No preparatory build/cache warming: each side performs its actual full
+    // Project preflight, core selection, source retention, graph and admission.
+    let (old, old_borrowed) = super::parity_run(true, build);
+    let (current, current_borrowed) = super::parity_run(false, build);
+    assert_eq!(old_borrowed, 0);
+    assert!(
+        current_borrowed > 0,
+        "fallback is not evidence of the optimized borrowed-alias route"
+    );
+    assert_eq!(
+        old.manifest().to_canonical_toml(),
+        current.manifest().to_canonical_toml()
+    );
+    assert_eq!(old.workspace_manifest(), current.workspace_manifest());
+    assert_eq!(old.workspace_revision(), current.workspace_revision());
+    assert_eq!(old.project_revision(), current.project_revision());
+    let facts = |revision: &crate::project::ProjectRevision| {
+        revision
+            .sources()
+            .iter()
+            .map(|source| {
+                (
+                    source.path().to_owned(),
+                    source.source().to_owned(),
+                    source.source_graph_schema().to_owned(),
+                    source.source_revision().to_owned(),
+                    source.source_digest().to_owned(),
+                )
+            })
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(facts(&old), facts(&current));
+    assert_eq!(old.semantic_graph(), current.semantic_graph());
+    assert_eq!(old.semantic_graph_digest(), current.semantic_graph_digest());
+    let old_image = ProjectSemanticImage::derive(Arc::clone(&old), old.project_revision()).unwrap();
+    let current_image =
+        ProjectSemanticImage::derive(Arc::clone(&current), current.project_revision()).unwrap();
+    assert_eq!(old_image.to_json(), current_image.to_json());
+    assert_eq!(old_image.image_digest(), current_image.image_digest());
+    eprintln!("847 actual borrowed Project parity entries={current_borrowed} graph={} image={} graph_bytes={} image_bytes={}",
+        current.semantic_graph_digest(), current_image.image_digest(), current.semantic_graph().len(), current_image.to_json().len());
+    drop((old_image, current_image, old, current));
+}

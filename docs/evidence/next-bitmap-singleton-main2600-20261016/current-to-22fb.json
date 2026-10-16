@@ -1,0 +1,15 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "checkpoint_revision": "22fb5577da4e095c1d11ae2df6e513ade6167022",
+    "archive": "docs/evidence/next-bitmap-singleton-main2600-20261016/before-22fb/src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "current_sha256": "a363e95dd0ee08ed4483f3e93db82e07056042c9dcdc8ab524235acb12fe851c",
+    "original_sha256": "34bf5ca5f2ab1ae5e725bb0075d960e49f5bdf99d775929d014611fd927a5103",
+    "edits": [
+      {
+        "new": "#[cfg(test)]\n#[path = \"compact_nodes/before/canonical.rs\"]\npub(in crate::cleanup_plan::replay::factored) mod before_nodes;\n\n#[cfg(test)]\nmod main_unit_weight;\n",
+        "old": "#[cfg(test)]\n#[path = \"compact_nodes/before/canonical.rs\"]\npub(in crate::cleanup_plan::replay::factored) mod before_nodes;\n"
+      }
+    ]
+  }
+]

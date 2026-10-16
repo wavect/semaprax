@@ -1,0 +1,11 @@
+                    budget.reserve_bytes(
+                        function,
+                        branch_clone::controls::<Rc<SkeletonObservation>, SkeletonObservation>(),
+                        "branch clone receiving controls",
+                    )?;
+                    let branch = branch_clone::with_observation(
+                        budget,
+                        function,
+                        &observations,
+                        observation,
+                    )?;

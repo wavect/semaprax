@@ -1,0 +1,22 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::empty_leaf_and_alias_are_present_success_without_map_backing_and_cached_work_is_exact"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::nonempty_general_fallback_and_all_semantic_work_frontiers_keep_complete_immediate_results"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::whole_empty_owner_actual_old_current_costs_and_each_current_short_frontier_include_drop"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::overflow_none_remains_distinct_from_cached_empty_and_receiving_can_settle_again"
+  }
+]

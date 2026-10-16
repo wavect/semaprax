@@ -329,11 +329,20 @@ jobs:
           rustc_path="$(rustup which rustc)"
           cargo_path="$(rustup which cargo)"
           clang_path="$(command -v clang)"
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            # The held builder uses the Command Line Tools SDK explicitly.
+            # Select that installation's driver and companion linker together.
+            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang
+            test -x "$clang_path"
+          elif [[ "$RUNNER_OS" == "Linux" ]]; then
             clang_path="$(readlink -f "$clang_path")"
           fi
           clangxx_path="$(command -v clang++)"
           ld_path="$(command -v ld)"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            clangxx_path=/Library/Developer/CommandLineTools/usr/bin/clang++
+            ld_path=/Library/Developer/CommandLineTools/usr/bin/ld
+          fi
           node_path="$(command -v node)"
           tsc_path="${SPX_PG_TSC:?SPX_PG_TSC was not provisioned}"
           if [[ "$RUNNER_OS" == "macOS" ]]; then
@@ -1098,7 +1107,12 @@ jobs:
           set -euo pipefail
           rustc_path="$(rustup which rustc)"
           clang_path="$(command -v clang)"
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            # The held builder uses the Command Line Tools SDK explicitly.
+            # Select that installation's driver and companion linker together.
+            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang
+            test -x "$clang_path"
+          elif [[ "$RUNNER_OS" == "Linux" ]]; then
             clang_path="$(readlink -f "$clang_path")"
           fi
           test -x "$rustc_path"
@@ -1225,7 +1239,12 @@ jobs:
           set -euo pipefail
           echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
           clang_path="$(command -v clang)"
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            # The held builder uses the Command Line Tools SDK explicitly.
+            # Select that installation's driver and companion linker together.
+            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang
+            test -x "$clang_path"
+          elif [[ "$RUNNER_OS" == "Linux" ]]; then
             clang_path="$(readlink -f "$clang_path")"
           fi
           test -x "$clang_path"
@@ -1312,7 +1331,12 @@ jobs:
           set -euo pipefail
           echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
           clang_path="$(command -v clang)"
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            # The held builder uses the Command Line Tools SDK explicitly.
+            # Select that installation's driver and companion linker together.
+            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang
+            test -x "$clang_path"
+          elif [[ "$RUNNER_OS" == "Linux" ]]; then
             clang_path="$(readlink -f "$clang_path")"
           fi
           test -x "$clang_path"
@@ -1356,6 +1380,9 @@ jobs:
         run: |
           cargo fetch --locked
           cargo fetch --locked --manifest-path examples/calculator-rust/Cargo.toml
+      - name: Expose Darwin native tool link prerequisites
+        if: runner.os == 'macOS'
+        run: python3 scripts/ci-darwin-native-reference.py
       - name: Require exact reproducible Darwin archive admission
         if: runner.os == 'macOS'
         env:
@@ -1432,7 +1459,12 @@ jobs:
         run: |
           set -euo pipefail
           clang_path="$(command -v clang)"
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            # The held builder uses the Command Line Tools SDK explicitly.
+            # Select that installation's driver and companion linker together.
+            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang
+            test -x "$clang_path"
+          elif [[ "$RUNNER_OS" == "Linux" ]]; then
             clang_path="$(readlink -f "$clang_path")"
           fi
           test -x "$clang_path"
@@ -1735,7 +1767,12 @@ jobs:
         run: |
           set -euo pipefail
           clang_path="$(command -v clang)"
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            # The held builder uses the Command Line Tools SDK explicitly.
+            # Select that installation's driver and companion linker together.
+            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang
+            test -x "$clang_path"
+          elif [[ "$RUNNER_OS" == "Linux" ]]; then
             clang_path="$(readlink -f "$clang_path")"
           fi
           test -x "$clang_path"
@@ -1809,6 +1846,11 @@ jobs:
           exclude=()
           if [[ "$RUNNER_OS" == Windows ]]; then exclude=(--exclude semaprax-harness); fi
           cargo test --locked --workspace "${exclude[@]}" --all-features --doc
+      - name: Execute every benchmark target in the full test profile
+        if: runner.os == 'Linux'
+        # The unit/integration shard planner deliberately leaves benches here.
+        # Use cargo test: cargo bench adds --bench to custom harness arguments.
+        run: cargo test --locked --workspace --all-features --bench '*'
       - shell: bash
         run: |
           exclude=()
@@ -1834,6 +1876,15 @@ jobs:
       - run: cargo run --locked -p semaprax -- fmt examples/control_flow.spx --check
       - run: cargo run --locked -p semaprax -- fmt examples/records.spx --check
       - run: cargo run --locked -p semaprax -- fmt examples/native_callable.spx --check
+      - name: Check and format the remaining full-profile examples
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for source in chars integers_i32 bytes_u8 explicit_mutation string_ops field_mutation while_loops inheritance calculator-rust/callback; do
+            cargo run --locked -p semaprax -- check "examples/$source.spx"
+            cargo run --locked -p semaprax -- fmt "examples/$source.spx" --check
+          done
       - name: Build public native-callable bundle
         run: cargo run --locked -p semaprax -- build examples/native_callable.spx --target native-callable --function example.token.identity -o target/native-callable-example
       - name: Build and run native example (Unix)
@@ -1904,7 +1955,12 @@ jobs:
         run: |
           set -euo pipefail
           clang_path="$(command -v clang)"
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            # The held builder uses the Command Line Tools SDK explicitly.
+            # Select that installation's driver and companion linker together.
+            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang
+            test -x "$clang_path"
+          elif [[ "$RUNNER_OS" == "Linux" ]]; then
             clang_path="$(readlink -f "$clang_path")"
           fi
           test -x "$clang_path"
@@ -2069,7 +2125,12 @@ jobs:
           set -euo pipefail
           echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
           clang_path="$(command -v clang)"
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            # The held builder uses the Command Line Tools SDK explicitly.
+            # Select that installation's driver and companion linker together.
+            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang
+            test -x "$clang_path"
+          elif [[ "$RUNNER_OS" == "Linux" ]]; then
             clang_path="$(readlink -f "$clang_path")"
           fi
           echo "CLANG=$clang_path" >> "$GITHUB_ENV"

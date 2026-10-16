@@ -1,0 +1,26 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "base": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+  "full_old_input_rows": 13,
+  "all_modified_old_source_inputs": [
+    "CHANGELOG.md",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "docs/ARCHITECTURE.md",
+    "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "src/source_reflows_merge.rs",
+    "src/workspace_graph.rs",
+    "src/workspace_graph/constructor_failure/typed.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs",
+    "src/workspace_graph/function_alias/before_core.rs",
+    "src/workspace_graph/function_alias/before_core/tests.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "new_main_owners": 11,
+  "new_pending_bodies": 6,
+  "old_evidence_files_byte_exact": 11654,
+  "all90_runtime_fixture_specs_unchanged": true,
+  "entire_old_helper_restored": true,
+  "runtime_executed": false
+}

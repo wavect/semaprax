@@ -1,0 +1,27 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_empty_bitmap_and_alias_cached_queries_keep_work_without_receiving_allocation_or_debit"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_nonempty_cached_query_borrows_original_rc_and_keeps_all_semantic_work_failures"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_whole_empty_owner_costs_and_all_short_frontiers_cover_new_bitmap_backing_and_drop"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_overflow_is_not_empty_and_the_same_paid_status_owner_can_receive_empty_afterward"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::factored::canonical_shared::before_empty::cached_tests::held_cached_closure_keeps_original_one_work_unit_and_same_result_without_auth_debit"
+  }
+]

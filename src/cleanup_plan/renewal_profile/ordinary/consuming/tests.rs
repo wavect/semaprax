@@ -23,12 +23,23 @@ fn phase_presence_keeps_full_current_directories_and_every_consuming_entry() {
     let program = crate::hir::resolve(&source).unwrap();
     let helpers = crate::loop_calls::byte_writer::ModuleIndex::new(&program).unwrap();
     let mut work = |_| true;
-    let mut backing = |_| true;
-    let presence = super::super::RecordPresence::new(
-        &program.declarations,
-        &mut Admission::new(&mut work, &mut backing),
-    )
-    .unwrap();
+    let acquisition_paid = Cell::new(0usize);
+    let mut backing = |bytes| {
+        acquisition_paid.set(acquisition_paid.get() + bytes);
+        true
+    };
+    let mut acquisition = Admission::new(&mut work, &mut backing);
+    // Match the actual caller frontier before evaluating new's arguments.
+    acquisition
+        .reserve(super::super::RecordPresence::acquisition_receiving_controls())
+        .unwrap();
+    let presence =
+        super::super::RecordPresence::new(&program.declarations, &mut acquisition).unwrap();
+    assert_eq!(
+        acquisition_paid.get(),
+        super::super::RecordPresence::acquisition_receiving_controls()
+            + super::super::RecordPresence::constructor_controls()
+    );
     let mut prefix = 0;
     for declaration in program.declarations.declarations() {
         prefix += 1;
@@ -53,6 +64,11 @@ fn phase_presence_keeps_full_current_directories_and_every_consuming_entry() {
             };
             let mut admission = Admission::new(&mut debit, &mut reserve);
             let directory = if cached {
+                // Production ModuleIndex pays this Some-route bank before the
+                // presence reference and factory arguments are constructed.
+                admission
+                    .reserve(super::super::RecordPresence::shared_caller_controls())
+                    .unwrap();
                 Directory::collect_current_with_presence(
                     member,
                     &helpers,
@@ -68,7 +84,12 @@ fn phase_presence_keeps_full_current_directories_and_every_consuming_entry() {
         let (before, old_work, old_paid) = collect(false);
         let (after, new_work, new_paid) = collect(true);
         assert_eq!(new_work + prefix, old_work + 1);
-        assert_eq!(new_paid, old_paid);
+        let none_controls = super::super::RecordPresence::transport_controls();
+        let some_controls = super::super::RecordPresence::shared_caller_controls();
+        assert_eq!(new_paid, old_paid - none_controls + some_controls);
+        // The complete directory backing is identical after separating the
+        // genuinely different, explicitly paid None/Some control routes.
+        assert_eq!(new_paid - some_controls, old_paid - none_controls);
         assert_eq!(before.entries.len(), after.entries.len());
         for (before, after) in before.entries.iter().zip(&after.entries) {
             assert!(std::ptr::eq(before.at, after.at));

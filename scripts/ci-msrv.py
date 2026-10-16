@@ -468,9 +468,10 @@ def plan(metadata, excluded_packages=()):
             kind = target["kind"]
             # Do not silently omit a newly introduced example, benchmark, or
             # other target kind: extend this partition and its tests first.
-            # Bench targets are for `cargo bench` (criterion) and are not
-            # part of `cargo test` sharding; they are inventoried but not
-            # routed to a test shard.
+            # Benchmark targets are inventoried here and executed separately
+            # by the Linux build job with `cargo test --bench '*'`. That
+            # completes the full profile without passing libtest arguments
+            # from these shards to custom benchmark harnesses.
             if kind not in (
                 ["lib"],
                 ["bin"],

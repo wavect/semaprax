@@ -1,0 +1,11 @@
+fn skeleton_clone<T: Clone + ClonePayload>(
+    budget: &mut ReplayBudget,
+    function: &ResolvedFunction,
+    value: &T,
+    phase: &str,
+) -> Result<T, Diagnostic> {
+    budget.charge_skeleton(function, 1, phase)?;
+    budget.reserve_clone(function, value, phase)?;
+    note_skeleton_materialization();
+    Ok(value.clone())
+}

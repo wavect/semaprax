@@ -60,9 +60,7 @@ impl<T: Ord> Insertions<T> {
             .and_then(|n| n.checked_add(2 * size_of::<Box<T>>()))
             .and_then(|n| n.checked_add(Self::entry_controls()))
             .unwrap_or(usize::MAX);
-        let held = node
-            .checked_add(Self::entry_controls())
-            .unwrap_or(usize::MAX);
+        let held = node.saturating_add(Self::entry_controls());
         let mut result = Self {
             failed: false,
             refusal: None,

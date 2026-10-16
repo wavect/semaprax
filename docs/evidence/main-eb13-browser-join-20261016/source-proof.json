@@ -1,0 +1,12 @@
+{
+  "status": "SOURCE_ONLY_NO_EXECUTION",
+  "four_views_complete": true,
+  "unique_edits": 6,
+  "Main_CI_runner_exact": true,
+  "Main_helper_original_body_except_input_adapter": true,
+  "Main_before2600_body_except_parent_input_adapter": true,
+  "ours_complete_whole_inverse_rows": 3,
+  "live_current_gate": "strictMain2600_only_no_dualamount",
+  "unapplied_pins": "NoNEXTcapture/pinapply; actualMain3296148 retained only",
+  "global_source_audit_joins_pending": true
+}

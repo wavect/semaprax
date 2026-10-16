@@ -89,6 +89,7 @@ fn prior_runner(current: &str) -> String {
 }
 
 fn prior_contract(current: &str) -> String {
+    let current = custody::parent_for_ours(current);
     let current_call =
         "previous_digests.push(historical_builder::current_digest(revision.semantic_graph()));";
     assert_eq!(current.matches(current_call).count(), 1);
@@ -162,12 +163,13 @@ fn current_hosted_wires_replay_complete_historical_cursor_controls() {
         "sha256:ccb0ec81a00f3890ec2fe87af8d0f801970a1a397eeb55fe115e83dab02188ba",
     ];
     let runner = include_str!("../../../platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs");
+    let runner = custody::runner_for_ours(runner);
     for (wire, expected) in CURRENT.into_iter().zip(original) {
         let graph = wire.strip_suffix('\n').unwrap();
         assert_eq!(current_digest(graph), expected);
         assert!(runner.contains(&graph_digest(graph)));
     }
-    let runner = prior_runner(runner);
+    let runner = prior_runner(&runner);
     for (captured, expected) in CAPTURED.into_iter().zip(original) {
         let graph = captured.strip_suffix('\n').unwrap();
         assert_eq!(digest(graph), expected);
@@ -253,4 +255,14 @@ fn complete_prior_browser_contract_has_only_registration_and_call_adapter_change
         restored = restored.replacen(new, old, 1);
     }
     assert_eq!(restored, original);
+}
+
+// Independent actual MAIN2600 capture and its complete previous receiver.
+use super::digest_without_checked_value_cursor_budget;
+#[path = "browser_custody.rs"]
+mod custody;
+#[path = "historical_main2600.rs"]
+mod main2600;
+pub(super) fn main_digest(graph: &str) -> String {
+    main2600::digest(graph)
 }

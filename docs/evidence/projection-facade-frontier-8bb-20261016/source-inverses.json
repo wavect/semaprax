@@ -1,0 +1,15 @@
+[
+  {
+    "source": "tests/workspace/semantic_graph.rs",
+    "checkpoint_revision": "4fba2ee58ab595eb6ee1dc9aaa4bfa975358a7a4",
+    "archive": "docs/evidence/projection-facade-frontier-8bb-20261016/semantic_graph.before.rs.txt",
+    "current_sha256": "bb2c519c8e865b3a28f9f41a649126373543f08be4d13d4e3ea270fb6f222af3",
+    "original_sha256": "3296ccc9a7b5b2f47f76f8caff26538111e8c80303f2697d83e9f90269821079",
+    "edits": [
+      {
+        "new": "fn historical_projection_root_facade(current: &str) -> String {\n    use sha2::{Digest, Sha256};\n    let row: serde_json::Value = serde_json::from_str(include_str!(\n        \"../../docs/evidence/projection-facade-frontier-8bb-20261016/root-input.json\"\n    )).unwrap();\n    assert_eq!(format!(\"{:x}\", semaprax::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))), row[\"current_sha256\"]);\n    let mut previous = current.to_owned();\n    for edit in row[\"edits\"].as_array().unwrap() {\n        let new = edit[\"new\"].as_str().unwrap();\n        assert_eq!(previous.matches(new).count(), 1, \"complete unique facade input inverse\");\n        previous = previous.replacen(new, edit[\"old\"].as_str().unwrap(), 1);\n    }\n    assert_eq!(format!(\"{:x}\", semaprax::digest_hex::LowerHex(Sha256::digest(previous.as_bytes()))), row[\"original_sha256\"]);\n    historical_projection_root_facade_before(&previous)\n}\n\nfn historical_projection_root_facade_before(current: &str) -> String {\n",
+        "old": "fn historical_projection_root_facade(current: &str) -> String {\n"
+      }
+    ]
+  }
+]

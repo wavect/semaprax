@@ -1,0 +1,12 @@
+[
+  {
+    "status": "SUPERSEDED_DRAFT_NOT_FROZEN",
+    "phase": "authority generation before latest Main eb13 barrier",
+    "reason": "Main advanced while final binding in progress; no Rust execution"
+  },
+  {
+    "status": "REFUSED_NONUNIQUE_INVERSE_CONTEXT",
+    "phase": "initial seal rows",
+    "reason": "3-line context matched more than once; rejected before authorizing table. Final generator expands context until every edit uniquely restores complete old input."
+  }
+]

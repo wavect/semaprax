@@ -361,6 +361,15 @@ cargo package --locked --allow-dirty -p semaprax
 Also run the example check and canonical-format loops in
 `scripts/quality.sh`; the script owns that list to prevent drift.
 
+Hosted CI partitions the workspace tests across the checked unit and integration
+shards. The Linux build job separately executes every benchmark target with
+`cargo test --locked --workspace --all-features --bench '*'`, completing the
+`--all-targets` coverage. This uses Cargo's test invocation: Criterion runs its
+test mode and the custom workflow observer keeps its ordinary default samples.
+That job also completes the named example check and formatting loops, including
+`examples/calculator-rust/callback.spx`. These steps require successful execution;
+Clippy compilation alone does not qualify benchmark coverage.
+
 ## Documentation changes
 
 Documentation-only changes must pass at least:

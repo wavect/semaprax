@@ -176,6 +176,50 @@ fn all_three_product_hosts_are_blocking() {
 }
 
 #[test]
+fn macos_native_jobs_pair_the_driver_with_the_explicit_builder_sdk() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    for source in [
+        "crates/semaprax-native-rust-interop-platform-sys/src/unix/process.rs",
+        "crates/semaprax-native-rust-interop-platform-sys/src/unix/archive.rs",
+    ] {
+        assert!(fs::read_to_string(root.join(source))
+            .unwrap()
+            .contains("/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"));
+    }
+    let workflow = workflow();
+    for name in [
+        "public-generic-ownership-milestone",
+        "project-product-acceptance-v1",
+        "native-rust-owned-data-sdk-v1",
+        "native-rust-sdk-v1",
+        "verify",
+        "verify-build",
+        "verify-tests",
+        "unix-source-repair",
+    ] {
+        let setup = job(&workflow, name)
+            .split_once("clang_path=\"$(command -v clang)\"")
+            .expect("native Clang discovery")
+            .1;
+        let (macos, linux) = setup
+            .split_once("if [[ \"$RUNNER_OS\" == \"macOS\" ]]; then")
+            .expect("explicit macOS driver selection")
+            .1
+            .split_once("elif [[ \"$RUNNER_OS\" == \"Linux\" ]]; then")
+            .expect("preserved Linux tool selection");
+        assert!(
+            macos.contains("clang_path=/Library/Developer/CommandLineTools/usr/bin/clang")
+                && macos.contains("test -x \"$clang_path\""),
+            "{name} must use the installed driver paired with the explicit SDK"
+        );
+        assert!(linux.contains("clang_path=\"$(readlink -f \"$clang_path\")\""));
+    }
+    let consumers = job(&workflow, "public-generic-ownership-milestone");
+    assert!(consumers.contains("clangxx_path=/Library/Developer/CommandLineTools/usr/bin/clang++"));
+    assert!(consumers.contains("ld_path=/Library/Developer/CommandLineTools/usr/bin/ld"));
+}
+
+#[test]
 fn dedicated_chromium_acceptance_remains_a_separate_blocking_job() {
     let workflow = workflow();
     let browser = job(&workflow, "wasm-scalar-exports-browser-v1");

@@ -1,0 +1,10 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/branch_clone/before.rs",
+    "sha256": "3f55ce238b3e5260aec63b6fd0916213284eb70017609bc029d44c3309ecb22f"
+  },
+  {
+    "path": "src/cleanup_plan/replay/branch_clone/funded_tests.rs",
+    "sha256": "d893c4f2ba3ce7d8a4a538f70f61a248f3bb74a9ab3484d43ac869c96e4c9a83"
+  }
+]

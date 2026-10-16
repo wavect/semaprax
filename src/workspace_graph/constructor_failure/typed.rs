@@ -145,4 +145,4 @@ impl Receiver {
 
 #[cfg(test)]
 #[path = "../function_alias/before_core.rs"]
-mod before_function_alias_core;
+pub(in crate::workspace_graph) mod before_function_alias_core;

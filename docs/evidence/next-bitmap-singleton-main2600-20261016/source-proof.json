@@ -1,0 +1,13 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "old_namespace": "4fba2ee58ab595eb6ee1dc9aaa4bfa975358a7a4",
+  "whole_old_inputs": 24,
+  "compact_input_bytes": 157100,
+  "old_evidence_files_unchanged": 11697,
+  "new_live_Rust_owners": 20,
+  "bitmap_independent_rows": 1,
+  "fixed90_runtime_transport_unchanged": true,
+  "old_project_body_exact": true,
+  "Main_barrier": "eb13ed02c3a3522f1ead1fd3bd53c58439a98da1",
+  "runtime_executed": false
+}

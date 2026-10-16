@@ -33,9 +33,11 @@ mod flat_owned_record;
 mod json_codec;
 pub use json_codec::{
     decode_json_codec_plan, parse_json_codec_bound, parse_json_codec_profile, derive_json_codec_plan, derive_json_codec_source, derive_json_codec_source_with_profile,
-    explain_json_codec_suitability, verify_json_codec_plan, verify_json_codec_source,
-    verify_json_codec_source_with_profile, JsonCodecBundle, JsonCodecBundleSource,
-    JsonCodecEntryReceipt, JsonCodecPlanEntry, JsonCodecProfile, JsonCodecSuitabilityOptions,
+    explain_json_codec_suitability, verify_authenticated_json_codec_receipt,
+    verify_json_codec_plan, verify_json_codec_source, verify_json_codec_source_with_profile,
+    with_authenticated_json_codec_receipt, JsonCodecBundle, JsonCodecBundleSource,
+    JsonCodecEntryReceipt, JsonCodecPlanEntry, JsonCodecProfile, JsonCodecRepeat,
+    JsonCodecRetainedInput, JsonCodecRetainedReceipt, JsonCodecSuitabilityOptions,
 };
 pub(crate) mod host_policy;
 mod hot_reload;

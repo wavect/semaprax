@@ -1,0 +1,148 @@
+{
+  "base": "7f8e901da66015b09a25d3a1b96b2abebf21e92f",
+  "status": "SOURCE_ONLY_NOT_EXECUTED",
+  "rows": [
+    {
+      "path": "src/project/authority.rs",
+      "archive": "before/src__project__authority.rs",
+      "sha256": "486df9cad86f99c3d7710201ec09551d7fbe54fe01b37f9a2b2ab864db89b43b",
+      "current_sha256": "7eb71048cd6218f9d34f029752761d56de3048f5030d356c947a76391a4cc5b6",
+      "old_assertions": 0,
+      "edits": [
+        {
+          "current_start": 0,
+          "current_end": 1,
+          "current": "mod retained_input;\n",
+          "original": ""
+        }
+      ]
+    },
+    {
+      "path": "src/project/mod.rs",
+      "archive": "before/src__project__mod.rs",
+      "sha256": "a874359ae6a0563597d3fd6c4ea7eb008145d8afe360b7a862473f13556bd887",
+      "current_sha256": "01a1706b49ed47959967dd3f7698c872c0395abf116899dfa6a09e8fc5b9a8ae",
+      "old_assertions": 0,
+      "edits": [
+        {
+          "current_start": 33,
+          "current_end": 38,
+          "current": "    explain_json_codec_suitability, verify_authenticated_json_codec_receipt,\n    verify_json_codec_plan, verify_json_codec_source, verify_json_codec_source_with_profile,\n    with_authenticated_json_codec_receipt, JsonCodecBundle, JsonCodecBundleSource,\n    JsonCodecEntryReceipt, JsonCodecPlanEntry, JsonCodecProfile, JsonCodecRepeat,\n    JsonCodecRetainedInput, JsonCodecRetainedReceipt, JsonCodecSuitabilityOptions,\n",
+          "original": "    explain_json_codec_suitability, verify_json_codec_plan, verify_json_codec_source,\n    verify_json_codec_source_with_profile, JsonCodecBundle, JsonCodecBundleSource,\n    JsonCodecEntryReceipt, JsonCodecPlanEntry, JsonCodecProfile, JsonCodecSuitabilityOptions,\n"
+        }
+      ]
+    },
+    {
+      "path": "src/project/json_codec.rs",
+      "archive": "before/src__project__json_codec.rs",
+      "sha256": "55d82e54379321845d8867e1748e36bc3d097cdb618da15459630415cf0ab10a",
+      "current_sha256": "11ad69f41c374f8f18a547f34ea3e95f6b88056a15181e3ce6e4b1ca8f202c6c",
+      "old_assertions": 0,
+      "edits": [
+        {
+          "current_start": 2,
+          "current_end": 7,
+          "current": "mod retained_receipt;\npub use retained_receipt::{\n    verify_authenticated_json_codec_receipt, with_authenticated_json_codec_receipt,\n    JsonCodecRepeat, JsonCodecRetainedInput, JsonCodecRetainedReceipt,\n};\n",
+          "original": ""
+        }
+      ]
+    },
+    {
+      "path": "src/cli/json_codec.rs",
+      "archive": "before/src__cli__json_codec.rs",
+      "sha256": "38315cd240fe0558b05473fe2527c7b0e39619cb36e219f369ff4414dec40371",
+      "current_sha256": "67394537f1bf3b12242374667eb2696a485bd0bf22e2c945717f396a93f2b5f3",
+      "old_assertions": 33,
+      "edits": [
+        {
+          "current_start": 4,
+          "current_end": 5,
+          "current": "mod retained_receipt;\n",
+          "original": ""
+        },
+        {
+          "current_start": 16,
+          "current_end": 17,
+          "current": "pub(crate) const HELP: &str = \"Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile. UTF-8 owned request profiles bound each decoded string with --max-string-bytes (1..64 UTF-8 bytes). bounded-collection-response.v1 selects an encode-only nested collection view and also requires that bound. bounded-nested-request.v1 requires both --max-string-bytes (1..64) and --max-array-items (1..256); direct decoding only, under the independently admitted caller Project profile. bounded-stream-nested-request.v1 uses the same bounds, original schema stdin permit and a computed normalized spelling envelope; it adds no raw-input or whitespace cap. bounded-nested-response.v1 requires the same two bounds and derives encode-only borrowed finite nested records; primitive Vec<string> refuses. Contract: docs/APPLICATION-JSON-NESTED-RESPONSE-V1.md. bounded-nested-response.v2 adds named borrowed Vec<string> slot reads with the same caps and distinct generated identities. Contract: docs/APPLICATION-JSON-NESTED-RESPONSE-V2.md.\\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\\nAdd --plan <plan-json> --output <new-bundle> instead of single-codec selectors to derive 1..8 distinct replacements against one immutable revision and validate the complete candidate. The deterministic JSON bundle preserves authored schema bytes, complete candidate sources and exact per-entry evidence; no authority to install it. Existing destinations refuse. Plan contract: docs/APPLICATION-JSON-CODEC-PLAN-V1.md.\\nRead-only shape discovery: json-codec <project> --explain --type <stable-id> [--source <path>] [--target native64|wasm32] [--max-string-bytes N] [--max-array-items N] [--max-bytes N] [--revision <digest>] [--offset N]. Reports actual shape predicates and explicit unmet policy; candidate/backend admission remains unperformed. Continuations require the returned project revision. Contract: docs/JSON-CODEC-SUITABILITY-V1.md\\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\\nAdd --retained-receipt to the single-codec form to publish one JSON receipt bundle instead of source: exact held original manifest/source/dependency bytes, resolved sources and two ordinary derivations from one retained revision. No independent execution or binary authentication claim. Contract: docs/JSON-CODEC-RETAINED-RECEIPT-V1.md\\n\";\n",
+          "original": "pub(crate) const HELP: &str = \"Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile. UTF-8 owned request profiles bound each decoded string with --max-string-bytes (1..64 UTF-8 bytes). bounded-collection-response.v1 selects an encode-only nested collection view and also requires that bound. bounded-nested-request.v1 requires both --max-string-bytes (1..64) and --max-array-items (1..256); direct decoding only, under the independently admitted caller Project profile. bounded-stream-nested-request.v1 uses the same bounds, original schema stdin permit and a computed normalized spelling envelope; it adds no raw-input or whitespace cap. bounded-nested-response.v1 requires the same two bounds and derives encode-only borrowed finite nested records; primitive Vec<string> refuses. Contract: docs/APPLICATION-JSON-NESTED-RESPONSE-V1.md. bounded-nested-response.v2 adds named borrowed Vec<string> slot reads with the same caps and distinct generated identities. Contract: docs/APPLICATION-JSON-NESTED-RESPONSE-V2.md.\\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\\nAdd --plan <plan-json> --output <new-bundle> instead of single-codec selectors to derive 1..8 distinct replacements against one immutable revision and validate the complete candidate. The deterministic JSON bundle preserves authored schema bytes, complete candidate sources and exact per-entry evidence; no authority to install it. Existing destinations refuse. Plan contract: docs/APPLICATION-JSON-CODEC-PLAN-V1.md.\\nRead-only shape discovery: json-codec <project> --explain --type <stable-id> [--source <path>] [--target native64|wasm32] [--max-string-bytes N] [--max-array-items N] [--max-bytes N] [--revision <digest>] [--offset N]. Reports actual shape predicates and explicit unmet policy; candidate/backend admission remains unperformed. Continuations require the returned project revision. Contract: docs/JSON-CODEC-SUITABILITY-V1.md\\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\\n\";\n"
+        },
+        {
+          "current_start": 74,
+          "current_end": 77,
+          "current": "    }\n    if args.iter().any(|arg| arg == \"--retained-receipt\") {\n        return retained_receipt::run(args, report);\n",
+          "original": ""
+        }
+      ]
+    },
+    {
+      "path": "tests/project/standard_library/application_json.rs",
+      "archive": "before/tests__project__standard_library__application_json.rs",
+      "sha256": "77525c71b4e3726c4105ad4a457d40c2de065afbc519efb18568139e59fc40c3",
+      "current_sha256": "3c21ca1f48e28885392786f279339060b032d8db0544a467fe81fcd677b34f44",
+      "old_assertions": 24,
+      "edits": [
+        {
+          "current_start": 19,
+          "current_end": 21,
+          "current": "#[path = \"application_json/retained_receipt.rs\"]\nmod retained_receipt;\n",
+          "original": ""
+        }
+      ]
+    },
+    {
+      "path": "CHANGELOG.md",
+      "archive": "before/CHANGELOG.md",
+      "sha256": "fca91cf3453ade5586d0f2c7a821b94d4347d39cc66b02e2944c589afccee901",
+      "current_sha256": "7f3eba9596008fd0932081cdb94bf4f81d48252aee079e4b69b56aed23eb10d1",
+      "old_assertions": 0,
+      "edits": [
+        {
+          "current_start": 0,
+          "current_end": 1,
+          "current": "- Add a source-only JSON codec retained-input receipt candidate: exact held originals, resolved source inventory and two same-process retained-revision derivations; binary binding, host adoption and executable qualification remain pending.\n",
+          "original": ""
+        }
+      ]
+    }
+  ],
+  "new_sources": [
+    {
+      "path": "src/project/authority/retained_input.rs",
+      "sha256": "2938a32b1366d5948b7511dd5b1490b99802dbf085d35454c9ce0e619ef76aed"
+    },
+    {
+      "path": "src/project/json_codec/retained_receipt.rs",
+      "sha256": "dfddf1506d91b05580a64fdbf7f2e93593a06d0d6714cab4f8224430722306f3"
+    },
+    {
+      "path": "src/project/json_codec/retained_receipt/tests.rs",
+      "sha256": "1c5fa8416ff10a069a483ce80c5a391663ab55ce80ef1a037d145f74ca07134b"
+    },
+    {
+      "path": "src/cli/json_codec/retained_receipt.rs",
+      "sha256": "c652e374e656d198a728d719b78cc9d07e2659aeb2df3f1455377011733729dd"
+    },
+    {
+      "path": "src/cli/json_codec/retained_receipt/tests.rs",
+      "sha256": "9ae79e694467d8a4f327f4fa608661d5cb9f4937f88945da72f2c53facdf84eb"
+    },
+    {
+      "path": "tests/project/standard_library/application_json/retained_receipt.rs",
+      "sha256": "9d20027cfeb9ec25112b714f4ee2eac0677b638825e932397c5ffc51cdc275e6"
+    }
+  ],
+  "unchanged_owners": [
+    {
+      "path": "src/project/json_codec/plan.rs",
+      "sha256": "0a85ce06e0010668bdc2fdce33365a3b45b6d93937f15e5e34ae171b33c4f4fc"
+    },
+    {
+      "path": "src/project/snapshot_building.rs",
+      "sha256": "dc14145341cd371642095d5b526b07676c0de98d915505a730833e895dc03a54"
+    },
+    {
+      "path": "tests/project/standard_library/application_json/plan.rs",
+      "sha256": "dfd868ba8484a75d8a123f0cce6cc678f9a4fa8747ea267a896b7298369da421"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "base": "7f8e901da66015b09a25d3a1b96b2abebf21e92f",
+  "preimages": [
+    {
+      "path": "src/project/authority.rs",
+      "archive": "before/src__project__authority.rs",
+      "sha256": "486df9cad86f99c3d7710201ec09551d7fbe54fe01b37f9a2b2ab864db89b43b"
+    },
+    {
+      "path": "src/project/mod.rs",
+      "archive": "before/src__project__mod.rs",
+      "sha256": "a874359ae6a0563597d3fd6c4ea7eb008145d8afe360b7a862473f13556bd887"
+    },
+    {
+      "path": "src/project/json_codec.rs",
+      "archive": "before/src__project__json_codec.rs",
+      "sha256": "55d82e54379321845d8867e1748e36bc3d097cdb618da15459630415cf0ab10a"
+    },
+    {
+      "path": "src/cli/json_codec.rs",
+      "archive": "before/src__cli__json_codec.rs",
+      "sha256": "38315cd240fe0558b05473fe2527c7b0e39619cb36e219f369ff4414dec40371"
+    },
+    {
+      "path": "tests/project/standard_library/application_json.rs",
+      "archive": "before/tests__project__standard_library__application_json.rs",
+      "sha256": "77525c71b4e3726c4105ad4a457d40c2de065afbc519efb18568139e59fc40c3"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "archive": "before/CHANGELOG.md",
+      "sha256": "fca91cf3453ade5586d0f2c7a821b94d4347d39cc66b02e2944c589afccee901"
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "status": "NOT_RUN",
+  "owners": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "target": "semaprax",
+      "selector": "project::json_codec::retained_receipt::tests::retained_handles_preserve_entire_original_manifest_and_sources_without_path_reopening",
+      "source": "src/project/json_codec/retained_receipt/tests.rs",
+      "status": "PENDING",
+      "source_sha256": "1c5fa8416ff10a069a483ce80c5a391663ab55ce80ef1a037d145f74ca07134b",
+      "line": 35
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "target": "semaprax",
+      "selector": "project::json_codec::retained_receipt::tests::retained_handle_bytes_and_identity_drift_refuse_instead_of_exporting_a_revision_claim",
+      "source": "src/project/json_codec/retained_receipt/tests.rs",
+      "status": "PENDING",
+      "source_sha256": "1c5fa8416ff10a069a483ce80c5a391663ab55ce80ef1a037d145f74ca07134b",
+      "line": 58
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "target": "semaprax",
+      "selector": "project::json_codec::retained_receipt::tests::second_derivation_failure_and_full_output_disagreement_produce_no_receipt",
+      "source": "src/project/json_codec/retained_receipt/tests.rs",
+      "status": "PENDING",
+      "source_sha256": "1c5fa8416ff10a069a483ce80c5a391663ab55ce80ef1a037d145f74ca07134b",
+      "line": 95
+    },
+    {
+      "package": "semaprax",
+      "kind": "bin",
+      "target": "semaprax",
+      "selector": "cli_driver::cli::json_codec::retained_receipt::tests::receipt_selection_is_additive_exact_and_rejects_ambiguous_grammar_before_authority",
+      "source": "src/cli/json_codec/retained_receipt/tests.rs",
+      "status": "PENDING",
+      "source_sha256": "9ae79e694467d8a4f327f4fa608661d5cb9f4937f88945da72f2c53facdf84eb",
+      "line": 3
+    },
+    {
+      "package": "semaprax",
+      "kind": "test",
+      "target": "project",
+      "selector": "standard_library::application_json::retained_receipt::retained_receipt_contains_complete_originals_resolved_closure_and_two_actual_equal_derivations",
+      "source": "tests/project/standard_library/application_json/retained_receipt.rs",
+      "status": "PENDING",
+      "source_sha256": "9d20027cfeb9ec25112b714f4ee2eac0677b638825e932397c5ffc51cdc275e6",
+      "line": 14
+    },
+    {
+      "package": "semaprax",
+      "kind": "test",
+      "target": "project",
+      "selector": "standard_library::application_json::retained_receipt::retained_receipt_replay_refuses_reminted_originals_outputs_profiles_repeat_and_binary_claims",
+      "source": "tests/project/standard_library/application_json/retained_receipt.rs",
+      "status": "PENDING",
+      "source_sha256": "9d20027cfeb9ec25112b714f4ee2eac0677b638825e932397c5ffc51cdc275e6",
+      "line": 94
+    },
+    {
+      "package": "semaprax",
+      "kind": "test",
+      "target": "project",
+      "selector": "standard_library::application_json::retained_receipt::retained_receipt_cli_exclusively_publishes_one_artifact_and_preserves_old_source_mode",
+      "source": "tests/project/standard_library/application_json/retained_receipt.rs",
+      "status": "PENDING",
+      "source_sha256": "9d20027cfeb9ec25112b714f4ee2eac0677b638825e932397c5ffc51cdc275e6",
+      "line": 159
+    }
+  ]
+}

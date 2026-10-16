@@ -1,0 +1,33 @@
+{
+  "source_head": "f82cec490db31898d9876645876ae98549611baf",
+  "run": 38888509010,
+  "job": 116932619854,
+  "fixtures": [
+    {
+      "fixture": "calculator-baseline.json",
+      "current_digest": "sha256:b9fc8f94f8236c603c8ca808e19e9e3dafa9360fe4b1dbeb329029d250fc4e51",
+      "prior_digest": "sha256:6362452215817644b8d9fdf10b1b4a8b09d5baf0f2a4f4f633a660579337ed43",
+      "current_builder_bytes": 2958908,
+      "prior_builder_bytes": 2967742,
+      "bytes_saved": 8834,
+      "current_wire_sha256": "39ffcd65c5917c2870c44e94b9361ef21c1d15d478800da3b8fef6182410152e",
+      "complete_prior_wire_reproduced": true
+    },
+    {
+      "fixture": "calculator-renamed.json",
+      "current_digest": "sha256:9624adf5fcb8a4e0bdca2a5e35cc403ab3fd362ea381312d7a7fbfea73cab7ed",
+      "prior_digest": "sha256:6e864befe3a2c8f6db091a1dd4009906563d6af362771e1049666be6ae083cde",
+      "current_builder_bytes": 2958908,
+      "prior_builder_bytes": 2967742,
+      "bytes_saved": 8834,
+      "current_wire_sha256": "73d398a7f2c9f95692b6d916921cf7d3d25a57b795293a55d38897c16fdebead",
+      "complete_prior_wire_reproduced": true
+    }
+  ],
+  "source_snapshots": {
+    "historical_builder.before.rs.txt": "ebe0031dd8e74c15c3666d0772a321501d593b8982d708ef973030cd937f79ee",
+    "test-fixtures.before.mjs": "d7b15f2bdc93ee2fdbc118baddadfb6f888991b94550d1c048cb01d159ce6e02"
+  },
+  "provenance_sha256": "1532bb41b4fea03f1c14e9841cf59d483967d58c69d05696b4f736cca781ebbd",
+  "scope": "Complete exact-head hosted records; strict base64/byte count/raw SHA and independent graph-domain SHA verified. Entire c11 wires reproduced by changing only builder bill and graph self-digest. This is accounting/fixture evidence, not current-main browser/fullCI qualification."
+}

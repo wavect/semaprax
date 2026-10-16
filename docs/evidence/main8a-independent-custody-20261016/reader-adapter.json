@@ -1,0 +1,11 @@
+{
+  "source": "src/source_reflows/semantic_receivers_main8a.rs",
+  "original_Main_sha256": "637b566bcd3f6ced1785da8eea70538b6f786f4ae2393135f03bafc543e6fed6",
+  "adapter_disposition": "remove embedded table only, fixed runtime metadata; independent raw Main input before invert; direct formatting inverse after semantic predecessor, never second raw projection",
+  "original_all_assertions_preserved": true,
+  "new_selectors": [
+    "source_reflows::semantic_receivers_main8a::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+    "source_reflows::semantic_receivers_main8a::receiver_mutation_and_forged_predecessor_fail_closed"
+  ],
+  "git_index_mutated": false
+}

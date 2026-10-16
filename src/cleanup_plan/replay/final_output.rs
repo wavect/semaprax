@@ -154,3 +154,61 @@ mod before_transfer_current;
 #[cfg(test)]
 #[path = "final_output/current_observation_tests.rs"]
 mod current_observation_tests;
+
+// One split per active multi-suffix prefix, before every new view/Option.
+// The earlier loop keeps its original Iter/next/Option roles unchanged.
+pub(super) const FINAL_SPLIT_CONTROLS: usize = size_of::<Result<(), Diagnostic>>()
+    + size_of::<&mut ReplayBudget>()
+    + size_of::<&ResolvedFunction>()
+    + size_of::<&str>()
+    + size_of::<usize>()
+    + 2 * size_of::<&std::slice::Iter<'_, ExprSkeletonPath>>()
+    + 2 * size_of::<&[ExprSkeletonPath]>()
+    + 2 * size_of::<Option<(&ExprSkeletonPath, &[ExprSkeletonPath])>>()
+    + size_of::<&ExprSkeletonPath>()
+    + size_of::<&[ExprSkeletonPath]>()
+    + 2 * size_of::<std::slice::Iter<'static, ExprSkeletonPath>>(); // additional earlier-slice iterator
+                                                                    // Three cached header results/locals, one subtraction and the payment price.
+                                                                    // Bool capacity is the longest actual nested arm (including take's receiver
+                                                                    // and condition); shorter arms leave their unused paid slots intact.
+pub(super) const FINAL_HEADER_CONTROLS: usize = size_of::<Result<(), Diagnostic>>()
+    + size_of::<&mut ReplayBudget>()
+    + size_of::<&ResolvedFunction>()
+    + size_of::<&str>()
+    + 8 * size_of::<usize>()
+    + 6 * size_of::<&Vec<std::rc::Rc<SkeletonObservation>>>()
+    + 4 * size_of::<&ReplayBudget>()
+    + 2 * size_of::<&Option<std::rc::Rc<super::skeleton_work::ObservationDag>>>()
+    + 8 * size_of::<bool>();
+// Original logical work has already succeeded before the header payment.
+// Only the actual direct payment and moved receiving value are new here.
+pub(super) const FINAL_MOVE_CONTROLS: usize = size_of::<Result<(), Diagnostic>>()
+    + size_of::<Observations>()
+    + size_of::<&mut ReplayBudget>()
+    + size_of::<&ResolvedFunction>()
+    + size_of::<&str>()
+    + size_of::<usize>();
+pub(super) const FINAL_MINIMUM_ITEMS: usize =
+    (FINAL_SPLIT_CONTROLS + FINAL_HEADER_CONTROLS + FINAL_MOVE_CONTROLS)
+        .div_ceil(size_of::<std::rc::Rc<SkeletonObservation>>());
+
+#[cfg(test)]
+std::thread_local! {
+    static FINAL_FRONTIERS: std::cell::Cell<[Option<(usize, usize)>; 2]> = const {
+        std::cell::Cell::new([None, None])
+    };
+}
+#[cfg(test)]
+pub(super) fn record_final_frontier(at: usize, work: &SkeletonWork<'_, '_>) {
+    FINAL_FRONTIERS.with(|slot| {
+        let mut values = slot.get();
+        if values[at].is_none() {
+            values[at] = crate::bounded_output::active_remaining()
+                .map(|remaining| (remaining, work.budget.skeleton_spent));
+            slot.set(values);
+        }
+    });
+}
+#[cfg(test)]
+#[path = "final_output/fanout_tests.rs"]
+mod fanout_tests;

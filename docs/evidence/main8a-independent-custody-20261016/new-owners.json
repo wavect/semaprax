@@ -1,0 +1,167 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/branch_clone/main8a.rs",
+    "sha256": "cf135019a9513a7031829bad4e8885cefe40656fbdaf0cd2ec997d922e9c882f",
+    "lines": 460
+  },
+  {
+    "source": "src/cleanup_plan/replay/branch_clone/main8a/tests.rs",
+    "sha256": "d77ee08d5d0a2b8f9c0253e557f4993e0864a458255c624720c13bb7039d8a4d",
+    "lines": 204
+  },
+  {
+    "source": "src/cleanup_plan/replay/compact_stage/source_custody_main8a.rs",
+    "sha256": "dc2f8980f29035d904f200d278944c1c1df4a6084922d649cfe18dcc7ad51019",
+    "lines": 174
+  },
+  {
+    "source": "src/cleanup_plan/replay/expression_facts/arena/prefix/source_main8a.rs",
+    "sha256": "58822a8666fe81adb717b68570b4335b1885d8d8f54aeee55b9d9e8061290c18",
+    "lines": 35
+  },
+  {
+    "source": "src/cleanup_plan/replay/final_output/fanout_tests.rs",
+    "sha256": "927cfa941e9e1b0c23efc3ab1ea47b896065a535b9566f66a804508ff047235f",
+    "lines": 275
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_array/completed_tests.rs",
+    "sha256": "ffeaea90bbc24e851c0a4c3945d18f698bf608c37ed0a1dc76e36568c2017389",
+    "lines": 177
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_array/final_before.rs",
+    "sha256": "e866a597b35940a2b37c8449c98ac85ef89472f48c1c21cfbd50be7be7c9709e",
+    "lines": 101
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_array/main8a/before.rs",
+    "sha256": "f1ccba39a23d3872951a8bbf2468c10bf33a38bf8468cd60e32d5e080df816c4",
+    "lines": 142
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_array/main8a/completed_tests.rs",
+    "sha256": "e2686d643215c13d16c3148d1fa41be51a310a2aa44c70c69d62d136059c4a34",
+    "lines": 197
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_array/main8a/current.rs",
+    "sha256": "dea8feed2fbc392a77ae56594a6a8968433ab873e83a4d619c8ca8dc9c00c2f2",
+    "lines": 203
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_array/main8a/final_before.rs",
+    "sha256": "e866a597b35940a2b37c8449c98ac85ef89472f48c1c21cfbd50be7be7c9709e",
+    "lines": 101
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_array/main8a/mod.rs",
+    "sha256": "b03a68dfc732fc6d24cf13cd8eb277da1a8680f3124e42014f83f1ad06c8e791",
+    "lines": 115
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_array/main8a/tests.rs",
+    "sha256": "302a00647b95040ab5954c5cb3cb06264a07d6206a6e284351311a3f821c13d9",
+    "lines": 308
+  },
+  {
+    "source": "src/cleanup_plan/replay/selected_entry/tests/session_errors/source_main8a.rs",
+    "sha256": "dd8733cdd473bf30d0cd3ea7595645d0ef37848b7c0c5ba5d68794a576134cca",
+    "lines": 69
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main8a/before.rs",
+    "sha256": "3fa771c3f26552812dfb64d4851ced843418501674c96e3847a8d14119b95e13",
+    "lines": 58
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main8a/before_wrapper.rs",
+    "sha256": "273142f525bdbf71805a4ba0ae16028ff9c992d98e1bcc872c83a5209919bee2",
+    "lines": 63
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main8a/before_wrapper_tests.rs",
+    "sha256": "38f11a53d0a21dc60470dc7ac46fda2a86d191ade68bd7abf5c40ab4da783846",
+    "lines": 295
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main8a/current.rs",
+    "sha256": "40d69abaf2f79eab1facd5e83470f074cb5ed895aa2cb2be0268d9b750bd61da",
+    "lines": 79
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main8a/helper.rs",
+    "sha256": "87f6c227f1bbcb55ebdb617615a0872bcfbef39d18bda27ae98c5eeac63be949",
+    "lines": 46
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main8a/mod.rs",
+    "sha256": "d5ddec74f5c64bc7f42fb9b98e30666ca7c49db79d6ba4f04eed0d8fad381c1c",
+    "lines": 13
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main8a/old_current.rs",
+    "sha256": "0e98841909a7f991bf4b52351982353a0f3048465622b818d4ab93b585e7baed",
+    "lines": 68
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main8a/tests.rs",
+    "sha256": "269fbab48746b162528308a423f6556cb122162cdc171ae8a67c5aa860455e51",
+    "lines": 409
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main8a/wrapper_context.rs",
+    "sha256": "ea7e0dbafb12d87d9e0eaca636df929cca8121b01e28b6cdd12bf26d540473a4",
+    "lines": 13
+  },
+  {
+    "source": "src/hir/nominal_payload/legacy/source_tests_main8a.rs",
+    "sha256": "a72cadf448c2773fa00bbabda673dbc38162804d7ad42c48ab5914c149e0d112",
+    "lines": 75
+  },
+  {
+    "source": "src/loop_calls/byte_writer/source_index_original.rs",
+    "sha256": "7e423fccff3cdd0d5e7fac263e38e997075163f115af7b8db7f62efcf9d2a2ad",
+    "lines": 273
+  },
+  {
+    "source": "src/source_reflows/semantic_receivers_main8a.rs",
+    "sha256": "5feff5c6cc18943075af6853a37788693f5e03bc61edbd8a2fc9ad073b874f34",
+    "lines": 101
+  },
+  {
+    "source": "src/source_reflows_merge/main8a_custody.rs",
+    "sha256": "97c495f92e17f84f86ba128398b5970d3cd4226b01a00ad9067d692787a6a5da",
+    "lines": 107
+  },
+  {
+    "source": "src/workspace_graph/source_schema/nominal_context.rs",
+    "sha256": "53e44ec8f8a4ec759e400617a68049e8583a44b163b9f49d85f2acd657ec18bb",
+    "lines": 61
+  },
+  {
+    "source": "src/workspace_graph/source_schema/nominal_context/main8a.rs",
+    "sha256": "05e6d232c7d3f378fa348a36cae53d697c0c49aba87bd23dadd1e9872b42c409",
+    "lines": 68
+  },
+  {
+    "source": "src/workspace_graph/source_schema/nominal_context/main8a/tests.rs",
+    "sha256": "e9e717f516981420169dccfd7749fb96f4384b6197dc3ebf92ed33fbde208f87",
+    "lines": 142
+  },
+  {
+    "source": "src/workspace_graph/source_schema/nominal_context/tests.rs",
+    "sha256": "26418a0f5c41a199b12946299473be761c700a8f78228c3c89ac76c639638b11",
+    "lines": 254
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/before_f82.rs",
+    "sha256": "8fa081a9dd07f4dfc140ec776e574f93355feee8e51178d86e14b9937e765455",
+    "lines": 129
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/historical_main_f82.rs",
+    "sha256": "2740c1e73c445c49d9d8b142face36322c9fd6edbcaa98e742398c95925e16d6",
+    "lines": 128
+  }
+]

@@ -1,6 +1,9 @@
 use super::*;
 use crate::bounded_output::with_limit_usage_refusal;
 use crate::test_allocation_observer::measure;
+// These direct receivers start after skeleton preflight. Supply its explicit
+// work allowance; new() intentionally leaves that allowance unset. Allocation
+// zero/exact/short accounts below keep their original limits and assertions.
 
 fn program() -> ResolvedProgram {
     let source = r#"
@@ -50,7 +53,7 @@ fn all_canonical_fields_order_and_debug_survive_compaction() {
         .any(|source| matches!(source, StagedCopyResultSource::TryOptionNone { .. })));
     let (compact, refused, _, first) = with_limit_usage_refusal(usize::MAX, || {
         let function = &program.functions[0];
-        let mut budget = ReplayBudget::new();
+        let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
         let mut compact = Vec::new();
         for source in &sources {
             let owned =
@@ -105,7 +108,7 @@ fn constructor_and_rc_pay_all_backing_with_zero_exact_short_and_drop() {
         let observe = |limit| {
             with_limit_usage_refusal(limit, || {
                 measure(|| {
-                    let mut budget = ReplayBudget::new();
+                    let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
                     let result = (|| {
                         // Retain the entire original owned-source clone and census.
                         let owned =
@@ -176,8 +179,8 @@ fn complete_original_plan_paths_keep_every_field_work_and_materialization() {
     let (((), allocation), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {
         measure(|| {
             for function in &program.functions {
-                let mut old = ReplayBudget::new();
-                let mut current = ReplayBudget::new();
+                let mut old = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+                let mut current = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
                 let before = skeleton_materializations();
                 let expected = original_paths(function, &mut old).unwrap();
                 let old_count = skeleton_materializations() - before;

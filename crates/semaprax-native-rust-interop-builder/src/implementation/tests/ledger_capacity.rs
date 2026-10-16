@@ -121,7 +121,14 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     let hir_validator = [hir_validator.as_str(), scope_projection::TEXT].concat();
     let verifier = verifier_source_inventory!();
     let cleanup = concat!(
-        include_str!("../../../../../src/cleanup.rs"),
+        concat!(
+            include_str!("../../../../../src/cleanup.rs"),
+            concat!(
+                include_str!("../../../../../src/cleanup/schema_summary.rs"),
+                include_str!("../../../../../src/cleanup/schema_summary/generic_record.rs"),
+                include_str!("../../../../../src/cleanup/schema_summary/support.rs"),
+            ),
+        ),
         include_str!("../../../../../src/cleanup/replay_context.rs"),
         include_str!("../../../../../src/cleanup/inventory_builder.rs"),
         include_str!("../../../../../src/cleanup/inventory_builder/selected.rs"),

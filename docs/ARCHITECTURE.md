@@ -2213,7 +2213,13 @@ own replacements-only evidence and publication. Operations and structural
 change are separate, bounded derivation layers in
 `src/semantic_workspace_operations.rs` and
 `src/semantic_workspace_structural_change.rs`.
-`workspace_graph/source_schema.rs` owns retained module schema selection. It
+`workspace_graph/source_schema.rs` owns retained module schema selection. Its
+`nominal_context` child borrows unique type declarations from their authenticated
+module/fact owners when classifying imported nominal profiles. `ItemSource`
+keeps the emitted view local and defaults contextual lookup to that same view;
+only this metadata adapter supplies cross-module lookup. Missing, foreign or
+duplicate context keeps the existing conservative profile guard. The adapter
+reserves its own carrier before construction and clones no HIR. It
 borrows existing authored type declarations and exact origin/owner facts,
 replays field layouts against independently retained checked type facts, and
 passes renewal authority explicitly through the Graph classifiers for that
@@ -5099,3 +5105,26 @@ this shipping path. Original path-array work preflight remains unchanged.
 
 
 The test-only `replay/sequence_prefix/main24` namespace retains Main24’s complete borrowed-probe/current receiver and the preceding complete fallible wrapper, each with its original controls. The shipping replay keeps its lexical single-successor transfer and does not acquire the later-admitted Main24 probe carrier. Main24 source tables are separate aliases; historical allocation comparisons remain bound to their named representations.
+Shipping `cleanup_plan/replay.rs` retains its original lexical sole-suffix
+transfer. Active multi-suffix prefixes use one paid remaining-slice split,
+clone earlier siblings in canonical order, and may move the final complete
+prefix without an empty replacement. The first and last original clone work
+debits precede their optional metadata payments. Every surviving clone,
+extension, owned-source and publication keeps its work and materialization.
+Eligibility includes all optional receiving controls and the same next growth
+target or available spare backing. Per-prefix metadata can cost more than the
+avoided clone; no universal reservation or capacity improvement is claimed.
+
+Finished HIR conversion performs the original first output construction,
+work debit and materialization before lexical count/capacity payments.
+The known-empty destination needs no capacity probe. The final power-of-two
+backing is acquired only when the count covers all optional controls;
+subsequent pushes and growth retain their existing receivers.
+
+Main8a's complete helper, current/previous sequencing receivers, completed
+capacity constructor and every original control remain independently compiled
+in test-only `sequence_prefix/main8a` and `path_array/main8a` scopes. Shipping
+nominal context pays its literal receiving layout in `source_schema::select`
+before forming its three borrowed fields; Main8a's complete `Types::new`
+constructor and original controls remain independently compiled. Authenticated
+lookup keeps the local emitted view and conservative profile fallback.

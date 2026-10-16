@@ -7,10 +7,11 @@ pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Di
     if !crate::hir::copy_discard_program_uses(program) {
         return super::byte_traversal::graph_schema(program);
     }
-    // Inner selection owns native-import flags and the exact new composition
-    // frontier. A v84 statement marker alone cannot bypass those guards.
-    super::byte_traversal::graph_schema(program)?;
+    // Authenticate complete HIR before inner profile selection so its first
+    // diagnostic survives. Inner selection still owns native-import flags and
+    // the exact composition frontier after that authentication succeeds.
     crate::hir::validate(program)?;
+    super::byte_traversal::graph_schema(program)?;
     crate::loan_plan::validate_program(program)?;
     crate::hir::analyze_byte_data_capacity(program)?;
     Ok(SCHEMA)

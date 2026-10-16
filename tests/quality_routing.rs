@@ -699,7 +699,10 @@ impl Repository {
         fs::write(
             directory.join("src/graph.rs"),
             concat!(
-                include_str!("../src/graph.rs"),
+                concat!(
+                    include_str!("../src/graph.rs"),
+                    include_str!("../src/graph/vec_field_origin.rs"),
+                ),
                 "\n",
                 include_str!("../src/graph/agent_block.rs"),
                 "\n",
@@ -808,7 +811,10 @@ impl Repository {
             concat!(
                 include_str!("../src/cli/help.rs"),
                 "\n",
-                include_str!("../src/cli/help/authoring.rs"),
+                concat!(
+                    include_str!("../src/cli/help/authoring.rs"),
+                    include_str!("../src/cli/help/authoring/discovery.rs"),
+                ),
                 "\n",
                 include_str!("../src/cli/help/diagnostic_index.rs"),
                 "\n",

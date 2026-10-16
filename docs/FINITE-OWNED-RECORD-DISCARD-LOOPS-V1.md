@@ -68,8 +68,10 @@ v83. Frozen evidence profiles refuse this newer feature.
 For nested storage with flat local byte loans, v84 has a separate current finite
 record composition frontier. Every CopyDiscard must occur within an actual
 pointer-held finite-record body independently recognized from current HIR.
-Selection follows the existing nested cleanup and native-import flag gates,
-then complete HIR, loan, byte capacity and canonical cleanup rebuild/replay.
+Complete HIR authentication runs before inner profile selection and preserves
+its first typed diagnostic. Authenticated HIR then follows the existing nested
+cleanup and native-import flag gates, followed by complete HIR, loan, byte
+capacity and canonical cleanup rebuild/replay.
 A statement tag, retained hint, detached function or parts-only view cannot
 activate this frontier. Frozen nested schemas retain their projected-loan
 restrictions. Other admitted CopyDiscard shapes continue through their existing

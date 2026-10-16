@@ -1,0 +1,7 @@
+{
+  "new_owner": "src/source_reflows_merge/main8a_custody.rs",
+  "reader": "unchanged runtime_json::read_fixture with fixed Spec only",
+  "new_root_api": "main8a_metadata(Main8aFixture)",
+  "git_index_mutated": false,
+  "runtime_source_reads": false
+}

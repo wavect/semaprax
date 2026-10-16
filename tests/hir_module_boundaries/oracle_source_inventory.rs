@@ -15,7 +15,24 @@ const ORACLE_SOURCES: [(&str, &str); 2] = [
 fn complete_independent_cleanup_oracles_remain_registered_and_source_bound() {
     let parents = [
         include_str!("../../src/cleanup_plan/replay/paid_type_facts/inventory_profile.rs"),
-        include_str!("../../src/cleanup_plan/replay/paid_type_facts/inventory_summary.rs"),
+        concat!(
+            include_str!("../../src/cleanup_plan/replay/paid_type_facts/inventory_summary.rs"),
+            include_str!(
+                "../../src/cleanup_plan/replay/paid_type_facts/inventory_summary/collector.rs"
+            ),
+            include_str!(
+                "../../src/cleanup_plan/replay/paid_type_facts/inventory_summary/generic.rs"
+            ),
+            include_str!(
+                "../../src/cleanup_plan/replay/paid_type_facts/inventory_summary/profile.rs"
+            ),
+            include_str!(
+                "../../src/cleanup_plan/replay/paid_type_facts/inventory_summary/shape.rs"
+            ),
+            include_str!(
+                "../../src/cleanup_plan/replay/paid_type_facts/inventory_summary/shape_original.rs"
+            ),
+        ),
     ];
     let expected_paths = [
         "src/cleanup_plan/replay/paid_type_facts/inventory_profile/tests.rs",

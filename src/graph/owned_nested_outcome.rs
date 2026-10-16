@@ -51,7 +51,7 @@ pub(crate) fn graph_schema_from_parts_and_instances_with_renewal_authority(
         .chain(instances.iter().map(|i| &i.function))
         .any(|function| {
             hir::collection_outcome::nested::function_requires_profile_by(function, |id| {
-                types.iter().find(|item| &item.id == id)
+                types.find_in_context(&mut |item| &item.id == id)
             })
         })
     {

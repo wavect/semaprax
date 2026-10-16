@@ -1,0 +1,46 @@
+Main b80 browser custody component from df2dfeee, source only
+
+No Cargo, test binary, capture, ROOT or global audit/front was changed. Runtime
+merge/code-funding corrections belong to the other lane. This component keeps
+our entire completed47f/35cc/2600/17104/841 history and adds the complete actual
+Mainc451 receiver plus before_c451 and complete before2600 in an independent
+namespace. Three new Rust children must join all three raw audits/authority in
+the final whole batch. All ten Main current/previous bodies and every original
+assertion remain registered, with only lexical paths and full-input setup.
+
+Four runtime current->df2 views restore the whole existing parent/runner/helper/
+custody inputs before our immutable pin47 and earlier source views. Four
+INDEPENDENT Main views restore the complete actual Main parent, Main runner,
+before_c451 and before2600 inputs. No cross-branch serial normalization is used.
+NewMain root's complete source inverse is metadata only. Runtime tables total
+12976 bytes. Full old archives, SHA/current/target guards and unique inverses
+are retained; project implementation and all old bridge/digest bodies stay byte-exact.
+Existing pin_input adds only the complete predecessor prefix.
+
+Runner is byte-exact Mainb80. Live parent calls the strict Mainc451 digest; our
+strict final_digest3477789 and all original15 owning selectors remain intact.
+This does NOT guess the combined future production bill or accept either bill.
+The next capture-first workflow must get the real combined bill before any
+ordinary pin owner runs; then add complete next->Mainc451 AND next->47f bridges.
+All real Mainc451 capture/provenance/receipt files are Git-exact, not claimed as
+current combined production evidence. Complete Main2600 and47f wire restores
+were independently checked after only actual counter and bound selfdigest.
+
+Three exact NEW Main owning selectors and seven newly registered complete
+historical controls are listed separately in pending-selectors.json so parent
+can choose the actual minimum without silently dropping compiled assertions.
+No new role/harness. No issue closure or efficiency measurement is claimed.
+
+Global join interface: if these four existing inputs/three children remain exact
+component, no extra local stage is needed. If later actual pin successor changes
+parent/runner/helper/custody, prepend independent full final->THIS component at
+BOTH browser_b80_previous and browser_c451_input before their old tables.
+The final global helper must independently restore whole raw->df2 for inherited
+sourceguards, while Main runtime/source receiver namespaces keep their own
+authenticated Main front. Do not rewrite existing90 runtime JSON or old tables.
+
+Static entry: python3 docs/evidence/main-b80-browser-custody-20261016/verify.py
+The raw Main copies inherit pre-existing Rustfmt differences; targeted
+rustfmt--check parsed all three files and reported only inherited formatting.
+No formatting/compile/test success is manufactured. Original bodies stay exact
+after the explicit full-source adapters; all three files are below1500lines.

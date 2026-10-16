@@ -175,6 +175,8 @@ pub(super) fn before_2600(current: &str) -> String {
 }
 
 pub(super) fn pin_input(source: &str, current: &str) -> String {
+    let previous = browser_b80_previous(source, current);
+    let current = previous.as_str();
     pin_project(
         include_str!(
             "../../../docs/evidence/actual47f-pin-fixture-successor-20261016/current-to-47f.json"
@@ -220,4 +222,23 @@ fn pin_project(rows: &str, source: &str, current: &str) -> String {
         row["original_sha256"]
     );
     result
+}
+
+fn browser_b80_previous(source: &str, current: &str) -> String {
+    pin_project(include_str!("../../../docs/evidence/main-b80-browser-custody-20261016/current-to-df2.json"), source, current)
+}
+fn browser_c451_input(source: &str, current: &str) -> String {
+    pin_project(include_str!("../../../docs/evidence/main-b80-browser-custody-20261016/current-to-main.json"), source, current)
+}
+pub(super) fn main_c451_parent(current: &str) -> String {
+    browser_c451_input("tests/wasm/scalar_browser_ci_contract.rs", current)
+}
+pub(super) fn main_c451_runner(current: &str) -> String {
+    browser_c451_input("platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs", current)
+}
+pub(super) fn main_c451_before(current: &str) -> String {
+    browser_c451_input("tests/wasm/scalar_browser_ci_contract/before_c451.rs", current)
+}
+pub(super) fn main_c451_before_2600(current: &str) -> String {
+    browser_c451_input("tests/wasm/scalar_browser_ci_contract/main_c451_before_2600.rs", current)
 }

@@ -1,0 +1,69 @@
+{
+  "status": "SOURCE_ONLY_PENDING_PARENT_MINIMUM_SCOPE",
+  "new_Main_owners": [
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+      "reason": "new Main c451 owning controls"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+      "reason": "new Main c451 owning controls"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::the_complete_old_bridge_changes_only_its_retained_runner_include",
+      "reason": "new Main c451 owning controls"
+    }
+  ],
+  "registered_independent_historical_controls": [
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::before_c451::hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+      "reason": "complete Main previous receiver controls"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::before_c451::a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+      "reason": "complete Main previous receiver controls"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::before_c451::the_complete_old_bridge_changes_only_its_retained_runner_include",
+      "reason": "complete Main previous receiver controls"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::before_c451::before_2600::current_hosted_wires_replay_complete_historical_cursor_controls",
+      "reason": "complete original Main old controls"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::before_c451::before_2600::current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration",
+      "reason": "complete original Main old controls"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::before_c451::before_2600::a_rehashed_non_builder_budget_mutation_cannot_pass_the_historical_bridge",
+      "reason": "complete original Main old controls"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::before_c451::before_2600::complete_prior_browser_contract_has_only_registration_and_call_adapter_changes",
+      "reason": "complete original Main old controls"
+    }
+  ],
+  "all_original15_pin_consumers": "retained unchanged selectors; real future captures must add Mainc451 bridge before final run",
+  "actual_compilation_or_test_execution": false
+}

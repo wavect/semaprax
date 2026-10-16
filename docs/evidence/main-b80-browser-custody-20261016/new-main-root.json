@@ -1,0 +1,18 @@
+{
+  "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c451.rs",
+  "checkpoint_revision": "b80d733efe85a85b121d9ab876ff4b9969c4a6df",
+  "checkpoint_source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+  "archive": "docs/evidence/main-b80-browser-custody-20261016/before/main/tests/wasm/scalar_browser_ci_contract/historical_builder.rs.txt",
+  "current_sha256": "cfc4bae611ebdb4693549b43f8c7b81f3b092c6127278f894a55f20cb25d7f73",
+  "original_sha256": "fbdc934cb47d6031aefd0ecc2945a575f4e74050b8e9b927e9cf7907c452ff7c",
+  "edits": [
+    {
+      "new": "        \"sha256:ccb0ec81a00f3890ec2fe87af8d0f801970a1a397eeb55fe115e83dab02188ba\",\n    ];\n    let runner = include_str!(\"../../../platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs\");\n    let runner = super::custody::main_c451_runner(runner);\n    for (captured, expected) in CURRENT.into_iter().zip(original) {\n        let graph = captured.strip_suffix('\\n').unwrap();\n        assert_eq!(digest(graph), expected);\n",
+      "old": "        \"sha256:ccb0ec81a00f3890ec2fe87af8d0f801970a1a397eeb55fe115e83dab02188ba\",\n    ];\n    let runner = include_str!(\"../../../platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs\");\n    for (captured, expected) in CURRENT.into_iter().zip(original) {\n        let graph = captured.strip_suffix('\\n').unwrap();\n        assert_eq!(digest(graph), expected);\n"
+    },
+    {
+      "new": "        );\n    }\n    let current = include_str!(\"before_c451.rs\");\n    let current = super::custody::main_c451_before(current);\n    let new = concat!(\n        \"include_str!(\\n\",\n        \"        \\\"../../../docs/evidence/browser-graph-pins-c451086ce/test-fixtures.before.mjs\\\"\\n\",\n",
+      "old": "        );\n    }\n    let current = include_str!(\"before_c451.rs\");\n    let new = concat!(\n        \"include_str!(\\n\",\n        \"        \\\"../../../docs/evidence/browser-graph-pins-c451086ce/test-fixtures.before.mjs\\\"\\n\",\n"
+    }
+  ]
+}

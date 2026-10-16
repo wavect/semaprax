@@ -1,0 +1,57 @@
+[
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract.rs",
+    "checkpoint_revision": "b80d733efe85a85b121d9ab876ff4b9969c4a6df",
+    "checkpoint_source": "tests/wasm/scalar_browser_ci_contract.rs",
+    "archive": "docs/evidence/main-b80-browser-custody-20261016/before/main/tests/wasm/scalar_browser_ci_contract.rs.txt",
+    "current_sha256": "00b1c8f92850779236c14c05e0302d76e812682b7055bc3229b7584184036593",
+    "original_sha256": "2e5e392cb33e2eb998093b21c29c2cab4decb8e85e99bbbaf27ca0a6fb50f9d5",
+    "edits": [
+      {
+        "new": "                    file.write_all(revision.semantic_graph().as_bytes())\n                        .expect(\"capture complete actual calculator graph\");\n                }\n                previous_digests.push(historical_builder::main_c451_digest(revision.semantic_graph()));\n                let actual = [\n                    revision.project_revision(),\n                    revision.workspace_revision(),\n",
+        "old": "                    file.write_all(revision.semantic_graph().as_bytes())\n                        .expect(\"capture complete actual calculator graph\");\n                }\n                previous_digests.push(historical_builder::digest(revision.semantic_graph()));\n                let actual = [\n                    revision.project_revision(),\n                    revision.workspace_revision(),\n"
+      }
+    ]
+  },
+  {
+    "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "checkpoint_revision": "b80d733efe85a85b121d9ab876ff4b9969c4a6df",
+    "checkpoint_source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "archive": "docs/evidence/main-b80-browser-custody-20261016/before/main/platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs.txt",
+    "current_sha256": "e2dcb8f6a31a753891aeb04fa5269a28c555ec686a7945a8c5080bd54d7178a3",
+    "original_sha256": "e2dcb8f6a31a753891aeb04fa5269a28c555ec686a7945a8c5080bd54d7178a3",
+    "edits": []
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/before_c451.rs",
+    "checkpoint_revision": "b80d733efe85a85b121d9ab876ff4b9969c4a6df",
+    "checkpoint_source": "tests/wasm/scalar_browser_ci_contract/before_c451.rs",
+    "archive": "docs/evidence/main-b80-browser-custody-20261016/before/main/tests/wasm/scalar_browser_ci_contract/before_c451.rs.txt",
+    "current_sha256": "2db121ad5e55ff4893d6f394acbf76992d310cff305586e431173d87f2ce10a5",
+    "original_sha256": "c2a37b465fbeba1cae400ea2316fce996b8561bd5523f73100c0b1904f967fc2",
+    "edits": [
+      {
+        "new": "use super::digest_without_checked_value_cursor_budget;\nuse sha2::{Digest, Sha256};\n\n#[path = \"main_c451_before_2600.rs\"]\nmod before_2600;\n\nconst CURRENT: [&str; 2] = [\n",
+        "old": "use super::digest_without_checked_value_cursor_budget;\nuse sha2::{Digest, Sha256};\n\n#[path = \"before_2600.rs\"]\nmod before_2600;\n\nconst CURRENT: [&str; 2] = [\n"
+      },
+      {
+        "new": "            expected\n        );\n    }\n    let current = include_str!(\"main_c451_before_2600.rs\");\n    let current = super::super::custody::main_c451_before_2600(current);\n    let new = concat!(\n        \"include_str!(\\n\",\n        \"        \\\"../../../docs/evidence/browser-graph-pins-2600e49eb/test-fixtures.before.mjs\\\"\\n\",\n",
+        "old": "            expected\n        );\n    }\n    let current = include_str!(\"before_2600.rs\");\n    let new = concat!(\n        \"include_str!(\\n\",\n        \"        \\\"../../../docs/evidence/browser-graph-pins-2600e49eb/test-fixtures.before.mjs\\\"\\n\",\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/main_c451_before_2600.rs",
+    "checkpoint_revision": "b80d733efe85a85b121d9ab876ff4b9969c4a6df",
+    "checkpoint_source": "tests/wasm/scalar_browser_ci_contract/before_2600.rs",
+    "archive": "docs/evidence/main-b80-browser-custody-20261016/before/main/tests/wasm/scalar_browser_ci_contract/before_2600.rs.txt",
+    "current_sha256": "b7e6b422a7ed8be68fdc06d3447e5370cd53c618c80461f6be9bc631906c58c2",
+    "original_sha256": "e9a110ae30efac1012deed4c9ac4750dbc4f82e4cb698f1b33508872d968ca26",
+    "edits": [
+      {
+        "new": "        \"ea17287522800683e8b257ecdf379866d26bf891dc2b4b34e49c5ee82f206de3\"\n    );\n    let current = include_str!(\"../scalar_browser_ci_contract.rs\");\n    let current = super::super::super::custody::main_c451_parent(current);\n    let changes = [\n        (\"#[path = \\\"scalar_browser_ci_contract/historical_builder.rs\\\"]\\nmod historical_builder;\\n\\n\", \"\"),\n        (\"previous_digests.push(historical_builder::digest(revision.semantic_graph()));\", \"previous_digests.push(digest_without_checked_value_cursor_budget(\\n                    revision.semantic_graph(),\\n                ));\"),\n",
+        "old": "        \"ea17287522800683e8b257ecdf379866d26bf891dc2b4b34e49c5ee82f206de3\"\n    );\n    let current = include_str!(\"../scalar_browser_ci_contract.rs\");\n    let changes = [\n        (\"#[path = \\\"scalar_browser_ci_contract/historical_builder.rs\\\"]\\nmod historical_builder;\\n\\n\", \"\"),\n        (\"previous_digests.push(historical_builder::digest(revision.semantic_graph()));\", \"previous_digests.push(digest_without_checked_value_cursor_budget(\\n                    revision.semantic_graph(),\\n                ));\"),\n"
+      }
+    ]
+  }
+]

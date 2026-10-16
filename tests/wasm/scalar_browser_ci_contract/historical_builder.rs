@@ -360,3 +360,10 @@ pub(super) fn final_digest(graph: &str) -> String {
     }
     main_digest(&main.unwrap())
 }
+
+// Complete independent actual Main c451 receiver and all older Main controls.
+#[path = "historical_main_c451.rs"]
+mod main_c451;
+pub(super) fn main_c451_digest(graph: &str) -> String {
+    main_c451::digest(graph)
+}

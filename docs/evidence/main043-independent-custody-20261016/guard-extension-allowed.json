@@ -74,7 +74,8 @@
       "tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs": 1,
       "tests/wasm/scalar_browser_ci_contract/before_524.rs": 1,
       "src/source_reflows_merge/main7f8_presence.rs": 1,
-      "src/source_reflows_merge/main7f8_source_inputs.rs": 1
+      "src/source_reflows_merge/main7f8_source_inputs.rs": 1,
+      "src/cleanup_plan/replay/supplemental/receiving/tests/legacy.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -156,7 +157,8 @@
       "tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs": 1,
       "tests/wasm/scalar_browser_ci_contract/before_524.rs": 1,
       "src/source_reflows_merge/main7f8_presence.rs": 1,
-      "src/source_reflows_merge/main7f8_source_inputs.rs": 1
+      "src/source_reflows_merge/main7f8_source_inputs.rs": 1,
+      "src/cleanup_plan/replay/supplemental/receiving/tests/legacy.rs": 1
     }
   },
   "tests/workspace/semantic_graph/source_inventory.rs": {
@@ -269,7 +271,8 @@
       "tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs": 1,
       "tests/wasm/scalar_browser_ci_contract/before_524.rs": 1,
       "src/source_reflows_merge/main7f8_presence.rs": 1,
-      "src/source_reflows_merge/main7f8_source_inputs.rs": 1
+      "src/source_reflows_merge/main7f8_source_inputs.rs": 1,
+      "src/cleanup_plan/replay/supplemental/receiving/tests/legacy.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -380,7 +383,8 @@
       "tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs": 1,
       "tests/wasm/scalar_browser_ci_contract/before_524.rs": 1,
       "src/source_reflows_merge/main7f8_presence.rs": 1,
-      "src/source_reflows_merge/main7f8_source_inputs.rs": 1
+      "src/source_reflows_merge/main7f8_source_inputs.rs": 1,
+      "src/cleanup_plan/replay/supplemental/receiving/tests/legacy.rs": 1
     }
   },
   "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
@@ -463,7 +467,8 @@
       "tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs": 1,
       "tests/wasm/scalar_browser_ci_contract/before_524.rs": 1,
       "src/source_reflows_merge/main7f8_presence.rs": 1,
-      "src/source_reflows_merge/main7f8_source_inputs.rs": 1
+      "src/source_reflows_merge/main7f8_source_inputs.rs": 1,
+      "src/cleanup_plan/replay/supplemental/receiving/tests/legacy.rs": 1
     },
     "maximum": {
       "src/cleanup_plan/replay.rs": 1,
@@ -544,7 +549,8 @@
       "tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs": 1,
       "tests/wasm/scalar_browser_ci_contract/before_524.rs": 1,
       "src/source_reflows_merge/main7f8_presence.rs": 1,
-      "src/source_reflows_merge/main7f8_source_inputs.rs": 1
+      "src/source_reflows_merge/main7f8_source_inputs.rs": 1,
+      "src/cleanup_plan/replay/supplemental/receiving/tests/legacy.rs": 1
     }
   }
 }

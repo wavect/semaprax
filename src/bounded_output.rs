@@ -1317,13 +1317,16 @@ mod resolution_stage_tests;
     )
 ))]
 mod source_owner_scope;
-#[cfg(all(
-    unix,
-    any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
+#[cfg(any(
+    test,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
     )
 ))]
 pub(crate) use source_owner_scope::source_owner_scope;

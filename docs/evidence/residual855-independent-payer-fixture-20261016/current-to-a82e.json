@@ -1,0 +1,24 @@
+[
+  {
+    "source": "src/hir/expr_nodes.rs",
+    "current_sha256": "e2291267786bdec4371b969031209b4e77aa6876f4564048ad1c7561b004b73f",
+    "original_sha256": "616c9ec47434ce273fe76fac3eb21f30654f527ce32bef33c2a952e22feb3bfb",
+    "edits": [
+      {
+        "new": "            // A nested child is clamped by its parent's remaining zero bytes;\n            // asking for the constructor's debit does not create another payer.\n            let arguments = Cell::new(0);\n            let ((value, allocation), child_refused, child_used) =\n                output::with_limit_usage(debit, || {\n                    assert_eq!(output::active_limit(), Some(0));\n                    measure(|| crate::hir::resolved_residual_type!({\n                        arguments.set(arguments.get() + 1);\n                        ResolvedType::I64\n                    }))\n                });\n            assert!(value.is_none() && child_refused);\n            assert_eq!(child_used, 0);\n            assert_eq!(arguments.get(), 0);\n            assert!(!allocation.invalid);\n            assert_eq!(allocation.allocated, 0);\n            assert_eq!(allocation.freed, 0);\n            assert_eq!(allocation.live, 0);\n            assert_eq!(allocation.reallocations, 0);\n\n            // A constructor retains no ambient owner/permit. This existing\n            // explicit source scope owns an independent exact-debit payer,\n            // then restores the already-sticky old account before receiving.\n            let ((), inner_refused, inner_used) = output::source_owner_scope(\n                debit,\n                || {\n                    assert_eq!(output::active_limit(), Some(debit));\n                    measure(|| {\n                        let value = crate::hir::resolved_residual_type!({\n                            arguments.set(arguments.get() + 1);\n                            ResolvedType::I64\n                        }).unwrap();\n                        assert_eq!(*value, ResolvedType::I64);\n                        drop(value);\n                    })\n                },\n                |((), allocation), formatting_refused, _source_payer| {\n                    assert!(!formatting_refused);\n                    assert_eq!(arguments.get(), 1);\n                    assert!(!allocation.invalid);\n                    assert_eq!(allocation.allocated, size_of::<ResolvedType>());\n                    assert_eq!(allocation.freed, size_of::<ResolvedType>());\n                    assert_eq!(allocation.live, 0);\n                    assert_eq!(allocation.reallocations, 0);\n                    assert!(output::active_refused());\n                    assert_eq!(output::active_remaining(), Some(0));\n                },\n            );\n",
+        "old": "            // A constructor retains no ambient owner/permit: the current\n            // independently entered scope pays, then its Drop restores the\n            // already-sticky old account without replacing its first refusal.\n            let ((), inner_refused, inner_used) = output::with_limit_usage(debit, || {\n                let value = crate::hir::resolved_residual_type!(ResolvedType::I64).unwrap();\n                assert_eq!(*value, ResolvedType::I64);\n                drop(value);\n            });\n"
+      }
+    ]
+  },
+  {
+    "source": "src/bounded_output.rs",
+    "current_sha256": "62a3715093b73e9ecb181ab9b52b4cb56199c6ad85f00b176a1aba6bed6ffefc",
+    "original_sha256": "cc888c9e04f11302031cdcbf9b17d2c55de14e589bca9bdea12146ccc47aaf25",
+    "edits": [
+      {
+        "new": "mod source_owner_scope;\n#[cfg(any(\n    test,\n    all(\n        unix,\n        any(\n            target_os = \"linux\",\n            target_os = \"android\",\n            target_vendor = \"apple\",\n            target_os = \"redox\"\n        )\n",
+        "old": "mod source_owner_scope;\n#[cfg(all(\n    unix,\n    any(\n        target_os = \"linux\",\n        target_os = \"android\",\n        target_vendor = \"apple\",\n        target_os = \"redox\"\n"
+      }
+    ]
+  }
+]

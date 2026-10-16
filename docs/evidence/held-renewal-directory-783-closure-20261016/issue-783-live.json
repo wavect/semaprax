@@ -1,0 +1,39 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Action completed."
+    }
+  ],
+  "structuredContent": {
+    "issue": {
+      "url": "https://github.com/wavect/semaprax/issues/783",
+      "title": "(OPT) Retain independently derived renewal directories across ordinary construction and replay",
+      "issue_number": 783,
+      "body": "Current source discovery at 5c39cadd9 found repeated whole-function renewal reconstruction: hir::vec_loop_renewal::binding_in calls bindings_in(...).remove(at), and bindings_in collects all ordinary + consuming sites. PlanBuilder::renewal_binding holds only byte-helper sites and takes this fresh route; ordinary cleanup replay asks renewal_profile::binding_with_index again for the same site. SkeletonWork already independently owns a renewal directory. This is distinct from the completed Bytes helper ModuleIndex.\n\nRetain one ordinary RenewalBindings directory per actual construction/replay phase, independently derived from exact current program/function pointers. Preserve family selection priority and per-family membership: schema gating cannot use union membership alone. Selected primitive receiver authority remains separate. Reuse directory lookups without rescanning/rebuilding maps per occurrence; precharge actual held backing/work before allocation and preserve sticky first refusal and Drop.\n\nAcceptance: saved old per-query classification vs phase-held directory across ordinary/owned/consuming families and opposing identity orders; malformed/stale/source-pointer/family-schema controls; exact/one-short/no-refund/Drop for actual constructor and replay; unchanged cleanup inventory/order and whole original application controls. No guessed quota/forecast discount or skipped validation. This is real repeated work but is NOT evidence identifying the earlier HirLowering 10280-byte refusal, which occurs in another phase. No application-fit or live agent token advantage claimed. Implement then minimum owning checks in the large release-branch batch.",
+      "state": "open",
+      "user": {
+        "login": "wsdt",
+        "name": "wsdt",
+        "email": null,
+        "avatar_url": "https://avatars.githubusercontent.com/u/28724551?v=4",
+        "id": 28724551
+      },
+      "assignees": null,
+      "labels": null,
+      "milestone": null,
+      "state_reason": null,
+      "comments": 0,
+      "created_at": "2026-10-12T00:40:57Z",
+      "updated_at": "2026-10-12T00:40:57Z",
+      "closed_at": null,
+      "display_url": "https://github.com/wavect/semaprax/issues/783",
+      "display_title": "(OPT) Retain independently derived renewal directories across ordinary construction and replay"
+    },
+    "url": "https://github.com/wavect/semaprax/issues/783",
+    "title": "(OPT) Retain independently derived renewal directories across ordinary construction and replay",
+    "display_url": "https://github.com/wavect/semaprax/issues/783",
+    "display_title": "(OPT) Retain independently derived renewal directories across ordinary construction and replay"
+  },
+  "isError": false
+}

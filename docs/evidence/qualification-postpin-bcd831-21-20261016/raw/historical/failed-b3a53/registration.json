@@ -1,0 +1,2505 @@
+{
+  "status": "SOURCE_REGISTERED_UNEXECUTED_PARENT_FINAL_HEAD",
+  "source_head": "b3a53367d4def76240d14dca25ee414785bed9d6",
+  "source_tree": "841d60fbc9bec442d37fe20c5d57bef8cda4866e",
+  "repository": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "selected": 53,
+  "resolved": 53,
+  "issues": [],
+  "rows": [
+    {
+      "source_path": "src/cleanup_plan/replay/path_array/tests.rs",
+      "line": 53,
+      "name": "four_complete_original_receivers_keep_all_path_fields_order_and_work",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 8,
+          "module": "path_array",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_array.rs",
+          "line": 96,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "9b31375f7ee10af00217bd4caa212cbe21a95ac6391fb0849083e01ac7d3f0e5",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::tests::four_complete_original_receivers_keep_all_path_fields_order_and_work",
+      "reason": "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here.",
+      "current_batch_selection_reasons": [
+        "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_array/tests.rs",
+      "line": 144,
+      "name": "append_pays_complete_backing_and_drop_with_exact_short_and_zero_controls",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 8,
+          "module": "path_array",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_array.rs",
+          "line": 96,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "9b31375f7ee10af00217bd4caa212cbe21a95ac6391fb0849083e01ac7d3f0e5",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::tests::append_pays_complete_backing_and_drop_with_exact_short_and_zero_controls",
+      "reason": "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here.",
+      "current_batch_selection_reasons": [
+        "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_array/tests.rs",
+      "line": 210,
+      "name": "complete_hir_enumeration_keeps_paths_work_materializations_and_legacy",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 8,
+          "module": "path_array",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_array.rs",
+          "line": 96,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "9b31375f7ee10af00217bd4caa212cbe21a95ac6391fb0849083e01ac7d3f0e5",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::tests::complete_hir_enumeration_keeps_paths_work_materializations_and_legacy",
+      "reason": "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here.",
+      "current_batch_selection_reasons": [
+        "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_array/tests.rs",
+      "line": 255,
+      "name": "complete_old_functions_are_compiled_and_only_capacity_hooks_change",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 8,
+          "module": "path_array",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_array.rs",
+          "line": 96,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "9b31375f7ee10af00217bd4caa212cbe21a95ac6391fb0849083e01ac7d3f0e5",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::tests::complete_old_functions_are_compiled_and_only_capacity_hooks_change",
+      "reason": "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here.",
+      "current_batch_selection_reasons": [
+        "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here."
+      ]
+    },
+    {
+      "source_path": "src/source_reflows/semantic_receivers.rs",
+      "line": 60,
+      "name": "every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 18,
+          "module": "source_reflows",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[macro_use]"
+          ]
+        },
+        {
+          "source_path": "src/source_reflows.rs",
+          "line": 26,
+          "module": "semantic_receivers",
+          "attributes": [
+            "#[path = \"source_reflows/semantic_receivers.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "f8f18c9850e0595c2ffafbc8eb0215d0566501a07d28814d01e4f32f0a2e4273",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_reflows::semantic_receivers::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+      "reason": "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here.",
+      "current_batch_selection_reasons": [
+        "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here."
+      ]
+    },
+    {
+      "source_path": "src/source_reflows/semantic_receivers.rs",
+      "line": 87,
+      "name": "receiver_mutation_and_forged_predecessor_fail_closed",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 18,
+          "module": "source_reflows",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[macro_use]"
+          ]
+        },
+        {
+          "source_path": "src/source_reflows.rs",
+          "line": 26,
+          "module": "semantic_receivers",
+          "attributes": [
+            "#[path = \"source_reflows/semantic_receivers.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "f8f18c9850e0595c2ffafbc8eb0215d0566501a07d28814d01e4f32f0a2e4273",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_reflows::semantic_receivers::receiver_mutation_and_forged_predecessor_fail_closed",
+      "reason": "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here.",
+      "current_batch_selection_reasons": [
+        "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here."
+      ]
+    },
+    {
+      "source_path": "src/source_reflows.rs",
+      "line": 125,
+      "name": "approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 18,
+          "module": "source_reflows",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[macro_use]"
+          ]
+        }
+      ],
+      "sha256": "6fc1e3a0f008be1457e96e00e1da28dbba41f119f58bd2d9a55c7d12570ef6b5",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_reflows::approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors",
+      "reason": "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here.",
+      "current_batch_selection_reasons": [
+        "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs",
+      "line": 122,
+      "name": "complete_previous_successor_producer_and_whole_current_module_remain_bound",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 104,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 1333,
+          "module": "main_unit_weight",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight.rs",
+          "line": 24,
+          "module": "unit_weight_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"main_unit_weight/unit_weight_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "0be72c82ceb41ccf8636721d95a1f6560c5239d48b4c0adc93ebf3326b3acf29",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight_tests::complete_previous_successor_producer_and_whole_current_module_remain_bound",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "current_batch_selection_reasons": [
+        "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+      "line": 416,
+      "name": "complete_original_receivers_and_all_new_source_owners_remain_authenticated",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 104,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 37,
+          "module": "compact_nodes",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/compact_nodes.rs",
+          "line": 88,
+          "module": "before",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"compact_nodes/before/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs",
+          "line": 818,
+          "module": "tests",
+          "attributes": [
+            "#[path = \"../tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "426cfc4c1ac2c23fc0ecbe8ab3a2879f20a06a0ec35d6b8aa85200ca130d20fd",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::complete_original_receivers_and_all_new_source_owners_remain_authenticated",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "current_batch_selection_reasons": [
+        "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+      "line": 536,
+      "name": "immediate_parent_831_and_compact_storage_have_independent_complete_source_domains",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 104,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 37,
+          "module": "compact_nodes",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/compact_nodes.rs",
+          "line": 88,
+          "module": "before",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"compact_nodes/before/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs",
+          "line": 818,
+          "module": "tests",
+          "attributes": [
+            "#[path = \"../tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "426cfc4c1ac2c23fc0ecbe8ab3a2879f20a06a0ec35d6b8aa85200ca130d20fd",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::immediate_parent_831_and_compact_storage_have_independent_complete_source_domains",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "current_batch_selection_reasons": [
+        "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs",
+      "line": 87,
+      "name": "ordered_amortized_checkpoint_full_sources_and_inverses_are_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 104,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 40,
+          "module": "ordered_weights",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs",
+          "line": 360,
+          "module": "amortized_source",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "addd5d1825377a0eed8f57348fae259dbb156beea659f0f02f8c5b23738c9812",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::amortized_source::ordered_amortized_checkpoint_full_sources_and_inverses_are_exact",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "current_batch_selection_reasons": [
+        "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "line": 3,
+      "name": "complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 7437,
+          "module": "live_oracle",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/live_oracle.rs",
+          "line": 29,
+          "module": "source_custody",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/live_oracle/source_custody.rs",
+          "line": 10,
+          "module": "a",
+          "attributes": []
+        }
+      ],
+      "sha256": "328a65d7a3add4e6fd84b10f9e04d76cb1f03ac9ae8bffe36a2fb17bbb19a104",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "current_batch_selection_reasons": [
+        "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "line": 3,
+      "name": "complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 7437,
+          "module": "live_oracle",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/live_oracle.rs",
+          "line": 29,
+          "module": "source_custody",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/live_oracle/source_custody.rs",
+          "line": 11,
+          "module": "b",
+          "attributes": []
+        }
+      ],
+      "sha256": "7f7f0c6c5249591091a7fe7ddc6242631ceb63f6b005034036e24e5ea5ba5c50",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::b::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "current_batch_selection_reasons": [
+        "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority."
+      ]
+    },
+    {
+      "source_path": "src/source_reflows_merge/runtime_json/tests.rs",
+      "line": 30,
+      "name": "fixed_projection_json_transport_refuses_hostile_io_before_parsing",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 20,
+          "module": "source_reflows_merge",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/source_reflows_merge.rs",
+          "line": 5,
+          "module": "runtime_json",
+          "attributes": [
+            "#[path = \"source_reflows_merge/runtime_json.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/source_reflows_merge/runtime_json.rs",
+          "line": 88,
+          "module": "tests",
+          "attributes": [
+            "#[path = \"runtime_json/tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "cbe9336a17fa49c7555a905b61bcb4d8405301a12d168c78f25d76ef68cbd649",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_reflows_merge::runtime_json::tests::fixed_projection_json_transport_refuses_hostile_io_before_parsing",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "current_batch_selection_reasons": [
+        "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/source.rs",
+      "line": 7,
+      "name": "inline_weighted_complete_source_inverses_and_immediate_receiver_are_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 104,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 51,
+          "module": "inline_weighted",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs",
+          "line": 69,
+          "module": "source",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "fd9f63384d7e7df100077a36753ec8bc06b063a2746c98cceec0f2866d9f6418",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::inline_weighted::source::inline_weighted_complete_source_inverses_and_immediate_receiver_are_exact",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "current_batch_selection_reasons": [
+        "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "line": 182,
+      "name": "complete_immediate_receiver_helpers_and_all_seven_original_controls_remain_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 104,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 1326,
+          "module": "receiving_layer_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "969a66f6a53585c67165c9b7eba481cc8528bf93e7e8e9a797b47c99352199a7",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::complete_immediate_receiver_helpers_and_all_seven_original_controls_remain_exact",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "current_batch_selection_reasons": [
+        "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority."
+      ]
+    },
+    {
+      "source_path": "tests/hir_module_boundaries.rs",
+      "line": 2,
+      "name": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [],
+      "sha256": "ef6f81bd7e974de1b4c000d0931cb7c7ffbba28d8224c2221f3b1253d1be6b5f",
+      "ignored": false,
+      "harness": "semaprax::hir_module_boundaries",
+      "kind": "test:hir_module_boundaries",
+      "selector": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "current_batch_selection_reasons": [
+        "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority."
+      ]
+    },
+    {
+      "source_path": "tests/workspace/semantic_graph.rs",
+      "line": 358,
+      "name": "expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/workspace.rs",
+          "line": 68,
+          "module": "semantic_graph",
+          "attributes": [
+            "#[path = \"workspace/semantic_graph.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "b9c26dcc48648d34a2f2a8c756f70c94a69497228ca65d01a4deab0450735621",
+      "ignored": false,
+      "harness": "semaprax::workspace",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "current_batch_selection_reasons": [
+        "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs",
+      "line": 3,
+      "name": "merged_current_ci_reflow_and_presence512_complete_inputs_remain_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 7437,
+          "module": "live_oracle",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/live_oracle.rs",
+          "line": 29,
+          "module": "source_custody",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/live_oracle/source_custody.rs",
+          "line": 14,
+          "module": "presence_tests",
+          "attributes": []
+        }
+      ],
+      "sha256": "0f634bae3a57dff7216527c6cfc4a9391db9532a09000dc41389edd68f1ae3f1",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::presence_tests::merged_current_ci_reflow_and_presence512_complete_inputs_remain_exact",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "current_batch_selection_reasons": [
+        "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority."
+      ]
+    },
+    {
+      "source_path": "tests/module_size.rs",
+      "line": 114,
+      "name": "no_module_exceeds_its_recorded_size",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [],
+      "sha256": "f4db65da11156807050b9e929231c0c2df885256690a8416c6064d31e1b2e14b",
+      "ignored": false,
+      "harness": "semaprax::module_size",
+      "kind": "test:module_size",
+      "selector": "no_module_exceeds_its_recorded_size",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "current_batch_selection_reasons": [
+        "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/branch_clone/tests.rs",
+      "line": 154,
+      "name": "whole_original_enumerator_and_clone_push_helpers_remain_byte_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 3,
+          "module": "branch_clone",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/branch_clone.rs",
+          "line": 113,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "1ceebb30aefeb84f0b3be9a2ff916c247a8017ecbe1a33d58f36bd556094c757",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::tests::whole_original_enumerator_and_clone_push_helpers_remain_byte_exact",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "current_batch_selection_reasons": [
+        "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/unit_receiving_tests.rs",
+      "line": 112,
+      "name": "unified_closure_slot_keeps_full_immediate_sources_and_old_receiver_bodies_bound",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 104,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 47,
+          "module": "unit_receiving_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "8c4026175e6ed2ec76c5cdfe6bceeb0baa6596cb37a37ef6899aa927d0b40139",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_keeps_full_immediate_sources_and_old_receiver_bodies_bound",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "current_batch_selection_reasons": [
+        "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority."
+      ]
+    },
+    {
+      "source_path": "tests/native/string_settlement/codec_allocation/codec808_frontier.rs",
+      "line": 139,
+      "name": "primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 5607,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"workspace_graph/tests.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/workspace_graph/tests.rs",
+          "line": 2,
+          "module": "codec808_frontier",
+          "attributes": [
+            "#[path = \"../../tests/native/string_settlement/codec_allocation/codec808_frontier.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "1f90201ed8422af0608dcabba619638bd9618ab00be82eb1a42701bbabb79a9b",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+      "reason": "Unchanged relevant application probe already in current60; Main696 alters full replay backing reached during the same ordinary compiler preparation. Run and disclose actual result, not universal app-success closure gate.",
+      "current_batch_selection_reasons": [
+        "Unchanged relevant application probe already in current60; Main696 alters full replay backing reached during the same ordinary compiler preparation. Run and disclose actual result, not universal app-success closure gate."
+      ],
+      "prior_actual_failure": {
+        "source_subject": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-05.log",
+        "log_sha256": "f3a5f46af8434ac87eb80373172feb5562b51f9251a260f13fb9b7a25cb9f079"
+      }
+    },
+    {
+      "source_path": "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+      "line": 290,
+      "name": "application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "crates/semaprax-toolchain/tests/cli_new_project_v1.rs",
+          "line": 2,
+          "module": "application_starter",
+          "attributes": [
+            "#[path = \"cli_new_project_v1/application_starter.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "e01a02fb235f02b43f8ea37fcb088e61ff72ea5c0b82c87bed187f328e559d53",
+      "ignored": false,
+      "harness": "semaprax-toolchain::cli_new_project_v1",
+      "kind": "test:cli_new_project_v1",
+      "selector": "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+      "reason": "Unchanged relevant application probe already in current60; Main696 alters full replay backing reached during the same ordinary compiler preparation. Run and disclose actual result, not universal app-success closure gate.",
+      "current_batch_selection_reasons": [
+        "Unchanged relevant application probe already in current60; Main696 alters full replay backing reached during the same ordinary compiler preparation. Run and disclose actual result, not universal app-success closure gate."
+      ],
+      "prior_actual_failure": {
+        "source_subject": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-06.log",
+        "log_sha256": "53ec1fc32930ff72530a008a95357d194bf65e2201d20a157f0f9fb961cfd509"
+      }
+    },
+    {
+      "source_path": "tests/project/standard_library/application_json/owned/shiftsim_typed_records.rs",
+      "line": 134,
+      "name": "unfactored_schedule_retains_original_source_and_factored_admission",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/project.rs",
+          "line": 207,
+          "module": "standard_library",
+          "attributes": [
+            "#[path = \"project/standard_library.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library.rs",
+          "line": 19,
+          "module": "application_json",
+          "attributes": [
+            "#[path = \"standard_library/application_json.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library/application_json.rs",
+          "line": 17,
+          "module": "owned",
+          "attributes": [
+            "#[path = \"application_json/owned.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library/application_json/owned.rs",
+          "line": 12,
+          "module": "shiftsim_typed_records",
+          "attributes": [
+            "#[path = \"owned/shiftsim_typed_records.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "30e0ec893b8c5a65d11a05f98cfbe741381870ba8f6402f52af2687911d6b999",
+      "ignored": false,
+      "harness": "semaprax::project",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::unfactored_schedule_retains_original_source_and_factored_admission",
+      "reason": "Unchanged relevant application probe already in current60; Main696 alters full replay backing reached during the same ordinary compiler preparation. Run and disclose actual result, not universal app-success closure gate.",
+      "current_batch_selection_reasons": [
+        "Unchanged relevant application probe already in current60; Main696 alters full replay backing reached during the same ordinary compiler preparation. Run and disclose actual result, not universal app-success closure gate."
+      ],
+      "prior_actual_failure": {
+        "source_subject": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-07.log",
+        "log_sha256": "6eb15517a6a2fe082d16cd372cb8ed04b86823acf26f66597a8e61f4a438577f"
+      }
+    },
+    {
+      "source_path": "tests/project/standard_library/application_json/owned/catalog_scoped_records.rs",
+      "line": 134,
+      "name": "typed_catalog_derives_codecs_and_preserves_all_23_functional_cases",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/project.rs",
+          "line": 207,
+          "module": "standard_library",
+          "attributes": [
+            "#[path = \"project/standard_library.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library.rs",
+          "line": 19,
+          "module": "application_json",
+          "attributes": [
+            "#[path = \"standard_library/application_json.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library/application_json.rs",
+          "line": 17,
+          "module": "owned",
+          "attributes": [
+            "#[path = \"application_json/owned.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library/application_json/owned.rs",
+          "line": 8,
+          "module": "catalog_scoped_records",
+          "attributes": [
+            "#[path = \"owned/catalog_scoped_records.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "fc5048241b7937f487d12cb934f591730185ab905b63c2f5713d1374648f5d9d",
+      "ignored": false,
+      "harness": "semaprax::project",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::owned::catalog_scoped_records::typed_catalog_derives_codecs_and_preserves_all_23_functional_cases",
+      "reason": "Unchanged relevant application probe already in current60; Main696 alters full replay backing reached during the same ordinary compiler preparation. Run and disclose actual result, not universal app-success closure gate.",
+      "current_batch_selection_reasons": [
+        "Unchanged relevant application probe already in current60; Main696 alters full replay backing reached during the same ordinary compiler preparation. Run and disclose actual result, not universal app-success closure gate."
+      ],
+      "prior_actual_failure": {
+        "source_subject": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-08.log",
+        "log_sha256": "8e109b0320998247025379b3ee09c97d0e01ec92c3a8cf1b27a07f11b3bea96b"
+      }
+    },
+    {
+      "source_path": "src/workspace_graph/tests/builder_limits.rs",
+      "line": 582,
+      "name": "catalog_normalizer_compact_core_fits_production_builder_cap",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 5607,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"workspace_graph/tests.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/workspace_graph/tests.rs",
+          "line": 7,
+          "module": "builder_limits",
+          "attributes": [
+            "#[path = \"tests/builder_limits.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "c1f40dbe6d396e0bac776028d029b7d3cc938293857a86750aa9f4a03e3a17ed",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "reason": "Unchanged relevant application probe already in current60; Main696 alters full replay backing reached during the same ordinary compiler preparation. Run and disclose actual result, not universal app-success closure gate.",
+      "current_batch_selection_reasons": [
+        "Unchanged relevant application probe already in current60; Main696 alters full replay backing reached during the same ordinary compiler preparation. Run and disclose actual result, not universal app-success closure gate."
+      ],
+      "prior_actual_failure": {
+        "source_subject": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-09.log",
+        "log_sha256": "2648106c239cf69b06ce94f6f91488b03341d4447928f1068c7f54db1b8ad0f6"
+      }
+    },
+    {
+      "source_path": "src/workspace_graph/tests/builder_limits.rs",
+      "line": 795,
+      "name": "pattern_source_workspace_fits_unchanged_builder_budget",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 5607,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"workspace_graph/tests.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/workspace_graph/tests.rs",
+          "line": 7,
+          "module": "builder_limits",
+          "attributes": [
+            "#[path = \"tests/builder_limits.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "c1f40dbe6d396e0bac776028d029b7d3cc938293857a86750aa9f4a03e3a17ed",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::builder_limits::pattern_source_workspace_fits_unchanged_builder_budget",
+      "reason": "Builds actual std.pattern examples/library/tests through build_owned; path-array hooks change known-minimum ownership replay backing under the unchanged builder cap.",
+      "current_batch_selection_reasons": [
+        "Builds actual std.pattern examples/library/tests through build_owned; path-array hooks change known-minimum ownership replay backing under the unchanged builder cap."
+      ]
+    },
+    {
+      "source_path": "tests/project/standard_library.rs",
+      "line": 468,
+      "name": "pattern_executes_on_all_three_backends",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/project.rs",
+          "line": 207,
+          "module": "standard_library",
+          "attributes": [
+            "#[path = \"project/standard_library.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "2d5ac3f1a98ba4d4acd5aee38961c2bdbb0ab935553436887933197339dbcece",
+      "ignored": false,
+      "harness": "semaprax::project",
+      "kind": "test:project",
+      "selector": "standard_library::pattern_executes_on_all_three_backends",
+      "reason": "Same std.pattern package crosses real Project preparation and backend conformance; known-minimum path backing can change admission before backend execution.",
+      "current_batch_selection_reasons": [
+        "Same std.pattern package crosses real Project preparation and backend conformance; known-minimum path backing can change admission before backend execution."
+      ]
+    },
+    {
+      "source_path": "src/workspace_graph/function_alias/before_core/tests.rs",
+      "line": 98,
+      "name": "actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 19,
+          "module": "constructor_failure",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph/constructor_failure.rs",
+          "line": 92,
+          "module": "typed",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph/constructor_failure/typed.rs",
+          "line": 148,
+          "module": "before_function_alias_core",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"../function_alias/before_core.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/workspace_graph/function_alias/before_core.rs",
+          "line": 359,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"before_core/tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "aff28f8a817d3af2ada129b063115ba1d6897250b9890b28ce7d193ac295c33b",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core",
+      "reason": "Actual364d owner25 G172 fixture corrected to admitted distinct entry/provider/test modules; retain borrowed-route and complete graph/Image parity, no new body.",
+      "current_batch_selection_reasons": [
+        "Actual364d owner25 G172 fixture corrected to admitted distinct entry/provider/test modules; retain borrowed-route and complete graph/Image parity, no new body."
+      ],
+      "prior_actual_failure": {
+        "source_subject": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-25.log",
+        "log_sha256": "c6dd737c415a80745076f133a64a33ef9e753c344fffa96374e6eddffa5cf36c"
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_array/funded_tests.rs",
+      "line": 22,
+      "name": "funded_capacity_preserves_complete_main_hir_work_and_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 8,
+          "module": "path_array",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_array.rs",
+          "line": 92,
+          "module": "funded_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "b088eeb90f8f03b3666c69a2c699986deff415237a637a250dd642dec050c7b1",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_preserves_complete_main_hir_work_and_drop",
+      "reason": "Exact protocol/whole-owner control required by reviewed Main funding or831 lexical receiving production correction; strict physical assertion remains unchanged.",
+      "current_batch_selection_reasons": [
+        "Exact protocol/whole-owner control required by reviewed Main funding or831 lexical receiving production correction; strict physical assertion remains unchanged."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_array/funded_tests.rs",
+      "line": 65,
+      "name": "funded_capacity_exact_short_zero_and_first_output_work_frontier",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 8,
+          "module": "path_array",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_array.rs",
+          "line": 92,
+          "module": "funded_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "b088eeb90f8f03b3666c69a2c699986deff415237a637a250dd642dec050c7b1",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_exact_short_zero_and_first_output_work_frontier",
+      "reason": "Exact protocol/whole-owner control required by reviewed Main funding or831 lexical receiving production correction; strict physical assertion remains unchanged.",
+      "current_batch_selection_reasons": [
+        "Exact protocol/whole-owner control required by reviewed Main funding or831 lexical receiving production correction; strict physical assertion remains unchanged."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "line": 140,
+      "name": "inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 104,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 1326,
+          "module": "receiving_layer_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "969a66f6a53585c67165c9b7eba481cc8528bf93e7e8e9a797b47c99352199a7",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+      "reason": "Exact protocol/whole-owner control required by reviewed Main funding or831 lexical receiving production correction; strict physical assertion remains unchanged.",
+      "current_batch_selection_reasons": [
+        "Exact protocol/whole-owner control required by reviewed Main funding or831 lexical receiving production correction; strict physical assertion remains unchanged."
+      ],
+      "prior_actual_failure": {
+        "source_subject": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-13.log",
+        "log_sha256": "c06f53adbdc9b28e0eee50e46e7e94122d33bacdbcb51b8d90846b583aa6bbdb"
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/unit_receiving_tests.rs",
+      "line": 10,
+      "name": "unified_closure_slot_keeps_complete_immediate_ids_work_and_all_six_failure_fields",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 104,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 47,
+          "module": "unit_receiving_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "8c4026175e6ed2ec76c5cdfe6bceeb0baa6596cb37a37ef6899aa927d0b40139",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_keeps_complete_immediate_ids_work_and_all_six_failure_fields",
+      "reason": "Exact protocol/whole-owner control required by reviewed Main funding or831 lexical receiving production correction; strict physical assertion remains unchanged.",
+      "current_batch_selection_reasons": [
+        "Exact protocol/whole-owner control required by reviewed Main funding or831 lexical receiving production correction; strict physical assertion remains unchanged."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/unit_receiving_tests.rs",
+      "line": 83,
+      "name": "unified_closure_slot_reports_whole_immediate_costs_and_exact_short_zero_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 104,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 47,
+          "module": "unit_receiving_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "8c4026175e6ed2ec76c5cdfe6bceeb0baa6596cb37a37ef6899aa927d0b40139",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_reports_whole_immediate_costs_and_exact_short_zero_drop",
+      "reason": "Exact protocol/whole-owner control required by reviewed Main funding or831 lexical receiving production correction; strict physical assertion remains unchanged.",
+      "current_batch_selection_reasons": [
+        "Exact protocol/whole-owner control required by reviewed Main funding or831 lexical receiving production correction; strict physical assertion remains unchanged."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/state_move_tests.rs",
+      "line": 41,
+      "name": "singleton_move_keeps_complete_immediate_work_and_hostile_diagnostic",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 138,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 963,
+          "module": "state_move_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "7c81b56268cdc2c7f899d9691b8f6083cecedd1375c26b65472bcddd3ca79059",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::state_move_tests::singleton_move_keeps_complete_immediate_work_and_hostile_diagnostic",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite.",
+      "current_batch_selection_reasons": [
+        "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/state_move_tests.rs",
+      "line": 109,
+      "name": "singleton_move_reports_whole_immediate_costs_and_exact_short_zero_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 138,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 963,
+          "module": "state_move_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "7c81b56268cdc2c7f899d9691b8f6083cecedd1375c26b65472bcddd3ca79059",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::state_move_tests::singleton_move_reports_whole_immediate_costs_and_exact_short_zero_drop",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite.",
+      "current_batch_selection_reasons": [
+        "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/branch_join/tests.rs",
+      "line": 60,
+      "name": "identical_branch_arms_replay_the_producer_join_and_refuse_either_repaired_order",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 138,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 13,
+          "module": "branch_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/branch_join.rs",
+          "line": 281,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f546579f561b5a9e23c081dbd8c1b0a9d9f6583983bbbd9b0a9beb14369fe740",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::identical_branch_arms_replay_the_producer_join_and_refuse_either_repaired_order",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite.",
+      "current_batch_selection_reasons": [
+        "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/branch_join/tests.rs",
+      "line": 286,
+      "name": "actual_lexical_exact_rejoin_is_never_rekeyed_or_charged",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 138,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 13,
+          "module": "branch_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/branch_join.rs",
+          "line": 281,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f546579f561b5a9e23c081dbd8c1b0a9d9f6583983bbbd9b0a9beb14369fe740",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::actual_lexical_exact_rejoin_is_never_rekeyed_or_charged",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite.",
+      "current_batch_selection_reasons": [
+        "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/branch_join/tests.rs",
+      "line": 347,
+      "name": "normalization_debits_root_comparisons_and_the_self_join_before_rekeying",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 138,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 13,
+          "module": "branch_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/branch_join.rs",
+          "line": 281,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f546579f561b5a9e23c081dbd8c1b0a9d9f6583983bbbd9b0a9beb14369fe740",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::normalization_debits_root_comparisons_and_the_self_join_before_rekeying",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite.",
+      "current_batch_selection_reasons": [
+        "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+      "line": 41,
+      "name": "singleton_direct_group_keeps_complete_old_success_work_and_hostile_diagnostic",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 138,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 954,
+          "module": "singleton_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "79810d95fa864955dc08d7883b8c4b83f205837499fb07385bec9b80b6e954a6",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::singleton_direct_group_keeps_complete_old_success_work_and_hostile_diagnostic",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite.",
+      "current_batch_selection_reasons": [
+        "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+      "line": 109,
+      "name": "singleton_whole_replay_reports_real_costs_and_exact_short_zero_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 138,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 954,
+          "module": "singleton_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "79810d95fa864955dc08d7883b8c4b83f205837499fb07385bec9b80b6e954a6",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::singleton_whole_replay_reports_real_costs_and_exact_short_zero_drop",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite.",
+      "current_batch_selection_reasons": [
+        "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+      "line": 166,
+      "name": "complete_immediate_old_and_unchanged_multistate_body_stay_source_bound",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 138,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 954,
+          "module": "singleton_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "79810d95fa864955dc08d7883b8c4b83f205837499fb07385bec9b80b6e954a6",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::complete_immediate_old_and_unchanged_multistate_body_stay_source_bound",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite.",
+      "current_batch_selection_reasons": [
+        "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+      ]
+    },
+    {
+      "source_path": "src/project/cxx_owned_data.rs",
+      "line": 312,
+      "name": "outward_help_uses_the_first_actual_reservation_and_caller",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 348,
+          "module": "project",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unused_imports,\n    unused_mut,\n    clippy::collapsible_if,\n    clippy::manual_is_multiple_of,\n    clippy::needless_lifetimes,\n    clippy::needless_question_mark,\n    clippy::question_mark,\n    clippy::redundant_closure,\n    clippy::redundant_iter_cloned,\n    clippy::too_many_arguments,\n    clippy::type_complexity,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/project/mod.rs",
+          "line": 26,
+          "module": "cxx_owned_data",
+          "attributes": []
+        },
+        {
+          "source_path": "src/project/cxx_owned_data.rs",
+          "line": 305,
+          "module": "provider_refusal_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "2b1ece7ee4695354c56bab9830861f4aad7d997e0517d97ec8b787e012a5e22f",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "project::cxx_owned_data::provider_refusal_tests::outward_help_uses_the_first_actual_reservation_and_caller",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite.",
+      "current_batch_selection_reasons": [
+        "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+      ]
+    },
+    {
+      "source_path": "src/project/cxx_owned_data.rs",
+      "line": 333,
+      "name": "missing_evidence_and_a_surrounding_budget_keep_the_original_error",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 348,
+          "module": "project",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unused_imports,\n    unused_mut,\n    clippy::collapsible_if,\n    clippy::manual_is_multiple_of,\n    clippy::needless_lifetimes,\n    clippy::needless_question_mark,\n    clippy::question_mark,\n    clippy::redundant_closure,\n    clippy::redundant_iter_cloned,\n    clippy::too_many_arguments,\n    clippy::type_complexity,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/project/mod.rs",
+          "line": 26,
+          "module": "cxx_owned_data",
+          "attributes": []
+        },
+        {
+          "source_path": "src/project/cxx_owned_data.rs",
+          "line": 305,
+          "module": "provider_refusal_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "2b1ece7ee4695354c56bab9830861f4aad7d997e0517d97ec8b787e012a5e22f",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "project::cxx_owned_data::provider_refusal_tests::missing_evidence_and_a_surrounding_budget_keep_the_original_error",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite.",
+      "current_batch_selection_reasons": [
+        "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+      ]
+    },
+    {
+      "source_path": "tests/project/command_argument_borrow.rs",
+      "line": 121,
+      "name": "retained_hir_still_rejects_a_mutable_command_argument_alias_independently",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/project.rs",
+          "line": 67,
+          "module": "command_argument_borrow",
+          "attributes": [
+            "#[path = \"project/command_argument_borrow.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "a7d6ae02f27283b6ade54364c62b69c832af9cf0da78f1442b6aa3b7734cabea",
+      "ignored": false,
+      "harness": "semaprax::project",
+      "kind": "test:project",
+      "selector": "command_argument_borrow::retained_hir_still_rejects_a_mutable_command_argument_alias_independently",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite.",
+      "current_batch_selection_reasons": [
+        "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/receiver_tests.rs",
+      "line": 40,
+      "name": "whole_original_and_boxed_replay_keep_success_work_and_hostile_diagnostic",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 138,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 15,
+          "module": "receiver_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "b988e44e6a1b1c4fb5a8353ae1377717b4613bc1982ac1e5a056099439008dda",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::receiver_tests::whole_original_and_boxed_replay_keep_success_work_and_hostile_diagnostic",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite.",
+      "current_batch_selection_reasons": [
+        "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/receiver_tests.rs",
+      "line": 85,
+      "name": "complete_current_replay_has_exact_and_one_short_physical_limits_with_last_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 138,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 15,
+          "module": "receiver_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "b988e44e6a1b1c4fb5a8353ae1377717b4613bc1982ac1e5a056099439008dda",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::receiver_tests::complete_current_replay_has_exact_and_one_short_physical_limits_with_last_drop",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite.",
+      "current_batch_selection_reasons": [
+        "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/tests.rs",
+      "line": 105,
+      "name": "boxed_prefix_keeps_every_history_union_and_control_disagreement",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 138,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 718,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "6a00500ce95449c9d08ebba90cdaef85c7ce0d4e5a69769bedcdde62502725eb",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::tests::boxed_prefix_keeps_every_history_union_and_control_disagreement",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite.",
+      "current_batch_selection_reasons": [
+        "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs",
+      "line": 148,
+      "name": "duplicate_zero_auth_keeps_complete_main_diagnostic_and_first_receipt_at_sticky_floor",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 138,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 12,
+          "module": "boxed_states",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+          "line": 189,
+          "module": "receiving_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"boxed_states/receiving_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "8a4b4e790189d0980e3025051db5fe531adf61a72866b7ace874ef245fdca148",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::duplicate_zero_auth_keeps_complete_main_diagnostic_and_first_receipt_at_sticky_floor",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite.",
+      "current_batch_selection_reasons": [
+        "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs",
+      "line": 197,
+      "name": "foreign_function_budget_and_scope_poison_only_original_owner_and_never_restore_entry",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 138,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 12,
+          "module": "boxed_states",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+          "line": 189,
+          "module": "receiving_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"boxed_states/receiving_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "8a4b4e790189d0980e3025051db5fe531adf61a72866b7ace874ef245fdca148",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::foreign_function_budget_and_scope_poison_only_original_owner_and_never_restore_entry",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite.",
+      "current_batch_selection_reasons": [
+        "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+      ]
+    },
+    {
+      "source_path": "src/workspace_graph/tests.rs",
+      "line": 1984,
+      "name": "callable_limit_exact_advances_and_one_over_is_g171",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 5607,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"workspace_graph/tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "563d66569e1de4b8a5d9932442ec2e387158496c22a443defbe0e15a1cce58d5",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::callable_limit_exact_advances_and_one_over_is_g171",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite.",
+      "current_batch_selection_reasons": [
+        "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+      ],
+      "prior_actual_failure": {
+        "source_subject": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-10.log",
+        "log_sha256": "7aa8b04b925d8692268c9e6b1e7f7e535d9c12171f2659fcd649ca8cc8cdaba8"
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/renewal_profile/ordinary/consuming/tests.rs",
+      "line": 11,
+      "name": "phase_presence_keeps_full_current_directories_and_every_consuming_entry",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 30,
+          "module": "renewal_profile",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/renewal_profile.rs",
+          "line": 5,
+          "module": "ordinary",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/renewal_profile/ordinary/mod.rs",
+          "line": 3,
+          "module": "consuming",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/renewal_profile/ordinary/consuming.rs",
+          "line": 8,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "2d59fe6bb8e60380c426e3c07fdbfe165a7ba59745fd0b706d3653a6074ea13d",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::consuming::tests::phase_presence_keeps_full_current_directories_and_every_consuming_entry",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite.",
+      "current_batch_selection_reasons": [
+        "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+      ]
+    }
+  ],
+  "prior_failed_bodies": 8,
+  "parser_source": "/Volumes/Semaprax/provenance/qualification-registration-module-path-20261014.py",
+  "parser_sha256": "8774afeeb957dabcde7eee44a29c1a91aec2572d7740413a0dbebf473ec7da6f",
+  "parser_span_protocol": "Original definitions through before first parse; override R only; original enumeration through before failp unchanged",
+  "selection_sha256": "979db72e90383e0e7629d8985598eb17cc1ce1c538501d39b7fe37cb0b2e506f",
+  "discovery_performed": false,
+  "execution_performed": false
+}

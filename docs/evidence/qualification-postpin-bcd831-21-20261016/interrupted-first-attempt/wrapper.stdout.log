@@ -1,0 +1,2 @@
+{"source_subject": "bcd83107ccda58800e9f2b848950cece03979de6", "exit_code": 130, "wall_seconds": 55.74725108400162, "executed_test_bodies": 0}
+{"controller_exit_code": 1, "pressure_interrupted": true, "guardian_log": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-qualification-20261016/pressure-guardian.jsonl"}

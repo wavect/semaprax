@@ -1,0 +1,105 @@
+{
+  "status": "PASS_14_WHOLE_CURRENT_SOURCE_AND_UNIQUE_INVERSE_GIT47F",
+  "rows": [
+    {
+      "source": "crates/semaprax-toolchain/tests/cli_help_surface_v1.rs",
+      "current_sha256": "70e803d3dfac03ba12f412b408976749eb2e4751edd63e24b40ab19f8816e3bb",
+      "original_sha256": "8537d3df379a938b0bb0afb3b061350734852dd2ad7458e7071baa1b73c219b5",
+      "bytes": 30821,
+      "unique_edits": 2
+    },
+    {
+      "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+      "current_sha256": "90aa6a5570bccce154a69673112caf63f081d89b9b87127327f4d16f25e131ae",
+      "original_sha256": "b84b2940d4f909f7240c3e698b3f920546b4f99e8ed141560c782e848708b935",
+      "bytes": 10291,
+      "unique_edits": 1
+    },
+    {
+      "source": "src/cleanup_plan/replay/path_array/funded_tests.rs",
+      "current_sha256": "ab501e8e0d51ff25f3f379cdaab5fd50701b63095835c2b4f5811677e3eaeace",
+      "original_sha256": "f64d25b2b47cdbf84c0efd9c62ce2e3a5147032fa08b824c1fe26d6b266c0ab0",
+      "bytes": 9011,
+      "unique_edits": 2
+    },
+    {
+      "source": "src/cleanup_plan/replay/path_array/tests.rs",
+      "current_sha256": "b641a21d3e5ba8f517f79b3184f4bc3496fa32c74e3b36951877fd145b528619",
+      "original_sha256": "9b31375f7ee10af00217bd4caa212cbe21a95ac6391fb0849083e01ac7d3f0e5",
+      "bytes": 14250,
+      "unique_edits": 1
+    },
+    {
+      "source": "src/source_reflows_merge.rs",
+      "current_sha256": "0d00ba7bb9849c62f81a4026b778627f891c21e7c60bf05785e3d4e9cc302265",
+      "original_sha256": "2ebd459e3723a6480ca591d66d560afa5f29d49a10ee0b67bdd2877cad3cb4eb",
+      "bytes": 31672,
+      "unique_edits": 1
+    },
+    {
+      "source": "src/workspace_graph/function_alias/before_core/tests.rs",
+      "current_sha256": "f5e945c4bfbe403b871f7fd5c4bf959c8f4d2810adb88d18221780694561704d",
+      "original_sha256": "aff28f8a817d3af2ada129b063115ba1d6897250b9890b28ce7d193ac295c33b",
+      "bytes": 8631,
+      "unique_edits": 2
+    },
+    {
+      "source": "src/workspace_graph/type_proof_tests.rs",
+      "current_sha256": "fc7995a691693f71686e264b60ef5803a8a724553ea948f5dfd34ce0b6e80eab",
+      "original_sha256": "53736e9d12bb60f3c88b86ae48b6476adba4f1d238a3e287c92a608854308fe7",
+      "bytes": 52672,
+      "unique_edits": 1
+    },
+    {
+      "source": "tests/cli_help_surface_v1.rs",
+      "current_sha256": "707f988b499d62222c87c0ff2f0f3e2224b797a07d081653538d0210e5c4b41a",
+      "original_sha256": "badcfdde9b0084ca2a2a302d0c2958de2a4bead41ce07dc64494ebc11760c486",
+      "bytes": 42098,
+      "unique_edits": 2
+    },
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "current_sha256": "6dd5950329ade735cad7f65bc2b355cb9475d89171db37bf7fa49e7fdecfac94",
+      "original_sha256": "df0d8fd48aaa5f527e4dfe106e59bcc29ee16290bd59de5cf4cdb0059507e895",
+      "bytes": 70907,
+      "unique_edits": 1
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract.rs",
+      "current_sha256": "83f6a1f2817eab215058ae7b3dfd21456137568d58ea5c85fbb5f1a70a421d12",
+      "original_sha256": "93e328799e7200273eadd54438c27d3e1872fe831aa299e27b6f160f4e8f98f3",
+      "bytes": 9801,
+      "unique_edits": 1
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+      "current_sha256": "19e655e814ff93f01d5a4aefc502db07b1a8e0b8232a51edc3ade22f6fe9e467",
+      "original_sha256": "45ca496c48b16d5685625091c0f3ed2899494e4bf10e9189c2e5b05c2bf307c0",
+      "bytes": 6433,
+      "unique_edits": 4
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "current_sha256": "b37018f6c23164f4e518660699ecd95b33276e52d21a253a3f18b32f29b51ca9",
+      "original_sha256": "05a4cb11fca424bf89002605e291aabe88d1c2d2513064e08560957778767a43",
+      "bytes": 12084,
+      "unique_edits": 2
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_main2600.rs",
+      "current_sha256": "565c2dc1ecc8a99502474133fe88e35f56e43f9efa84317b1637760c958b5b78",
+      "original_sha256": "b80f8218e152a869dced39991e435278d9bbcdead0d680779f9ef304cbcd4e82",
+      "bytes": 5277,
+      "unique_edits": 1
+    },
+    {
+      "source": "tests/workspace/semantic_graph.rs",
+      "current_sha256": "32ee220e6d35ec32b3cdc70fb6b0b0caf8b2973806d9185022f7e93d63d5e53a",
+      "original_sha256": "82deedb7e8fd411535340b32410798c92c376acb23b604f6a628088916d0db77",
+      "bytes": 55153,
+      "unique_edits": 3
+    }
+  ],
+  "count": 14,
+  "total_original_bytes": 359101
+}

@@ -1,0 +1,847 @@
+{
+  "status": "SOURCE_REGISTERED_UNEXECUTED_PARENT_FINAL_HEAD",
+  "source_head": "bcd83107ccda58800e9f2b848950cece03979de6",
+  "source_tree": "159a84a8398da36165c875178304d5ccd876bf88",
+  "repository": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "selected": 21,
+  "resolved": 21,
+  "issues": [],
+  "rows": [
+    {
+      "source_path": "src/workspace_graph/type_proof_tests.rs",
+      "line": 829,
+      "name": "rendered_document_has_literal_sha_exact_wire_order_and_digest_binding",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 5611,
+          "module": "type_proof_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"workspace_graph/type_proof_tests.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/workspace_graph/type_proof_tests.rs",
+          "line": 30,
+          "module": "projection_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "fc7995a691693f71686e264b60ef5803a8a724553ea948f5dfd34ce0b6e80eab",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding",
+      "reason": "Exact managed projection wire/digest pin consumer.",
+      "current_batch_selection_reasons": [
+        "Exact managed projection wire/digest pin consumer."
+      ]
+    },
+    {
+      "source_path": "tests/workspace/semantic_graph.rs",
+      "line": 628,
+      "name": "public_api_cli_bytes_getters_and_read_only_locking_are_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/workspace.rs",
+          "line": 68,
+          "module": "semantic_graph",
+          "attributes": [
+            "#[path = \"workspace/semantic_graph.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "32ee220e6d35ec32b3cdc70fb6b0b0caf8b2973806d9185022f7e93d63d5e53a",
+      "ignored": false,
+      "harness": "semaprax::workspace",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact",
+      "reason": "Exact managed public API wire/digest pin consumer.",
+      "current_batch_selection_reasons": [
+        "Exact managed public API wire/digest pin consumer."
+      ]
+    },
+    {
+      "source_path": "tests/workspace/semantic_graph.rs",
+      "line": 872,
+      "name": "public_workspace_analysis_api_cli_kats_and_locking_are_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/workspace.rs",
+          "line": 68,
+          "module": "semantic_graph",
+          "attributes": [
+            "#[path = \"workspace/semantic_graph.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "32ee220e6d35ec32b3cdc70fb6b0b0caf8b2973806d9185022f7e93d63d5e53a",
+      "ignored": false,
+      "harness": "semaprax::workspace",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::public_workspace_analysis_api_cli_kats_and_locking_are_exact",
+      "reason": "Exact managed workspace wire/digest pin consumer.",
+      "current_batch_selection_reasons": [
+        "Exact managed workspace wire/digest pin consumer."
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "line": 160,
+      "name": "current_hosted_wires_replay_complete_historical_cursor_controls",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "b37018f6c23164f4e518660699ecd95b33276e52d21a253a3f18b32f29b51ca9",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::current_hosted_wires_replay_complete_historical_cursor_controls",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "current_batch_selection_reasons": [
+        "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance."
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "line": 180,
+      "name": "current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "b37018f6c23164f4e518660699ecd95b33276e52d21a253a3f18b32f29b51ca9",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "current_batch_selection_reasons": [
+        "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance."
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "line": 208,
+      "name": "a_rehashed_non_builder_budget_mutation_cannot_pass_the_historical_bridge",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "b37018f6c23164f4e518660699ecd95b33276e52d21a253a3f18b32f29b51ca9",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::a_rehashed_non_builder_budget_mutation_cannot_pass_the_historical_bridge",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "current_batch_selection_reasons": [
+        "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance."
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "line": 251,
+      "name": "complete_prior_browser_contract_has_only_registration_and_call_adapter_changes",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "b37018f6c23164f4e518660699ecd95b33276e52d21a253a3f18b32f29b51ca9",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::complete_prior_browser_contract_has_only_registration_and_call_adapter_changes",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "current_batch_selection_reasons": [
+        "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance."
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/before_2600.rs",
+      "line": 73,
+      "name": "current_hosted_wires_replay_complete_historical_cursor_controls",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 279,
+          "module": "main2600",
+          "attributes": [
+            "#[path = \"historical_main2600.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main2600.rs",
+          "line": 6,
+          "module": "before_2600",
+          "attributes": [
+            "#[path = \"before_2600.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "c8f7162f8910572826e18000efd3415464a0f3653581c05b4b0a431c2761e32c",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::before_2600::current_hosted_wires_replay_complete_historical_cursor_controls",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "current_batch_selection_reasons": [
+        "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance."
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/before_2600.rs",
+      "line": 88,
+      "name": "current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 279,
+          "module": "main2600",
+          "attributes": [
+            "#[path = \"historical_main2600.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main2600.rs",
+          "line": 6,
+          "module": "before_2600",
+          "attributes": [
+            "#[path = \"before_2600.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "c8f7162f8910572826e18000efd3415464a0f3653581c05b4b0a431c2761e32c",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::before_2600::current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "current_batch_selection_reasons": [
+        "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance."
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/before_2600.rs",
+      "line": 116,
+      "name": "a_rehashed_non_builder_budget_mutation_cannot_pass_the_historical_bridge",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 279,
+          "module": "main2600",
+          "attributes": [
+            "#[path = \"historical_main2600.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main2600.rs",
+          "line": 6,
+          "module": "before_2600",
+          "attributes": [
+            "#[path = \"before_2600.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "c8f7162f8910572826e18000efd3415464a0f3653581c05b4b0a431c2761e32c",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::before_2600::a_rehashed_non_builder_budget_mutation_cannot_pass_the_historical_bridge",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "current_batch_selection_reasons": [
+        "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance."
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/before_2600.rs",
+      "line": 132,
+      "name": "complete_prior_browser_contract_has_only_registration_and_call_adapter_changes",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 279,
+          "module": "main2600",
+          "attributes": [
+            "#[path = \"historical_main2600.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main2600.rs",
+          "line": 6,
+          "module": "before_2600",
+          "attributes": [
+            "#[path = \"before_2600.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "c8f7162f8910572826e18000efd3415464a0f3653581c05b4b0a431c2761e32c",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::before_2600::complete_prior_browser_contract_has_only_registration_and_call_adapter_changes",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "current_batch_selection_reasons": [
+        "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance."
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main2600.rs",
+      "line": 62,
+      "name": "hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 279,
+          "module": "main2600",
+          "attributes": [
+            "#[path = \"historical_main2600.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "565c2dc1ecc8a99502474133fe88e35f56e43f9efa84317b1637760c958b5b78",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "current_batch_selection_reasons": [
+        "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance."
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main2600.rs",
+      "line": 80,
+      "name": "a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 279,
+          "module": "main2600",
+          "attributes": [
+            "#[path = \"historical_main2600.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "565c2dc1ecc8a99502474133fe88e35f56e43f9efa84317b1637760c958b5b78",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "current_batch_selection_reasons": [
+        "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance."
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main2600.rs",
+      "line": 97,
+      "name": "the_complete_old_bridge_changes_only_its_retained_runner_include",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 279,
+          "module": "main2600",
+          "attributes": [
+            "#[path = \"historical_main2600.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "565c2dc1ecc8a99502474133fe88e35f56e43f9efa84317b1637760c958b5b78",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::the_complete_old_bridge_changes_only_its_retained_runner_include",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "current_batch_selection_reasons": [
+        "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance."
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+      "line": 53,
+      "name": "browser_known_answers_match_authenticated_baseline_and_rename_graphs",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "83f6a1f2817eab215058ae7b3dfd21456137568d58ea5c85fbb5f1a70a421d12",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::browser_known_answers_match_authenticated_baseline_and_rename_graphs",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "current_batch_selection_reasons": [
+        "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_array/tests.rs",
+      "line": 210,
+      "name": "complete_hir_enumeration_keeps_paths_work_materializations_and_legacy",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 8,
+          "module": "path_array",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_array.rs",
+          "line": 96,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "b641a21d3e5ba8f517f79b3184f4bc3496fa32c74e3b36951877fd145b528619",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::tests::complete_hir_enumeration_keeps_paths_work_materializations_and_legacy",
+      "reason": "Parent-authorized exact existing actual47f failed owner after bounded test-only fixture correction; no production change or acceptance weakening.",
+      "current_batch_selection_reasons": [
+        "Parent-authorized exact existing actual47f failed owner after bounded test-only fixture correction; no production change or acceptance weakening."
+      ]
+    },
+    {
+      "source_path": "src/workspace_graph/function_alias/before_core/tests.rs",
+      "line": 98,
+      "name": "actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 19,
+          "module": "constructor_failure",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph/constructor_failure.rs",
+          "line": 92,
+          "module": "typed",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph/constructor_failure/typed.rs",
+          "line": 148,
+          "module": "before_function_alias_core",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"../function_alias/before_core.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/workspace_graph/function_alias/before_core.rs",
+          "line": 359,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"before_core/tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "f5e945c4bfbe403b871f7fd5c4bf959c8f4d2810adb88d18221780694561704d",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core",
+      "reason": "Parent-authorized exact existing actual47f failed owner after bounded test-only fixture correction; no production change or acceptance weakening.",
+      "current_batch_selection_reasons": [
+        "Parent-authorized exact existing actual47f failed owner after bounded test-only fixture correction; no production change or acceptance weakening."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_array/funded_tests.rs",
+      "line": 39,
+      "name": "funded_capacity_preserves_complete_main_hir_work_and_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 8,
+          "module": "path_array",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_array.rs",
+          "line": 92,
+          "module": "funded_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "ab501e8e0d51ff25f3f379cdaab5fd50701b63095835c2b4f5811677e3eaeace",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_preserves_complete_main_hir_work_and_drop",
+      "reason": "Parent-authorized exact existing actual47f failed owner after bounded test-only fixture correction; no production change or acceptance weakening.",
+      "current_batch_selection_reasons": [
+        "Parent-authorized exact existing actual47f failed owner after bounded test-only fixture correction; no production change or acceptance weakening."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_array/funded_tests.rs",
+      "line": 96,
+      "name": "funded_capacity_exact_short_zero_and_first_output_work_frontier",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 8,
+          "module": "path_array",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_array.rs",
+          "line": 92,
+          "module": "funded_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "ab501e8e0d51ff25f3f379cdaab5fd50701b63095835c2b4f5811677e3eaeace",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_exact_short_zero_and_first_output_work_frontier",
+      "reason": "Parent-authorized exact existing actual47f failed owner after bounded test-only fixture correction; no production change or acceptance weakening.",
+      "current_batch_selection_reasons": [
+        "Parent-authorized exact existing actual47f failed owner after bounded test-only fixture correction; no production change or acceptance weakening."
+      ]
+    },
+    {
+      "source_path": "tests/cli_help_surface_v1.rs",
+      "line": 302,
+      "name": "standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [],
+      "sha256": "707f988b499d62222c87c0ff2f0f3e2224b797a07d081653538d0210e5c4b41a",
+      "ignored": false,
+      "harness": "semaprax::cli_help_surface_v1",
+      "kind": "test:cli_help_surface_v1",
+      "selector": "standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert",
+      "reason": "Parent-authorized exact existing actual47f failed owner after bounded test-only fixture correction; no production change or acceptance weakening.",
+      "current_batch_selection_reasons": [
+        "Parent-authorized exact existing actual47f failed owner after bounded test-only fixture correction; no production change or acceptance weakening."
+      ]
+    },
+    {
+      "source_path": "crates/semaprax-toolchain/tests/cli_help_surface_v1.rs",
+      "line": 171,
+      "name": "full_scoped_help_is_exhaustive_exact_capability_aware_and_inert",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [],
+      "sha256": "70e803d3dfac03ba12f412b408976749eb2e4751edd63e24b40ab19f8816e3bb",
+      "ignored": false,
+      "harness": "semaprax-toolchain::cli_help_surface_v1",
+      "kind": "test:cli_help_surface_v1",
+      "selector": "full_scoped_help_is_exhaustive_exact_capability_aware_and_inert",
+      "reason": "Parent-authorized exact existing actual47f failed owner after bounded test-only fixture correction; no production change or acceptance weakening.",
+      "current_batch_selection_reasons": [
+        "Parent-authorized exact existing actual47f failed owner after bounded test-only fixture correction; no production change or acceptance weakening."
+      ]
+    }
+  ],
+  "prior_failed_bodies": 0,
+  "parser_source": "/Volumes/Semaprax/provenance/qualification-registration-module-path-20261014.py",
+  "parser_sha256": "8774afeeb957dabcde7eee44a29c1a91aec2572d7740413a0dbebf473ec7da6f",
+  "parser_span_protocol": "Original definitions through before first parse; override R only; original enumeration through before failp unchanged",
+  "selection_sha256": "0d99c94c0b140e7dc109581a6f1e4cb717dd5500bedfb0b4b1a940b7b051a36c",
+  "discovery_performed": false,
+  "execution_performed": false,
+  "actual_input_plan_sha256": "8b4d37221d8c8fa0d2aa796dfbd531ba236791938a272b6e895d9cc70b3771d0"
+}

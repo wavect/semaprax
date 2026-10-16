@@ -1,0 +1,83 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/branch_clone/tests.rs",
+    "checkpoint_revision": "1830464c78a18b5eaf29e4684e0c891f7e9894a7",
+    "archive": "docs/evidence/actual50-fixture-and-facade-corrections-20261016/before/src/cleanup_plan/replay/branch_clone/tests.rs.txt",
+    "current_sha256": "1ceebb30aefeb84f0b3be9a2ff916c247a8017ecbe1a33d58f36bd556094c757",
+    "original_sha256": "381cc428e01081253340bd13826e9a0f3038209f628c1d9cabad71b83ce24446",
+    "edits": [
+      {
+        "new": "            for function in &program.functions {\n                let mut old = ReplayBudget::new();\n                let mut current = ReplayBudget::new();\n                reserve_program_skeleton_work(&program, std::iter::once(function), &mut old).unwrap();\n                reserve_program_skeleton_work(&program, std::iter::once(function), &mut current).unwrap();\n                assert!(old.pays_allocations() && current.pays_allocations());\n                let before = skeleton_materializations();\n                let expected = with_original(|| plan_skeleton_paths(function, &mut old)).unwrap();\n",
+        "old": "            for function in &program.functions {\n                let mut old = ReplayBudget::new();\n                let mut current = ReplayBudget::new();\n                assert!(old.pays_allocations() && current.pays_allocations());\n                let before = skeleton_materializations();\n                let expected = with_original(|| plan_skeleton_paths(function, &mut old)).unwrap();\n"
+      },
+      {
+        "new": "                        let mut budget = ReplayBudget::new();\n                        let before = skeleton_materializations();\n                        let result = (|| {\n                            // One actual clone and exactly this many pushes; lend\n                            // their work from the unchanged global caller budget.\n                            budget.reserve_skeleton(function, 1 + pushes)?;\n                            let mut copy = if original {\n                                skeleton_clone(&mut budget, function, &values, \"branch clone\")?\n                            } else {\n",
+        "old": "                        let mut budget = ReplayBudget::new();\n                        let before = skeleton_materializations();\n                        let result = (|| {\n                            let mut copy = if original {\n                                skeleton_clone(&mut budget, function, &values, \"branch clone\")?\n                            } else {\n"
+      },
+      {
+        "new": "                                .all(|(a, b)| Rc::ptr_eq(a, b)));\n                            assert!(copy[width..].iter().all(|value| Rc::ptr_eq(value, &next)));\n                            let capacity = copy.capacity();\n                            assert_eq!(budget.skeleton_remaining, 0);\n                            drop(copy);\n                            Ok::<_, Diagnostic>(capacity)\n                        })();\n",
+        "old": "                                .all(|(a, b)| Rc::ptr_eq(a, b)));\n                            assert!(copy[width..].iter().all(|value| Rc::ptr_eq(value, &next)));\n                            let capacity = copy.capacity();\n                            drop(copy);\n                            Ok::<_, Diagnostic>(capacity)\n                        })();\n"
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "checkpoint_revision": "1830464c78a18b5eaf29e4684e0c891f7e9894a7",
+    "archive": "docs/evidence/actual50-fixture-and-facade-corrections-20261016/before/src/source_reflows_merge.rs.txt",
+    "current_sha256": "898d4536bed373bebc238ad77c256256ae0305abcbb3911457660202d814c36a",
+    "original_sha256": "a778c577e22e58feae0d9049d3f0b3e8011069238470ed7b75d8dfda1eafa4f2",
+    "edits": [
+      {
+        "new": "    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main531-independent-groups-20261016/runtime-main-root.json\")), source, current)\n}\nfn main531_child_input(source: &str, current: &str) -> String {\n    let fixed = actual50_fixture_input(source, current);\n    let current = fixed.as_str();\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main531-original-tests-child-20261016/current-to-7e9f.json\")), source, current)\n}\nfn actual50_fixture_input(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/actual50-fixture-and-facade-corrections-20261016/current-to-183.json\")), source, current)\n}\nfn project(rows: &str, source: &str, current: &str) -> String {\n    let rows: serde_json::Value = serde_json::from_str(rows).expect(\"fixed merge projections\");\n",
+        "old": "    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main531-independent-groups-20261016/runtime-main-root.json\")), source, current)\n}\nfn main531_child_input(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main531-original-tests-child-20261016/current-to-7e9f.json\")), source, current)\n}\nfn project(rows: &str, source: &str, current: &str) -> String {\n    let rows: serde_json::Value = serde_json::from_str(rows).expect(\"fixed merge projections\");\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/function_alias/before_core/tests.rs",
+    "checkpoint_revision": "1830464c78a18b5eaf29e4684e0c891f7e9894a7",
+    "archive": "docs/evidence/actual50-fixture-and-facade-corrections-20261016/before/src/workspace_graph/function_alias/before_core/tests.rs.txt",
+    "current_sha256": "c0b19ee7a50b904fd21ee18f36941f9365500fa6fd138d01659b4f39e18bb7a0",
+    "original_sha256": "61812a8aa9cad5e4360a59eee02a8846835cb21dc396d7f1d22a2f2e1e53a697",
+    "edits": [
+      {
+        "new": "    use crate::semantic_workspace::SemanticWorkspaceSource;\n    use std::sync::Arc;\n    const MANIFEST: &str = r#\"schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"alias-parity\"\nversion = \"1.0.0\"\n\n[modules]\nentry = \"alias.current\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"alias.tests\"]\n\n[exports]\nweb = [\"alias.current.main\"]\n\n[dependencies]\nstd.collections = \"=0.1.0\"\n\"#;\n",
+        "old": "    use crate::semantic_workspace::SemanticWorkspaceSource;\n    use std::sync::Arc;\n    const MANIFEST: &str = r#\"schema = \"semaprax.manifest.v1\"\n[package]\nname = \"alias-parity\"\nversion = \"1.0.0\"\n[modules]\nentry = \"alias.current\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"alias.tests\"]\n[exports]\nweb = [\"alias.current.main\"]\n[dependencies]\nstd.collections = \"=0.1.0\"\n\"#;\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "checkpoint_revision": "1830464c78a18b5eaf29e4684e0c891f7e9894a7",
+    "archive": "docs/evidence/actual50-fixture-and-facade-corrections-20261016/before/tests/hir_module_boundaries.rs.txt",
+    "current_sha256": "945bf1138cf5c03ad93bf26345257463b4a5d06990b176237814e3894fb5a89c",
+    "original_sha256": "4081e41fa91d3faea3981d394eebcc11d8a4119f91f5b58056a433c3922aeac7",
+    "edits": [
+      {
+        "new": "    );\n    let validation = production_source_inventory::production(\n        validation_raw,\n        include_str!(\"../docs/evidence/actual50-fixture-and-facade-corrections-20261016/hir.json\"),\n    );\n    for forbidden in [\n        \"struct Resolver\",\n",
+        "old": "    );\n    let validation = production_source_inventory::production(\n        validation_raw,\n        include_str!(\"../docs/evidence/main531-original-tests-child-20261016/hir.json\"),\n    );\n    for forbidden in [\n        \"struct Resolver\",\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph.rs",
+    "checkpoint_revision": "1830464c78a18b5eaf29e4684e0c891f7e9894a7",
+    "archive": "docs/evidence/actual50-fixture-and-facade-corrections-20261016/before/tests/workspace/semantic_graph.rs.txt",
+    "current_sha256": "c3898bac7103788797b0b4b4df2c0317f4357df82ccd2df275813a5a465d32ea",
+    "original_sha256": "71ee68e96997bc5e553d5b745d01831a19bf30a1ede1e288fe5b3b3dac5f2f90",
+    "edits": [
+      {
+        "new": "    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\n            \"../../docs/evidence/actual50-fixture-and-facade-corrections-20261016/projection.json\"\n        ),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n",
+        "old": "    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\n            \"../../docs/evidence/main531-original-tests-child-20261016/projection.json\"\n        ),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n"
+      },
+      {
+        "new": "        \"pub(super) fn pay_teardown_minimum(owner: &mut Receiver) -> Result<(), Setup> {\",\n    ]);\n    current_facade.push(\"pub(super) fn verify(\");\n    let current_facade_input = current_projection_facade_input(current_projection_root);\n    assert_eq!(\n        current_facade_input\n            .lines()\n            .filter_map(|line| {\n                let trimmed = line.trim();\n",
+        "old": "        \"pub(super) fn pay_teardown_minimum(owner: &mut Receiver) -> Result<(), Setup> {\",\n    ]);\n    current_facade.push(\"pub(super) fn verify(\");\n    assert_eq!(\n        current_projection_root\n            .lines()\n            .filter_map(|line| {\n                let trimmed = line.trim();\n"
+      },
+      {
+        "new": "#[cfg(test)]\n#[path = \"../support/production_source_inventory.rs\"]\nmod production_source_inventory;\n\n// Full pre847 declaration-source view for the unchanged historical facade list.\n// Current production purity above and the entire current projected method stay audited.\nfn current_projection_facade_input(current: &str) -> String {\n    use sha2::{Digest, Sha256};\n    let row: serde_json::Value = serde_json::from_str(include_str!(\n        \"../../docs/evidence/actual50-fixture-and-facade-corrections-20261016/current-facade-input.json\"\n    )).unwrap();\n    let actual = include_str!(\"../../src/ast/program_source/decl_slices.rs\");\n    assert_eq!(format!(\"{:x}\", semaprax::digest_hex::LowerHex(Sha256::digest(actual.as_bytes()))), row[\"current_decl_sha256\"]);\n    assert_eq!(current.matches(actual).count(), 1, \"complete actual declaration owner in raw facade union\");\n    assert!(actual.contains(\"impl<'a, T> DeclSlices<'a, T> {\"));\n    let method = row[\"actual_projected_method\"].as_str().unwrap();\n    assert!(method.starts_with(\"    pub(super) fn projected(\"));\n    assert_eq!(actual.matches(method).count(), 1, \"complete current parent-private projected method\");\n    assert_eq!(format!(\"{:x}\", semaprax::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))), row[\"current_sha256\"]);\n    let mut previous = current.to_owned();\n    for edit in row[\"edits\"].as_array().unwrap() {\n        let new = edit[\"new\"].as_str().unwrap();\n        assert_eq!(new, actual, \"complete current declaration source input\");\n        assert_eq!(previous.matches(new).count(), 1);\n        previous = previous.replacen(new, edit[\"old\"].as_str().unwrap(), 1);\n    }\n    assert_eq!(format!(\"{:x}\", semaprax::digest_hex::LowerHex(Sha256::digest(previous.as_bytes()))), row[\"original_sha256\"]);\n    previous\n}\n",
+        "old": "#[cfg(test)]\n#[path = \"../support/production_source_inventory.rs\"]\nmod production_source_inventory;\n"
+      }
+    ]
+  }
+]

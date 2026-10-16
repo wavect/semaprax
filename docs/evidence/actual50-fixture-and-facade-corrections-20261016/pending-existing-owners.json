@@ -1,0 +1,456 @@
+{
+  "status": "SOURCE_ONLY_PENDING",
+  "checks": [
+    {
+      "index_original50": 25,
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "source_binding": {
+        "source_path": "src/workspace_graph/function_alias/before_core/tests.rs",
+        "line": 98,
+        "name": "actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 534,
+            "module": "workspace_graph",
+            "attributes": [],
+            "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de"
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 19,
+            "module": "constructor_failure",
+            "attributes": [],
+            "sha256": "c23b19943f20470c3619a6fdb7a356794e5d616f6f360e8b9c65b01f55bb61d3"
+          },
+          {
+            "source_path": "src/workspace_graph/constructor_failure.rs",
+            "line": 92,
+            "module": "typed",
+            "attributes": [],
+            "sha256": "0be58a7886decb768c4852135537dc8fba3b3228ade90c49111563770899f4b8"
+          },
+          {
+            "source_path": "src/workspace_graph/constructor_failure/typed.rs",
+            "line": 148,
+            "module": "before_function_alias_core",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"../function_alias/before_core.rs\"]"
+            ],
+            "sha256": "5532f0f3b6de8c36bc6b4f4eb66863273fdc0c09275daa1e6ebba706d44523e7"
+          },
+          {
+            "source_path": "src/workspace_graph/function_alias/before_core.rs",
+            "line": 359,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"before_core/tests.rs\"]"
+            ],
+            "sha256": "17442fc7c7d6023617ea0f84a57564ac779bf0e4882963f29133ce9c46c89578"
+          }
+        ],
+        "sha256": "61812a8aa9cad5e4360a59eee02a8846835cb21dc396d7f1d22a2f2e1e53a697",
+        "ignored": false
+      },
+      "selected_bodies": [
+        {
+          "source_path": "src/workspace_graph/function_alias/before_core/tests.rs",
+          "line": 98,
+          "name": "actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core",
+          "attributes": [
+            "#[test]"
+          ],
+          "registration_chain": [
+            {
+              "source_path": "src/lib.rs",
+              "line": 534,
+              "module": "workspace_graph",
+              "attributes": [],
+              "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de"
+            },
+            {
+              "source_path": "src/workspace_graph.rs",
+              "line": 19,
+              "module": "constructor_failure",
+              "attributes": [],
+              "sha256": "c23b19943f20470c3619a6fdb7a356794e5d616f6f360e8b9c65b01f55bb61d3"
+            },
+            {
+              "source_path": "src/workspace_graph/constructor_failure.rs",
+              "line": 92,
+              "module": "typed",
+              "attributes": [],
+              "sha256": "0be58a7886decb768c4852135537dc8fba3b3228ade90c49111563770899f4b8"
+            },
+            {
+              "source_path": "src/workspace_graph/constructor_failure/typed.rs",
+              "line": 148,
+              "module": "before_function_alias_core",
+              "attributes": [
+                "#[cfg(test)]",
+                "#[path = \"../function_alias/before_core.rs\"]"
+              ],
+              "sha256": "5532f0f3b6de8c36bc6b4f4eb66863273fdc0c09275daa1e6ebba706d44523e7"
+            },
+            {
+              "source_path": "src/workspace_graph/function_alias/before_core.rs",
+              "line": 359,
+              "module": "tests",
+              "attributes": [
+                "#[cfg(test)]",
+                "#[path = \"before_core/tests.rs\"]"
+              ],
+              "sha256": "17442fc7c7d6023617ea0f84a57564ac779bf0e4882963f29133ce9c46c89578"
+            }
+          ],
+          "sha256": "61812a8aa9cad5e4360a59eee02a8846835cb21dc396d7f1d22a2f2e1e53a697",
+          "ignored": false
+        }
+      ],
+      "ignored_bodies_not_executed": [],
+      "expected_selected": 1,
+      "status": "UNEXECUTED_SOURCE_AUTHORED",
+      "reasons": [
+        "Preserve independent Main five controls plus changed full graph/Image alias assertion"
+      ]
+    },
+    {
+      "index_original50": 38,
+      "package": "semaprax",
+      "harness": "test:workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--test",
+        "workspace",
+        "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "source_binding": {
+        "source_path": "tests/workspace/semantic_graph.rs",
+        "line": 358,
+        "name": "expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/workspace.rs",
+            "line": 68,
+            "module": "semantic_graph",
+            "attributes": [
+              "#[path = \"workspace/semantic_graph.rs\"]"
+            ],
+            "sha256": "2722662e4c54895e22dbffa8fb72f1ace5b93b99c4d58335f3948f6d73d5505f"
+          }
+        ],
+        "sha256": "23320ee1f59318b777d5fcc7d6c9b1f2a02591f828d0ca14b1d61225f97802d8",
+        "ignored": false
+      },
+      "selected_bodies": [
+        {
+          "source_path": "tests/workspace/semantic_graph.rs",
+          "line": 358,
+          "name": "expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+          "attributes": [
+            "#[test]"
+          ],
+          "registration_chain": [
+            {
+              "source_path": "tests/workspace.rs",
+              "line": 68,
+              "module": "semantic_graph",
+              "attributes": [
+                "#[path = \"workspace/semantic_graph.rs\"]"
+              ],
+              "sha256": "2722662e4c54895e22dbffa8fb72f1ace5b93b99c4d58335f3948f6d73d5505f"
+            }
+          ],
+          "sha256": "23320ee1f59318b777d5fcc7d6c9b1f2a02591f828d0ca14b1d61225f97802d8",
+          "ignored": false
+        }
+      ],
+      "ignored_bodies_not_executed": [],
+      "expected_selected": 1,
+      "status": "UNEXECUTED_SOURCE_AUTHORED",
+      "reasons": [
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "prior_actual_failure": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-30.log",
+        "log_sha256": "65b3a005c2199b1cb91d53d13f0a32fe4deb7343849ec60fd9d9f6318dcb4ff2",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "index_original50": 44,
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::tests::full_plan_enumerator_keeps_every_original_path_work_and_materialization",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "cleanup_plan::replay::branch_clone::tests::full_plan_enumerator_keeps_every_original_path_work_and_materialization",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "source_binding": {
+        "source_path": "src/cleanup_plan/replay/branch_clone/tests.rs",
+        "line": 30,
+        "name": "full_plan_enumerator_keeps_every_original_path_work_and_materialization",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 120,
+            "module": "cleanup_plan",
+            "attributes": [
+              "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ],
+            "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de"
+          },
+          {
+            "source_path": "src/cleanup_plan.rs",
+            "line": 32,
+            "module": "replay",
+            "attributes": [],
+            "sha256": "58f4ca8f4b449b2b63f19c0111af9f4dae6525f382f99130b189a8bf1e1457fb"
+          },
+          {
+            "source_path": "src/cleanup_plan/replay.rs",
+            "line": 3,
+            "module": "branch_clone",
+            "attributes": [],
+            "sha256": "230db688a5f86f9ed4bc3ac853582702541057b3a5f65656cf63cda63ad568b7"
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/branch_clone.rs",
+            "line": 90,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ],
+            "sha256": "ce320f46caac8cdacd2c1b3746ee48dd5f1274950f55a5f936509240ff0d5ada"
+          }
+        ],
+        "sha256": "381cc428e01081253340bd13826e9a0f3038209f628c1d9cabad71b83ce24446",
+        "ignored": false
+      },
+      "selected_bodies": [
+        {
+          "source_path": "src/cleanup_plan/replay/branch_clone/tests.rs",
+          "line": 30,
+          "name": "full_plan_enumerator_keeps_every_original_path_work_and_materialization",
+          "attributes": [
+            "#[test]"
+          ],
+          "registration_chain": [
+            {
+              "source_path": "src/lib.rs",
+              "line": 120,
+              "module": "cleanup_plan",
+              "attributes": [
+                "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+              ],
+              "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de"
+            },
+            {
+              "source_path": "src/cleanup_plan.rs",
+              "line": 32,
+              "module": "replay",
+              "attributes": [],
+              "sha256": "58f4ca8f4b449b2b63f19c0111af9f4dae6525f382f99130b189a8bf1e1457fb"
+            },
+            {
+              "source_path": "src/cleanup_plan/replay.rs",
+              "line": 3,
+              "module": "branch_clone",
+              "attributes": [],
+              "sha256": "230db688a5f86f9ed4bc3ac853582702541057b3a5f65656cf63cda63ad568b7"
+            },
+            {
+              "source_path": "src/cleanup_plan/replay/branch_clone.rs",
+              "line": 90,
+              "module": "tests",
+              "attributes": [
+                "#[cfg(test)]"
+              ],
+              "sha256": "ce320f46caac8cdacd2c1b3746ee48dd5f1274950f55a5f936509240ff0d5ada"
+            }
+          ],
+          "sha256": "381cc428e01081253340bd13826e9a0f3038209f628c1d9cabad71b83ce24446",
+          "ignored": false
+        }
+      ],
+      "ignored_bodies_not_executed": [],
+      "expected_selected": 1,
+      "status": "UNEXECUTED_SOURCE_AUTHORED",
+      "reasons": [
+        "Actual latestMAIN9a8ee branch_clone production route: direct new semantic/work, physical/Drop or complete-original-source control; pending final MAIN2600 registration"
+      ]
+    },
+    {
+      "index_original50": 45,
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::tests::clone_and_push_keep_capacity_contents_work_and_drop_with_less_backing",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "cleanup_plan::replay::branch_clone::tests::clone_and_push_keep_capacity_contents_work_and_drop_with_less_backing",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "source_binding": {
+        "source_path": "src/cleanup_plan/replay/branch_clone/tests.rs",
+        "line": 61,
+        "name": "clone_and_push_keep_capacity_contents_work_and_drop_with_less_backing",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 120,
+            "module": "cleanup_plan",
+            "attributes": [
+              "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ],
+            "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de"
+          },
+          {
+            "source_path": "src/cleanup_plan.rs",
+            "line": 32,
+            "module": "replay",
+            "attributes": [],
+            "sha256": "58f4ca8f4b449b2b63f19c0111af9f4dae6525f382f99130b189a8bf1e1457fb"
+          },
+          {
+            "source_path": "src/cleanup_plan/replay.rs",
+            "line": 3,
+            "module": "branch_clone",
+            "attributes": [],
+            "sha256": "230db688a5f86f9ed4bc3ac853582702541057b3a5f65656cf63cda63ad568b7"
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/branch_clone.rs",
+            "line": 90,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ],
+            "sha256": "ce320f46caac8cdacd2c1b3746ee48dd5f1274950f55a5f936509240ff0d5ada"
+          }
+        ],
+        "sha256": "381cc428e01081253340bd13826e9a0f3038209f628c1d9cabad71b83ce24446",
+        "ignored": false
+      },
+      "selected_bodies": [
+        {
+          "source_path": "src/cleanup_plan/replay/branch_clone/tests.rs",
+          "line": 61,
+          "name": "clone_and_push_keep_capacity_contents_work_and_drop_with_less_backing",
+          "attributes": [
+            "#[test]"
+          ],
+          "registration_chain": [
+            {
+              "source_path": "src/lib.rs",
+              "line": 120,
+              "module": "cleanup_plan",
+              "attributes": [
+                "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+              ],
+              "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de"
+            },
+            {
+              "source_path": "src/cleanup_plan.rs",
+              "line": 32,
+              "module": "replay",
+              "attributes": [],
+              "sha256": "58f4ca8f4b449b2b63f19c0111af9f4dae6525f382f99130b189a8bf1e1457fb"
+            },
+            {
+              "source_path": "src/cleanup_plan/replay.rs",
+              "line": 3,
+              "module": "branch_clone",
+              "attributes": [],
+              "sha256": "230db688a5f86f9ed4bc3ac853582702541057b3a5f65656cf63cda63ad568b7"
+            },
+            {
+              "source_path": "src/cleanup_plan/replay/branch_clone.rs",
+              "line": 90,
+              "module": "tests",
+              "attributes": [
+                "#[cfg(test)]"
+              ],
+              "sha256": "ce320f46caac8cdacd2c1b3746ee48dd5f1274950f55a5f936509240ff0d5ada"
+            }
+          ],
+          "sha256": "381cc428e01081253340bd13826e9a0f3038209f628c1d9cabad71b83ce24446",
+          "ignored": false
+        }
+      ],
+      "ignored_bodies_not_executed": [],
+      "expected_selected": 1,
+      "status": "UNEXECUTED_SOURCE_AUTHORED",
+      "reasons": [
+        "Actual latestMAIN9a8ee branch_clone production route: direct new semantic/work, physical/Drop or complete-original-source control; pending final MAIN2600 registration"
+      ]
+    }
+  ],
+  "new_selectors": 0,
+  "new_roles": 0
+}

@@ -1,0 +1,27 @@
+{
+  "source": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+  "scope": 50,
+  "PASS": 39,
+  "FAIL": 11,
+  "logs": [
+    {
+      "index": 38,
+      "original": "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016/owning-selected-38.log",
+      "archive": "docs/evidence/actual50-fixture-and-facade-corrections-20261016/actual-failures/owning-selected-38.log",
+      "sha256": "c72bb1cb44028245892acbe1c3049057b107ad89aadf94b2d31ebf786409e3a9"
+    },
+    {
+      "index": 44,
+      "original": "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016/owning-selected-44.log",
+      "archive": "docs/evidence/actual50-fixture-and-facade-corrections-20261016/actual-failures/owning-selected-44.log",
+      "sha256": "4f889c31b2063974558134d53e4df0e45df00ac866df30752a45121fdb37a727"
+    },
+    {
+      "index": 45,
+      "original": "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016/owning-selected-45.log",
+      "archive": "docs/evidence/actual50-fixture-and-facade-corrections-20261016/actual-failures/owning-selected-45.log",
+      "sha256": "01c303f19b284f862dcf74f407b7ba150173d5bafe4093963815519f9abe64d6"
+    }
+  ],
+  "fixed_fixture_is_not_new_execution": true
+}

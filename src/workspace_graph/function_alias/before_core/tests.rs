@@ -100,15 +100,19 @@ fn actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_c
     use crate::semantic_workspace::SemanticWorkspaceSource;
     use std::sync::Arc;
     const MANIFEST: &str = r#"schema = "semaprax.manifest.v1"
+
 [package]
 name = "alias-parity"
 version = "1.0.0"
+
 [modules]
 entry = "alias.current"
 sources = ["src/app.spx", "src/tests.spx"]
 tests = ["alias.tests"]
+
 [exports]
 web = ["alias.current.main"]
+
 [dependencies]
 std.collections = "=0.1.0"
 "#;

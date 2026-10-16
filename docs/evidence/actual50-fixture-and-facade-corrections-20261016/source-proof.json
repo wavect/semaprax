@@ -1,0 +1,16 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "predecessor": "1830464c78a18b5eaf29e4684e0c891f7e9894a7",
+  "whole_prior_inputs": 5,
+  "compact_source_input_bytes": 11661,
+  "full_facade_input_bytes": 534615,
+  "full_old_facade_input_bytes": 531701,
+  "facade_runtime_JSON_bytes": 12491,
+  "unchanged_exact_current_facade_entries": 47,
+  "old_assertions_preserved": true,
+  "actual_caller_preflight_in_observation": true,
+  "global_caps_unchanged": true,
+  "production_unchanged": true,
+  "old90_and_all_prior_JSONs_exact": true,
+  "Rust_executed": false
+}

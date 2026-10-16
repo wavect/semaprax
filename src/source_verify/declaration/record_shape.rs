@@ -167,7 +167,7 @@ mod tests {
 
     #[test]
     fn complete_original_declaration_producer_body_is_byte_exact() {
-        let original = include_str!("../../../../docs/evidence/opt859-record-shape-recovery-20261016/before/src__source_verify__declaration__declarations.rs");
+        let original = include_str!("../../../docs/evidence/opt859-record-shape-recovery-20261016/before/src__source_verify__declaration__declarations.rs");
         let end = original.find("\npub(super) fn check_native_rust_imports").unwrap();
         let start = original.find("pub(super) fn check_byte_data_declarations").unwrap();
         let current = include_str!("record_shape_before.rs");

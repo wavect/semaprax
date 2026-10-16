@@ -1,0 +1,56 @@
+name: Stack diagnostic
+
+# Manual evidence capture survives newer CI pushes on the same ref. This does
+# not run or qualify the complete unit shard or replace any release blocker.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stack-diagnostic-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  trace:
+    name: Original low-stack case (diagnostic only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      # Match verify-tests; the script retains workspace feature unification.
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_PROFILE_TEST_OPT_LEVEL: "1"
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "1"
+      CARGO_TARGET_DIR: target/stack-diagnostic
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # master
+        with:
+          toolchain: 1.97.1
+      - name: Check debugger and resolve the real compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v gdb >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install --yes --no-install-recommends gdb
+          fi
+          command -v gdb
+          gdb --version
+          echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
+      - name: Fetch the complete locked workspace dependency closure
+        run: cargo fetch --locked
+      - name: Check artifact provenance and trace the original test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s scripts/tests -p test_ci_low_stack_trace.py
+          python3 scripts/ci-low-stack-trace.py

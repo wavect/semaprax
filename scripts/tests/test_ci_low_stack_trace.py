@@ -61,5 +61,40 @@ class ArtifactProvenance(unittest.TestCase):
             self.select(self.artifact)
 
 
+class ManualDiagnosticWorkflow(unittest.TestCase):
+    def test_manual_trace_has_no_automatic_trigger_or_release_artifact(self):
+        root = Path(__file__).resolve().parents[2]
+        workflow = (root / ".github/workflows/stack-diagnostic.yml").read_text()
+        triggers = workflow.split("\non:\n", 1)[1].split("\npermissions:", 1)[0]
+        self.assertEqual(triggers.strip(), "workflow_dispatch:")
+        self.assertIn("contents: read", workflow)
+        self.assertIn("cancel-in-progress: false", workflow)
+        self.assertIn("group: stack-diagnostic-${{ github.ref }}", workflow)
+        self.assertNotIn("continue-on-error", workflow)
+        self.assertNotIn("actions/upload-artifact", workflow)
+        self.assertEqual(workflow.count("python3 scripts/ci-low-stack-trace.py"), 1)
+        self.assertIn("run: cargo fetch --locked", workflow)
+        install = "sudo apt-get install --yes --no-install-recommends gdb"
+        self.assertIn(install, workflow)
+        unit = (root / ".github/workflows/ci.yml").read_text()
+        trace = unit.split("      - name: Trace the unchanged low-stack case", 1)[1].split("\n      - name:", 1)[0]
+        self.assertIn(install, trace)
+        self.assertLess(trace.index(install), trace.index("python3 scripts/ci-low-stack-trace.py"))
+
+
+    def test_manual_trace_keeps_the_unit_shard_profile_and_compiler(self):
+        root = Path(__file__).resolve().parents[2]
+        workflow = (root / ".github/workflows/stack-diagnostic.yml").read_text()
+        unit = (root / ".github/workflows/ci.yml").read_text().split("  verify-tests:\n", 1)[1]
+        profile = unit.split("    strategy:", 1)[0]
+        for name in ("CARGO_PROFILE_DEV_DEBUG", "CARGO_PROFILE_TEST_DEBUG",
+                     "CARGO_PROFILE_TEST_OPT_LEVEL", "CARGO_INCREMENTAL", "CARGO_BUILD_JOBS"):
+            value = profile.split(name + ": ", 1)[1].splitlines()[0]
+            self.assertIn(name + ": " + value, workflow)
+        compiler = unit.split("toolchain: ", 1)[1].splitlines()[0]
+        self.assertIn("toolchain: " + compiler, workflow)
+        self.assertIn("RUSTC=$(rustup which rustc)", workflow)
+
+
 if __name__ == "__main__":
     unittest.main()

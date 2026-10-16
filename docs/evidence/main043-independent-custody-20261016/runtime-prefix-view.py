@@ -20,10 +20,10 @@ def restore(row,current):
 def historical(repo,current):
  d=Path(__file__).parent/'runtime-prefix-cap-historical-view'
  payload=(d/'current-to-88cc.json').read_bytes();assert len(payload)==LENGTH<=131072 and sha(payload)==SHA256
- row=json.loads(payload);before=(d/'runtime-json-88cc-before.rs.txt').read_text();original=(d/'runtime-json-a82-original.rs.txt').read_text()
+ row=json.loads(payload);before=(d/'runtime-json-88cc-before.rs.txt').read_bytes().decode('utf-8');original=(d/'runtime-json-a82-original.rs.txt').read_bytes().decode('utf-8')
  assert sha(before.encode())==BEFORE_SHA and sha(original.encode())==ORIGINAL_SHA
  assert before.startswith(original)
- assert current==(Path(repo)/SOURCE).read_text()
+ assert current==(Path(repo)/SOURCE).read_bytes().decode('utf-8')
  # Entire actual prefix contains OUTPUT_CAP, read_fixture, read_body and old tests registration.
  # Its literal bytes are untouched; only the later source-dispatch method is projected.
  marker='pub(super) fn maina3_input('

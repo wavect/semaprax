@@ -30,5 +30,9 @@
   {
     "before": "reader=read('src/source_reflows_merge/runtime_json.rs');assert reader.startswith(git(A,'src/source_reflows_merge/runtime_json.rs'))",
     "after": "assert sha(read(D+'/runtime-prefix-view.py'))=='526555fb178acc8632958104c9e989cf247869fead6b92635fdcc13b16106bfc','historical runtime prefix view source drift'\nruntime_prefix=runpy.run_path(str(R/D/'runtime-prefix-view.py'))\nreader=runtime_prefix['historical'](R,read('src/source_reflows_merge/runtime_json.rs'));assert reader.startswith(git(A,'src/source_reflows_merge/runtime_json.rs'))"
+  },
+  {
+    "before": "526555fb178acc8632958104c9e989cf247869fead6b92635fdcc13b16106bfc",
+    "after": "c74044bffcb310f3ae26ce6be49f38aa7d62f36ee694bd0f3703ef8e19471345"
   }
 ]

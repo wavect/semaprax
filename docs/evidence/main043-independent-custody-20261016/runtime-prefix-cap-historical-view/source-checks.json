@@ -19,5 +19,8 @@
     "tampered",
     "forged_predecessor"
   ],
-  "Rust_or_Cargo_or_common_generation": false
+  "Rust_or_Cargo_or_common_generation": false,
+  "actual_raw_bytes_UTF8_equal_to_provided_string": true,
+  "raw_CRLF_with_normalized_outer_string_refused": true,
+  "pinned_helper_sha256": "c74044bffcb310f3ae26ce6be49f38aa7d62f36ee694bd0f3703ef8e19471345"
 }

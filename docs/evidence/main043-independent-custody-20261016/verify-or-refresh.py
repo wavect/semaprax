@@ -117,7 +117,7 @@ for path in guards:
 for i in [2,4,7]:
  text=read(owners[i]['definition']);assert 'historical_ci_extra' not in text and 'main043_input' not in text
 # Preserve the original reader verbatim; only the two fixed sibling getters append.
-assert sha(read(D+'/runtime-prefix-view.py'))=='526555fb178acc8632958104c9e989cf247869fead6b92635fdcc13b16106bfc','historical runtime prefix view source drift'
+assert sha(read(D+'/runtime-prefix-view.py'))=='c74044bffcb310f3ae26ce6be49f38aa7d62f36ee694bd0f3703ef8e19471345','historical runtime prefix view source drift'
 runtime_prefix=runpy.run_path(str(R/D/'runtime-prefix-view.py'))
 reader=runtime_prefix['historical'](R,read('src/source_reflows_merge/runtime_json.rs'));assert reader.startswith(git(A,'src/source_reflows_merge/runtime_json.rs'))
 proof['inputs']=checks;endpoint(D+'/static-proof.json',proof)

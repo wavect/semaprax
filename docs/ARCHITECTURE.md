@@ -5077,3 +5077,9 @@ original order. Its public raw model field grants no checked authority:
 independent HIR validation/source/cleanup admission remains mandatory. Complete
 Main7c opaque models and constructor/cache controls stay test-only independent.
 [HIR residual construction v1](HIR-RESIDUAL-CONSTRUCTION-V1.md) owns that boundary.
+
+`cleanup_plan/replay/selected_type_drop.rs` owns lexical selected type/drop
+classification in the existing paid certificate caller. It preserves the
+complete primitive/Option/Vec/current-flat query closure without new forwarding
+Results or budget parameters. Original classifiers, oracle authentication and
+ordinary dynamic diagnostics remain independently owned boundaries.

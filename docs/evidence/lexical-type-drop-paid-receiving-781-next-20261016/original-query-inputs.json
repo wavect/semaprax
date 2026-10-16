@@ -1,0 +1,27 @@
+[
+  {
+    "source": "src/cleanup/inventory_builder/selected.rs",
+    "sha256": "6b124bec80c967ce3b90abb0131a51d5e4cd63dbee2d8c44db2a32dc9b583f28",
+    "archive": "original-query-inputs/src/cleanup/inventory_builder/selected.rs"
+  },
+  {
+    "source": "src/cleanup/inventory_builder/selected/vector.rs",
+    "sha256": "d99a56bf53d9f2c20432de957d92c87c627786e71d523a720ed605089c8cd76f",
+    "archive": "original-query-inputs/src/cleanup/inventory_builder/selected/vector.rs"
+  },
+  {
+    "source": "src/cleanup/inventory_builder/selected/flat_record.rs",
+    "sha256": "832887e5c6ee5d5f6230baba723b4392f6c5d99a728acaf17e347d016366c4e3",
+    "archive": "original-query-inputs/src/cleanup/inventory_builder/selected/flat_record.rs"
+  },
+  {
+    "source": "src/cleanup/inventory_builder/selected_inline.rs",
+    "sha256": "893b87ae8ec16924a3a6e7980d4fea6480bf5926e5ffb9003d35938ea973a3c3",
+    "archive": "original-query-inputs/src/cleanup/inventory_builder/selected_inline.rs"
+  },
+  {
+    "source": "src/cleanup_plan/replay/nested_shape.rs",
+    "sha256": "7214d1a49f1884e374770c73e8ca484522529e3f161f94e0ef23fbcd8d6eea74",
+    "archive": "original-query-inputs/src/cleanup_plan/replay/nested_shape.rs"
+  }
+]

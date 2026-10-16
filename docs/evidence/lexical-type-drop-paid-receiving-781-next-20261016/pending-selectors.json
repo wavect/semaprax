@@ -1,0 +1,26 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::flat_records::tests::receiving_type_drop::complete_type_drop_certificate_keeps_all_fields_order_and_hostile_failures",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::flat_records::tests::receiving_type_drop::type_drop_certificate_actual_receiving_exact_short_work_and_whole_drop",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::flat_records::tests::receiving_type_drop::selected_type_drop_complete_original_shapes_and_six_fields",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::flat_records::tests::receiving_type_drop::selected_type_drop_whole_context_limits_work_and_drop_are_actual",
+    "status": "PENDING_NOT_EXECUTED"
+  }
+]

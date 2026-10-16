@@ -937,3 +937,6 @@ pub(in crate::cleanup_plan::replay) mod paid;
 
 #[cfg(test)]
 pub(in crate::cleanup_plan::replay) mod before_boundary;
+
+#[cfg(test)]
+pub(in crate::cleanup_plan::replay) mod before_type_drop;

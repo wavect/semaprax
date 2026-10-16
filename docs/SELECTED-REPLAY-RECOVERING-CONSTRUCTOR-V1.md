@@ -730,3 +730,34 @@ unexecuted owners compare complete Auth fields and hostile order, physical
 exact/short/work/Drop, full prior/current paid drivers, and chain order/cycle/
 unknown diagnostics. Immediate-prior certificate/storage/driver receivers are
 independent, with complete source custody. No savings or fit is measured.
+
+## Lexical selected type/drop receiving (#781, source-only)
+
+The certificate's existing live affine permit now encloses the complete selected
+type/drop query: Never, Option<u8> authentication, exact current Vec declaration,
+bounded element and flat-record declaration/field scans, and primitive fallback.
+The original public/inline classifiers stay independent. Their exact parameter
+receiving references become lexical locals, and returned bool/borrowed Option
+values become block values; nested query Result/formatter forwarding disappears.
+No new caller mutable-budget argument, receiving bank, allowance or fee credit
+is introduced. Every semantic failure consumes the already-paid permit only on
+a returning error branch; success retains it for the remaining certificate.
+
+Two raw cleanup labels use closed TypeDrop data; existing Profile labels retain
+their exact raw/prefixed renderer classification. Original cfg(test) oracle
+authentication and its old account budget/error paths execute first, unchanged.
+The full ordinary type-fact query and dynamic identity diagnostic remain the
+original owning fallback. No serialized type key is reinterpreted or trusted.
+
+Four unexecuted owners retain complete prior certificate/storage algorithms,
+compare full Auth fields and hostile metadata, compare 34 actual/forged type
+forms and all six diagnostic fields, and observe whole paid Context/query/Drop
+with actual bills/work and exact/short/zero controls. They make no universal
+allocation, saving or application-fit assertion. Schema/inventory callbacks,
+path-state boundaries, borrowed chain diagnostics and other descendants remain
+explicit owned-Diagnostic residuals, so #781 remains OPEN.
+
+Macro receiving preserves the original explicit trait-object and type-reference
+parameter shapes. The flat-field block returns a borrowed slice via as_slice,
+corresponding to the old implicit Vec-to-slice return coercion; it does not
+introduce a thin &Vec view or new iterator forwarding.

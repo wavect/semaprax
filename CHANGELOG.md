@@ -7387,3 +7387,8 @@ are authored. Qualification is pending; Catalog corpus and limits are unchanged.
   preserve original Type producer/error order and parser-independent fixtures,
   and retain complete Main models/cache controls. Source-only; no new executable
   qualification or measured saving is claimed.
+
+- Source-only #781 selected type/drop closure: remove nested query/formatter
+  forwarding through lexical receiving in the existing certificate permit,
+  retain full prior algorithms and ordinary dynamic fallback, and add four
+  unexecuted whole-query/certificate controls. Remaining #781 families stay open.

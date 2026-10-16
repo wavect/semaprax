@@ -1,0 +1,88 @@
+[
+  {
+    "rendered": "error[E0433]: cannot find `schema_summary` in `cleanup`\n  --> src/cleanup_plan/replay/schema.rs:32:37\n   |\n32 |     let inventory = crate::cleanup::schema_summary::collect(program, function)?;\n   |                                     ^^^^^^^^^^^^^^ could not find `schema_summary` in `cleanup`\n   |\nnote: found an item that was configured out\n  --> src/cleanup.rs:26:16\n   |\n25 | #[cfg(test)]\n   |       ---- the item is gated here\n26 | pub(crate) mod schema_summary;\n   |                ^^^^^^^^^^^^^^\n\n",
+    "$message_type": "diagnostic",
+    "children": [
+      {
+        "children": [],
+        "code": null,
+        "level": "note",
+        "message": "found an item that was configured out",
+        "rendered": null,
+        "spans": [
+          {
+            "byte_end": 971,
+            "byte_start": 967,
+            "column_end": 11,
+            "column_start": 7,
+            "expansion": null,
+            "file_name": "src/cleanup.rs",
+            "is_primary": false,
+            "label": "the item is gated here",
+            "line_end": 25,
+            "line_start": 25,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 11,
+                "highlight_start": 7,
+                "text": "#[cfg(test)]"
+              }
+            ]
+          },
+          {
+            "byte_end": 1003,
+            "byte_start": 989,
+            "column_end": 30,
+            "column_start": 16,
+            "expansion": null,
+            "file_name": "src/cleanup.rs",
+            "is_primary": true,
+            "label": null,
+            "line_end": 26,
+            "line_start": 26,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 30,
+                "highlight_start": 16,
+                "text": "pub(crate) mod schema_summary;"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "level": "error",
+    "message": "cannot find `schema_summary` in `cleanup`",
+    "spans": [
+      {
+        "byte_end": 1295,
+        "byte_start": 1281,
+        "column_end": 51,
+        "column_start": 37,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/schema.rs",
+        "is_primary": true,
+        "label": "could not find `schema_summary` in `cleanup`",
+        "line_end": 32,
+        "line_start": 32,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 51,
+            "highlight_start": 37,
+            "text": "    let inventory = crate::cleanup::schema_summary::collect(program, function)?;"
+          }
+        ]
+      }
+    ],
+    "code": {
+      "code": "E0433",
+      "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+    }
+  }
+]

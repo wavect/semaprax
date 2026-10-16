@@ -1,7 +1,7 @@
 //! Complete immediate d962 canonical receiver, compiled independently.
 use super::{app_census, tests, arena_tests, physical_clone, replay_error, Automaton, BTreeMap,
     Diagnostic, Label, Rc, ReplayBudget, ResolvedFunction, Weighted, closure_receiving,
-    empty_closure, empty_memo, ordered_alias, ordered_weights, successor_targets,
+    empty_closure, before_terminal_leaf_empty_memo as empty_memo, ordered_alias, ordered_weights, successor_targets,
     inline_weighted, intern_arena};
 use inline_weighted::SmallWeighted;
 

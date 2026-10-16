@@ -1,0 +1,39 @@
+{
+  "status": "PENDING_PARENT_RUNTIME",
+  "package": "semaprax",
+  "kind": "lib",
+  "owners": [
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::terminal_leaf_tests::cold_terminal_keeps_complete_old_maps_and_every_individual_work_refusal",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::terminal_leaf_tests::production_cold_dispatch_preserves_old_held_receiver_then_warm_and_general_roots",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::terminal_leaf_tests::nonunit_sink_and_epsilon_shapes_keep_complete_general_kernel",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::terminal_leaf_tests::cold_terminal_foreign_and_restored_owners_reject_before_touching_either_work_account",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::terminal_leaf_tests::cold_terminal_actual_reservations_backing_peak_every_cut_and_final_drop",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::terminal_leaf_tests::empty_bitmap_promotion_keeps_all_empty_bits_and_refuses_before_value_construction",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_complete_immediate_receiver_keeps_states_signatures_and_every_work_frontier",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs"
+    }
+  ]
+}

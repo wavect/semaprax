@@ -1,0 +1,67 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main_c11/before.rs",
+    "sha256": "3fa771c3f26552812dfb64d4851ced843418501674c96e3847a8d14119b95e13",
+    "lines": 58
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main_c11/before_wrapper.rs",
+    "sha256": "273142f525bdbf71805a4ba0ae16028ff9c992d98e1bcc872c83a5209919bee2",
+    "lines": 63
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main_c11/before_wrapper_tests.rs",
+    "sha256": "38f11a53d0a21dc60470dc7ac46fda2a86d191ade68bd7abf5c40ab4da783846",
+    "lines": 295
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main_c11/current.rs",
+    "sha256": "7a5eb3fd67db9616b9fc5202fa8c6034c1f4002783cda233072b2b3a2a1fe331",
+    "lines": 78
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main_c11/helper.rs",
+    "sha256": "6d26952dc6acbd5f9f287a8de3d02e20de88cc2eca31281bdf3f4343b8dfd0fb",
+    "lines": 44
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main_c11/mod.rs",
+    "sha256": "bdc5bcb078cce3280d4a795e367753de4fc5c193c58b7085f37c6c642a1d29b9",
+    "lines": 13
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main_c11/old_current.rs",
+    "sha256": "0e98841909a7f991bf4b52351982353a0f3048465622b818d4ab93b585e7baed",
+    "lines": 68
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main_c11/tests.rs",
+    "sha256": "99064ab3e90253c40f87dad6a88cfa8c6052a0af7c298b271fa784bd76ac93e3",
+    "lines": 353
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main_c11/wrapper_context.rs",
+    "sha256": "ea7e0dbafb12d87d9e0eaca636df929cca8121b01e28b6cdd12bf26d540473a4",
+    "lines": 13
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs",
+    "sha256": "b42b3363514e172d1440c0fcdce683cd81dc1a990e7d55876f444fb1e5925cf6",
+    "lines": 165
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/before_c11.rs",
+    "sha256": "16386e03fc572dddc250937eb1b4fa606d5a2edc2abc7c70003254f2e0b36585",
+    "lines": 130
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/before_c451_c11.rs",
+    "sha256": "1e593e61a5617473cdf1faf1cf8eb009090d0bead4cbd81a8f849b0b1205723a",
+    "lines": 130
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/c11_before_2600.rs",
+    "sha256": "30cc9238ae44dfd6988023f1296eb5c7c32b084ed164b64a1c194e4c5a2b758b",
+    "lines": 152
+  }
+]

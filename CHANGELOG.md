@@ -9,6 +9,11 @@
 # Changelog
 
 - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.
+- Refresh browser graph pins from complete hosted c11a63509 records after a measured 3,452-byte builder-bill reduction, preserving every previous compiled bridge and whole-wire control.
+
+- Share the compiled cleanup predecessor between receiver controls and check constant allocation thresholds at compile time.
+
+- Keep fallible prefix transfer in its existing cleanup receiver and fund a pure borrowed probe, retaining the complete shipped wrapper and its original tests.
 
 - Source-only #781 adds complete paid status and selected scalar record/body receivers with closed semantic data, actual per-call same-ledger banks and independent prior drivers. Error-only dynamic controls are acquired only on that path. New frontiers and remaining inventory/certificate/schema/path diagnostics are explicit; executable qualification and end-to-end closure remain pending.
 

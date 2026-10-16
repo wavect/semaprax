@@ -7612,3 +7612,7 @@ mod selected_type_drop;
 #[cfg(test)]
 #[path = "replay/sequence_prefix/main24/mod.rs"]
 mod sequence_prefix_main24;
+
+#[cfg(test)]
+#[path = "replay/sequence_prefix/main_c11/mod.rs"]
+mod sequence_prefix_main_c11;

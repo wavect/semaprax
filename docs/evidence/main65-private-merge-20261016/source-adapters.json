@@ -1,0 +1,46 @@
+[
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/before_2600.rs",
+    "physical": "tests/wasm/scalar_browser_ci_contract/c11_before_2600.rs",
+    "original_sha256": "e9a110ae30efac1012deed4c9ac4750dbc4f82e4cb698f1b33508872d968ca26",
+    "current_sha256": "30cc9238ae44dfd6988023f1296eb5c7c32b084ed164b64a1c194e4c5a2b758b",
+    "edits": [
+      {
+        "new": "include_str!(\"../../../docs/evidence/main65-private-merge-20261016/main-browser-parent.rs.txt\")",
+        "old": "include_str!(\"../scalar_browser_ci_contract.rs\")"
+      }
+    ]
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/before_c451.rs",
+    "physical": "tests/wasm/scalar_browser_ci_contract/before_c451_c11.rs",
+    "original_sha256": "c2a37b465fbeba1cae400ea2316fce996b8561bd5523f73100c0b1904f967fc2",
+    "current_sha256": "1e593e61a5617473cdf1faf1cf8eb009090d0bead4cbd81a8f849b0b1205723a",
+    "edits": [
+      {
+        "new": "#[path = \"c11_before_2600.rs\"]",
+        "old": "#[path = \"before_2600.rs\"]"
+      },
+      {
+        "new": "let current = include_str!(\"c11_before_2600.rs\");\n    let current = super::super::c11_before2600_input(current);",
+        "old": "let current = include_str!(\"before_2600.rs\");"
+      }
+    ]
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/before_c11.rs",
+    "physical": "tests/wasm/scalar_browser_ci_contract/before_c11.rs",
+    "original_sha256": "11759a5634608fd672855964935d2e484d909934f771faf41177eaca0caaf863",
+    "current_sha256": "16386e03fc572dddc250937eb1b4fa606d5a2edc2abc7c70003254f2e0b36585",
+    "edits": [
+      {
+        "new": "#[path = \"before_c451_c11.rs\"]",
+        "old": "#[path = \"before_c451.rs\"]"
+      },
+      {
+        "new": "let current = include_str!(\"before_c451_c11.rs\");\n    let current = super::c11_before451_input(current);",
+        "old": "let current = include_str!(\"before_c451.rs\");"
+      }
+    ]
+  }
+]

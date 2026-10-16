@@ -1,0 +1,170 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::complete_original_sequence_keeps_order_path_fields_work_and_materializations",
+    "expected": 1,
+    "reason": "Independent complete Main c11 receiver with shared predecessor and const-bound source control"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::transfer_reuses_full_backing_and_preserves_each_observation_identity",
+    "expected": 1,
+    "reason": "Independent complete Main c11 receiver with shared predecessor and const-bound source control"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::original_receiver_source_remains_complete",
+    "expected": 1,
+    "reason": "Independent complete Main c11 receiver with shared predecessor and const-bound source control"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+    "expected": 1,
+    "reason": "Independent complete Main c11 receiver with shared predecessor and const-bound source control"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::bypasses_and_sticky_refusals_leave_the_complete_input_untouched",
+    "expected": 1,
+    "reason": "Independent complete Main c11 receiver with shared predecessor and const-bound source control"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::thin_header_and_complete_shipped_wrapper_and_tests_stay_source_bound",
+    "expected": 1,
+    "reason": "Independent complete Main c11 receiver with shared predecessor and const-bound source control"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::before_wrapper::before_wrapper::tests::complete_original_sequence_keeps_order_path_fields_work_and_materializations",
+    "expected": 1,
+    "reason": "Independent complete Main c11 receiver with shared predecessor and const-bound source control"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::before_wrapper::before_wrapper::tests::transfer_reuses_full_backing_and_preserves_each_observation_identity",
+    "expected": 1,
+    "reason": "Independent complete Main c11 receiver with shared predecessor and const-bound source control"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::before_wrapper::before_wrapper::tests::original_receiver_source_remains_complete",
+    "expected": 1,
+    "reason": "Independent complete Main c11 receiver with shared predecessor and const-bound source control"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::before_wrapper::before_wrapper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+    "expected": 1,
+    "reason": "Independent complete Main c11 receiver with shared predecessor and const-bound source control"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::before_wrapper::before_wrapper::tests::bypasses_and_sticky_refusals_leave_the_complete_input_untouched",
+    "expected": 1,
+    "reason": "Independent complete Main c11 receiver with shared predecessor and const-bound source control"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:wasm",
+    "selector": "scalar_browser_ci_contract::main_c11::hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+    "expected": 1,
+    "reason": "Complete independent Main c11 hosted wire and original before receiver; live actual83ca unchanged"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:wasm",
+    "selector": "scalar_browser_ci_contract::main_c11::a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+    "expected": 1,
+    "reason": "Complete independent Main c11 hosted wire and original before receiver; live actual83ca unchanged"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:wasm",
+    "selector": "scalar_browser_ci_contract::main_c11::the_complete_old_bridge_changes_only_its_retained_runner_include",
+    "expected": 1,
+    "reason": "Complete independent Main c11 hosted wire and original before receiver; live actual83ca unchanged"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:wasm",
+    "selector": "scalar_browser_ci_contract::main_c11::before_c11::hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+    "expected": 1,
+    "reason": "Complete independent Main c11 hosted wire and original before receiver; live actual83ca unchanged"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:wasm",
+    "selector": "scalar_browser_ci_contract::main_c11::before_c11::a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+    "expected": 1,
+    "reason": "Complete independent Main c11 hosted wire and original before receiver; live actual83ca unchanged"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:wasm",
+    "selector": "scalar_browser_ci_contract::main_c11::before_c11::the_complete_old_bridge_changes_only_its_retained_runner_include",
+    "expected": 1,
+    "reason": "Complete independent Main c11 hosted wire and original before receiver; live actual83ca unchanged"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:wasm",
+    "selector": "scalar_browser_ci_contract::main_c11::before_c11::before_c451::hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+    "expected": 1,
+    "reason": "Complete independent Main c11 hosted wire and original before receiver; live actual83ca unchanged"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:wasm",
+    "selector": "scalar_browser_ci_contract::main_c11::before_c11::before_c451::a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+    "expected": 1,
+    "reason": "Complete independent Main c11 hosted wire and original before receiver; live actual83ca unchanged"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:wasm",
+    "selector": "scalar_browser_ci_contract::main_c11::before_c11::before_c451::the_complete_old_bridge_changes_only_its_retained_runner_include",
+    "expected": 1,
+    "reason": "Complete independent Main c11 hosted wire and original before receiver; live actual83ca unchanged"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:wasm",
+    "selector": "scalar_browser_ci_contract::main_c11::before_c11::before_c451::before_2600::current_hosted_wires_replay_complete_historical_cursor_controls",
+    "expected": 1,
+    "reason": "Complete independent Main c11 hosted wire and original before receiver; live actual83ca unchanged"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:wasm",
+    "selector": "scalar_browser_ci_contract::main_c11::before_c11::before_c451::before_2600::current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration",
+    "expected": 1,
+    "reason": "Complete independent Main c11 hosted wire and original before receiver; live actual83ca unchanged"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:wasm",
+    "selector": "scalar_browser_ci_contract::main_c11::before_c11::before_c451::before_2600::a_rehashed_non_builder_budget_mutation_cannot_pass_the_historical_bridge",
+    "expected": 1,
+    "reason": "Complete independent Main c11 hosted wire and original before receiver; live actual83ca unchanged"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:wasm",
+    "selector": "scalar_browser_ci_contract::main_c11::before_c11::before_c451::before_2600::complete_prior_browser_contract_has_only_registration_and_call_adapter_changes",
+    "expected": 1,
+    "reason": "Complete independent Main c11 hosted wire and original before receiver; live actual83ca unchanged"
+  }
+]

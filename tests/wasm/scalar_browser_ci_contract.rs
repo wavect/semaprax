@@ -257,3 +257,7 @@ fn chromium_scalar_calculator_gate_is_isolated_locked_and_serial() {
         );
     }
 }
+
+// Complete independent Main c11 hosted-wire receiver; live pins remain actual83ca.
+#[path = "scalar_browser_ci_contract/historical_main_c11.rs"]
+mod main_c11;

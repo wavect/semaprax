@@ -1,0 +1,10 @@
+{
+  "source_head": "e3db5417cc159fd6a3567b88228c860eddab65ad",
+  "source": "src/cleanup.rs",
+  "before_sha256": "b7bf90f8fcba74efc7aecdd06df2a5a46f4dc3f74078b8f96bcb91d31b5ce48d",
+  "after_sha256": "4820018fca75aadcebc15abcb5abf80e978e9e8238080d6c1558a12ef8425f7a",
+  "edit": "Remove test-only registration gate from schema_summary because actual production selected_schema_with_index calls collect. Collector and all diagnostics/branches remain byte-exact. Its own tests stay cfg(test).",
+  "qualification": "PENDING_FOCUSED_BUILD",
+  "original_test_compile": "PASS_ACTUAL_4m11s",
+  "production_compile": "FAIL_E0433_0_TEST_BODIES"
+}

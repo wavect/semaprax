@@ -7403,3 +7403,8 @@ are authored. Qualification is pending; Catalog corpus and limits are unchanged.
   receiver, get/auth/work behavior and original callable/phase gates. Actual
   focused qualification and graph-pin phases remain pending; no admission or
   measured saving is claimed.
+
+
+- OPT798 next source transport keeps complete live Rust audit inputs compiled
+  as separate pieces and joins only inside existing unmeasured integration
+  source/layout audits. No production behavior, gate or memory benefit claim.

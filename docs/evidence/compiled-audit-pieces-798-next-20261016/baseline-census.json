@@ -1,0 +1,221 @@
+{
+  "status": "STATIC_ONLY_NO_COMPILE_MEMORY_CLAIM",
+  "head": "b5eca55b96890e1a815f0d8d9e7b42c78d743b07",
+  "note": "Direct includes count exact literal occurrence payloads; macro alias expansion adds repetitions, so this is not total expanded allocation/RSS. Live Rust remains compiletime.",
+  "inventories": [
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "owning_callsite_root": "tests/hir_module_boundaries.rs",
+      "concat_nodes": 28,
+      "direct_include_occurrences": 906,
+      "direct_include_occurrence_bytes": 10425492,
+      "unique_files": 899,
+      "unique_bytes": 10366176,
+      "largest10": [
+        {
+          "literal": "../docs/evidence/afba-presence-successor-20261016/hir.json",
+          "source": "docs/evidence/afba-presence-successor-20261016/hir.json",
+          "bytes": 1313782,
+          "sha256": "acc555f053c04b79fbc104c1558f70858bcab35887cf5e8ad32fea4bd9104ade"
+        },
+        {
+          "literal": "../src/hir/validation.rs",
+          "source": "src/hir/validation.rs",
+          "bytes": 399117,
+          "sha256": "f89e882a3d8ed796b8b8b864247e4e7eb19631d6299cd0dd94ddcc6b5ca17eba"
+        },
+        {
+          "literal": "../src/source_reflows_merge/runtime_json/membership.rs",
+          "source": "src/source_reflows_merge/runtime_json/membership.rs",
+          "bytes": 60550,
+          "sha256": "d91f9c830c7b3d53c9c03666f3afeca98225a18c7793913e84a202b74df767a5"
+        },
+        {
+          "literal": "../src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "source": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "bytes": 59854,
+          "sha256": "157b0171b076d37305e776575579993abe691522c9f6f3dea3c15545e478c1f8"
+        },
+        {
+          "literal": "../src/hir.rs",
+          "source": "src/hir.rs",
+          "bytes": 58562,
+          "sha256": "61945595a1a5ffd202c39ff4104fbc94b394c99866760eef2f7eaedcebed413a"
+        },
+        {
+          "literal": "../src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs",
+          "source": "src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs",
+          "bytes": 56396,
+          "sha256": "8f6f00810d82706e91960d92cb2168339c143219b7b641fed4d72e544b9f7807"
+        },
+        {
+          "literal": "../src/hir/validation/owned_iterative_oracle/dispatch_0.rs",
+          "source": "src/hir/validation/owned_iterative_oracle/dispatch_0.rs",
+          "bytes": 52554,
+          "sha256": "08a89606c39156a5d9263488f56e77516b575ad9ebccd1e1a066f0d55f6d29b2"
+        },
+        {
+          "literal": "../src/cleanup_plan/replay/factored/canonical_shared/before_unit.rs",
+          "source": "src/cleanup_plan/replay/factored/canonical_shared/before_unit.rs",
+          "bytes": 49916,
+          "sha256": "87fd1f290d85fed32cba9f92a5b58b528712031121007b1f2a6875bde2e6fa5e"
+        },
+        {
+          "literal": "../src/hir/validation/owned_iterative_oracle/dispatch_1.rs",
+          "source": "src/hir/validation/owned_iterative_oracle/dispatch_1.rs",
+          "bytes": 47390,
+          "sha256": "1b53d3ee59cf630af7d69bb1cff6498883b595b0b2ea9cbed6eb07675145be08"
+        },
+        {
+          "literal": "../src/hir/validation/owned_iterative_oracle/dispatch_2.rs",
+          "source": "src/hir/validation/owned_iterative_oracle/dispatch_2.rs",
+          "bytes": 45778,
+          "sha256": "4efa2b64013dce1180ea6f9a023057890016d85e3973289e79428ac1e61eda01"
+        }
+      ]
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "owning_callsite_root": "tests/workspace/semantic_graph.rs",
+      "concat_nodes": 37,
+      "direct_include_occurrences": 720,
+      "direct_include_occurrence_bytes": 8078363,
+      "unique_files": 703,
+      "unique_bytes": 7873646,
+      "largest10": [
+        {
+          "literal": "../../src/workspace_graph.rs",
+          "source": "src/workspace_graph.rs",
+          "bytes": 216911,
+          "sha256": "9eab12b59d54c41c3b71f2e0b3b3d6937390da03cd8c7d4b2fe2ed1da39ae565"
+        },
+        {
+          "literal": "../../src/semantic_workspace_change.rs",
+          "source": "src/semantic_workspace_change.rs",
+          "bytes": 105048,
+          "sha256": "e234b66dd9373362ccb9f0da4a11406c288b9e83db19fbe49f49f0c5d5574ab6"
+        },
+        {
+          "literal": "../../src/semantic_workspace_operations.rs",
+          "source": "src/semantic_workspace_operations.rs",
+          "bytes": 95464,
+          "sha256": "2ab0abfeade18ff756ddec9b1f63c186b70a513b7dbdf736d8d8fe3acf5e56c1"
+        },
+        {
+          "literal": "semantic_graph/source_inventory.rs",
+          "source": "tests/workspace/semantic_graph/source_inventory.rs",
+          "bytes": 66999,
+          "sha256": "92285b6a611ff5204d4e17835173b99b02c89927c53c73694eb6fab70137b14d"
+        },
+        {
+          "literal": "../../src/workspace_graph/operation_sidecar.rs",
+          "source": "src/workspace_graph/operation_sidecar.rs",
+          "bytes": 66668,
+          "sha256": "4537fb48f2f0d3f1502dadba84534f95cbbf2e51dc08df5e447892e1c42e4b68"
+        },
+        {
+          "literal": "../../src/source_reflows_merge/runtime_json/membership.rs",
+          "source": "src/source_reflows_merge/runtime_json/membership.rs",
+          "bytes": 60550,
+          "sha256": "d91f9c830c7b3d53c9c03666f3afeca98225a18c7793913e84a202b74df767a5"
+        },
+        {
+          "literal": "../../src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "source": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "bytes": 59854,
+          "sha256": "157b0171b076d37305e776575579993abe691522c9f6f3dea3c15545e478c1f8"
+        },
+        {
+          "literal": "../../src/workspace_graph/expected_projection.rs",
+          "source": "src/workspace_graph/expected_projection.rs",
+          "bytes": 59451,
+          "sha256": "974468e7035d1a7baa48b13078ce7ec7b0711c2c7610d64db7feea561b192f0c"
+        },
+        {
+          "literal": "../../src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs",
+          "source": "src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs",
+          "bytes": 56396,
+          "sha256": "8f6f00810d82706e91960d92cb2168339c143219b7b641fed4d72e544b9f7807"
+        },
+        {
+          "literal": "../../src/semantic_workspace_structural_change.rs",
+          "source": "src/semantic_workspace_structural_change.rs",
+          "bytes": 54666,
+          "sha256": "96bf37d9e17573224f20c0d1438ddd249617132d22be8458823d109d362ae3f5"
+        }
+      ]
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "owning_callsite_root": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs",
+      "concat_nodes": 57,
+      "direct_include_occurrences": 1343,
+      "direct_include_occurrence_bytes": 15244999,
+      "unique_files": 1246,
+      "unique_bytes": 14297835,
+      "largest10": [
+        {
+          "literal": "../../../../../src/hir/validation.rs",
+          "source": "src/hir/validation.rs",
+          "bytes": 399117,
+          "sha256": "f89e882a3d8ed796b8b8b864247e4e7eb19631d6299cd0dd94ddcc6b5ca17eba"
+        },
+        {
+          "literal": "../../../../../src/cleanup_plan/build.rs",
+          "source": "src/cleanup_plan/build.rs",
+          "bytes": 274815,
+          "sha256": "6b7f86eb5561b28b4a876b5c5fbca4b5a9e96bbcb6bcf460598b7906ff2470da"
+        },
+        {
+          "literal": "../../../../../src/hir/resolve_expr.rs",
+          "source": "src/hir/resolve_expr.rs",
+          "bytes": 141775,
+          "sha256": "8af5423c4101d8f87c06f700ec51c6728c12164669cb716778e001323a787bf0"
+        },
+        {
+          "literal": "../../../../../src/hir/borrowed_root_oracle/resolve_expr.rs",
+          "source": "src/hir/borrowed_root_oracle/resolve_expr.rs",
+          "bytes": 140922,
+          "sha256": "2b1db091099c6367a2b13a20e628e7b6e09a5ba88e33d80b38b63b337c0523c3"
+        },
+        {
+          "literal": "ledger_capacity/source_inventory.rs",
+          "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "bytes": 131282,
+          "sha256": "60dc8c191a70c8e85ebe650b52faa35cc41b1e7b5d13226a25c058d4a6f628bf"
+        },
+        {
+          "literal": "../../../../../src/semantic_workspace_change.rs",
+          "source": "src/semantic_workspace_change.rs",
+          "bytes": 105048,
+          "sha256": "e234b66dd9373362ccb9f0da4a11406c288b9e83db19fbe49f49f0c5d5574ab6"
+        },
+        {
+          "literal": "../../../../../src/semantic_workspace_operations.rs",
+          "source": "src/semantic_workspace_operations.rs",
+          "bytes": 95464,
+          "sha256": "2ab0abfeade18ff756ddec9b1f63c186b70a513b7dbdf736d8d8fe3acf5e56c1"
+        },
+        {
+          "literal": "../../../../../src/hir/resolve_expr_reference.rs",
+          "source": "src/hir/resolve_expr_reference.rs",
+          "bytes": 76942,
+          "sha256": "8cef80fc6bddcdcaefbf200be0cdd934818ee2becd7b939134280b09f3b91d86"
+        },
+        {
+          "literal": "../../../../../src/source_verify/iterative/enter.rs",
+          "source": "src/source_verify/iterative/enter.rs",
+          "bytes": 70385,
+          "sha256": "e0a80b58bb9bd72221a1200eac626a04289a2ce57d69089e4ae20a9ca22f93f9"
+        },
+        {
+          "literal": "../../../../../src/source_verify/iterative/enter/enter_before_extended.rs",
+          "source": "src/source_verify/iterative/enter/enter_before_extended.rs",
+          "bytes": 69675,
+          "sha256": "c02a2e949346f78c89cf94f707cfbab369367c38a3b4c7490e608417876395ba"
+        }
+      ]
+    }
+  ],
+  "phase_ownership": "integration/interop harnesses; NOT the earlier library-unit resource-stop phase"
+}

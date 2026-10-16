@@ -1,0 +1,22 @@
+{
+  "hir_resolver_source_inventory": {
+    "identical_ordered_chunks": 880,
+    "current_input_bytes": 8821924,
+    "current_joined_sha256": "e9adf72f7a8580c6a2e3d886ef52a4902becac6a5c70b977ba1cc5e4bf302570"
+  },
+  "hir_validator_source_inventory": {
+    "identical_ordered_chunks": 305,
+    "current_input_bytes": 3094088,
+    "current_joined_sha256": "cd52094254e7187bacc1a26d9b2a4e22204164f133d50ec919131c01d3cb56c4"
+  },
+  "verifier_source_inventory": {
+    "identical_ordered_chunks": 221,
+    "current_input_bytes": 2253125,
+    "current_joined_sha256": "fee9c282f19441c5e7ff5ab5027ffb70f6063656cc0559b5bb0725a7130e9ec0"
+  },
+  "lower_source_inventory": {
+    "identical_ordered_chunks": 152,
+    "current_input_bytes": 1835092,
+    "current_joined_sha256": "b15a03fea5afdb975ea88affe19f4c0315e5f4ca676d8ccaaadd1b0b361cf484"
+  }
+}

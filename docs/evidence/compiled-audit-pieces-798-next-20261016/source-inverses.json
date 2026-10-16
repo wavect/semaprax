@@ -1,0 +1,797 @@
+{
+  "base": "b5eca55b96890e1a815f0d8d9e7b42c78d743b07",
+  "rows": [
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "before_archive": "before/tests/hir_module_boundaries.rs",
+      "before_sha256": "f012ee8ec44f0f6122dfc1e92e37e1c3dab3c21f5f4e0080ca0a1bab66c74b07",
+      "current_sha256": "2612f26d5d86b9679fa827f08345e6d02e4aaedb55503dcaee50ee3856807e58",
+      "edits": [
+        {
+          "old_offset": 0,
+          "new_offset": 0,
+          "before": "",
+          "after": "macro_rules! audit_source_join { ($($piece:expr),* $(,)?) => {{ let pieces: &[&str] = &[$(&$piece),*]; pieces.concat() }}; }\n"
+        },
+        {
+          "old_offset": 85,
+          "new_offset": 210,
+          "before": "    let validation_raw = concat!(\n        concat!(\n            concat!(\n",
+          "after": "    assert_eq!(audit_source_join!(\"\", \"\u03b1\", \"\\0\", \"\\r\\n\", \"\u03b2\"), \"\u03b1\\0\\r\\n\u03b2\");\n    let validation_raw = audit_source_join!(\n        audit_source_join!(\n            audit_source_join!(\n"
+        },
+        {
+          "old_offset": 11019,
+          "new_offset": 11253,
+          "before": "                concat!(\n",
+          "after": "                audit_source_join!(\n"
+        },
+        {
+          "old_offset": 11400,
+          "new_offset": 11645,
+          "before": "                concat!(\n",
+          "after": "                audit_source_join!(\n"
+        },
+        {
+          "old_offset": 11691,
+          "new_offset": 11947,
+          "before": "                concat!(\n",
+          "after": "                audit_source_join!(\n"
+        },
+        {
+          "old_offset": 12004,
+          "new_offset": 12271,
+          "before": "                concat!(\n",
+          "after": "                audit_source_join!(\n"
+        },
+        {
+          "old_offset": 12108,
+          "new_offset": 12386,
+          "before": "                    concat!(\n",
+          "after": "                    audit_source_join!(\n"
+        },
+        {
+          "old_offset": 12691,
+          "new_offset": 12980,
+          "before": "                concat!(\n",
+          "after": "                audit_source_join!(\n"
+        },
+        {
+          "old_offset": 13179,
+          "new_offset": 13479,
+          "before": "                    concat!(\n                        concat!(\n",
+          "after": "                    audit_source_join!(\n                        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 14426,
+          "new_offset": 14748,
+          "before": "                concat!(\n",
+          "after": "                audit_source_join!(\n"
+        },
+        {
+          "old_offset": 16707,
+          "new_offset": 17040,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 18994,
+          "new_offset": 19338,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 19456,
+          "new_offset": 19811,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 19802,
+          "new_offset": 20168,
+          "before": "            concat!(\n",
+          "after": "            audit_source_join!(\n"
+        },
+        {
+          "old_offset": 20038,
+          "new_offset": 20415,
+          "before": "                concat!(\n",
+          "after": "                audit_source_join!(\n"
+        },
+        {
+          "old_offset": 28395,
+          "new_offset": 28783,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 29711,
+          "new_offset": 30110,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 30140,
+          "new_offset": 30550,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 30409,
+          "new_offset": 30830,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 31494,
+          "new_offset": 31926,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 50691,
+          "new_offset": 51134,
+          "before": "        concat!(include_str!(\"../src/cleanup_plan/replay/structural_control/calls.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs\")),\n",
+          "after": "        audit_source_join!(include_str!(\"../src/cleanup_plan/replay/structural_control/calls.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs\")),\n"
+        },
+        {
+          "old_offset": 57617,
+          "new_offset": 58071,
+          "before": "        concat!(include_str!(\"../src/cleanup_plan/replay/expression_facts/arena/producer.rs\"), include_str!(\"../src/cleanup_plan/replay/expression_facts/arena/before_cursor.rs\"), include_str!(\"../src/cleanup_plan/replay/expression_facts/arena/producer_before_cursor.rs\"), include_str!(\"../src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs\")),\n        concat!(include_str!(\"../src/cleanup_plan/replay/expression_facts/arena.rs\"),\n",
+          "after": "        audit_source_join!(include_str!(\"../src/cleanup_plan/replay/expression_facts/arena/producer.rs\"), include_str!(\"../src/cleanup_plan/replay/expression_facts/arena/before_cursor.rs\"), include_str!(\"../src/cleanup_plan/replay/expression_facts/arena/producer_before_cursor.rs\"), include_str!(\"../src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs\")),\n        audit_source_join!(include_str!(\"../src/cleanup_plan/replay/expression_facts/arena.rs\"),\n"
+        },
+        {
+          "old_offset": 58658,
+          "new_offset": 59134,
+          "before": "        concat!(include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving.rs\"),\n",
+          "after": "        audit_source_join!(include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving.rs\"),\n"
+        },
+        {
+          "old_offset": 66151,
+          "new_offset": 66638,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 69610,
+          "new_offset": 70108,
+          "before": "        validation_raw,\n        include_str!(\"../docs/evidence/afba-presence-successor-20261016/hir.json\"),\n",
+          "after": "        &validation_raw,\n        include_str!(\"../docs/evidence/compiled-audit-pieces-798-next-20261016/hir.json\"),\n"
+        },
+        {
+          "old_offset": 70239,
+          "new_offset": 70745,
+          "before": "    let root = concat!(\n",
+          "after": "    let root = audit_source_join!(\n"
+        },
+        {
+          "old_offset": 73500,
+          "new_offset": 74017,
+          "before": "        include_str!(\"../src/cleanup_plan/replay/factored/continuation_receiver.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/continuation_receiver/before.rs\"),\n",
+          "after": "        include_str!(\"../src/cleanup_plan/replay/factored/continuation_receiver.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/continuation_receiver/before.rs\"),\n"
+        },
+        {
+          "old_offset": 75024,
+          "new_offset": 75549,
+          "before": "        include_str!(\"../src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs\"),\n",
+          "after": "        include_str!(\n            \"../src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs\"\n        ),\n"
+        }
+      ]
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "before_archive": "before/tests/workspace/semantic_graph/source_inventory.rs",
+      "before_sha256": "92285b6a611ff5204d4e17835173b99b02c89927c53c73694eb6fab70137b14d",
+      "current_sha256": "892d4e880cccf2d31325168cbcb34ea1c84d32c4ead89941d3d747077bc15196",
+      "edits": [
+        {
+          "old_offset": 0,
+          "new_offset": 0,
+          "before": "",
+          "after": "macro_rules! audit_source_join { ($($piece:expr),* $(,)?) => {{ let pieces: &[&str] = &[$(&$piece),*]; pieces.concat() }}; }\n"
+        },
+        {
+          "old_offset": 228,
+          "new_offset": 353,
+          "before": "    () => { concat!(semantic_graph_private_layout_owned_source_inventory!(capacity), semantic_graph_private_layout_owned_source_inventory!(core)) };\n    (capacity) => { concat!(\n",
+          "after": "    () => { audit_source_join!(semantic_graph_private_layout_owned_source_inventory!(capacity), semantic_graph_private_layout_owned_source_inventory!(core)) };\n    (capacity) => { audit_source_join!(\n"
+        },
+        {
+          "old_offset": 4964,
+          "new_offset": 5111,
+          "before": "    (core) => { concat!(\n",
+          "after": "    (core) => { audit_source_join!(\n"
+        },
+        {
+          "old_offset": 7887,
+          "new_offset": 8045,
+          "before": "    () => { concat!(\n",
+          "after": "    () => { audit_source_join!(\n"
+        },
+        {
+          "old_offset": 24712,
+          "new_offset": 24881,
+          "before": "        concat!(\n            concat!(\n                concat!(\n                    concat!(\n                    concat!(concat!(concat!(include_str!(\"../../src/workspace_graph.rs\"), include_str!(\"../../src/workspace_graph/initial_report.rs\"), include_str!(\"../../src/workspace_graph/initial_report/before.rs\"), include_str!(\"../../src/workspace_graph/initial_report/before_mappers.rs\"), include_str!(\"../../src/workspace_graph/initial_report/build.rs\"), include_str!(\"../../src/workspace_graph/initial_report/tests.rs\"),\n",
+          "after": "        audit_source_join!(\n            audit_source_join!(\n                audit_source_join!(\n                    audit_source_join!(\n                    audit_source_join!(audit_source_join!(audit_source_join!(include_str!(\"../../src/workspace_graph.rs\"), include_str!(\"../../src/workspace_graph/initial_report.rs\"), include_str!(\"../../src/workspace_graph/initial_report/before.rs\"), include_str!(\"../../src/workspace_graph/initial_report/before_mappers.rs\"), include_str!(\"../../src/workspace_graph/initial_report/build.rs\"), include_str!(\"../../src/workspace_graph/initial_report/tests.rs\"),\n"
+        },
+        {
+          "old_offset": 30769,
+          "new_offset": 31015,
+          "before": "        concat!(include_str!(\"../../src/cleanup_plan/replay/expression_facts/receiving.rs\"), include_str!(\"../../src/cleanup_plan/replay/expression_facts/arena/before_cursor.rs\"), include_str!(\"../../src/cleanup_plan/replay/expression_facts/arena/producer_before_cursor.rs\"), include_str!(\"../../src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs\")),\n",
+          "after": "        audit_source_join!(include_str!(\"../../src/cleanup_plan/replay/expression_facts/receiving.rs\"), include_str!(\"../../src/cleanup_plan/replay/expression_facts/arena/before_cursor.rs\"), include_str!(\"../../src/cleanup_plan/replay/expression_facts/arena/producer_before_cursor.rs\"), include_str!(\"../../src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs\")),\n"
+        },
+        {
+          "old_offset": 32560,
+          "new_offset": 32817,
+          "before": "        concat!(include_str!(\"../../src/cleanup_plan/replay/structural_control/calls.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs\")),\n",
+          "after": "        audit_source_join!(include_str!(\"../../src/cleanup_plan/replay/structural_control/calls.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs\")),\n"
+        },
+        {
+          "old_offset": 46948,
+          "new_offset": 47216,
+          "before": "                concat!(\n",
+          "after": "                audit_source_join!(\n"
+        },
+        {
+          "old_offset": 48862,
+          "new_offset": 49141,
+          "before": "                concat!(\n",
+          "after": "                audit_source_join!(\n"
+        },
+        {
+          "old_offset": 50525,
+          "new_offset": 50815,
+          "before": "                concat!(\n",
+          "after": "                audit_source_join!(\n"
+        },
+        {
+          "old_offset": 52900,
+          "new_offset": 53201,
+          "before": "            concat!(\n",
+          "after": "            audit_source_join!(\n"
+        },
+        {
+          "old_offset": 53282,
+          "new_offset": 53594,
+          "before": "            concat!(\n",
+          "after": "            audit_source_join!(\n"
+        },
+        {
+          "old_offset": 53976,
+          "new_offset": 54299,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 54738,
+          "new_offset": 55072,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 55504,
+          "new_offset": 55849,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 55708,
+          "new_offset": 56064,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 56137,
+          "new_offset": 56504,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 56378,
+          "new_offset": 56756,
+          "before": "        concat!(\n            concat!(\n",
+          "after": "        audit_source_join!(\n            audit_source_join!(\n"
+        },
+        {
+          "old_offset": 56787,
+          "new_offset": 57187,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 57918,
+          "new_offset": 58329,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 58488,
+          "new_offset": 58910,
+          "before": "        concat!(\n        concat!(\n            concat!(\n",
+          "after": "        audit_source_join!(\n        audit_source_join!(\n            audit_source_join!(\n"
+        },
+        {
+          "old_offset": 61420,
+          "new_offset": 61875,
+          "before": "                concat!(\n",
+          "after": "                audit_source_join!(\n"
+        },
+        {
+          "old_offset": 62164,
+          "new_offset": 62630,
+          "before": "                concat!(\n",
+          "after": "                audit_source_join!(\n"
+        },
+        {
+          "old_offset": 63546,
+          "new_offset": 64023,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 64393,
+          "new_offset": 64881,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 64497,
+          "new_offset": 64996,
+          "before": "                include_str!(\"../../src/workspace_graph/expected_projection/defaults/typed.rs\"),\n                include_str!(\"../../src/workspace_graph/expected_projection/defaults/inline.rs\"),\n                include_str!(\"../../src/workspace_graph/expected_projection/defaults/inline_fields.rs\"),\n                include_str!(\"../../src/workspace_graph/expected_projection/defaults/inline_tests.rs\"),\n                include_str!(\"../../src/workspace_graph/expected_projection/defaults/typed_fields.rs\"),\n\n",
+          "after": "            include_str!(\"../../src/workspace_graph/expected_projection/defaults/typed.rs\"),\n            include_str!(\"../../src/workspace_graph/expected_projection/defaults/inline.rs\"),\n            include_str!(\"../../src/workspace_graph/expected_projection/defaults/inline_fields.rs\"),\n            include_str!(\"../../src/workspace_graph/expected_projection/defaults/inline_tests.rs\"),\n            include_str!(\"../../src/workspace_graph/expected_projection/defaults/typed_fields.rs\"),\n"
+        },
+        {
+          "old_offset": 65551,
+          "new_offset": 66029,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 65658,
+          "new_offset": 66147,
+          "before": "                include_str!(\"../../src/workspace_graph/expected_projection/import_stub/typed.rs\"),\n\n",
+          "after": "            include_str!(\"../../src/workspace_graph/expected_projection/import_stub/typed.rs\"),\n"
+        },
+        {
+          "old_offset": 66443,
+          "new_offset": 66927,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 66772,
+          "new_offset": 67267,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        }
+      ]
+    },
+    {
+      "source": "tests/workspace/semantic_graph.rs",
+      "before_archive": "before/tests/workspace/semantic_graph.rs",
+      "before_sha256": "d0a4a08d3f575321154ba3640565c11d7a0007fedf6b8be68fb49be22839042c",
+      "current_sha256": "99598f63301fafa29d2f02c71d7fbfda12b14d571385975ad95a796cf25e83a6",
+      "edits": [
+        {
+          "old_offset": 13322,
+          "new_offset": 13322,
+          "before": "",
+          "after": "    assert_eq!(audit_source_join!(\"\", \"\u03b1\", \"\\0\", \"\\r\\n\", \"\u03b2\"), \"\u03b1\\0\\r\\n\u03b2\");\n"
+        },
+        {
+          "old_offset": 15185,
+          "new_offset": 15261,
+          "before": "        include_str!(\n            \"../../docs/evidence/afba-presence-successor-20261016/projection.json\"\n        ),\n",
+          "after": "        include_str!(\"../../docs/evidence/compiled-audit-pieces-798-next-20261016/projection.json\"),\n"
+        },
+        {
+          "old_offset": 19021,
+          "new_offset": 19082,
+          "before": "    let projection_root = historical_projection_root_facade(current_projection_root);\n",
+          "after": "    let projection_root = historical_projection_root_facade(current_projection_root.as_str());\n"
+        },
+        {
+          "old_offset": 51915,
+          "new_offset": 51985,
+          "before": "    )).unwrap();\n    assert_eq!(format!(\"{:x}\", semaprax::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))), row[\"current_sha256\"]);\n",
+          "after": "    ))\n    .unwrap();\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            semaprax::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))\n        ),\n        row[\"current_sha256\"]\n    );\n"
+        },
+        {
+          "old_offset": 52199,
+          "new_offset": 52330,
+          "before": "        assert_eq!(previous.matches(new).count(), 1, \"complete unique facade input inverse\");\n",
+          "after": "        assert_eq!(\n            previous.matches(new).count(),\n            1,\n            \"complete unique facade input inverse\"\n        );\n"
+        },
+        {
+          "old_offset": 52376,
+          "new_offset": 52553,
+          "before": "    assert_eq!(format!(\"{:x}\", semaprax::digest_hex::LowerHex(Sha256::digest(previous.as_bytes()))), row[\"original_sha256\"]);\n",
+          "after": "    assert_eq!(\n        format!(\n            \"{:x}\",\n            semaprax::digest_hex::LowerHex(Sha256::digest(previous.as_bytes()))\n        ),\n        row[\"original_sha256\"]\n    );\n"
+        },
+        {
+          "old_offset": 53988,
+          "new_offset": 54221,
+          "before": "    assert_eq!(format!(\"{:x}\", semaprax::digest_hex::LowerHex(Sha256::digest(actual.as_bytes()))), row[\"current_decl_sha256\"]);\n    assert_eq!(current.matches(actual).count(), 1, \"complete actual declaration owner in raw facade union\");\n",
+          "after": "    assert_eq!(\n        format!(\n            \"{:x}\",\n            semaprax::digest_hex::LowerHex(Sha256::digest(actual.as_bytes()))\n        ),\n        row[\"current_decl_sha256\"]\n    );\n    assert_eq!(\n        current.matches(actual).count(),\n        1,\n        \"complete actual declaration owner in raw facade union\"\n    );\n"
+        },
+        {
+          "old_offset": 54422,
+          "new_offset": 54741,
+          "before": "    assert_eq!(actual.matches(method).count(), 1, \"complete current parent-private projected method\");\n    assert_eq!(format!(\"{:x}\", semaprax::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))), row[\"current_sha256\"]);\n",
+          "after": "    assert_eq!(\n        actual.matches(method).count(),\n        1,\n        \"complete current parent-private projected method\"\n    );\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            semaprax::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))\n        ),\n        row[\"current_sha256\"]\n    );\n"
+        },
+        {
+          "old_offset": 55007,
+          "new_offset": 55412,
+          "before": "    assert_eq!(format!(\"{:x}\", semaprax::digest_hex::LowerHex(Sha256::digest(previous.as_bytes()))), row[\"original_sha256\"]);\n",
+          "after": "    assert_eq!(\n        format!(\n            \"{:x}\",\n            semaprax::digest_hex::LowerHex(Sha256::digest(previous.as_bytes()))\n        ),\n        row[\"original_sha256\"]\n    );\n"
+        }
+      ]
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "before_archive": "before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "before_sha256": "60dc8c191a70c8e85ebe650b52faa35cc41b1e7b5d13226a25c058d4a6f628bf",
+      "current_sha256": "9616aa989e46ae7cb3fe21e3dfe1270148eee8be17eb05d5908cba9c38514b45",
+      "edits": [
+        {
+          "old_offset": 0,
+          "new_offset": 0,
+          "before": "// Complete additive source union; original receivers included without slicing.\n",
+          "after": "macro_rules! audit_source_join { ($($piece:expr),* $(,)?) => {{ let pieces: &[&str] = &[$(&$piece),*]; pieces.concat() }}; } // Complete additive source union; original receivers included without slicing.\n"
+        },
+        {
+          "old_offset": 142,
+          "new_offset": 267,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 5422,
+          "new_offset": 5558,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 6017,
+          "new_offset": 6164,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 8647,
+          "new_offset": 8805,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 9603,
+          "new_offset": 9772,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 22818,
+          "new_offset": 22998,
+          "before": "        concat!(include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs\")),\n",
+          "after": "        audit_source_join!(include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs\")),\n"
+        },
+        {
+          "old_offset": 39920,
+          "new_offset": 40111,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 43661,
+          "new_offset": 43863,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 44006,
+          "new_offset": 44219,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 45077,
+          "new_offset": 45301,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 48038,
+          "new_offset": 48273,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 48100,
+          "new_offset": 48346,
+          "before": "            concat!(\n",
+          "after": "            audit_source_join!(\n"
+        },
+        {
+          "old_offset": 60080,
+          "new_offset": 60337,
+          "before": "            concat!(\n                concat!(\n",
+          "after": "            audit_source_join!(\n                audit_source_join!(\n"
+        },
+        {
+          "old_offset": 62223,
+          "new_offset": 62502,
+          "before": "            concat!(\n                concat!(\n",
+          "after": "            audit_source_join!(\n                audit_source_join!(\n"
+        },
+        {
+          "old_offset": 63640,
+          "new_offset": 63941,
+          "before": "            concat!(\n",
+          "after": "            audit_source_join!(\n"
+        },
+        {
+          "old_offset": 65634,
+          "new_offset": 65946,
+          "before": "            concat!(\n",
+          "after": "            audit_source_join!(\n"
+        },
+        {
+          "old_offset": 67114,
+          "new_offset": 67437,
+          "before": "                concat!(\n",
+          "after": "                audit_source_join!(\n"
+        },
+        {
+          "old_offset": 67402,
+          "new_offset": 67736,
+          "before": "                    concat!(\n",
+          "after": "                    audit_source_join!(\n"
+        },
+        {
+          "old_offset": 67752,
+          "new_offset": 68097,
+          "before": "            concat!(\n",
+          "after": "            audit_source_join!(\n"
+        },
+        {
+          "old_offset": 68338,
+          "new_offset": 68694,
+          "before": "            concat!(\n",
+          "after": "            audit_source_join!(\n"
+        },
+        {
+          "old_offset": 68763,
+          "new_offset": 69130,
+          "before": "            concat!(\n",
+          "after": "            audit_source_join!(\n"
+        },
+        {
+          "old_offset": 69883,
+          "new_offset": 70261,
+          "before": "            concat!(\n",
+          "after": "            audit_source_join!(\n"
+        },
+        {
+          "old_offset": 70517,
+          "new_offset": 70906,
+          "before": "            concat!(\n",
+          "after": "            audit_source_join!(\n"
+        },
+        {
+          "old_offset": 71580,
+          "new_offset": 71980,
+          "before": "            concat!(\n",
+          "after": "            audit_source_join!(\n"
+        },
+        {
+          "old_offset": 73710,
+          "new_offset": 74121,
+          "before": "            concat!(\n",
+          "after": "            audit_source_join!(\n"
+        },
+        {
+          "old_offset": 77255,
+          "new_offset": 77677,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 78122,
+          "new_offset": 78555,
+          "before": "            concat!(concat!(include_str!(\"../../../../../src/hir/canonical_loan_storage/caller.rs\"), include_str!(\"../../../../../src/hir/canonical_loan_storage/caller/shared.rs\"), include_str!(\"../../../../../src/hir/canonical_loan_storage/caller/shared/tests.rs\"), include_str!(\"../../../../../src/hir/canonical_loan_storage/caller/owned_before.rs\")), include_str!(\"../../../../../src/hir/canonical_loan_storage/caller_before.rs\"), include_str!(\"../../../../../src/hir/canonical_loan_storage/scratch.rs\"), include_str!(\"../../../../../src/hir/canonical_loan_storage/tests/reuse.rs\")),\n",
+          "after": "            audit_source_join!(audit_source_join!(include_str!(\"../../../../../src/hir/canonical_loan_storage/caller.rs\"), include_str!(\"../../../../../src/hir/canonical_loan_storage/caller/shared.rs\"), include_str!(\"../../../../../src/hir/canonical_loan_storage/caller/shared/tests.rs\"), include_str!(\"../../../../../src/hir/canonical_loan_storage/caller/owned_before.rs\")), include_str!(\"../../../../../src/hir/canonical_loan_storage/caller_before.rs\"), include_str!(\"../../../../../src/hir/canonical_loan_storage/scratch.rs\"), include_str!(\"../../../../../src/hir/canonical_loan_storage/tests/reuse.rs\")),\n"
+        },
+        {
+          "old_offset": 79438,
+          "new_offset": 79893,
+          "before": "            concat!(\n                concat!(\n                    concat!(\n",
+          "after": "            audit_source_join!(\n                audit_source_join!(\n                    audit_source_join!(\n"
+        },
+        {
+          "old_offset": 82226,
+          "new_offset": 82714,
+          "before": "                        concat!(include_str!(\"../../../../../src/hir/validation/constructor_seed.rs\"), concat!(include_str!(\"../../../../../src/hir/validation/constructor_seed/original.rs\"), include_str!(\"../../../../../src/list_ops/original_constructor.rs\"), include_str!(\"../../../../../src/iterator_ops/original_constructor.rs\"), include_str!(\"../../../../../src/hir/validation/constructor_seed/original_intrinsics.rs\"), include_str!(\"../../../../../src/hir/validation/constructor_seed/intrinsic_tests.rs\"))),\n",
+          "after": "                        audit_source_join!(include_str!(\"../../../../../src/hir/validation/constructor_seed.rs\"), audit_source_join!(include_str!(\"../../../../../src/hir/validation/constructor_seed/original.rs\"), include_str!(\"../../../../../src/list_ops/original_constructor.rs\"), include_str!(\"../../../../../src/iterator_ops/original_constructor.rs\"), include_str!(\"../../../../../src/hir/validation/constructor_seed/original_intrinsics.rs\"), include_str!(\"../../../../../src/hir/validation/constructor_seed/intrinsic_tests.rs\"))),\n"
+        },
+        {
+          "old_offset": 83037,
+          "new_offset": 83547,
+          "before": "                        concat!(include_str!(\"../../../../../src/hir/validation/canonical_loans.rs\"), include_str!(\"../../../../../src/hir/validation/canonical_loans/constructors_before.rs\"), include_str!(\"../../../../../src/hir/validation/canonical_loans/ownership_tests.rs\")),\n",
+          "after": "                        audit_source_join!(include_str!(\"../../../../../src/hir/validation/canonical_loans.rs\"), include_str!(\"../../../../../src/hir/validation/canonical_loans/constructors_before.rs\"), include_str!(\"../../../../../src/hir/validation/canonical_loans/ownership_tests.rs\")),\n"
+        },
+        {
+          "old_offset": 83852,
+          "new_offset": 84373,
+          "before": "                        concat!(\n                            concat!(include_str!(\"../../../../../src/hir/validation/function_lookup.rs\"), include_str!(\"../../../../../src/hir/validation/function_lookup/original.rs\"), include_str!(\"../../../../../src/hir/validation/function_lookup/paid_custody.rs\")),\n",
+          "after": "                        audit_source_join!(\n                            audit_source_join!(include_str!(\"../../../../../src/hir/validation/function_lookup.rs\"), include_str!(\"../../../../../src/hir/validation/function_lookup/original.rs\"), include_str!(\"../../../../../src/hir/validation/function_lookup/paid_custody.rs\")),\n"
+        },
+        {
+          "old_offset": 84585,
+          "new_offset": 85128,
+          "before": "                    concat!(\n",
+          "after": "                    audit_source_join!(\n"
+        },
+        {
+          "old_offset": 87831,
+          "new_offset": 88385,
+          "before": "            concat!(\n",
+          "after": "            audit_source_join!(\n"
+        },
+        {
+          "old_offset": 88160,
+          "new_offset": 88725,
+          "before": "                concat!(\n",
+          "after": "                audit_source_join!(\n"
+        },
+        {
+          "old_offset": 88448,
+          "new_offset": 89024,
+          "before": "                    concat!(\n",
+          "after": "                    audit_source_join!(\n"
+        },
+        {
+          "old_offset": 89371,
+          "new_offset": 89958,
+          "before": "            concat!(include_str!(\"../../../../../src/hir/validation/stdin_stream.rs\"), include_str!(\"../../../../../src/hir/validation/stdin_stream/paid.rs\"), include_str!(\"../../../../../src/hir/validation/stdin_stream/paid/analysis.rs\"), include_str!(\"../../../../../src/hir/validation/stdin_stream/paid/tests.rs\")),\n",
+          "after": "            audit_source_join!(include_str!(\"../../../../../src/hir/validation/stdin_stream.rs\"), include_str!(\"../../../../../src/hir/validation/stdin_stream/paid.rs\"), include_str!(\"../../../../../src/hir/validation/stdin_stream/paid/analysis.rs\"), include_str!(\"../../../../../src/hir/validation/stdin_stream/paid/tests.rs\")),\n"
+        },
+        {
+          "old_offset": 89928,
+          "new_offset": 90526,
+          "before": "            concat!(include_str!(\"../../../../../src/hir/validation/generic_template.rs\"), include_str!(\"../../../../../src/hir/validation/generic_template/call_graph.rs\"), include_str!(\"../../../../../src/hir/validation/generic_template/call_graph/ordered.rs\"), include_str!(\"../../../../../src/hir/validation/generic_template/call_graph/original.rs\"), include_str!(\"../../../../../src/hir/validation/generic_template/call_graph/tests.rs\")),\n",
+          "after": "            audit_source_join!(include_str!(\"../../../../../src/hir/validation/generic_template.rs\"), include_str!(\"../../../../../src/hir/validation/generic_template/call_graph.rs\"), include_str!(\"../../../../../src/hir/validation/generic_template/call_graph/ordered.rs\"), include_str!(\"../../../../../src/hir/validation/generic_template/call_graph/original.rs\"), include_str!(\"../../../../../src/hir/validation/generic_template/call_graph/tests.rs\")),\n"
+        },
+        {
+          "old_offset": 92796,
+          "new_offset": 93405,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 93151,
+          "new_offset": 93771,
+          "before": "            concat!(\n",
+          "after": "            audit_source_join!(\n"
+        },
+        {
+          "old_offset": 95245,
+          "new_offset": 95876,
+          "before": "                concat!(\n",
+          "after": "                audit_source_join!(\n"
+        },
+        {
+          "old_offset": 95715,
+          "new_offset": 96357,
+          "before": "                    concat!(\n",
+          "after": "                    audit_source_join!(\n"
+        },
+        {
+          "old_offset": 96019,
+          "new_offset": 96672,
+          "before": "                        concat!(\n",
+          "after": "                        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 103284,
+          "new_offset": 103948,
+          "before": "                concat!(\n",
+          "after": "                audit_source_join!(\n"
+        },
+        {
+          "old_offset": 103647,
+          "new_offset": 104322,
+          "before": "                    concat!(\n",
+          "after": "                    audit_source_join!(\n"
+        },
+        {
+          "old_offset": 103951,
+          "new_offset": 104637,
+          "before": "                        concat!(\n",
+          "after": "                        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 108931,
+          "new_offset": 109628,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 115397,
+          "new_offset": 116105,
+          "before": "            concat!(include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/arena/producer.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/arena/before_cursor.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/arena/producer_before_cursor.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs\")),\n",
+          "after": "            audit_source_join!(include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/arena/producer.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/arena/before_cursor.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/arena/producer_before_cursor.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs\")),\n"
+        },
+        {
+          "old_offset": 116389,
+          "new_offset": 117108,
+          "before": "            concat!(include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving.rs\"),\n",
+          "after": "            audit_source_join!(include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving.rs\"),\n"
+        },
+        {
+          "old_offset": 124499,
+          "new_offset": 125229,
+          "before": "        concat!(\n",
+          "after": "        audit_source_join!(\n"
+        },
+        {
+          "old_offset": 125181,
+          "new_offset": 125922,
+          "before": "            concat!(include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving.rs\"),\n",
+          "after": "            audit_source_join!(include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving.rs\"),\n"
+        }
+      ]
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs",
+      "before_archive": "before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs",
+      "before_sha256": "13cc01e2a5491dcd162e6a531905020cf57487b5c4cff15edf72739d3520ff0f",
+      "current_sha256": "78bc5a92681358c61c8a00143134aa9de75c3d31c6b115f82dd14fd021086db6",
+      "edits": [
+        {
+          "old_offset": 4272,
+          "new_offset": 4272,
+          "before": "",
+          "after": "    assert_eq!(audit_source_join!(\"\", \"\u03b1\", \"\\0\", \"\\r\\n\", \"\u03b2\"), \"\u03b1\\0\\r\\n\u03b2\");\n"
+        },
+        {
+          "old_offset": 4329,
+          "new_offset": 4405,
+          "before": "    let hir_validator = [hir_validator_source_inventory!(), scope_projection::TEXT].concat();\n",
+          "after": "    let hir_validator = hir_validator_source_inventory!();\n    let hir_validator = [hir_validator.as_str(), scope_projection::TEXT].concat();\n"
+        },
+        {
+          "old_offset": 5314,
+          "new_offset": 5438,
+          "before": "        (hir_resolver, \"size_of::<Frame<'static>>() <= 592\"),\n",
+          "after": "        (hir_resolver.as_str(), \"size_of::<Frame<'static>>() <= 592\"),\n"
+        },
+        {
+          "old_offset": 5626,
+          "new_offset": 5759,
+          "before": "        (verifier, \"size_of::<VerifierFrame<'static>>() == 320\"),\n        (verifier, \"size_of::<VariantMatchState<'static>>() == 312\"),\n",
+          "after": "        (\n            verifier.as_str(),\n            \"size_of::<VerifierFrame<'static>>() == 320\",\n        ),\n        (\n            verifier.as_str(),\n            \"size_of::<VariantMatchState<'static>>() == 312\",\n        ),\n"
+        },
+        {
+          "old_offset": 5874,
+          "new_offset": 6095,
+          "before": "        (lower, \"size_of::<Frame<'static>>() <= 392\"),\n",
+          "after": "        (lower.as_str(), \"size_of::<Frame<'static>>() <= 392\"),\n"
+        }
+      ]
+    },
+    {
+      "source": "CHANGELOG.md",
+      "before_archive": "before/CHANGELOG.md",
+      "before_sha256": "65a0c05e14c68f9141243b13f31cea732e69d5e2c9d0f07e3cba933d3fbec486",
+      "current_sha256": "da063c7729a1eb68721eee64d9e665d1a1a622276362be7cb8e15686ae2c817f",
+      "edits": [
+        {
+          "old_offset": 546852,
+          "new_offset": 546852,
+          "before": "",
+          "after": "\n\n- OPT798 next source transport keeps complete live Rust audit inputs compiled\n  as separate pieces and joins only inside existing unmeasured integration\n  source/layout audits. No production behavior, gate or memory benefit claim.\n"
+        }
+      ]
+    }
+  ]
+}

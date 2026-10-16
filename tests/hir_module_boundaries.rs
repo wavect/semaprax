@@ -1,8 +1,10 @@
+macro_rules! audit_source_join { ($($piece:expr),* $(,)?) => {{ let pieces: &[&str] = &[$(&$piece),*]; pieces.concat() }}; }
 #[test]
 fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
-    let validation_raw = concat!(
-        concat!(
-            concat!(
+    assert_eq!(audit_source_join!("", "α", "\0", "\r\n", "β"), "α\0\r\nβ");
+    let validation_raw = audit_source_join!(
+        audit_source_join!(
+            audit_source_join!(
                 include_str!("../src/cleanup_plan/replay/final_output.rs"), include_str!("wasm/scalar_browser_ci_contract/actual_83ca.rs"),  include_str!("../src/bounded_output/checked_string.rs"),  include_str!("../src/hir/ids/instance_match.rs"),  include_str!("../src/hir/ids/instance_match/tests.rs"),  include_str!("../src/hir/nodes/instance_key.rs"),  include_str!("../src/cleanup_plan/replay/structural_maps/paid_reference.rs"),  include_str!("../src/cleanup_plan/replay/structural_maps/tests/paid_reference.rs"),  include_str!("../src/cleanup_plan/replay/selected_entry/tests/driver_local_receivers.rs"),  include_str!("../src/cleanup_plan/replay/compact_stage.rs"),  include_str!("../src/cleanup_plan/replay/compact_stage/before.rs"),  include_str!("../src/cleanup_plan/replay/compact_stage/lexical_before.rs"),  include_str!("../src/cleanup_plan/replay/compact_stage/source_custody.rs"),  include_str!("../src/cleanup_plan/replay/compact_stage/tests.rs"),  include_str!("../src/cleanup_plan/replay/final_output/before_compaction.rs"),  include_str!("../src/cleanup_plan/replay/final_output/before_transfer_current.rs"),  include_str!("../src/cleanup_plan/replay/final_output/current_observation_tests.rs"),  include_str!("../src/source_reflows/semantic_receivers_mainb80.rs"),  include_str!("wasm/scalar_browser_ci_contract/before_c451.rs"),  include_str!("wasm/scalar_browser_ci_contract/historical_main_c451.rs"),  include_str!("wasm/scalar_browser_ci_contract/main_c451_before_2600.rs"),  include_str!("../src/cleanup_plan/replay/final_output/before.rs"), include_str!("../src/cleanup_plan/replay/final_output/tests.rs"), include_str!("../src/cleanup_plan/replay/path_join/before_final_edge.rs"), include_str!("../src/cleanup_plan/replay/path_join/final_edge_tests.rs"), include_str!("../src/source_verify/hints/before_capacity_witness.rs"), include_str!("../src/cli/help/authoring/tasks.rs"), include_str!("../src/cleanup_plan/replay/factored/strategy/before_fitting.rs"), include_str!("../src/cleanup_plan/replay/factored/strategy/fitting_tests.rs"), include_str!("../src/cli/help/authoring/tasks/tests.rs"), include_str!("../src/cli/help/authoring/tasks/derive.rs"), include_str!("../tests/cli_help_surface_v1/task_pages.rs"), include_str!("../src/cleanup_plan/replay/path_join/before_state_move.rs"), include_str!("../src/cleanup_plan/replay/path_join/state_move_tests.rs"), include_str!("../src/cleanup_plan/replay/path_array/main696.rs"), include_str!("../src/cleanup_plan/replay/path_array/funded_tests.rs"), include_str!("../src/cleanup_plan/replay/path_array.rs"), include_str!("../src/cleanup_plan/replay/path_array/before.rs"), include_str!("../src/cleanup_plan/replay/path_array/tests.rs"), include_str!("../src/source_reflows/semantic_receivers.rs"), include_str!("../src/cleanup_plan/replay/branch_clone/before_inline.rs"), include_str!("../src/cleanup_plan/replay/branch_clone/inline_tests.rs"), include_str!("../src/cleanup_plan/replay/path_join/tests.rs"), include_str!("../src/cleanup_plan/replay/path_join/main_single_groups/before.rs"), include_str!("../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs"), include_str!("../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs"), include_str!("../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs"), include_str!("../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs"), include_str!("../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs"), include_str!("../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs"), include_str!("../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs"), include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs"), include_str!("../src/hir/validation.rs"),
                 include_str!("../src/hir/validation/held_profiles.rs"),
                 include_str!("../src/hir/validation/held_profiles/tests.rs"),
@@ -90,26 +92,26 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
                 include_str!("../src/hir/inspection/tests/inline_worklists.rs"),
                 include_str!("../src/hir/inspection/tests/inline_worklists/old.rs"),
                 include_str!("../src/hir/inspection/tests/inline_worklists/frozen_walkers.txt"),
-                concat!(
+                audit_source_join!(
                     include_str!("../src/hir/validation/function_lookup.rs"),
                     include_str!("../src/hir/validation/function_lookup/original.rs"),
                     include_str!("../src/hir/validation/function_lookup/paid_custody.rs")
                 ),
                 include_str!("../src/hir/validation/function_lookup/permits.rs"),
-                concat!(
+                audit_source_join!(
                     include_str!("../src/hir/function_directory.rs"),
                     "\n",
                     include_str!("../src/hir/function_directory/caller.rs")
                 ),
                 include_str!("../src/hir/validation/type_requirement.rs"),
-                concat!(
+                audit_source_join!(
                     include_str!("../src/hir/validation/canonical_loans.rs"),
                     include_str!("../src/hir/validation/canonical_loans/constructors_before.rs"),
                     include_str!("../src/hir/validation/canonical_loans/ownership_tests.rs")
                 ),
-                concat!(
+                audit_source_join!(
                     include_str!("../src/hir/validation/constructor_seed.rs"),
-                    concat!(
+                    audit_source_join!(
                         include_str!("../src/hir/validation/constructor_seed/original.rs"),
                         include_str!("../src/list_ops/original_constructor.rs"),
                         include_str!("../src/iterator_ops/original_constructor.rs"),
@@ -119,15 +121,15 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
                         include_str!("../src/hir/validation/constructor_seed/intrinsic_tests.rs")
                     )
                 ),
-                concat!(
+                audit_source_join!(
                     include_str!("../src/hir/canonical_loan_storage.rs"),
                     include_str!("../src/bounded_output/canonical_stage_tests.rs"),
                     include_str!("../src/bounded_output/loan_inner_stage_tests.rs"),
                     include_str!("../src/hir/canonical_loan_storage/caller/stage_tests.rs"),
                     include_str!("../src/hir/canonical_loan_storage/caller/sealed_before_stage.rs"),
                     "\n",
-                    concat!(
-                        concat!(
+                    audit_source_join!(
+                        audit_source_join!(
                             include_str!("../src/hir/canonical_loan_storage/caller.rs"),
                             include_str!("../src/hir/canonical_loan_storage/caller/shared.rs"),
                             include_str!(
@@ -146,7 +148,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
                 include_str!("../src/hir/canonical_loan_storage/deferred/tests.rs"),
                 include_str!("../src/hir/canonical_loan_storage/deferred/tests/selected.rs"),
                 include_str!("../src/hir/validation/canonical_loans/tests.rs"),
-                concat!(
+                audit_source_join!(
                     include_str!("../src/hir/vec_constructor.rs"),
                     include_str!("../src/hir/vec_constructor/capture.rs")
                 )
@@ -185,7 +187,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
             include_str!("../src/string_ops/take.rs")
         ),
         include_str!("../src/hir/validation/vec_field.rs"),
-        concat!(
+        audit_source_join!(
             include_str!("../src/hir/validation/row_loan.rs"),
             "\n",
             include_str!("../src/hir/row_loan/validate.rs"),
@@ -226,7 +228,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/hir/collection_outcome/stream_input.rs"),
         include_str!("../src/hir/collection_outcome/nested.rs"),
         include_str!("../src/hir/collection_outcome/nested/profile.rs"),
-        concat!(
+        audit_source_join!(
             include_str!("../src/hir/validation/stdin_stream.rs"),
             include_str!("../src/hir/validation/stdin_stream/paid.rs"),
             include_str!("../src/hir/validation/stdin_stream/paid/analysis.rs"),
@@ -234,7 +236,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         ),
         include_str!("../src/stdin_stream_ops/analysis.rs"),
         include_str!("../src/hir/validation/borrowed_bytes_call_tests.rs"),
-        concat!(
+        audit_source_join!(
             include_str!("../src/hir/validation/iterator_loops.rs"),
             include_str!("../src/hir/validation/iterator_loops/field_scope.rs"),
             "\n",
@@ -242,11 +244,11 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
             "\n",
             include_str!("../src/finite_byte_scratch/source.rs"),
             "\n",
-            concat!(
+            audit_source_join!(
                 include_str!("../src/finite_byte_scratch/resolved.rs"),
                 include_str!("../src/finite_owned_record_loop.rs"),
                 include_str!("../src/finite_owned_record_loop/source.rs"),
-                concat!(
+                audit_source_join!(
                     include_str!("../src/finite_owned_record_loop/resolved.rs"),
                     include_str!("../src/finite_owned_record_loop/tests.rs")
                 ),
@@ -363,7 +365,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/hir/validation/box_intrinsic.rs"),
         include_str!("../src/hir/validation/branch_merge.rs"),
         include_str!("../src/hir/validation/borrowed_str.rs"),
-        concat!(
+        audit_source_join!(
             include_str!("../src/hir/validation/generic_template.rs"),
             include_str!("../src/hir/validation/generic_template/call_graph.rs"),
             include_str!("../src/hir/validation/generic_template/call_graph/ordered.rs"),
@@ -381,7 +383,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/hir/validation/generic_variant.rs"),
         include_str!("../src/hir/validation/generic_record_composition.rs"),
         include_str!("../src/hir/validation/host_command.rs"),
-        concat!(
+        audit_source_join!(
             include_str!("../src/hir/validation/owned_buffer.rs"),
             "\n",
             include_str!("../src/hir/validation/owned_buffer/iterator_view.rs"),
@@ -390,14 +392,14 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         ),
         include_str!("../src/hir/validation/owned_result_try.rs"),
         include_str!("../src/hir/validation/owner_renewal.rs"),
-        concat!(
+        audit_source_join!(
             include_str!("../src/loop_calls/byte_writer.rs"),
             "\n",
             include_str!("../src/loop_calls/byte_writer/source.rs"),
             "\n",
             include_str!("../src/loop_calls/byte_writer/source_index.rs")
         ),
-        concat!(
+        audit_source_join!(
             include_str!("../src/loop_calls/byte_writer/resolved.rs"),
             "\n",
             include_str!("../src/loop_calls/byte_writer/resolved/selected.rs"),
@@ -414,7 +416,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/hir/lexical_exit/owner_funded.rs"),
         include_str!("../src/cleanup_plan/replay/allocation/oracle/invocation.rs"),
         include_str!("../src/cleanup_plan/replay/allocation/oracle/diagnostic.rs"),
-        concat!(
+        audit_source_join!(
             include_str!("../src/cleanup_plan/replay/skeleton_work.rs"),
             include_str!("../src/cleanup_plan/replay/skeleton_work/dag_storage.rs"),
             include_str!("../src/cleanup_plan/replay/skeleton_work/dag_storage/tests.rs"),
@@ -519,7 +521,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/cleanup_plan/replay/structural_control/blocks.rs"),
         include_str!("../src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs"),
         include_str!("../src/cleanup_plan/replay/structural_control/call_receiving.rs"), include_str!("../src/cleanup_plan/replay/supplemental/receiving.rs"), include_str!("../src/cleanup_plan/replay/supplemental/receiving/tests.rs"),
-        concat!(include_str!("../src/cleanup_plan/replay/structural_control/calls.rs"), include_str!("../src/cleanup_plan/replay/structural_control/calls/cursor.rs"), include_str!("../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs"), include_str!("../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs"), include_str!("../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs")),
+        audit_source_join!(include_str!("../src/cleanup_plan/replay/structural_control/calls.rs"), include_str!("../src/cleanup_plan/replay/structural_control/calls/cursor.rs"), include_str!("../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs"), include_str!("../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs"), include_str!("../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs")),
         include_str!("../src/cleanup_plan/replay/structural_control/calls/custody_tests.rs"),
         include_str!("../src/cleanup_plan/replay/structural_control/calls/custody_tests/source.rs"),
         include_str!("../src/cleanup_plan/replay/structural_control/calls_before_receipt.rs"),
@@ -592,15 +594,15 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/cleanup_plan/replay/expression_facts/ordinary_before.rs"),
         include_str!("../src/cleanup_plan/replay/allocation/tests/ordinary_before.rs"),
         include_str!("../src/cleanup_plan/replay/allocation/tests/accounting_scope.rs"),
-        concat!(include_str!("../src/cleanup_plan/replay/expression_facts/arena/producer.rs"), include_str!("../src/cleanup_plan/replay/expression_facts/arena/before_cursor.rs"), include_str!("../src/cleanup_plan/replay/expression_facts/arena/producer_before_cursor.rs"), include_str!("../src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs"), include_str!("../src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs")),
-        concat!(include_str!("../src/cleanup_plan/replay/expression_facts/arena.rs"),
+        audit_source_join!(include_str!("../src/cleanup_plan/replay/expression_facts/arena/producer.rs"), include_str!("../src/cleanup_plan/replay/expression_facts/arena/before_cursor.rs"), include_str!("../src/cleanup_plan/replay/expression_facts/arena/producer_before_cursor.rs"), include_str!("../src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs"), include_str!("../src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs")),
+        audit_source_join!(include_str!("../src/cleanup_plan/replay/expression_facts/arena.rs"),
             include_str!("../src/cleanup_plan/replay/expression_facts/arena/prefix.rs"),
             include_str!("../src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs")),
         include_str!("../src/cleanup_plan/replay/expression_facts/borrowed/tests.rs"),
         include_str!("../src/cleanup_plan/replay/expression_facts/borrowed.rs"),
         include_str!("../src/cleanup_plan/replay/expression_facts/capacity.rs"),
         include_str!("../src/cleanup_plan/replay/expression_facts/errors.rs"),
-        concat!(include_str!("../src/cleanup_plan/replay/expression_facts/receiving.rs"),
+        audit_source_join!(include_str!("../src/cleanup_plan/replay/expression_facts/receiving.rs"),
             include_str!("../src/cleanup_plan/replay/expression_facts/receiving/retained.rs"),
             include_str!("../src/cleanup_plan/replay/expression_facts/receiving/helpers.rs"),
             include_str!("../src/cleanup_plan/replay/expression_facts/receiving/helpers/regions.rs"),
@@ -685,7 +687,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/cleanup_plan/build/lexical_control/validation.rs"),
         include_str!("../src/cleanup_plan/validate.rs"),
         include_str!("../src/cleanup_plan/validate/owned.rs"),
-        concat!(
+        audit_source_join!(
             include_str!("../src/loop_calls/byte_writer/module_index.rs"),
             "\n",
             include_str!("../src/loop_calls/byte_writer/module_index/directory.rs"),
@@ -733,8 +735,8 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/hir/validation/iterator_loops/field_scope/refusal_tests.rs"),
     );
     let validation = production_source_inventory::production(
-        validation_raw,
-        include_str!("../docs/evidence/afba-presence-successor-20261016/hir.json"),
+        &validation_raw,
+        include_str!("../docs/evidence/compiled-audit-pieces-798-next-20261016/hir.json"),
     );
     for forbidden in [
         "struct Resolver",
@@ -755,7 +757,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         );
     }
 
-    let root = concat!(
+    let root = audit_source_join!(
         include_str!("../src/hir.rs"),
         include_str!("../src/hir/expr_nodes.rs"),
         include_str!(
@@ -802,7 +804,8 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/hir/prelude_bundle/fixed_work.rs"),
         include_str!("../src/hir/prelude_bundle/invocation.rs"),
         include_str!("../src/cleanup_plan/replay/continuation_storage/paid_receiving.rs"),
-        include_str!("../src/cleanup_plan/replay/factored/continuation_receiver.rs"), include_str!("../src/cleanup_plan/replay/factored/continuation_receiver/before.rs"),
+        include_str!("../src/cleanup_plan/replay/factored/continuation_receiver.rs"),
+        include_str!("../src/cleanup_plan/replay/factored/continuation_receiver/before.rs"),
         include_str!("../src/cleanup_plan/replay/factored/continuation_receiver/tests.rs"),
         include_str!("../src/hir/prelude_bundle/extension_work.rs"),
         include_str!("../src/hir/prelude_bundle/extension_model.rs"),
@@ -822,7 +825,9 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/project/incremental/paid_resolution/base.rs"),
         include_str!("../src/workspace_graph/identity_resolution/base.rs"),
         include_str!("../src/workspace_graph/identity_resolution/base/cache_billing.rs"),
-        include_str!("../src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs"),
+        include_str!(
+            "../src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs"
+        ),
         include_str!("../src/workspace_graph/identity_resolution/base/cache_billing/tests.rs"),
         include_str!("../src/workspace_graph/constructor_failure/before_publication.rs"),
         include_str!("../src/workspace_graph/constructor_failure/before_publication/attempt.rs"),

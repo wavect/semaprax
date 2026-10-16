@@ -1,0 +1,17 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "test:hir_module_boundaries",
+    "selector": "core_validation_has_no_resolution_cleanup_build_or_physical_authority"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:workspace",
+    "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root"
+  },
+  {
+    "package": "semaprax-native-rust-interop",
+    "kind": "lib",
+    "selector": "implementation::tests::ledger_capacity::hir_capacity_layout_constants_are_bound_to_root_const_assertions"
+  }
+]

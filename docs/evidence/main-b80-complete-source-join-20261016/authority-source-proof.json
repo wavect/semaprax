@@ -1,0 +1,48 @@
+{
+  "hir": {
+    "raw_sha256": "01d6878955c117c4f2c98371be8eed29852e1dd9656437047c8af9faeb55a920",
+    "production_sha256": "e3e981e50e53e398f46ab608821460ae10cae9ac6a4e4bcdff9b8a9fa9423f20",
+    "unique_production_files": 343,
+    "unique_test_only_files": 517,
+    "chunks_including_multiplicity_and_separators": 799,
+    "all_original_forbidden_checks_clear": true,
+    "exact_existing_forbidden_tokens": [
+      "struct Resolver",
+      "impl Resolver",
+      "fn scoped_identity(",
+      "fn materialize_function_template",
+      "fn specialize_source_function",
+      "pub fn resolve(",
+      "crate::cleanup::build_inventory",
+      "crate::cleanup_plan::build_plan",
+      "std::fs",
+      "std::process",
+      "platform::"
+    ],
+    "three_static_negatives_refused": true
+  },
+  "projection": {
+    "raw_sha256": "9a4eb39a3ffa6cf6bd786bceca3b3175af99ed3e1a5ff4d1c1f3046e9eebb84f",
+    "production_sha256": "f4675ca9e53a56091c0e7dac1ed81289d78d98f4ffcedb0018e3ff9c3d319bc4",
+    "unique_production_files": 62,
+    "unique_test_only_files": 96,
+    "chunks_including_multiplicity_and_separators": 162,
+    "all_original_forbidden_checks_clear": true,
+    "exact_existing_forbidden_tokens": [
+      "use super::*;",
+      "workspace::",
+      "std::fs",
+      "std::process",
+      "snapshot(",
+      "build_authenticated",
+      "render_graph_json",
+      "write_file",
+      "create_dir",
+      "remove_file",
+      "ACTIVE"
+    ],
+    "three_static_negatives_refused": true
+  },
+  "all_three_original_raw_include_sequences_preserved": true,
+  "mode": "SOURCE_ONLY_NO_RUST_EXECUTION"
+}

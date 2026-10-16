@@ -77,7 +77,7 @@ fn every_receiver_inverse_preserves_the_entire_reflow_input_and_archive() {
         assert_ne!(current, restored);
         // Execute the unchanged formatting inverse and its whole-file digest.
         if let Some(repair) = repair {
-            assert_ne!(restore(repair, &restored), restored);
+            assert_ne!(restore_formatting(repair, &restored), restored);
         }
     }
     assert!(predecessor("src/source_reflows.rs", "unregistered source").is_none());

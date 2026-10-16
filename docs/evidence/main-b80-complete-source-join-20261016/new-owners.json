@@ -1,0 +1,62 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/compact_stage.rs",
+    "sha256": "ca8c7717b83fee5ad162f72013abe107f67553f755b1e43d0ad3bca5bc4082a6",
+    "lines": 321
+  },
+  {
+    "source": "src/cleanup_plan/replay/compact_stage/before.rs",
+    "sha256": "47fc6ffa22a2a47aab804971a0c483310cf506591c993fde481c712882d4c699",
+    "lines": 558
+  },
+  {
+    "source": "src/cleanup_plan/replay/compact_stage/lexical_before.rs",
+    "sha256": "2523a5f847df2d945fd324ea64908670b4c121f684f3274ca0b2de174ed7d523",
+    "lines": 30
+  },
+  {
+    "source": "src/cleanup_plan/replay/compact_stage/source_custody.rs",
+    "sha256": "23802c3895189f78eec4ebdb35fc58e4bb034a53fc0587de43d49f52b44c0a5e",
+    "lines": 121
+  },
+  {
+    "source": "src/cleanup_plan/replay/compact_stage/tests.rs",
+    "sha256": "2ef612fae1f39852ff210c563321ce676cedc7cf4bed3d1a4f685cfac22865d6",
+    "lines": 201
+  },
+  {
+    "source": "src/cleanup_plan/replay/final_output/before_compaction.rs",
+    "sha256": "3fb338f247dc898db0bbbfd07c87a6cb59223bccece483e13330797cdd94f351",
+    "lines": 588
+  },
+  {
+    "source": "src/cleanup_plan/replay/final_output/before_transfer_current.rs",
+    "sha256": "0f262dc78bccc47841ddf525edcb38b3c90a557fd96667bf9e82c3831145d2b0",
+    "lines": 483
+  },
+  {
+    "source": "src/cleanup_plan/replay/final_output/current_observation_tests.rs",
+    "sha256": "c6cd5f2027247d74506c5ba21085eaabb68cc4af0f7b7c3462bf0a16fdfc4f73",
+    "lines": 325
+  },
+  {
+    "source": "src/source_reflows/semantic_receivers_mainb80.rs",
+    "sha256": "778a3a4b0356b3b3f74f93ed93a1aa1f6a31f87d2cb91a1fe219b90f937148be",
+    "lines": 97
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/before_c451.rs",
+    "sha256": "2db121ad5e55ff4893d6f394acbf76992d310cff305586e431173d87f2ce10a5",
+    "lines": 130
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c451.rs",
+    "sha256": "cfc4bae611ebdb4693549b43f8c7b81f3b092c6127278f894a55f20cb25d7f73",
+    "lines": 129
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/main_c451_before_2600.rs",
+    "sha256": "b7e6b422a7ed8be68fdc06d3447e5370cd53c618c80461f6be9bc631906c58c2",
+    "lines": 153
+  }
+]

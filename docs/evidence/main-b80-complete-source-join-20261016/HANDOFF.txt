@@ -1,0 +1,7 @@
+SOURCE ONLY, no Rust/capture execution.
+Entry points: python3 docs/evidence/main-b80-complete-source-join-20261016/verify-source.py ; python3 docs/evidence/main-b80-complete-source-join-20261016/verify-authority.py
+Independent raw current→df2 30 whole-input rows before inherited post21_input and historical direct main_b80_prior_input. Independent raw current→Mainb80 6 changed whole-input rows before Main7/pieces/Main9 readers; unchanged Main inputs remain exact.
+Two new compiled tables total 763486 bytes. Original90 runtime fixtures unchanged; old5 receiver table preserved; Main9 table independent alias. Browser component686 exact physical inputs and local dual domains retained.
+12 new Rust source owners joined all3 original raw unions; old include sequence retained, interop1500. HIR343production/517test-only; projection62production/96test-only. Original forbidden checks and six negatives pass.
+One explicit Main9 source-input call adapter uses restore_formatting after already authenticated semantic predecessor, preserving full formatter and all assertions; full component file archive/inverse included.
+Whole current→df2 namespace equality permits reuse of prior static proof only in that reconstructed namespace. Predecessor verifiers must not run against new raw source. No current runtime PASS claim.

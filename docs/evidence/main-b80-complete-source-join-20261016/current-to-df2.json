@@ -1,0 +1,508 @@
+[
+  {
+    "source": "CHANGELOG.md",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/CHANGELOG.md",
+    "current_sha256": "ffd9e72761fc0c9863375286de0350b47267c64d04b099992ace64ad7414a1f9",
+    "original_sha256": "5a54e99ba47fd322eca82a8fba419fa1b4f09fe8a6b503a04d8e83f2173be51e",
+    "edits": [
+      {
+        "new": "- Compact private staged-result observations with inline body fields and prepaid residual backing, retaining canonical cleanup sources, complete old producers, ordering, work, and source-custody controls under unchanged limits.\n\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "current_sha256": "cdae1a506fcf4ee7fd72c9615dabb1154d25aa143f5cae56e99652d10d01254a",
+    "original_sha256": "6fb79eae478e29cad93f7cc77db6b71764fda2926ee6e38da797e97a732aef8f",
+    "edits": [
+      {
+        "new": "            include_str!(\"../../../../../src/cleanup_plan/replay/final_output.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/compact_stage.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/compact_stage/before.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/compact_stage/lexical_before.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/compact_stage/source_custody.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/compact_stage/tests.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/final_output/before_compaction.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/final_output/before_transfer_current.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/final_output/current_observation_tests.rs\"),  include_str!(\"../../../../../src/source_reflows/semantic_receivers_mainb80.rs\"),  include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/before_c451.rs\"),  include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/historical_main_c451.rs\"),  include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/main_c451_before_2600.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/final_output/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/final_output/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/before_final_edge.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/final_edge_tests.rs\"), include_str!(\"../../../../../src/source_verify/hints/before_capacity_witness.rs\"), include_str!(\"../../../../../src/cli/help/authoring/tasks.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/strategy/before_fitting.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/strategy/fitting_tests.rs\"), include_str!(\"../../../../../src/cli/help/authoring/tasks/tests.rs\"), include_str!(\"../../../../../src/cli/help/authoring/tasks/derive.rs\"), include_str!(\"../../../../../tests/cli_help_surface_v1/task_pages.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/before_state_move.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/state_move_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/main696.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/funded_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../../../../../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../../../../src/hir/validation/held_profiles.rs\"),\n",
+        "old": "            include_str!(\"../../../../../src/cleanup_plan/replay/final_output.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/final_output/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/final_output/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/before_final_edge.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/final_edge_tests.rs\"), include_str!(\"../../../../../src/source_verify/hints/before_capacity_witness.rs\"), include_str!(\"../../../../../src/cli/help/authoring/tasks.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/strategy/before_fitting.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/strategy/fitting_tests.rs\"), include_str!(\"../../../../../src/cli/help/authoring/tasks/tests.rs\"), include_str!(\"../../../../../src/cli/help/authoring/tasks/derive.rs\"), include_str!(\"../../../../../tests/cli_help_surface_v1/task_pages.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/before_state_move.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/state_move_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/main696.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/funded_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../../../../../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../../../../src/hir/validation/held_profiles.rs\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/ARCHITECTURE.md",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/docs/ARCHITECTURE.md",
+    "current_sha256": "34feb570c5ebafb958cb7c24e3cd9bc8bce51183739bdba00e8a5594567bffcb",
+    "original_sha256": "f79ad89e34f2eb8ee546852f004219976cc1f80928f305001c6ff049c3c74928",
+    "edits": [
+      {
+        "new": "\n`cleanup_plan/replay/compact_stage.rs` owns the private staged-result observation\nrepresentation: body fields stay inline and residuals retain the complete\ncanonical source behind prepaid backing. Canonical CleanupPlan data remains\nthe admission and replay input. Its test children retain the full original flat\nplan producer, observation shape, header traits, and lexical marker producer;\nthe live producer and borrowed-key comparator retain all semantic work.\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "docs/SUMMARY.md",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/docs/SUMMARY.md",
+    "current_sha256": "0d59e3c85a82768a0b6af462f9560a193b10075ee1499650048b0e87e0e047a9",
+    "original_sha256": "f9971299f5c4966459d5a943fb00ca202b96ffb0ecd5f2f89c7b1bf1d48f8d1c",
+    "edits": [
+      {
+        "new": "- [Compact staged-result observations](evidence/compact-staged-observations-v1/README.md)\n",
+        "old": ""
+      },
+      {
+        "new": "- [Hosted graph bill after compact observations and borrowed status sets](evidence/browser-graph-pins-c451086ce/README.md)\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "current_sha256": "e2dcb8f6a31a753891aeb04fa5269a28c555ec686a7945a8c5080bd54d7178a3",
+    "original_sha256": "90aa6a5570bccce154a69673112caf63f081d89b9b87127327f4d16f25e131ae",
+    "edits": [
+      {
+        "new": "// Exact hosted compiler records from c451086ce, including the complete current\n",
+        "old": "// Exact hosted compiler records from 268cb0523, including the complete current\n"
+      },
+      {
+        "new": "// cursor controls; docs/evidence/browser-graph-pins-c451086ce binds this capture.\n",
+        "old": "// cursor controls; docs/evidence/browser-graph-pins-268cb0523 binds this capture.\n"
+      },
+      {
+        "new": "    project_graph_digest: \"sha256:331cbe450ce2405aaf18876e6e1d1d42c96703af271616dd374087b5ed9de86a\",\n",
+        "old": "    project_graph_digest: \"sha256:331ca572cc5c91fedf9da602aa7368b484ec0e96c1963300aea40a93d6cd2fc3\",\n"
+      },
+      {
+        "new": "    project_graph_digest: \"sha256:d234e7fc89dd7211b1c1f15b03e04371922728096b9b95ab7e1bbe0119fd419e\",\n",
+        "old": "    project_graph_digest: \"sha256:67946d03e31d346e84de206ce7836c859d62712db8aacdca45ae39c060c30017\",\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/cleanup_plan/replay.rs",
+    "current_sha256": "e20762a8c39c22f697ad721d3ea7df4fffca681497fca5425b3e5448899f8425",
+    "original_sha256": "3adb9ca4a8317fd36ee346b6b091367e49ce4eb1269d404a36feff831c45f5ac",
+    "edits": [
+      {
+        "new": "mod compact_stage;\n",
+        "old": ""
+      },
+      {
+        "new": "use compact_stage::CopySource;\n",
+        "old": ""
+      },
+      {
+        "new": "    StageCopyResult(CopySource),\n",
+        "old": "    StageCopyResult(StagedCopyResultSource),\n"
+      },
+      {
+        "new": "                    SkeletonObservation::StageCopyResult(CopySource::Body {\n",
+        "old": "                    SkeletonObservation::StageCopyResult(StagedCopyResultSource::Body {\n"
+      },
+      {
+        "new": "            compact_stage::prepare!(work.function, work.budget, &staged_source);\n            let staged_source = CopySource::new(work.function, work.budget, staged_source)?;\n",
+        "old": ""
+      },
+      {
+        "new": "                    compact_stage::prepare!(function, budget, &source);\n                    let source = CopySource::new(function, budget, source)?;\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/branch_clone/before.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/cleanup_plan/replay/branch_clone/before.rs",
+    "current_sha256": "ef8a83fb5f813766d13fc21b0652dc1f89ff6731252d91caba13219de2b93f62",
+    "original_sha256": "9dcb0193b3a83b7931e5ff802be332c5df1a44b734d0ee9e8e07b09948a9d54b",
+    "edits": [
+      {
+        "new": "use super::super::compact_stage::before::{SkeletonObservation, SkeletonPath, lexical_skeleton};\n",
+        "old": ""
+      },
+      {
+        "new": "pub(in crate::cleanup_plan::replay) fn for_push<T: Clone + ClonePayload>(\n",
+        "old": "pub(in crate::cleanup_plan::replay::branch_clone) fn for_push<T: Clone + ClonePayload>(\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/branch_clone/before_inline.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/cleanup_plan/replay/branch_clone/before_inline.rs",
+    "current_sha256": "56b26aa261b2523329fb1d2a84e62c8fb8ac7697e93a8efdd7849408c9a1c413",
+    "original_sha256": "c273939c59b7d0d36012b2d2dd4347a7e4dcc85bd087a7c110e4a10a4b34496d",
+    "edits": [
+      {
+        "new": "use super::super::compact_stage::before::{SkeletonObservation, SkeletonPath, lexical_skeleton};\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/branch_clone/inline_tests.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/cleanup_plan/replay/branch_clone/inline_tests.rs",
+    "current_sha256": "72b53678236923dc233efac3ba0a03944a04cb7d45ee507275a4130d4575779a",
+    "original_sha256": "dd8bad0811ee000806ec177d7ab485e48d9f0b25e84f735f02e886d7aae5ab41",
+    "edits": [
+      {
+        "new": "use super::super::compact_stage::before::SkeletonPath;\n",
+        "old": ""
+      },
+      {
+        "new": "    let compiled = crate::source_reflows_merge::main_b80_prior_input(\n        \"src/cleanup_plan/replay/branch_clone/before_inline.rs\", include_str!(\"before_inline.rs\"),\n    );\n",
+        "old": "    let compiled = include_str!(\"before_inline.rs\");\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/cleanup_plan/replay/factored.rs",
+    "current_sha256": "52c33a5e0fb60cdbf449dc3875115a77b49869f3d25c516f15301ab723a589d9",
+    "original_sha256": "3f6f958b847837d571aba1ae0ba5ee2b90a80ab8953e6bf636ae047925bbcd2d",
+    "edits": [
+      {
+        "new": "            compact_stage::prepare!(function, budget, source);\n            SkeletonObservation::StageCopyResult(CopySource::new(function, budget, source.clone())?)\n",
+        "old": "            SkeletonObservation::StageCopyResult(source.clone())\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs",
+    "current_sha256": "01b3e408874930f2aad015d20cf8317fc1507183f92aae740d11985b99d223e1",
+    "original_sha256": "a37b4da6cef36a9249dd30031bab14a710c32cea7b259159983978f390529643",
+    "edits": [
+      {
+        "new": "use crate::cleanup_plan::replay::compact_stage::CopySource;\n",
+        "old": ""
+      },
+      {
+        "new": "            (\n                SkeletonObservation::StageCopyResult(CopySource::Body {\n",
+        "old": "            (\n                SkeletonObservation::StageCopyResult(StagedCopyResultSource::Body {\n"
+      },
+      {
+        "new": "                }),\n                SkeletonObservation::StageCopyResult(CopySource::Body {\n",
+        "old": "                }),\n                SkeletonObservation::StageCopyResult(StagedCopyResultSource::Body {\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs",
+    "current_sha256": "a5f456bd1d6f7fc43c08baf8f192d4c81f6efb036b6d35d8a15f9d785eb06b46",
+    "original_sha256": "310c2d8930e617df84027d21383548ea3fa3082c5d0918d68b129efb5ac5f66e",
+    "edits": [
+      {
+        "new": "            success: true,\n        })),\n        Label::Observation(Rc::new(SkeletonObservation::StageCopyResult(\n            CopySource::Body {\n",
+        "old": "            success: true,\n        })),\n        Label::Observation(Rc::new(SkeletonObservation::StageCopyResult(\n            StagedCopyResultSource::Body {\n"
+      },
+      {
+        "new": "            selected: true,\n        })),\n        Label::Observation(Rc::new(SkeletonObservation::StageCopyResult(\n            CopySource::Body {\n",
+        "old": "            selected: true,\n        })),\n        Label::Observation(Rc::new(SkeletonObservation::StageCopyResult(\n            StagedCopyResultSource::Body {\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs",
+    "current_sha256": "efb7232079b420455f4b31266a6e9fecffdad0fce4e88c69b2c57c6dab1183d4",
+    "original_sha256": "481436dd51b6a515017087f9e52960be47b41bdd0dc18022ef2383f2b9500b8d",
+    "edits": [
+      {
+        "new": "// The immediate-parent observation representation is common to both Node\n// stores. Import the one funded transition producer directly, without a new\n// forwarding Result or routing through the current compact Node/Automaton.\nuse super::super::transition_observation;\n",
+        "old": ""
+      },
+      {
+        "new": "pub(super) fn transition_observation_historical(\n",
+        "old": "fn transition_observation(\n"
+      },
+      {
+        "new": ") -> Result<Option<crate::cleanup_plan::replay::compact_stage::before::SkeletonObservation>, Diagnostic> {\n    use crate::cleanup_plan::replay::compact_stage::before::SkeletonObservation;\n",
+        "old": ") -> Result<Option<SkeletonObservation>, Diagnostic> {\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+    "current_sha256": "c9066310ce58bf633f75a755068949e8a0b4ff88713ac5043c238d3f205e8931",
+    "original_sha256": "426cfc4c1ac2c23fc0ecbe8ab3a2879f20a06a0ec35d6b8aa85200ca130d20fd",
+    "edits": [
+      {
+        "new": "        // Direct historical control is outside physical owner windows. Keep\n        // the full original transition producer on the old 232-byte enum and\n        // compare every field of every original corpus transition losslessly.\n        for block in &function.cleanup_plan.blocks {\n            for transition in &block.transitions {\n                let mut historical = ReplayBudget::unobserved();\n                let mut common = ReplayBudget::unobserved();\n                let expected = transition_observation_historical(\n                    &function, &mut historical, transition,\n                );\n                let actual = transition_observation(&function, &mut common, transition);\n                match (&actual, &expected) {\n                    (Ok(None), Ok(None)) => {}\n                    (Ok(Some(actual)), Ok(Some(expected))) => assert!(\n                        crate::cleanup_plan::replay::compact_stage::observations_match(\n                            actual, expected,\n                        )\n                    ),\n                    (Err(actual), Err(expected)) => assert_eq!(actual, expected),\n                    _ => panic!(\"complete historical transition mismatch: {actual:?} {expected:?}\"),\n                }\n                assert_eq!(common.remaining, historical.remaining);\n                assert_eq!(common.skeleton_spent, historical.skeleton_spent);\n                drop((actual, expected, common, historical));\n            }\n        }\n",
+        "old": ""
+      },
+      {
+        "new": "            \"844 immediate-parent common-observation comparison {} old_reserved={ca} new_reserved={cb} old={ma:?} new={mb:?}\",\n",
+        "old": "            \"844 whole comparison {} old_reserved={ca} new_reserved={cb} old={ma:?} new={mb:?}\",\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/oracle_order.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/cleanup_plan/replay/factored/oracle_order.rs",
+    "current_sha256": "a5b274eb811d25ba6b1aa0b78ef108859c7f37bef32fb9236a51b816011f4011",
+    "original_sha256": "2e91b5d14074811641a9bb6b470aab1504cf7f2f00c721e8be61e6ed20c502f6",
+    "edits": [
+      {
+        "new": "macro_rules! canonical_staged {\n    ($a:expr, $b:expr, $function:expr, $budget:expr) => {{\n        decide!(staged_ordinal($a).cmp(&staged_ordinal($b)));\n        match ($a, $b) {\n            (\n                StagedCopyResultSource::Body {\n                    expression: xe,\n                    instance: xi,\n                },\n                StagedCopyResultSource::Body {\n                    expression: ye,\n                    instance: yi,\n                },\n            ) => {\n                decide!(text(xe.as_str(), ye.as_str(), $function, $budget)?);\n                resolved_type(xi, yi, $function, $budget)\n            }\n            (\n                StagedCopyResultSource::TryResidual {\n                    expression: xe,\n                    operand: xo,\n                    source_instance: xs,\n                    target_instance: xt,\n                    result: xr,\n                    ok_case: xoc,\n                    ok_field: xof,\n                    err_case: xec,\n                    err_field: xef,\n                },\n                StagedCopyResultSource::TryResidual {\n                    expression: ye,\n                    operand: yo,\n                    source_instance: ys,\n                    target_instance: yt,\n                    result: yr,\n                    ok_case: yoc,\n                    ok_field: yof,\n                    err_case: yec,\n                    err_field: yef,\n                },\n            ) => {\n                decide!(text(xe.as_str(), ye.as_str(), $function, $budget)?);\n                decide!(text(xo.as_str(), yo.as_str(), $function, $budget)?);\n                decide!(resolved_type(xs, ys, $function, $budget)?);\n                decide!(resolved_type(xt, yt, $function, $budget)?);\n                decide!(text(xr.as_str(), yr.as_str(), $function, $budget)?);\n                decide!(text(xoc.as_str(), yoc.as_str(), $function, $budget)?);\n                decide!(text(xof.as_str(), yof.as_str(), $function, $budget)?);\n                decide!(text(xec.as_str(), yec.as_str(), $function, $budget)?);\n                decide!(text(xef.as_str(), yef.as_str(), $function, $budget)?);\n                Ok(Ordering::Equal)\n            }\n            (\n                StagedCopyResultSource::TryOptionNone {\n                    expression: xe,\n                    operand: xo,\n                    source_instance: xs,\n                    target_instance: xt,\n                    option: xp,\n                    some_case: xsc,\n                    some_field: xsf,\n                    none_case: xnc,\n                },\n                StagedCopyResultSource::TryOptionNone {\n                    expression: ye,\n                    operand: yo,\n                    source_instance: ys,\n                    target_instance: yt,\n                    option: yp,\n                    some_case: ysc,\n                    some_field: ysf,\n                    none_case: ync,\n                },\n            ) => {\n                decide!(text(xe.as_str(), ye.as_str(), $function, $budget)?);\n                decide!(text(xo.as_str(), yo.as_str(), $function, $budget)?);\n                decide!(resolved_type(xs, ys, $function, $budget)?);\n                decide!(resolved_type(xt, yt, $function, $budget)?);\n                decide!(text(xp.as_str(), yp.as_str(), $function, $budget)?);\n                decide!(text(xsc.as_str(), ysc.as_str(), $function, $budget)?);\n                decide!(text(xsf.as_str(), ysf.as_str(), $function, $budget)?);\n                decide!(text(xnc.as_str(), ync.as_str(), $function, $budget)?);\n                Ok(Ordering::Equal)\n            }\n            _ => Err(mismatch($function)),\n        }\n    }};\n}\n\nfn compact_staged(\n    a: &super::super::compact_stage::CopySource,\n    b: &super::super::compact_stage::CopySource,\n    function: &ResolvedFunction,\n    budget: &mut ReplayBudget,\n) -> Result<Ordering, Diagnostic> {\n    use super::super::compact_stage::{CopySource, Residual};\n    // Keep the original kind-work admission before new metadata payment.\n    budget.charge(function, 1, \"oracle staged source kind\")?;\n    // One-use query bank precedes both matches! receivers and the optional\n    // residual payment. No nested staged Result survives on the residual arm.\n    budget.reserve_bytes(\n        function,\n        2 * std::mem::size_of::<Result<(), Diagnostic>>()\n            + 2 * std::mem::size_of::<&ResolvedFunction>()\n            + 2 * std::mem::size_of::<&mut ReplayBudget>()\n            + 2 * std::mem::size_of::<&str>()\n            + 2 * std::mem::size_of::<usize>()\n            + 2 * std::mem::size_of::<&CopySource>()\n            + std::mem::size_of::<(&CopySource, &CopySource)>()\n            + 3 * std::mem::size_of::<bool>(),\n        \"compact staged comparison query controls\",\n    )?;\n    if matches!(a, CopySource::Residual(_)) && matches!(b, CopySource::Residual(_)) {\n        // Two pattern refs, two accessor receivers, two returned canonical\n        // refs and their two named lexical receivers, plus the two Box-field\n        // borrows inside the accessors. No old Result credit.\n        budget.reserve_bytes(\n            function,\n            4 * std::mem::size_of::<&Residual>()\n                + 4 * std::mem::size_of::<&StagedCopyResultSource>()\n                + 2 * std::mem::size_of::<&Box<StagedCopyResultSource>>(),\n            \"compact staged residual comparison references\",\n        )?;\n    }\n    match (a, b) {\n        (CopySource::Residual(a), CopySource::Residual(b)) => {\n            let a = a.canonical();\n            let b = b.canonical();\n            canonical_staged!(a, b, function, budget)\n        }\n        (\n            CopySource::Body {\n                expression: xe,\n                instance: xi,\n            },\n            CopySource::Body {\n                expression: ye,\n                instance: yi,\n            },\n        ) => {\n            decide!(text(xe.as_str(), ye.as_str(), function, budget)?);\n            resolved_type(xi, yi, function, budget)\n        }\n        (CopySource::Body { .. }, CopySource::Residual(_)) => Ok(Ordering::Less),\n        (CopySource::Residual(_), CopySource::Body { .. }) => Ok(Ordering::Greater),\n    }\n}\n\n",
+        "old": ""
+      },
+      {
+        "new": "        StagedCopyResultSource::TryOptionNone { .. } => 2,\n    }\n}\n\n#[cfg(test)]\n",
+        "old": "        StagedCopyResultSource::TryOptionNone { .. } => 2,\n    }\n}\n\n"
+      },
+      {
+        "new": "        (O::StageCopyResult(x), O::StageCopyResult(y)) => compact_staged(x, y, function, budget),\n",
+        "old": "        (O::StageCopyResult(x), O::StageCopyResult(y)) => staged(x, y, function, budget),\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/oracle_order/tests.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/cleanup_plan/replay/factored/oracle_order/tests.rs",
+    "current_sha256": "c46342d7c901468838d2b5d594050c693526affead95167c0e9416ef6ab458fd",
+    "original_sha256": "b2fd1b2ce25b9792dbb2ec7ac0c8082b1dc4e09dcdf754bf75a747f9770c94c4",
+    "edits": [
+      {
+        "new": "\n#[test]\nfn compact_staged_order_preserves_canonical_fields_work_and_refusals() {\n    use super::super::super::compact_stage::CopySource;\n    let checked = crate::check(\n        r#\"module oracle.staged;\n@id(\"result_path\") fn result_path(value: Result<i64, i64>) -> Result<i64, i64> {\n    let payload = value?;\n    Result<i64, i64>::Ok { value: payload }\n}\n@id(\"option_path\") fn option_path(value: Option<i64>) -> Option<i64> {\n    let payload = value?;\n    Option<i64>::Some { value: payload }\n}\n@id(\"main\") fn main() -> i64 { 0 }\n\"#,\n        \"oracle-staged.spx\",\n    )\n    .unwrap();\n    let program = crate::hir::resolve(&checked).unwrap();\n    let function = &program.functions[0];\n    let sources: Vec<_> = program\n        .functions\n        .iter()\n        .flat_map(|function| &function.cleanup_plan.blocks)\n        .flat_map(|block| &block.transitions)\n        .filter_map(|transition| match transition {\n            CleanupTransition::StageCopyResult { source } => Some(source),\n            _ => None,\n        })\n        .collect();\n    for ordinal in 0..3 {\n        assert!(sources\n            .iter()\n            .any(|source| staged_ordinal(source) == ordinal));\n    }\n    let mut construction = ReplayBudget::new();\n    for a in &sources {\n        for b in &sources {\n            super::super::super::compact_stage::prepare!(function, &mut construction, *a, unwrap);\n            let x = CopySource::new(function, &mut construction, (*a).clone()).unwrap();\n            super::super::super::compact_stage::prepare!(function, &mut construction, *b, unwrap);\n            let y = CopySource::new(function, &mut construction, (*b).clone()).unwrap();\n            for work in [0, 1, 2, MAX_REPLAY_WORK_UNITS] {\n                let mut original = ReplayBudget::new();\n                let mut compact = ReplayBudget::new();\n                original.remaining = work;\n                compact.remaining = work;\n                let expected = staged(a, b, function, &mut original);\n                let actual = compact_staged(&x, &y, function, &mut compact);\n                assert_eq!(actual, expected);\n                assert_eq!(compact.remaining, original.remaining);\n                assert_eq!(compact.skeleton_remaining, original.skeleton_remaining);\n                if let Ok(order) = actual {\n                    assert_eq!(order, a.cmp(b));\n                }\n            }\n        }\n    }\n}\n\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/final_output.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/cleanup_plan/replay/final_output.rs",
+    "current_sha256": "8f1228ace93143bd3195e784c2c085b21efb220db14c2f58728ecc06634f737c",
+    "original_sha256": "df659184de6fa2b8015ebd9c1a020c4115a6c701beb373c9143c637f87f1a2ae",
+    "edits": [
+      {
+        "new": "\n#[cfg(test)]\n#[path = \"final_output/before_compaction.rs\"]\nmod before_compaction;\n\n#[cfg(test)]\n#[path = \"final_output/before_transfer_current.rs\"]\nmod before_transfer_current;\n#[cfg(test)]\n#[path = \"final_output/current_observation_tests.rs\"]\nmod current_observation_tests;\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/final_output/before.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/cleanup_plan/replay/final_output/before.rs",
+    "current_sha256": "7e5c2e493e1058dee41eb42922aedcc7c657acb75e4acfe745c2d4229e5c5a17",
+    "original_sha256": "f7be016b8050ba2c7113915daece93cc671fa3065afd04e7b8b9821ba498ec33",
+    "edits": [
+      {
+        "new": "use super::super::compact_stage::before::SkeletonPath;\n",
+        "old": ""
+      },
+      {
+        "new": "    use super::super::compact_stage::before::{SkeletonObservation, lexical_skeleton};\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/final_output/tests.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/cleanup_plan/replay/final_output/tests.rs",
+    "current_sha256": "34c3509135ef13e6bf9e0cc189f42daa7fa7a81d8753626d423ff7cf1a31ed5a",
+    "original_sha256": "efe34b17d220c1ad0f1bc62d6683555303bae19142a8666525e0b0d82dddfc7c",
+    "edits": [
+      {
+        "new": "use super::super::compact_stage::before::SkeletonPath;\n",
+        "old": ""
+      },
+      {
+        "new": "        super::before_compaction::plan_skeleton_paths(function, budget)\n",
+        "old": "        super::super::plan_skeleton_paths(function, budget)\n"
+      },
+      {
+        "new": "pub(super) fn assert_complete_old_sources() {\n",
+        "old": "fn assert_complete_old_sources() {\n"
+      },
+      {
+        "new": "    let compiled = crate::source_reflows_merge::main_b80_prior_input(\n        \"src/cleanup_plan/replay/final_output/before.rs\", include_str!(\"before.rs\"),\n    );\n    assert_eq!(compiled, expected);\n",
+        "old": "    assert_eq!(include_str!(\"before.rs\"), expected);\n"
+      },
+      {
+        "new": "    let compiled = crate::source_reflows_merge::main_b80_prior_input(\n        \"src/cleanup_plan/replay/branch_clone/inline_tests.rs\", include_str!(\"../branch_clone/inline_tests.rs\"),\n    );\n    assert_eq!(compiled, expected);\n",
+        "old": "    assert_eq!(include_str!(\"../branch_clone/inline_tests.rs\"), expected);\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_array/main696.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/cleanup_plan/replay/path_array/main696.rs",
+    "current_sha256": "589d0405189f3cf8401016c3b393e4a2bc54e000e0da48bf4506ef5e79c40d91",
+    "original_sha256": "0d507d3043e0fbbc896781f76a9d1f4b7827d403d7817bdf13e51c9270c1653d",
+    "edits": [
+      {
+        "new": "pub(in crate::cleanup_plan::replay) fn minimum(\n",
+        "old": "pub(super) fn minimum(\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/structural_maps.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/cleanup_plan/replay/structural_maps.rs",
+    "current_sha256": "aacb833fa5db9e2494a415e12c4380c9cc102d500c8e113c302e92d43f878471",
+    "original_sha256": "8ae608fc4b2e2ebcafe0ae2109540e24459f8ca67f787cfc6172480fc9381e3d",
+    "edits": [
+      {
+        "new": "fn insert_status<'plan>(\n",
+        "old": "fn insert_status(\n"
+      },
+      {
+        "new": "    statuses: &mut BTreeSet<&'plan StatusSourceId>,\n    source: &'plan StatusSourceId,\n",
+        "old": "    statuses: &mut BTreeSet<StatusSourceId>,\n    source: &StatusSourceId,\n"
+      },
+      {
+        "new": "        // Both sets are local to validation and all identities belong to the\n        // immutable plan. Reference order still compares every identity field.\n        budget.reserve_btree_node::<&StatusSourceId, ()>(function, \"status reference set\")?;\n        statuses.insert(source);\n",
+        "old": "        budget.reserve_btree_node::<StatusSourceId, ()>(function, \"status reference set\")?;\n        budget.reserve_clone(function, source, \"status reference identity\")?;\n        statuses.insert(source.clone());\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/structural_maps/tests.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/cleanup_plan/replay/structural_maps/tests.rs",
+    "current_sha256": "54b538d0ae5403297d4a5a22088f6385784b539ffef5d1942d04f22a21134f81",
+    "original_sha256": "8eae57b416fafd029b1ab9e4c36e486fccd14a118a9d8bd384468b3e34434aa7",
+    "edits": [
+      {
+        "new": "\nfn insert_owned_status_before(\n    function: &ResolvedFunction,\n    statuses: &mut BTreeSet<StatusSourceId>,\n    source: &StatusSourceId,\n    budget: &mut ReplayBudget,\n) -> Result<(), Diagnostic> {\n    if !statuses.contains(source) {\n        budget.reserve_btree_node::<StatusSourceId, ()>(function, \"status reference set\")?;\n        budget.reserve_clone(function, source, \"status reference identity\")?;\n        statuses.insert(source.clone());\n    }\n    Ok(())\n}\n\n#[test]\nfn borrowed_status_coverage_still_rejects_missing_and_changed_declarations() {\n    let program = program();\n    let function = program\n        .functions\n        .iter()\n        .find(|function| function.id.as_str() == \"structural.main\")\n        .unwrap();\n    assert!(!function.cleanup_plan.status_sources.is_empty());\n    validate_reference_coverage(function, &mut ReplayBudget::new()).unwrap();\n    let mut missing = function.clone();\n    missing.cleanup_plan.status_sources.pop().unwrap();\n    let mut changed = function.clone();\n    let id = &mut changed.cleanup_plan.status_sources[0].id;\n    id.expression = ExpressionId::from_owned(format!(\"{}:forged\", id.expression.as_str()));\n    for forged in [&missing, &changed] {\n        let error = validate_reference_coverage(forged, &mut ReplayBudget::new()).unwrap_err();\n        assert_eq!(error.code, \"SPX-H006\");\n        assert!(error\n            .message\n            .contains(\"declared and referenced cleanup status sources differ\"));\n    }\n}\n\n#[test]\nfn borrowed_status_sets_keep_full_identity_order_and_pay_backing_through_drop() {\n    use crate::bounded_output::with_limit_usage_refusal;\n    use crate::test_allocation_observer::measure;\n    let program = program();\n    let function = program\n        .functions\n        .iter()\n        .find(|function| function.id.as_str() == \"structural.main\")\n        .unwrap();\n    let mut sources = Vec::new();\n    for text in [\"\", \"a\", \"a\\0\", \"a\\0b\", \"\u00e9\", \"z\", \"long-status-expression\"] {\n        for lane in [\n            StatusLane::OwnerAdmission,\n            StatusLane::OperationFailure,\n            StatusLane::AllocationFailure,\n            StatusLane::ContractFalse,\n        ] {\n            sources.push(StatusSourceId {\n                expression: ExpressionId::from_owned(text.into()),\n                lane,\n            });\n        }\n    }\n    // The original owned-key set is an independent full-field/order oracle.\n    let expected: BTreeSet<_> = sources.iter().cloned().collect();\n    assert_eq!(expected.len(), sources.len());\n    let observe = |limit| {\n        with_limit_usage_refusal(limit, || {\n            measure(|| {\n                let mut budget = ReplayBudget::new();\n                let mut statuses = BTreeSet::new();\n                let result = (|| {\n                    for source in sources.iter().rev().chain(&sources) {\n                        insert_status(function, &mut statuses, source, &mut budget)?;\n                    }\n                    assert_eq!(statuses.len(), expected.len());\n                    assert!(statuses.iter().copied().eq(expected.iter()));\n                    let remaining = crate::bounded_output::active_remaining();\n                    for source in &sources {\n                        insert_status(function, &mut statuses, source, &mut budget)?;\n                    }\n                    assert_eq!(crate::bounded_output::active_remaining(), remaining);\n                    Ok::<_, Diagnostic>(())\n                })();\n                let accepted = result.is_ok();\n                drop(result);\n                drop(statuses);\n                drop(budget);\n                accepted\n            })\n        })\n    };\n    let ((accepted, allocation), refused, exact, first) = observe(usize::MAX);\n    assert!(accepted && !refused && first.is_none());\n    assert!(!allocation.invalid && allocation.live == 0);\n    assert_eq!(allocation.allocated, allocation.freed);\n    assert!(allocation.allocated <= exact && exact > 0);\n    let ((), refused, original, first) = with_limit_usage_refusal(usize::MAX, || {\n        let mut budget = ReplayBudget::new();\n        let mut statuses = BTreeSet::new();\n        for source in sources.iter().rev().chain(&sources) {\n            insert_owned_status_before(function, &mut statuses, source, &mut budget).unwrap();\n        }\n        assert_eq!(statuses, expected);\n    });\n    assert!(!refused && first.is_none());\n    assert!(exact < original);\n    for limit in [0, exact - 1, exact] {\n        let ((accepted, allocation), refused, paid, first) = observe(limit);\n        assert_eq!(accepted, limit == exact);\n        assert_eq!(refused, limit != exact);\n        assert_eq!(first.is_some(), limit != exact);\n        assert!(!allocation.invalid && allocation.live == 0);\n        assert_eq!(allocation.allocated, allocation.freed);\n        assert!(allocation.allocated <= paid);\n        if limit == 0 {\n            assert_eq!(allocation.allocated, 0);\n        }\n    }\n}\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/source_reflows.rs",
+    "current_sha256": "8fca19450e0085f7986e79a1878b9246f86fe884646c70fca5f1d4508d367505",
+    "original_sha256": "6fc1e3a0f008be1457e96e00e1da28dbba41f119f58bd2d9a55c7d12570ef6b5",
+    "edits": [
+      {
+        "new": "#[cfg(test)]\n#[path = \"source_reflows/semantic_receivers_mainb80.rs\"]\nmod semantic_receivers_mainb80;\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/src/source_reflows_merge.rs",
+    "current_sha256": "83bff59513863555cb8d976dad6ae5c7fe729e21cf3a578bcb80eb9ad9bbb280",
+    "original_sha256": "26a79bba23b48d2ee81aed9f99f0c682af51e54f88e6d2bfff18b049c4a5bd6e",
+    "edits": [
+      {
+        "new": "    let joined = main_b80_prior_input(source, current);\n    let current = joined.as_str();\n",
+        "old": ""
+      },
+      {
+        "new": "\n// Independent complete Main and pre-Main source domains.\npub(crate) fn main_b80_input(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main-b80-complete-source-join-20261016/current-to-main.json\")), source, current)\n}\npub(crate) fn main_b80_prior_input(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main-b80-complete-source-join-20261016/current-to-df2.json\")), source, current)\n}\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/tests/hir_module_boundaries.rs",
+    "current_sha256": "43df9fc5a6f45b4cd3325aa9a114185cadcb70ca800a8eaa1255dd4b97706422",
+    "original_sha256": "5ad5da1a0c227a7e7b768fb68596a288d269a43c82e9fd6100749edf89528597",
+    "edits": [
+      {
+        "new": "                include_str!(\"../src/cleanup_plan/replay/final_output.rs\"), include_str!(\"../src/cleanup_plan/replay/compact_stage.rs\"),  include_str!(\"../src/cleanup_plan/replay/compact_stage/before.rs\"),  include_str!(\"../src/cleanup_plan/replay/compact_stage/lexical_before.rs\"),  include_str!(\"../src/cleanup_plan/replay/compact_stage/source_custody.rs\"),  include_str!(\"../src/cleanup_plan/replay/compact_stage/tests.rs\"),  include_str!(\"../src/cleanup_plan/replay/final_output/before_compaction.rs\"),  include_str!(\"../src/cleanup_plan/replay/final_output/before_transfer_current.rs\"),  include_str!(\"../src/cleanup_plan/replay/final_output/current_observation_tests.rs\"),  include_str!(\"../src/source_reflows/semantic_receivers_mainb80.rs\"),  include_str!(\"wasm/scalar_browser_ci_contract/before_c451.rs\"),  include_str!(\"wasm/scalar_browser_ci_contract/historical_main_c451.rs\"),  include_str!(\"wasm/scalar_browser_ci_contract/main_c451_before_2600.rs\"),  include_str!(\"../src/cleanup_plan/replay/final_output/before.rs\"), include_str!(\"../src/cleanup_plan/replay/final_output/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/before_final_edge.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/final_edge_tests.rs\"), include_str!(\"../src/source_verify/hints/before_capacity_witness.rs\"), include_str!(\"../src/cli/help/authoring/tasks.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/strategy/before_fitting.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/strategy/fitting_tests.rs\"), include_str!(\"../src/cli/help/authoring/tasks/tests.rs\"), include_str!(\"../src/cli/help/authoring/tasks/derive.rs\"), include_str!(\"../tests/cli_help_surface_v1/task_pages.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/before_state_move.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/state_move_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/main696.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/funded_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../src/hir/validation.rs\"),\n",
+        "old": "                include_str!(\"../src/cleanup_plan/replay/final_output.rs\"), include_str!(\"../src/cleanup_plan/replay/final_output/before.rs\"), include_str!(\"../src/cleanup_plan/replay/final_output/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/before_final_edge.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/final_edge_tests.rs\"), include_str!(\"../src/source_verify/hints/before_capacity_witness.rs\"), include_str!(\"../src/cli/help/authoring/tasks.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/strategy/before_fitting.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/strategy/fitting_tests.rs\"), include_str!(\"../src/cli/help/authoring/tasks/tests.rs\"), include_str!(\"../src/cli/help/authoring/tasks/derive.rs\"), include_str!(\"../tests/cli_help_surface_v1/task_pages.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/before_state_move.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/state_move_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/main696.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/funded_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../src/hir/validation.rs\"),\n"
+      },
+      {
+        "new": "        include_str!(\"../docs/evidence/main-b80-complete-source-join-20261016/hir.json\"),\n",
+        "old": "        include_str!(\"../docs/evidence/post21-alias-observer-source-join-20261016/hir.json\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/tests/wasm/scalar_browser_ci_contract.rs",
+    "current_sha256": "00b1c8f92850779236c14c05e0302d76e812682b7055bc3229b7584184036593",
+    "original_sha256": "83f6a1f2817eab215058ae7b3dfd21456137568d58ea5c85fbb5f1a70a421d12",
+    "edits": [
+      {
+        "new": "                previous_digests.push(historical_builder::main_c451_digest(revision.semantic_graph()));\n",
+        "old": "                previous_digests.push(historical_builder::final_digest(revision.semantic_graph()));\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+    "current_sha256": "9bed9243d6ed3cbc89e0568e5a1b1c8bd845b3e0c07db173ff1349b3efbb80bc",
+    "original_sha256": "19e655e814ff93f01d5a4aefc502db07b1a8e0b8232a51edc3ade22f6fe9e467",
+    "edits": [
+      {
+        "new": "    let previous = browser_b80_previous(source, current);\n    let current = previous.as_str();\n",
+        "old": ""
+      },
+      {
+        "new": "\nfn browser_b80_previous(source: &str, current: &str) -> String {\n    pin_project(include_str!(\"../../../docs/evidence/main-b80-browser-custody-20261016/current-to-df2.json\"), source, current)\n}\nfn browser_c451_input(source: &str, current: &str) -> String {\n    pin_project(include_str!(\"../../../docs/evidence/main-b80-browser-custody-20261016/current-to-main.json\"), source, current)\n}\npub(super) fn main_c451_parent(current: &str) -> String {\n    browser_c451_input(\"tests/wasm/scalar_browser_ci_contract.rs\", current)\n}\npub(super) fn main_c451_runner(current: &str) -> String {\n    browser_c451_input(\"platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs\", current)\n}\npub(super) fn main_c451_before(current: &str) -> String {\n    browser_c451_input(\"tests/wasm/scalar_browser_ci_contract/before_c451.rs\", current)\n}\npub(super) fn main_c451_before_2600(current: &str) -> String {\n    browser_c451_input(\"tests/wasm/scalar_browser_ci_contract/main_c451_before_2600.rs\", current)\n}\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "current_sha256": "b6497eb6b650743410f5e9f6cb3a13fc5dd35aa3964ffa1fa8946aabe839dafd",
+    "original_sha256": "b37018f6c23164f4e518660699ecd95b33276e52d21a253a3f18b32f29b51ca9",
+    "edits": [
+      {
+        "new": "\n// Complete independent actual Main c451 receiver and all older Main controls.\n#[path = \"historical_main_c451.rs\"]\nmod main_c451;\npub(super) fn main_c451_digest(graph: &str) -> String {\n    main_c451::digest(graph)\n}\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/tests/workspace/semantic_graph.rs",
+    "current_sha256": "8fb7dfdffa4bfdc4a0a9a3b35aa6a81b549015379b8768e309358306307a2232",
+    "original_sha256": "18381f5d670ec921654b844c04dd9d23be3813abba0f405f403de5c2aa1e8014",
+    "edits": [
+      {
+        "new": "            \"../../docs/evidence/main-b80-complete-source-join-20261016/projection.json\"\n",
+        "old": "            \"../../docs/evidence/post21-alias-observer-source-join-20261016/projection.json\"\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph/source_inventory.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/df2/tests/workspace/semantic_graph/source_inventory.rs",
+    "current_sha256": "c92a3d77fb5fb5e6ed01c7f4fdd4b1ed359458296f206f535ee635fe11a572ff",
+    "original_sha256": "089ce56bea21387f82069531852375441b30875696babcbbe7b9a7737ae33ce6",
+    "edits": [
+      {
+        "new": "        include_str!(\"../../src/cleanup_plan/replay/final_output.rs\"), include_str!(\"../../src/cleanup_plan/replay/compact_stage.rs\"),  include_str!(\"../../src/cleanup_plan/replay/compact_stage/before.rs\"),  include_str!(\"../../src/cleanup_plan/replay/compact_stage/lexical_before.rs\"),  include_str!(\"../../src/cleanup_plan/replay/compact_stage/source_custody.rs\"),  include_str!(\"../../src/cleanup_plan/replay/compact_stage/tests.rs\"),  include_str!(\"../../src/cleanup_plan/replay/final_output/before_compaction.rs\"),  include_str!(\"../../src/cleanup_plan/replay/final_output/before_transfer_current.rs\"),  include_str!(\"../../src/cleanup_plan/replay/final_output/current_observation_tests.rs\"),  include_str!(\"../../src/source_reflows/semantic_receivers_mainb80.rs\"),  include_str!(\"../wasm/scalar_browser_ci_contract/before_c451.rs\"),  include_str!(\"../wasm/scalar_browser_ci_contract/historical_main_c451.rs\"),  include_str!(\"../wasm/scalar_browser_ci_contract/main_c451_before_2600.rs\"),  include_str!(\"../../src/cleanup_plan/replay/final_output/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/final_output/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/before_final_edge.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/final_edge_tests.rs\"), include_str!(\"../../src/source_verify/hints/before_capacity_witness.rs\"), include_str!(\"../../src/cli/help/authoring/tasks.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/strategy/before_fitting.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/strategy/fitting_tests.rs\"), include_str!(\"../../src/cli/help/authoring/tasks/tests.rs\"), include_str!(\"../../src/cli/help/authoring/tasks/derive.rs\"), include_str!(\"../../tests/cli_help_surface_v1/task_pages.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/before_state_move.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/state_move_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/main696.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/funded_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_before.rs\"),\n",
+        "old": "        include_str!(\"../../src/cleanup_plan/replay/final_output.rs\"), include_str!(\"../../src/cleanup_plan/replay/final_output/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/final_output/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/before_final_edge.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/final_edge_tests.rs\"), include_str!(\"../../src/source_verify/hints/before_capacity_witness.rs\"), include_str!(\"../../src/cli/help/authoring/tasks.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/strategy/before_fitting.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/strategy/fitting_tests.rs\"), include_str!(\"../../src/cli/help/authoring/tasks/tests.rs\"), include_str!(\"../../src/cli/help/authoring/tasks/derive.rs\"), include_str!(\"../../tests/cli_help_surface_v1/task_pages.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/before_state_move.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/state_move_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/main696.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/funded_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_before.rs\"),\n"
+      }
+    ]
+  }
+]

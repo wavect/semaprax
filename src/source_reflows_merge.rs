@@ -139,6 +139,8 @@ pub(crate) fn future_main8fb_input(source: &str, current: &str) -> String {
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/future-main-output-851-joined-20261016/current-to-ff5.json")), source, current)
 }
 fn post21_input(source: &str, current: &str) -> String {
+    let joined = main_b80_prior_input(source, current);
+    let current = joined.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/post21-alias-observer-source-join-20261016/current-to-36f.json")), source, current)
 }
 fn project(rows: &str, source: &str, current: &str) -> String {
@@ -721,4 +723,12 @@ fn before_storage_oracle_join(source: &str, current: &str) -> String {
         source,
         current,
     )
+}
+
+// Independent complete Main and pre-Main source domains.
+pub(crate) fn main_b80_input(source: &str, current: &str) -> String {
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main-b80-complete-source-join-20261016/current-to-main.json")), source, current)
+}
+pub(crate) fn main_b80_prior_input(source: &str, current: &str) -> String {
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main-b80-complete-source-join-20261016/current-to-df2.json")), source, current)
 }

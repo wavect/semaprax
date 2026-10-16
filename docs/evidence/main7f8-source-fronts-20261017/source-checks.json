@@ -1,0 +1,43 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "rustfmt_parsed": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "src/cleanup_plan/replay/live_oracle/source_custody/presence.rs",
+    "src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs",
+    "src/hir/lexical_exit/walk/tests.rs",
+    "src/loan_plan/tests.rs",
+    "src/project/incremental.rs",
+    "src/source_reflows/semantic_receivers.rs",
+    "src/source_reflows_merge.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "src/source_reflows_merge/main7f8_presence.rs",
+    "src/source_reflows_merge/main7f8_source_inputs.rs"
+  ],
+  "source_inverses": "11 full before-source preimages verified exact via zero-based half-open inverse spans",
+  "input_rows": "15 current SHA + complete current text checks PASS",
+  "raw3_exact_once_subjects": [
+    "src/workspace_graph/identity_resolution/base/cache_billing/main7f8_inputs.rs",
+    "src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs",
+    "src/workspace_graph/expected_projection/import_stub/core_proofs/main7f8_provider.rs",
+    "src/cleanup_plan/replay/sequence_vector/observation_parity.rs",
+    "src/cli/json_codec/retained_receipt.rs",
+    "src/cli/json_codec/retained_receipt/tests.rs",
+    "src/project/authority/retained_input.rs",
+    "src/project/json_codec/retained_receipt.rs",
+    "src/project/json_codec/retained_receipt/tests.rs",
+    "tests/project/standard_library/application_json/retained_receipt.rs",
+    "tests/wasm/scalar_browser_ci_contract/before_524.rs",
+    "src/source_reflows_merge/main7f8_presence.rs",
+    "src/source_reflows_merge/main7f8_source_inputs.rs"
+  ],
+  "native_lines": 1500,
+  "043_required_and_maximum": 1,
+  "unchanged_live_raw_checks": [
+    "actual checked_module_source lookup",
+    "actual compiled entry_stack_before membership",
+    "actual compiled BeforeCursor membership"
+  ],
+  "cargo_rustc_or_runtime": false,
+  "common_authority_rebind": "PENDING847; new input-front current files must be treated as a separate ready checkpoint domain, not normalized directly to039"
+}

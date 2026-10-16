@@ -1,0 +1,51 @@
+{
+  "status": "PENDING_TYPECHECK_AND_EXACT_RUNTIME_AFTER_COMMON_REBIND",
+  "no_new_test_body": true,
+  "selectors": [
+    {
+      "selector": "project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound",
+      "source": "src/project/incremental.rs",
+      "role": "test-only owning library test",
+      "sha256": "c34c4705dc8ecad1d8f61d3b8f997a074a3c4ba1c64dfb1b8a7dc0234dea4497"
+    },
+    {
+      "selector": "source_reflows::semantic_receivers::complete_followup_receivers_keep_all_original_source_bytes",
+      "source": "src/source_reflows/semantic_receivers.rs",
+      "role": "test-only owning library test",
+      "sha256": "457d115f41607edd272dbf214714a0df276dfa75fb8a86a2cb313586c5bc495c"
+    },
+    {
+      "selector": "loan_plan::tests::entry_stack_isolation_restores_the_complete_original_producer_and_tests",
+      "source": "src/loan_plan/tests.rs",
+      "role": "test-only owning library test",
+      "sha256": "bc2074ab329ba1f71416d503c222a5fcd75b49b65f11f70a784cac90bfa110a0"
+    },
+    {
+      "selector": "hir::lexical_exit::walk::tests::compact_cursor_complete_before_sources_and_compiled_control_stay_bound",
+      "source": "src/hir/lexical_exit/walk/tests.rs",
+      "role": "test-only owning library test",
+      "sha256": "9f3ac71703fa3926dc37a0a5ea02ecef1c9b41d102f445dbb89a34758e7a7596"
+    },
+    {
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::presence_tests::merged_current_ci_reflow_and_presence512_complete_inputs_remain_exact",
+      "source": "src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs",
+      "role": "test-only owning library test",
+      "sha256": "d4fdaf15c651ee326cf2dcb6cde810f4a7c766ef0e337291053f5f14004fa64e"
+    },
+    {
+      "selector": "source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs",
+      "source": "src/source_reflows_merge/main_eb2_inputs.rs",
+      "role": "test-only owning library test",
+      "sha256": "f126a40e353062a097df4065ee3c3e65f0c60e04747c82097c2bcc8fcd90cd96"
+    }
+  ],
+  "mandatory_old_domains": [
+    "cache-fit4 -> exactincoming7f8 -> full original be1984 archives, live raw lookup check",
+    "source-followups3 -> exactincoming7f8 -> full old source reader archives; keep original12+2 rawguards+1 allocationfollowup",
+    "loan-stack5 -> exactincoming7f8 -> full old producer/test/metadata archives; live compiled entry_stack_before membership",
+    "compact3: finalraw -> sealed ready inputs -> exact EB2 old raw -> unchanged EB2 -> new compact checkpoint -> unchanged incomingcompact inverse; live compiled BeforeCursor",
+    "presence2: actual CI old or incoming3eb -> exact EB2 c2a/8dc -> new incoming3eb/8dc -> unchanged incoming presence inverse; compare completeold22c result",
+    "raw3+043 required/max1 actual current whole inventories; their complete old views only via later common rebind"
+  ],
+  "next_scope": "Use parent81 minimum draft plus any missing literal selectors here and required closure owners; no repeat258 requested."
+}

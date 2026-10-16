@@ -1005,3 +1005,9 @@ pub(crate) mod main8a_historical;
 mod opt858_sequence_input;
 
 pub(crate) mod main_eb2_inputs;
+
+// Distinct closed Main7f8 historical input domains; no compiler authority.
+#[path = "source_reflows_merge/main7f8_presence.rs"]
+pub(crate) mod main7f8_presence;
+#[path = "source_reflows_merge/main7f8_source_inputs.rs"]
+pub(crate) mod main7f8_source_inputs;

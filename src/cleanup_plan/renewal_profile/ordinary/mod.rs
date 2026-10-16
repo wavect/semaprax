@@ -117,6 +117,7 @@ impl<'a> Directory<'a> {
             false,
         )
     }
+    #[cfg(test)]
     pub(crate) fn collect_current_with_presence(
         member: CurrentMember<'a>,
         helpers: &crate::loop_calls::byte_writer::ModuleIndex<'a>,
@@ -136,6 +137,49 @@ impl<'a> Directory<'a> {
             false,
         )
     }
+    /// Shared production route: no optional presence transport or match.
+    /// The complete preceding optional factory remains an independent test arm.
+    pub(crate) fn collect_current_shared(
+        member: CurrentMember<'a>,
+        helpers: &crate::loop_calls::byte_writer::ModuleIndex<'a>,
+        presence: &RecordPresence<'_>,
+        admission: &mut Admission<'_>,
+    ) -> Result<Self, Refusal> {
+        admission.units(1)?;
+        if !helpers.matches_program(member.program) {
+            return admission.refuse(Refusal::Subject);
+        }
+        let program = member.program;
+        let function = member.function;
+        Self::build_inner(program, function, admission, false, |output, admission| {
+            iterator::collect(program, function, output, admission)?;
+            vector::collect(program, function, output, admission)?;
+            consuming::collect_with_presence(program, function, output, presence, admission)?;
+            leaf::collect(function, Family::ByteSet, output, admission)?;
+            leaf::collect(function, Family::String, output, admission)?;
+            let count = admission.arithmetic(
+                program
+                    .functions
+                    .len()
+                    .checked_add(program.function_instances.len()),
+            )?;
+            let probes = if count == 0 {
+                0
+            } else {
+                usize::BITS as usize - count.leading_zeros() as usize
+            };
+            admission.units(probes)?;
+            if let Some(sites) = helpers.function_sites(function) {
+                for (at, binding) in sites.borrowed_entries() {
+                    admission.units(1)?;
+                    Self::emit(output, Family::Helper, at, binding, admission)?;
+                }
+            }
+            Ok(())
+        })
+    }
+
+    #[cfg(test)]
     fn collect_impl(
         program: &'a ResolvedProgram,
         function: &'a ResolvedFunction,
@@ -339,3 +383,6 @@ impl<'a> Directory<'a> {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod direct_presence_tests;

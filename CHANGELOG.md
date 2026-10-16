@@ -7397,3 +7397,9 @@ are authored. Qualification is pending; Catalog corpus and limits are unchanged.
   unexecuted whole-query/certificate controls. Remaining #781 families stay open.
 
 - Join source-only selected receiving, canonical arenas, fixed JSON transport and Main residual construction with independent complete historical views. Original fixtures and guards remain; memory, cost and application outcomes await the next qualification.
+
+- OPT850 next source component removes actual optional-presence transport from
+  the production ordinary directory factory, retaining its full preceding
+  receiver, get/auth/work behavior and original callable/phase gates. Actual
+  focused qualification and graph-pin phases remain pending; no admission or
+  measured saving is claimed.

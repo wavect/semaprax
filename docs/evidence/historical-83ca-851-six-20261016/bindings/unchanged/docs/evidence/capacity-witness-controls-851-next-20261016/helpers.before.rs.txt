@@ -1,0 +1,42 @@
+fn capacity_witness_receiving_bytes() -> usize {
+    use std::mem::size_of;
+    size_of::<String>()
+        + 3 * size_of::<usize>()
+        + 2 * size_of::<&str>()
+        + size_of::<Option<usize>>()
+        + size_of::<Result<(), std::collections::TryReserveError>>()
+        + 2 * size_of::<bool>()
+}
+
+/// A causal witness supplements the exact authoring repair instead of replacing
+/// it. If optional composition cannot be funded, retain the complete witness
+/// and the original primary diagnostic, as the previous receiver did.
+pub(super) fn with_capacity_witness(mut diagnostic: Diagnostic, witness: String) -> Diagnostic {
+    let repair = diagnostic.help.as_deref().filter(|help| {
+        diagnostic.code == "SPX-T269"
+            && Some(*help) == authoring_repair_help(diagnostic.code, &diagnostic.message)
+    });
+    let Some(repair) = repair else {
+        return diagnostic.with_help(witness);
+    };
+    let length = witness
+        .len()
+        .checked_add(2)
+        .and_then(|n| n.checked_add(repair.len()));
+    let payment = length.and_then(|n| n.checked_add(capacity_witness_receiving_bytes()));
+    let (Some(length), Some(payment)) = (length, payment) else {
+        return diagnostic.with_help(witness);
+    };
+    if !crate::bounded_output::reserve_active_preserving(payment, 0) {
+        return diagnostic.with_help(witness);
+    }
+    let mut composed = String::new();
+    if composed.try_reserve_exact(length).is_err() || composed.capacity() != length {
+        return diagnostic.with_help(witness);
+    }
+    composed.push_str(&witness);
+    composed.push_str("\n\n");
+    composed.push_str(repair);
+    diagnostic.help = Some(composed);
+    diagnostic
+}

@@ -1,0 +1,97 @@
+{
+  "status": "COMPLETE_PRODUCTION_SOURCE_EQUIVALENCE_PASS",
+  "current_source_head": "0c942afa4004da34ec84639b3f0a2f6e97b52bb8",
+  "production_source_head": "83ca0e105e5f4eb6336ed04ff80df6ad0366e99f",
+  "complete_Git_file_set_checked": true,
+  "deleted_files": [],
+  "unchanged_Git_entries_count": 33112,
+  "unchanged_Git_entries_manifest_sha256": "6355806ff2d36e59ac72bd45b565e06c442bb409956666cd868df433bb4d47b5",
+  "comparison": "Identical Git modes and content-addressed immutable blob bytes for every original file except explicit closed test/evidence changes; sourceproof also authenticates full changed before/current bytes and inverses.",
+  "all_changed_original_paths": [
+    "CHANGELOG.md",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "src/cleanup_plan/replay/compact_stage/source_custody.rs",
+    "src/source_reflows_merge.rs",
+    "src/workspace_graph/type_proof_tests.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/native/string_settlement/bulk_utf8.rs",
+    "tests/native/string_settlement/codec_allocation.rs",
+    "tests/native/string_settlement/codec_allocation/string_vectors.rs",
+    "tests/native_string_settlement_v1/contents.rs",
+    "tests/owned_data/bulk_utf8.rs",
+    "tests/owned_data/owned_nested_outcome.rs",
+    "tests/owned_data/projected_string_views.rs",
+    "tests/root_unsafe_quarantine.rs",
+    "tests/wasm/scalar_browser_ci_contract.rs",
+    "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+    "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "tests/workspace/semantic_graph.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "three_changed_src_modules_only": [
+    "src/cleanup_plan/replay/compact_stage/source_custody.rs",
+    "src/source_reflows_merge.rs",
+    "src/workspace_graph/type_proof_tests.rs"
+  ],
+  "closed_test_registration_witnesses": [
+    {
+      "parent": "src/lib.rs",
+      "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de",
+      "exact_registration_text": [
+        "#[cfg(test)]\nmod source_reflows_merge;"
+      ],
+      "byteexact83ca": true
+    },
+    {
+      "parent": "src/workspace_graph.rs",
+      "sha256": "9eab12b59d54c41c3b71f2e0b3b3d6937390da03cd8c7d4b2fe2ed1da39ae565",
+      "exact_registration_text": [
+        "#[cfg(test)]\n#[path = \"workspace_graph/type_proof_tests.rs\"]\nmod type_proof_tests;"
+      ],
+      "byteexact83ca": true
+    },
+    {
+      "parent": "src/cleanup_plan/replay/compact_stage.rs",
+      "sha256": "7bfb511c1ac993dc6c9ae97b9f04c6b0275d6ecc3ef8946a07fb3277e1cad4a4",
+      "exact_registration_text": [
+        "#[cfg(test)]\npub(super) mod source_custody;"
+      ],
+      "byteexact83ca": true
+    },
+    {
+      "parent": "crates/semaprax-native-rust-interop-builder/src/implementation.rs",
+      "sha256": "8deeb4eab6b5aa745f479da6e956b0f9751a3ccf227c77096c3e13740d395037",
+      "exact_registration_text": [
+        "#[cfg(test)]\n#[path = \"implementation/tests.rs\"]\nmod tests;"
+      ],
+      "byteexact83ca": true
+    },
+    {
+      "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests.rs",
+      "sha256": "aa2924571ec229f6593d808c66cc52d678df736a6899b49e78d02c21a6f7573a",
+      "exact_registration_text": [
+        "#[path = \"tests/ledger_capacity.rs\"]\nmod ledger_capacity;"
+      ],
+      "byteexact83ca": true
+    },
+    {
+      "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs",
+      "sha256": "13cc01e2a5491dcd162e6a531905020cf57487b5c4cff15edf72739d3520ff0f",
+      "exact_registration_text": [
+        "include!(\"ledger_capacity/source_inventory.rs\");"
+      ],
+      "byteexact83ca": true
+    }
+  ],
+  "third_raw_audit_cfgtest_include": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+  "new_Rust_files_only_old_wasm_harness": [
+    "tests/wasm/scalar_browser_ci_contract/actual_83ca.rs"
+  ],
+  "protected_Cargo_build_examples_std_CI_entries_unchanged": 825,
+  "source_proof_sha256": "afb275ab16bf90d094fd60e7a8af6854352604a50c73e90220a584276cb8da4c",
+  "authority_proof_sha256": "f2c3c57035d2c55df2beb45a3c12887837c92331b3f2782b07546abf8e0b9dc5",
+  "all_original_JSON_and_full_receivers_preserved": true,
+  "producer_artifacts_and_captures_are_explicit83ca_history": true,
+  "current_consumer_PASS": false
+}

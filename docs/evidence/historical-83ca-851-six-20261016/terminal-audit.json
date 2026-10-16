@@ -1,0 +1,25 @@
+{
+  "status": "ACTUAL_HISTORICAL_83CA_SIX_851_PASS",
+  "artifact_source_head": "83ca0e105e5f4eb6336ed04ff80df6ad0366e99f",
+  "cwd_source_head": "0c942afa4004da34ec84639b3f0a2f6e97b52bb8",
+  "results": 6,
+  "passed": 6,
+  "failed": 0,
+  "discovery_count_each": 1,
+  "body_count_each": 1,
+  "all_groups_confirmed_empty": true,
+  "resource_refusals": 0,
+  "observation_errors": 0,
+  "current0c97_PASS": false,
+  "original97_status": "UNEXECUTED_RESOURCE_CAP_ATTEMPTS_NOT_PROMOTED",
+  "results_sha256": "918f9a6fdfa0f939894ca8ed82ea4ab24f222a528f21cd387b33c1a61643098c",
+  "asset_manifest_sha256": "9532bf180a54e3674fb81204a620b089a2069e33d6d6cbd09e254e02287f8d89",
+  "selectors": [
+    "source_verify::hints::authoring_repair_tests::publication_witness_keeps_exact_repair_and_primary_at_optional_limits",
+    "source_verify::hints::authoring_repair_tests::publication_witness_never_replaces_a_sticky_refusal_or_invents_a_repair",
+    "source_verify::hints::authoring_repair_tests::publication_composition_pays_all_backing_and_complete_drop",
+    "source_verify::hints::before_capacity_witness::tests::publication_witness_keeps_exact_repair_and_primary_at_optional_limits",
+    "source_verify::hints::before_capacity_witness::tests::publication_witness_never_replaces_a_sticky_refusal_or_invents_a_repair",
+    "source_verify::hints::before_capacity_witness::tests::publication_composition_pays_all_backing_and_complete_drop"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04",
+    "source_verify::hints::before_capacity_witness::tests::publication_composition_pays_all_backing_and_complete_drop",
+    "--exact",
+    "--list",
+    "--format",
+    "terse"
+  ],
+  "exit_code": 0,
+  "stdout": "source_verify::hints::before_capacity_witness::tests::publication_composition_pays_all_backing_and_complete_drop: test\n",
+  "stderr": ""
+}

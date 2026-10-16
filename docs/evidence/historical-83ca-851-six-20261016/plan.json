@@ -1,0 +1,344 @@
+{
+  "status": "PREPARED_HISTORICAL_83CA_SUPPLEMENT_NOT_EXECUTED",
+  "artifact_source_head": "83ca0e105e5f4eb6336ed04ff80df6ad0366e99f",
+  "cwd_source_head": "0c942afa4004da34ec84639b3f0a2f6e97b52bb8",
+  "repository": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04",
+  "executable_sha256": "236a3da674ae2a021c37fd45d6d5fa4f040713fe8af2fae461d91a489c12dd68",
+  "producer_round": "/Volumes/Semaprax/lane-prompts/producer-83ca-closure3-20261016",
+  "build_receipt_sha256": "4f1ffd224c0eae76e992a544c1d6be5f357f3f41acbdfc29e1c9a784fa4f8adb",
+  "build_metadata_sha256": "040289da87d7e5f7b20d2c4db2827fa28ce21b33863854818e9c2fb5ffba9f4f",
+  "producer_manifest_sha256": "7eead5b50fc73ec0f1c5f11550ed97b1fb577a48fedf3335d5ae105369921be2",
+  "production_equivalence_receipt": "/Volumes/Semaprax/provenance/main-dd0-83ca-complete-Git-production-equivalence-20261016.json",
+  "production_equivalence_receipt_sha256": "06529ab37d74c2e576c9966d5a8806f0284fbd50e0fd00b199ac65578a9596f1",
+  "unchanged_dependency_files": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "73c2e543a41d2524e150597226b62686b36ba67bf023f884b52282ced19865f3",
+      "bytes": 75560
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "1f906bfe946223a2eaa5e4013b60badd2858ac40ba3add036781ff2d98d9dd62",
+      "bytes": 4135
+    },
+    {
+      "path": "build.rs",
+      "sha256": "b3f35d9ea63f7ad1da53f30a8a6758673dbb08a83f3fe2cd10d5b3b3cb59f6c0",
+      "bytes": 5031
+    },
+    {
+      "path": "docs/evidence/capacity-witness-controls-851-next-20261016/CHANGELOG.md.before.txt",
+      "sha256": "8021422573a1707d12acc5a025f853051cc9df9b5311fbd29945d1447a38dc09",
+      "bytes": 539819
+    },
+    {
+      "path": "docs/evidence/capacity-witness-controls-851-next-20261016/HANDOFF.txt",
+      "sha256": "deb84a9c95826c43a5ef5ab988624a37c815eb876221fbfff36aee3d797eb91a",
+      "bytes": 3932
+    },
+    {
+      "path": "docs/evidence/capacity-witness-controls-851-next-20261016/RECEIVING-INVENTORY.txt",
+      "sha256": "ae8f1077ab01843b871c03c2c39122cad69be428b772d348b7c742a826f22027",
+      "bytes": 3473
+    },
+    {
+      "path": "docs/evidence/capacity-witness-controls-851-next-20261016/helpers.after.rs.txt",
+      "sha256": "c77ea719fecae0753bd48320cfc5160f938fb741624e8bbf31858088ff22f486",
+      "bytes": 3122
+    },
+    {
+      "path": "docs/evidence/capacity-witness-controls-851-next-20261016/helpers.before.rs.txt",
+      "sha256": "b5df57bb19da340b5dfa7fc7143171d20077339aee46d92ac5bc1e514779371e",
+      "bytes": 1692
+    },
+    {
+      "path": "docs/evidence/capacity-witness-controls-851-next-20261016/hints.rs.before.txt",
+      "sha256": "f568a53d58fd347520654c3d5dde5e65a012f298fbe0890cc7d0bffb61504dcc",
+      "bytes": 42164
+    },
+    {
+      "path": "docs/evidence/capacity-witness-controls-851-next-20261016/pending-selectors.json",
+      "sha256": "4010d1a26f6222035773e6740445fcb7fc54ba40f027e0f750427c628611cc79",
+      "bytes": 849
+    },
+    {
+      "path": "docs/evidence/capacity-witness-controls-851-next-20261016/source-inverses.json",
+      "sha256": "1d47779479f5b124642a40f2a7e773ef81de6d07519d5f8786063a3ac928456f",
+      "bytes": 12920
+    },
+    {
+      "path": "docs/evidence/capacity-witness-controls-851-next-20261016/source-proof.json",
+      "sha256": "a4e7f40a2a75fd2ac29c764444e7c3f1c5f70a095f687b9cb1cf739605fbd401",
+      "bytes": 445
+    },
+    {
+      "path": "docs/evidence/capacity-witness-controls-851-next-20261016/three-tests.before.rs.txt",
+      "sha256": "f04549b7691393a1096ca12d32bc2087056fafb6e3209499a737231d47b27ee6",
+      "bytes": 3698
+    },
+    {
+      "path": "docs/evidence/capacity-witness-controls-851-next-20261016/verify-source.py",
+      "sha256": "51a7e7bc68484f5c2c4a29fea5c116581e7c471a1a0279ba3fbafda7ae2cff06",
+      "bytes": 3913
+    },
+    {
+      "path": "src/bounded_output.rs",
+      "sha256": "cc888c9e04f11302031cdcbf9b17d2c55de14e589bca9bdea12146ccc47aaf25",
+      "bytes": 46047
+    },
+    {
+      "path": "src/bounded_output/canonical_stage_tests.rs",
+      "sha256": "72a10f8320f21718cc149790c80a488296fa908588dd40be75037db601e65a63",
+      "bytes": 9030
+    },
+    {
+      "path": "src/bounded_output/cfg_reservation.rs",
+      "sha256": "ecf425709b8c13b438cabeda37b2c7e11683ba0c17521b0ffcea2ee33aaff3f1",
+      "bytes": 3873
+    },
+    {
+      "path": "src/bounded_output/cfg_reservation/tests.rs",
+      "sha256": "145426712babbeb60be086427dce03097099cc29aff94381c9adf77f7684465f",
+      "bytes": 3864
+    },
+    {
+      "path": "src/bounded_output/checked_string.rs",
+      "sha256": "78eccbef07cbdf2f847e90fc9a7b401008da3115642bea90275e30fe5db67942",
+      "bytes": 4930
+    },
+    {
+      "path": "src/bounded_output/classifier_string.rs",
+      "sha256": "88389f912f0bd6c275a8cee2bec309210bb0c575c7b449547606d8449dfdb9cc",
+      "bytes": 13125
+    },
+    {
+      "path": "src/bounded_output/classifier_string/explicit.rs",
+      "sha256": "6389b81d6d7815840b8721ea6d9eba997c11d84dd96c503ac1a7dc08873d0f8d",
+      "bytes": 5741
+    },
+    {
+      "path": "src/bounded_output/classifier_string/explicit/tests.rs",
+      "sha256": "9987e2eb8a5d4bc59c35f346709769c4b3133eba991702e2154f12d2aa8384af",
+      "bytes": 6388
+    },
+    {
+      "path": "src/bounded_output/classifier_string/inventory_work.rs",
+      "sha256": "937beca7d333b6091c64b4af6c9e20ff9809e63f1bbf364d0399f7db0dc4d7dc",
+      "bytes": 8065
+    },
+    {
+      "path": "src/bounded_output/classifier_string/oracle_work.rs",
+      "sha256": "a88650efcd11e23b949e4c9d489d0127945b414890928293bd6f334ca555a34b",
+      "bytes": 5255
+    },
+    {
+      "path": "src/bounded_output/classifier_string/tests.rs",
+      "sha256": "c13a56953e158f83404e8b22287760923c4ab96e034d81f6f321ae4ae6081008",
+      "bytes": 3482
+    },
+    {
+      "path": "src/bounded_output/format_acceptance.rs",
+      "sha256": "9de222661015b47b97bb385c6f19f09a024a8a223563845c263d838455f2944a",
+      "bytes": 2297
+    },
+    {
+      "path": "src/bounded_output/format_acceptance/tests.rs",
+      "sha256": "4cd75f6044cc86589c9981a1551df70b8a668011032fc12a81f2104fad285b28",
+      "bytes": 2005
+    },
+    {
+      "path": "src/bounded_output/identity_reservation.rs",
+      "sha256": "64da492f79082786a70e53115848dc51c0cf878af25e03bed29680cd8aa12ce1",
+      "bytes": 3921
+    },
+    {
+      "path": "src/bounded_output/identity_reservation/base_prelude.rs",
+      "sha256": "a0a56629b719a7d072a4013a5f5a7c725286e31ffff00f90a8489af99a8d6e79",
+      "bytes": 1354
+    },
+    {
+      "path": "src/bounded_output/identity_reservation/base_prelude/tests.rs",
+      "sha256": "01b083d723f458cba2c9853ff5a7e22916f2fbab61b7df132e583ddd0f150344",
+      "bytes": 8108
+    },
+    {
+      "path": "src/bounded_output/identity_reservation/producer_failure.rs",
+      "sha256": "19837bd39430ad7935cc07451ecbaf5e3546d0c7a8b98fee26fdc725976e9828",
+      "bytes": 478
+    },
+    {
+      "path": "src/bounded_output/identity_reservation/tests.rs",
+      "sha256": "11fbd85caea6a3ddd9e7cf6aa508671f868c62c1bfefe4ff3a479601b5787955",
+      "bytes": 2764
+    },
+    {
+      "path": "src/bounded_output/key_directory.rs",
+      "sha256": "524be62afd97f136779521a24a9fa9cbd67c2f70be6863e5ecba9f49a28fbe64",
+      "bytes": 3939
+    },
+    {
+      "path": "src/bounded_output/key_directory/tests.rs",
+      "sha256": "7e89ba70b1a79f9b4fce7629caca44dc0c3c289345ede02d713adf7b1ff3bdbc",
+      "bytes": 5295
+    },
+    {
+      "path": "src/bounded_output/loan_inner_stage_tests.rs",
+      "sha256": "fa843c3ee3cda17ecffd6956650902e8e5d41561448b9fc1d6569d0053546256",
+      "bytes": 13758
+    },
+    {
+      "path": "src/bounded_output/prepaid.rs",
+      "sha256": "c99de1a410e0792957fecd035048dc0a59daa63e5f75ce1289b32aabafbd34b8",
+      "bytes": 4494
+    },
+    {
+      "path": "src/bounded_output/refusal_tests.rs",
+      "sha256": "9b2060b52bf47c6d6381a2c849b1abf394bff324bc62c683b9c955d785ad5163",
+      "bytes": 9359
+    },
+    {
+      "path": "src/bounded_output/resolution_stage_tests.rs",
+      "sha256": "024bfbe54d9d7b69ff81d78c1d5184ca656d05bfe2a0c7e47121781857291090",
+      "bytes": 4609
+    },
+    {
+      "path": "src/bounded_output/source_owner_scope.rs",
+      "sha256": "dbbf0f53cd11e52219782792b7db2d12479a1195fa777b9a74ee68d99a582d55",
+      "bytes": 2670
+    },
+    {
+      "path": "src/bounded_output/stage_debits.rs",
+      "sha256": "94c4a7efb9f9d353f2cde6a4d8ff520df1d821f73f882c2997c7c7c34ffabc0c",
+      "bytes": 6369
+    },
+    {
+      "path": "src/bounded_output/stage_debits/tests.rs",
+      "sha256": "80deae3c1a3b8d2f2c22aeeeee799cc410aa2e3b80698121971cb6bc508fa1ae",
+      "bytes": 8833
+    },
+    {
+      "path": "src/diagnostic.rs",
+      "sha256": "922f3150549194a6016b86d86fe29dc56a9fb6a23384032b1afc144b248b782e",
+      "bytes": 11582
+    },
+    {
+      "path": "src/diagnostic/before_writer.rs",
+      "sha256": "62a827a7e501498eaf82f977ea0b5aba8629e746a6c810e0d6676e0e9a6c5e6a",
+      "bytes": 5466
+    },
+    {
+      "path": "src/diagnostic/refusal_tests.rs",
+      "sha256": "6ab56c5c4e4880583c6da695ba1e0f2e4f6bd56a7708bd72edecb848fecdcd15",
+      "bytes": 4422
+    },
+    {
+      "path": "src/diagnostic/writer.rs",
+      "sha256": "234adedbf03a1c76098f51339a9d5b96bc0a755c196c9de681d413a05a5f6b34",
+      "bytes": 4169
+    },
+    {
+      "path": "src/diagnostic/writer/tests.rs",
+      "sha256": "9bb4d37ef018992338459d905c75581f7e42148750880dfc8bf686f3fb6764f0",
+      "bytes": 12183
+    },
+    {
+      "path": "src/lib.rs",
+      "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de",
+      "bytes": 19294
+    },
+    {
+      "path": "src/source_verify.rs",
+      "sha256": "f5e7d3b71296dac8651bcfff0e771f3c8ddcb0a4f6c5adf164ab41273d4f751c",
+      "bytes": 11950
+    },
+    {
+      "path": "src/source_verify/hints.rs",
+      "sha256": "eb8ee06bd22de47d9c66cc23c492f2784ede93d16ff7f7d94b8f5e53fc26eeb6",
+      "bytes": 48150
+    },
+    {
+      "path": "src/source_verify/hints/before_capacity_witness.rs",
+      "sha256": "08b35a359b94a740f7e349ec8ac3178f56678059c498dfcd5d1f5ac2e262f737",
+      "bytes": 5533
+    },
+    {
+      "path": "src/test_allocation_observer.rs",
+      "sha256": "f3ab093d0bec8e84d98baedfb88e26ec97c1a66022638bd1bf5301ff25844fac",
+      "bytes": 21992
+    },
+    {
+      "path": "src/test_allocation_observer/free_order.rs",
+      "sha256": "f3b372a2eedde6d0e238580a57e5fbcb1ca14144a479e052a0f37be009e6fc48",
+      "bytes": 3303
+    },
+    {
+      "path": "std/catalog.json",
+      "sha256": "0afadae1031235da466089b673b644a5961ddb73f426fb91ad3b8dc05a3eab9b",
+      "bytes": 506747
+    }
+  ],
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_verify::hints::authoring_repair_tests::publication_witness_keeps_exact_repair_and_primary_at_optional_limits",
+      "component_pending": "docs/evidence/main8fb-source-reconciliation-20261016/pending-selectors.json",
+      "reasons": [
+        "ready changed shipping owner or Main receiver domain"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_verify::hints::authoring_repair_tests::publication_witness_never_replaces_a_sticky_refusal_or_invents_a_repair",
+      "component_pending": "docs/evidence/main8fb-source-reconciliation-20261016/pending-selectors.json",
+      "reasons": [
+        "ready changed shipping owner or Main receiver domain"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_verify::hints::authoring_repair_tests::publication_composition_pays_all_backing_and_complete_drop",
+      "component_pending": "docs/evidence/main8fb-source-reconciliation-20261016/pending-selectors.json",
+      "reasons": [
+        "ready changed shipping owner or Main receiver domain"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_verify::hints::before_capacity_witness::tests::publication_witness_keeps_exact_repair_and_primary_at_optional_limits",
+      "reasons": [
+        "complete independent Main851 old optional-repair helper+body controls"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_verify::hints::before_capacity_witness::tests::publication_witness_never_replaces_a_sticky_refusal_or_invents_a_repair",
+      "reasons": [
+        "complete independent Main851 old optional-repair helper+body controls"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_verify::hints::before_capacity_witness::tests::publication_composition_pays_all_backing_and_complete_drop",
+      "reasons": [
+        "complete independent Main851 old optional-repair helper+body controls"
+      ]
+    }
+  ],
+  "drivers": {
+    "observed_phase.py": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867",
+    "semaprax_pressure_observation_v3.py": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+    "draft_contract.py": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1"
+  },
+  "runtime_dependencies": "No dynamic filesystem/source_reflows calls from six bodies; source custody and catalog are compiled include_str data. Exact source/helper/old-body fragments bound above.",
+  "current97_status": "UNEXECUTED_RESOURCE_CAP_ATTEMPTS_NOT_PROMOTED",
+  "execution_requires": "Parent HEAVYFREE signal, zero live cargo/rustc/clippy/clang/cc1 groups and original run_phase admission/observation/settlement guards",
+  "expected_discovery_each": 1,
+  "expected_body_each": 1
+}

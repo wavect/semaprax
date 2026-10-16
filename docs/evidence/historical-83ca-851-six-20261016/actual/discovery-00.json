@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04",
+    "source_verify::hints::authoring_repair_tests::publication_witness_keeps_exact_repair_and_primary_at_optional_limits",
+    "--exact",
+    "--list",
+    "--format",
+    "terse"
+  ],
+  "exit_code": 0,
+  "stdout": "source_verify::hints::authoring_repair_tests::publication_witness_keeps_exact_repair_and_primary_at_optional_limits: test\n",
+  "stderr": ""
+}

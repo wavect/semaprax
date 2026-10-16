@@ -1011,3 +1011,6 @@ pub(crate) mod main_eb2_inputs;
 pub(crate) mod main7f8_presence;
 #[path = "source_reflows_merge/main7f8_source_inputs.rs"]
 pub(crate) mod main7f8_source_inputs;
+
+#[path = "source_reflows_merge/final_ready_inputs.rs"]
+mod final_ready_inputs;

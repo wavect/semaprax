@@ -1,0 +1,20 @@
+{
+  "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+  "archive": "before/src__cleanup_plan__replay__factored__canonical_shared.rs",
+  "sha256": "6568da26e2376af6e713fc396db3e9390907d8dedc7074c3dc314b76da348d6b",
+  "current_sha256": "b71323aed5dda3f03ca6215b17c2e192a5782dabbeccca40ce5bf280f168f482",
+  "edits": [
+    {
+      "current_start": 271,
+      "current_end": 280,
+      "current": "        }\n        if budget.pays_allocations() {\n            budget.reserve_bytes(function, Self::COLD_ROOT_CONTROLS, \"factored cold terminal root predicate\")?;\n        }\n        if root.len() == 1 && root[0].1 == 1 && self.cold_dead_node(root[0].0) {\n            if budget.pays_allocations() {\n                budget.reserve_bytes(function, Self::COLD_RESULT_CONTROLS, \"factored cold terminal result receiving\")?;\n            }\n            return self.cold_dead_id(function, root, budget);\n",
+      "original": ""
+    },
+    {
+      "current_start": 1444,
+      "current_end": 1452,
+      "current": "\nmod terminal_leaf;\n#[cfg(test)]\nmod terminal_leaf_tests;\n#[cfg(test)]\nmod before_terminal_leaf;\n#[cfg(test)]\nmod before_terminal_leaf_empty_memo;\n",
+      "original": ""
+    }
+  ]
+}

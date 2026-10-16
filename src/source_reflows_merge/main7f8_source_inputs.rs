@@ -51,9 +51,11 @@ fn project(rows: &serde_json::Value, domain: &str, path: &str, current: &str) ->
 pub(crate) fn source(domain: &str, path: &str, current: &str) -> String {
     // A later combined batch must bind its new complete raw input to THIS
     // immutable checkpoint before entering this owner; never repin these hashes.
-    project(&records(), domain, path, current)
+    let outer = super::final_ready_inputs::source_owner(domain, path, current);
+    project(&records(), domain, path, &outer)
 }
 pub(crate) fn controls() {
+    super::final_ready_inputs::controls();
     reader::controls();
     let records = records();
     for row in records.as_array().unwrap() {

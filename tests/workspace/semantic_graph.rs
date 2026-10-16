@@ -1464,6 +1464,8 @@ fn current_projection_facade_input(current: &str) -> String {
 // independent historical facade equality receives this authenticated bridge.
 #[path = "../../src/source_reflows_merge/opt858_sequence_input.rs"]
 mod opt858_sequence_input;
+#[path = "../../src/source_reflows_merge/final_ready_inputs.rs"]
+mod final_ready_inputs;
 mod current344_input {
     include!(concat!(
         env!("CARGO_MANIFEST_DIR"),

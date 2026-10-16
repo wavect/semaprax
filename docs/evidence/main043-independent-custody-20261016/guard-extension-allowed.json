@@ -128,7 +128,20 @@
       "src/source_verify/declaration.rs": 1,
       "tests/hir_module_boundaries.rs": 1,
       "src/source_reflows_merge/current344.rs": 1,
-      "src/source_reflows_merge/main8a_historical.rs": 1
+      "src/source_reflows_merge/main8a_historical.rs": 1,
+      "src/hir/funded.rs": 1,
+      "src/hir/vec_loop_renewal/consuming/funded.rs": 1,
+      "src/hir/function_value/funded.rs": 1,
+      "src/hir/iterator_loop/renewal/funded.rs": 1,
+      "src/loop_calls/byte_writer/resolved/funded.rs": 1,
+      "src/hir/lexical_exit/owner_funded.rs": 1,
+      "src/hir/vec_loop_renewal/funded.rs": 1,
+      "src/byte_ops/funded.rs": 1,
+      "src/string_ops/replacement/funded.rs": 1,
+      "src/literal_format/funded.rs": 1,
+      "src/string_ops/conditions/funded.rs": 1,
+      "src/string_ops/concat_funded.rs": 1,
+      "src/cleanup_plan/renewal_profile/funded.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -188,7 +201,14 @@
       "src/string_ops/conditions/funded.rs": 1,
       "src/string_ops/replacement/funded.rs": 1,
       "src/byte_ops/funded.rs": 1,
-      "src/cleanup_plan/renewal_profile/funded.rs": 1
+      "src/cleanup_plan/renewal_profile/funded.rs": 1,
+      "src/hir/funded.rs": 1,
+      "src/hir/vec_loop_renewal/consuming/funded.rs": 1,
+      "src/hir/function_value/funded.rs": 1,
+      "src/hir/iterator_loop/renewal/funded.rs": 1,
+      "src/loop_calls/byte_writer/resolved/funded.rs": 1,
+      "src/hir/lexical_exit/owner_funded.rs": 1,
+      "src/hir/vec_loop_renewal/funded.rs": 1
     }
   },
   "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
@@ -223,7 +243,13 @@
       "tests/hir_module_boundaries.rs": 1,
       "tests/workspace/semantic_graph/source_inventory.rs": 1,
       "src/source_reflows_merge/current344.rs": 1,
-      "src/source_reflows_merge/main8a_historical.rs": 1
+      "src/source_reflows_merge/main8a_historical.rs": 1,
+      "src/byte_ops/funded.rs": 1,
+      "src/string_ops/replacement/funded.rs": 1,
+      "src/literal_format/funded.rs": 1,
+      "src/string_ops/conditions/funded.rs": 1,
+      "src/string_ops/concat_funded.rs": 1,
+      "src/cleanup_plan/renewal_profile/funded.rs": 1
     },
     "maximum": {
       "src/cleanup_plan/replay.rs": 1,

@@ -605,3 +605,26 @@ still include Diagnostic-returning children converted to EngineError::Owned.
 Budget failures also retain their genuinely prepaid original Diagnostic. An
 already-owned semantic Diagnostic is not retroactively paid by report transfer;
 #781 remains open.
+
+## Reference-coverage receiving cut (#781, source-only)
+
+Paid lexical and scalar Session drivers use the complete reference-coverage
+algorithm with closed edge-owner, exit-owner and status-declaration refusals.
+The original Diagnostic producer remains independent. The two actual vector
+wrapper calls each acquire a nine-slot receiving bank and nine initializer work
+units on the same ledger before their arguments. Each genuinely new status-set
+node separately acquires its eight-slot bank and eight units before its wrapper;
+duplicates acquire neither. There is no guessed per-function loop allowance.
+The existing profile permit covers entry/refusal composition. BudgetDiagnostic
+remains sealed: only genuine ReplayBudget producers construct that arm.
+
+The original status membership and traversal order, then edge/exit/status error
+priority, stay exact. New receiving reservations and initializer work may refuse
+before the former backing or semantic frontier; no old allowance is credited.
+The node helper forwarding Result is eliminated lexically; the two real budget
+wrapper Results and their Diagnostic/Deferred receivers remain explicitly paid.
+Initial report acquisition, report carrier, inline refusal and all legacy
+wrappers stay unchanged. This finite family and the prior profile/owner tranche
+do not complete the remaining dynamic Session validator families: #781 stays
+open. Focused semantic, exact/short/zero, duplicate, ledger and Drop controls are
+authored; no execution or savings claim follows from this source checkpoint.

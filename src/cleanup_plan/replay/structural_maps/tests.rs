@@ -223,3 +223,6 @@ fn borrowed_status_sets_keep_full_identity_order_and_pay_backing_through_drop() 
         }
     }
 }
+
+#[path = "tests/paid_reference.rs"]
+mod paid_reference;

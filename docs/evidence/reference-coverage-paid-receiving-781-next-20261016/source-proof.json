@@ -1,0 +1,11 @@
+{
+  "status": "SOURCE_ONLY_PASS_NO_RUST_EXECUTION",
+  "full_inverse_rows": 13,
+  "new_source_owners": 2,
+  "complete_old_reference_receiver_and_insert_status_byteexact": true,
+  "same_ledger_per_actual_call": true,
+  "all_predecessor_JSON_unchanged": true,
+  "new_owning_bodies": 2,
+  "whole781": "OPEN_remaining_dynamic_families",
+  "authority": "FINAL_JOIN_MUST_REGENERATE"
+}

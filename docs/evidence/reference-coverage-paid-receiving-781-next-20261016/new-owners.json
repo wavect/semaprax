@@ -1,0 +1,12 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/structural_maps/paid_reference.rs",
+    "sha256": "c129d9971daf3536084baaa1c86603ff833e276b38969f8584d8936185424b4c",
+    "lines": 139
+  },
+  {
+    "source": "src/cleanup_plan/replay/structural_maps/tests/paid_reference.rs",
+    "sha256": "0509ba0f7167dbf7f65391924bb7f873fc9f595ef51c3895656246128b254ab3",
+    "lines": 160
+  }
+]

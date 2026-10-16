@@ -732,3 +732,8 @@ pub(crate) fn main_b80_input(source: &str, current: &str) -> String {
 pub(crate) fn main_b80_prior_input(source: &str, current: &str) -> String {
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main-b80-complete-source-join-20261016/current-to-df2.json")), source, current)
 }
+
+// Independent whole-driver input for the immutable first781 receiving owners.
+pub(crate) fn reference781_input(source: &str, current: &str) -> String {
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reference-coverage-paid-receiving-781-next-20261016/current-drivers-to-9a3.json")), source, current)
+}

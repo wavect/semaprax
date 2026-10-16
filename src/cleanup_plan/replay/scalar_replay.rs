@@ -119,7 +119,7 @@ pub(super) fn validate_paid(
         &BTreeSet::new(),
         budget,
     )?;
-    structural_maps::validate_reference_coverage(function, budget)?;
+    structural_maps::paid_reference::validate(function, budget)?;
     structural_control::validate_reachable_acyclic_cfg(function, budget)?;
     validate_path_states::<expression_facts::errors::EngineError>(
         program, function, &storage, &leaves, budget, None, None,

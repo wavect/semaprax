@@ -25,8 +25,14 @@ for name in ['lexical_replay.rs','scalar_replay.rs']:
  paid,_=definition(current,'pub(super) fn validate_paid(');header=paid[:paid.index('{')]
  formatted=subprocess.check_output(['rustfmt','--edition','2024','--config','skip_children=true','--emit','stdout'],input=(header+expected).encode()).decode()
  assert definition(current,'pub(super) fn validate_paid(')[1]==definition(formatted,'pub(super) fn validate_paid(')[1],name
-for p in ['src/cleanup_plan/replay/selected_entry.rs','src/cleanup_plan/replay/selected_entry/paid.rs','src/cleanup_plan/replay/selected_profile/paid.rs','src/cleanup_plan/replay/selected_owner/paid.rs','src/cleanup_plan/replay/physical_budget.rs','src/workspace_report.rs']:
+for p in ['src/cleanup_plan/replay/selected_entry/paid.rs','src/cleanup_plan/replay/selected_profile/paid.rs','src/cleanup_plan/replay/selected_owner/paid.rs','src/cleanup_plan/replay/physical_budget.rs','src/workspace_report.rs']:
  assert (R/p).read_bytes()==git('show',B+':'+p),p
+entry=(R/'src/cleanup_plan/replay/selected_entry.rs').read_text()
+for name,callee in [('validate_paid_original','lexical_replay'),('validate_scalar_paid_original','scalar_replay')]:
+ whole,body=definition(entry,'pub(crate) fn '+name+'(')
+ before=definition(git('show',B+':src/cleanup_plan/replay/selected_entry.rs').decode(),'pub(crate) fn '+name+'(')[0]
+ restored=whole.replace(callee+'::validate_paid_before_local_receivers(',callee+'::validate_paid(')
+ assert tokens(restored)==tokens(before)
 assert set(git('diff',B,'--name-only','--diff-filter=M').decode().splitlines())=={r['source']for r in rows}
 assert not [r for r in rows if r['source'].endswith('.json')]
 child='src/cleanup_plan/replay/selected_entry/tests/driver_local_receivers.rs';owner=json.loads((D/'new-owner.json').read_text());assert owner['source']==child and sha((R/child).read_bytes())==owner['sha256']

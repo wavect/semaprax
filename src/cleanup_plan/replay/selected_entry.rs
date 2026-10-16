@@ -330,7 +330,7 @@ impl<'a> Session<'a> {
         self.failed = true;
         require_entry(function)?;
         let context = selected_context::Context::new(&self.indexed, function, &mut self.budget)?;
-        lexical_replay::validate_paid(&context, function, &mut self.budget)?;
+        lexical_replay::validate_paid_before_local_receivers(&context, function, &mut self.budget)?;
         self.failed = false;
         Ok(())
     }
@@ -345,7 +345,7 @@ impl<'a> Session<'a> {
         }
         self.failed = true;
         let context = selected_context::Context::new(&self.indexed, function, &mut self.budget)?;
-        scalar_replay::validate_paid(&context, function, &mut self.budget)?;
+        scalar_replay::validate_paid_before_local_receivers(&context, function, &mut self.budget)?;
         self.failed = false;
         Ok(())
     }

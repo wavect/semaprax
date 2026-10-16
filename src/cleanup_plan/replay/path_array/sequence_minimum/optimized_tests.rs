@@ -476,3 +476,99 @@ fn expired_and_foreign_account_keep_the_original_failure_before_probe() {
         assert_eq!(actual, expected, "all six original Diagnostic fields");
     }
 }
+
+#[test]
+fn positive_work_probe_header_and_full_query_floor_keep_original_six_fields() {
+    let program = path_array_main8a::fixture_program();
+    let function = &program.functions[0];
+    for full_query in [false, true] {
+        let run = |old| {
+            with_limit_usage_refusal_site(1 << 20, || {
+                measure(|| {
+                    let mut budget = ReplayBudget::new();
+                    let mut work = SkeletonWork::new(&program, function, &mut budget);
+                    work.budget.reserve_skeleton(function, 1).unwrap();
+                    let suffixes = [empty_expr_path(), empty_expr_path()];
+                    let mut target = Vec::new();
+                    let materializations = skeleton_materializations();
+                    let mut expected_floor = 0;
+                    let mut initial_remaining = 0;
+                    let result = (|| {
+                        // P9/S2 declines after HEADER; P8/S2 reaches the full
+                        // query. Both begin at the actual paid empty target.
+                        let prefixes = if full_query { 8 } else { 9 };
+                        let minimum = path_array::count!(
+                            work, true, prefixes, "floor sequencing count"
+                        );
+                        path_array::select!(first, minimum, &target, work);
+                        assert!(first && !work.budget.selected());
+                        assert_eq!(work.budget.skeleton_remaining, 1);
+                        let pending = suffixes[1..].iter();
+                        initial_remaining = active_remaining().unwrap();
+                        // Derive only the exact earlier payments from their
+                        // production formulas. This is a real reserved floor,
+                        // not an artificially small absolute byte allowance.
+                        let before_probe = path_array::capacity_controls()
+                            + if full_query { HEADER } else { 0 };
+                        expected_floor = initial_remaining.checked_sub(before_probe).unwrap();
+                        assert!(expected_floor > super::RECEIVING && HEADER < super::RECEIVING);
+                        assert!(set_active_floor(expected_floor));
+                        let outcome: Result<(), Diagnostic> = (|| {
+                            if old {
+                                super::push!(work, first, minimum, pending, &mut target,
+                                    empty_expr_path(), "sequenced skeleton path");
+                            } else {
+                                super::optimized::push!(work, first, minimum, pending, &mut target,
+                                    empty_expr_path(), "sequenced skeleton path");
+                            }
+                            Ok(())
+                        })();
+                        assert!(first, "failed bank cannot publish the first output");
+                        outcome
+                    })().map_err(failure);
+                    assert!(result.is_err());
+                    assert_eq!(work.budget.skeleton_spent, 1, "positive original work ran");
+                    assert_eq!(work.budget.skeleton_remaining, 0);
+                    assert_eq!(work.budget.remaining, 0);
+                    assert_eq!(skeleton_materializations(), materializations + 1);
+                    assert!(target.is_empty() && target.capacity() == 0);
+                    let retry = work.budget.reserve_bytes(function, 0, "floor probe retry")
+                        .map_err(failure);
+                    assert_eq!(retry, Err(failure(Diagnostic::io("SPX-H006", String::new()))));
+                    drop((retry, target, suffixes));
+                    drop(work);
+                    drop(budget);
+                    (result, expected_floor, initial_remaining)
+                })
+            })
+        };
+        let (((actual, floor, initial), allocation), refused, _, first, site) = run(false);
+        let (((expected, old_floor, old_initial), old_allocation), old_refused, _, old_first, old_site) = run(true);
+        let actual = actual.unwrap_err();
+        assert_eq!(actual, expected.unwrap_err(), "all six original Diagnostic fields");
+        assert_eq!(
+            actual,
+            failure(replay_error(function, format_args!(
+                "cleanup replay physical reservation exhausted during sequenced minimum receiving frame"
+            ))),
+            "physical bank refusal, not the original work failure"
+        );
+        assert!(refused && old_refused);
+        let first = first.expect("actual HEADER or full-query floor refusal");
+        let old_first = old_first.expect("complete original receiving-bank floor refusal");
+        assert_eq!(first.requested, if full_query { super::RECEIVING } else { HEADER });
+        assert_eq!(old_first.requested, super::RECEIVING);
+        assert_eq!((first.remaining, first.floor), (floor, floor));
+        assert_eq!(old_first.floor, old_floor);
+        assert_eq!(old_first.remaining, old_floor + if full_query { HEADER } else { 0 });
+        assert!(first.requested > 0 && first.requested <= first.remaining);
+        assert!(old_first.requested > 0 && old_first.requested <= old_first.remaining);
+        assert_eq!((initial, floor), (old_initial, old_floor));
+        assert!(site.is_some() && old_site.is_some(), "both actual first sites survive retry");
+        assert!(!allocation.invalid && allocation.live == 0);
+        assert!(!old_allocation.invalid && old_allocation.live == 0);
+        assert_eq!(allocation.allocated, allocation.freed);
+        assert_eq!(old_allocation.allocated, old_allocation.freed);
+        eprintln!("sequence probe floor full_query={full_query} current={first:?} old={old_first:?} current_site={site:?} old_site={old_site:?}");
+    }
+}

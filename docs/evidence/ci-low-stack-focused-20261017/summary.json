@@ -1,0 +1,12 @@
+{
+  "status": "PASS_FOCUSED_CI_SCRIPT_TESTS",
+  "executed": 7,
+  "failed": 0,
+  "elapsed_seconds": 0.023,
+  "source_files": {
+    "scripts/ci-low-stack-trace.py": "e6ca089a7c1e6f69f24fc5ee49e7659cddc32bd93165622e17229c1367b276fe",
+    "scripts/tests/test_ci_low_stack_trace.py": "3a45e45ab7322d18179551974acd4b603638a67f23e66e21f9ebd57db5444f14"
+  },
+  "log_sha256": "fd49aba5f35c938be43436424bc3c2f9f2397a091da4f7e2a3cf10e5b4ba5abf",
+  "scope": "Only CI diagnostic-script host tests; no Rust/native/application/benchmark qualification"
+}

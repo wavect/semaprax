@@ -59,6 +59,7 @@
       "src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs",
       "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
       "src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
       "src/cleanup_plan/replay/factored/oracle_order/tests.rs",
       "src/cleanup_plan/replay/factored/strategy.rs",
       "src/cleanup_plan/replay/final_output.rs",
@@ -339,7 +340,25 @@
       "tests/workspace/semantic_graph.rs",
       "tests/workspace/semantic_graph/source_inventory.rs"
     ],
-    "table": "current-to-Previous16c.json"
+    "table": "current-to-Previous16c.json",
+    "parts": [
+      {
+        "table": "current-to-Previous16c.json",
+        "first": ".github/workflows/ci.yml",
+        "last": "src/source_verify/iterative/enter.rs",
+        "rows": 240,
+        "length": 4938790,
+        "sha256": "826fb501ea034b3caac95d0306a5c379e6e29a7e314c4a673bd0cff57c45be22"
+      },
+      {
+        "table": "current-to-Previous16c-part-001.json",
+        "first": "src/source_verify/iterative/enter/enter_before_components.rs",
+        "last": "tests/workspace/semantic_graph/source_inventory.rs",
+        "rows": 96,
+        "length": 1958485,
+        "sha256": "6ac3c6e644689bcebc70d932bd38d3f5196dbc6aee1ac579c969b29385f4a002"
+      }
+    ]
   },
   {
     "name": "Maina3",
@@ -376,7 +395,17 @@
       "tests/hir_module_boundaries.rs",
       "tests/workspace/semantic_graph/source_inventory.rs"
     ],
-    "table": "current-to-Maina3.json"
+    "table": "current-to-Maina3.json",
+    "parts": [
+      {
+        "table": "current-to-Maina3.json",
+        "first": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "last": "tests/workspace/semantic_graph/source_inventory.rs",
+        "rows": 30,
+        "length": 1626004,
+        "sha256": "da941151b186c27cbb2b537835ba8e058f38bb6c7a2f82ee3f35adca0ed3e258"
+      }
+    ]
   },
   {
     "name": "Alias1ae",
@@ -385,7 +414,17 @@
       "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth.rs",
       "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs"
     ],
-    "table": "current-to-Alias1ae.json"
+    "table": "current-to-Alias1ae.json",
+    "parts": [
+      {
+        "table": "current-to-Alias1ae.json",
+        "first": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth.rs",
+        "last": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs",
+        "rows": 2,
+        "length": 2250,
+        "sha256": "8350b6eb72620647ec4a2c334a3946aaf2855d5e7de4587672146381daa8b97d"
+      }
+    ]
   },
   {
     "name": "MainE47",
@@ -394,6 +433,16 @@
       "src/bounded_output.rs",
       "src/bounded_output/canonical_stage_tests.rs"
     ],
-    "table": "current-to-MainE47.json"
+    "table": "current-to-MainE47.json",
+    "parts": [
+      {
+        "table": "current-to-MainE47.json",
+        "first": "src/bounded_output.rs",
+        "last": "src/bounded_output/canonical_stage_tests.rs",
+        "rows": 2,
+        "length": 100426,
+        "sha256": "befeec5f8d5d57bb6b2ec45194becb34eaa6d175aacce2f778b56fa3d06fbdd7"
+      }
+    ]
   }
 ]

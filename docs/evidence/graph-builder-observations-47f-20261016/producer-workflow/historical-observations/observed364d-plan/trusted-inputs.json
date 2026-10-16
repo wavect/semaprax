@@ -1,0 +1,9 @@
+{
+  "capture_head": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+  "later_root_head_at_preparation": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+  "build_receipt_sha256": "6b519dfefdb8d3239626b622b4c11d94fbe360b04d7f7e4f3c639212167744b8",
+  "producer_receipt_sha256": "eecd37aa6344f89b9defd6f28a918e2df06ea1e62d355d60e2e97adadad60a42",
+  "root": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "capture": "/Volumes/Semaprax/provenance/actual364d-managed-pin-capture-20261016",
+  "round": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016"
+}

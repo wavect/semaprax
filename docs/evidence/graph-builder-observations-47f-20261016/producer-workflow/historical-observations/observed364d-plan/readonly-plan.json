@@ -1,0 +1,83 @@
+{
+  "schema": "semaprax.prelude-forecast-reviewed-pin-plan.v1",
+  "capture_head": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+  "status": "actual-candidate-plan-requires-wire-review",
+  "edits": [
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "assert_eq!(graph.budget().used_builder_bytes(), 1_209_652);",
+      "after": "assert_eq!(graph.budget().used_builder_bytes(), 1_103_165);",
+      "actual_wire": "public-graph"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:6b5cc543f824f65ea9deaeb9d713176c8c3ba2d77261fe32ed866ebb69c1f6e6",
+      "after": "sha256:b98b8c12d069044f289e179f4daf52d612bab159ba96bae0c77a5abc411cdb5d",
+      "actual_wire": "public-graph"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:531c4928f03919cbe391636cb5a3c6e1a81e1e78ef9a6d9b870a662ba4fe64c9",
+      "after": "sha256:372c6b9ae30b1c7b32023741474abc57e8220902987835d5f90ad93f140c5990",
+      "actual_wire": "context"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:3c1ecc805f6e8ce44e8bb5494ab6f8e2e190ea007abd491b4bc5087bae14baa5",
+      "after": "sha256:66caba7bb166a6a2ff3a27d4f85f54a2acf304932508e7638cb972f6ea403ecf",
+      "actual_wire": "forward"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:cbe0ef0e127493fff8d09fd7b71902ec3fa411c05655813ba21702c268a86f06",
+      "after": "sha256:ec4f3a7d715da2c699ae2a7f5fd0731f0152ce515dae145a096d97b30a22792a",
+      "actual_wire": "capability-context"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:d9aade25e555411d208f04f257dc9ed757c2aab70f9f2f09044d3f7bb3384721",
+      "after": "sha256:f44443c0a99d1e192aad5f59800014749dc026cac70bd76b4e1f6c13718399fa",
+      "actual_wire": "type-context"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:0d337f90ce845ad4f6c02930ba578d8002aaf1faee4a150488df961c5a44a2f4",
+      "after": "sha256:9a9e1dc8b7711fa1c66254f6e4a5d8a6be382e2fa8d57391fd108c6af0265ca6",
+      "actual_wire": "impact"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:6e04aedb33f4122be228d6fd36ba8685be17fe9777d366589a8ad00cc81cb98a",
+      "after": "sha256:eb6dd3dd78a1673fcd8cec0f29d75aa2e12792f61283674cdfefb588449958c5",
+      "actual_wire": "custom-impact"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:3cdd798dc3486d371419879d8d10fd749d366797e590c14d04c06f098fac3518",
+      "after": "sha256:287e33e11b5a1a1316dca983e827186a59d3e5afcc3998eca97f92184eb36f8a",
+      "actual_wire": "review"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:856f47d2ea3b179156a8cb48ea7a14a3fd48908472ecd37d7c5547a62b4a34e3",
+      "after": "sha256:7b7434e1a7ebf30d9df8ed43ae8163c1f0d836ceab838025a0f0d2becfa031ad",
+      "actual_wire": "capability-review"
+    },
+    {
+      "path": "src/workspace_graph/type_proof_tests.rs",
+      "before": "sha256:74dd9cc25b0f9f331aa831d6fac0e44f1d51488d6c3a548f3c60b6a86ff8eb04",
+      "after": "sha256:8fbedd9fb195960c9dd77fd4c25a932a1a6a9dccc48974bdce2baf97de1824f3",
+      "actual_wire": "projection-wire"
+    }
+  ],
+  "source_sha256": {
+    "src/workspace_graph/type_proof_tests.rs": "sha256:53736e9d12bb60f3c88b86ae48b6476adba4f1d238a3e287c92a608854308fe7",
+    "tests/workspace/semantic_graph.rs": "sha256:9789231f7734dc523d9297279c6d47e241500b36389b8d67eb15e727a40cfd03"
+  },
+  "after_sha256": {
+    "src/workspace_graph/type_proof_tests.rs": "sha256:aab34c85d21554158cd041e83dd53f8b39b0afa5e0cfc25fc65d338077406264",
+    "tests/workspace/semantic_graph.rs": "sha256:5b4ff19dde6a54cdbf1ea8c1b2d8ab70e6ffcf00d42df98b3941d7c435f6720e"
+  },
+  "trusted_build_receipt_sha256": "sha256:6b519dfefdb8d3239626b622b4c11d94fbe360b04d7f7e4f3c639212167744b8",
+  "trusted_producer_receipt_sha256": "sha256:eecd37aa6344f89b9defd6f28a918e2df06ea1e62d355d60e2e97adadad60a42"
+}

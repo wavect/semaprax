@@ -11,7 +11,9 @@ use super::scope::VerifierFrame;
 use super::type_table::TypeTable;
 use super::IterativeVerifier;
 use crate::ast::program_source::ProgramSource;
-use crate::ast::{Expr, Function, Statement, Type, TypeDeclarationKind};
+#[cfg(test)]
+use crate::ast::Function;
+use crate::ast::{Expr, Statement, Type, TypeDeclarationKind};
 use crate::diagnostic::Diagnostic;
 use std::collections::HashMap;
 
@@ -331,6 +333,7 @@ pub(super) fn check_expr_with_helpers<'a, 'p>(
 }
 
 #[allow(clippy::too_many_arguments)]
+#[cfg(test)]
 pub(super) fn check_expr_with_helpers_view<'a, 'p>(
     program: &'p dyn ProgramSource,
     current: &'p Function,
@@ -364,6 +367,7 @@ pub(super) fn check_expr_with_helpers_view<'a, 'p>(
 }
 
 #[allow(clippy::too_many_arguments)]
+#[cfg(test)]
 pub(super) fn check_expr_with_signature_view<'a, 'p>(
     program: &'p dyn ProgramSource,
     current: &'p Function,
@@ -399,6 +403,7 @@ pub(super) fn check_expr_with_signature_view<'a, 'p>(
 }
 
 #[allow(clippy::too_many_arguments)]
+#[cfg(test)]
 pub(super) fn check_expr_with_signature_view_ref<'a, 'p>(
     program: &'p dyn ProgramSource,
     current: crate::ast::program_source::FunctionRef<'p>,
@@ -433,9 +438,9 @@ pub(super) fn check_expr_with_signature_view_ref<'a, 'p>(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn check_expr_with_signature_cell<'a, 'v, 'p>(
+pub(super) fn check_expr_with_signature_cell<'a, 'p>(
     program: &'p dyn ProgramSource,
-    current: &'v crate::ast::program_source::FunctionRef<'p>,
+    current: &crate::ast::program_source::FunctionRef<'p>,
     expr: &'p Expr,
     variables: &mut HashMap<String, Binding>,
     functions: &'p crate::source_verify::function_map::FunctionMap<'p>,

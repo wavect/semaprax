@@ -1,3 +1,7 @@
+- Repair the complete first production Clippy cohort for private #847. Keep
+  compatibility receivers test-compiled, narrow source-verifier visibility, and
+  fund the diagnostic-prefix/body-owner context before formation. Focused
+  compiled and runtime qualification remain pending.
 - Private #847 propagates byte-only source stops with their exact diagnostic
   prefix through the actual owner route. A prepaid fixed abort slot retains
   refusal ownership without allocating after refusal; specialization views are

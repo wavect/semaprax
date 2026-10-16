@@ -59,6 +59,7 @@ pub(super) fn signature(
     ))
 }
 
+#[cfg(test)]
 pub(super) fn reserved_function(function: &crate::ast::Function) -> bool {
     crate::vec_ops::by_name(&function.name).is_some()
         || function.name == crate::vec_field::NAME

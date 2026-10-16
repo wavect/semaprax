@@ -65,7 +65,7 @@ pub(super) fn origin_ref<'p>(
     current: &FunctionRef<'p>,
 ) -> Option<SignatureOrigin<'p>> {
     // Ordinary, un-specialized bodies already use their own exact environment.
-    if template.same_presentation(&current) {
+    if template.same_presentation(current) {
         return None;
     }
     if !template.same_alias_cell(current)
@@ -104,6 +104,7 @@ pub(super) fn origin_ref<'p>(
 }
 
 impl<'p> SignatureOrigin<'p> {
+    #[cfg(test)]
     pub(in crate::source_verify) fn return_refusal(
         &self,
         program: &dyn ProgramSource,
@@ -172,6 +173,7 @@ impl<'p> SignatureOrigin<'p> {
             })
     }
 
+    #[cfg(test)]
     pub(in crate::source_verify) fn template_for(
         &self,
         program: &dyn ProgramSource,

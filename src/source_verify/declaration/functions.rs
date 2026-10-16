@@ -227,7 +227,7 @@ pub(super) fn check_function_declarations<'p>(
             continue;
         }
         if crate::box_ops::wrapper_by_id(&function.payload().stable_id).is_some()
-            && crate::box_ops::source_wrapper_ref(program, &*function).is_none()
+            && crate::box_ops::source_wrapper_ref(program, function).is_none()
         {
             diagnostics.push(error(
                 program,
@@ -242,7 +242,7 @@ pub(super) fn check_function_declarations<'p>(
             continue;
         }
         if crate::vec_ops::wrapper_by_id(&function.payload().stable_id).is_some()
-            && crate::vec_ops::source_wrapper_ref(program, &*function).is_none()
+            && crate::vec_ops::source_wrapper_ref(program, function).is_none()
         {
             diagnostics.push(error(
                 program,
@@ -257,9 +257,9 @@ pub(super) fn check_function_declarations<'p>(
             continue;
         }
         if !function.payload().type_parameters.is_empty() {
-            let transparent_vec_wrapper = crate::vec_ops::source_wrapper_ref(program, &*function);
-            let transparent_box_wrapper = crate::box_ops::source_wrapper_ref(program, &*function);
-            if crate::vec_ops::is_source_candidate_ref(program, &*function)
+            let transparent_vec_wrapper = crate::vec_ops::source_wrapper_ref(program, function);
+            let transparent_box_wrapper = crate::box_ops::source_wrapper_ref(program, function);
+            if crate::vec_ops::is_source_candidate_ref(program, function)
                 && transparent_vec_wrapper.is_none()
             {
                 diagnostics.push(error(
@@ -277,7 +277,7 @@ pub(super) fn check_function_declarations<'p>(
             if transparent_vec_wrapper.is_some() {
                 continue;
             }
-            if crate::box_ops::is_source_candidate_ref(program, &*function)
+            if crate::box_ops::is_source_candidate_ref(program, function)
                 && transparent_box_wrapper.is_none()
             {
                 diagnostics.push(error(
@@ -499,10 +499,10 @@ pub(super) fn check_generic_function_cycles_with_types<'p>(
         {
             check_omitted_generic_mappings(
                 program,
-                &function,
+                function,
                 expression,
                 &mut bindings,
-                &functions,
+                functions,
                 types,
                 diagnostics,
                 0,
@@ -633,7 +633,7 @@ fn check_omitted_generic_mappings(
                 return;
             }
             let inferred = crate::source_verify::generic_inference::arguments_ref(
-                program, &current, &target, args, bindings, functions, types,
+                program, current, &target, args, bindings, functions, types,
             );
             if !inferred.as_ref().is_some_and(|arguments| {
                 generic_function_arguments_are_forwarded(
@@ -675,7 +675,7 @@ fn check_omitted_generic_mappings(
                         );
                         let ty = declared.clone().or_else(|| {
                             crate::source_verify::generic_inference::expression_type_ref(
-                                program, &current, value, &scope, functions, types,
+                                program, current, value, &scope, functions, types,
                             )
                         });
                         scope.remove(name);
@@ -1002,10 +1002,13 @@ pub(super) fn check_function_bodies<'p>(
     functions: &crate::source_verify::function_map::FunctionMap<'p>,
     import_keys: &HashMap<&'p str, (&'p InterfaceDeclaration, &'p ImportDeclaration)>,
     types: &TypeTable<'p>,
-    diagnostics: &mut Vec<Diagnostic>,
     fused_producer: Option<&'p Expr>,
-    funding: &mut crate::source_verify::funding::SourceFunding<'_>,
+    output: crate::source_verify::funding::BodyOutput<'_, '_>,
 ) -> Result<(), crate::source_verify::funding::SourceStop> {
+    let crate::source_verify::funding::BodyOutput {
+        diagnostics,
+        funding,
+    } = output;
     let byte_helpers = crate::loop_calls::byte_writer::SourceIndex::new(program);
     let function_value_targets =
         crate::source_verify::function_value_inventory::function_value_targets(program, functions);
@@ -1070,8 +1073,8 @@ pub(super) fn check_function_bodies<'p>(
                 .collect::<HashSet<_>>()
                 .len()
                 == template.payload().type_parameters.len();
-        let transparent_vec_wrapper = crate::vec_ops::source_wrapper_ref(program, &template);
-        let transparent_box_wrapper = crate::box_ops::source_wrapper_ref(program, &template);
+        let transparent_vec_wrapper = crate::vec_ops::source_wrapper_ref(program, template);
+        let transparent_box_wrapper = crate::box_ops::source_wrapper_ref(program, template);
         let specializations: std::borrow::Cow<'_, [Function]> =
             if template.payload().type_parameters.is_empty()
                 || transparent_vec_wrapper.is_some()

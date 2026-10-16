@@ -117,6 +117,7 @@ impl<'p> Recovery<'p> {
     }
 
     // Begin exact producer-origin parameter receiver.
+    #[cfg(test)]
     pub(super) fn signature_origin(
         program: &'p dyn crate::ast::program_source::ProgramSource,
         current: &'p Function,

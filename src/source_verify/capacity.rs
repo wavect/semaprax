@@ -7,7 +7,9 @@ mod functions;
 mod fused_selection;
 pub(super) use functions::source_array_payload;
 pub(crate) use functions::source_capacity_functions;
-pub(super) use fused_selection::{verify_selected_capacity, verify_selected_capacity_with_cells};
+#[cfg(test)]
+pub(super) use fused_selection::verify_selected_capacity;
+pub(super) use fused_selection::verify_selected_capacity_with_cells;
 pub(super) struct SourceCapacityContext<'a> {
     pub(super) program: &'a dyn ProgramSource,
     pub(super) types: &'a TypeTable<'a>,

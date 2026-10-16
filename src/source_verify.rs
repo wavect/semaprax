@@ -32,13 +32,15 @@ mod binding;
 pub(crate) mod borrowed_closure;
 mod byte_traversal;
 mod capacity;
-pub(crate) mod funding;
 pub(crate) mod closure;
 mod contract_owners;
 mod declaration;
 mod function_map;
+pub(crate) mod funding;
 pub(crate) use capacity::source_capacity_functions as function_cells;
-pub(crate) use declaration::{verify_presenting_with_cells, verify_presenting_with_cells_funded};
+#[cfg(test)]
+pub(crate) use declaration::verify_presenting_with_cells;
+pub(crate) use declaration::verify_presenting_with_cells_funded;
 mod declared_type;
 pub(crate) use declared_type::copy_record_collection::declaration_admitted as copy_record_declaration_admitted;
 pub(crate) use declared_type::owned_leaf_collection::declaration_admitted as owned_leaf_declaration_admitted;
@@ -240,6 +242,7 @@ struct IterativeVerifier<'a, 'v, 'p> {
 /// this file.
 impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     #[allow(clippy::too_many_arguments)]
+    #[cfg(test)]
     fn new(
         program: &'p dyn ProgramSource,
         current: &'v FunctionRef<'p>,

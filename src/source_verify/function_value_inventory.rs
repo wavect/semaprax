@@ -21,7 +21,7 @@ enum Binding {
 
 type Scope<'a> = HashMap<&'a str, Binding>;
 
-pub(crate) fn function_value_targets(
+pub(in crate::source_verify) fn function_value_targets(
     program: &dyn ProgramSource,
     functions: &crate::source_verify::function_map::FunctionMap<'_>,
 ) -> BTreeSet<String> {
@@ -47,7 +47,7 @@ pub(crate) fn function_value_targets(
     targets
 }
 
-pub(crate) fn calls(
+pub(in crate::source_verify) fn calls(
     function: &Function,
     functions: &crate::source_verify::function_map::FunctionMap<'_>,
     universe: &BTreeSet<String>,

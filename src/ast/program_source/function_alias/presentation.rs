@@ -14,6 +14,7 @@ impl Function {
     pub(crate) fn payload(&self) -> &Self {
         self
     }
+    #[cfg(test)]
     pub(crate) fn name(&self) -> &str {
         &self.name
     }

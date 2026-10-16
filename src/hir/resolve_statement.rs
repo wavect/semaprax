@@ -395,7 +395,7 @@ impl Resolver<'_, '_> {
                         .source_functions()
                         .find(|function| function.name() == name.as_str());
                     if let Some(declared) = declared {
-                        let scalar_signature = self.byte_helpers.target_ref(&declared)
+                        let scalar_signature = self.byte_helpers.target_ref(declared)
                             || crate::stdin_stream_ops::ast_forward_signature(declared.payload())
                             || (crate::loop_calls::effects_admitted(&declared.payload().effects)
                                 && crate::loop_calls::ast_result_admitted(

@@ -40,6 +40,21 @@ pub(crate) struct SourceFunding<'o> {
     first: Option<SourceStop>,
     abort: Option<SourceAbort>,
 }
+/// A body pass owns one diagnostic prefix and the byte authority that can
+/// refuse its next receiver. Keep them together across the body-call boundary.
+pub(in crate::source_verify) struct BodyOutput<'s, 'o> {
+    pub(in crate::source_verify) diagnostics: &'s mut Vec<Diagnostic>,
+    pub(in crate::source_verify) funding: &'s mut SourceFunding<'o>,
+}
+impl BodyOutput<'_, '_> {
+    /// Literal, parameter, destructured references, and the preflight's own
+    /// borrowed owner/result/refusal receivers. No old bill is refunded.
+    pub(in crate::source_verify) const RECEIVING_BYTES: usize = 2 * size_of::<Self>()
+        + size_of::<&mut Vec<Diagnostic>>()
+        + 2 * size_of::<&mut SourceFunding<'_>>()
+        + size_of::<Result<(), SourceStop>>()
+        + size_of::<SourceStop>();
+}
 impl<'o> SourceFunding<'o> {
     fn bridge_bytes() -> usize {
         size_of::<Self>()

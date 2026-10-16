@@ -7,7 +7,9 @@ use super::declared_type::{
 };
 use super::type_table::TypeTable;
 use crate::ast::program_source::{FunctionRef, ProgramSource};
-use crate::ast::{BinaryOp, Expr, ExprKind, Function, Type, UnaryOp};
+#[cfg(test)]
+use crate::ast::Function;
+use crate::ast::{BinaryOp, Expr, ExprKind, Type, UnaryOp};
 use std::collections::HashMap;
 
 const MAX_EVIDENCE_DEPTH: usize = 128;
@@ -314,12 +316,13 @@ fn generic_arguments_are_admitted(
 ) -> bool {
     generic_function_arguments_are_admitted(target.payload(), arguments, types)
         || generic_function_arguments_are_forwarded(current.payload(), target.payload(), arguments)
-        || crate::vec_ops::source_arguments_are_admitted_ref(program, &target, arguments)
-        || crate::box_ops::source_arguments_are_admitted_ref(program, &target, arguments)
+        || crate::vec_ops::source_arguments_are_admitted_ref(program, target, arguments)
+        || crate::box_ops::source_arguments_are_admitted_ref(program, target, arguments)
 }
 
 // Ordinary callers retain their AST input contracts; live projected callers
 // use the explicit siblings above and never erase an alias before admission.
+#[cfg(test)]
 pub(super) fn arguments(
     program: &dyn ProgramSource,
     current: &Function,
@@ -339,6 +342,7 @@ pub(super) fn arguments(
         types,
     )
 }
+#[cfg(test)]
 pub(super) fn expression_type(
     program: &dyn ProgramSource,
     current: &Function,

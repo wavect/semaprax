@@ -374,6 +374,7 @@ impl<'a> SourceIndex<'a> {
 mod tests;
 
 pub(crate) trait SourceHelpers {
+    #[cfg(test)]
     fn target(&self, function: &Function) -> bool;
     fn target_ref(&self, function: &crate::ast::program_source::FunctionRef<'_>) -> bool;
     fn assignment(&self, binding: &str, value: &Expr) -> bool;
@@ -381,6 +382,7 @@ pub(crate) trait SourceHelpers {
     fn owned_capacity_bytes(&self) -> usize;
 }
 impl SourceHelpers for SourceIndex<'_> {
+    #[cfg(test)]
     fn target(&self, function: &Function) -> bool {
         self.target(function)
     }

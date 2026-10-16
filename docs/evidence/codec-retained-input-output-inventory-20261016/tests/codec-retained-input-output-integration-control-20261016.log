@@ -1,0 +1,6 @@
+test_real_capture_context_accepts_both_plan_layouts_and_refuses_conflicting_tool_hashes (test_retained_codec_inventory.RetainedCodecInventoryTests.test_real_capture_context_accepts_both_plan_layouts_and_refuses_conflicting_tool_hashes) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.072s
+
+OK

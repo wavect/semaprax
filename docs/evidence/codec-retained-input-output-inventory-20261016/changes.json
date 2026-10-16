@@ -1,0 +1,85 @@
+{
+  "base": "039b15f6a2a5e81110fefdc607dccf3478bf9263",
+  "rows": [
+    {
+      "path": "benchmarks/compiler_input_capture.py",
+      "archive": "before/benchmarks__compiler_input_capture.py",
+      "before_sha256": "b269524c1dd188ed76e21ee7581ffc0b4d5cc9fa4bc5bb8839f337843c183bb6",
+      "replacements": [
+        {
+          "before": "        self.seen: set[str] = set()",
+          "after": "        self.request_receipts: list[dict[str, str]] = []\n        self.seen: set[str] = set()"
+        },
+        {
+          "before": "        _json(directory / \"receipt.json\", response, MAX_RECEIPT_BYTES)\n        return response",
+          "after": "        _json(directory / \"receipt.json\", response, MAX_RECEIPT_BYTES)\n        self.request_receipts.append({\"path\": identifier + \"/receipt.json\",\n            \"sha256\": provenance.digest(directory / \"receipt.json\")})\n        return response"
+        },
+        {
+          "before": "            \"requests_seen\": len(self.seen), \"retained_bytes\": self.retained_bytes,",
+          "after": "            \"requests_seen\": len(self.seen), \"retained_bytes\": self.retained_bytes,\n            \"request_receipts\": list(self.request_receipts),"
+        },
+        {
+          "before": "@contextlib.contextmanager\ndef _captured_compiler(",
+          "after": "def retained_file_inventories(summary: dict[str, Any], metadata: dict[str, Any] | None) -> dict[str, Any]:\n    \"\"\"Count complete retained files separately; never subtract mixed output.\"\"\"\n    import live_campaign_common as common  # runner only, never proxy dispatch\n    result: dict[str, Any] = {\"schema\": \"semaprax.retained-codec-file-inventories.v1\",\n        \"status\": \"unmeasured\" if metadata is None else \"measured_proxy\",\n        \"scope\": \"per-invocation selected original input and declared full mixed output files\",\n        \"tokenizer\": metadata, \"inventories\": [], \"input_closure_complete\": False,\n        \"exact_compiler_input_binding\": False, \"independent_execution_proof\": None,\n        \"repeat_output_sha256\": None, \"generated_source_classification\": None,\n        \"authored_token_subtraction\": None, \"cumulative_authored_tokens\": None,\n        \"ratio_eligible\": False, \"actual_billed_usd\": None, \"fixed_context_tokens\": None}\n    if metadata is not None:\n        common.require_authored_source_tokenizer({\"authored_source_tokenizer\": metadata})\n    evidence = Path(summary[\"path\"])\n    root_fd = os.open(evidence, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)\n    try:\n        for binding in summary[\"request_receipts\"]:\n            raw = provenance._snapshot_read(root_fd, binding[\"path\"], MAX_RECEIPT_BYTES)\n            if hashlib.sha256(raw).hexdigest() != binding[\"sha256\"]:\n                raise ValueError(\"retained request receipt differs from runner binding\")\n            receipt = json.loads(raw)\n            request = binding[\"path\"].split('/')[0]\n            if receipt.get(\"request\") != request or receipt.get(\"compiler\") != summary[\"compiler\"]:\n                raise ValueError(\"retained request identity differs\")\n            for key, kind in ((\"selected_inputs\", \"original_selected_inputs\"),\n                              (\"declared_output_bytes\", \"declared_full_mixed_output\")):\n                if key not in receipt:\n                    continue\n                snapshot = receipt[key]\n                relative = provenance._relative(Path(snapshot[\"receipt\"]).relative_to(evidence).as_posix(), \"retained snapshot\")\n                expected = request + (\"/before/snapshot.json\" if key == \"selected_inputs\" else \"/after/snapshot.json\")\n                if relative != expected:\n                    raise ValueError(\"retained snapshot is outside its named request\")\n                snapshot_path = evidence / relative\n                files = provenance.validate_input_snapshot(snapshot_path, snapshot[\"sha256\"])\n                if files != snapshot[\"files\"]:\n                    raise ValueError(\"retained snapshot file selection differs\")\n                texts = []\n                measured = []\n                for file in files:\n                    source = provenance._snapshot_read(root_fd, str(Path(relative).parent / 'inputs' / file[\"path\"]), MAX_SELECTION_BYTES)\n                    if len(source) != file[\"bytes\"] or hashlib.sha256(source).hexdigest() != file[\"sha256\"]:\n                        raise ValueError(\"tokenized retained bytes differ from authenticated snapshot\")\n                    texts.append({\"path\": file[\"path\"], \"content\": source.decode('utf-8')})\n                    measured.append(dict(file))\n                counts = common.tokenize_texts(texts, metadata) if metadata is not None else [None] * len(files)\n                if len(counts) != len(files) or (metadata is not None and any(type(c) is not int or c < 0 for c in counts)):\n                    raise ValueError(\"retained inventory tokenizer returned invalid counts\")\n                for file, count in zip(measured, counts):\n                    file[\"tokens\"] = count\n                result[\"inventories\"].append({\"request\": request, \"start_request\": receipt.get(\"start\", request),\n                    \"kind\": kind, \"snapshot_receipt\": relative, \"snapshot_sha256\": snapshot[\"sha256\"],\n                    \"files\": measured, \"full_file_proxy_tokens\": sum(counts) if metadata is not None else None})\n    finally:\n        os.close(root_fd)\n    if not result[\"inventories\"]:\n        result[\"status\"] = \"no_retained_snapshots\"\n    return result\n\n\n@contextlib.contextmanager\ndef _captured_compiler("
+        },
+        {
+          "before": "        row[\"compiler_input_retention\"] = broker.finish()\n        try:",
+          "after": "        row[\"compiler_input_retention\"] = broker.finish()\n        try:\n            row[\"retained_compiler_file_inventories\"] = retained_file_inventories(\n                row[\"compiler_input_retention\"], settings.get(\"authored_source_tokenizer\"))\n        except (OSError, ValueError, KeyError, RuntimeError, UnicodeError, subprocess.SubprocessError) as error:\n            row[\"retained_compiler_file_inventories\"] = {\"status\": \"measurement_failed\",\n                \"error\": str(error)[:1024], \"inventories\": [], \"input_closure_complete\": False,\n                \"authored_token_subtraction\": None, \"generated_source_classification\": None,\n                \"ratio_eligible\": False}\n        try:"
+        },
+        {
+          "before": "    try:\n        for binding in summary[\"request_receipts\"]:\n            raw = provenance._snapshot_read(root_fd, binding[\"path\"], MAX_RECEIPT_BYTES)\n            if hashlib.sha256(raw).hexdigest() != binding[\"sha256\"]:\n",
+          "after": "    try:\n        bindings = summary[\"request_receipts\"]\n        if not isinstance(bindings, list) or len(bindings) > MAX_REQUESTS:\n            raise ValueError(\"retained receipt selection exceeds capture budget\")\n        seen = set()\n        starts = set()\n        for binding in bindings:\n            path = provenance._relative(binding[\"path\"], \"retained request receipt\")\n            request = path.split('/')[0]\n            if (path != request + '/receipt.json' or len(request) != 32\n                    or any(c not in '0123456789abcdef' for c in request) or path in seen):\n                raise ValueError(\"retained receipt request selection differs\")\n            seen.add(path)\n            raw = provenance._snapshot_read(root_fd, path, MAX_RECEIPT_BYTES)\n            if len(raw) > MAX_RECEIPT_BYTES or hashlib.sha256(raw).hexdigest() != binding[\"sha256\"]:\n"
+        },
+        {
+          "before": "                snapshot = receipt[key]\n                relative = provenance._relative",
+          "after": "                if key == \"selected_inputs\":\n                    starts.add(request)\n                elif receipt.get(\"start\") not in starts:\n                    raise ValueError(\"declared output has no retained original input request\")\n                else:\n                    starts.remove(receipt[\"start\"])\n                snapshot = receipt[key]\n                relative = provenance._relative"
+        },
+        {
+          "before": "                    \"kind\": kind, \"snapshot_receipt\": relative, \"snapshot_sha256\": snapshot[\"sha256\"],",
+          "after": "                    \"request_receipt_sha256\": binding[\"sha256\"],\n                    \"kind\": kind, \"snapshot_receipt\": relative, \"snapshot_sha256\": snapshot[\"sha256\"],"
+        },
+        {
+          "before": "        if settings.get(\"harness_source_files_sha256\", {}).get(\"benchmarks/\" + name) != digest:\n            raise ValueError(\"compiler capture tool differs from immutable harness plan\")",
+          "after": "        snapshot = settings.get(\"harness_source_snapshot\")\n        if snapshot is not None and not isinstance(snapshot, dict):\n            raise ValueError(\"compiler capture harness snapshot is malformed\")\n        inventories = [settings.get(\"harness_source_files_sha256\"),\n                       snapshot.get(\"files_sha256\") if snapshot is not None else None]\n        supplied = [inventory for inventory in inventories if inventory is not None]\n        if (not supplied or any(not isinstance(inventory, dict)\n                or inventory.get(\"benchmarks/\" + name) != digest for inventory in supplied)):\n            raise ValueError(\"compiler capture tool differs from immutable harness plan\")"
+        }
+      ],
+      "current_sha256": "903cc3559da25fe56353070a964e8c42b21f5e552505bcd5c30034ddef20b1a9"
+    },
+    {
+      "path": "benchmarks/cli-tokens-v1/codex_report.py",
+      "archive": "before/benchmarks__cli-tokens-v1__codex_report.py",
+      "before_sha256": "77902375a9d4d0f94fd5d95dd62fc086623ebc540ee1e8d5fa6193ad6aed682b",
+      "replacements": [
+        {
+          "before": "            'arm': original['arm'], 'number': original['number'], 'status': original['status'],",
+          "after": "            'arm': original['arm'], 'number': original['number'], 'status': original['status'],\n            'retained_compiler_file_inventories': original.get('retained_compiler_file_inventories'),"
+        }
+      ],
+      "current_sha256": "de6476f10cfb70f00d7a7a0d9dcdd3499041d0f6605fdeb1c03cbfcf2c23ce7b"
+    },
+    {
+      "path": "benchmarks/event-sim-tokens-v1/codex_report.py",
+      "archive": "before/benchmarks__event-sim-tokens-v1__codex_report.py",
+      "before_sha256": "b5b6a4123a1886f414d86c7ad53885e741aaf62f831d9d347dc4822d5c39254c",
+      "replacements": [
+        {
+          "before": "        \"arm\": original.get(\"arm\"),",
+          "after": "        \"retained_compiler_file_inventories\": original.get(\"retained_compiler_file_inventories\"),\n        \"arm\": original.get(\"arm\"),"
+        }
+      ],
+      "current_sha256": "9bfd2b9e1066d2cbe3ff37b9a68c94b53b5033c1813aa2acdea7aba2419bc3ab"
+    },
+    {
+      "path": "benchmarks/webapp-tokens-v2/codex_campaign.py",
+      "archive": "before/benchmarks__webapp-tokens-v2__codex_campaign.py",
+      "before_sha256": "8e57f900e68101a163f2a791788c167ef1f8420404908352d1792a8b81b34878",
+      "replacements": [
+        {
+          "before": "        \"accepted_attempts\": accepted,",
+          "after": "        \"retained_compiler_file_inventories_per_attempt\": [row.get(\"retained_compiler_file_inventories\") for row in rows],\n        \"accepted_attempts\": accepted,"
+        }
+      ],
+      "current_sha256": "006aa13077cdcb6916d40a20565d84dd12d95686d8f27646eea95a2eb1894ff3"
+    }
+  ]
+}

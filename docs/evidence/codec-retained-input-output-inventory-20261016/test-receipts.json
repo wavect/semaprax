@@ -1,0 +1,45 @@
+{
+  "provider_calls": false,
+  "Cargo": false,
+  "live_benchmark": false,
+  "full_Python_suite": false,
+  "total": 44,
+  "groups": [
+    {
+      "path": "tests/codec-retained-input-output-new-controls-20261016.log",
+      "sha256": "f946aa91b97314dde9ac236d00d8ff2e3dd5966d377bd86b8f5a0f0a2d0bae68",
+      "tests": 6,
+      "status": "PASS_OFFLINE"
+    },
+    {
+      "path": "tests/codec-retained-input-output-integration-control-20261016.log",
+      "sha256": "b38ead7f490eccc00f76f807d142831fa2fef87809dfdc0d4069506f0470bb47",
+      "tests": 1,
+      "status": "PASS_OFFLINE"
+    },
+    {
+      "path": "tests/cli-report.log",
+      "sha256": "6ac754ebaf5a6cfe126fd63f26f627674b7f33aeb239cf6b85f440503dc9bf9a",
+      "tests": 7,
+      "status": "PASS_OFFLINE"
+    },
+    {
+      "path": "tests/old-capture-provenance.log",
+      "sha256": "955b4fd6f7be7201d93b819ad86131f4d3a830e3691be61debdccc8fac263071",
+      "tests": 21,
+      "status": "PASS_OFFLINE"
+    },
+    {
+      "path": "tests/shift-report.log",
+      "sha256": "aa8d9caa0273902646411a2790ba417e862f025596f33098466c8313980d3424",
+      "tests": 7,
+      "status": "PASS_OFFLINE"
+    },
+    {
+      "path": "tests/web-summary.log",
+      "sha256": "d28dc541e999f5e085a52b261d148f4415a6b8e792c33f6c113c10e0d2477e88",
+      "tests": 2,
+      "status": "PASS_OFFLINE"
+    }
+  ]
+}

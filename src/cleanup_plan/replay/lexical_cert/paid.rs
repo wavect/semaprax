@@ -15,6 +15,7 @@ use crate::cleanup_plan::replay::selected_context::child::{
 };
 type Error = crate::cleanup_plan::replay::expression_facts::errors::EngineError;
 pub(in crate::cleanup_plan::replay) mod storage;
+pub(in crate::cleanup_plan::replay) mod chains;
 macro_rules! required {
     ($permit:ident,$value:expr,$reason:ident) => {
         match $value {
@@ -332,7 +333,7 @@ pub(in crate::cleanup_plan::replay) fn authenticate(
                 };
                 if target != &certificate.target
                     || !route_ok
-                    || !storage::chain_contains(function, exit.from, lp.region, budget.selected())?
+                    || !crate::cleanup_plan::replay::lexical_cert::paid::chains::contains!(permit,function,exit.from,lp.region,budget.selected())
                 {
                     return Err(permit.refuse(Refusal::Certificate(
                         CertificateRefusal::LoopBreakExitDisagreesWithItsLoopJoin,
@@ -846,13 +847,12 @@ fn validate_normal_ends(
                             .ensures
                             .iter()
                             .any(|clause| clause.id == source.expression)
-                        && crate::cleanup_plan::replay::lexical_cert::storage::chain_contains(
+                        && crate::cleanup_plan::replay::lexical_cert::paid::chains::contains_or_false!(
                             function,
                             exit.from,
                             plan.blocks[failure.from.0 as usize].region,
                             budget.selected(),
                         )
-                        .unwrap_or(false)
                 });
                 if !is_return(entry)
                     || !typed_ensures_scope
@@ -881,8 +881,8 @@ fn validate_normal_ends(
         }
         for edge in &plan.edges {
             if domains[edge.from.0 as usize].is_none()
-                && storage::chain_contains(function, edge.from, region.id, budget.selected())?
-                && !storage::chain_contains(function, edge.to, region.id, budget.selected())?
+                && crate::cleanup_plan::replay::lexical_cert::paid::chains::contains!(permit,function,edge.from,region.id,budget.selected())
+                && !crate::cleanup_plan::replay::lexical_cert::paid::chains::contains!(permit,function,edge.to,region.id,budget.selected())
                 && !lexical_edges.contains(&edge.id)
             {
                 return Err(permit.refuse(Refusal::Certificate(

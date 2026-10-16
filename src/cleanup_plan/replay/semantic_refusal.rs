@@ -161,7 +161,7 @@ impl Receipt {
         &self.source
     }
 }
-pub(super) trait Error: From<Diagnostic> {
+pub(super) trait Error: From<Diagnostic> + lexical_boundary::Policy {
     fn structural(function: &ResolvedFunction, atom: Atom) -> Self;
 }
 impl Error for Diagnostic {

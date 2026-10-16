@@ -11,6 +11,7 @@ pub(crate) enum Refusal {
     Certificate(super::certificate_refusal::CertificateRefusal),
     Boundary(super::boundary_refusal::BoundaryRefusal),
     TypeDrop(super::type_drop_refusal::TypeDropRefusal),
+    PathBoundary(super::path_boundary_refusal::PathBoundaryRefusal),
     LexicalDepth,
     RenewalCensus,
     HelperCensus,
@@ -29,6 +30,7 @@ impl Refusal {
             Self::Certificate(reason) => reason.detail(),
             Self::Boundary(reason) => reason.detail(),
             Self::TypeDrop(reason) => reason.detail(),
+            Self::PathBoundary(reason) => reason.detail(),
             Self::LexicalDepth => "lexical control scan exceeds admitted expression depth",
             Self::RenewalCensus => "selected primitive renewal census refused",
             Self::HelperCensus => {
@@ -43,7 +45,7 @@ impl Refusal {
         match self {
             Self::Profile(reason) => reason.prefixed(),
             Self::TypeDrop(_) => false,
-            Self::ReferenceCoverage(_) | Self::Structural(_) | Self::Status(_) | Self::Scalar(_) | Self::Certificate(_) | Self::Boundary(_) => true,
+            Self::ReferenceCoverage(_) | Self::Structural(_) | Self::Status(_) | Self::Scalar(_) | Self::Certificate(_) | Self::Boundary(_) | Self::PathBoundary(_) => true,
             _ => matches!(self, Self::RenewalWork | Self::LostPhysical),
         }
     }

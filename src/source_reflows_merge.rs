@@ -735,6 +735,8 @@ pub(crate) fn bulk848_arm_input(source: &str, current: &str) -> String {
 
 // Main's compiled test corpus keeps every original source-domain check.
 fn main_dd0_previous(source: &str, current: &str) -> String {
+    let main65 = main65_previous(source, current);
+    let current = main65.as_str();
     let cursor = cursor_clippy_input(source, current);
     let current = cursor.as_str();
     let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);
@@ -757,6 +759,8 @@ fn main_dd0_previous(source: &str, current: &str) -> String {
 
 // New owner and inherited domains remain independent; all old tables stay exact.
 pub(crate) fn arena854_input(source: &str, current: &str) -> String {
+    let main65 = main65_previous(source, current);
+    let current = main65.as_str();
     let cursor = cursor_clippy_input(source, current);
     let current = cursor.as_str();
     let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);
@@ -781,6 +785,8 @@ pub(crate) fn arena854_previous(source: &str, current: &str) -> String {
 
 // The complete twelve-row Main receiver has an independent scoped input.
 pub(crate) fn main7c6_input(source: &str, current: &str) -> String {
+    let main65 = main65_previous(source, current);
+    let current = main65.as_str();
     let cursor = cursor_clippy_input(source, current);
     let current = cursor.as_str();
     let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);
@@ -797,6 +803,8 @@ pub(crate) fn main7c6_input(source: &str, current: &str) -> String {
 
 // Independent complete Main-afba receiver scope.
 pub(crate) fn main_afba_input(source: &str, current: &str) -> String {
+    let main65 = main65_previous(source, current);
+    let current = main65.as_str();
     let cursor = cursor_clippy_input(source, current);
     let current = cursor.as_str();
     let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);
@@ -809,6 +817,8 @@ pub(crate) fn main_afba_input(source: &str, current: &str) -> String {
 }
 
 pub(crate) fn main_f1_input(source: &str, current: &str) -> String {
+    let main65 = main65_previous(source, current);
+    let current = main65.as_str();
     let cursor = cursor_clippy_input(source, current);
     let current = cursor.as_str();
     let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);
@@ -820,6 +830,8 @@ pub(crate) fn main_f1_input(source: &str, current: &str) -> String {
 
 // Updated Main24 inputs are independent of every inherited predecessor domain.
 pub(crate) fn main24_input(source: &str, current: &str) -> String {
+    let main65 = main65_previous(source, current);
+    let current = main65.as_str();
     let cursor = cursor_clippy_input(source, current);
     let current = cursor.as_str();
     release_custody::input(release_custody::Fixture::Main24, source, current)
@@ -847,6 +859,30 @@ fn cursor_clippy_input(source: &str, current: &str) -> String {
         include_str!(
             "../docs/evidence/prepaid-canonical-cursor-clippy-20261016/current-to-f766.json"
         ),
+        source,
+        current,
+    )
+}
+
+// Exact whole-source Main65 merge front; independent historical stages receive75d8.
+fn main65_previous(source: &str, current: &str) -> String {
+    const KEYS: &[&str] = &[
+        "CHANGELOG.md",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "docs/SUMMARY.md",
+        "src/cleanup_plan/replay.rs",
+        "src/source_reflows_merge.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/wasm/scalar_browser_ci_contract.rs",
+        "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+        "tests/workspace/semantic_graph.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs",
+    ];
+    if KEYS.binary_search(&source).is_err() {
+        return current.to_owned();
+    }
+    project(
+        include_str!("../docs/evidence/main65-private-merge-20261016/current-to-75d8.json"),
         source,
         current,
     )

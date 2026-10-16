@@ -46,8 +46,8 @@
   },
   {
     "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs",
-    "sha256": "b42b3363514e172d1440c0fcdce683cd81dc1a990e7d55876f444fb1e5925cf6",
-    "lines": 165
+    "sha256": "298f260bcc976992d15d79d67d006729bd79bdf281413f41cced76fd55e78c18",
+    "lines": 222
   },
   {
     "source": "tests/wasm/scalar_browser_ci_contract/before_c11.rs",

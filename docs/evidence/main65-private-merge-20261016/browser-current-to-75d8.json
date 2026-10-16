@@ -1,0 +1,13 @@
+[
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract.rs",
+    "current_sha256": "ebcde25e9986a0230a54cdf6d75e7b0443282782e55e71778a25aadc0e3ba66e",
+    "original_sha256": "0566bc0f16072083d485cdfe86385d6e1c9613ba426a28278d0aa03708f0dccc",
+    "edits": [
+      {
+        "new": "        );\n    }\n}\n\n// Complete independent Main c11 hosted-wire receiver; live pins remain actual83ca.\n#[path = \"scalar_browser_ci_contract/historical_main_c11.rs\"]\nmod main_c11;\n",
+        "old": "        );\n    }\n}\n"
+      }
+    ]
+  }
+]

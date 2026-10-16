@@ -3,8 +3,8 @@ use sha2::{Digest, Sha256};
 #[path = "../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
 mod reader;
 // Only these NEW endpoint spec constants are generated after the final Rust fixes.
-const ENDPOINT_LENGTH: usize = 646003;
-const ENDPOINT_SHA256: &str = "09b6663692b9ab9118a2622eee9f30a927a7f6e3de50367305314eab36c8a286";
+const ENDPOINT_LENGTH: usize = 646446;
+const ENDPOINT_SHA256: &str = "ba88bc9f7766f2e0ae848ecc3400b3c20eb787d8750a94aa0e1713a14d041ca2";
 const PREFIX: &str = "docs/evidence/final-ready-outer-joins-20261017";
 #[derive(Clone, Copy)]
 enum Domain {

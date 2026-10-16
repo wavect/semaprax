@@ -32,9 +32,17 @@
   },
   {
     "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs",
-    "current_sha256": "73b0bb64d9205a31dbbe55fcf4651441b4d1745e7a10c9614b3292d978fd4bef",
+    "current_sha256": "a75c86aeb4a3e36f43e6ab963f6ff5357b8f9694c34250df32627a6ac513975b",
     "original_sha256": "073e417ad1f67742652e880a6a153bcea530981b50e60a7d2a0b9b093622a247",
     "edits": [
+      {
+        "new": "use super::super::name_equal::construct_transient;\n",
+        "old": ""
+      },
+      {
+        "new": "pub(in crate::workspace_graph::expected_projection::borrowed_imports::typed) fn observe_owned_push()\n{\n",
+        "old": "pub(super) fn observe_owned_push() {\n"
+      },
       {
         "new": "    let current = crate::source_reflows_merge::maina3_847_input(source, current);\n",
         "old": ""

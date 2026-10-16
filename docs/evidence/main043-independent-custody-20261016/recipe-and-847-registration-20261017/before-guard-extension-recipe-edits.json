@@ -1,0 +1,22 @@
+[
+  {
+    "before": "import argparse, copy, hashlib, json, re, subprocess",
+    "after": "import argparse, copy, hashlib, json, re, subprocess, runpy"
+  },
+  {
+    "before": " original=git(A,path);new_lines=source.splitlines(True)\n for line in list(new_lines):\n  if line.startswith('include_str!(\"') and line not in original:new_lines.remove(line)\n assert ''.join(new_lines)==original,('original raw guard changed',path)",
+    "after": " original=git(A,path)\n extension=runpy.run_path(str(R/D/'guard-extensions.py'))\n extension['verify_guard'](path,source,original,a.write_endpoints)"
+  },
+  {
+    "before": "assert bindings['verification_script_sha256']==sha(Path(__file__).read_text()),'verifier source drift'",
+    "after": "extension=runpy.run_path(str(R/D/'guard-extensions.py'));extension['verify_recipe']()\nassert bindings['verification_script_sha256']==sha(read(D+'/guard-extension-original/verify-or-refresh.py')),'original verifier source drift'\nif a.write_endpoints:bindings['guard_extension_verifier_sha256']=sha(Path(__file__).read_text())\nelse:assert bindings['guard_extension_verifier_sha256']==sha(Path(__file__).read_text()),'extended verifier source drift'"
+  },
+  {
+    "before": "# Exact original guard text is retained by removing only new include lines.",
+    "after": "# Exact original guard text is retained after authenticated additive include fragments."
+  },
+  {
+    "before": "for path in ['.github/workflows/ci.yml','scripts/ci-low-stack-trace.py','scripts/tests/test_ci_low_stack_trace.py']:\n assert read(path)==git(M,path),('incoming CI bytes',path)",
+    "after": "for path in ['.github/workflows/ci.yml','scripts/ci-low-stack-trace.py','scripts/tests/test_ci_low_stack_trace.py']:\n assert read(path)==git('b4523cc7c46de19287a1675a3482416d860d4976',path),('reviewed latest-main CI bytes',path)"
+  }
+]

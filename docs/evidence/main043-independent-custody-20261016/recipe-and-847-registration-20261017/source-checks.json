@@ -1,0 +1,77 @@
+{
+  "status": "PASS_SOURCE_ONLY_RECIPE_AND_EXACT_LITERAL_METADATA",
+  "root_head": "a0979a370d6abc2d7d4dd1938eac42d797abf7c3",
+  "root_working_tree": "partial Main8a/043 endpoints retained; raw captures only",
+  "a2_added_SRC_count": 13,
+  "all_original_metadata_retained": true,
+  "all_original_recipe_edits_retained": true,
+  "complete_extended_verifier_reconstruction": true,
+  "original_verifier_sha256": "b8b72537f880da2655f102002275dbe0c5a7eb0aee72982eae017204d15266c7",
+  "inventories": [
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "raw_sha256": "4035569ab4338dbf174988b6cda7b7c649857be3262cbc1524ea4af38f3203a9",
+      "original_sha256": "959eaf830896619186a6c75d707a8bd1e41d123563f7bb04ced26ea947f4de78",
+      "added_required_max1": [
+        "src/ast/program_source/function_alias/presentation.rs",
+        "src/ast/program_source/function_alias/presentation/metadata.rs",
+        "src/ast/program_source/function_alias/presentation/metadata/tests.rs",
+        "src/bounded_output/identity_reservation/function_cells.rs",
+        "src/bounded_output/identity_reservation/source_abort.rs",
+        "src/source_verify/declaration/functions/funding_tests.rs",
+        "src/source_verify/declaration/functions/generic_cycle_compat.rs",
+        "src/source_verify/function_map.rs",
+        "src/source_verify/function_map/tests.rs",
+        "src/source_verify/funding.rs",
+        "src/source_verify/funding/tests.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs"
+      ],
+      "all_added_tokens_allowed": true
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "raw_sha256": "4fcef1a7ffb231ff1b42995db0b4b85326c5fc44f91880e09a9a85c4effcc2c7",
+      "original_sha256": "7cee73c09e4a61b24480a7abf756c3fdf228d15a0f341a3cd0bc387b39fd6375",
+      "added_required_max1": [
+        "src/ast/program_source/function_alias/presentation.rs",
+        "src/ast/program_source/function_alias/presentation/metadata.rs",
+        "src/ast/program_source/function_alias/presentation/metadata/tests.rs",
+        "src/bounded_output/identity_reservation/function_cells.rs",
+        "src/bounded_output/identity_reservation/source_abort.rs",
+        "src/source_verify/declaration/functions/funding_tests.rs",
+        "src/source_verify/declaration/functions/generic_cycle_compat.rs",
+        "src/source_verify/function_map.rs",
+        "src/source_verify/function_map/tests.rs",
+        "src/source_verify/funding.rs",
+        "src/source_verify/funding/tests.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs"
+      ],
+      "all_added_tokens_allowed": true
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "raw_sha256": "905fb0a415c55487d695934712f4dfa185c1b097ab1c8dcd6b9413a9c1dad6ff",
+      "original_sha256": "4ce9be9127d201c440ba2725ff5e38cfbd89c9fd70f6809da0da82b4891c180c",
+      "added_required_max1": [
+        "src/ast/program_source/function_alias/presentation.rs",
+        "src/ast/program_source/function_alias/presentation/metadata.rs",
+        "src/ast/program_source/function_alias/presentation/metadata/tests.rs",
+        "src/bounded_output/identity_reservation/function_cells.rs",
+        "src/bounded_output/identity_reservation/source_abort.rs",
+        "src/source_verify/declaration/functions/funding_tests.rs",
+        "src/source_verify/declaration/functions/generic_cycle_compat.rs",
+        "src/source_verify/function_map.rs",
+        "src/source_verify/function_map/tests.rs",
+        "src/source_verify/funding.rs",
+        "src/source_verify/funding/tests.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs"
+      ],
+      "all_added_tokens_allowed": true
+    }
+  ],
+  "parser_edited": false,
+  "rust_or_generator_executed": false
+}

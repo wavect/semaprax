@@ -76,7 +76,20 @@
       "src/source_reflows_merge/main7f8_presence.rs": 1,
       "src/source_reflows_merge/main7f8_source_inputs.rs": 1,
       "src/cleanup_plan/replay/supplemental/receiving/tests/legacy.rs": 1,
-      "src/source_reflows_merge/final_ready_inputs.rs": 1
+      "src/source_reflows_merge/final_ready_inputs.rs": 1,
+      "src/ast/program_source/function_alias/presentation.rs": 1,
+      "src/ast/program_source/function_alias/presentation/metadata.rs": 1,
+      "src/ast/program_source/function_alias/presentation/metadata/tests.rs": 1,
+      "src/bounded_output/identity_reservation/function_cells.rs": 1,
+      "src/bounded_output/identity_reservation/source_abort.rs": 1,
+      "src/source_verify/declaration/functions/funding_tests.rs": 1,
+      "src/source_verify/declaration/functions/generic_cycle_compat.rs": 1,
+      "src/source_verify/function_map.rs": 1,
+      "src/source_verify/function_map/tests.rs": 1,
+      "src/source_verify/funding.rs": 1,
+      "src/source_verify/funding/tests.rs": 1,
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs": 1,
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -160,7 +173,20 @@
       "src/source_reflows_merge/main7f8_presence.rs": 1,
       "src/source_reflows_merge/main7f8_source_inputs.rs": 1,
       "src/cleanup_plan/replay/supplemental/receiving/tests/legacy.rs": 1,
-      "src/source_reflows_merge/final_ready_inputs.rs": 1
+      "src/source_reflows_merge/final_ready_inputs.rs": 1,
+      "src/ast/program_source/function_alias/presentation.rs": 1,
+      "src/ast/program_source/function_alias/presentation/metadata.rs": 1,
+      "src/ast/program_source/function_alias/presentation/metadata/tests.rs": 1,
+      "src/bounded_output/identity_reservation/function_cells.rs": 1,
+      "src/bounded_output/identity_reservation/source_abort.rs": 1,
+      "src/source_verify/declaration/functions/funding_tests.rs": 1,
+      "src/source_verify/declaration/functions/generic_cycle_compat.rs": 1,
+      "src/source_verify/function_map.rs": 1,
+      "src/source_verify/function_map/tests.rs": 1,
+      "src/source_verify/funding.rs": 1,
+      "src/source_verify/funding/tests.rs": 1,
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs": 1,
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs": 1
     }
   },
   "tests/workspace/semantic_graph/source_inventory.rs": {
@@ -275,7 +301,20 @@
       "src/source_reflows_merge/main7f8_presence.rs": 1,
       "src/source_reflows_merge/main7f8_source_inputs.rs": 1,
       "src/cleanup_plan/replay/supplemental/receiving/tests/legacy.rs": 1,
-      "src/source_reflows_merge/final_ready_inputs.rs": 1
+      "src/source_reflows_merge/final_ready_inputs.rs": 1,
+      "src/ast/program_source/function_alias/presentation.rs": 1,
+      "src/ast/program_source/function_alias/presentation/metadata.rs": 1,
+      "src/ast/program_source/function_alias/presentation/metadata/tests.rs": 1,
+      "src/bounded_output/identity_reservation/function_cells.rs": 1,
+      "src/bounded_output/identity_reservation/source_abort.rs": 1,
+      "src/source_verify/declaration/functions/funding_tests.rs": 1,
+      "src/source_verify/declaration/functions/generic_cycle_compat.rs": 1,
+      "src/source_verify/function_map.rs": 1,
+      "src/source_verify/function_map/tests.rs": 1,
+      "src/source_verify/funding.rs": 1,
+      "src/source_verify/funding/tests.rs": 1,
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs": 1,
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -388,7 +427,20 @@
       "src/source_reflows_merge/main7f8_presence.rs": 1,
       "src/source_reflows_merge/main7f8_source_inputs.rs": 1,
       "src/cleanup_plan/replay/supplemental/receiving/tests/legacy.rs": 1,
-      "src/source_reflows_merge/final_ready_inputs.rs": 1
+      "src/source_reflows_merge/final_ready_inputs.rs": 1,
+      "src/ast/program_source/function_alias/presentation.rs": 1,
+      "src/ast/program_source/function_alias/presentation/metadata.rs": 1,
+      "src/ast/program_source/function_alias/presentation/metadata/tests.rs": 1,
+      "src/bounded_output/identity_reservation/function_cells.rs": 1,
+      "src/bounded_output/identity_reservation/source_abort.rs": 1,
+      "src/source_verify/declaration/functions/funding_tests.rs": 1,
+      "src/source_verify/declaration/functions/generic_cycle_compat.rs": 1,
+      "src/source_verify/function_map.rs": 1,
+      "src/source_verify/function_map/tests.rs": 1,
+      "src/source_verify/funding.rs": 1,
+      "src/source_verify/funding/tests.rs": 1,
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs": 1,
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs": 1
     }
   },
   "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
@@ -473,7 +525,20 @@
       "src/source_reflows_merge/main7f8_presence.rs": 1,
       "src/source_reflows_merge/main7f8_source_inputs.rs": 1,
       "src/cleanup_plan/replay/supplemental/receiving/tests/legacy.rs": 1,
-      "src/source_reflows_merge/final_ready_inputs.rs": 1
+      "src/source_reflows_merge/final_ready_inputs.rs": 1,
+      "src/ast/program_source/function_alias/presentation.rs": 1,
+      "src/ast/program_source/function_alias/presentation/metadata.rs": 1,
+      "src/ast/program_source/function_alias/presentation/metadata/tests.rs": 1,
+      "src/bounded_output/identity_reservation/function_cells.rs": 1,
+      "src/bounded_output/identity_reservation/source_abort.rs": 1,
+      "src/source_verify/declaration/functions/funding_tests.rs": 1,
+      "src/source_verify/declaration/functions/generic_cycle_compat.rs": 1,
+      "src/source_verify/function_map.rs": 1,
+      "src/source_verify/function_map/tests.rs": 1,
+      "src/source_verify/funding.rs": 1,
+      "src/source_verify/funding/tests.rs": 1,
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs": 1,
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs": 1
     },
     "maximum": {
       "src/cleanup_plan/replay.rs": 1,
@@ -556,7 +621,20 @@
       "src/source_reflows_merge/main7f8_presence.rs": 1,
       "src/source_reflows_merge/main7f8_source_inputs.rs": 1,
       "src/cleanup_plan/replay/supplemental/receiving/tests/legacy.rs": 1,
-      "src/source_reflows_merge/final_ready_inputs.rs": 1
+      "src/source_reflows_merge/final_ready_inputs.rs": 1,
+      "src/ast/program_source/function_alias/presentation.rs": 1,
+      "src/ast/program_source/function_alias/presentation/metadata.rs": 1,
+      "src/ast/program_source/function_alias/presentation/metadata/tests.rs": 1,
+      "src/bounded_output/identity_reservation/function_cells.rs": 1,
+      "src/bounded_output/identity_reservation/source_abort.rs": 1,
+      "src/source_verify/declaration/functions/funding_tests.rs": 1,
+      "src/source_verify/declaration/functions/generic_cycle_compat.rs": 1,
+      "src/source_verify/function_map.rs": 1,
+      "src/source_verify/function_map/tests.rs": 1,
+      "src/source_verify/funding.rs": 1,
+      "src/source_verify/funding/tests.rs": 1,
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs": 1,
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs": 1
     }
   }
 }

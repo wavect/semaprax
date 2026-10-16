@@ -1,0 +1,17 @@
+{
+  "source": "b5eca55b96890e1a815f0d8d9e7b42c78d743b07",
+  "phase": "clippy-production",
+  "actual_exit_code": 101,
+  "test_bodies": 0,
+  "resource_refusal": false,
+  "diagnostic_count": 12,
+  "diagnostics": {
+    "E0425": 1,
+    "E0614": 1,
+    "E0308": 1,
+    "unused_import": 1,
+    "E0277": 8
+  },
+  "log_sha256": "0b37815a4d8d8c0736f507c3cac881b13d04bc5fba58bb649a18f8c502d5442c",
+  "correction_execution": "NOT_EXECUTED"
+}

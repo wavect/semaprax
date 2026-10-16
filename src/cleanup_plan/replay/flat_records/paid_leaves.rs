@@ -14,7 +14,7 @@ type Error = crate::cleanup_plan::replay::expression_facts::errors::EngineError;
 
 pub(in crate::cleanup_plan::replay) fn collect_slot_leaves(
     function: &ResolvedFunction,
-    slot: &super::super::CleanupSlot,
+    slot: &crate::cleanup_plan::CleanupSlot,
     leaves: &mut BTreeMap<LivenessFlagId, Leaf>,
     places: &mut BTreeSet<CleanupPlace>,
     budget: &mut ReplayBudget,

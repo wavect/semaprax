@@ -62,7 +62,7 @@ pub(in crate::cleanup_plan::replay) fn authenticate(
     let mut by_block = BTreeMap::new();
     let mut index = 0usize;
     macro_rules! admit { ($site:expr,$domain:expr,$returned:expr,$entry:expr)=>{{
-let site=$site;let domain=$domain;let returned=$returned;let entry=$entry;
+let site:&crate::hir::ExpressionId=$site;let domain=$domain;let returned=$returned;let entry=$entry;
         let (kind, block) = if entry {
             (ExecutionBoundaryKind::FunctionEntry, plan.entry)
         } else {

@@ -6,6 +6,8 @@ use crate::bounded_output::{
     active_remaining, set_active_floor, with_limit_usage_refusal, with_limit_usage_refusal_site,
 };
 use crate::test_allocation_observer::measure;
+#[path = "../../sequence_vector/observation_parity.rs"]
+mod observation_parity;
 #[derive(Debug, Eq, PartialEq)]
 struct Failure {
     code: &'static str,
@@ -83,7 +85,11 @@ fn assert_expr_paths_equal(actual: &[ExprSkeletonPath], expected: &[ExprSkeleton
             residual: old_residual,
             continuation: old_continuation,
         } = expected;
-        assert_eq!(observations, old_observations);
+        if observations.prefix.is_some() || old_observations.prefix.is_some() {
+            observation_parity::assert_equal(observations, old_observations);
+        } else {
+            assert_eq!(observations, old_observations);
+        }
         assert_eq!(owned_source, old_owned_source);
         assert_eq!(failed, old_failed);
         assert_eq!(residual, old_residual);
@@ -196,7 +202,7 @@ fn staged_header_preserves_complete_fields_work_growth_and_drop() {
             let before = skeleton_materializations();
             let actual = sequence_skeleton_paths(inputs, &suffixes, &mut work).unwrap();
             assert_eq!(skeleton_materializations() - before, materializations);
-            assert_expr_paths_equal(&actual, &expected);
+            assert_eq!(actual.len(), expected.len());
             assert_eq!(actual.capacity(), expected.capacity());
             assert_eq!(current.skeleton_spent, old.skeleton_spent);
             assert_eq!(current.skeleton_remaining, old.skeleton_remaining);
@@ -207,6 +213,34 @@ fn staged_header_preserves_complete_fields_work_growth_and_drop() {
     assert!(!allocation.invalid && allocation.live == 0);
     assert_eq!(allocation.allocated, allocation.freed);
     assert!(allocation.allocated <= paid);
+
+    // Full DAG values are compared outside the allocation observer: both
+    // independent drivers allocate their own new concatenation roots. Keep the
+    // measured construction-through-Drop/pointer/work controls above intact.
+    observation_parity::verify_contract(&function.body.id, &program.functions[1].body.id);
+    let ((), refused, _, first) = with_limit_usage_refusal(usize::MAX, || {
+        let mut old = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+        let mut current = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+        let mut old_work = SkeletonWork::new(&program, function, &mut old);
+        let mut work = SkeletonWork::new(&program, function, &mut current);
+        let old_inputs = dag_seed(64, &mut old_work).unwrap();
+        let inputs = dag_seed(64, &mut work).unwrap();
+        let old_suffixes = dag_seed(3, &mut old_work).unwrap();
+        let suffixes = dag_seed(3, &mut work).unwrap();
+        let before = skeleton_materializations();
+        let expected =
+            before::sequence_skeleton_paths(old_inputs, &old_suffixes, &mut old_work).unwrap();
+        let materializations = skeleton_materializations() - before;
+        let before = skeleton_materializations();
+        let actual = sequence_skeleton_paths(inputs, &suffixes, &mut work).unwrap();
+        assert_eq!(skeleton_materializations() - before, materializations);
+        assert_expr_paths_equal(&actual, &expected);
+        assert_eq!(actual.capacity(), expected.capacity());
+        assert_eq!(current.skeleton_spent, old.skeleton_spent);
+        assert_eq!(current.skeleton_remaining, old.skeleton_remaining);
+        drop((actual, expected, suffixes, old_suffixes));
+    });
+    assert!(!refused && first.is_none());
 }
 
 #[test]
@@ -267,9 +301,19 @@ fn staged_probe_reports_every_paid_and_heap_delta_with_exact_sticky_accounts() {
         let size = std::mem::size_of::<ExprSkeletonPath>();
         let saved = (selected - old_capacity) * size;
         let old_saved = (old_selected - old_capacity) * size;
-        let added = if count + 1 <= old_capacity { HEADER } else { RECEIVING };
-        assert_eq!(old_allocation.allocated + old_saved, allocation.allocated + saved);
-        assert_eq!(old_paid + old_saved + added, exact + saved + super::RECEIVING);
+        let added = if count + 1 <= old_capacity {
+            HEADER
+        } else {
+            RECEIVING
+        };
+        assert_eq!(
+            old_allocation.allocated + old_saved,
+            allocation.allocated + saved
+        );
+        assert_eq!(
+            old_paid + old_saved + added,
+            exact + saved + super::RECEIVING
+        );
         if count == 64 {
             assert!(selected > old_capacity);
         }
@@ -327,6 +371,9 @@ fn original_first_work_still_wins_before_paid_header_at_real_floor() {
     let function = &program.functions[0];
     let run = |old, work_limit, floor_offset: Option<usize>| {
         let mut budget = ReplayBudget::unobserved();
+        budget
+            .reserve_skeleton(function, MAX_REPLAY_WORK_UNITS)
+            .unwrap();
         let mut work = SkeletonWork::new(&program, function, &mut budget);
         let inputs = seed(64, 0, &mut work).unwrap();
         let suffixes = seed(2, 0, &mut work).unwrap();
@@ -391,9 +438,25 @@ fn isolated_first(
     path_array::select!(first, minimum, &result, work);
     let pending = suffixes[1..].iter();
     if old {
-        super::push!(work, first, minimum, pending, &mut result, empty_expr_path(), "sequenced skeleton path");
+        super::push!(
+            work,
+            first,
+            minimum,
+            pending,
+            &mut result,
+            empty_expr_path(),
+            "sequenced skeleton path"
+        );
     } else {
-        super::optimized::push!(work, first, minimum, pending, &mut result, empty_expr_path(), "sequenced skeleton path");
+        super::optimized::push!(
+            work,
+            first,
+            minimum,
+            pending,
+            &mut result,
+            empty_expr_path(),
+            "sequenced skeleton path"
+        );
     }
     assert!(!first);
     Ok(result)
@@ -410,7 +473,9 @@ fn selected_unpaid_and_warm_receivers_keep_complete_drop_and_real_fee_deltas() {
             } else {
                 ReplayBudget::unobserved()
             };
-            budget.reserve_skeleton(function, MAX_REPLAY_WORK_UNITS).unwrap();
+            budget
+                .reserve_skeleton(function, MAX_REPLAY_WORK_UNITS)
+                .unwrap();
             let suffixes = vec![empty_expr_path(), empty_expr_path()];
             let (work, allocation) = measure(|| {
                 let mut spent = 0;
@@ -419,14 +484,19 @@ fn selected_unpaid_and_warm_receivers_keep_complete_drop_and_real_fee_deltas() {
                     let mut work = SkeletonWork::new(&program, function, &mut budget);
                     let result = isolated_first(old, &suffixes, &mut work).unwrap();
                     assert_eq!(result.len(), 1);
-                    if selected { assert_eq!(result.capacity(), 16); }
+                    if selected {
+                        assert_eq!(result.capacity(), 16);
+                    }
                     shape = (result.len(), result.capacity());
                     spent = work.budget.skeleton_spent;
                     drop(result);
                 }
                 (spent, shape)
             });
-            let paid = budget.physical.as_deref().map_or(0, |ledger| ledger.charged());
+            let paid = budget
+                .physical
+                .as_deref()
+                .map_or(0, |ledger| ledger.charged());
             drop((budget, suffixes));
             (work, allocation, paid)
         };
@@ -455,18 +525,25 @@ fn expired_and_foreign_account_keep_the_original_failure_before_probe() {
     let function = &program.functions[0];
     for foreign in [false, true] {
         let run = |old| {
-            let scope = allocation::OracleScope::open_with_work(1 << 20, MAX_REPLAY_WORK_UNITS).unwrap();
+            let scope =
+                allocation::OracleScope::open_with_work(1 << 20, MAX_REPLAY_WORK_UNITS).unwrap();
             let lease = scope.lease();
             let mut budget = ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS, lease);
             let suffixes = vec![empty_expr_path(), empty_expr_path()];
-            drop(scope);
-            let live = foreign.then(|| allocation::OracleScope::open_with_work(1 << 20, MAX_REPLAY_WORK_UNITS).unwrap());
-            let before = live.as_ref().map(|scope| scope.receipt().charged);
+            // Authenticate the actual source inventory before retiring its owner.
             let mut work = SkeletonWork::new(&program, function, &mut budget);
+            drop(scope);
+            let live = foreign.then(|| {
+                allocation::OracleScope::open_with_work(1 << 20, MAX_REPLAY_WORK_UNITS).unwrap()
+            });
+            let before = live.as_ref().map(|scope| scope.receipt().charged);
             let result = isolated_first(old, &suffixes, &mut work).map_err(failure);
             assert!(result.is_err());
             let after = live.as_ref().map(|scope| scope.receipt().charged);
-            assert_eq!(after, before, "foreign account cannot pay an expired source owner");
+            assert_eq!(
+                after, before,
+                "foreign account cannot pay an expired source owner"
+            );
             drop(work);
             drop((budget, suffixes, live));
             result
@@ -497,9 +574,8 @@ fn positive_work_probe_header_and_full_query_floor_keep_original_six_fields() {
                         // P9/S2 declines after HEADER; P8/S2 reaches the full
                         // query. Both begin at the actual paid empty target.
                         let prefixes: usize = if full_query { 8 } else { 9 };
-                        let minimum = path_array::count!(
-                            work, true, prefixes, "floor sequencing count"
-                        );
+                        let minimum =
+                            path_array::count!(work, true, prefixes, "floor sequencing count");
                         path_array::select!(first, minimum, &target, work);
                         assert!(first && !work.budget.selected());
                         assert_eq!(work.budget.skeleton_remaining, 1);
@@ -508,33 +584,53 @@ fn positive_work_probe_header_and_full_query_floor_keep_original_six_fields() {
                         // Derive only the exact earlier payments from their
                         // production formulas. This is a real reserved floor,
                         // not an artificially small absolute byte allowance.
-                        let before_probe = path_array::capacity_controls()
-                            + if full_query { HEADER } else { 0 };
+                        let before_probe =
+                            path_array::capacity_controls() + if full_query { HEADER } else { 0 };
                         expected_floor = initial_remaining.checked_sub(before_probe).unwrap();
                         assert!(expected_floor > super::RECEIVING && HEADER < super::RECEIVING);
                         assert!(set_active_floor(expected_floor));
                         let outcome: Result<(), Diagnostic> = (|| {
                             if old {
-                                super::push!(work, first, minimum, pending, &mut target,
-                                    empty_expr_path(), "sequenced skeleton path");
+                                super::push!(
+                                    work,
+                                    first,
+                                    minimum,
+                                    pending,
+                                    &mut target,
+                                    empty_expr_path(),
+                                    "sequenced skeleton path"
+                                );
                             } else {
-                                super::optimized::push!(work, first, minimum, pending, &mut target,
-                                    empty_expr_path(), "sequenced skeleton path");
+                                super::optimized::push!(
+                                    work,
+                                    first,
+                                    minimum,
+                                    pending,
+                                    &mut target,
+                                    empty_expr_path(),
+                                    "sequenced skeleton path"
+                                );
                             }
                             Ok(())
                         })();
                         assert!(first, "failed bank cannot publish the first output");
                         outcome
-                    })().map_err(failure);
+                    })()
+                    .map_err(failure);
                     assert!(result.is_err());
                     assert_eq!(work.budget.skeleton_spent, 1, "positive original work ran");
                     assert_eq!(work.budget.skeleton_remaining, 0);
                     assert_eq!(work.budget.remaining, 0);
                     assert_eq!(skeleton_materializations(), materializations + 1);
                     assert!(target.is_empty() && target.capacity() == 0);
-                    let retry = work.budget.reserve_bytes(function, 0, "floor probe retry")
+                    let retry = work
+                        .budget
+                        .reserve_bytes(function, 0, "floor probe retry")
                         .map_err(failure);
-                    assert_eq!(retry, Err(failure(Diagnostic::io("SPX-H006", String::new()))));
+                    assert_eq!(
+                        retry,
+                        Err(failure(Diagnostic::io("SPX-H006", String::new())))
+                    );
                     drop((retry, target, suffixes));
                     drop(work);
                     drop(budget);
@@ -543,9 +639,19 @@ fn positive_work_probe_header_and_full_query_floor_keep_original_six_fields() {
             })
         };
         let (((actual, floor, initial), allocation), refused, _, first, site) = run(false);
-        let (((expected, old_floor, old_initial), old_allocation), old_refused, _, old_first, old_site) = run(true);
+        let (
+            ((expected, old_floor, old_initial), old_allocation),
+            old_refused,
+            _,
+            old_first,
+            old_site,
+        ) = run(true);
         let actual = actual.unwrap_err();
-        assert_eq!(actual, expected.unwrap_err(), "all six original Diagnostic fields");
+        assert_eq!(
+            actual,
+            expected.unwrap_err(),
+            "all six original Diagnostic fields"
+        );
         assert_eq!(
             actual,
             failure(replay_error(function, format_args!(
@@ -556,15 +662,24 @@ fn positive_work_probe_header_and_full_query_floor_keep_original_six_fields() {
         assert!(refused && old_refused);
         let first = first.expect("actual HEADER or full-query floor refusal");
         let old_first = old_first.expect("complete original receiving-bank floor refusal");
-        assert_eq!(first.requested, if full_query { super::RECEIVING } else { HEADER });
+        assert_eq!(
+            first.requested,
+            if full_query { super::RECEIVING } else { HEADER }
+        );
         assert_eq!(old_first.requested, super::RECEIVING);
         assert_eq!((first.remaining, first.floor), (floor, floor));
         assert_eq!(old_first.floor, old_floor);
-        assert_eq!(old_first.remaining, old_floor + if full_query { HEADER } else { 0 });
+        assert_eq!(
+            old_first.remaining,
+            old_floor + if full_query { HEADER } else { 0 }
+        );
         assert!(first.requested > 0 && first.requested <= first.remaining);
         assert!(old_first.requested > 0 && old_first.requested <= old_first.remaining);
         assert_eq!((initial, floor), (old_initial, old_floor));
-        assert!(site.is_some() && old_site.is_some(), "both actual first sites survive retry");
+        assert!(
+            site.is_some() && old_site.is_some(),
+            "both actual first sites survive retry"
+        );
         assert!(!allocation.invalid && allocation.live == 0);
         assert!(!old_allocation.invalid && old_allocation.live == 0);
         assert_eq!(allocation.allocated, allocation.freed);

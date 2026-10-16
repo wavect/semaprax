@@ -6057,6 +6057,7 @@ fn finish_try_paths(
         )?;
         if let Some(source) = &source {
             let staged_source = work.clone_owned(source, "try staged-result source clone")?;
+            compact_stage::prepare!(work.function, work.budget, &staged_source);
             let staged_source = CopySource::new(work.function, work.budget, staged_source)?;
             work.push_observation(
                 &mut residual,
@@ -6666,6 +6667,7 @@ fn plan_skeleton_paths(
                         source,
                         "plan staged-result source clone",
                     )?;
+                    compact_stage::prepare!(function, budget, &source);
                     let source = CopySource::new(function, budget, source)?;
                     skeleton_push(
                         budget,

@@ -343,16 +343,135 @@ pub(super) fn resolved_type(
 
 // --------------------------------------------------------- staged source ----
 
+macro_rules! canonical_staged {
+    ($a:expr, $b:expr, $function:expr, $budget:expr) => {{
+        decide!(staged_ordinal($a).cmp(&staged_ordinal($b)));
+        match ($a, $b) {
+            (
+                StagedCopyResultSource::Body {
+                    expression: xe,
+                    instance: xi,
+                },
+                StagedCopyResultSource::Body {
+                    expression: ye,
+                    instance: yi,
+                },
+            ) => {
+                decide!(text(xe.as_str(), ye.as_str(), $function, $budget)?);
+                resolved_type(xi, yi, $function, $budget)
+            }
+            (
+                StagedCopyResultSource::TryResidual {
+                    expression: xe,
+                    operand: xo,
+                    source_instance: xs,
+                    target_instance: xt,
+                    result: xr,
+                    ok_case: xoc,
+                    ok_field: xof,
+                    err_case: xec,
+                    err_field: xef,
+                },
+                StagedCopyResultSource::TryResidual {
+                    expression: ye,
+                    operand: yo,
+                    source_instance: ys,
+                    target_instance: yt,
+                    result: yr,
+                    ok_case: yoc,
+                    ok_field: yof,
+                    err_case: yec,
+                    err_field: yef,
+                },
+            ) => {
+                decide!(text(xe.as_str(), ye.as_str(), $function, $budget)?);
+                decide!(text(xo.as_str(), yo.as_str(), $function, $budget)?);
+                decide!(resolved_type(xs, ys, $function, $budget)?);
+                decide!(resolved_type(xt, yt, $function, $budget)?);
+                decide!(text(xr.as_str(), yr.as_str(), $function, $budget)?);
+                decide!(text(xoc.as_str(), yoc.as_str(), $function, $budget)?);
+                decide!(text(xof.as_str(), yof.as_str(), $function, $budget)?);
+                decide!(text(xec.as_str(), yec.as_str(), $function, $budget)?);
+                decide!(text(xef.as_str(), yef.as_str(), $function, $budget)?);
+                Ok(Ordering::Equal)
+            }
+            (
+                StagedCopyResultSource::TryOptionNone {
+                    expression: xe,
+                    operand: xo,
+                    source_instance: xs,
+                    target_instance: xt,
+                    option: xp,
+                    some_case: xsc,
+                    some_field: xsf,
+                    none_case: xnc,
+                },
+                StagedCopyResultSource::TryOptionNone {
+                    expression: ye,
+                    operand: yo,
+                    source_instance: ys,
+                    target_instance: yt,
+                    option: yp,
+                    some_case: ysc,
+                    some_field: ysf,
+                    none_case: ync,
+                },
+            ) => {
+                decide!(text(xe.as_str(), ye.as_str(), $function, $budget)?);
+                decide!(text(xo.as_str(), yo.as_str(), $function, $budget)?);
+                decide!(resolved_type(xs, ys, $function, $budget)?);
+                decide!(resolved_type(xt, yt, $function, $budget)?);
+                decide!(text(xp.as_str(), yp.as_str(), $function, $budget)?);
+                decide!(text(xsc.as_str(), ysc.as_str(), $function, $budget)?);
+                decide!(text(xsf.as_str(), ysf.as_str(), $function, $budget)?);
+                decide!(text(xnc.as_str(), ync.as_str(), $function, $budget)?);
+                Ok(Ordering::Equal)
+            }
+            _ => Err(mismatch($function)),
+        }
+    }};
+}
+
 fn compact_staged(
     a: &super::super::compact_stage::CopySource,
     b: &super::super::compact_stage::CopySource,
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Ordering, Diagnostic> {
-    use super::super::compact_stage::CopySource;
+    use super::super::compact_stage::{CopySource, Residual};
+    // Keep the original kind-work admission before new metadata payment.
+    budget.charge(function, 1, "oracle staged source kind")?;
+    // One-use query bank precedes both matches! receivers and the optional
+    // residual payment. No nested staged Result survives on the residual arm.
+    budget.reserve_bytes(
+        function,
+        2 * std::mem::size_of::<Result<(), Diagnostic>>()
+            + 2 * std::mem::size_of::<&ResolvedFunction>()
+            + 2 * std::mem::size_of::<&mut ReplayBudget>()
+            + 2 * std::mem::size_of::<&str>()
+            + 2 * std::mem::size_of::<usize>()
+            + 2 * std::mem::size_of::<&CopySource>()
+            + std::mem::size_of::<(&CopySource, &CopySource)>()
+            + 3 * std::mem::size_of::<bool>(),
+        "compact staged comparison query controls",
+    )?;
+    if matches!(a, CopySource::Residual(_)) && matches!(b, CopySource::Residual(_)) {
+        // Two pattern refs, two accessor receivers, two returned canonical
+        // refs and their two named lexical receivers, plus the two Box-field
+        // borrows inside the accessors. No old Result credit.
+        budget.reserve_bytes(
+            function,
+            4 * std::mem::size_of::<&Residual>()
+                + 4 * std::mem::size_of::<&StagedCopyResultSource>()
+                + 2 * std::mem::size_of::<&Box<StagedCopyResultSource>>(),
+            "compact staged residual comparison references",
+        )?;
+    }
     match (a, b) {
         (CopySource::Residual(a), CopySource::Residual(b)) => {
-            staged(a.canonical(), b.canonical(), function, budget)
+            let a = a.canonical();
+            let b = b.canonical();
+            canonical_staged!(a, b, function, budget)
         }
         (
             CopySource::Body {
@@ -364,18 +483,11 @@ fn compact_staged(
                 instance: yi,
             },
         ) => {
-            budget.charge(function, 1, "oracle staged source kind")?;
             decide!(text(xe.as_str(), ye.as_str(), function, budget)?);
             resolved_type(xi, yi, function, budget)
         }
-        (CopySource::Body { .. }, CopySource::Residual(_)) => {
-            budget.charge(function, 1, "oracle staged source kind")?;
-            Ok(Ordering::Less)
-        }
-        (CopySource::Residual(_), CopySource::Body { .. }) => {
-            budget.charge(function, 1, "oracle staged source kind")?;
-            Ok(Ordering::Greater)
-        }
+        (CopySource::Body { .. }, CopySource::Residual(_)) => Ok(Ordering::Less),
+        (CopySource::Residual(_), CopySource::Body { .. }) => Ok(Ordering::Greater),
     }
 }
 
@@ -387,6 +499,7 @@ fn staged_ordinal(source: &StagedCopyResultSource) -> u8 {
     }
 }
 
+#[cfg(test)]
 pub(super) fn staged(
     a: &StagedCopyResultSource,
     b: &StagedCopyResultSource,

@@ -51,7 +51,9 @@ fn compact_staged_order_preserves_canonical_fields_work_and_refusals() {
     let mut construction = ReplayBudget::new();
     for a in &sources {
         for b in &sources {
+            super::super::super::compact_stage::prepare!(function, &mut construction, *a, unwrap);
             let x = CopySource::new(function, &mut construction, (*a).clone()).unwrap();
+            super::super::super::compact_stage::prepare!(function, &mut construction, *b, unwrap);
             let y = CopySource::new(function, &mut construction, (*b).clone()).unwrap();
             for work in [0, 1, 2, MAX_REPLAY_WORK_UNITS] {
                 let mut original = ReplayBudget::new();

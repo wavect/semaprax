@@ -370,6 +370,12 @@ That job also completes the named example check and formatting loops, including
 `examples/calculator-rust/callback.spx`. These steps require successful execution;
 Clippy compilation alone does not qualify benchmark coverage.
 
+After a failed Linux unit shard, a diagnostic step selects the current root-library
+test executable from Cargo artifact messages and checks its exact runnable test
+inventory before invoking GDB. It captures bounded frames from the original
+128 KiB indexed-match test without changing its stack, depth or assertions. This
+trace is diagnostic evidence; the owning shard's failure remains authoritative.
+
 ## Documentation changes
 
 Documentation-only changes must pass at least:

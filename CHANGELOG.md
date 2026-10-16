@@ -8,12 +8,18 @@
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
 
+- Preserve Main043 as an independent complete 75-input live source-audit domain and 14-control historical helper, alongside the unchanged nine a82e tables and five-proof helper. Keep incoming CI diagnostics and all original snapshots; joined Rust qualification remains pending.
+
 - Correct all 19 observed 67b production Clippy findings without weakening checks: retain test-only macro access, lazy terminal error formation, ordered funded branches and the exact eight-usize receiving layout. Runtime qualification remains pending.
 - Port Main44 sequencing capacity to the lexical first active output work frontier with prepaid complete query controls, while retaining its complete independent implementation and original source domains. Report paid no-saving probes without refunds; combined execution qualification remains pending.
 
 - Reconcile Main8a finished-path capacity, arbitrary final-suffix transfer and borrowed nominal context with lexical paid receiving; preserve original work-before-optional-payment priority and complete Main controls. Qualification and net application cost remain pending.
 
 - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.
+- Capture a bounded debugger trace from the exact current Linux unit executable after its owning shard fails, retaining the original low-stack test and failure result.
+
+- Compose source-audit inverses through later module additions, preserving every original archive and fixed hash; authenticate both complete live source-reader successors before replaying their historical formatting controls.
+
 - Use the contracted fixed construction cap for C++ package source replay while retaining the exact configured output-envelope limit.
 
 - Reserve a proved sequencing minimum from the first active prefix, skipping intermediate path-vector backing while preserving the complete original loop, capacity, work, paid fallback and verification route.

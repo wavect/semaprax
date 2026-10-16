@@ -1,0 +1,18 @@
+{
+  "base": "699362b83f4e940462b59b140acd27f5563cc276",
+  "original_completed_sha256": "15895b83280daba02f9c04fcc0613cfeebd35d35c76fa46dbf76001ef71c9733",
+  "original_lifecycle_sha256": "5fd13ff6c69920abbbfca62effa9b44be55a1ecbe8651cf163f5ad5ad561ad5b",
+  "ordinary_work_policy": "Complete original authored recursive visits, cache policy and effect order; no new work allowance or refund. Each active operation authenticates the existing sticky payer.",
+  "registration": "\nmod inline_path;\n#[cfg(test)]\nmod before_inline;\n",
+  "replacement": [
+    "extend_funded(self.program, ty, &mut self.effects)?;",
+    "inline_path::extend(self.program, ty, &mut self.effects)?;"
+  ],
+  "status": "SOURCE_ONLY_UNEXECUTED",
+  "active_storage_policy": "Full size_of Active carrier including 16 borrowed Option references and the simultaneous BTreeSet header, then unchanged replay_btree_node_upper<&DeclarationId, ()> before every spill insertion.",
+  "new_child_sha256": {
+    "src/hir/validation/function_scope/lifecycle/completed/inline_path.rs": "dc6bb809e4ebdaab62e2429dae7ac8fcca3472ee874a4dd6e8f12388334bd620",
+    "src/hir/validation/function_scope/lifecycle/completed/inline_path/tests.rs": "46762047636feb00bd85bf0da82a4fca991662879e600488dd94aaa339d22cd7",
+    "src/hir/validation/function_scope/lifecycle/completed/before_inline.rs": "fa7274c186e19c25d09bbf869d76ba487459e077568fbd5c89fd108a6aad01b5"
+  }
+}

@@ -1,6 +1,11 @@
 //! Invocation-local nested byte proof. References bind this census to one
 //! immutable function; shape discovery is distinct from late provenance replay.
 use super::{DeclarationIndex, Diagnostic, Region, ResolvedExpr, ResolvedFunction};
+#[cfg(test)]
+use crate::hir::{
+    ControlTarget, ExpressionId, FunctionExecutionId, ResolvedExprKind, ResolvedProgram,
+    ResolvedStatement,
+};
 mod check;
 mod index;
 mod intervals;

@@ -1,0 +1,9 @@
+{
+  "scope": "Only actual corrected test body endpoint; private script/target SHA unchanged, no production source views changed",
+  "subjects": [
+    "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs"
+  ],
+  "before_sha256": "d0f68c5b4a75ea74e16e0bd456cbdc126d26167700c7c7fca0e561394349f31c",
+  "after_sha256": "585542c946f14ac03f950804c35b4e7841beb655e592bb8bd70f20a05a3a6f21",
+  "rust_executed": false
+}

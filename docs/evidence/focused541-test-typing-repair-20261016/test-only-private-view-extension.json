@@ -1,0 +1,25 @@
+{
+  "scope": "One additional explicitly named private TEST source view for actual typing correction; production body views unchanged",
+  "subject": "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs",
+  "before": [
+    "CHANGELOG.md",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "docs/ARCHITECTURE.md",
+    "docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json",
+    "docs/evidence/main44-independent-custody-20261016/current-to-main44.json",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "after": [
+    "CHANGELOG.md",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "docs/ARCHITECTURE.md",
+    "docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json",
+    "docs/evidence/main44-independent-custody-20261016/current-to-main44.json",
+    "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "original_scripts_unchanged": true,
+  "rust_executed": false
+}

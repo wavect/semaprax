@@ -1,0 +1,12 @@
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+error: the variable `index` is used as a loop counter
+    --> src/cleanup_plan/replay/factored/canonical_shared.rs:1338:29
+     |
+1338 | ...                   for (label, _child) in successors {
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using: `for (index, (label, _child)) in successors.into_iter().enumerate()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#explicit_counter_loop
+     = note: `-D clippy::explicit-counter-loop` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::explicit_counter_loop)]`
+
+error: could not compile `semaprax` (lib) due to 1 previous error

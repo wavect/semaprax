@@ -1335,6 +1335,10 @@ impl<'a> Canonicalizer<'a> {
                             ));
                             let mut key = Vec::with_capacity(successors.len());
                             let mut index = 0;
+                            #[expect(
+                                clippy::explicit_counter_loop,
+                                reason = "The scalar cursor is prepaid above; enumerate would add an iterator-adapter receiving layout."
+                            )]
                             for (label, _child) in successors {
                                 key.push((label, self.child_ids[index]));
                                 index += 1;

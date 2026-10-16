@@ -736,7 +736,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
     );
     let validation = production_source_inventory::production(
         &validation_raw,
-        include_str!("../docs/evidence/release-755-main24-arena-joined-20261016/hir.json"),
+        include_str!("../docs/evidence/prepaid-canonical-cursor-clippy-20261016/hir.json"),
     );
     for forbidden in [
         "struct Resolver",

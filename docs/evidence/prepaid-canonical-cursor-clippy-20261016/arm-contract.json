@@ -1,0 +1,22 @@
+{
+  "base": "f7666352f59ba0569b8dad769c162fbf0b978b22",
+  "common_source_sha256": "048584a387e19ce44d46428072db42fedd4a4f94f67f3fac0622a2ce3fc0961f",
+  "embedded_source_sha256": "e088b83d0a42a651c125e624b38cdc16054d2abda60e44e0ba8d8d9627fc517a",
+  "selector_source": "src/source_reflows_merge/runtime_json.rs",
+  "runtime_literal": "runtime_json/transport_runtime.rs",
+  "embedded_literal": "runtime_json/transport_embedded.rs",
+  "changed_preexisting": [
+    "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "src/source_reflows_merge.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph.rs"
+  ],
+  "fixed_fixture_count": 90,
+  "fixed_fixture_bytes": 93641932,
+  "selected_child_pilot": "runtime unchanged in both arms",
+  "execution": "NONE_SOURCE_ONLY",
+  "final_normalizer": "src/source_reflows_merge/release_custody.rs",
+  "final_normalizer_sha256": "33aa6437e3b7f195df8609bf892821838802d14105ed6bc1d6a8c3bc27e9987c",
+  "component_runtime_source": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+  "scope": "Same exact original90 selector arms and fixed36 metadata; only statement-local lint expectation successor"
+}

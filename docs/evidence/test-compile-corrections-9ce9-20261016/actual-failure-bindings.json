@@ -1,0 +1,17 @@
+{
+  "scope": "historical9ce compilation failures; zero executed test bodies; no new Rust execution",
+  "results": [
+    {
+      "path": "/Volumes/Semaprax/lane-prompts/producer-9ce9-unit-last-20261016/owning-build-result.json",
+      "bytes": 15494,
+      "sha256": "fd80148de60ef62935669823441b98a9680cae65e1525cd8314093048afe9d02"
+    },
+    {
+      "path": "/Volumes/Semaprax/lane-prompts/diagnostic-9ce9-unit-only-20261016/owning-build-result.json",
+      "bytes": 8307,
+      "sha256": "b95f89027869cc1e05e13e77b90bc1c3f7fce040264623be5be7adf923709b2d"
+    }
+  ],
+  "unit_rendered_errors": 8,
+  "workspace_rendered_errors": 1
+}

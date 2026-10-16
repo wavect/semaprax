@@ -3,6 +3,7 @@
 use super::path_array::main696 as path_array;
 use super::{
     note_skeleton_materialization, Diagnostic, Observations, ReplayBudget, ResolvedFunction,
+    SkeletonObservation,
 };
 use main_current::sequence_skeleton_paths;
 

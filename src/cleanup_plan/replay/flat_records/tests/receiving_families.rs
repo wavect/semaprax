@@ -159,7 +159,7 @@ fn lexical_u32_overflow_keeps_original_full_diagnostic() {
 #[test]
 fn complete_paid_drivers_keep_independent_source_authenticated_success_and_refusal() {
     use crate::cleanup_plan::replay::{lexical_replay, scalar_replay, selected_context};
-    let scalar = "module family.scalar; @id(\"family.scalar.main\") fn main()->i64 {0}";
+    let scalar = super::PREPARED_SCALAR_SOURCE;
     for (source, id, lexical) in [
         (super::SOURCE, "flat.make", true),
         (scalar, "family.scalar.main", false),
@@ -171,6 +171,15 @@ fn complete_paid_drivers_keep_independent_source_authenticated_success_and_refus
                 .iter()
                 .find(|f| f.id.as_str() == id)
                 .unwrap();
+            assert_eq!(crate::hir::lexical_exit::requires(f).unwrap(), lexical);
+            if !lexical {
+                let companion = source
+                    .functions()
+                    .iter()
+                    .find(|f| f.id.as_str() == "family.scalar.authority")
+                    .expect("prepared scalar fixture retains its genuine lexical companion");
+                assert!(crate::hir::lexical_exit::requires(companion).unwrap());
+            }
             for hostile in [false, true] {
                 let mut changed = f.clone();
                 if hostile {

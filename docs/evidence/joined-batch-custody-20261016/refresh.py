@@ -3,6 +3,8 @@ from pathlib import Path
 import argparse,difflib,hashlib,json,os,re,subprocess,sys
 p=argparse.ArgumentParser();p.add_argument('--apply',action='store_true');p.add_argument('--expected-head',required=True);a=p.parse_args();assert a.apply
 R=Path(__file__).resolve().parents[3];D=R/'docs/evidence/a3-e47-final-custody-20261016';O=Path(__file__).resolve().parent
+import runpy
+parts=runpy.run_path(str(O/'table-parts.py'))
 BASE='a82e00cc83f99b16249181c45710d962598577db';SOURCE='1746eaaf0';sha=lambda b:hashlib.sha256(b).hexdigest()
 def g(*args):return subprocess.check_output(['git',*args],cwd=R)
 def old(commit,path):return g('show',commit+':'+path)
@@ -41,7 +43,7 @@ main44=subprocess.check_output([sys.executable,str(R/'docs/evidence/main44-indep
 domains=json.loads(old(SOURCE,'docs/evidence/a3-e47-final-custody-20261016/domains.json'));assert [len(d['keys'])for d in domains]==[53,30,2,2]
 base=domains[0]['commit'];basefiles=set(g('ls-tree','-r','--name-only',base).decode().splitlines());changes=g('diff','--name-only',BASE,'HEAD').decode().splitlines()
 add=sorted(p for p in changes if p in basefiles and not p.startswith('docs/evidence/') and p not in domains[0]['keys'])
-assert len(add)>=24;domains[0]['keys']=sorted(set(domains[0]['keys'])|set(add));write(D/'domains.json',domains)
+assert len(add)>=24;domains[0]['keys']=sorted(set(domains[0]['keys'])|set(add))
 normalizer=R/'src/source_reflows_merge/maina3_custody.rs';code=normalizer.read_text();originalcode=code
 for d in domains:
  rows=[]
@@ -50,9 +52,12 @@ for d in domains:
   if archive.exists():assert archive.read_bytes()==before
   else:archive.parent.mkdir(parents=True,exist_ok=True);archive.write_bytes(before)
   rows.append({'source':f,'current_sha256':sha(raw),'original_sha256':sha(before),'edits':inverse(before,raw)})
- write(D/d['table'],rows);payload=(D/d['table']).read_bytes();assert len(payload)<=5081115
+ parts['write_parts'](D,d,rows)
  code,n=re.subn(r'(Self::'+d['name']+r' => &)(\[[^\n]*\])(,\n)',lambda m:m[1]+json.dumps(d['keys'])+m[3],code);assert n==1
- code,n=re.subn(r'(Self::'+d['name']+r' => Spec \{path:.*?length: )\d+(, sha256: )\[[^\]]+\]',lambda m:m[1]+str(len(payload))+m[2]+str(list(hashlib.sha256(payload).digest())),code);assert n==1
+write(D/'domains.json',domains)
+start=code.index(' pub(super) fn spec(self, _source: &str) -> Spec {match self {',code.index('pub(super) enum Input'))
+end=code.index('}}}',start)+3
+code=code[:start]+' pub(super) fn spec(self, _source: &str) -> Spec {match self {\n'+''.join(parts['specs'](d)for d in domains)+'}}}'+code[end:]
 contract=load(D/'arm-contract.json');selector=(R/contract['selector_source']).read_bytes();embedded=selector.replace(contract['runtime_literal'].encode(),contract['embedded_literal'].encode(),1)
 head,tail=code.split('pub(super) fn normalize(',1)
 for k,raw,count in [('common_source_sha256',selector,2),('embedded_source_sha256',embedded,1)]:
@@ -75,7 +80,7 @@ write(D/'new-owners.json',[dict(source=f,sha256=sha((R/f).read_bytes()),lines=le
 contract.update(changed_preexisting=domains[0]['keys'],final_normalizer_sha256=sha(normalizer.read_bytes()),joined_batch_source_commit=g('rev-parse','HEAD').decode().strip(),execution='NONE_SOURCE_ONLY');write(D/'arm-contract.json',contract)
 # All Rust source writes are complete. Generate authority exactly once, then run untouched source proof owners.
 subprocess.run([sys.executable,str(D/'generate-authority.py'),'--repo',str(R),'--out',str(D)],cwd=R,check=True)
-source=subprocess.check_output([sys.executable,str(D/'verify-source.py'),'--repo',str(R)],cwd=R);(D/'source-proof.json').write_bytes(source);(O/'source-proof.json').write_bytes(source)
+source=subprocess.check_output([sys.executable,str(O/'verify-source-parts.py'),'--repo',str(R)],cwd=R);(D/'source-proof.json').write_bytes(source);(O/'source-proof.json').write_bytes(source)
 # The original verifier's full-role/source function remains the unchanged
 # authenticator. Its old main conflated new raw-custody roots with semantic
 # boundary membership, so current predicates run through the explicit domain.

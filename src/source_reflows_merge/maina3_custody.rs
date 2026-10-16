@@ -21,7 +21,7 @@ Self::Maina3 => &["crates/semaprax-native-rust-interop-builder/src/implementatio
 Self::Alias1ae => &["src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth.rs", "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs"],
 Self::MainE47 => &["src/bounded_output.rs", "src/bounded_output/canonical_stage_tests.rs"],
 }}
- pub(super) fn spec(self) -> Spec {match self {
+ pub(super) fn spec(self, _source: &str) -> Spec {match self {
 Self::Previous16c => Spec {path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/a3-e47-final-custody-20261016/current-to-Previous16c.json"), length: 3099260, sha256: [146, 98, 33, 168, 150, 90, 251, 20, 67, 115, 14, 251, 88, 136, 135, 200, 69, 221, 38, 136, 13, 103, 36, 246, 25, 128, 209, 228, 144, 156, 182, 161]},
 Self::Maina3 => Spec {path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/a3-e47-final-custody-20261016/current-to-Maina3.json"), length: 1689138, sha256: [15, 198, 16, 58, 163, 4, 142, 237, 1, 102, 240, 177, 210, 176, 213, 111, 250, 244, 122, 251, 226, 162, 58, 9, 33, 120, 246, 192, 51, 70, 209, 51]},
 Self::Alias1ae => Spec {path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/a3-e47-final-custody-20261016/current-to-Alias1ae.json"), length: 1947, sha256: [179, 152, 179, 41, 18, 169, 168, 79, 83, 55, 111, 219, 235, 174, 3, 95, 141, 134, 57, 1, 39, 19, 81, 120, 245, 229, 225, 7, 9, 175, 72, 19]},
@@ -29,7 +29,7 @@ Self::MainE47 => Spec {path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence
 }}}
 pub(super) fn input(which: Input, source: &str, current: &str) -> String {
  if which.keys().binary_search(&source).is_err() {return current.to_owned();}
- super::project(&super::runtime_json::maina3_input(which), source, current)
+ super::project(&super::runtime_json::maina3_input(which, source), source, current)
 }
 pub(super) fn normalize(source: &str, current: &str) -> String {
  if source != "src/source_reflows_merge/runtime_json.rs" {return current.to_owned();}

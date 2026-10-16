@@ -866,6 +866,8 @@ fn cursor_clippy_input(source: &str, current: &str) -> String {
 
 // Exact whole-source Main65 merge front; independent historical stages receive75d8.
 fn main65_previous(source: &str, current: &str) -> String {
+    let corrected = compile9ce_input(source, current);
+    let current = corrected.as_str();
     const KEYS: &[&str] = &[
         "CHANGELOG.md",
         "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
@@ -883,6 +885,26 @@ fn main65_previous(source: &str, current: &str) -> String {
     }
     project(
         include_str!("../docs/evidence/main65-private-merge-20261016/current-to-75d8.json"),
+        source,
+        current,
+    )
+}
+
+// Restore the complete pre-correction test inputs before immutable Main65 custody.
+fn compile9ce_input(source: &str, current: &str) -> String {
+    const KEYS: &[&str] = &[
+        "src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs",
+        "src/cleanup_plan/replay/semantic_refusal/tests.rs",
+        "src/cleanup_plan/replay/sequence_prefix.rs",
+        "src/source_reflows_merge.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph.rs",
+    ];
+    if KEYS.binary_search(&source).is_err() {
+        return current.to_owned();
+    }
+    project(
+        include_str!("../docs/evidence/test-compile-corrections-9ce9-20261016/current-to-9ce9.json"),
         source,
         current,
     )

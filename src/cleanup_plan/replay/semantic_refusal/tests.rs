@@ -69,6 +69,9 @@ fn complete_original_legacy(receipt: Receipt, function: &ResolvedFunction) -> Di
     let message = match receipt.atom {
         Atom::SelectedCall(kind) => kind.detail().to_owned(),
         Atom::UnknownCallCallee(callee) => format!("call commit has unknown callee `{callee}`"),
+        Atom::StatusUnknownCallee(callee) => {
+            format!("status source call has unknown callee `{callee}`")
+        }
         Atom::SelectedSession(detail) => detail.to_owned(),
         Atom::SelectedChild(reason) => {
             let message = if reason.prefixed() {

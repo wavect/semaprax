@@ -1,0 +1,76 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs",
+    "current_sha256": "aa7a37858f164eaf2b0559f3bcf9ac0eec196394c526e3a88e689914ebbaa399",
+    "original_sha256": "502b7c8d86ba04d4b9886bcc454023a5c5c5b9e74f7c4bad7d2afd5d11f360bf",
+    "edits": [
+      {
+        "new": "//! Frames, open states and completed memo keys share only owned immutable\n//! payloads. Label order, route weights, signature algebra and work debits keep\n//! the complete original receiver in canonical_before.rs as an independent control.\nuse super::{app_census, tests};\nuse super::{\n    physical_clone, replay_error, Automaton, BTreeMap, Diagnostic, Label, Rc, ReplayBudget,\n    ResolvedFunction, Weighted,\n",
+        "old": "//! Frames, open states and completed memo keys share only owned immutable\n//! payloads. Label order, route weights, signature algebra and work debits keep\n//! the complete original receiver in canonical_before.rs as an independent control.\nuse super::{\n    physical_clone, replay_error, Automaton, BTreeMap, Diagnostic, Label, Rc, ReplayBudget,\n    ResolvedFunction, Weighted,\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/semantic_refusal/tests.rs",
+    "current_sha256": "291a7262e2cecad96b6e72b029fa98f2d09a1313f5d9460b3576acb12ca28942",
+    "original_sha256": "aca69e92356ddfb4d7bbb774ca647a981cf86d402d9b0dff71108adef777b1ad",
+    "edits": [
+      {
+        "new": "    let message = match receipt.atom {\n        Atom::SelectedCall(kind) => kind.detail().to_owned(),\n        Atom::UnknownCallCallee(callee) => format!(\"call commit has unknown callee `{callee}`\"),\n        Atom::StatusUnknownCallee(callee) => {\n            format!(\"status source call has unknown callee `{callee}`\")\n        }\n        Atom::SelectedSession(detail) => detail.to_owned(),\n        Atom::SelectedChild(reason) => {\n            let message = if reason.prefixed() {\n",
+        "old": "    let message = match receipt.atom {\n        Atom::SelectedCall(kind) => kind.detail().to_owned(),\n        Atom::UnknownCallCallee(callee) => format!(\"call commit has unknown callee `{callee}`\"),\n        Atom::SelectedSession(detail) => detail.to_owned(),\n        Atom::SelectedChild(reason) => {\n            let message = if reason.prefixed() {\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix.rs",
+    "current_sha256": "8c95feee390193bce33eea76f4667697c675259f9a6b30ab13ab8b8916e23a8b",
+    "original_sha256": "584d266d42d054e56bf6423cd1b5a9a4e28b0188f02825a46a1eb1bd5a9abbd8",
+    "edits": [
+      {
+        "new": "use super::path_array::main696 as path_array;\nuse super::{\n    note_skeleton_materialization, Diagnostic, Observations, ReplayBudget, ResolvedFunction,\n    SkeletonObservation,\n};\nuse main_current::sequence_skeleton_paths;\n\n",
+        "old": "use super::path_array::main696 as path_array;\nuse super::{\n    note_skeleton_materialization, Diagnostic, Observations, ReplayBudget, ResolvedFunction,\n};\nuse main_current::sequence_skeleton_paths;\n\n"
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "current_sha256": "36f765ca8d61e16c8b3e4bfcbf47e3a9a69ad4cc9dde3b3612aa0560a7092fb7",
+    "original_sha256": "e3489c8dd0dcbd6035ef6933c26537733f2d13c5e156e60a9b7c3c3bdb259493",
+    "edits": [
+      {
+        "new": "        ),\n        source,\n        current,\n    )\n}\n\n// Exact whole-source Main65 merge front; independent historical stages receive75d8.\nfn main65_previous(source: &str, current: &str) -> String {\n    let corrected = compile9ce_input(source, current);\n    let current = corrected.as_str();\n    const KEYS: &[&str] = &[\n        \"CHANGELOG.md\",\n        \"crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\",\n        \"docs/SUMMARY.md\",\n        \"src/cleanup_plan/replay.rs\",\n        \"src/source_reflows_merge.rs\",\n        \"tests/hir_module_boundaries.rs\",\n        \"tests/wasm/scalar_browser_ci_contract.rs\",\n",
+        "old": "        ),\n        source,\n        current,\n    )\n}\n\n// Exact whole-source Main65 merge front; independent historical stages receive75d8.\nfn main65_previous(source: &str, current: &str) -> String {\n    const KEYS: &[&str] = &[\n        \"CHANGELOG.md\",\n        \"crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\",\n        \"docs/SUMMARY.md\",\n        \"src/cleanup_plan/replay.rs\",\n        \"src/source_reflows_merge.rs\",\n        \"tests/hir_module_boundaries.rs\",\n        \"tests/wasm/scalar_browser_ci_contract.rs\",\n"
+      },
+      {
+        "new": "        return current.to_owned();\n    }\n    project(\n        include_str!(\"../docs/evidence/main65-private-merge-20261016/current-to-75d8.json\"),\n        source,\n        current,\n    )\n}\n\n// Restore the complete pre-correction test inputs before immutable Main65 custody.\nfn compile9ce_input(source: &str, current: &str) -> String {\n    const KEYS: &[&str] = &[\n        \"src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs\",\n        \"src/cleanup_plan/replay/semantic_refusal/tests.rs\",\n        \"src/cleanup_plan/replay/sequence_prefix.rs\",\n        \"src/source_reflows_merge.rs\",\n        \"tests/hir_module_boundaries.rs\",\n        \"tests/workspace/semantic_graph.rs\",\n    ];\n    if KEYS.binary_search(&source).is_err() {\n        return current.to_owned();\n    }\n    project(\n        include_str!(\"../docs/evidence/test-compile-corrections-9ce9-20261016/current-to-9ce9.json\"),\n        source,\n        current,\n    )\n}\n",
+        "old": "        return current.to_owned();\n    }\n    project(\n        include_str!(\"../docs/evidence/main65-private-merge-20261016/current-to-75d8.json\"),\n        source,\n        current,\n    )\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "current_sha256": "3e3463d8ab48f12b73a29d51621855b607da37a24b313143bb8783d783367481",
+    "original_sha256": "ff3874f2d8fcb16bf11445309aab2c9f26e9a3e8ee677a9ebcc064399f10d6ca",
+    "edits": [
+      {
+        "new": "    );\n    let validation = production_source_inventory::production(\n        &validation_raw,\n        include_str!(\"../docs/evidence/test-compile-corrections-9ce9-20261016/hir.json\"),\n    );\n    for forbidden in [\n        \"struct Resolver\",\n",
+        "old": "    );\n    let validation = production_source_inventory::production(\n        &validation_raw,\n        include_str!(\"../docs/evidence/main65-private-merge-20261016/hir.json\"),\n    );\n    for forbidden in [\n        \"struct Resolver\",\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph.rs",
+    "current_sha256": "d1c40f69e2c4e8629bc57070bd26ce8d4cf3fed7c2e31c44ffd36707a6f6b4c7",
+    "original_sha256": "931cfea9c26d15ee31dccc903d287ee252c304a4cfe341b64268e7b0da968042",
+    "edits": [
+      {
+        "new": "    );\n    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\"../../docs/evidence/test-compile-corrections-9ce9-20261016/projection.json\"),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n    assert!(!production_projection.contains(\"use super::*;\"));\n",
+        "old": "    );\n    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\"../../docs/evidence/main65-private-merge-20261016/projection.json\"),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n    assert!(!production_projection.contains(\"use super::*;\"));\n"
+      },
+      {
+        "new": "        \"pub(super) fn pay_teardown_minimum(owner: &mut Receiver) -> Result<(), Setup> {\",\n    ]);\n    current_facade.push(\"pub(super) fn verify(\");\n    let current_facade_input = current_projection_facade_input(&current_projection_root);\n    assert_eq!(\n        current_facade_input\n            .lines()\n",
+        "old": "        \"pub(super) fn pay_teardown_minimum(owner: &mut Receiver) -> Result<(), Setup> {\",\n    ]);\n    current_facade.push(\"pub(super) fn verify(\");\n    let current_facade_input = current_projection_facade_input(current_projection_root);\n    assert_eq!(\n        current_facade_input\n            .lines()\n"
+      }
+    ]
+  }
+]

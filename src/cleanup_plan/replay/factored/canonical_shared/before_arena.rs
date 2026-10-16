@@ -2,6 +2,7 @@
 //! Frames, open states and completed memo keys share only owned immutable
 //! payloads. Label order, route weights, signature algebra and work debits keep
 //! the complete original receiver in canonical_before.rs as an independent control.
+use super::{app_census, tests};
 use super::{
     physical_clone, replay_error, Automaton, BTreeMap, Diagnostic, Label, Rc, ReplayBudget,
     ResolvedFunction, Weighted,

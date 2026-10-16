@@ -36,6 +36,13 @@ remain closed. The existing recursive-type diagnostic remains authoritative.
 Shapes outside this closed profile retain `SPX-T268` rather than being
 partially lowered.
 
+[Owned String Records v1](OWNED-STRING-RECORDS-V1.md) defines the additive
+internal profile for bounded records mixing owned String and Bytes leaves.
+Its source/HIR admission does not reinterpret this byte-only profile or widen
+public aggregate ABIs. Unsupported arrays and stored views remain refusals;
+the older declaration-before-pattern regressions retain that boundary while
+keeping their original mixed-String programs as explicit acceptance controls.
+
 The separately versioned [Acyclic Nested Owned-Record Exact Destructuring
 v1](NESTED-OWNED-RECORD-DESTRUCTURING-V1.md) owns the bounded successor profile
 for recursive `match own` and `match borrow`. It does not reinterpret this

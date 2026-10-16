@@ -257,8 +257,57 @@ fn main() -> i64 { 0 }
     assert!(error_codes(source).is_empty());
 }
 
+const STRING_COMPANION: &str = r#"
+module test.string_companion;
+record Packet { payload: Bytes, marker: string, }
+fn main() -> i64 { 0 }
+"#;
+
+pub(super) fn assert_mixed_string_record_current_profile(source: &str) {
+    let parsed = parse(source, Path::new("mixed-string-record-profile.spx")).unwrap();
+    let report = verify::verify(&parsed);
+    assert!(report.iter().all(|d| !d.severity.is_error()), "{report:?}");
+    let program = hir::resolve(&parsed).unwrap();
+    hir::validate(&program).unwrap();
+    let record = program
+        .types
+        .iter()
+        .find(|record| {
+            matches!(&record.kind, hir::ResolvedTypeDeclarationKind::Record { fields }
+            if fields.len() == 2
+                && fields.iter().any(|field| field.ty == ResolvedType::Bytes)
+                && fields.iter().any(|field| field.ty == ResolvedType::String))
+        })
+        .expect("the exact mixed String/Bytes record is retained in HIR");
+    let facts = program
+        .declarations
+        .type_facts(&nominal(record.id.as_str()))
+        .unwrap();
+    assert!(!facts.copy && facts.sized && facts.needs_drop && !facts.contains_resource);
+    let canonical = semaprax::format::canonical(&parsed);
+    let reparsed = parse(&canonical, Path::new("mixed-string-record-profile.spx")).unwrap();
+    assert_eq!(semaprax::format::canonical(&reparsed), canonical);
+    assert_eq!(
+        semaprax::graph::revision(&parsed),
+        semaprax::graph::revision(&reparsed)
+    );
+    assert_eq!(
+        semaprax::graph::to_json(&parsed).unwrap(),
+        semaprax::graph::to_json(&reparsed).unwrap()
+    );
+}
+
+#[test]
+fn original_string_companion_is_admitted_by_the_current_owned_text_profile() {
+    assert_mixed_string_record_current_profile(STRING_COMPANION);
+}
+
 #[test]
 fn non_record_and_non_flat_owned_bytes_shapes_are_rejected_at_source_admission() {
+    // String leaves now select the separately owned text-record profile. An
+    // array remains outside both profiles and keeps this refusal exercised.
+    let unsupported_string =
+        STRING_COMPANION.replace("marker: string,", "marker: string, unsupported: [u8; 1],");
     let cases = [
         r#"
 module test.class_bytes;
@@ -281,11 +330,7 @@ module test.slice_companion;
 record Packet { payload: Bytes, marker: Slice<u8>, }
 fn main() -> i64 { 0 }
 "#,
-        r#"
-module test.string_companion;
-record Packet { payload: Bytes, marker: string, }
-fn main() -> i64 { 0 }
-"#,
+        unsupported_string.as_str(),
         r#"
 module test.generic_owned_bytes;
 record Packet<T> { payload: Bytes, marker: T, }

@@ -5096,3 +5096,6 @@ added to production. A complete corpus compares the real Main receiver with
 this shipping path. Original path-array work preflight remains unchanged.
 
 `lexical_boundary::Policy` directly owns the complete ordinary Diagnostic or paid Engine boundary-check algorithm. Its paid finalizer uses the same-ledger child bank and existing node primitive. `lexical_cert/paid/chains` expands the exact bounded selected borrowed walk; its intentionally or-false query adds no budget failure to swallow. Immediate-old whole path replay and ordinary checking remain independently compiled in tests.
+
+
+The test-only `replay/sequence_prefix/main24` namespace retains Main24’s complete borrowed-probe/current receiver and the preceding complete fallible wrapper, each with its original controls. The shipping replay keeps its lexical single-successor transfer and does not acquire the later-admitted Main24 probe carrier. Main24 source tables are separate aliases; historical allocation comparisons remain bound to their named representations.

@@ -12,6 +12,12 @@ pub(crate) trait ItemSource<T> {
     fn iter(&self) -> Iter<'_, T> {
         self.view().iter()
     }
+    /// Metadata classification can borrow declarations outside the emitted
+    /// view. Ordinary sources retain their exact local lookup; this grants no
+    /// validation or execution authority.
+    fn find_in_context(&self, predicate: &mut dyn FnMut(&T) -> bool) -> Option<&T> {
+        self.iter().find(|item| predicate(item))
+    }
 }
 
 pub(crate) struct View<'a, T> {

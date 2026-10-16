@@ -2901,7 +2901,25 @@ fn hir_skeleton_paths_with_index_storage<'hir>(
         paths = split_contract(paths, contract, &mut work)?;
     }
     let mut completed = Vec::new();
-    for path in paths {
+    // This is the original consuming for-loop's IntoIter/Option state, made
+    // explicit to query its remaining length only after the first old push work.
+    let mut paths = paths.into_iter();
+    let path = match paths.next() {
+        Some(path) => path,
+        None => return Ok(completed),
+    };
+    let terminal = lexical_skeleton::terminal(&path);
+    path_array::completed_first!(
+        work,
+        paths,
+        completed,
+        SkeletonPath {
+            observations: path.observations,
+            terminal
+        },
+        "completed HIR skeleton path"
+    );
+    while let Some(path) = paths.next() {
         let terminal = lexical_skeleton::terminal(&path);
         work.push_skeleton_path(
             &mut completed,
@@ -3012,7 +3030,57 @@ fn sequence_skeleton_paths(
             );
             continue;
         }
-        for suffix in suffixes.iter() {
+        // The first original clone work debit wins before optional metadata.
+        // Iter/next are the original borrowed for-loop state; empty input does
+        // not introduce either a work debit or a selector payment.
+        let mut pending = suffixes.iter();
+        let Some(first_suffix) = pending.next() else {
+            continue;
+        };
+        #[cfg(test)]
+        final_output::record_final_frontier(0, work);
+        work.charge(1, "skeleton prefix clone")?;
+        work.budget.reserve_bytes(
+            work.function,
+            final_output::FINAL_SPLIT_CONTROLS,
+            "HIR final-suffix split controls",
+        )?;
+        let Some((last, earlier)) = pending.as_slice().split_last() else {
+            continue;
+        };
+        // Lexical remainder of the original first clone: no second charge and
+        // no newly forwarded Result<Observations, Diagnostic>.
+        work.budget
+            .reserve_clone(work.function, &prefix.observations, "skeleton prefix clone")?;
+        note_skeleton_materialization();
+        let observations = prefix.observations.clone();
+        let observations = work.extend_owned_observations(
+            observations,
+            &first_suffix.observations,
+            "skeleton suffix clone",
+        )?;
+        let owned_source = work.clone_owned(
+            &first_suffix.owned_source,
+            "sequenced skeleton owned-source clone",
+        )?;
+        path_array::push!(
+            work,
+            first,
+            minimum,
+            &mut combined,
+            ExprSkeletonPath {
+                observations,
+                owned_source,
+                failed: first_suffix.failed,
+                residual: first_suffix.residual,
+                continuation: lexical_skeleton::Continuation::sequenced(
+                    &prefix.continuation,
+                    &first_suffix.continuation,
+                ),
+            },
+            "sequenced skeleton path",
+        );
+        for suffix in earlier.iter() {
             let observations =
                 work.clone_observations(&prefix.observations, "skeleton prefix clone")?;
             let observations = work.extend_owned_observations(
@@ -3042,6 +3110,74 @@ fn sequence_skeleton_paths(
                 "sequenced skeleton path",
             );
         }
+        // The last original clone also debits work before any header query.
+        #[cfg(test)]
+        final_output::record_final_frontier(1, work);
+        work.charge(1, "skeleton prefix clone")?;
+        work.budget.reserve_bytes(
+            work.function,
+            final_output::FINAL_HEADER_CONTROLS,
+            "HIR final-suffix header controls",
+        )?;
+        let len = prefix.observations.items.len();
+        let capacity = prefix.observations.items.capacity();
+        let suffix_len = last.observations.items.len();
+        let take = if work.budget.pays_allocations() {
+            if work.budget.selected() {
+                false
+            } else if len < final_output::FINAL_MINIMUM_ITEMS {
+                false
+            } else if last.observations.prefix.is_some() {
+                true
+            } else if capacity == len {
+                true
+            } else {
+                suffix_len <= capacity - len
+            }
+        } else {
+            false
+        };
+        let observations = if take {
+            work.budget.reserve_bytes(
+                work.function,
+                final_output::FINAL_MOVE_CONTROLS,
+                "HIR final-suffix move controls",
+            )?;
+            note_skeleton_materialization();
+            prefix.observations
+        } else {
+            work.budget.reserve_clone(
+                work.function,
+                &prefix.observations,
+                "skeleton prefix clone",
+            )?;
+            note_skeleton_materialization();
+            prefix.observations.clone()
+        };
+        let observations = work.extend_owned_observations(
+            observations,
+            &last.observations,
+            "skeleton suffix clone",
+        )?;
+        let owned_source =
+            work.clone_owned(&last.owned_source, "sequenced skeleton owned-source clone")?;
+        path_array::push!(
+            work,
+            first,
+            minimum,
+            &mut combined,
+            ExprSkeletonPath {
+                observations,
+                owned_source,
+                failed: last.failed,
+                residual: last.residual,
+                continuation: lexical_skeleton::Continuation::sequenced(
+                    &prefix.continuation,
+                    &last.continuation,
+                ),
+            },
+            "sequenced skeleton path",
+        );
     }
     Ok(combined)
 }
@@ -7616,3 +7752,13 @@ mod sequence_prefix_main24;
 #[cfg(test)]
 #[path = "replay/sequence_prefix/main_c11/mod.rs"]
 mod sequence_prefix_main_c11;
+
+#[cfg(test)]
+#[path = "replay/branch_clone/main8a.rs"]
+mod branch_clone_main8a;
+#[cfg(test)]
+#[path = "replay/path_array/main8a/mod.rs"]
+mod path_array_main8a;
+#[cfg(test)]
+#[path = "replay/sequence_prefix/main8a/mod.rs"]
+mod sequence_prefix_main8a;

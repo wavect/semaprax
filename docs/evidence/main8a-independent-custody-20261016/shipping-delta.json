@@ -1,0 +1,304 @@
+{
+  "before_head": "55e805c2f6e23dda58ce4c72223914ed511b117b",
+  "incoming_Main_head": "8a342f19220988ed2f9a675641098690ededa7fe",
+  "production_changed": true,
+  "requires_fresh_producer": true,
+  "actual55e_capture_plan": "immutable historical only; not applied",
+  "changed_existing_files": [
+    {
+      "source": ".github/workflows/ci.yml",
+      "current_sha256": "5653fb3d3708c9b74e6b7a87bcde50e849c52819c0fb54a8bc98a8bd93fb2b15",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "CHANGELOG.md",
+      "current_sha256": "94aea10ccde838890f4e991ff898cdf34fe818b5b702617e2d646efc42b4c234",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "Cargo.toml",
+      "current_sha256": "1a8f1da38219e1bec1d0100b1e55fa8b5d3466fc09d731f34979e6f792bf71c1",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs",
+      "current_sha256": "c78b5b24ba372baecd99d34cde516e3d15e5b38438e557f29a49a97b2ef37a0f",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/scope_projection.rs",
+      "current_sha256": "13222cc0f26fea2932df41e8a62f62e4498bd281e67f9addf5d2f7bb702f1e6a",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "current_sha256": "5c55282b8d86cd5b75a679558e1839342f28a9635ff759bbfefa977e684d30a6",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "crates/semaprax-toolchain/tests/cli_help_surface_v1.rs",
+      "current_sha256": "4b7cde9d26310b6798ef697f8b834ae0cbb3703e144091720eae74c13a4d20db",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/ARCHITECTURE.md",
+      "current_sha256": "ea0a677bd25918e86f6400676b4511e9946226b817866f7620616dd2446fcd78",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/FINITE-OWNED-RECORD-DISCARD-LOOPS-V1.md",
+      "current_sha256": "e68f319e8f6e12301e07c876210ff10e8091f805d1ca1d47c90c1ab52c200ff9",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/SUMMARY.md",
+      "current_sha256": "626f71c89676b62a64d8d3b241edb5694c27223e6b5bda05365829a96116a440",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/evidence/borrowed-root-bindings/src__hir__capacity_probe.rs.txt",
+      "current_sha256": "75d6dc544abeb838bda3fc243eeddc015fbb7adb462302ad3becf29fb338ee0b",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/evidence/browser-graph-pins-f82cec490/README.md",
+      "current_sha256": "da10958c0f722e4462fae5c697e4478f3e97b5697b13d7761d0999d588dc6cb1",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/evidence/browser-graph-pins-f82cec490/current-hosted-calculator-baseline.json",
+      "current_sha256": "39ffcd65c5917c2870c44e94b9361ef21c1d15d478800da3b8fef6182410152e",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/evidence/browser-graph-pins-f82cec490/current-hosted-calculator-renamed.json",
+      "current_sha256": "73d398a7f2c9f95692b6d916921cf7d3d25a57b795293a55d38897c16fdebead",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/evidence/browser-graph-pins-f82cec490/current-hosted-provenance.json",
+      "current_sha256": "1532bb41b4fea03f1c14e9841cf59d483967d58c69d05696b4f736cca781ebbd",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/evidence/browser-graph-pins-f82cec490/historical_builder.before.rs.txt",
+      "current_sha256": "ebe0031dd8e74c15c3666d0772a321501d593b8982d708ef973030cd937f79ee",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/evidence/browser-graph-pins-f82cec490/receipt.json",
+      "current_sha256": "c623eaefa6c47b5267609fb3bff87ec5e9604b9858c971baa519eb530a61e239",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/evidence/browser-graph-pins-f82cec490/test-fixtures.before.mjs",
+      "current_sha256": "d7b15f2bdc93ee2fdbc118baddadfb6f888991b94550d1c048cb01d159ce6e02",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/evidence/compact-staged-hostile-owner-852-20261016/README.md",
+      "current_sha256": "b7ab7a45303f0634d0bffd8328bcd111730184e01b00e96947354984e3517172",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/evidence/compact-staged-hostile-owner-852-20261016/before/oracle-order-tests.rs",
+      "current_sha256": "c46342d7c901468838d2b5d594050c693526affead95167c0e9416ef6ab458fd",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/evidence/compact-staged-hostile-owner-852-20261016/current-to-55e.json",
+      "current_sha256": "06c07a41a555f7a03834a944afdcbe3f78d978cb92cdcfc83ba2553538055b03",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/evidence/compact-staged-hostile-owner-852-20261016/pending-selectors.json",
+      "current_sha256": "7f8c76d046408f126fde062a246962b207db5c16c1c1e1c6590ad0d697c68e58",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/evidence/compact-staged-hostile-owner-852-20261016/source-proof.json",
+      "current_sha256": "cd7805e9e45ae15f19ceeb3c3b31fe8f3a99433773b742da61c5e91d87c87d97",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/evidence/compact-staged-hostile-owner-852-20261016/verify-source.py",
+      "current_sha256": "54dd6c61c822b3e0e74ae46f02738f18964582a4d77395a5a80090970d036b2f",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/evidence/completed-skeleton-array-v1/README.md",
+      "current_sha256": "51bd09434eb61428f617adbf8427003ab6341a7bc1d4c428bd4176973740733e",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "docs/evidence/completed-skeleton-array-v1/function.json",
+      "current_sha256": "f615414848e4d77faa2e57a55dec256eecdefb0e8c857810ebf719df668b1c85",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "scripts/ci-unit-artifact.py",
+      "current_sha256": "f19585c7f6261b0ce360484006531d156a953415780c6b51efe55eb397dcc7e2",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "scripts/test-ci-unit-artifact.py",
+      "current_sha256": "73efd1de6a0515dd3718a0b43bf388bd0da1c1073b426e97ad85237ea434fce3",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/cleanup_plan/replay.rs",
+      "current_sha256": "be4495e5fc24cf9948781f3589ba6b9c60e3fd4d1e44af065fd0c2a3a8d59e51",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/cleanup_plan/replay/compact_stage.rs",
+      "current_sha256": "52aaa9fc3cb91a97775acdd5ab82040a0ef03a1d2757500338ee442cb308d5e2",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/cleanup_plan/replay/compact_stage/tests.rs",
+      "current_sha256": "61af5a101159dd7aee2b9da06cb39605dcac1ce7b446bad5e87ac33ada54e364",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/arena/prefix.rs",
+      "current_sha256": "ba18f1458bfcca818b90c3cccd68f6986f5bef247a60da5ecddfefd9eb7124e2",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/oracle_order/tests.rs",
+      "current_sha256": "ec36940cc34413a5f4876cacaaff0c35f3e27fdc7b7ff2aaf6a735ea54bf8cf0",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/cleanup_plan/replay/final_output.rs",
+      "current_sha256": "aba94557d4cdcaa8161550963154cdf1417e4708aeb7c0dc0401513276a39682",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/cleanup_plan/replay/path_array.rs",
+      "current_sha256": "26578bf29e973e0fbc2336551a2e94a36e6b4571eb1fa08a531907fb6a104147",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/cleanup_plan/replay/path_array/completed_tests.rs",
+      "current_sha256": "ffeaea90bbc24e851c0a4c3945d18f698bf608c37ed0a1dc76e36568c2017389",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/cleanup_plan/replay/path_array/final_before.rs",
+      "current_sha256": "e866a597b35940a2b37c8449c98ac85ef89472f48c1c21cfbd50be7be7c9709e",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs",
+      "current_sha256": "89745c6ffc9162b8708e196d90dcffa17fcdcdef415bc3443c36854bdc16531c",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/graph/copy_discard.rs",
+      "current_sha256": "45a4d2763ecdab744d4358292859c4b51f52b91cc8a5ec1609d7ed6d8951a999",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/graph/owned_collection_records.rs",
+      "current_sha256": "38def515bb10f40f086dc5cb4bdcbac61bf70ee0cad395df94d2203e82e59c5f",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/graph/owned_nested_outcome.rs",
+      "current_sha256": "bf8625a4282d07dcbdfa09044cfb54e9d12b73a559a25105c5a129835ba7a910",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/hir/items.rs",
+      "current_sha256": "56d57218448a34d76a685da6c2a96f1053333ed13e0b22c05dabe8d27d59061e",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/hir/nominal_payload/legacy.rs",
+      "current_sha256": "548cacdc4b4a54bf9d0b94ba1c574eb8df4a3f09adca2db162f247a07827f3be",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/hir/resolver_scope/source_audit.rs",
+      "current_sha256": "b4462de12f96a5ac08b6c64680191ccdcf009cc64fde6de7353189076df430cb",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/source_reflows.rs",
+      "current_sha256": "0e019934fe261bd9e0ed3b78eb7e98e8d8d2fbb6de05f7a0e7a71f518b1d8594",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/source_reflows_merge.rs",
+      "current_sha256": "a20332517782b92f5786067c423353c50f99b83a183ee8cb00ca4a659d7b581f",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/source_reflows_merge/runtime_json.rs",
+      "current_sha256": "f806dcff91052750431dec674fe30288e8daf04179d0262c57b48037733566d2",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/workspace_graph/source_schema.rs",
+      "current_sha256": "025ab321bcfe43c8fcad9c16bb475d18e65a991049eb6404c782accc0a3b4beb",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/workspace_graph/source_schema/nominal_context.rs",
+      "current_sha256": "53e44ec8f8a4ec759e400617a68049e8583a44b163b9f49d85f2acd657ec18bb",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "src/workspace_graph/source_schema/nominal_context/tests.rs",
+      "current_sha256": "26418a0f5c41a199b12946299473be761c700a8f78228c3c89ac76c639638b11",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "tests/doctor_production_provisioner_v1.rs",
+      "current_sha256": "3f400f88ad5a5efd33e48df5e15e0ff938b7df4499d267c466662eab717b80c4",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "current_sha256": "54987610092387304ba4ecd3837f8517f157f4b1632dbdb0b36069b2540129f9",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "tests/hir_module_boundaries/oracle_source_inventory.rs",
+      "current_sha256": "b8ef5185238d3282e2d6e5a715c08311856bc11f63ff49d08ca5b0a7cd13c07b",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "tests/quality_routing.rs",
+      "current_sha256": "fca3cb06da9859cc100cd961442b6d12b1185183894b6aac45f376ca77a48c92",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_f82.rs",
+      "current_sha256": "8fa081a9dd07f4dfc140ec776e574f93355feee8e51178d86e14b9937e765455",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+      "current_sha256": "77c0a386f37bb903389ed93f2fc33a23e3c745a6dfbf2f6e7e64bf5b862dab82",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "current_sha256": "8c17ec21aa2c29f01d5a2a76ca3079afae3d6d8fd4d0b5aa9d61240cd30c1105",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "tests/workspace/semantic_graph.rs",
+      "current_sha256": "0f2808ed03666520dfe2a4bcddc7dac8f0e46c8fe6e4cebd032831be31b297cb",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "current_sha256": "6f00da06bbdb6f7e1b989a796371d8a38c3df26278c764732bdaf1a2e4fe3e89",
+      "disposition": "SHIPPING_AND_TEST_RECONCILIATION; no55eproduction-equivalence claim"
+    }
+  ]
+}

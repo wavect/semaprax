@@ -84,6 +84,7 @@ fn complete_frozen_receiver_and_shared_boundaries_match_static_body_provenance()
     }
     let original_closure = qualified_closure_identity_projection();
     let original_mutable = qualified_mutable_walk_projection();
+    let original_capacity = qualified_residual_capacity_projection();
     let unchanged = [
         (
             "src/hir/resolve_expr/path_arena.rs",
@@ -133,6 +134,8 @@ fn complete_frozen_receiver_and_shared_boundaries_match_static_body_provenance()
             original_closure
         } else if *source == "src/hir/closure/mutable.rs" {
             original_mutable
+        } else if *source == "src/hir/capacity_probe.rs" {
+            original_capacity
         } else {
             current
         };
@@ -230,4 +233,19 @@ fn full_current_mutable_source_is_exact_original_three_paid_walk_hooks() {
         .find(|r| r["path"] == "src/hir/closure/mutable.rs")
         .unwrap();
     assert_eq!(digest(original), record["sha256"].as_str().unwrap());
+}
+
+// Keep the complete publication source while admitting only the two funded
+// residual-box capacity additions. Neither old field traversal is replaced.
+fn qualified_residual_capacity_projection() -> &'static str {
+    let original = include_str!(
+        "../../../docs/evidence/borrowed-root-bindings/src__hir__capacity_probe.rs.txt"
+    );
+    let current = include_str!("../capacity_probe.rs");
+    let old = "                + resolved_type_owned_capacity(residual_type);";
+    let funded = "                + std::mem::size_of::<ResolvedType>()\n                + resolved_type_owned_capacity(residual_type);";
+    assert_eq!(original.matches(old).count(), 2);
+    assert_eq!(current.matches(funded).count(), 2);
+    assert_eq!(current, original.replace(old, funded));
+    original
 }

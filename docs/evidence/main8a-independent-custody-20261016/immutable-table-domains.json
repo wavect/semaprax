@@ -1,0 +1,57 @@
+[
+  {
+    "original_path": "docs/evidence/compact-staged-observations-v1/inverse.json",
+    "ours_source_head": "55e805c2f6e23dda58ce4c72223914ed511b117b",
+    "ours_sha256": "ef2d603d1d9190002b8e6b0c44fe6e1fb2bfb940e9497bf14db3026d3bf133ae",
+    "ours_bytes": 14904,
+    "Main_source_head": "8a342f19220988ed2f9a675641098690ededa7fe",
+    "Main_copy": "docs/evidence/main8a-independent-custody-20261016/compact-inverse7.json",
+    "Main_sha256": "d8bc73dde24a4b2cc34cbd7e4836f734e1e9e7237d75632c51a87e0aceff790a",
+    "Main_bytes": 52575,
+    "Main_rows": 7
+  },
+  {
+    "original_path": "docs/evidence/receiver-source-custody-v1/inverse.json",
+    "ours_source_head": "55e805c2f6e23dda58ce4c72223914ed511b117b",
+    "ours_sha256": "17758338cdb03f1a294fb75d923ccc515c814aa3d257521f41ef8593a7d9da1b",
+    "ours_bytes": 6660,
+    "Main_source_head": "8a342f19220988ed2f9a675641098690ededa7fe",
+    "Main_copy": "docs/evidence/main8a-independent-custody-20261016/receiver-inverse12.json",
+    "Main_sha256": "3c53da6b1b24176589df8ca9f5701823431c44e2255af61faac4d17fb07a8dcc",
+    "Main_bytes": 79180,
+    "Main_rows": 12
+  },
+  {
+    "original_path": "docs/evidence/legacy-nominal-sharing-827/exact-source-inverses.json",
+    "ours_source_head": "55e805c2f6e23dda58ce4c72223914ed511b117b",
+    "ours_sha256": "98335b571361f43b4d199270a9eb9c5918126e1a4b46a7ceefdaec5e63648e7f",
+    "ours_bytes": 5443211,
+    "Main_source_head": "8a342f19220988ed2f9a675641098690ededa7fe",
+    "Main_copy": "docs/evidence/main8a-independent-custody-20261016/legacy-nominal-inverse18.json",
+    "Main_sha256": "fa75637694250ecbfdc5620abb32057db147cc16a58651d1aebf9d95c80fe366",
+    "Main_bytes": 894317,
+    "Main_rows": 18
+  },
+  {
+    "original_path": "docs/evidence/prefix-certified-expression-lookup/exact-source-inverses.json",
+    "ours_source_head": "55e805c2f6e23dda58ce4c72223914ed511b117b",
+    "ours_sha256": "86770dca8d0e0efdb49729626f9a7b7186b1d9d7b3e92c0acd856e2913b37682",
+    "ours_bytes": 4109603,
+    "Main_source_head": "8a342f19220988ed2f9a675641098690ededa7fe",
+    "Main_copy": "docs/evidence/main8a-independent-custody-20261016/prefix-certified-inverse3.json",
+    "Main_sha256": "48fd4185e58c2530a70c7df46e2a8ac56ec4e6f9507a0a1ccce9c35ee7d7dd1b",
+    "Main_bytes": 1055184,
+    "Main_rows": 3
+  },
+  {
+    "original_path": "docs/evidence/selected-session-static-refusal-781/exact-source-inverses.json",
+    "ours_source_head": "55e805c2f6e23dda58ce4c72223914ed511b117b",
+    "ours_sha256": "5080ec6ca01d0d3165427f06fe3a2d8413e171d2725fbf8c8f15c07de91d5cce",
+    "ours_bytes": 12198439,
+    "Main_source_head": "8a342f19220988ed2f9a675641098690ededa7fe",
+    "Main_copy": "docs/evidence/main8a-independent-custody-20261016/selected-session-inverse19.json",
+    "Main_sha256": "cbe7d0c63ec9390379e0a967ca777beef308ff4e47529fb178204f32eff9c78c",
+    "Main_bytes": 2037683,
+    "Main_rows": 19
+  }
+]

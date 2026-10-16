@@ -8,7 +8,25 @@
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
 
+- Reconcile Main8a finished-path capacity, arbitrary final-suffix transfer and borrowed nominal context with lexical paid receiving; preserve original work-before-optional-payment priority and complete Main controls. Qualification and net application cost remain pending.
+
 - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.
+- Preserve the first HIR diagnostic before selecting lexical Copy-discard graph profiles, retaining current native-import and finite-composition guards after HIR authentication.
+
+- Retain Mainf82 complete hosted browser records and prior bridges independently; keep current55e runner pins until the reconciled source receives fresh actual captures.
+
+- Give direct compact-stage and branch-clone receiver fixtures their explicit post-preflight skeleton allowance while retaining zero/exact/short allocation accounts; preserve failed macOS CI unit executables with exact Cargo/commit/byte provenance for bounded replay on the external SSD.
+
+- Classify imported nominal graph profiles with borrowed authenticated type context while retaining local declaration payloads, conservative frozen-profile guards, and the original imported-record v67 / Prelude v11 ProgramRoot gate.
+
+- Bind historical arena, nominal and selected-session source controls directly to complete live inputs and extend exact inverses while preserving all original archives and hashes; bind both residual-box capacity additions to the complete original census.
+
+- Keep archived private Rust implementation source outside the public Cargo package, and include the admitted current scaffold layout in the exact CLI help pin.
+
+- Restore complete submodule text in source-locked native layout, HIR, workspace, CLI and routing audits without changing their assertions or coverage baseline.
+
+- Acquire finished cleanup path capacity once and transfer a complete prefix to its final successor, preserving original receiver controls, logical work, order and unchanged builder limits.
+
 - Refresh browser graph pins from complete hosted c11a63509 records after a measured 3,452-byte builder-bill reduction, preserving every previous compiled bridge and whole-wire control.
 
 - Share the compiled cleanup predecessor between receiver controls and check constant allocation thresholds at compile time.

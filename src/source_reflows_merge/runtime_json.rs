@@ -42,10 +42,22 @@ fn digest(bytes: &[u8]) -> [u8; 32] {
     Sha256::digest(bytes).into()
 }
 // Sealed sibling inventory only; no arbitrary path or live-source API.
+// Independent complete Main8a immutable tables, through the unchanged sealed reader.
+pub(super) fn main8a_metadata(fixture: super::main8a_custody::Fixture) -> String {
+    let spec = fixture.spec();
+    read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
+        .expect("complete authenticated Main8a immutable metadata")
+}
 pub(super) fn metadata(fixture: super::metadata_json::Fixture) -> String {
     let spec = fixture.spec();
     read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
         .expect("complete authenticated immutable source metadata")
+}
+// Final merge input capsules use the same fixed, bounded authenticated reader.
+pub(super) fn main8a_input(fixture: super::main8a_custody::Input) -> String {
+    let spec = fixture.spec();
+    read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
+        .expect("complete authenticated Main8a input capsule")
 }
 // Fixed final sibling only; the original one-descriptor reader is unchanged.
 pub(super) fn final_custody(fixture: super::final_custody::Fixture) -> String {

@@ -730,6 +730,8 @@ fn reference_family_input(source: &str, current: &str) -> String {
 
 // A later compositor uses this normalization-only front BEFORE its raw table.
 pub(crate) fn bulk848_arm_input(source: &str, current: &str) -> String {
+    let final_input = main8a_previous(source, current);
+    let current = final_input.as_str();
     release_custody::normalize(source, current)
 }
 
@@ -892,6 +894,8 @@ fn main65_previous(source: &str, current: &str) -> String {
 
 // Restore the complete pre-correction test inputs before immutable Main65 custody.
 fn compile9ce_input(source: &str, current: &str) -> String {
+    let previous = main8a_previous(source, current);
+    let current = previous.as_str();
     const KEYS: &[&str] = &[
         "src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs",
         "src/cleanup_plan/replay/semantic_refusal/tests.rs",
@@ -908,4 +912,21 @@ fn compile9ce_input(source: &str, current: &str) -> String {
         source,
         current,
     )
+}
+
+#[path = "source_reflows_merge/main8a_custody.rs"]
+mod main8a_custody;
+pub(crate) use main8a_custody::Fixture as Main8aFixture;
+pub(crate) fn main8a_metadata(fixture: Main8aFixture) -> String {
+    runtime_json::main8a_metadata(fixture)
+}
+
+// Independent current raw domains: never serialize Main predecessors through old raw guards.
+pub(crate) fn main8a_previous(source: &str, current: &str) -> String {
+    let normalized = main8a_custody::normalize(source, current);
+    main8a_custody::input(main8a_custody::Input::Previous55e, source, &normalized)
+}
+pub(crate) fn main8a_input(source: &str, current: &str) -> String {
+    let normalized = main8a_custody::normalize(source, current);
+    main8a_custody::input(main8a_custody::Input::Main8a, source, &normalized)
 }

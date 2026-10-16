@@ -727,6 +727,7 @@ jobs:
           python3 scripts/test-release-reconcile-install-claims.py
           python3 scripts/test-channel-manifests.py
           python3 scripts/test-release-surfaces.py
+          python3 scripts/test-ci-unit-artifact.py
 
   installed-journey:
     name: Installed toolchain journey
@@ -2108,6 +2109,18 @@ jobs:
           SEMAPRAX_REQUIRE_KERNEL_ZERO_RUNG_TWO_TARGETS: "1"
           SEMAPRAX_REQUIRE_RESUMABLE_BACKENDS: "1"
         run: python3 scripts/ci-msrv.py --label "Rust $RUNNER_OS" --shard "${{ matrix.shard }}" --nocapture
+      - name: Preserve the exact macOS unit executable for bounded replay
+        id: macos_unit_replay
+        if: always() && runner.os == 'macOS' && matrix.shard == 'unit' && steps.workspace_target_shard_unix.outcome == 'failure'
+        shell: bash
+        run: python3 scripts/ci-unit-artifact.py --commit "$GITHUB_SHA" --output "$RUNNER_TEMP/semaprax-unit-replay"
+      - name: Upload the current macOS unit replay artifact
+        if: always() && steps.macos_unit_replay.outcome == 'success'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: semaprax-unit-macos-${{ github.sha }}
+          path: ${{ runner.temp }}/semaprax-unit-replay
+          retention-days: 1
       - name: Capture task-service frontend bytes after a failed owning shard
         if: failure() && runner.os != 'Windows' && matrix.shard == 'integration-0' && steps.workspace_target_shard_unix.outcome == 'failure'
         shell: bash

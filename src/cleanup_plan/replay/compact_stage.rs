@@ -318,3 +318,7 @@ pub(in crate::cleanup_plan::replay) fn observations_match(
         _ => false,
     }
 }
+
+#[cfg(test)]
+#[path = "compact_stage/source_custody_main8a.rs"]
+pub(super) mod source_custody_main8a;

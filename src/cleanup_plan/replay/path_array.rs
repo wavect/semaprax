@@ -86,6 +86,85 @@ macro_rules! push {
 }
 pub(super) use push;
 
+// Initial count selection is reached only after the original first output's
+// owned path, work debit and materialization. No first flag/capacity probe or
+// finished-path helper argument/result exists before that frontier.
+pub(super) const COMPLETED_COUNT_CONTROLS: usize = size_of::<Result<(), Diagnostic>>()
+    + 2 * size_of::<Option<usize>>() // checked-add result and match
+    + 6 * size_of::<usize>() // price, len return, add self/RHS, Some binding, count
+    + 2 * size_of::<&std::vec::IntoIter<ExprSkeletonPath>>() // len caller/method
+    + 2 * size_of::<&super::ReplayBudget>() // payer caller/method
+    + 2 * size_of::<bool>() // count threshold and payer result
+    + size_of::<&mut super::ReplayBudget>()
+    + size_of::<&super::ResolvedFunction>()
+    + size_of::<&str>();
+const COMPLETED_OPTIONAL_CONTROLS: usize = COMPLETED_COUNT_CONTROLS + capacity_controls();
+const COMPLETED_CAPACITY: usize =
+    (COMPLETED_OPTIONAL_CONTROLS.div_ceil(size_of::<super::SkeletonPath>()) + 1)
+        .next_power_of_two();
+pub(super) const COMPLETED_MINIMUM: usize = if COMPLETED_CAPACITY / 2 + 1 > 8 {
+    COMPLETED_CAPACITY / 2 + 1
+} else {
+    8
+};
+macro_rules! completed_first {
+    ($work:ident, $remaining:ident, $target:ident, $path:expr, $phase:expr) => {{
+        // These replace the original push_skeleton_path owned path/phase
+        // parameters; neither is a new forwarding carrier.
+        let path = $path;
+        let phase = $phase;
+        $work.charge(1, phase)?;
+        $crate::cleanup_plan::replay::note_skeleton_materialization();
+        $work.budget.reserve_bytes(
+            $work.function,
+            $crate::cleanup_plan::replay::path_array::COMPLETED_COUNT_CONTROLS,
+            phase,
+        )?;
+        let count = match $remaining.len().checked_add(1) {
+            Some(count) => count,
+            None => {
+                return Err($work.budget.budget_refusal(
+                    $work.function,
+                    "cleanup replay completed path count overflowed",
+                    "",
+                ))
+            }
+        };
+        if count >= $crate::cleanup_plan::replay::path_array::COMPLETED_MINIMUM {
+            if $work.budget.pays_allocations() {
+                $work.budget.reserve_bytes(
+                    $work.function,
+                    $crate::cleanup_plan::replay::path_array::capacity_controls(),
+                    phase,
+                )?;
+                let capacity = match count.checked_next_power_of_two() {
+                    Some(capacity) => capacity,
+                    None => {
+                        return Err($work.budget.budget_refusal(
+                            $work.function,
+                            "cleanup replay minimum path capacity overflowed",
+                            "",
+                        ))
+                    }
+                };
+                $work
+                    .budget
+                    .reserve_vec($work.function, &mut $target, capacity, phase)?;
+            } else {
+                $work
+                    .budget
+                    .reserve_vec($work.function, &mut $target, 1, phase)?;
+            }
+        } else {
+            $work
+                .budget
+                .reserve_vec($work.function, &mut $target, 1, phase)?;
+        }
+        $target.push(path);
+    }};
+}
+pub(super) use completed_first;
+
 #[cfg(test)]
 mod before;
 #[cfg(test)]
@@ -94,3 +173,6 @@ mod funded_tests;
 pub(super) mod main696;
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod completed_tests;

@@ -1,0 +1,28 @@
+[
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+    "current_sha256": "77c0a386f37bb903389ed93f2fc33a23e3c745a6dfbf2f6e7e64bf5b862dab82",
+    "original_sha256": "6beca365221690799f3b78e459f15fe4b16e32e6ded72797104763db92c1446f",
+    "edits": [
+      {
+        "new": "    let merged = main8a_previous(source, current);\n    let current = merged.as_str();\n",
+        "old": ""
+      },
+      {
+        "new": "\npub(super) fn main8a_previous(source: &str, current: &str) -> String {\n    pin_project(include_str!(\"../../../docs/evidence/main8a-independent-custody-20261016/browser-current-to55e.json\"), source, current)\n}\npub(super) fn main8a_input(source: &str, current: &str) -> String {\n    pin_project(include_str!(\"../../../docs/evidence/main8a-independent-custody-20261016/browser-current-toMain8a.json\"), source, current)\n}\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "current_sha256": "8c17ec21aa2c29f01d5a2a76ca3079afae3d6d8fd4d0b5aa9d61240cd30c1105",
+    "original_sha256": "1b3033a860933b4c3f4ab2c438bd1830bbcc9bed56d7f5f59f2af9488da11c05",
+    "edits": [
+      {
+        "new": "\n#[path = \"historical_main_f82.rs\"]\nmod main_f82;\n",
+        "old": ""
+      }
+    ]
+  }
+]

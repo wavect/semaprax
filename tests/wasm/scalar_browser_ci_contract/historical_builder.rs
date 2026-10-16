@@ -377,3 +377,6 @@ pub(super) fn current83ca_digest(graph: &str) -> String {
 pub(super) fn current83ca_drift_controls(graph: &str) {
     actual_83ca::drift_controls(graph);
 }
+
+#[path = "historical_main_f82.rs"]
+mod main_f82;

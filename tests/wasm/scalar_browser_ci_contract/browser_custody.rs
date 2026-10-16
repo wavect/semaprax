@@ -269,6 +269,8 @@ pub(super) fn main_c451_before_2600(current: &str) -> String {
 }
 
 fn actual83ca_input(source: &str, current: &str) -> String {
+    let merged = main8a_previous(source, current);
+    let current = merged.as_str();
     let main65 = pin_project(
         include_str!(
             "../../../docs/evidence/main65-private-merge-20261016/browser-current-to-75d8.json"
@@ -284,4 +286,11 @@ fn actual83ca_input(source: &str, current: &str) -> String {
         source,
         current,
     )
+}
+
+pub(super) fn main8a_previous(source: &str, current: &str) -> String {
+    pin_project(include_str!("../../../docs/evidence/main8a-independent-custody-20261016/browser-current-to55e.json"), source, current)
+}
+pub(super) fn main8a_input(source: &str, current: &str) -> String {
+    pin_project(include_str!("../../../docs/evidence/main8a-independent-custody-20261016/browser-current-toMain8a.json"), source, current)
 }

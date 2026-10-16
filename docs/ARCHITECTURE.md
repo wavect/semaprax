@@ -5145,3 +5145,20 @@ is constructed. The complete
 Main vector helper and its original tests are independent historical controls.
 Eligibility and new receiving costs are explicit; executable qualification and
 unfavorable/common-case cost observations remain pending.
+
+
+The reconciled Main44 sequencing minimum lives in
+`cleanup_plan/replay/path_array/sequence_minimum.rs`. Its lexical macro owns
+only the first active multi-suffix output's extra query: the original owned
+path, work debit, materialization, existing capacity fee and checked old
+capacity precede the additional receiving payment. The original held suffix
+iterator proves S - 1 without another header traversal. Checked P + S - 1 can
+select a larger capacity only when removed vector backing covers the complete
+additional conservative typed control charge. Failed/no-saving probes retain
+their charge; stopped-first, single-successor, empty, small and subsequent
+outputs keep their existing push receivers. The complete immediate shipping
+predecessor remains compiled beside field/work/growth/Drop and finite-budget
+controls. Main44's complete independent implementation and original assertions
+live in `path_array/main44`; neither source domain changes cleanup semantics,
+the builder cap, or the shipping general-DAG vector/final-suffix transfers.
+Execution qualification and net application receipts remain pending.

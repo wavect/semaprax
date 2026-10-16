@@ -176,3 +176,5 @@ mod tests;
 
 #[cfg(test)]
 mod completed_tests;
+
+pub(super) mod sequence_minimum;

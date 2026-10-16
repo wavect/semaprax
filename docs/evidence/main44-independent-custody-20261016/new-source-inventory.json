@@ -1,0 +1,31 @@
+{
+  "sources": [
+    "src/cleanup_plan/replay/compact_stage/source_custody_main44.rs",
+    "src/cleanup_plan/replay/path_array/main44/before.rs",
+    "src/cleanup_plan/replay/path_array/main44/completed_tests.rs",
+    "src/cleanup_plan/replay/path_array/main44/current.rs",
+    "src/cleanup_plan/replay/path_array/main44/final_before.rs",
+    "src/cleanup_plan/replay/path_array/main44/mod.rs",
+    "src/cleanup_plan/replay/path_array/main44/sequence.rs",
+    "src/cleanup_plan/replay/path_array/main44/sequence/before.rs",
+    "src/cleanup_plan/replay/path_array/main44/sequence/tests.rs",
+    "src/cleanup_plan/replay/path_array/main44/source_domain.rs",
+    "src/cleanup_plan/replay/path_array/main44/tests.rs",
+    "src/cleanup_plan/replay/path_array/main44/vector.rs",
+    "src/cleanup_plan/replay/path_array/main44/vector_before.rs",
+    "src/cleanup_plan/replay/path_array/main44/vector_tests.rs",
+    "src/cleanup_plan/replay/path_array/sequence.rs",
+    "src/cleanup_plan/replay/path_array/sequence/before.rs",
+    "src/cleanup_plan/replay/path_array/sequence/tests.rs",
+    "src/cleanup_plan/replay/path_array/sequence_minimum.rs",
+    "src/cleanup_plan/replay/path_array/sequence_minimum/before.rs",
+    "src/cleanup_plan/replay/path_array/sequence_minimum/tests.rs",
+    "src/source_reflows/semantic_receivers_main44.rs",
+    "src/source_reflows_merge/main44_custody.rs"
+  ],
+  "inventories": [
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+  ]
+}

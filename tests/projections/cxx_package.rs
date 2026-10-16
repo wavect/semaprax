@@ -304,7 +304,9 @@ fn package_budget_accepts_the_exact_minimum_and_rejects_one_byte_less() {
         }
     }
     let exact = CxxShimOptions::new(vec!["cxx.add".to_owned()], low).unwrap();
-    generate_package(&source, &exact).expect("exact minimum package budget");
+    let envelope = generate_package(&source, &exact).expect("exact minimum package budget");
+    verify_package_envelope(&envelope, &source, &exact)
+        .expect("exact output budget retains the independent source replay cap");
     let below = CxxShimOptions::new(vec!["cxx.add".to_owned()], low - 1).unwrap();
     let errors = generate_package(&source, &below).expect_err("minimum minus one");
     assert!(errors.iter().any(|error| error.code == "SPX-X103"));

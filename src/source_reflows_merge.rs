@@ -959,3 +959,9 @@ pub(crate) fn main_e47_input(source: &str, current: &str) -> String {
     let normalized = maina3_custody::normalize(source, current);
     maina3_custody::input(maina3_custody::Input::MainE47, source, &normalized)
 }
+
+#[path = "source_reflows_merge/main44_custody.rs"]
+mod main44_custody;
+pub(crate) use main44_custody::Fixture as Main44Fixture;
+pub(crate) fn main44_metadata(fixture: Main44Fixture) -> String { runtime_json::main44_metadata(fixture) }
+pub(crate) fn main44_input(source: &str, current: &str) -> String { main44_custody::input(source, current) }

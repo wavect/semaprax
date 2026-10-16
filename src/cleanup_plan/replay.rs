@@ -2953,6 +2953,10 @@ fn sequence_skeleton_paths(
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
     #[cfg(test)]
+    if path_array_main44::selected() {
+        return path_array_main44::current_sequence(prefixes, suffixes, work);
+    }
+    #[cfg(test)]
     if sequence_vector_maina3::selected() {
         return sequence_vector_maina3::current_sequence(prefixes, suffixes, work);
     }
@@ -3080,10 +3084,11 @@ fn sequence_skeleton_paths(
             &first_suffix.owned_source,
             "sequenced skeleton owned-source clone",
         )?;
-        path_array::push!(
+        path_array::sequence_minimum::push!(
             work,
             first,
             minimum,
+            pending,
             &mut combined,
             ExprSkeletonPath {
                 observations,
@@ -7779,3 +7784,7 @@ mod sequence_prefix_main8a;
 #[cfg(test)]
 #[path = "replay/sequence_vector/main_a3/mod.rs"]
 mod sequence_vector_maina3;
+
+#[cfg(test)]
+#[path = "replay/path_array/main44/mod.rs"]
+mod path_array_main44;

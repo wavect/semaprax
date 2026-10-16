@@ -1,0 +1,52 @@
+{
+  "scope": "static only; capture is historical producer evidence, not owner-test or browser pass",
+  "head": "218a9583138d78ef5aed9a495a9150dee9b64619",
+  "tree": "eb6cef6efe5fc256694426de2d1a287259863e43",
+  "capture": "/Volumes/Semaprax/provenance/browser-capture-218a9-20261016",
+  "binding_sha256": "3000a080308585f2c3f0bf8254937d4a3c26ed583b68b24b53361346d90284ea",
+  "receipt_sha256": "71187434c94ab452223444f0de35126f516e7e8f0e3b66495bf301688a231bad",
+  "results_sha256": "a061d5f9578c6c4c548a0eeb851e025111511cfb993afb02d0c526f7b17b9c68",
+  "wires": [
+    {
+      "fixture": "baseline",
+      "wire_sha256": "829cf321b71a718c622fbf1f6070585c2765c5c784726c6cbd124a49f14a4544",
+      "builder_bytes": 3466907,
+      "graph_digest": "sha256:a23910355b146507a47d4e9ec943c6d12a1f6180396eaf2387ae2eb67680d0df",
+      "complete_67b_preimage": true
+    },
+    {
+      "fixture": "renamed",
+      "wire_sha256": "1c41eea67caf2f72eb6a7acf84e2e78ba6d9a8c8cde2871c25ce8ce9af20534f",
+      "builder_bytes": 3466907,
+      "graph_digest": "sha256:544ca9fa0cedc417936c547c2bd2d35281c438267998ca1bb3744479144575d1",
+      "complete_67b_preimage": true
+    }
+  ],
+  "source_inverses": [
+    {
+      "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+      "current_sha256": "547f999f1f1e4ae084d5e7f864be29676edfb5b79d10369ab41975480e09a534",
+      "original_sha256": "96dd49b1b46d6154347edfbff5a40b68232c5dc5df7df9d630e640f64d3b1fd8"
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract.rs",
+      "current_sha256": "9129f5494054cfb7f5b891f1febc60eaabd2f06f7eef30d10beedd4533cc9166",
+      "original_sha256": "cd4c7d3fa21b897fedcb67ba907e5e39261458afb4bc043c90e8370776ffe0cb"
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "current_sha256": "64d52fb6d6e8f59bb4f81244d991f8c603f792f5b7bca9fd14df94cc86f34dd8",
+      "original_sha256": "4256c1e543c5809f242e0533aeda552d291011047a9a90b396be71b618721714"
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+      "current_sha256": "ffb7d2206c963a49e6385cfa2c364920610e1ac7d4ac1447d1b40dea924487f7",
+      "original_sha256": "6337d1b8da661bdf5808c495245cc79c414e6b5667cb3e29affcac5820fd6ed2"
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/actual_67b.rs",
+      "current_sha256": "f15ae6925ae1c2a861726adaa0d54bc8e4bf670925627f3da2b43fb05909294f",
+      "original_sha256": "2f813d0bb00dc4dda1c6c9401dec37927faad2affbe38b7602dc3140a5a77cc2"
+    }
+  ]
+}

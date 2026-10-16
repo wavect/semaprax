@@ -320,6 +320,8 @@ pub(super) fn before_e47_input(source: &str, current: &str) -> String {
 
 // Exact outer inverse. Every older source predicate receives its full preimage.
 pub(super) fn current67b_input(source: &str, current: &str) -> String {
+    let restored = next_actual_input(source, current);
+    let current = restored.as_str();
     pin_project(
         include_str!("../../../docs/evidence/browser-67b1b-successor-20261016/current-to-prior.json"),
         source,
@@ -327,9 +329,15 @@ pub(super) fn current67b_input(source: &str, current: &str) -> String {
     )
 }
 pub(super) fn current67b_runner75b(current: &str) -> String {
+    let restored = next_actual_input("platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs", current);
+    let current = restored.as_str();
     pin_project(
         include_str!("../../../docs/evidence/browser-67b1b-successor-20261016/current-to-retained75b-runner.json"),
         "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
         current,
     )
+}
+
+pub(super) fn next_actual_input(source: &str, current: &str) -> String {
+    pin_project(include_str!("../../../docs/evidence/browser-next-actual-218a9-20261016/current-to-prior.json"), source, current)
 }

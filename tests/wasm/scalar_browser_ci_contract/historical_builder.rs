@@ -395,3 +395,8 @@ pub(super) fn current67b_digest(graph: &str) -> String {
 pub(super) fn current67b_drift_controls(graph: &str) {
     actual_67b::drift_controls(graph);
 }
+
+#[path = "next_actual.rs"]
+mod next_actual;
+pub(super) fn next_actual_digest(graph: &str) -> String { next_actual::digest(graph) }
+pub(super) fn next_actual_drift_controls(graph: &str) { next_actual::drift_controls(graph); }

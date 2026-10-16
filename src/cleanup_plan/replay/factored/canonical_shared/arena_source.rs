@@ -17,7 +17,10 @@ fn complete_old_receiver_and_full_source_views_remain_bound() {
     let old = inputs[0].2;
     let begin = old.find("// Invoked only after preflight").unwrap();
     let end = old.find("\n#[cfg(test)]\nmod tests;").unwrap();
-    let copy = include_str!("before_arena.rs");
+    let copy = crate::source_reflows_merge::arena854_input(
+        "src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs",
+        include_str!("before_arena.rs"),
+    );
     assert!(copy.contains(&old[begin..end]));
     assert!(copy.contains("states: BTreeMap<SharedWeighted, usize>"));
     assert!(copy.contains("ids: BTreeMap<(u64, Vec<(Label, usize)>), usize>"));

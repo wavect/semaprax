@@ -1244,8 +1244,14 @@ impl<'a> Canonicalizer<'a> {
                     }
                     let key = (accepted, key);
                     let id = match self.ids.get(&key) {
-                        Some(id) => *id,
+                        Some(id) => {
+                            #[cfg(test)]
+                            super::arena_tests::signature_lookup(true);
+                            *id
+                        }
                         None => {
+                            #[cfg(test)]
+                            super::arena_tests::signature_lookup(false);
                             attempt!(budget
                                 .reserve_btree_node::<(u64, Vec<(Label, usize)>), usize>(
                                     function,

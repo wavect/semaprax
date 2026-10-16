@@ -1312,8 +1312,14 @@ impl<'a> Canonicalizer<'a> {
                         accepted, successors: &successors, children: &self.child_ids,
                     };
                     let id = match self.ids.get(&query) {
-                        Some(id) => *id,
+                        Some(id) => {
+                            #[cfg(test)]
+                            arena_tests::signature_lookup(true);
+                            *id
+                        }
                         None => {
+                            #[cfg(test)]
+                            arena_tests::signature_lookup(false);
                             attempt!(budget.reserve_array::<(Label, usize)>(
                                 function, successors.len(), "factored canonical signature vector",
                             ));

@@ -1,0 +1,196 @@
+{
+  "scope": "include_str literal inputs in thirteen added Rust owners; no Rust memory measurement",
+  "occurrences": 37,
+  "referenced_bytes_with_occurrences": 324105,
+  "unique_input_bytes": 231821,
+  "inputs": [
+    {
+      "source": "src/cleanup_plan/replay/sequence_prefix/main_c11/before_wrapper_tests.rs",
+      "input": "src/cleanup_plan/replay/sequence_prefix/main_c11/before.rs",
+      "bytes": 2047
+    },
+    {
+      "source": "src/cleanup_plan/replay/sequence_prefix/main_c11/tests.rs",
+      "input": "src/cleanup_plan/replay/sequence_prefix/main_c11/before.rs",
+      "bytes": 2047
+    },
+    {
+      "source": "src/cleanup_plan/replay/sequence_prefix/main_c11/tests.rs",
+      "input": "src/cleanup_plan/replay/sequence_prefix/main_c11/before_wrapper.rs",
+      "bytes": 2231
+    },
+    {
+      "source": "src/cleanup_plan/replay/sequence_prefix/main_c11/tests.rs",
+      "input": "src/cleanup_plan/replay/sequence_prefix/main_c11/before_wrapper_tests.rs",
+      "bytes": 12935
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-c11a63509/current-hosted-calculator-baseline.json",
+      "bytes": 9894
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-c11a63509/current-hosted-calculator-renamed.json",
+      "bytes": 9894
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-c451086ce/current-hosted-calculator-baseline.json",
+      "bytes": 9894
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-c451086ce/current-hosted-calculator-renamed.json",
+      "bytes": 9894
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs",
+      "input": "docs/evidence/main65-private-merge-20261016/main-runner.mjs.txt",
+      "bytes": 10291
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-c11a63509/historical_builder.before.rs.txt",
+      "bytes": 5221
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-c11a63509/test-fixtures.before.mjs",
+      "bytes": 10291
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs",
+      "input": "tests/wasm/scalar_browser_ci_contract/before_c11.rs",
+      "bytes": 5310
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-c451086ce/current-hosted-calculator-baseline.json",
+      "bytes": 9894
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-c451086ce/current-hosted-calculator-renamed.json",
+      "bytes": 9894
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-2600e49eb/current-hosted-calculator-baseline.json",
+      "bytes": 9894
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-2600e49eb/current-hosted-calculator-renamed.json",
+      "bytes": 9894
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-c11a63509/test-fixtures.before.mjs",
+      "bytes": 10291
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-c451086ce/historical_builder.before.rs.txt",
+      "bytes": 5221
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-c451086ce/test-fixtures.before.mjs",
+      "bytes": 10291
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_c11.rs",
+      "input": "tests/wasm/scalar_browser_ci_contract/before_c451_c11.rs",
+      "bytes": 5318
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_c451_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-2600e49eb/current-hosted-calculator-baseline.json",
+      "bytes": 9894
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_c451_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-2600e49eb/current-hosted-calculator-renamed.json",
+      "bytes": 9894
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_c451_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-17104e20c/current-hosted-calculator-baseline.json",
+      "bytes": 9894
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_c451_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-17104e20c/current-hosted-calculator-renamed.json",
+      "bytes": 9894
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_c451_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-c451086ce/test-fixtures.before.mjs",
+      "bytes": 10291
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_c451_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-2600e49eb/historical_builder.before.rs.txt",
+      "bytes": 7006
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_c451_c11.rs",
+      "input": "docs/evidence/browser-graph-pins-2600e49eb/test-fixtures.before.mjs",
+      "bytes": 10291
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_c451_c11.rs",
+      "input": "tests/wasm/scalar_browser_ci_contract/c11_before_2600.rs",
+      "bytes": 7079
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/c11_before_2600.rs",
+      "input": "docs/evidence/browser-graph-pins-841efe3e2/historical-calculator-baseline.json",
+      "bytes": 9894
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/c11_before_2600.rs",
+      "input": "docs/evidence/browser-graph-pins-841efe3e2/historical-calculator-renamed.json",
+      "bytes": 9894
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/c11_before_2600.rs",
+      "input": "docs/evidence/browser-graph-pins-17104e20c/current-hosted-calculator-baseline.json",
+      "bytes": 9894
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/c11_before_2600.rs",
+      "input": "docs/evidence/browser-graph-pins-17104e20c/current-hosted-calculator-renamed.json",
+      "bytes": 9894
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/c11_before_2600.rs",
+      "input": "docs/evidence/browser-graph-pins-2600e49eb/test-fixtures.before.mjs",
+      "bytes": 10291
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/c11_before_2600.rs",
+      "input": "docs/evidence/browser-graph-pins-268cb0523/current-hosted-calculator-baseline.json",
+      "bytes": 9894
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/c11_before_2600.rs",
+      "input": "docs/evidence/browser-graph-pins-268cb0523/current-hosted-calculator-renamed.json",
+      "bytes": 9894
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/c11_before_2600.rs",
+      "input": "docs/evidence/browser-graph-pins-841efe3e2/scalar_browser_ci_contract.before.rs.txt",
+      "bytes": 9765
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/c11_before_2600.rs",
+      "input": "docs/evidence/main65-private-merge-20261016/main-browser-parent.rs.txt",
+      "bytes": 9796
+    }
+  ],
+  "literal_interning_or_RSS_effect": "UNMEASURED",
+  "lib_include_str_occurrence_bytes": 19260,
+  "wasm_include_str_occurrence_bytes": 304845
+}

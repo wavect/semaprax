@@ -1,0 +1,33 @@
+{
+  "source_head": "c11a6350960d4b186d9fa3b88faccf2526f6686f",
+  "run": 38874738766,
+  "job": 116887554233,
+  "fixtures": [
+    {
+      "fixture": "calculator-baseline.json",
+      "current_digest": "sha256:6362452215817644b8d9fdf10b1b4a8b09d5baf0f2a4f4f633a660579337ed43",
+      "prior_digest": "sha256:331cbe450ce2405aaf18876e6e1d1d42c96703af271616dd374087b5ed9de86a",
+      "current_builder_bytes": 2967742,
+      "prior_builder_bytes": 2971194,
+      "bytes_saved": 3452,
+      "current_wire_sha256": "bf4fb515fc7d71365d42fa69a8acde71404ce525ff56d6ffdbd05ed4c63f837b",
+      "complete_prior_wire_reproduced": true
+    },
+    {
+      "fixture": "calculator-renamed.json",
+      "current_digest": "sha256:6e864befe3a2c8f6db091a1dd4009906563d6af362771e1049666be6ae083cde",
+      "prior_digest": "sha256:d234e7fc89dd7211b1c1f15b03e04371922728096b9b95ab7e1bbe0119fd419e",
+      "current_builder_bytes": 2967742,
+      "prior_builder_bytes": 2971194,
+      "bytes_saved": 3452,
+      "current_wire_sha256": "4cd98129ae824f38943285ba96f7da0048e845842394ae488315607ab2d9692d",
+      "complete_prior_wire_reproduced": true
+    }
+  ],
+  "source_snapshots": {
+    "historical_builder.before.rs.txt": "fbdc934cb47d6031aefd0ecc2945a575f4e74050b8e9b927e9cf7907c452ff7c",
+    "test-fixtures.before.mjs": "e2dcb8f6a31a753891aeb04fa5269a28c555ec686a7945a8c5080bd54d7178a3"
+  },
+  "provenance_sha256": "0345db2d53e4656171a5d58a7455dfd91b06f8ddc9a457645ef41c6507d09873",
+  "scope": "Complete records from failed current-head exact-pin fixture gate. Both graph domain hashes and prior full bytes independently verified. Browser execution and next-head full CI require hosted qualification."
+}

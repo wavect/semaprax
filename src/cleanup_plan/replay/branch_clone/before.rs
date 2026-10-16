@@ -454,6 +454,8 @@ pub(super) fn plan_skeleton_paths(
     Ok(paths)
 }
 pub(super) fn main_replay_input(current: &str) -> String {
+    let compile_fixed = crate::source_reflows_merge::compile_fixture_input("src/cleanup_plan/replay.rs", current);
+    let current = compile_fixed.as_str();
     use sha2::{Digest, Sha256};
     assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))), CURRENT_REPLAY_SHA);
     let original = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/branch-clone-funded-next-20261016/main-replay.before.rs.txt")).expect("immutable complete Main replay input");

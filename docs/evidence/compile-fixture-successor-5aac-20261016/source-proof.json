@@ -1,0 +1,11 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "before": "5aacb8e5e652ce4d05bc8717d7277145695167a7",
+  "whole_old_inputs": 14,
+  "compact_input_bytes": 21844,
+  "new_live_Rust_owners": 1,
+  "old90_runtime_transport_exact": true,
+  "original_project_body_exact": true,
+  "full_prior_namespace_restored": true,
+  "Rust_executed": false
+}

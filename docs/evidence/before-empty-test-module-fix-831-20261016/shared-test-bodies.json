@@ -1,0 +1,17 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/memo/retained/held_tests.rs",
+    "sha256": "ff7966ffdc67a88b6b528c4f207ade51712e54e0d61a5912333d8e830499b864",
+    "binding": "Same original held body, lexical super binds independent old RetainedMemo, not modern owner"
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs",
+    "sha256": "addd5d1825377a0eed8f57348fae259dbb156beea659f0f02f8c5b23738c9812",
+    "binding": "Same complete5aac source instantiated under independent old parent; source-only guards remain at original include base"
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/source.rs",
+    "sha256": "16d5dca335dfc1378296a65c63d0765f790f6db81f85b47c57eaf43af1b8bb77",
+    "binding": "Same complete5aac source instantiated under independent old parent; source-only guards remain at original include base"
+  }
+]

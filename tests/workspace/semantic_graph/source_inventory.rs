@@ -3,7 +3,7 @@
 macro_rules! semantic_graph_private_layout_owned_source_inventory {
     () => { concat!(semantic_graph_private_layout_owned_source_inventory!(capacity), semantic_graph_private_layout_owned_source_inventory!(core)) };
     (capacity) => { concat!(
-        include_str!("../../src/workspace_graph/expected_projection/private_layout/capacity_before.rs"),
+        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs"), include_str!("../../src/workspace_graph/expected_projection/private_layout/capacity_before.rs"),
         include_str!("../../src/workspace_graph/expected_projection/private_layout/capacity_tests.rs"),
         include_str!("../../src/workspace_graph/expected_projection/private_layout/capacity_tests/owner_controls.rs"),
         include_str!("../../src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs"),

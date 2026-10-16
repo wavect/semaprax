@@ -6654,7 +6654,10 @@ fn plan_skeleton_paths(
                     };
                     budget.reserve_bytes(
                         function,
-                        branch_clone::controls::<Rc<SkeletonObservation>, SkeletonObservation>(),
+                        branch_clone::controls::<
+                            std::rc::Rc<SkeletonObservation>,
+                            SkeletonObservation,
+                        >(),
                         "branch clone receiving controls",
                     )?;
                     let branch = branch_clone::with_observation(

@@ -357,8 +357,42 @@ impl Closed {
 }
 
 #[cfg(test)]
+#[path = "../ordered_weights/amortized_source.rs"]
 mod amortized_source;
 #[cfg(test)]
+#[path = "ordered_weights/receiver_tests.rs"]
 mod receiver_tests;
 #[cfg(test)]
+#[path = "../ordered_weights/source.rs"]
 mod source;
+
+// Compare old/current representations without constructing a projected map in
+// the measured region. The complete original assertions are archived/inverted.
+#[cfg(test)]
+pub(super) fn assert_closure_result(
+    actual: &Result<Option<std::rc::Rc<OrderedWeights>>, Diagnostic>,
+    expected: &Result<Option<std::rc::Rc<std::collections::BTreeMap<usize, u64>>>, Diagnostic>,
+) {
+    match (actual, expected) {
+        (Err(actual), Err(expected)) => assert_eq!(actual, expected),
+        (Ok(None), Ok(None)) => {}
+        (Ok(Some(actual)), Ok(Some(expected))) => {
+            assert!(
+                actual.iter().eq(expected.iter()),
+                "complete numeric closure entries"
+            );
+        }
+        _ => panic!("closure outcome mismatch: actual={actual:?}, expected={expected:?}"),
+    }
+}
+#[cfg(test)]
+pub(super) fn assert_closure_view(
+    actual: Option<&std::rc::Rc<OrderedWeights>>,
+    expected: Option<&std::rc::Rc<std::collections::BTreeMap<usize, u64>>>,
+) {
+    match (actual, expected) {
+        (None, None) => {}
+        (Some(actual), Some(expected)) => assert!(actual.iter().eq(expected.iter())),
+        _ => panic!("closure view mismatch: actual={actual:?}, expected={expected:?}"),
+    }
+}

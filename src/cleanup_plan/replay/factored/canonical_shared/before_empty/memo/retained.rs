@@ -123,4 +123,5 @@ impl<T> RetainedMemo<T> {
 }
 
 #[cfg(test)]
+#[path = "../../memo/retained/held_tests.rs"]
 mod held_tests;

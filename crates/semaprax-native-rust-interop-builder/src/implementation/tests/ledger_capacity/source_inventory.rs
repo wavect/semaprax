@@ -2,7 +2,7 @@
 macro_rules! held_call_profile_source_inventory {
     () => {
         concat!(
-            include_str!("../../../../../src/hir/validation/held_profiles.rs"),
+            include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs"), include_str!("../../../../../src/hir/validation/held_profiles.rs"),
             include_str!("../../../../../src/hir/validation/held_profiles/tests.rs"),
             include_str!("../../../../../src/hir/validation/held_profiles/source_audit.rs"),
             include_str!("../../../../../src/hir/validation/executable_profiles/held.rs"),

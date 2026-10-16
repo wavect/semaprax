@@ -1258,7 +1258,7 @@ fn emit_byte_exports_profile(
     }
     let uses_owned_strings = !static_utf8
         && super::functions_use_strings(executable_functions.iter().map(|(function, _)| *function));
-    if !owned_utf8_profile && uses_owned_strings {
+    if uses_owned_strings && !semantic_work::uses_owned_utf8(owned_utf8_profile) {
         return Err(error(
             "owned string literal reached a non-v10 WebAssembly profile",
         ));

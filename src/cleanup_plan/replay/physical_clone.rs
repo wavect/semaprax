@@ -8,6 +8,14 @@ pub(crate) trait ClonePayload {
     /// Conservative for future implementations: only audited payloads opt out.
     const NEEDS_TYPE_CURSOR: bool = true;
     fn clone_payload_bytes(&self) -> Option<usize>;
+    /// A constant-time discriminator; future implementations keep the cursor.
+    fn clone_needs_type_cursor(&self) -> bool {
+        Self::NEEDS_TYPE_CURSOR
+    }
+    /// Called only after the ordinary builder authenticates a cursor-free clone.
+    fn clone_payload_bytes_without_type_cursor(&self) -> Option<usize> {
+        self.clone_payload_bytes()
+    }
     #[cfg(test)]
     fn clone_payload_bytes_with_work(
         &self,
@@ -179,6 +187,35 @@ impl ClonePayload for crate::hir::ControlTarget {
     }
 }
 impl ClonePayload for ResolvedType {
+    fn clone_needs_type_cursor(&self) -> bool {
+        !matches!(
+            self,
+            Self::Never
+                | Self::Unit
+                | Self::I64
+                | Self::I32
+                | Self::Char
+                | Self::U8
+                | Self::Usize
+                | Self::ArrayU8(_)
+                | Self::F32
+                | Self::F64
+                | Self::Bool
+                | Self::String
+                | Self::Bytes
+                | Self::Str
+                | Self::SliceU8
+                | Self::StringMap
+                | Self::OnceFunction
+                | Self::OnceFunctionI64
+                | Self::OnceFunctionI64Pair
+                | Self::MutFunctionI64
+                | Self::TypeParameter { .. }
+        )
+    }
+    fn clone_payload_bytes_without_type_cursor(&self) -> Option<usize> {
+        (!self.clone_needs_type_cursor()).then_some(0)
+    }
     fn clone_payload_bytes(&self) -> Option<usize> {
         // Selected setup and ordinary clone-census setup reserve this one
         // reusable fixed cursor before preflight. Wide type lists retain one

@@ -27,6 +27,12 @@
 - Reconcile Main8a finished-path capacity, arbitrary final-suffix transfer and borrowed nominal context with lexical paid receiving; preserve original work-before-optional-payment priority and complete Main controls. Qualification and net application cost remain pending.
 
 - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.
+- Avoid constructing the recursive type census for ordinary scalar clones while retaining the original fee controls, full compound fallback and sticky allocation authentication.
+
+- Compact borrowed child traversal state without changing enumeration, work refusals or depth bounds, retaining the complete original cursor and low-stack constructor regression.
+
+- Select existing inline String storage for private metered Core-Wasm stage builds, retaining unmetered public profile refusals and the original lexical fuel/cleanup parity fixture.
+
 - Provision GDB explicitly for hosted low-stack diagnostics when the runner image does not include it.
 
 - Allow manual capture of the unchanged low-stack case with the unit shard's compiler, feature unification and profile, independently of superseded CI runs.

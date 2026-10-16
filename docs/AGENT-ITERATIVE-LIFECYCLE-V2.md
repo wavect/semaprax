@@ -205,6 +205,15 @@ precedence over both. There is no fallback to an unmetered or interpreter
 execution, and a backend that returns without reporting the admitted limit is
 refused.
 
+The private Core-Wasm metered build selects the existing inline UTF-8 storage
+for admitted local String owners even when its exported stage carrier is
+byte-only. This is storage selection inside that scoped build. Source/HIR,
+descriptor and stage admission still run in their original order; the v9 public
+emitter continues to refuse those owners outside the private metered selection.
+No String transport type, public schema or lifecycle wire is added. The original
+lexical fuel/cleanup parity gate covers performed cleanup and reentry on all
+three stage backends.
+
 **Backend instruction counts are separate.** The interpreter's per-node
 `steps_used` stays a backend-specific instruction count under its own
 `max_steps` budget; native C11 and Core Wasm report `0`. Instruction counts are

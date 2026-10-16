@@ -213,3 +213,46 @@ fn local_static_text_still_refuses_public_owned_export_authority() {
         "SPX-W119"
     );
 }
+
+#[test]
+fn private_metered_lexical_string_storage_does_not_widen_unmetered_public_data() {
+    let program = resolve(
+        r#"module test.metered_local_string;
+@id("selected") fn selected()->i64 {
+    let mut next=0;
+    while next<3 {
+        let owner="iteration owner";
+        next=next+1;
+        if next==1 {continue;};
+        if next==3 {break;};
+        0
+    }
+    return next;
+}
+@id("app.main") fn main()->i64 {0}
+"#,
+    );
+    let frozen = super::super::emit_owned_data_exports(&program, &[plan()], false).unwrap_err();
+    let metering = crate::wasm::WasmSemanticMetering {
+        fuel_limit: 5,
+        functions: [(DeclarationId::new("selected"), 0)].into_iter().collect(),
+    };
+    let emit = || super::super::emit_owned_data_exports(&program, &[plan()], false);
+    let bytes = crate::wasm::with_semantic_metering(metering.clone(), emit).unwrap();
+    wasmparser::Validator::new().validate_all(&bytes).unwrap();
+    assert!(bytes
+        .windows(b"iteration owner".len())
+        .any(|window| window == b"iteration owner"));
+    assert!(bytes
+        .windows(crate::wasm::FUEL_USED_EXPORT.len())
+        .any(|window| window == crate::wasm::FUEL_USED_EXPORT.as_bytes()));
+    assert_eq!(
+        bytes,
+        crate::wasm::with_semantic_metering(metering, emit).unwrap()
+    );
+    assert_eq!(
+        super::super::emit_owned_data_exports(&program, &[plan()], false).unwrap_err(),
+        frozen
+    );
+    assert!(super::super::emit_owned_data_exports(&program, &[plan()], true).is_ok());
+}

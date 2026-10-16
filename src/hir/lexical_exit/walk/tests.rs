@@ -135,7 +135,7 @@ fn wide_block_cursor_advances_each_statement_and_retains_all_statement_children(
             let (owner, edge) = cursor.last_statement_child().unwrap();
             assert!(std::ptr::eq(owner, statement));
             assert_eq!(edge, index);
-            let Position::Block { statement, child } = cursor.position else {
+            let Position::Block { statement, child } = cursor.position() else {
                 panic!("block position");
             };
             assert_eq!(statement, statement_index);
@@ -227,4 +227,431 @@ fn cursor_scans_preserve_depth_refusal_and_fail_closed_contains() {
     let plain = scalar_function();
     assert!(!requires(&plain).unwrap());
     assert!(!contains(&plain.body));
+}
+
+mod before_cursor {
+    use super::*;
+    /// Borrowed authored-order child enumeration. The cursor has no heap backing.
+    /// Block statements and match arms are visited once rather than rescanned for
+    /// each flattened child index. Consumers retain their own depth/work bounds.
+    #[derive(Clone, Copy)]
+    pub(crate) struct BeforeCursor<'a> {
+        expression: &'a ResolvedExpr,
+        position: Position,
+        started: bool,
+    }
+    #[derive(Clone, Copy)]
+    enum Position {
+        Indexed(usize),
+        Block { statement: usize, child: usize },
+        Match { arm: usize, guard: bool },
+    }
+    impl<'a> BeforeCursor<'a> {
+        pub(crate) fn new(expression: &'a ResolvedExpr) -> Self {
+            let position = match &expression.kind {
+                K::Block { .. } | K::VecConstructor { .. } => Position::Block {
+                    statement: 0,
+                    child: 0,
+                },
+                K::Match { .. } => Position::Match {
+                    arm: 0,
+                    guard: true,
+                },
+                _ => Position::Indexed(0),
+            };
+            Self {
+                expression,
+                position,
+                started: false,
+            }
+        }
+        pub(crate) fn expression(&self) -> &'a ResolvedExpr {
+            self.expression
+        }
+        /// Statement edge most recently returned by `next`; tails have no statement.
+        /// This uses the saved position and never rescans a block prefix.
+        pub(crate) fn last_statement_child(
+            &self,
+        ) -> Option<(&'a crate::hir::ResolvedStatement, usize)> {
+            match (&self.expression.kind, self.position) {
+                (
+                    K::Block { statements, .. } | K::VecConstructor { statements, .. },
+                    Position::Block { statement, child },
+                ) if self.started && child != 0 => {
+                    statements.get(statement).map(|item| (item, child - 1))
+                }
+                _ => None,
+            }
+        }
+        pub(crate) fn is_started(&self) -> bool {
+            self.started
+        }
+    }
+    impl<'a> Iterator for BeforeCursor<'a> {
+        type Item = &'a ResolvedExpr;
+        fn next(&mut self) -> Option<Self::Item> {
+            let first = !self.started;
+            self.started = true;
+            match (&self.expression.kind, &mut self.position) {
+                (
+                    K::Block { statements, tail }
+                    | K::VecConstructor {
+                        statements, tail, ..
+                    },
+                    Position::Block {
+                        statement,
+                        child: index,
+                    },
+                ) => {
+                    while let Some(item) = statements.get(*statement) {
+                        if *index < item.child_count() {
+                            let result = item.child(*index);
+                            *index += 1;
+                            return result;
+                        }
+                        *statement += 1;
+                        *index = 0;
+                    }
+                    if *index == 0 {
+                        *index = 1;
+                        Some(tail)
+                    } else {
+                        None
+                    }
+                }
+                (
+                    K::Match {
+                        scrutinee, arms, ..
+                    },
+                    Position::Match { arm, guard },
+                ) => {
+                    if first {
+                        return Some(scrutinee);
+                    }
+                    if let Some(item) = arms.get(*arm) {
+                        if *guard {
+                            *guard = false;
+                            if let Some(value) = &item.guard {
+                                return Some(value);
+                            }
+                        }
+                        *arm += 1;
+                        *guard = true;
+                        return Some(&item.value);
+                    }
+                    None
+                }
+                (_, Position::Indexed(index)) => {
+                    let result = child(self.expression, *index);
+                    if result.is_some() {
+                        *index += 1;
+                    }
+                    result
+                }
+                _ => unreachable!("child cursor position matches its immutable expression"),
+            }
+        }
+    }
+    impl std::iter::FusedIterator for BeforeCursor<'_> {}
+
+    impl<'a> BeforeCursor<'a> {
+        #[cfg(test)]
+        pub(crate) fn next_with_work<E>(
+            &mut self,
+            work: &mut impl FnMut(usize) -> Result<(), E>,
+        ) -> Result<Option<&'a ResolvedExpr>, E> {
+            work(1)?;
+            let first = !self.started;
+            self.started = true;
+            Ok(match (&self.expression.kind, &mut self.position) {
+                (
+                    K::Block { statements, tail }
+                    | K::VecConstructor {
+                        statements, tail, ..
+                    },
+                    Position::Block {
+                        statement,
+                        child: index,
+                    },
+                ) => {
+                    loop {
+                        work(1)?;
+                        let Some(item) = statements.get(*statement) else {
+                            break;
+                        };
+                        if *index < item.child_count() {
+                            let result = item.child(*index);
+                            *index += 1;
+                            return Ok(result);
+                        }
+                        *statement += 1;
+                        *index = 0;
+                    }
+                    if *index == 0 {
+                        *index = 1;
+                        Some(tail)
+                    } else {
+                        None
+                    }
+                }
+                (
+                    K::Match {
+                        scrutinee, arms, ..
+                    },
+                    Position::Match { arm, guard },
+                ) => {
+                    if first {
+                        return Ok(Some(scrutinee));
+                    }
+                    if let Some(item) = arms.get(*arm) {
+                        if *guard {
+                            *guard = false;
+                            if let Some(value) = &item.guard {
+                                return Ok(Some(value));
+                            }
+                        }
+                        *arm += 1;
+                        *guard = true;
+                        return Ok(Some(&item.value));
+                    }
+                    None
+                }
+                (_, Position::Indexed(index)) => {
+                    let result = child(self.expression, *index);
+                    if result.is_some() {
+                        *index += 1;
+                    }
+                    result
+                }
+                _ => unreachable!("child cursor position matches its immutable expression"),
+            })
+        }
+    }
+
+    impl BeforeCursor<'_> {
+        pub(super) fn position(&self) -> super::Position {
+            match self.position {
+                Position::Indexed(i) => super::Position::Indexed(i),
+                Position::Block { statement, child } => super::Position::Block { statement, child },
+                Position::Match { arm, guard } => super::Position::Match { arm, guard },
+            }
+        }
+    }
+}
+
+fn assert_same_progress(current: &ChildCursor<'_>, before: &before_cursor::BeforeCursor<'_>) {
+    assert!(std::ptr::eq(current.expression(), before.expression()));
+    assert_eq!(current.is_started(), before.is_started());
+    assert_eq!(current.position(), before.position());
+    match (
+        current.last_statement_child(),
+        before.last_statement_child(),
+    ) {
+        (Some((a, ai)), Some((b, bi))) => {
+            assert!(std::ptr::eq(a, b));
+            assert_eq!(ai, bi);
+        }
+        (None, None) => {}
+        _ => panic!("statement-child ownership drift"),
+    }
+}
+fn pointer(value: Option<&ResolvedExpr>) -> Option<usize> {
+    value.map(|expression| expression as *const ResolvedExpr as usize)
+}
+fn compare_complete_cursor(expression: &ResolvedExpr) {
+    let mut current = ChildCursor::new(expression);
+    let mut before = before_cursor::BeforeCursor::new(expression);
+    loop {
+        assert_same_progress(&current, &before);
+        let old = before.next();
+        assert_eq!(pointer(current.next()), pointer(old));
+        if old.is_none() {
+            break;
+        }
+    }
+    for _ in 0..3 {
+        assert_same_progress(&current, &before);
+        assert_eq!(pointer(current.next()), pointer(before.next()));
+    }
+}
+#[test]
+fn compact_cursor_keeps_complete_before_order_and_state_for_every_checked_node() {
+    for source in [
+        "module cursor.scalar; @id(\"main\") fn main()->i64 {let mut n=1;n=n+1;n}",
+        r#"module cursor.exits;
+@id("main") fn main()->i64 {
+ let mut n=0;
+ while n<4 {n=n+1;if n==1 {continue;}else{0} if n==3 {break;}else{0} 0}
+ return n;
+}"#,
+        include_str!("../../../../tests/fixtures/nested-byte-slice-traversal.spx"),
+    ] {
+        let function = function(source);
+        let mut pending = function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+            .collect::<Vec<_>>();
+        while let Some(expression) = pending.pop() {
+            compare_complete_cursor(expression);
+            // The complete before cursor selects every subject of comparison.
+            pending.extend(before_cursor::BeforeCursor::new(expression));
+        }
+    }
+    assert_eq!(
+        std::mem::size_of::<ChildCursor<'_>>(),
+        3 * std::mem::size_of::<usize>()
+    );
+    assert!(
+        std::mem::size_of::<[Option<ChildCursor<'_>>; PRESENCE_DEPTH]>()
+            < std::mem::size_of::<[Option<before_cursor::BeforeCursor<'_>>; PRESENCE_DEPTH]>()
+    );
+}
+
+fn compare_work_frontiers(expression: &ResolvedExpr) {
+    let mut before = before_cursor::BeforeCursor::new(expression);
+    let mut total = 0usize;
+    while before
+        .next_with_work(&mut |units| {
+            total += units;
+            Ok::<_, ()>(())
+        })
+        .unwrap()
+        .is_some()
+    {}
+    for limit in 0..=total + 2 {
+        let (mut current, mut before) = (
+            ChildCursor::new(expression),
+            before_cursor::BeforeCursor::new(expression),
+        );
+        let (mut actual, mut old) = (0usize, 0usize);
+        loop {
+            let a = current.next_with_work(&mut |units| {
+                if actual + units > limit {
+                    Err(())
+                } else {
+                    actual += units;
+                    Ok(())
+                }
+            });
+            let b = before.next_with_work(&mut |units| {
+                if old + units > limit {
+                    Err(())
+                } else {
+                    old += units;
+                    Ok(())
+                }
+            });
+            assert_eq!(a.map(pointer), b.map(pointer));
+            assert_eq!(actual, old);
+            assert_same_progress(&current, &before);
+            if !matches!(a, Ok(Some(_))) {
+                break;
+            }
+        }
+    }
+}
+#[test]
+fn compact_cursor_preserves_every_original_work_refusal_and_partial_progress() {
+    let function = scalar_function();
+    compare_work_frontiers(&function.body);
+    let K::Block { statements, tail } = &function.body.kind else {
+        panic!("block")
+    };
+    let mut wide = function.body.clone();
+    wide.kind = K::Block {
+        statements: (0..64)
+            .map(|i| statements[i % statements.len()].clone())
+            .collect(),
+        tail: tail.clone(),
+    };
+    compare_work_frontiers(&wide);
+    wide.kind = K::Match {
+        scrutinee: tail.clone(),
+        arms: (0..64)
+            .map(|i| ResolvedMatchArm {
+                pattern: ResolvedMatchPattern::Wildcard,
+                guard: (i % 3 != 0).then(|| tail.clone()),
+                value: tail.as_ref().clone(),
+                span: tail.span,
+            })
+            .collect(),
+        mode: crate::hir::ResolvedMatchMode::Value,
+    };
+    compare_work_frontiers(&wide);
+}
+
+#[test]
+fn compact_cursor_complete_before_sources_and_compiled_control_stay_bound() {
+    use sha2::{Digest, Sha256};
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let evidence = root.join("docs/evidence/compact-child-cursor-v1");
+    let records: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(evidence.join("sources.json")).unwrap())
+            .unwrap();
+    for record in records.as_array().unwrap() {
+        let original =
+            std::fs::read_to_string(evidence.join(record["archive"].as_str().unwrap())).unwrap();
+        assert_eq!(
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))
+            ),
+            record["sha256"].as_str().unwrap()
+        );
+        let current = std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
+        let restore = |source: &str| -> Option<String> {
+            let mut result = source.to_owned();
+            for edit in record["edits"].as_array().unwrap().iter().rev() {
+                let new = edit["new"].as_str().unwrap();
+                if result.matches(new).count() != 1 {
+                    return None;
+                }
+                result = result.replacen(new, edit["old"].as_str().unwrap(), 1);
+            }
+            Some(result)
+        };
+        assert_eq!(restore(&current).as_deref(), Some(original.as_str()));
+        assert_ne!(
+            restore(&(current.clone() + "\n")).as_deref(),
+            Some(original.as_str())
+        );
+        assert_ne!(
+            restore(&current.replacen("ChildCursor", "ChangedCursor", 1)).as_deref(),
+            Some(original.as_str())
+        );
+    }
+    let original = std::fs::read_to_string(evidence.join("walk.rs.before.txt")).unwrap();
+    let prefix = original
+        .split("pub(crate) fn child(")
+        .next()
+        .unwrap()
+        .split_once("/// Borrowed")
+        .unwrap()
+        .1;
+    let suffix = original
+        .split("#[cfg(test)]\nmod tests;\n")
+        .nth(1)
+        .unwrap()
+        .trim_start();
+    let expected = format!("/// Borrowed{prefix}{suffix}").replace("ChildCursor", "BeforeCursor");
+    let tests = std::fs::read_to_string(root.join("src/hir/lexical_exit/walk/tests.rs")).unwrap();
+    let compiled = tests
+        .split("mod before_cursor {\n    use super::*;\n")
+        .nth(1)
+        .unwrap()
+        .split("\n    impl BeforeCursor")
+        .next()
+        .unwrap();
+    let compiled = compiled
+        .lines()
+        .map(|line| line.strip_prefix("    ").unwrap_or(line))
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert_eq!(
+        compiled.trim(),
+        expected.trim(),
+        "complete original cursor is the compiled control"
+    );
 }

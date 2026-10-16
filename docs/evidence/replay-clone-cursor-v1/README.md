@@ -25,3 +25,9 @@ and a flat-to-recursive transition. The original scalar cursor control remains
 unchanged. The full recursive before/current control compares complete results,
 retries, cursor state, work remainder, debit and refusal receipts. Local component
 checks are not full HIR, CI, application fit, or backend qualification.
+
+The later [ordinary scalar cursor supplement](../scalar-clone-cursor-v1/README.md)
+retains these original scalar fee assertions through the compiled before
+producer, adds separate current scalar and compound-transition gates, and
+composes the complete source inverses. Its private leaf dispatch changes only
+the ordinary ACTIVE path; the original recursive census remains compiled.

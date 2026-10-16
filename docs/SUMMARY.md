@@ -1135,6 +1135,7 @@ Audience: all documentation readers.
 - [Receiver source custody](evidence/receiver-source-custody-v1/README.md)
 - [Live source-audit custody](evidence/live-source-audit-custody-v1/README.md)
 - [Ordinary clone cursor custody](evidence/replay-clone-cursor-v1/README.md)
+- [Private metered String storage](evidence/metered-string-storage-v1/README.md)
 - [One explicit-record census per immutable phase](evidence/record-presence-phase-v1/README.md)
 - [Owning provider row arguments are source refusals](evidence/row-loan-source-refusal-v1/README.md)
 - [Reuse a sole incoming ownership-state tree](evidence/single-state-groups-v1/README.md)
@@ -1142,3 +1143,5 @@ Audience: all documentation readers.
 - [Structural call cursor storage](evidence/structural-call-cursor-v1/README.md)
 - [Supplemental receiving cursor growth](evidence/supplemental-cursor-growth-v1/README.md)
 - [Reuse the complete unit-weight closure](evidence/unit-weight-closure-v1/README.md)
+- [Compact borrowed child cursor](evidence/compact-child-cursor-v1/README.md)
+- [Ordinary scalar type clone cursor](evidence/scalar-clone-cursor-v1/README.md)

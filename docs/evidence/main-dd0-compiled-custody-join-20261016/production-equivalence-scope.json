@@ -1,0 +1,37 @@
+{
+  "production_source": "83ca0e105e5f4eb6336ed04ff80df6ad0366e99f",
+  "current_head": "EXPLICIT_LATER_GIT_HEAD_BOUND_BY_verify-production-equivalence.py",
+  "changed_original_paths": [
+    "CHANGELOG.md",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "src/cleanup_plan/replay/compact_stage/source_custody.rs",
+    "src/source_reflows_merge.rs",
+    "src/workspace_graph/type_proof_tests.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/native/string_settlement/bulk_utf8.rs",
+    "tests/native/string_settlement/codec_allocation.rs",
+    "tests/native/string_settlement/codec_allocation/string_vectors.rs",
+    "tests/native_string_settlement_v1/contents.rs",
+    "tests/owned_data/bulk_utf8.rs",
+    "tests/owned_data/owned_nested_outcome.rs",
+    "tests/owned_data/projected_string_views.rs",
+    "tests/root_unsafe_quarantine.rs",
+    "tests/wasm/scalar_browser_ci_contract.rs",
+    "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+    "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "tests/workspace/semantic_graph.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "only_src_changes": [
+    "src/cleanup_plan/replay/compact_stage/source_custody.rs",
+    "src/source_reflows_merge.rs",
+    "src/workspace_graph/type_proof_tests.rs"
+  ],
+  "source_children_both_closed_cfgtest": true,
+  "no_production_code_or_Cargo_change": true,
+  "qualifying_artifacts_from83ca_are_historical_not_newconsumerPASS": true,
+  "additional_closed_crate_test_include": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+  "test_platform_pin_fixture": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+  "new_test_owner": "tests/wasm/scalar_browser_ci_contract/actual_83ca.rs"
+}

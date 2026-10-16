@@ -1,0 +1,344 @@
+//! Content parity has a narrower meaning than resource settlement. The scalar
+//! cases run in all three producers; owned user signatures run only in C/Wasm.
+//! The bounded Node map observes values, never claims missing Wasm drop hooks.
+
+use super::{
+    checked, codegen, compile_and_run, format, fs, symbol, Command, Ordering, Path, OBSERVER,
+    SERIAL, STDIO,
+};
+
+const BASE: &str = r#"
+module strings.nul_base;
+@id("s.main") fn main() -> i64 {
+    if leading_ok() && cloned_ok() && trailing_ok() { 42 } else { 0 }
+}
+@id("s.leading") fn leading_ok() -> bool {
+    let leading = "\u{0}a";
+    leading == "\u{0}a" && leading != "" && leading != "\u{0}b"
+}
+@id("s.cloned") fn cloned_ok() -> bool {
+    let middle = "a\u{0}b";
+    let cloned = middle;
+    cloned != "a\u{0}c" && cloned != "a" && cloned == "a\u{0}b"
+}
+@id("s.trailing") fn trailing_ok() -> bool {
+    let trailing = "a\u{0}";
+    trailing != "a" && trailing == "a\u{0}"
+        && "é\u{0}世界" == "é\u{0}世界" && "é\u{0}世界" != "é\u{0}世間"
+}
+"#;
+const V1: &str = r#"
+module strings.nul_v1;
+@id("s.main") fn main() -> i64 {
+    if lengths_ok() && empty_ok() && joined_ok() && concat_ok() { 42 } else { 0 }
+}
+@id("s.lengths") fn lengths_ok() -> bool {
+    let leading = "\u{0}a";
+    let middle = "a\u{0}b";
+    let trailing = "a\u{0}";
+    string_len(leading) == 2 && string_len(middle) == 3 && string_len(trailing) == 2
+}
+@id("s.empty") fn empty_ok() -> bool {
+    let leading = "\u{0}a";
+    string_is_empty(leading) == false && string_is_empty("\u{0}") == false
+        && string_is_empty("")
+}
+@id("s.joined") fn joined_ok() -> bool {
+    let joined = string_concat("a\u{0}", "\u{0}b");
+    string_len(joined) == 4 && joined == "a\u{0}\u{0}b"
+}
+@id("s.concat") fn concat_ok() -> bool {
+    string_concat("", "\u{0}") == "\u{0}" && string_concat("\u{0}", "") == "\u{0}"
+        && string_concat("", "") == "" && string_len("é\u{0}世界") == 9
+}
+"#;
+const V2: &str = r#"
+module strings.nul_v2;
+@id("s.main") fn main() -> i64 {
+    if lengths_ok() && zero_ok() && prefix_ok() && contains_ok() && unicode_ok() { 42 } else { 0 }
+}
+@id("s.lengths") fn lengths_ok() -> bool {
+    let text = "é\u{0}世界";
+    string_len(text) == 9 && string_len_chars(text) == 4
+        && string_len_chars("\u{0}") == 1 && string_len_chars("") == 0
+}
+@id("s.zero") fn zero_ok() -> bool {
+    let zero = string_from_char('\u{0}');
+    string_len(zero) == 1 && string_len_chars(zero) == 1 && zero == "\u{0}"
+        && string_is_empty(zero) == false
+}
+@id("s.prefix") fn prefix_ok() -> bool {
+    string_starts_with("a\u{0}b", "a\u{0}") && string_starts_with("a\u{0}b", "a\u{0}c") == false
+        && string_starts_with("a\u{0}", "a\u{0}b") == false && string_starts_with("\u{0}a", "")
+}
+@id("s.contains") fn contains_ok() -> bool {
+    string_contains("a\u{0}b", "\u{0}b") && string_contains("a\u{0}b", "\u{0}c") == false
+        && string_contains("\u{0}b", "b") && string_contains("a\u{0}", "a\u{0}b") == false
+}
+@id("s.unicode") fn unicode_ok() -> bool {
+    let text = "é\u{0}世界";
+    string_contains(text, "\u{0}世") && string_contains(text, "")
+        && string_concat(string_from_char('\u{0}'), string_from_char('λ')) == "\u{0}λ"
+}
+"#;
+const OWNED: &str = r#"
+module strings.nul_owned;
+@id("s.identity") fn identity(value: string) -> string { let copy = value; copy }
+@id("s.pick") fn pick(flag: bool) -> string { if flag { "\u{0}é\u{0}世界" } else { "end\u{0}" } }
+@id("s.same") fn same(left: string, right: string) -> bool { left == right }
+@id("s.main") fn main() -> i64 {
+    if same(identity(pick(true)), "\u{0}é\u{0}世界") && same(identity(pick(false)), "end\u{0}")
+        && same(identity("a\u{0}b"), "a\u{0}c") == false { 42 } else { 0 }
+}
+"#;
+
+const GENERIC: &str = r#"
+module strings.nul_generic;
+@id("s.identity") fn identity<T>(marker: T, value: string) -> string { value }
+@id("s.bridge") fn bridge(value: string) -> string { identity<i64>(0, value) }
+@id("s.main") fn main() -> i64 {
+    if bridge("a\u{0}é") == "a\u{0}é" && string_len(bridge("a\u{0}é")) == 4 { 42 } else { 0 }
+}
+"#;
+
+fn native(source: &str) -> String {
+    let program = checked(source);
+    let generated = codegen::emit_c(&program).unwrap();
+    assert_eq!(generated, codegen::emit_c(&program).unwrap());
+    assert!(generated.contains("struct spx_string_v10"));
+    let main = symbol("s.main");
+    format!(
+        r#"{STDIO}
+{OBSERVER}
+{generated}
+#undef malloc
+#undef free
+int main(void) {{
+    REQUIRE(fixture_binary_stdout());
+    struct spx_status_entry entries[1];
+    struct spx_context context = {{0}};
+    REQUIRE(spx_context_init(&context, 19, entries, 1, NULL, NULL, NULL));
+    for (unsigned repetition = 0; repetition < 32; ++repetition) {{
+        size_t before = fixture_allocations;
+        int64_t value = INT64_MIN;
+        REQUIRE({main}(&context, &value) == 0 && value == 42);
+        REQUIRE(fixture_allocations > before && fixture_allocations == fixture_frees);
+        REQUIRE(fixture_live == 0 && context.status_arena.length == 0);
+    }}
+    (void)puts("native-ordinary-strings-settled");
+    return 0;
+}}
+"#
+    )
+}
+
+fn interpreter_and_wasm(source: &str, group: &str, interpreted: bool) {
+    let program = checked(source);
+    let module = semaprax::wasm::emit_module(&program).unwrap();
+    assert_eq!(module, semaprax::wasm::emit_module(&program).unwrap());
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-string-contents-{group}-{}-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&root).unwrap();
+    let source_path = root.join("source.spx");
+    fs::write(&source_path, format::canonical(&program)).unwrap();
+    let outcome = semaprax::interpreter::interpret(
+        &source_path,
+        "s.main",
+        &[],
+        &semaprax::interpreter::InterpreterOptions::default(),
+    );
+    if interpreted {
+        let outcome = outcome.unwrap();
+        assert!(outcome.returned);
+        semaprax::interpreter::verify_envelope_against_source(&outcome.envelope, &source_path)
+            .unwrap();
+        assert!(outcome
+            .envelope
+            .contains("\"kind\":\"returned\",\"type\":\"i64\",\"value\":\"42\""));
+    } else {
+        assert!(outcome
+            .unwrap_err()
+            .iter()
+            .any(|error| error.code == "SPX-F102" && error.message.contains("unsupported_callee")));
+    }
+    let wasm_path = root.join("module.wasm");
+    fs::write(&wasm_path, module).unwrap();
+    let probe = root.join("probe.mjs");
+    fs::write(&probe, include_str!("contents.mjs")).unwrap();
+    let node = std::env::var_os("NODE").unwrap_or_else(|| "node".into());
+    let output = Command::new(node)
+        .current_dir(&root)
+        .arg(&probe)
+        .arg(&wasm_path)
+        .arg(group)
+        .output()
+        .expect("Node is required for embedded-NUL String value parity");
+    assert!(
+        output.status.success(),
+        "{}: {}",
+        root.display(),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(output.stdout, b"string-contents-wasm-ok\n");
+    assert!(output.stderr.is_empty());
+    // As with native fixtures, failures retain diagnostics. Prevalidate every
+    // successful artifact before performing the exact, nonrecursive cleanup.
+    let mut entries = fs::read_dir(&root)
+        .unwrap()
+        .map(|entry| entry.unwrap())
+        .collect::<Vec<_>>();
+    entries.sort_by_key(|entry| entry.file_name());
+    assert_eq!(entries.len(), 3);
+    for (entry, expected) in entries
+        .iter()
+        .zip(["module.wasm", "probe.mjs", "source.spx"])
+    {
+        assert_eq!(entry.file_name(), expected);
+        let metadata = fs::symlink_metadata(entry.path()).unwrap();
+        assert!(metadata.is_file() && !metadata.file_type().is_symlink());
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::MetadataExt;
+            assert_eq!(metadata.file_attributes() & 0x400, 0);
+        }
+    }
+    for entry in entries {
+        fs::remove_file(entry.path()).unwrap();
+    }
+    fs::remove_dir(root).unwrap();
+}
+
+#[test]
+#[ignore = "String variant plan liveness pending (see 8501433)"]
+fn embedded_nul_values_match_native_wasm_and_admitted_interpreter() {
+    for (group, source, interpreted) in [
+        ("base", BASE, true),
+        ("v1", V1, true),
+        ("v2", V2, true),
+        ("owned", OWNED, false),
+        ("generic", GENERIC, false),
+    ] {
+        compile_and_run(group, &native(source), false);
+        interpreter_and_wasm(source, group, interpreted);
+    }
+}
+
+#[test]
+#[ignore = "requires explicitly provisioned Clang ASan/UBSan runtime"]
+fn provisioned_embedded_nul_native_values_asan_ubsan() {
+    for (group, source) in [
+        ("base", BASE),
+        ("v1", V1),
+        ("v2", V2),
+        ("owned", OWNED),
+        ("generic", GENERIC),
+    ] {
+        compile_and_run(group, &native(source), true);
+    }
+}
+
+#[test]
+fn nul_does_not_widen_string_operators_or_invalid_unicode_admission() {
+    // Copy Scalar Sort v1 admits bytewise ordering, including embedded NUL.
+    let ordering = r#"module strings.ordering; @id("s.main") fn main() -> i64 { if "a\u{0}" < "b\u{0}" { 1 } else { 0 } }"#;
+    let admitted = checked(ordering);
+    semaprax::hir::validate(&semaprax::hir::resolve(&admitted).unwrap()).unwrap();
+    let invalid_operator = r#"module strings.invalid; @id("s.main") fn main() -> i64 { string_len("a\u{0}" + "b\u{0}") }"#;
+    let program = semaprax::parse(invalid_operator, Path::new("invalid-operator.spx")).unwrap();
+    assert!(semaprax::verify::verify(&program)
+        .iter()
+        .any(|error| error.code == "SPX-T250"));
+    for (source, expected) in [
+        (
+            r#"module strings.invalid; @id("s.main") fn main() -> i64 { string_len("\u{D800}") }"#,
+            "SPX-P005",
+        ),
+        (
+            r#"module strings.invalid; @id("s.main") fn main() -> i64 { string_len(string_from_char('\u{D800}')) }"#,
+            "SPX-P007",
+        ),
+    ] {
+        assert_eq!(
+            semaprax::parse(source, Path::new("invalid-unicode.spx"))
+                .unwrap_err()
+                .code,
+            expected
+        );
+    }
+}
+
+#[test]
+fn native_concat_allocates_one_final_owner_and_copies_each_operand_once() {
+    let source = r#"module strings.concat_allocation;
+@id("s.main") fn main()->i64{string_len(string_concat("a\u{0}","\u{0}b"))}
+"#;
+    let generated = codegen::emit_c(&checked(source)).unwrap();
+    assert!(generated.contains("string length overflow"));
+    assert!(generated.contains("string allocation length overflow"));
+    let probe = format!(
+        r#"{STDIO}
+{OBSERVER}
+static size_t fixture_copy_calls, fixture_copy_bytes;
+static void *fixture_concat_memcpy(void *output, const void *input, size_t length) {{
+    ++fixture_copy_calls; fixture_copy_bytes += length;
+    return memcpy(output, input, length);
+}}
+#undef memcpy
+#define memcpy fixture_concat_memcpy
+{generated}
+#undef memcpy
+#undef malloc
+#undef free
+int main(void) {{
+    REQUIRE(fixture_binary_stdout());
+    struct spx_status_entry entries[1]; struct spx_context context = {{0}};
+    REQUIRE(spx_context_init(&context, 91, entries, 1, NULL, NULL, NULL));
+    const struct {{ const char *left; uint64_t left_len; const char *right; uint64_t right_len; bool same; }} cases[] = {{
+        {{"", 0, "", 0, false}},
+        {{"", 0, "\0tail", 5, false}},
+        {{"a\0", 2, "", 0, false}},
+        {{"a\0", 2, "\0b", 2, false}},
+        {{"\xef\xbb\xbf\xc3\xa9", 5, "\0\xf0\x9f\x98\x80", 5, false}},
+        {{"a\0b", 3, "a\0b", 3, true}}
+    }};
+    for (unsigned repeat = 0; repeat < 32; ++repeat) {{
+        for (size_t index = 0; index < sizeof cases / sizeof cases[0]; ++index) {{
+            char *left = spx_string_from_literal(cases[index].left, cases[index].left_len);
+            char *right = cases[index].same ? left : spx_string_from_literal(cases[index].right, cases[index].right_len);
+            size_t before = fixture_allocations, freed = fixture_frees, live = fixture_live;
+            fixture_copy_calls = 0; fixture_copy_bytes = 0;
+            char *result = spx_string_concat(left, right);
+            uint64_t length = cases[index].left_len + cases[index].right_len;
+            REQUIRE(fixture_allocations == before + 1 && fixture_frees == freed && fixture_live == live + 1);
+            REQUIRE(fixture_copy_bytes == length);
+            REQUIRE(fixture_copy_calls == (size_t)(cases[index].left_len != 0) + (size_t)(cases[index].right_len != 0));
+            REQUIRE(result != left && result != right && spx_string_length_v10(result) == length);
+            size_t allocated_size = 0;
+            for (size_t slot = 0; slot < 512; ++slot)
+                if (fixture_table[slot].pointer == spx_string_header_v10(result)) allocated_size = fixture_table[slot].size;
+            REQUIRE(allocated_size == offsetof(struct spx_string_v10, data) + (size_t)length + 1u);
+            REQUIRE(memcmp(result, cases[index].left, (size_t)cases[index].left_len) == 0);
+            REQUIRE(memcmp(result + cases[index].left_len, cases[index].right, (size_t)cases[index].right_len) == 0);
+            REQUIRE(result[length] == '\0');
+            REQUIRE(spx_string_length_v10(left) == cases[index].left_len && memcmp(left, cases[index].left, (size_t)cases[index].left_len) == 0);
+            REQUIRE(spx_string_length_v10(right) == cases[index].right_len && memcmp(right, cases[index].right, (size_t)cases[index].right_len) == 0);
+            spx_string_drop(result);
+            if (!cases[index].same) spx_string_drop(right);
+            spx_string_drop(left);
+            REQUIRE(fixture_live == 0 && fixture_allocations == fixture_frees);
+        }}
+    }}
+    (void)puts("native-ordinary-strings-settled");
+    return 0;
+}}
+"#
+    );
+    compile_and_run("concat-single-allocation", &probe, false);
+}

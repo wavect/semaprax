@@ -1,0 +1,36 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/compact_stage/before.rs",
+    "checkpoint_revision": "b80d733efe85a85b121d9ab876ff4b9969c4a6df",
+    "archive": "docs/evidence/main-dd0-compiled-custody-join-20261016/before/compiled-main/src/cleanup_plan/replay/compact_stage/before.rs",
+    "current_sha256": "47fc6ffa22a2a47aab804971a0c483310cf506591c993fde481c712882d4c699",
+    "original_sha256": "4d10cbe619d26918551f006a29055551fbd0e1020387ac881848aa8d6f9719f6",
+    "edits": [
+      {
+        "new": "    pub(in crate::cleanup_plan::replay) observations: Observations,\n    pub(in crate::cleanup_plan::replay) terminal: SkeletonTerminal,\n",
+        "old": "    pub(super) observations: Observations,\n    pub(super) terminal: SkeletonTerminal,\n"
+      },
+      {
+        "new": "    pub(in crate::cleanup_plan::replay) prefix: Option<std::rc::Rc<ObservationDag>>,\n    pub(in crate::cleanup_plan::replay) items: Vec<Observation>,\n",
+        "old": "    pub(super) prefix: Option<std::rc::Rc<ObservationDag>>,\n    pub(super) items: Vec<Observation>,\n"
+      },
+      {
+        "new": "pub(in crate::cleanup_plan::replay) mod lexical_skeleton;\n",
+        "old": "mod lexical_skeleton;\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/compact_stage/lexical_before.rs",
+    "checkpoint_revision": "b80d733efe85a85b121d9ab876ff4b9969c4a6df",
+    "archive": "docs/evidence/main-dd0-compiled-custody-join-20261016/before/compiled-main/src/cleanup_plan/replay/compact_stage/lexical_before.rs",
+    "current_sha256": "2523a5f847df2d945fd324ea64908670b4c121f684f3274ca0b2de174ed7d523",
+    "original_sha256": "ce639daa60fcb96e43d19d48d9c9f0e5e8eb22b34488604c48e12e55056bd889",
+    "edits": [
+      {
+        "new": "pub(in crate::cleanup_plan::replay) fn plan_exit_observation(\n",
+        "old": "pub(super) fn plan_exit_observation(\n"
+      }
+    ]
+  }
+]

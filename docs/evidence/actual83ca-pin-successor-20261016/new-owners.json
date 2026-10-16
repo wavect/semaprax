@@ -1,0 +1,7 @@
+[
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/actual_83ca.rs",
+    "sha256": "35915de95abd759613c7d842a207e0d4291bb67d7be8a06e425eb7d6ce59598c",
+    "lines": 90
+  }
+]

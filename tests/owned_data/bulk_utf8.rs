@@ -158,12 +158,13 @@ pub(super) fn run_with_browser_refusal(
         "codecPushAttempts=0;fieldReads=0;const bulkCopiesBefore=copies;",
     );
     let host = host.replace("if(selected!==expectedStatus)", &format!("if({allocations}>=0&&copies-bulkCopiesBefore!=={allocations})throw Error('bulk constructor copied an unexpected number of payloads');if(selected!==expectedStatus)"));
+    // File mode keeps the complete host off Windows' bounded command line.
+    std::fs::write(root.join("strict-host.cjs"), host).unwrap();
     let output = Command::new("node")
-        .arg("-e")
-        .arg(host)
-        // The shared file-mode host reads the Wasm path at argv[2].
-        .arg("semaprax-owned-host")
-        .arg(module)
+        .current_dir(&root)
+        .arg("strict-host.cjs")
+        // The shared host reads the Wasm path at argv[2] in file mode too.
+        .arg(module.file_name().unwrap())
         .args([status.to_string(), expected.to_string(), "bulk-utf8".into()])
         .output()
         .unwrap();

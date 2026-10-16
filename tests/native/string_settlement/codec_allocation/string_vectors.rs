@@ -50,6 +50,7 @@ fn generated_v2(response: project::JsonCodecProfile, invalid: bool) -> String {
         SERIAL.fetch_add(1, Ordering::Relaxed)
     ));
     fs::create_dir(&root).unwrap();
+    let root = fs::canonicalize(root).unwrap();
     fs::create_dir(root.join("src")).unwrap();
     fs::write(
         root.join("semaprax.toml"),

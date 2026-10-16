@@ -1,0 +1,9 @@
+{
+  "capture_head": "83ca0e105e5f4eb6336ed04ff80df6ad0366e99f",
+  "later_root_head_at_preparation": "83ca0e105e5f4eb6336ed04ff80df6ad0366e99f",
+  "build_receipt_sha256": "4f1ffd224c0eae76e992a544c1d6be5f357f3f41acbdfc29e1c9a784fa4f8adb",
+  "producer_receipt_sha256": "42f9e70a0b0839233f7b700e7a6a33c915ba3fde29f9546d8ac0447c8fed0fbf",
+  "root": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "capture": "/Volumes/Semaprax/provenance/managed-capture-83ca-20261016",
+  "round": "/Volumes/Semaprax/lane-prompts/producer-83ca-closure3-20261016"
+}

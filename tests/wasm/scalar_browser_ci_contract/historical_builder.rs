@@ -367,3 +367,13 @@ mod main_c451;
 pub(super) fn main_c451_digest(graph: &str) -> String {
     main_c451::digest(graph)
 }
+
+// Fresh actual83ca wires; both complete independently retained receivers run.
+#[path = "actual_83ca.rs"]
+mod actual_83ca;
+pub(super) fn current83ca_digest(graph: &str) -> String {
+    actual_83ca::digest(graph)
+}
+pub(super) fn current83ca_drift_controls(graph: &str) {
+    actual_83ca::drift_controls(graph);
+}

@@ -1,0 +1,424 @@
+{
+  "source_subject": "83ca0e105e5f4eb6336ed04ff80df6ad0366e99f",
+  "complete": true,
+  "results": [
+    {
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/semaprax",
+        "graph",
+        "/Volumes/Semaprax/provenance/browser-capture-83ca-20261016/baseline/semaprax.toml"
+      ],
+      "executed": true,
+      "exit_code": 0,
+      "resource_refusal": null,
+      "observation_errors": [],
+      "peak_process_group_rss_bytes": 2539520,
+      "rss_limit_bytes": 7516192768,
+      "last_system_free_percent": 78,
+      "process_high_water_marks": [
+        {
+          "pid": 75127,
+          "ppid": 75104,
+          "rss_bytes": 2539520,
+          "name": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/semaprax"
+        }
+      ],
+      "wall_seconds": 1.3675971670018043,
+      "baseline_telemetry": {
+        "kernel_pressure": {
+          "raw": 1,
+          "label": "normal",
+          "label_status": "exact_kernel_mapping",
+          "kernel_version": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:06 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6030",
+          "mapping_provenance": {
+            "source_tag": "xnu-12377.121.6",
+            "conversion_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/kern/kern_memorystatus_notify.c",
+            "conversion_spans": "1651-1679;1754-1768",
+            "constants_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/sys/event_private.h",
+            "constants_span": "276-278"
+          }
+        },
+        "swap": {
+          "total_bytes": 3221225472,
+          "available_bytes": 1426456576,
+          "used_bytes": 1794768896,
+          "page_size": 16384,
+          "encrypted": true,
+          "raw_sha256": "77e16540e0fa702f54d91ace1963bf93d7daa79068247731ef82c81c08c1cdd4"
+        },
+        "vm": {
+          "page_size": 16384,
+          "counters": {
+            "Pages free": 331924,
+            "Pages inactive": 205332,
+            "Pages purgeable": 4752,
+            "File-backed pages": 389987,
+            "Pages occupied by compressor": 86303,
+            "Swapins": 113893696,
+            "Swapouts": 155541233
+          }
+        },
+        "windows": [
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-n",
+              "kern.memorystatus_vm_pressure_level"
+            ],
+            "started": 141117.728484041,
+            "finished": 141117.730748875
+          },
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-b",
+              "vm.swapusage"
+            ],
+            "started": 141117.730850125,
+            "finished": 141117.732465958
+          },
+          {
+            "command": [
+              "/usr/bin/vm_stat"
+            ],
+            "started": 141117.732488208,
+            "finished": 141117.734115208
+          }
+        ],
+        "finished": 141117.734302541,
+        "atomic": false
+      },
+      "post_stop_telemetry": {
+        "kernel_pressure": {
+          "raw": 1,
+          "label": "normal",
+          "label_status": "exact_kernel_mapping",
+          "kernel_version": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:06 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6030",
+          "mapping_provenance": {
+            "source_tag": "xnu-12377.121.6",
+            "conversion_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/kern/kern_memorystatus_notify.c",
+            "conversion_spans": "1651-1679;1754-1768",
+            "constants_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/sys/event_private.h",
+            "constants_span": "276-278"
+          }
+        },
+        "swap": {
+          "total_bytes": 3221225472,
+          "available_bytes": 1426456576,
+          "used_bytes": 1794768896,
+          "page_size": 16384,
+          "encrypted": true,
+          "raw_sha256": "77e16540e0fa702f54d91ace1963bf93d7daa79068247731ef82c81c08c1cdd4"
+        },
+        "vm": {
+          "page_size": 16384,
+          "counters": {
+            "Pages free": 328924,
+            "Pages inactive": 205333,
+            "Pages purgeable": 1384,
+            "File-backed pages": 390042,
+            "Pages occupied by compressor": 86299,
+            "Swapins": 113893696,
+            "Swapouts": 155541233
+          }
+        },
+        "windows": [
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-n",
+              "kern.memorystatus_vm_pressure_level"
+            ],
+            "started": 141118.791694708,
+            "finished": 141118.796034458
+          },
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-b",
+              "vm.swapusage"
+            ],
+            "started": 141118.796075791,
+            "finished": 141118.798952166
+          },
+          {
+            "command": [
+              "/usr/bin/vm_stat"
+            ],
+            "started": 141118.798989333,
+            "finished": 141118.801840875
+          }
+        ],
+        "finished": 141118.801903,
+        "atomic": false
+      },
+      "post_stop_observation_status": "collected_after_confirmed_empty_group",
+      "admission_system_free_percent": 78,
+      "telemetry_sample_count": 2,
+      "maximum_positive_swap_used_delta_bytes": 0,
+      "failed_telemetry_samples": [],
+      "group_settlement": {
+        "owned_pgid": 75127,
+        "confirmed_empty": true,
+        "signals": [],
+        "operation_failures": [],
+        "observation_errors": [],
+        "resource_refusal": null,
+        "finished": 141118.791621916
+      },
+      "source_binding_status": "unchanged",
+      "observation_helper_path": "/Volumes/Semaprax/lane-prompts/producer-83ca-closure3-20261016/drivers/semaprax_pressure_observation_v3.py",
+      "observation_helper_sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+      "phase_monitor_path": "/Volumes/Semaprax/lane-prompts/producer-83ca-closure3-20261016/drivers/observed_phase.py",
+      "phase_monitor_sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867",
+      "fixture": "baseline",
+      "source_subject": "83ca0e105e5f4eb6336ed04ff80df6ad0366e99f",
+      "executable_sha256_after": "e8dddbaf171847b448becbdf9a8e0572c9bf3d8b078a998a9843a3df5a29fb8d",
+      "wire_sha256": "d9b9b7e83c3b25445d9437683c6003dc588ce64119b45386b058e9f5d3aca297",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complete_actual47_restore": {
+        "wire_sha256": "b62235a5e0232f70c6d6131e18a85188dc3f835205f07491e85aa0a0b464eb37",
+        "builder_bytes": 3477789,
+        "only_bill_and_digest_restored": true
+      },
+      "complete_Main_c451_restore": {
+        "wire_sha256": "9854e2341a3a4c131253fde37e957b5808483c653d7cac6b2fb5b03dd11fafe3",
+        "builder_bytes": 2971194,
+        "only_bill_and_digest_restored": true
+      },
+      "new_independent_bridges": {
+        "main2600_wire_sha256": "9306b51988b21468229079173183bc1abbd0615869a3d064666cb71870252a4d",
+        "main2600_builder_bytes": 3296148,
+        "observed8bb_wire_sha256": "35c71fa712b5dc70212ff74809d1fdc52f910e56653ec3c220dc5b9e1219e3e7",
+        "observed8bb_builder_bytes": 3534564,
+        "complete_main2600_restore": true,
+        "complete_observed8bb_restore": true,
+        "observed2d4b_wire_sha256": "fb4e25fc11542284d4ca50e984958fb53bbe029ae29ab6e3ac62f4881656f47c",
+        "observed2d4b_builder_bytes": 3558886,
+        "complete_observed2d4b_restore": true,
+        "observed364d_wire_sha256": "33a8b5daec6746e6e4d2a55f854672bdb8d21ab11f312bc81033ded5f5e59dbb",
+        "observed364d_builder_bytes": 3472870,
+        "complete_observed364d_restore": true
+      },
+      "validation": {
+        "actual_builder_bytes": 3442219,
+        "prior_builder_bytes": 4032239,
+        "historical_builder_bytes": 1214409,
+        "actual_graph_digest": "sha256:24ab606f08d33728febdfc43e1eac554ad19a5ad9e0b9e40da62b9a3f8b2edce",
+        "prior_wire_sha256": "163a5daa41c8bbfaeb4277ac7b3b51c2c88e6eb3ed7126a508c2ec196e592bcc",
+        "historical_wire_sha256": "1388105a39fb89ec84c6b3aed500bda4d654921b2263734866655dc4896194aa",
+        "complete_prior_after_only_bill_and_digest_restore": true,
+        "complete_original_after_only_bill_and_digest_restore": true
+      }
+    },
+    {
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/semaprax",
+        "graph",
+        "/Volumes/Semaprax/provenance/browser-capture-83ca-20261016/renamed/semaprax.toml"
+      ],
+      "executed": true,
+      "exit_code": 0,
+      "resource_refusal": null,
+      "observation_errors": [],
+      "peak_process_group_rss_bytes": 2654208,
+      "rss_limit_bytes": 7516192768,
+      "last_system_free_percent": 78,
+      "process_high_water_marks": [
+        {
+          "pid": 75144,
+          "ppid": 75104,
+          "rss_bytes": 2654208,
+          "name": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/semaprax"
+        }
+      ],
+      "wall_seconds": 1.3532537500141189,
+      "baseline_telemetry": {
+        "kernel_pressure": {
+          "raw": 1,
+          "label": "normal",
+          "label_status": "exact_kernel_mapping",
+          "kernel_version": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:06 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6030",
+          "mapping_provenance": {
+            "source_tag": "xnu-12377.121.6",
+            "conversion_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/kern/kern_memorystatus_notify.c",
+            "conversion_spans": "1651-1679;1754-1768",
+            "constants_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/sys/event_private.h",
+            "constants_span": "276-278"
+          }
+        },
+        "swap": {
+          "total_bytes": 3221225472,
+          "available_bytes": 1426456576,
+          "used_bytes": 1794768896,
+          "page_size": 16384,
+          "encrypted": true,
+          "raw_sha256": "77e16540e0fa702f54d91ace1963bf93d7daa79068247731ef82c81c08c1cdd4"
+        },
+        "vm": {
+          "page_size": 16384,
+          "counters": {
+            "Pages free": 329220,
+            "Pages inactive": 205348,
+            "Pages purgeable": 7078,
+            "File-backed pages": 390139,
+            "Pages occupied by compressor": 86299,
+            "Swapins": 113893696,
+            "Swapouts": 155541233
+          }
+        },
+        "windows": [
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-n",
+              "kern.memorystatus_vm_pressure_level"
+            ],
+            "started": 141119.81207325,
+            "finished": 141119.814273875
+          },
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-b",
+              "vm.swapusage"
+            ],
+            "started": 141119.814294333,
+            "finished": 141119.815852
+          },
+          {
+            "command": [
+              "/usr/bin/vm_stat"
+            ],
+            "started": 141119.815874583,
+            "finished": 141119.817575875
+          }
+        ],
+        "finished": 141119.817618208,
+        "atomic": false
+      },
+      "post_stop_telemetry": {
+        "kernel_pressure": {
+          "raw": 1,
+          "label": "normal",
+          "label_status": "exact_kernel_mapping",
+          "kernel_version": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:06 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6030",
+          "mapping_provenance": {
+            "source_tag": "xnu-12377.121.6",
+            "conversion_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/kern/kern_memorystatus_notify.c",
+            "conversion_spans": "1651-1679;1754-1768",
+            "constants_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/sys/event_private.h",
+            "constants_span": "276-278"
+          }
+        },
+        "swap": {
+          "total_bytes": 3221225472,
+          "available_bytes": 1426456576,
+          "used_bytes": 1794768896,
+          "page_size": 16384,
+          "encrypted": true,
+          "raw_sha256": "77e16540e0fa702f54d91ace1963bf93d7daa79068247731ef82c81c08c1cdd4"
+        },
+        "vm": {
+          "page_size": 16384,
+          "counters": {
+            "Pages free": 329078,
+            "Pages inactive": 205349,
+            "Pages purgeable": 2099,
+            "File-backed pages": 390144,
+            "Pages occupied by compressor": 86293,
+            "Swapins": 113893696,
+            "Swapouts": 155541233
+          }
+        },
+        "windows": [
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-n",
+              "kern.memorystatus_vm_pressure_level"
+            ],
+            "started": 141120.862816916,
+            "finished": 141120.866441291
+          },
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-b",
+              "vm.swapusage"
+            ],
+            "started": 141120.866470708,
+            "finished": 141120.869304625
+          },
+          {
+            "command": [
+              "/usr/bin/vm_stat"
+            ],
+            "started": 141120.869333666,
+            "finished": 141120.871988208
+          }
+        ],
+        "finished": 141120.872059125,
+        "atomic": false
+      },
+      "post_stop_observation_status": "collected_after_confirmed_empty_group",
+      "admission_system_free_percent": 78,
+      "telemetry_sample_count": 2,
+      "maximum_positive_swap_used_delta_bytes": 0,
+      "failed_telemetry_samples": [],
+      "group_settlement": {
+        "owned_pgid": 75144,
+        "confirmed_empty": true,
+        "signals": [],
+        "operation_failures": [],
+        "observation_errors": [],
+        "resource_refusal": null,
+        "finished": 141120.862781666
+      },
+      "source_binding_status": "unchanged",
+      "observation_helper_path": "/Volumes/Semaprax/lane-prompts/producer-83ca-closure3-20261016/drivers/semaprax_pressure_observation_v3.py",
+      "observation_helper_sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+      "phase_monitor_path": "/Volumes/Semaprax/lane-prompts/producer-83ca-closure3-20261016/drivers/observed_phase.py",
+      "phase_monitor_sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867",
+      "fixture": "renamed",
+      "source_subject": "83ca0e105e5f4eb6336ed04ff80df6ad0366e99f",
+      "executable_sha256_after": "e8dddbaf171847b448becbdf9a8e0572c9bf3d8b078a998a9843a3df5a29fb8d",
+      "wire_sha256": "82df0d17c277c97e1b7b824014da77815e5a3e4d45ab9f7358c22e673f1f79aa",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complete_actual47_restore": {
+        "wire_sha256": "d6775977730ad82f4da116d347a81235498a1e034a03a8e141206224ef60d24a",
+        "builder_bytes": 3477789,
+        "only_bill_and_digest_restored": true
+      },
+      "complete_Main_c451_restore": {
+        "wire_sha256": "063c86edadd6f8f17686d002daabda66dd9b1956b8b2a06bb8102595c2bcf358",
+        "builder_bytes": 2971194,
+        "only_bill_and_digest_restored": true
+      },
+      "new_independent_bridges": {
+        "main2600_wire_sha256": "750feca2e8cf84343d3389ffa5e133d594e9b8a9311d51efd890637f44ec891a",
+        "main2600_builder_bytes": 3296148,
+        "observed8bb_wire_sha256": "2601057655d7d01c252eec97865dd453b128b382bb8c0bcda7709910b880226f",
+        "observed8bb_builder_bytes": 3534564,
+        "complete_main2600_restore": true,
+        "complete_observed8bb_restore": true,
+        "observed2d4b_wire_sha256": "52d942f159c09520f5784666e3a5e7e3f3aa26abd03d64dc97df5a3b1f9333fb",
+        "observed2d4b_builder_bytes": 3558886,
+        "complete_observed2d4b_restore": true,
+        "observed364d_wire_sha256": "c4f471baa7c0d2e241daf5179f6cc112a7a00f217b440174c4c251c69a126628",
+        "observed364d_builder_bytes": 3472870,
+        "complete_observed364d_restore": true
+      },
+      "validation": {
+        "actual_builder_bytes": 3442219,
+        "prior_builder_bytes": 4032239,
+        "historical_builder_bytes": 1214409,
+        "actual_graph_digest": "sha256:d663c471fbcdeb25f572ac20a9074c63a888bb60f3b248345f4b28abe9dadc4c",
+        "prior_wire_sha256": "2690c583312eb93da3beb977e04116d3644182baf3ac9d3cfc08f0888ff4fdad",
+        "historical_wire_sha256": "ab9e2c01332e10d55dbdc2cf3c1d04973ad64884d6b373d8ab87ab3678eec937",
+        "complete_prior_after_only_bill_and_digest_restore": true,
+        "complete_original_after_only_bill_and_digest_restore": true
+      }
+    }
+  ]
+}

@@ -32,7 +32,7 @@ fn directory(label: &str) -> std::path::PathBuf {
         SERIAL.fetch_add(1, Ordering::Relaxed)
     ));
     fs::create_dir(&root).unwrap();
-    root
+    fs::canonicalize(root).unwrap()
 }
 
 #[test]

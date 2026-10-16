@@ -290,6 +290,7 @@ static void *fixture_concat_memcpy(void *output, const void *input, size_t lengt
     ++fixture_copy_calls; fixture_copy_bytes += length;
     return memcpy(output, input, length);
 }}
+#undef memcpy
 #define memcpy fixture_concat_memcpy
 {generated}
 #undef memcpy

@@ -1,0 +1,21 @@
+{
+  "schema": "semaprax.scoped-main-source-domain.v1",
+  "base_main": "b80d733efe85a85b121d9ab876ff4b9969c4a6df",
+  "new_main": "dd0bae547240ee7bd34d92ac91f24e8806be648b",
+  "all_changed_files_since_base_main": [
+    "CHANGELOG.md",
+    "src/cleanup_plan/replay/compact_stage/source_custody.rs",
+    "tests/native/string_settlement/bulk_utf8.rs",
+    "tests/native/string_settlement/codec_allocation.rs",
+    "tests/native/string_settlement/codec_allocation/string_vectors.rs",
+    "tests/native_string_settlement_v1/contents.rs",
+    "tests/owned_data/bulk_utf8.rs",
+    "tests/owned_data/owned_nested_outcome.rs",
+    "tests/owned_data/projected_string_views.rs",
+    "tests/root_unsafe_quarantine.rs"
+  ],
+  "scope_only_new_main_owning_inputs": true,
+  "entire_main_tree_projection": false,
+  "prior_feature_differences_outside_scope": 311,
+  "prior_feature_domains": "Preserved unchanged independentb80/83ca predecessor proofs; not represented by this scopedMain table."
+}

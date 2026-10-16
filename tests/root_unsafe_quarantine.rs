@@ -4,6 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 const QUARANTINE: &str = "src/project/candidate/git_publication/process/platform.rs";
+const TEST_ALLOCATOR: &str = "src/test_allocation_observer.rs";
 
 fn rust_sources(directory: &Path, files: &mut Vec<PathBuf>) {
     for entry in fs::read_dir(directory).unwrap() {
@@ -213,6 +214,31 @@ fn root_unsafe_exceptions_are_confined_to_audited_authority_modules() {
     assert!(solver.starts_with("//! Explicit solver provisioning"));
     assert_eq!(solver.matches("#[allow(unsafe_code)]").count(), 2);
 
+    // This allocator observes physical backing only in the library test binary.
+    // Its one relaxation belongs to the audited System-forwarding impl; it is
+    // never compiled into the production compiler or granted blanket authority.
+    let observer = fs::read_to_string(root.join(TEST_ALLOCATOR)).unwrap();
+    assert!(observer.starts_with("//! Test-only, thread-bound observation"));
+    assert_eq!(
+        relaxing_unsafe_attributes(&observer),
+        ["#[allow(unsafe_code)]"]
+    );
+    let observer_code = code_without_comments_or_strings(&observer);
+    assert_eq!(
+        observer_code
+            .matches("#[allow(unsafe_code)]\nunsafe impl GlobalAlloc for ObservedSystem")
+            .count(),
+        1
+    );
+    let library = fs::read_to_string(root.join("src/lib.rs")).unwrap();
+    assert_eq!(
+        code_without_comments_or_strings(&library)
+            .matches("#[cfg(test)]\nmod test_allocation_observer;")
+            .count(),
+        1,
+        "the allocation observer must remain test-only"
+    );
+
     let mut sources = Vec::new();
     rust_sources(&root.join("src"), &mut sources);
     let mut exceptions = sources
@@ -230,7 +256,8 @@ fn root_unsafe_exceptions_are_confined_to_audited_authority_modules() {
             PathBuf::from("src/assurance_manifest/smt_discharge/solver.rs"),
             PathBuf::from("src/compute_profile/metal_backend/device.rs"),
             PathBuf::from("src/process_provider/registered/platform.rs"),
-            PathBuf::from(QUARANTINE)
+            PathBuf::from(QUARANTINE),
+            PathBuf::from(TEST_ALLOCATOR)
         ]
     );
 

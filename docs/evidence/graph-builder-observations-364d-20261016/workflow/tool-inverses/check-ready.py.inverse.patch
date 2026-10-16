@@ -1,0 +1,13 @@
+--- derived/check-ready.py
++++ original/check-ready.py
+@@ -6,8 +6,8 @@
+ def sha(p):
+  with Path(p).open('rb') as f:return hashlib.file_digest(f,'sha256').hexdigest()
+ assert not a.out.exists() and not a.out.resolve().is_relative_to(root)
+-assert r==Path(record['required_round']).resolve(), 'exact-parent-frozen round required'
+-assert sha(r/'expected-counts.json')==record['required_manifest_sha256'], 'exact-parent-frozen manifest required'
++assert r==Path(record['required_round']).resolve(), 'exact50 round required'
++assert sha(r/'expected-counts.json')==record['required_manifest_sha256'], 'exact50 manifest required'
+ assert len(a.expected_build_receipt_sha256)==64 and sha(r/'owning-build-result.json')==a.expected_build_receipt_sha256
+ m=json.loads((r/'expected-counts.json').read_text());b=json.loads((r/'owning-build-result.json').read_text())
+ assert subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()==head

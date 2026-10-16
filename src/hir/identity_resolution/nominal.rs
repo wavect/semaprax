@@ -190,6 +190,7 @@ pub(crate) enum NominalReceiverFailure {
         >,
     ),
 }
+#[cfg(test)]
 pub(crate) fn resolve_source_checked_previous_with_base<'p>(
     program: &'p dyn ProgramSource,
     previous_program: Option<&dyn ProgramSource>,
@@ -337,6 +338,7 @@ pub(crate) fn resolve_source_checked_previous_with_owner<'p>(
     .map_err(NominalReceiverFailure::Resolve)
 }
 
+#[cfg(test)]
 pub(crate) fn resolve_source_checked_previous_with_base_cells<'p>(
     program: &'p dyn ProgramSource,
     previous_program: Option<&dyn ProgramSource>,

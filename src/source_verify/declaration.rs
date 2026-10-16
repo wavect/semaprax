@@ -43,8 +43,9 @@ pub(crate) fn verify_presenting<'p>(
     verify_selected(program, None, private)
 }
 
-/// The actual paid resolver lends this invocation's pre-acquired inventory.
-/// Diagnostics retain exactly the ordinary pass order and all six fields.
+/// Compatibility control for lending a pre-acquired inventory without a payer.
+/// Production uses the funded sibling; both retain ordinary diagnostic order.
+#[cfg(test)]
 pub(crate) fn verify_presenting_with_cells<'p>(
     program: &'p dyn ProgramSource,
     private: Option<crate::source_verify::private_names::PrivateNames<'p>>,
@@ -217,7 +218,7 @@ fn verify_profile_funded<'p>(
 
     check_function_declarations(
         program,
-        &capacity_functions,
+        capacity_functions,
         &types,
         &mut functions,
         &mut ids,
@@ -269,15 +270,20 @@ fn verify_profile_funded<'p>(
     );
 
     super::lexical_exit::validate(program, &mut diagnostics);
+    if let Err(stop) = funding.reserve(super::funding::BodyOutput::RECEIVING_BYTES) {
+        return Err(funding.abort(diagnostics, stop));
+    }
     if let Err(stop) = check_function_bodies(
         program,
-        &capacity_functions,
+        capacity_functions,
         &functions,
         &import_keys,
         &types,
-        &mut diagnostics,
         selected.map(|proof| proof.producer().call),
-        funding,
+        super::funding::BodyOutput {
+            diagnostics: &mut diagnostics,
+            funding,
+        },
     ) {
         return Err(funding.abort(diagnostics, stop));
     }

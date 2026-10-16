@@ -910,10 +910,10 @@ impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
                             )
                             && !crate::vec_ops::source_arguments_are_admitted_ref(
                                 self.program,
-                                &target,
+                                target,
                                 type_arguments,
                             )
-                            && !crate::box_ops::source_arguments_are_admitted_ref(self.program, &target, type_arguments)
+                            && !crate::box_ops::source_arguments_are_admitted_ref(self.program, target, type_arguments)
                         {
                             self.diagnostics.push(error(
                                 self.program,

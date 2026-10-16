@@ -39,6 +39,7 @@ pub(super) fn selected_flow(
     })
 }
 
+#[cfg(test)]
 pub(in crate::source_verify) fn verify_selected_capacity(
     program: &dyn ProgramSource,
     types: &TypeTable<'_>,

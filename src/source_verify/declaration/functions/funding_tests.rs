@@ -1,6 +1,6 @@
 use super::*;
 use crate::bounded_output::identity_reservation::IdentityReservation;
-use crate::source_verify::funding::{SourceFunding, SourceStop};
+use crate::source_verify::funding::{BodyOutput, SourceFunding, SourceStop};
 #[test]
 fn specialization_abort_moves_the_exact_six_field_diagnostic_prefix() {
     let program = crate::parse(
@@ -23,20 +23,25 @@ fn specialization_abort_moves_the_exact_six_field_diagnostic_prefix() {
             .with_help("preserve exact prefix help"),
     ];
     let expected = prefix.clone();
-    let bytes = IdentityReservation::setup_bytes().unwrap() + SourceFunding::setup_bytes();
+    let bytes = IdentityReservation::setup_bytes().unwrap()
+        + SourceFunding::setup_bytes()
+        + BodyOutput::RECEIVING_BYTES;
     let (abort, refused, _) = crate::bounded_output::with_limit_usage(bytes, || {
         let mut owner = IdentityReservation::acquire().unwrap();
         let mut funding = SourceFunding::funded(&mut owner).unwrap();
         let mut diagnostics = prefix;
+        funding.reserve(BodyOutput::RECEIVING_BYTES).unwrap();
         let stop = check_function_bodies(
             &program,
             &cells,
             &functions,
             &imports,
             &types,
-            &mut diagnostics,
             None,
-            &mut funding,
+            BodyOutput {
+                diagnostics: &mut diagnostics,
+                funding: &mut funding,
+            },
         )
         .unwrap_err();
         assert!(matches!(stop, SourceStop::Reservation(_)));

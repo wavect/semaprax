@@ -110,12 +110,12 @@ impl<'v, 'p> Resolver<'v, 'p> {
         function: &FunctionRef<'_>,
         arguments: &[ResolvedType],
     ) -> Result<bool, Diagnostic> {
-        if crate::vec_ops::source_wrapper_ref(self.program, &function).is_some()
+        if crate::vec_ops::source_wrapper_ref(self.program, function).is_some()
             && matches!(arguments, [argument] if crate::vec_ops::resolved_element_is_admitted(argument))
         {
             return Ok(true);
         }
-        if crate::box_ops::source_wrapper_ref(self.program, &function).is_some()
+        if crate::box_ops::source_wrapper_ref(self.program, function).is_some()
             && matches!(arguments, [argument] if crate::box_ops::resolved_box_element_is_admitted(argument))
         {
             return Ok(true);
@@ -724,6 +724,7 @@ impl<'v, 'p> Resolver<'v, 'p> {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(super) fn resolve_function(
         &self,
         function: &crate::ast::Function,
@@ -754,8 +755,8 @@ impl<'v, 'p> Resolver<'v, 'p> {
         &self,
         function: &FunctionRef<'_>,
     ) -> Result<ResolvedFunctionTemplate, Diagnostic> {
-        let transparent_vec_wrapper = crate::vec_ops::source_wrapper_ref(self.program, &function);
-        let transparent_box_wrapper = crate::box_ops::source_wrapper_ref(self.program, &function);
+        let transparent_vec_wrapper = crate::vec_ops::source_wrapper_ref(self.program, function);
+        let transparent_box_wrapper = crate::box_ops::source_wrapper_ref(self.program, function);
         let function_id = self
             .declarations
             .held_identity(&function.payload().stable_id);
@@ -1107,7 +1108,7 @@ impl<'v, 'p> Resolver<'v, 'p> {
             self.resolve_expr(function_scope, &function.payload().body, &bindings, "body")?;
         if let Some(yields_clause) = &yields {
             self.finish_yields_admission(
-                &function.name(),
+                function.name(),
                 yields_clause,
                 &params,
                 &return_type,
@@ -1323,6 +1324,7 @@ impl<'v, 'p> Resolver<'v, 'p> {
         self.resolve_type(ty, span)
     }
 
+    #[cfg(test)]
     pub(super) fn resolve_function_type(
         &self,
         function: &crate::ast::Function,
@@ -1384,7 +1386,7 @@ impl<'v, 'p> Resolver<'v, 'p> {
         let owner = self
             .declarations
             .held_identity(&function.payload().stable_id);
-        let transparent_vec = crate::vec_ops::source_wrapper_ref(self.program, &function).is_some()
+        let transparent_vec = crate::vec_ops::source_wrapper_ref(self.program, function).is_some()
             && declaration.as_str() == crate::prelude::VEC_ID
             && matches!(resolved.as_slice(),
                 [ResolvedType::TypeParameter { owner: parameter_owner, index: 0 }]
@@ -1394,7 +1396,7 @@ impl<'v, 'p> Resolver<'v, 'p> {
                 && declaration.as_str() == crate::prelude::VEC_ID
                 && matches!(resolved.as_slice(), [argument]
                 if crate::vec_ops::resolved_element_is_admitted(argument));
-        let transparent_box = crate::box_ops::source_wrapper_ref(self.program, &function).is_some()
+        let transparent_box = crate::box_ops::source_wrapper_ref(self.program, function).is_some()
             && declaration.as_str() == crate::prelude::BOX_ID
             && matches!(resolved.as_slice(),[ResolvedType::TypeParameter{owner:parameter_owner,index:0}] if parameter_owner==&owner);
         let specialized_box_wrapper = crate::box_ops::wrapper_by_id(

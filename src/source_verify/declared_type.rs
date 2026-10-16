@@ -1026,6 +1026,7 @@ pub(super) fn validation_specialize_signature(
     Some((params, return_type))
 }
 
+#[cfg(test)]
 pub(super) fn check_ownership_mode(
     program: &dyn ProgramSource,
     function: &Function,

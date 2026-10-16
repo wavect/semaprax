@@ -40,6 +40,7 @@ pub(crate) fn wrapper_name(op: BoxOp) -> &'static str {
 pub(crate) fn wrapper_by_id(id: &str) -> Option<BoxOp> {
     super::ALL.into_iter().find(|op| wrapper_id(*op) == id)
 }
+#[cfg(test)]
 pub(crate) fn is_source_candidate(program: &dyn ProgramSource, function: &Function) -> bool {
     program.module() == MODULE
         && (wrapper_by_id(&function.stable_id).is_some()
@@ -169,6 +170,7 @@ pub(crate) fn source_parameter_is_admitted(
     source_wrapper(program, function) == Some(op)
         && matches!(ty,Type::Named{name,arguments} if name=="T"&&arguments.is_empty())
 }
+#[cfg(test)]
 pub(crate) fn source_arguments_are_admitted(
     program: &dyn ProgramSource,
     function: &Function,

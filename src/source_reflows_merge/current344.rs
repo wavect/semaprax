@@ -90,3 +90,57 @@ mod tests {
         assert_eq!(project("unlisted", "unchanged"), "unchanged");
     }
 }
+
+// Historical sequence-minimum ownership checks predate Clippy's equivalent
+// collapsed condition. Authenticate the entire actual function before undoing
+// the reviewed finite shapes; no other code or assertion is normalized.
+pub(crate) fn sequence_minimum_input(current: &str) -> String {
+    const DATA: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/sequence-minimum-clippy-input-20261016/input.json"
+    ));
+    assert_eq!(DATA.len(), 1435);
+    assert_eq!(
+        <[u8; 32]>::from(Sha256::digest(DATA.as_bytes())),
+        [
+            184, 172, 143, 215, 75, 49, 164, 137, 21, 16, 110, 92, 235, 212, 12, 153, 16, 216, 108,
+            147, 30, 30, 205, 242, 148, 65, 59, 136, 247, 217, 13, 112
+        ]
+    );
+    let row: serde_json::Value = serde_json::from_str(DATA).unwrap();
+    assert_digest(current, &row["current_sha256"]);
+    let mut historical = current.to_owned();
+    for edit in row["edits"].as_array().unwrap() {
+        let new = edit["new"].as_str().unwrap();
+        assert_eq!(historical.matches(new).count(), 1);
+        historical = historical.replacen(new, edit["old"].as_str().unwrap(), 1);
+    }
+    assert_digest(&historical, &row["original_sha256"]);
+    historical
+}
+
+#[cfg(test)]
+mod sequence_minimum_input_tests {
+    use super::*;
+    #[test]
+    fn exact_complete_sequence_input_refuses_drift_and_historical_bytes() {
+        let root = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/cleanup_plan/replay.rs"
+        ));
+        let current = format!(
+            "fn sequence_skeleton_paths({}",
+            root.split_once("fn sequence_skeleton_paths(")
+                .unwrap()
+                .1
+                .split_once("\nuse path_summary::has_active_paths;")
+                .unwrap()
+                .0
+        );
+        let historical = sequence_minimum_input(&current);
+        assert_ne!(historical, current);
+        for wrong in [String::new(), format!("{current} "), historical] {
+            assert!(std::panic::catch_unwind(|| sequence_minimum_input(&wrong)).is_err());
+        }
+    }
+}

@@ -206,8 +206,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs",
-    "sha256": "3546628ba58180f048d230b7f723f2f7ab04cce635fb4c6b452d1bab3d339018",
-    "lines": 477
+    "sha256": "3a9766f90634e5843161e61fba311d1949350a269b6b06d965ac7db9370df8da",
+    "lines": 478
   },
   {
     "source": "src/cleanup_plan/replay/path_array/sequence_minimum/tests.rs",

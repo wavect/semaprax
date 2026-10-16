@@ -1,7 +1,17 @@
 //! Compact private observation storage; the canonical cleanup source stays intact.
 //! The common body source stays inline. Only residual carriers need a second
 //! allocation, acquired from the same live payer before that allocation exists.
-use super::*;
+#[cfg(test)]
+use super::{
+    branch_clone, lexical_cert, physical_clone, plan_skeleton_paths, replay_error, skeleton_clone,
+    skeleton_materializations, skeleton_push, skeleton_queue_push, CleanupPlace, CleanupTerminator,
+    CleanupTransition, DeclarationId, EdgeCondition, ExitContinuation, ExitTargetId, IntoReplay,
+    LexicalExitKind, Observations, ResolvedProgram, SkeletonObservation, SkeletonPath,
+    SkeletonTerminal, StatusSourceId, VecDeque,
+};
+use super::{
+    Diagnostic, ExpressionId, ReplayBudget, ResolvedFunction, ResolvedType, StagedCopyResultSource,
+};
 
 #[derive(Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub(super) enum CopySource {
@@ -17,7 +27,6 @@ pub(super) enum CopySource {
 #[derive(Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub(super) struct Residual(Box<StagedCopyResultSource>);
 
-#[cfg(test)]
 impl Residual {
     pub(super) fn canonical(&self) -> &StagedCopyResultSource {
         &self.0
@@ -25,15 +34,30 @@ impl Residual {
 }
 
 impl CopySource {
-    fn receiving_bytes() -> usize {
-        use std::mem::size_of;
-        2 * size_of::<Result<Self, Diagnostic>>()
-            + size_of::<Result<(), Diagnostic>>()
-            + size_of::<&ResolvedFunction>()
-            + size_of::<&mut ReplayBudget>()
-            + size_of::<Residual>()
-            + size_of::<usize>()
-    }
+    // These are actual caller/query/payment controls, admitted before the
+    // source-kind match or the new function arguments. Initial failure remains
+    // the ordinary unreceived admission boundary, not a donated owner.
+    pub(super) const QUERY_CONTROLS: usize = 2 * std::mem::size_of::<Result<(), Diagnostic>>()
+        + 3 * std::mem::size_of::<&ResolvedFunction>()
+        + 3 * std::mem::size_of::<&mut ReplayBudget>()
+        + 2 * std::mem::size_of::<&str>()
+        + 2 * std::mem::size_of::<usize>()
+        + std::mem::size_of::<&StagedCopyResultSource>();
+    pub(super) const BODY_CONTROLS: usize = 2 * std::mem::size_of::<Result<Self, Diagnostic>>()
+        + 2 * std::mem::size_of::<Self>()
+        + std::mem::size_of::<StagedCopyResultSource>()
+        + std::mem::size_of::<ExpressionId>()
+        + std::mem::size_of::<ResolvedType>();
+    pub(super) const RESIDUAL_CONTROLS: usize = 2 * std::mem::size_of::<Result<Self, Diagnostic>>()
+        + 2 * std::mem::size_of::<Self>()
+        + 3 * std::mem::size_of::<StagedCopyResultSource>()
+        + 2 * std::mem::size_of::<Residual>()
+        + 2 * std::mem::size_of::<Box<StagedCopyResultSource>>()
+        + std::mem::size_of::<Result<(), Diagnostic>>()
+        + std::mem::size_of::<&ResolvedFunction>()
+        + std::mem::size_of::<&mut ReplayBudget>()
+        + std::mem::size_of::<&str>()
+        + std::mem::size_of::<usize>();
 
     #[track_caller]
     pub(super) fn new(
@@ -43,11 +67,8 @@ impl CopySource {
     ) -> Result<Self, Diagnostic> {
         // The producer already owns `source` and has performed its complete
         // original clone census. This move earns no credit or refund.
-        budget.reserve_array::<u8>(
-            function,
-            Self::receiving_bytes(),
-            "compact staged-source receiving layouts",
-        )?;
+        // All real callers use prepare! before evaluating these arguments.
+        // The independent Main constructor/archive remains in the old domain.
         match source {
             StagedCopyResultSource::Body {
                 expression,
@@ -86,6 +107,64 @@ impl CopySource {
         }
     }
 }
+
+// Two real admissions: common query/next-payment controls, then the selected
+// constructor layout. No Box or residual binding is priced on the Body route.
+macro_rules! prepare {
+    ($function:expr, $budget:expr, $source:expr) => {{
+        $budget.reserve_bytes(
+            $function,
+            $crate::cleanup_plan::replay::compact_stage::CopySource::QUERY_CONTROLS,
+            "compact staged-source caller query controls",
+        )?;
+        match $source {
+            $crate::cleanup_plan::StagedCopyResultSource::Body { .. } => {
+                $budget.reserve_bytes(
+                    $function,
+                    $crate::cleanup_plan::replay::compact_stage::CopySource::BODY_CONTROLS,
+                    "compact staged-source body receiving controls",
+                )?;
+            }
+            _ => {
+                $budget.reserve_bytes(
+                    $function,
+                    $crate::cleanup_plan::replay::compact_stage::CopySource::RESIDUAL_CONTROLS,
+                    "compact staged-source residual receiving controls",
+                )?;
+            }
+        }
+    }};
+    ($function:expr, $budget:expr, $source:expr, unwrap) => {{
+        $budget
+            .reserve_bytes(
+                $function,
+                $crate::cleanup_plan::replay::compact_stage::CopySource::QUERY_CONTROLS,
+                "compact staged-source caller query controls",
+            )
+            .unwrap();
+        match $source {
+            $crate::cleanup_plan::StagedCopyResultSource::Body { .. } => {
+                $budget
+                    .reserve_bytes(
+                        $function,
+                        $crate::cleanup_plan::replay::compact_stage::CopySource::BODY_CONTROLS,
+                        "compact staged-source body receiving controls",
+                    )
+                    .unwrap();
+            }
+            _ => {
+                $budget
+                    .reserve_bytes(
+                        $function,
+                        $crate::cleanup_plan::replay::compact_stage::CopySource::RESIDUAL_CONTROLS,
+                        "compact staged-source residual receiving controls",
+                    )
+                    .unwrap();
+            }
+        }
+    }};
+}
+pub(super) use prepare;
 
 impl std::fmt::Debug for CopySource {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

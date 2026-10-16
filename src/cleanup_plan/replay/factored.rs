@@ -811,6 +811,7 @@ fn transition_observation(
                 .collect(),
         },
         CleanupTransition::StageCopyResult { source } => {
+            compact_stage::prepare!(function, budget, source);
             SkeletonObservation::StageCopyResult(CopySource::new(function, budget, source.clone())?)
         }
         CleanupTransition::AuthenticateVariantCase { .. }

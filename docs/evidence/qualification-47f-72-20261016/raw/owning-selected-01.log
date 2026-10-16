@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::path_array::tests::append_pays_complete_backing_and_drop_with_exact_short_and_zero_controls ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9247 filtered out; finished in 0.83s
+

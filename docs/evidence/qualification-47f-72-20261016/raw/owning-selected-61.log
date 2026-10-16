@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::factored::strategy::fitting_tests::shipping_fitting_held_proof_matches_complete_enumerator_and_lexical_forgeries ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9247 filtered out; finished in 0.13s
+

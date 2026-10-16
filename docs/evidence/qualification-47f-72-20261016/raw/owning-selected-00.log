@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::path_array::tests::four_complete_original_receivers_keep_all_path_fields_order_and_work ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9247 filtered out; finished in 0.87s
+

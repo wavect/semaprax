@@ -1,0 +1,15 @@
+
+running 1 test
+test cleanup_plan::replay::path_array::funded_tests::funded_capacity_preserves_complete_main_hir_work_and_drop ... 
+thread 'cleanup_plan::replay::path_array::funded_tests::funded_capacity_preserves_complete_main_hir_work_and_drop' (13136714) panicked at src/cleanup_plan/replay/path_array/funded_tests.rs:6:226:
+called `Result::unwrap()` on an `Err` value: [Diagnostic { code: "SPX-T105", severity: Error, message: "executable module must define `fn main() -> i64`", path: Some("funded-arrays.spx"), span: Some(Span { start: 31, end: 167, line: 1, column: 32 }), help: Some("a module without `fn main() -> i64` is a library module: check it through the project that owns it with `semaprax check <project-dir>`, or add `main` to run this file alone") }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::path_array::funded_tests::funded_capacity_preserves_complete_main_hir_work_and_drop
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9247 filtered out; finished in 0.06s
+

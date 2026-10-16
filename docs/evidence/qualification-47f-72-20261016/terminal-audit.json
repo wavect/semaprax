@@ -1,0 +1,1522 @@
+{
+  "source": "47f80b0f7a06fde9b2388439a9c0bfe998a05af1",
+  "terminal": true,
+  "selection": 72,
+  "counts": {
+    "PASS": 56,
+    "FAIL": 16,
+    "INVALID_OBSERVATION_OR_BINDING": 0
+  },
+  "raw_exit0": 56,
+  "raw_exit_nonzero": 16,
+  "build_commands": 5,
+  "all_five_build_commands_pass": true,
+  "both_clippy_terminal": true,
+  "clippy_exit_codes": [
+    0,
+    0
+  ],
+  "both_clippy_pass": true,
+  "integrity_resource_observation_issues": [],
+  "eligible_for_issue_specific_review": true,
+  "universal_issue_closure_authorized": false,
+  "runtime_wall_sum_seconds": 200.99727642399375,
+  "wall_sum_is_not_end_to_end_benchmark": true,
+  "all_runtime_logs_authenticated": true,
+  "parent_audits": [
+    {
+      "path": "/Volumes/Semaprax/provenance/47f-72-parent-terminal-audit-with-lint-20261016.json",
+      "sha256": "0c16e191d7b3f630909a44734f899b7ee7e87495d37a6e3c3b0c5421890bcf55"
+    }
+  ],
+  "producer_capture_is_not_owner_PASS": true,
+  "historical_scopes": {
+    "current72_is_new_scope": true,
+    "immediate_prior60": {
+      "source": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+      "PASS": 52,
+      "FAIL": 8,
+      "all60_outcomes": [
+        {
+          "original_index": 0,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::path_join::receiver_tests::whole_original_and_boxed_replay_keep_success_work_and_hostile_diagnostic",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-00.log",
+          "log_sha256": "8d9d085f8b08cfdeb0b01f7b6d95a67dbfa33a4e5b44be9cd709204513e7738b",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 1,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::path_join::receiver_tests::complete_current_replay_has_exact_and_one_short_physical_limits_with_last_drop",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-01.log",
+          "log_sha256": "4962330ca36569246107b0eb6fed6a9e6392c758c3646b140d022ad968021d92",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 2,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::path_join::tests::boxed_prefix_keeps_every_history_union_and_control_disagreement",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-02.log",
+          "log_sha256": "3a19e26956933a50fcd0acf393c16b3096decdefe84eaca3c3d1fb569f34ba9f",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 3,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::duplicate_zero_auth_keeps_complete_main_diagnostic_and_first_receipt_at_sticky_floor",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-03.log",
+          "log_sha256": "f366f8a467d182369dba48a517febd2d595709c4ca054acc04abdc113ded32e7",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 4,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::foreign_function_budget_and_scope_poison_only_original_owner_and_never_restore_entry",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-04.log",
+          "log_sha256": "6567a8bf4adfaea1f2b53d932af761f0d7692a7baedab0f509e5d29b25061f06",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 5,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+          "prior_exit_code": 101,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-05.log",
+          "log_sha256": "f3a5f46af8434ac87eb80373172feb5562b51f9251a260f13fb9b7a25cb9f079",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 6,
+          "harness": "semaprax-toolchain::cli_new_project_v1",
+          "selector": "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+          "prior_exit_code": 101,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-06.log",
+          "log_sha256": "53ec1fc32930ff72530a008a95357d194bf65e2201d20a157f0f9fb961cfd509",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 7,
+          "harness": "semaprax::project",
+          "selector": "standard_library::application_json::owned::shiftsim_typed_records::unfactored_schedule_retains_original_source_and_factored_admission",
+          "prior_exit_code": 101,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-07.log",
+          "log_sha256": "6eb15517a6a2fe082d16cd372cb8ed04b86823acf26f66597a8e61f4a438577f",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 8,
+          "harness": "semaprax::project",
+          "selector": "standard_library::application_json::owned::catalog_scoped_records::typed_catalog_derives_codecs_and_preserves_all_23_functional_cases",
+          "prior_exit_code": 101,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-08.log",
+          "log_sha256": "8e109b0320998247025379b3ee09c97d0e01ec92c3a8cf1b27a07f11b3bea96b",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 9,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+          "prior_exit_code": 101,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-09.log",
+          "log_sha256": "2648106c239cf69b06ce94f6f91488b03341d4447928f1068c7f54db1b8ad0f6",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 10,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::tests::callable_limit_exact_advances_and_one_over_is_g171",
+          "prior_exit_code": 101,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-10.log",
+          "log_sha256": "7aa8b04b925d8692268c9e6b1e7f7e535d9c12171f2659fcd649ca8cc8cdaba8",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 11,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::renewal_profile::ordinary::consuming::tests::phase_presence_keeps_full_current_directories_and_every_consuming_entry",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-11.log",
+          "log_sha256": "f2576d21e91353aa1a94cc1fdc6b14a1ba4f6bb21d3cef2c58350e0052bfdb61",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 12,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_complete_immediate_receiver_keeps_states_signatures_and_every_work_frontier",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-12.log",
+          "log_sha256": "7dc401c1f11b472e78209d4faf3e31ced47be66acb790d1e60d3438f9ba23deb",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 13,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+          "prior_exit_code": 101,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-13.log",
+          "log_sha256": "c06f53adbdc9b28e0eee50e46e7e94122d33bacdbcb51b8d90846b583aa6bbdb",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 14,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_empty_bitmap_and_alias_cached_queries_keep_work_without_receiving_allocation_or_debit",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-14.log",
+          "log_sha256": "ca15923404517505b28b544dc544921262c3fb66d4bceab3cbc2974cdc5a367d",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 15,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_nonempty_cached_query_borrows_original_rc_and_keeps_all_semantic_work_failures",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-15.log",
+          "log_sha256": "62fb70217e6f2577b04671617c41187ae02fadedb6427cfc8ef29180bd0deac4",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 16,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_whole_empty_owner_costs_and_all_short_frontiers_cover_new_bitmap_backing_and_drop",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-16.log",
+          "log_sha256": "30520b63e5d62904779467cf789d614e08e8c93cb4a1dc90d437394f131760f8",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 17,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_overflow_is_not_empty_and_the_same_paid_status_owner_can_receive_empty_afterward",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-17.log",
+          "log_sha256": "f5d42721dd75849d08fa6a6336cd83a43b36775f0dc53d59ddfb77f8e51c1207",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 18,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_primed_foreign_inputs_and_nested_scope_never_query_foreign_payer_or_restore_memo",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-18.log",
+          "log_sha256": "f6f2560987c367dcf17ddd00b8083950e6c9623153e1e44a8b2c7c05c6f72680",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 19,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::before_empty::cached_tests::held_cached_closure_keeps_original_one_work_unit_and_same_result_without_auth_debit",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-19.log",
+          "log_sha256": "3bfec85f1dc8775ada3aacfb4741de51b8d1ba74b9c2f51dc5b592bef49deb56",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 20,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight::tests::actual_paid_map_moves_without_allocation_and_preserves_max_zero_routes_and_last_drop",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-20.log",
+          "log_sha256": "98663fe4df8cdf8d6280f2c82f7418cfcdebbaf2616dca657724f687685d8e49",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 21,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight::tests::work_refusal_and_preexisting_financial_refusal_cannot_publish_a_map",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-21.log",
+          "log_sha256": "839b4c23385e15e3cd26fa1ed196abf05fdeee88e11df27195658311ac3fe7c8",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 22,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight_tests::unit_weight_and_every_fallback_keep_full_prechange_ids_signatures_work_and_errors",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-22.log",
+          "log_sha256": "2dffbe0a45f1bcc0476b70ff80d76b09f7e9195d24bff1701e2d26478d09331a",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 23,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight_tests::whole_receiver_spends_less_backing_and_keeps_exact_short_and_zero_limits",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-23.log",
+          "log_sha256": "e00867ecaebac81d5da147f83cda84c204c7883530a651c12efde2227d1192aa",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 24,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight_tests::complete_previous_successor_producer_and_whole_current_module_remain_bound",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-24.log",
+          "log_sha256": "7739baae9832ca05fd890e958408860904759ff79b9e1ca28fabc84936d42655",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 25,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core",
+          "prior_exit_code": 101,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-25.log",
+          "log_sha256": "c6dd737c415a80745076f133a64a33ef9e753c344fffa96374e6eddffa5cf36c",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 26,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::path_join::singleton_tests::singleton_direct_group_keeps_complete_old_success_work_and_hostile_diagnostic",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-26.log",
+          "log_sha256": "82e8b16b303de486eb9c629f64fa4505e5275c4b5fa9ae1c5fd56a7dbcfd7561",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 27,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::path_join::singleton_tests::singleton_whole_replay_reports_real_costs_and_exact_short_zero_drop",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-27.log",
+          "log_sha256": "a040052fece26d79daed265ddd849fe018f08c79d039604ada9c59582bde2fd6",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 28,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::path_join::singleton_tests::complete_immediate_old_and_unchanged_multistate_body_stay_source_bound",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-28.log",
+          "log_sha256": "54825eef30f44e65372ad736feb90d54e63d6accb22f87d4fc315b06c6e1ceec",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 29,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::complete_original_receivers_and_all_new_source_owners_remain_authenticated",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-29.log",
+          "log_sha256": "311f7a4fd320852b9d9779b884f2b7e9ce97edcabbcd396cacc08c0ba0fed89f",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 30,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::immediate_parent_831_and_compact_storage_have_independent_complete_source_domains",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-30.log",
+          "log_sha256": "35b98859f9a9ebe4ca023199cd31c97e21b6caf29bce5da4886566b72afc395f",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 31,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::amortized_source::ordered_amortized_checkpoint_full_sources_and_inverses_are_exact",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-31.log",
+          "log_sha256": "11819d54b5e8e08ac1e70babcbd72343a5e239e8c2e86a77726b5b8dc373e396",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 32,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-32.log",
+          "log_sha256": "e926a30fe727442fd42060cb514edd4d98fbfc5a352f2ee7213de81256d680ee",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 33,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::live_oracle::source_custody::b::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-33.log",
+          "log_sha256": "3cf5519cc40a96efaf97df384e38274e5ca38fee4fc80150ed2341403d89a367",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 34,
+          "harness": "semaprax::lib",
+          "selector": "source_reflows_merge::runtime_json::tests::fixed_projection_json_transport_refuses_hostile_io_before_parsing",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-34.log",
+          "log_sha256": "f2b7ee14cbe49c333eeb8af7ab54aca7400dd25e1cae2f38ac0720768cb2767a",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 35,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::inline_weighted::source::inline_weighted_complete_source_inverses_and_immediate_receiver_are_exact",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-35.log",
+          "log_sha256": "421b8f5a8c96fefcc57b880f93763be151f18b76ae3efc4eb265a4e1023f5670",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 36,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::complete_immediate_receiver_helpers_and_all_seven_original_controls_remain_exact",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-36.log",
+          "log_sha256": "73b91c8ec5352b9eb87e3b77e5e466087ca5d18acef1e6e11181d7d6cca58c2b",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 37,
+          "harness": "semaprax::hir_module_boundaries",
+          "selector": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-37.log",
+          "log_sha256": "43f77b932b5442499c3a84aea635b9b0e337e8d486406d8950f5930657d2c5d4",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 38,
+          "harness": "semaprax::workspace",
+          "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-38.log",
+          "log_sha256": "77bfa5dd3fd131c103bf482d4fc74eb52cf248843cefcd1c15a4cdbcfb29a2e8",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 39,
+          "harness": "semaprax::lib",
+          "selector": "workspace_graph::source_schema::static_text::primitive::helpers::tests::a_large_comment_keeps_ordinary_imports_admitted_without_authorizing_a_selected_helper",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-39.log",
+          "log_sha256": "49b6f03ad4d7f993736b2415331087abbbdc0e5be7167cf23422228daf509ef3",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 40,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::live_oracle::source_custody::presence_tests::merged_current_ci_reflow_and_presence512_complete_inputs_remain_exact",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-40.log",
+          "log_sha256": "608af64e697e87fed2245819f851a268224058892c500fcda6057259ab270dd3",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 41,
+          "harness": "semaprax::module_size",
+          "selector": "no_module_exceeds_its_recorded_size",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-41.log",
+          "log_sha256": "5b3a57a1f0a2b969e5e1aded86c849c6897978441f0bb87a0ba8279ecdb47897",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 42,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::complete_builder_and_comparison_receivers_keep_work_and_later_semantic_diagnostics",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-42.log",
+          "log_sha256": "683fcb487aa286473a927e9de73359c333210e066c0db0d340bcb611416646b7",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 43,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::complete_build_comparison_and_canonical_receivers_report_physical_costs_through_drop",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-43.log",
+          "log_sha256": "303e86753391f5f010720a177ba0d37acc3d033f9ea4d20e1b5e06c1952ac3c0",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 44,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::branch_clone::tests::full_plan_enumerator_keeps_every_original_path_work_and_materialization",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-44.log",
+          "log_sha256": "5990283fbf37fb46f17d284a7583b238bc83d8c7031d679172f8daf1d234ec50",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 45,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::branch_clone::tests::clone_and_push_keep_capacity_contents_work_and_drop_with_less_backing",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-45.log",
+          "log_sha256": "7a71020e7261133cbc3c6c4e8e4f7aef4cd470a4f62f9dabef83324ae75d361f",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 46,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::branch_clone::tests::whole_original_enumerator_and_clone_push_helpers_remain_byte_exact",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-46.log",
+          "log_sha256": "4c9b2381122dc6c69ac9cd47aae61199df50f0d10e8ea7f6764e991921e23641",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 47,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::branch_clone::funded_tests::fused_clone_push_pays_real_receivers_and_keeps_exact_short_zero_drop",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-47.log",
+          "log_sha256": "811ee6c357d92d24032ad05c3d834c25c1225baa57bac16db7fd876b396e1f9a",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 48,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::branch_clone::funded_tests::fused_clone_keeps_original_push_work_refusal_before_capacity_payment",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-48.log",
+          "log_sha256": "0795d2d2a1d7035c5b37df9cb9db5af5e9336af4960a9558383b4204feba3110",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 49,
+          "harness": "semaprax::project_product_acceptance_ci_contract",
+          "selector": "macos_native_jobs_pair_the_driver_with_the_explicit_builder_sdk",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-49.log",
+          "log_sha256": "207e8002f59cfbe78e0fe9dfe618cc55f4204b4ea58ebb1d40c8d6454c9510e5",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 50,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::tests::whole_replay_preserves_success_work_and_the_older_independent_receiver",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-50.log",
+          "log_sha256": "74ea41f935df09419bcb47c1c1ed49681d2d6e9d913aaf6c2be932760ca44ba1",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 51,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::tests::the_complete_group_receiver_keeps_hostile_transition_diagnostics_and_work",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-51.log",
+          "log_sha256": "27841e1c7020af7cb8b3aa4bd15837d4cddf10ce19a4bec9d7b77b5beaca29dd",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 52,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::tests::full_replay_removes_backing_with_zero_exact_short_limits_and_complete_drop",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-52.log",
+          "log_sha256": "3bfa5a77de137d3eaef8338aad7b6b28ea2b99907d575f33091de1f6ee87d427",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 53,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::source_custody::whole_previous_producer_and_both_complete_key_constructors_stay_bound",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-53.log",
+          "log_sha256": "800bde00ef8e5aaa8c3eea03d79605f1bd61c211d5f712b5dd434534b795840d",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 54,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::source_custody::the_entire_older_receiver_test_only_adds_the_certified_source_inverse",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-54.log",
+          "log_sha256": "1066df3bab74b3cb1b6712f1c84d7102264db796d5e03fbeab130cd39df1f095",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 55,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_keeps_complete_immediate_ids_work_and_all_six_failure_fields",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-55.log",
+          "log_sha256": "003a2689350fce4b4713ef3ba25a4b1f35791081c598a1a1e5c252046b044eff",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 56,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_reports_whole_immediate_costs_and_exact_short_zero_drop",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-56.log",
+          "log_sha256": "4963d7c6cea0991a6c36562866df0bca1e1f28c38e94a8453d19b8f0802f3e24",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 57,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_keeps_full_immediate_sources_and_old_receiver_bodies_bound",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-57.log",
+          "log_sha256": "fde3a21a1cf3b87f7bbc257d132827b26651db19df6fcd4c4a550e45eb3807da",
+          "new_status": "PENDING_SELECTED_NEXT"
+        },
+        {
+          "original_index": 58,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::branch_clone::inline_tests::inline_branch_keeps_complete_paths_work_and_all_six_refusal_fields",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-58.log",
+          "log_sha256": "47adb9b31fd07e29c5189db5377dd1c3c08ba5c3a74831c3653c3f833ed1ae16",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        },
+        {
+          "original_index": 59,
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::branch_clone::inline_tests::inline_whole_enumerator_reports_cost_and_exact_short_zero_complete_drop",
+          "prior_exit_code": 0,
+          "log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-59.log",
+          "log_sha256": "61bb41e4082b596c436b78bd26eaa1ac5b1686bc8055eacb03e941291a3ed0f5",
+          "new_status": "PRIOR_PASSED_NOT_RETESTED"
+        }
+      ]
+    },
+    "earlier_scope_receipts": {
+      "2d4b50-owning-selected-results.json": {
+        "sha256": "4956be8f703f38f1d524cde6032245091d076cab9ce762482bbc2e4e219951d5",
+        "selected": 50,
+        "PASS": 39,
+        "FAIL": 11
+      },
+      "8bb76-owning-selected-results.json": {
+        "sha256": "cd95ec6a0b385cecba18aeca28554e6b142e1578fbb111b8f0b6f2aeb3eba5f1",
+        "selected": 76,
+        "PASS": 56,
+        "FAIL": 20
+      },
+      "8bb9supplement-owning-selected-results.json": {
+        "sha256": "abe0a45c5da123e244dde1c65fec3c2f58e6aed21985fe8320b9132cf8745e82",
+        "selected": 9,
+        "PASS": 9,
+        "FAIL": 0
+      }
+    },
+    "older175": {
+      "mode": "EXPLICIT_FINITE_SELECTED_PRIOR_VIEW_NOT_A_NEW_EXECUTION",
+      "original_round": "/Volumes/Semaprax/lane-prompts/final-35cc-175-qualification-20261015",
+      "original_source": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+      "original_checks": 175,
+      "original_pass": 135,
+      "original_fail": 40,
+      "selected_historical_rows": 52,
+      "newly_authored_or_newly_selected_owners_have_no_prior_execution": 24,
+      "original_manifest_sha256": "1a5db54e5e25f999b71364ae56a361449a2c82ed8d6e059ce1d4805289eba837",
+      "original_results_sha256": "d2b50fcb6e25f84f3ff28744241ae25d4fb3ea228949c63812897b68353f2241",
+      "omitted_actual_failures": [
+        {
+          "source_subject": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+          "harness": "semaprax::lib",
+          "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+          "exit_code": 101,
+          "log": "/Volumes/Semaprax/lane-prompts/final-35cc-175-qualification-20261015/owning-selected-31.log",
+          "log_sha256": "d84cd75eb7fc7a54c048ce40bf024d183fe9ecca15ef7d25ae18ceffe2c6a66f",
+          "current_status": "NOT_FIXED_NOT_RETESTED_BY_THIS_MINIMUM_ROUND"
+        },
+        {
+          "source_subject": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+          "harness": "semaprax::native",
+          "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_actual_byte_and_item_plus_one_preflight_never_reserve_output",
+          "exit_code": 101,
+          "log": "/Volumes/Semaprax/lane-prompts/final-35cc-175-qualification-20261015/owning-selected-34.log",
+          "log_sha256": "82d90cbb28252fb130e0903bc501a28aa414c0b72440a96b9ec2d64377eeb16c",
+          "current_status": "NOT_FIXED_NOT_RETESTED_BY_THIS_MINIMUM_ROUND"
+        },
+        {
+          "source_subject": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+          "harness": "semaprax::native",
+          "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_reads_and_short_refusal_allocate_nothing_then_copy_final_string_once",
+          "exit_code": 101,
+          "log": "/Volumes/Semaprax/lane-prompts/final-35cc-175-qualification-20261015/owning-selected-35.log",
+          "log_sha256": "f76af7952aaaa1f61e09274f7a2dc9c22c4f341d92df19d3d2918800351bf65f",
+          "current_status": "NOT_FIXED_NOT_RETESTED_BY_THIS_MINIMUM_ROUND"
+        },
+        {
+          "source_subject": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+          "harness": "semaprax::project",
+          "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_request_decision_response_keeps_duplicate_unicode_and_boundary_slots",
+          "exit_code": 101,
+          "log": "/Volumes/Semaprax/lane-prompts/final-35cc-175-qualification-20261015/owning-selected-36.log",
+          "log_sha256": "66c1a4830495a1a7f4e79a5d30a8243cc3635c48df2f09a8b3050cb196e2d60c",
+          "current_status": "NOT_FIXED_NOT_RETESTED_BY_THIS_MINIMUM_ROUND"
+        },
+        {
+          "source_subject": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+          "harness": "semaprax::project",
+          "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_actual_item_and_byte_plus_one_refuse_before_publication",
+          "exit_code": 101,
+          "log": "/Volumes/Semaprax/lane-prompts/final-35cc-175-qualification-20261015/owning-selected-37.log",
+          "log_sha256": "3ce54fc543993f68916f08ffa5023c75ea7b1dd6c7790ad681d6db29fc154b92",
+          "current_status": "NOT_FIXED_NOT_RETESTED_BY_THIS_MINIMUM_ROUND"
+        },
+        {
+          "source_subject": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+          "harness": "semaprax::project",
+          "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_maximum_escaping_exact_output_cap_and_plus_one",
+          "exit_code": 101,
+          "log": "/Volumes/Semaprax/lane-prompts/final-35cc-175-qualification-20261015/owning-selected-38.log",
+          "log_sha256": "8e7573c9fd73bdd1afb498e81b7450d972536af7f487e00f19c24f2592ac5956",
+          "current_status": "NOT_FIXED_NOT_RETESTED_BY_THIS_MINIMUM_ROUND"
+        },
+        {
+          "source_subject": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+          "harness": "semaprax::project",
+          "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_plan_receipts_and_live_revision_reject_forged_versions",
+          "exit_code": 101,
+          "log": "/Volumes/Semaprax/lane-prompts/final-35cc-175-qualification-20261015/owning-selected-39.log",
+          "log_sha256": "32b8fc082419bdfbcc8aa7cead0e2751d3df609f5842c2d9e8c83ea98f71a78e",
+          "current_status": "NOT_FIXED_NOT_RETESTED_BY_THIS_MINIMUM_ROUND"
+        },
+        {
+          "source_subject": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+          "harness": "semaprax::project",
+          "selector": "standard_library::application_json::nested_response::string_vectors::primitive_string_response_two_nested_paths_preserve_exact_and_one_short_bytes",
+          "exit_code": 101,
+          "log": "/Volumes/Semaprax/lane-prompts/final-35cc-175-qualification-20261015/owning-selected-40.log",
+          "log_sha256": "f95066b7ecb1385418d6f0c749a5dad46e4785450e267553cde6ecd55f1c21e7",
+          "current_status": "NOT_FIXED_NOT_RETESTED_BY_THIS_MINIMUM_ROUND"
+        },
+        {
+          "source_subject": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+          "harness": "semaprax::lib",
+          "selector": "ast::expression_statement::tests::resolver_512_payload_source_fits_the_same_canonical_budget_without_pattern_scratch",
+          "exit_code": 101,
+          "log": "/Volumes/Semaprax/lane-prompts/final-35cc-175-qualification-20261015/owning-selected-107.log",
+          "log_sha256": "24fc7435cc54fee88a5014559f2b8f0a88102da6bea1c1a1931605547db0781e",
+          "current_status": "NOT_FIXED_NOT_RETESTED_BY_THIS_MINIMUM_ROUND"
+        }
+      ],
+      "selected_prior_failure_count": 31,
+      "all_prior_results_retained_at_original_path": true
+    },
+    "older175_binding_file": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/supplemental-historical-outcomes.json",
+    "older175_binding_sha256": "51b0afceed084fd443b21636158f37dd113138bc178e7d017d53298838be2221",
+    "failed_compile_attempts": {
+      "5aacb8e5e652ce4d05bc8717d7277145695167a7": {
+        "exit_code": 101,
+        "executed_test_bodies": 0,
+        "not_executed_command_indices": [
+          1,
+          2,
+          3
+        ],
+        "receipt_sha256": "19d7c5ebdc3b69eaf855e8c2f036eee9a0f3d0c8dcde74e798fc68ebf1fc6ddd",
+        "no_reuse_or_resume": true
+      },
+      "b3a53367d4def76240d14dca25ee414785bed9d6": {
+        "exit_code": 101,
+        "executed_test_bodies": 0,
+        "not_executed_command_indices": [
+          1,
+          2,
+          3
+        ],
+        "receipt_sha256": "45180f30151b5cef611df28d94576d9cc73ccfaf1d8d787876f3554dc7a296ea",
+        "no_reuse_or_resume": true
+      }
+    },
+    "current_omitted_failures": [],
+    "earlier_omissions_preserved": "All original nested raw supplemental histories remain archived and hash-bound; not selected means NOT_RETESTED, never current PASS."
+  },
+  "outcomes": [
+    {
+      "index": 0,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_array::tests::four_complete_original_receivers_keep_all_path_fields_order_and_work",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8733383329963544,
+      "peak_process_group_rss_bytes": 3325952,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-00.log",
+      "log_sha256": "5e5c72451f6334a62cc830194ba890f2f05879a8ee461f1d5d00817784a54318"
+    },
+    {
+      "index": 1,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_array::tests::append_pays_complete_backing_and_drop_with_exact_short_and_zero_controls",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8843961670063436,
+      "peak_process_group_rss_bytes": 3031040,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-01.log",
+      "log_sha256": "409e500b5bf29557caf36579e3f96a0c54f66f4c49871ad7a08974652b80ab12"
+    },
+    {
+      "index": 2,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_array::tests::complete_hir_enumeration_keeps_paths_work_materializations_and_legacy",
+      "exit_code": 101,
+      "status": "FAIL",
+      "wall_seconds": 1.8743507500039414,
+      "peak_process_group_rss_bytes": 3391488,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-02.log",
+      "log_sha256": "84c073200afaed5f0ab2aa42efd2bde51a0cb146c428931c345c3d13351dbf8a"
+    },
+    {
+      "index": 3,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_array::tests::complete_old_functions_are_compiled_and_only_capacity_hooks_change",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8959879580070265,
+      "peak_process_group_rss_bytes": 3506176,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-03.log",
+      "log_sha256": "5ad900e4a8cd498c934208d6d860543d88c9a812b46a8821000deef3d0926762"
+    },
+    {
+      "index": 4,
+      "harness": "semaprax::lib",
+      "selector": "source_reflows::semantic_receivers::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8914207500056364,
+      "peak_process_group_rss_bytes": 2834432,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-04.log",
+      "log_sha256": "9202349eae19203815f1d69ff1ed059f512c9e1e1df3d00cbb026f8b90d37e10"
+    },
+    {
+      "index": 5,
+      "harness": "semaprax::lib",
+      "selector": "source_reflows::semantic_receivers::receiver_mutation_and_forged_predecessor_fail_closed",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8879752079956234,
+      "peak_process_group_rss_bytes": 2621440,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-05.log",
+      "log_sha256": "310859a991119d395923c22bec92ded7c7affab1250c6aabbf9b979325263156"
+    },
+    {
+      "index": 6,
+      "harness": "semaprax::lib",
+      "selector": "source_reflows::approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 18.354849125011242,
+      "peak_process_group_rss_bytes": 60489728,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-06.log",
+      "log_sha256": "49ab459c74d4665d988604bdc4558a4a218de1bb1c8be66d3b658691dfa6fee6"
+    },
+    {
+      "index": 7,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight_tests::complete_previous_successor_producer_and_whole_current_module_remain_bound",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8963527079904452,
+      "peak_process_group_rss_bytes": 2949120,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-07.log",
+      "log_sha256": "7928a73cc7731aa1444e1121008538c3b819393946601779683908d06c891f7a"
+    },
+    {
+      "index": 8,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::complete_original_receivers_and_all_new_source_owners_remain_authenticated",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 2.918612541994662,
+      "peak_process_group_rss_bytes": 33177600,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-08.log",
+      "log_sha256": "e2144e96c840bdc447fa3b5e7151cdcbed7d58210a3df5c89d915cf31048c48e"
+    },
+    {
+      "index": 9,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::immediate_parent_831_and_compact_storage_have_independent_complete_source_domains",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.9047388750041137,
+      "peak_process_group_rss_bytes": 4472832,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-09.log",
+      "log_sha256": "bb77aa48429a85c0c93ea080eca60df9e73be550702f650006a9f31a699565b0"
+    },
+    {
+      "index": 10,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::amortized_source::ordered_amortized_checkpoint_full_sources_and_inverses_are_exact",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 8.0574040000065,
+      "peak_process_group_rss_bytes": 41172992,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-10.log",
+      "log_sha256": "e71d3864d9ca94c9f541ba643d8af6849819cd82babc1d63edfeb595a7c11325"
+    },
+    {
+      "index": 11,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 2.908091124991188,
+      "peak_process_group_rss_bytes": 36405248,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-11.log",
+      "log_sha256": "5bcf6d9fc672c1179e19ef949661fd06e517033597915ed72266501cf10fc9ad"
+    },
+    {
+      "index": 12,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::b::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 4.975953207991552,
+      "peak_process_group_rss_bytes": 43843584,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-12.log",
+      "log_sha256": "f870dc812fa27be58720e6abeffe210df9e7eed91117d4841150ad17b2fe84ba"
+    },
+    {
+      "index": 13,
+      "harness": "semaprax::lib",
+      "selector": "source_reflows_merge::runtime_json::tests::fixed_projection_json_transport_refuses_hostile_io_before_parsing",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 3.086445499997353,
+      "peak_process_group_rss_bytes": 42680320,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-13.log",
+      "log_sha256": "4071b769fcb4b9b3eda3e3828be83cbd1d521b98c1f25b6c70469c66cfc3c41c"
+    },
+    {
+      "index": 14,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::inline_weighted::source::inline_weighted_complete_source_inverses_and_immediate_receiver_are_exact",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 5.998089208005695,
+      "peak_process_group_rss_bytes": 47382528,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-14.log",
+      "log_sha256": "b398f3b0407bb0c94fbcc3c07a5746bad35c2812d8f633378f15659136bd3302"
+    },
+    {
+      "index": 15,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::complete_immediate_receiver_helpers_and_all_seven_original_controls_remain_exact",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8928507499949774,
+      "peak_process_group_rss_bytes": 2932736,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-15.log",
+      "log_sha256": "caf69341e5e242eb42b0d0af58887b76efc28b6b0f112c93c0476a2050ba3596"
+    },
+    {
+      "index": 16,
+      "harness": "semaprax::hir_module_boundaries",
+      "selector": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 2.4058646250050515,
+      "peak_process_group_rss_bytes": 56115200,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-16.log",
+      "log_sha256": "89bd3ed2ac19791f7b3a0fdb8660e24b0e921babbdba0a8efd832d786864cf14"
+    },
+    {
+      "index": 17,
+      "harness": "semaprax::workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.5040592500008643,
+      "peak_process_group_rss_bytes": 3964928,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-17.log",
+      "log_sha256": "d05ea690f9d26ef7c85d15fa42097d65602e3d89743adfce1e4b24fc7aba9d83"
+    },
+    {
+      "index": 18,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::presence_tests::merged_current_ci_reflow_and_presence512_complete_inputs_remain_exact",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.893771041999571,
+      "peak_process_group_rss_bytes": 3850240,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-18.log",
+      "log_sha256": "c0a55e11d1467b7b7978671b34b3777865b836d3f38e208ef67a563864ca3bee"
+    },
+    {
+      "index": 19,
+      "harness": "semaprax::module_size",
+      "selector": "no_module_exceeds_its_recorded_size",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 4.473774792000768,
+      "peak_process_group_rss_bytes": 6160384,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-19.log",
+      "log_sha256": "3083afc5fdc641e7144995304660bdf73eb91c07332d825fd688250e837dba8a"
+    },
+    {
+      "index": 20,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::branch_clone::tests::whole_original_enumerator_and_clone_push_helpers_remain_byte_exact",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.9159607920009876,
+      "peak_process_group_rss_bytes": 3047424,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-20.log",
+      "log_sha256": "345afe95dcf12f3e26a0d9907d84c7e4bad6294f9826cfe5674f4eb7b890bd08"
+    },
+    {
+      "index": 21,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_keeps_full_immediate_sources_and_old_receiver_bodies_bound",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8902519589901203,
+      "peak_process_group_rss_bytes": 3080192,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-21.log",
+      "log_sha256": "49ca83d3adeaa18ae50c77fd9d402a53b432c8e216dace96c1799ad0a5db727c"
+    },
+    {
+      "index": 22,
+      "harness": "semaprax::lib",
+      "selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+      "exit_code": 101,
+      "status": "FAIL",
+      "wall_seconds": 3.984517874996527,
+      "peak_process_group_rss_bytes": 96043008,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-22.log",
+      "log_sha256": "38da3e9ae6b8ad586657f22fe146daaef2b1281d13ebaaedd726d08d7c872f5f"
+    },
+    {
+      "index": 23,
+      "harness": "semaprax-toolchain::cli_new_project_v1",
+      "selector": "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+      "exit_code": 101,
+      "status": "FAIL",
+      "wall_seconds": 12.94958637500531,
+      "peak_process_group_rss_bytes": 68239360,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-23.log",
+      "log_sha256": "3e7f0643c3affafbbcdc9e1b1c94d2641e61abbc8c8ab48f4f40f91a0f1cd758"
+    },
+    {
+      "index": 24,
+      "harness": "semaprax::project",
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::unfactored_schedule_retains_original_source_and_factored_admission",
+      "exit_code": 101,
+      "status": "FAIL",
+      "wall_seconds": 1.4889505000028294,
+      "peak_process_group_rss_bytes": 2932736,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-24.log",
+      "log_sha256": "1836d197d5ff8d8dbca1966a8dd58d4557793b621f5404bea2ebd95b0b474f0f"
+    },
+    {
+      "index": 25,
+      "harness": "semaprax::project",
+      "selector": "standard_library::application_json::owned::catalog_scoped_records::typed_catalog_derives_codecs_and_preserves_all_23_functional_cases",
+      "exit_code": 101,
+      "status": "FAIL",
+      "wall_seconds": 2.5319000420131488,
+      "peak_process_group_rss_bytes": 60702720,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-25.log",
+      "log_sha256": "47a934fd6d3562a60814db71224738ef8731b37f9c547f33761aefaf9644178e"
+    },
+    {
+      "index": 26,
+      "harness": "semaprax::lib",
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "exit_code": 101,
+      "status": "FAIL",
+      "wall_seconds": 1.9752416249975795,
+      "peak_process_group_rss_bytes": 3211264,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-26.log",
+      "log_sha256": "c9937bb6a7e5ed2033012e6c923da67eded2ab16a8764466a3591e02e96523d9"
+    },
+    {
+      "index": 27,
+      "harness": "semaprax::lib",
+      "selector": "workspace_graph::tests::builder_limits::pattern_source_workspace_fits_unchanged_builder_budget",
+      "exit_code": 101,
+      "status": "FAIL",
+      "wall_seconds": 1.9307307090057293,
+      "peak_process_group_rss_bytes": 1703936,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-27.log",
+      "log_sha256": "2f250774ee080649a9ed897b759792cd9966e561fb746d6778a345f44f6ffb35"
+    },
+    {
+      "index": 28,
+      "harness": "semaprax::project",
+      "selector": "standard_library::pattern_executes_on_all_three_backends",
+      "exit_code": 101,
+      "status": "FAIL",
+      "wall_seconds": 1.524844582992955,
+      "peak_process_group_rss_bytes": 2883584,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-28.log",
+      "log_sha256": "4fa1060649f58461ca20161c2b764ce06aca14872965ac054dd944ab5df050d7"
+    },
+    {
+      "index": 29,
+      "harness": "semaprax::lib",
+      "selector": "workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core",
+      "exit_code": 101,
+      "status": "FAIL",
+      "wall_seconds": 2.9673920000059297,
+      "peak_process_group_rss_bytes": 126746624,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-29.log",
+      "log_sha256": "948c707b625220b96336fe6c2cc05416f043fe13451c38aa2625a66152eef5af"
+    },
+    {
+      "index": 30,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_preserves_complete_main_hir_work_and_drop",
+      "exit_code": 101,
+      "status": "FAIL",
+      "wall_seconds": 1.8877767090016278,
+      "peak_process_group_rss_bytes": 2473984,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-30.log",
+      "log_sha256": "0ba13b52e042d82df94031b8e9e832112954e525924898d56fe9f1413bc40cf3"
+    },
+    {
+      "index": 31,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_exact_short_zero_and_first_output_work_frontier",
+      "exit_code": 101,
+      "status": "FAIL",
+      "wall_seconds": 1.9040736669994658,
+      "peak_process_group_rss_bytes": 3047424,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-31.log",
+      "log_sha256": "cd1cfd6a28b2734d0b1589447246772cf9637ca1ae27f6c6901b9a768d5d49dd"
+    },
+    {
+      "index": 32,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+      "exit_code": 101,
+      "status": "FAIL",
+      "wall_seconds": 1.8940895409905352,
+      "peak_process_group_rss_bytes": 3850240,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-32.log",
+      "log_sha256": "0b93df8220bfb5d2767b11952c8398f23d5611b0d6038f8c23ba48a84ef9e7d8"
+    },
+    {
+      "index": 33,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_keeps_complete_immediate_ids_work_and_all_six_failure_fields",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8902575829997659,
+      "peak_process_group_rss_bytes": 3424256,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-33.log",
+      "log_sha256": "5fb120f44ed47d3e9ab9899367c88531c8f5b27a8ef83593e0485e55d90037f0"
+    },
+    {
+      "index": 34,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_reports_whole_immediate_costs_and_exact_short_zero_drop",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8811990419926587,
+      "peak_process_group_rss_bytes": 3276800,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-34.log",
+      "log_sha256": "5f0cb64018007470bf2e1f3cf12addcd00905024966b478d34886044a172ff09"
+    },
+    {
+      "index": 35,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_join::state_move_tests::singleton_move_keeps_complete_immediate_work_and_hostile_diagnostic",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8776672080130083,
+      "peak_process_group_rss_bytes": 3571712,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-35.log",
+      "log_sha256": "3975656330a9e42a23e9b08b699d83a15722d397742b542f7dd3983252925699"
+    },
+    {
+      "index": 36,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_join::state_move_tests::singleton_move_reports_whole_immediate_costs_and_exact_short_zero_drop",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8940153339935932,
+      "peak_process_group_rss_bytes": 3342336,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-36.log",
+      "log_sha256": "f47f3c3327d143dd2ca8a903e0082af25ca572d441d69e946bf8eb5fee40621f"
+    },
+    {
+      "index": 37,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::identical_branch_arms_replay_the_producer_join_and_refuse_either_repaired_order",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 4.950523167004576,
+      "peak_process_group_rss_bytes": 92504064,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-37.log",
+      "log_sha256": "497976c52d6f5654c0a08e4e4db1cf49d68973b52dbcb37dedb05f562a6742a4"
+    },
+    {
+      "index": 38,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::actual_lexical_exact_rejoin_is_never_rekeyed_or_charged",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8932535420026397,
+      "peak_process_group_rss_bytes": 3194880,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-38.log",
+      "log_sha256": "917d118f6e5d26c3da0104e443a30d98f2dc05a1e7c72b37bc78b5d7368da97e"
+    },
+    {
+      "index": 39,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::normalization_debits_root_comparisons_and_the_self_join_before_rekeying",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8786396670038812,
+      "peak_process_group_rss_bytes": 2703360,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-39.log",
+      "log_sha256": "df764e3e49925d02a09dd2b4f6b39cfaa70acbdc4c996606a91d2f7e0b1db9a6"
+    },
+    {
+      "index": 40,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::singleton_direct_group_keeps_complete_old_success_work_and_hostile_diagnostic",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.891104958995129,
+      "peak_process_group_rss_bytes": 3719168,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-40.log",
+      "log_sha256": "595fd1eddbd136ab81d45c09c7f2f9eba4d0ce0b8698e0bfcd60cdfb14ccf284"
+    },
+    {
+      "index": 41,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::singleton_whole_replay_reports_real_costs_and_exact_short_zero_drop",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.894104042003164,
+      "peak_process_group_rss_bytes": 2588672,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-41.log",
+      "log_sha256": "d33c423181a5e819eb2e64320425cc60154e790c44d9e25f40b201b4f651dbcf"
+    },
+    {
+      "index": 42,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::complete_immediate_old_and_unchanged_multistate_body_stay_source_bound",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8990427079988876,
+      "peak_process_group_rss_bytes": 3211264,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-42.log",
+      "log_sha256": "a4bd8ba3d3844e140d8e44f40d27366509d1402b6fb9432d42d81e3741d91cf8"
+    },
+    {
+      "index": 43,
+      "harness": "semaprax::lib",
+      "selector": "project::cxx_owned_data::provider_refusal_tests::outward_help_uses_the_first_actual_reservation_and_caller",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8910209580062656,
+      "peak_process_group_rss_bytes": 2523136,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-43.log",
+      "log_sha256": "a12317c2d3f0fa6125292b4bb4122c22247ec2bc9f22a96ba428c892125b69a5"
+    },
+    {
+      "index": 44,
+      "harness": "semaprax::lib",
+      "selector": "project::cxx_owned_data::provider_refusal_tests::missing_evidence_and_a_surrounding_budget_keep_the_original_error",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8976826669968432,
+      "peak_process_group_rss_bytes": 3866624,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-44.log",
+      "log_sha256": "e5868f919599b0dafed071d7fa0c8cf3c451d86d592bed988e2ad47ddc6b6604"
+    },
+    {
+      "index": 45,
+      "harness": "semaprax::project",
+      "selector": "command_argument_borrow::retained_hir_still_rejects_a_mutable_command_argument_alias_independently",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.5410644589865115,
+      "peak_process_group_rss_bytes": 2883584,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-45.log",
+      "log_sha256": "e8b81e6aead8e6272c0237b571ce7fb7593296c0f274efbc7c884106ad89eacb"
+    },
+    {
+      "index": 46,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_join::receiver_tests::whole_original_and_boxed_replay_keep_success_work_and_hostile_diagnostic",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.884327084000688,
+      "peak_process_group_rss_bytes": 3784704,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-46.log",
+      "log_sha256": "079d318a3e0f9fa916df9b98c0eac6d3bbee4923a99f7d3b1af800ea84da15d6"
+    },
+    {
+      "index": 47,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_join::receiver_tests::complete_current_replay_has_exact_and_one_short_physical_limits_with_last_drop",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8828483339893864,
+      "peak_process_group_rss_bytes": 3309568,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-47.log",
+      "log_sha256": "11007b10b27300ba1ccde7906dffd42fa931f00cd2fee1192fa4e28b7837f28e"
+    },
+    {
+      "index": 48,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_join::tests::boxed_prefix_keeps_every_history_union_and_control_disagreement",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8946606669924222,
+      "peak_process_group_rss_bytes": 3309568,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-48.log",
+      "log_sha256": "de3eef198f91e801e607fa3e7312fccf193847b0823ec57cecd255642a4ea03c"
+    },
+    {
+      "index": 49,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::duplicate_zero_auth_keeps_complete_main_diagnostic_and_first_receipt_at_sticky_floor",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.9087310419999994,
+      "peak_process_group_rss_bytes": 3342336,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-49.log",
+      "log_sha256": "5f1476254b618e1b6a0c6a69027e231b0f9db8eed5634803cf42a06b569166d0"
+    },
+    {
+      "index": 50,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::foreign_function_budget_and_scope_poison_only_original_owner_and_never_restore_entry",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.9148691669979598,
+      "peak_process_group_rss_bytes": 4177920,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-50.log",
+      "log_sha256": "a0c606c33f0c2a6378274d69ad8a3b0c590add9aa946b408f53f5f0b47bba645"
+    },
+    {
+      "index": 51,
+      "harness": "semaprax::lib",
+      "selector": "workspace_graph::tests::callable_limit_exact_advances_and_one_over_is_g171",
+      "exit_code": 101,
+      "status": "FAIL",
+      "wall_seconds": 4.97458770799858,
+      "peak_process_group_rss_bytes": 91832320,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-51.log",
+      "log_sha256": "bf6f4bd08f57efaed9abd4e8c5222512c0d28a2b6042e99d056d70a5ee02b08e"
+    },
+    {
+      "index": 52,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::consuming::tests::phase_presence_keeps_full_current_directories_and_every_consuming_entry",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8901367090002168,
+      "peak_process_group_rss_bytes": 2850816,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-52.log",
+      "log_sha256": "f78bfc26dadf5fbd609f66cef73ddc2a92d9cb28fefe34314c08e2810291b1d0"
+    },
+    {
+      "index": 53,
+      "harness": "semaprax::semaprax",
+      "selector": "cli_driver::cli::help::authoring::tasks::tests::task_descriptors_equal_actual_checked_scaffolds_and_exact_import_inventory",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 2.500782208997407,
+      "peak_process_group_rss_bytes": 113672192,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-53.log",
+      "log_sha256": "c13ad3f92f81e72b0c90be81a09e1045ef3c18c036866acef035f63cfb21b872"
+    },
+    {
+      "index": 54,
+      "harness": "semaprax::semaprax",
+      "selector": "cli_driver::cli::help::authoring::tasks::tests::task_pages_repeat_whole_prerequisites_and_cover_every_import_deterministically",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.4679399590095272,
+      "peak_process_group_rss_bytes": 2801664,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-54.log",
+      "log_sha256": "45c3feefeba44ce0ec4f501f8f00c414bfa908039a4196749c0a60131bb5d0a9"
+    },
+    {
+      "index": 55,
+      "harness": "semaprax::cli_help_surface_v1",
+      "selector": "task_pages::profile_task_pages_are_bounded_exact_complete_and_inert",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 9.741449833003571,
+      "peak_process_group_rss_bytes": 6815744,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-55.log",
+      "log_sha256": "9d0a3216803fca585925ad3b6442309b114cad240b8c008c4e2e57d7d822052d"
+    },
+    {
+      "index": 56,
+      "harness": "semaprax-toolchain::cli_help_surface_v1",
+      "selector": "task_pages::profile_task_pages_are_bounded_exact_complete_and_inert",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.4641128340008436,
+      "peak_process_group_rss_bytes": 4980736,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-56.log",
+      "log_sha256": "04a221ff485ac1932a48af20cbb929b3930f2b8e80418a59b836ab0a5b6cc5ad"
+    },
+    {
+      "index": 57,
+      "harness": "semaprax::project",
+      "selector": "standard_library::committed_catalogs_match_the_sources",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 3.5920771669916576,
+      "peak_process_group_rss_bytes": 125255680,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-57.log",
+      "log_sha256": "c3f9a4ed3569fad7b430ed832b269f761693839e477510299fbd3d4012bbadc2"
+    },
+    {
+      "index": 58,
+      "harness": "semaprax::cli_help_surface_v1",
+      "selector": "standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert",
+      "exit_code": 101,
+      "status": "FAIL",
+      "wall_seconds": 1.4149251250055386,
+      "peak_process_group_rss_bytes": 4325376,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-58.log",
+      "log_sha256": "37cafe74883d038e82a39d15bbb3d5f0f35d11ddad339153d7e61acc7c858aad"
+    },
+    {
+      "index": 59,
+      "harness": "semaprax-toolchain::cli_help_surface_v1",
+      "selector": "full_scoped_help_is_exhaustive_exact_capability_aware_and_inert",
+      "exit_code": 101,
+      "status": "FAIL",
+      "wall_seconds": 1.4706759999971837,
+      "peak_process_group_rss_bytes": 4964352,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-59.log",
+      "log_sha256": "18216bc7d7802fb18639f0570788e6214e11c9622cdc906478691f000636092a"
+    },
+    {
+      "index": 60,
+      "harness": "semaprax::cli_help_surface_v1",
+      "selector": "cli_authoring_card_search_is_bounded_exact_and_inert",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.403312583002844,
+      "peak_process_group_rss_bytes": 4440064,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-60.log",
+      "log_sha256": "84e3f6659e63a837002bfbbae90cc525a94bce0e166c18a304a97535b26ae795"
+    },
+    {
+      "index": 61,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::strategy::fitting_tests::shipping_fitting_held_proof_matches_complete_enumerator_and_lexical_forgeries",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.891135124998982,
+      "peak_process_group_rss_bytes": 2506752,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-61.log",
+      "log_sha256": "e6197d8edfcd27d963cf47adb2d74c21a33783be4c45980041ffd4fd476a9620"
+    },
+    {
+      "index": 62,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::strategy::fitting_tests::ordinary_fitting_whole_owner_costs_exact_short_work_bytes_and_drop_are_actual",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8721582920115907,
+      "peak_process_group_rss_bytes": 2867200,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-62.log",
+      "log_sha256": "b6917658753271c7ca852e382c9cd5b600e4c7de23493cbbacbb7e092a3d122b"
+    },
+    {
+      "index": 63,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::strategy::activation_tests::forced_authenticated_strategies_agree_on_small_full_multisets",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8956199579988606,
+      "peak_process_group_rss_bytes": 2883584,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-63.log",
+      "log_sha256": "7a419db77af6249871e9727f144adaf50b2921bddf62ec8c69653abc491a6420"
+    },
+    {
+      "index": 64,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::strategy::activation_tests::exact_65536_and_65537_choose_distinct_routes_without_raising_ceiling",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8965512909926474,
+      "peak_process_group_rss_bytes": 3358720,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-64.log",
+      "log_sha256": "020cf96deded39ea8a2a618662774b36cef8c231b04c0f040a656a9dbd16e382"
+    },
+    {
+      "index": 65,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::strategy::activation_tests::above_cap_equal_terminal_totals_do_not_authenticate_reordered_decisions",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8968223749980098,
+      "peak_process_group_rss_bytes": 3358720,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-65.log",
+      "log_sha256": "02cda036c372ecf45447c255a3bed7b446d3df2dc89ccd88997009de76d263f0"
+    },
+    {
+      "index": 66,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::strategy::activation_tests::immutable_original_shiftsim_forced_enumerated_retains_frozen_refusal",
+      "exit_code": 101,
+      "status": "FAIL",
+      "wall_seconds": 2.9221537919947878,
+      "peak_process_group_rss_bytes": 94322688,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-66.log",
+      "log_sha256": "f9ddf55bdad583375c64bc59fe4a25c2cc274b0f120d13753f3439a56593cd98"
+    },
+    {
+      "index": 67,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::strategy::activation_tests::deferred_functions_share_one_cumulative_module_work_ledger",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8865645409969147,
+      "peak_process_group_rss_bytes": 3375104,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-67.log",
+      "log_sha256": "54087b5230f9ce9e94ca076bd5f7d38a72171f7c9295baef75d191ec90f6131a"
+    },
+    {
+      "index": 68,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::strategy::activation_tests::deferred_enumerated_reservation_adds_to_held_pool_without_refund",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.9033811670087744,
+      "peak_process_group_rss_bytes": 3538944,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-68.log",
+      "log_sha256": "50964100444ee8a96c22b49721af4eab55687b1f922d68d2971caefdf8f0b563"
+    },
+    {
+      "index": 69,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::strategy::coverage_tests::forced_nested_loops_preserve_nearest_targets_and_complete_multisets",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.8918478749983478,
+      "peak_process_group_rss_bytes": 2506752,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-69.log",
+      "log_sha256": "22db1230b4d7fcee102eb66bca94d6023165a9cacc992b819ecd06ccbe5e24fe"
+    },
+    {
+      "index": 70,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::strategy::coverage_tests::forced_conditional_owned_results_preserve_transfer_and_publication",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.9002869160030968,
+      "peak_process_group_rss_bytes": 3194880,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-70.log",
+      "log_sha256": "d62b7337603a540607974a8821523db65fda8b09c5646ad1c4bb077ba9943b35"
+    },
+    {
+      "index": 71,
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::strategy::coverage_tests::forced_ensures_domains_preserve_failure_cleanup_and_return_multiplicity",
+      "exit_code": 0,
+      "status": "PASS",
+      "wall_seconds": 1.9321010419953382,
+      "peak_process_group_rss_bytes": 3309568,
+      "log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-71.log",
+      "log_sha256": "b6ce2d138eb2446b8f3f36a7adaa368369b569a0f5f86d0f665028a2fffc84e1"
+    }
+  ]
+}

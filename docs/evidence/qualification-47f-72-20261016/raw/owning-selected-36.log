@@ -1,0 +1,7 @@
+
+running 1 test
+test cleanup_plan::replay::path_join::state_move_tests::singleton_move_reports_whole_immediate_costs_and_exact_short_zero_drop ... singleton-state-move whole immediate-old/current: old_paid=41170 old=Metrics { allocations: 183, reallocations: 15, allocated: 17265, freed: 17265, live: 0, highwater: 4853, invalid: false }; current_paid=41130 current=Metrics { allocations: 173, reallocations: 15, allocated: 17225, freed: 17225, live: 0, highwater: 4853, invalid: false }
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9247 filtered out; finished in 0.82s
+

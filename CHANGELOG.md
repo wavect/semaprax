@@ -1488,6 +1488,8 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Share complete cleanup inventory validation with the ordinary schema summary receiver, avoiding discarded inventory storage while retaining the original materializer as an executable control. Source-only candidate; scoped runtime qualification remains pending.
+
 - Source-only #808 moves an owned prefix into the sole HIR suffix or final
   two-edge plan sibling when its existing buffer has spare capacity. Original
   logical work, multiplicities and failure selection remain; complete old

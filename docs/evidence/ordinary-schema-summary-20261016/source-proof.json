@@ -1,0 +1,20 @@
+{
+  "mode": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "whole_preimages": 18,
+  "changed_whole_endpoints": 9,
+  "unchanged_retained_preimages": 9,
+  "whole_current_drift_negatives_refused": 54,
+  "complete_old_materializer_body": true,
+  "paid_subtree_byte_exact": true,
+  "ordinary_summary_four_sources_byte_exact": true,
+  "complete_old_inventory_and_generic_shape_byte_exact": true,
+  "delayed_profile_error_publication_byte_exact": true,
+  "old_assertion_subjects": 9,
+  "whole_schema_missing_duplicate_foreign_negatives_refused": 3,
+  "raw_joins": 3,
+  "new_complete_raw_subjects": 2,
+  "native_inventory_lines": 1500,
+  "runtime_parity": "PENDING",
+  "paid_metrics": "PENDING",
+  "authority_scope": "PARENT_REVIEW_PENDING"
+}

@@ -1,0 +1,320 @@
+{
+  "base": "c228bd6e184a02d7bbb2799b45154d4b4cd404e6",
+  "rows": [
+    {
+      "source": "CHANGELOG.md",
+      "archive": "before/CHANGELOG.md",
+      "before_sha256": "8fb93a0b147194d48bffbf427755697120b7ad86356c28e8ff60daa5b2c53e1b",
+      "current_sha256": "e8f0675b8ebb030e77f8ee9a02bd75176e8a99f3c92fa6ecff5141b8b444aaa3",
+      "current_length": 555666,
+      "changed": true,
+      "inverse": [
+        {
+          "start": 158296,
+          "end": 158560,
+          "after": "\n- Share complete cleanup inventory validation with the ordinary schema summary receiver, avoiding discarded inventory storage while retaining the original materializer as an executable control. Source-only candidate; scoped runtime qualification remains pending.\n",
+          "before": ""
+        }
+      ]
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "archive": "before/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs",
+      "before_sha256": "68c0e2cf69c3d08a42b5e8d93e9ee395ffc9f90186805fedb8ee6803b78f1161",
+      "current_sha256": "754ab69762ee4f78b57915a215fed38dd81b29622851fee907387a722860fe95",
+      "current_length": 146337,
+      "changed": true,
+      "inverse": [
+        {
+          "start": 267,
+          "end": 3235,
+          "after": "        audit_source_join!( include_str!(\"../../../../../src/cleanup_plan/replay/schema/original_materializer.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/schema/ordinary_tests.rs\"), include_str!(\"../../../../../src/literal_format/funded.rs\"), include_str!(\"../../../../../src/string_ops/concat_funded.rs\"), include_str!(\"../../../../../src/string_ops/conditions/funded.rs\"), include_str!(\"../../../../../src/string_ops/replacement/funded.rs\"), include_str!(\"../../../../../src/byte_ops/funded.rs\"), include_str!(\"../../../../../src/cleanup_plan/renewal_profile/funded.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/oracle_hook.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/a.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/b.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_context.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/paid.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/tests/structural_errors.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_owner.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_profile.rs\"), include_str!(\"../../../../../src/source_reflows/main043.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_0.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_1.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_2.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_3.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_4.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_5.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_6.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_7.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_8.rs\"), include_str!(\"../../../../../src/source_reflows/main043/semantic_receivers.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main043_custody.rs\"), include_str!(\"../../../../../tests/hir_module_boundaries.rs\"), include_str!(\"../../../../../tests/workspace/semantic_graph/source_inventory.rs\"), include_str!(\"../../../../../src/source_reflows_merge/current344.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main8a_historical.rs\"),\n",
+          "before": "        audit_source_join!( include_str!(\"../../../../../src/literal_format/funded.rs\"), include_str!(\"../../../../../src/string_ops/concat_funded.rs\"), include_str!(\"../../../../../src/string_ops/conditions/funded.rs\"), include_str!(\"../../../../../src/string_ops/replacement/funded.rs\"), include_str!(\"../../../../../src/byte_ops/funded.rs\"), include_str!(\"../../../../../src/cleanup_plan/renewal_profile/funded.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/oracle_hook.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/a.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/b.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_context.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/paid.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/tests/structural_errors.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_owner.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_profile.rs\"), include_str!(\"../../../../../src/source_reflows/main043.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_0.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_1.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_2.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_3.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_4.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_5.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_6.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_7.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_8.rs\"), include_str!(\"../../../../../src/source_reflows/main043/semantic_receivers.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main043_custody.rs\"), include_str!(\"../../../../../tests/hir_module_boundaries.rs\"), include_str!(\"../../../../../tests/workspace/semantic_graph/source_inventory.rs\"), include_str!(\"../../../../../src/source_reflows_merge/current344.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main8a_historical.rs\"),\n"
+        }
+      ]
+    },
+    {
+      "source": "docs/ARCHITECTURE.md",
+      "archive": "before/docs__ARCHITECTURE.md",
+      "before_sha256": "74a0e275f03d9e8528e596afa9d2e748663f314e36116bc4afc9896f0acd6fa2",
+      "current_sha256": "1881a7984454e3f0e903ef3a70a47e692edf88fcf095092064eec4e5833dd994",
+      "current_length": 376617,
+      "changed": true,
+      "inverse": [
+        {
+          "start": 5563,
+          "end": 6033,
+          "after": "`cleanup/schema_summary` owns the ordinary compatibility receiver: the complete\nordinary validation walk retains summary flags and one last slot instead of\ndiscarded inventory directories, without a replay budget or physical payer. Its\nfirst profile failure is selected after the complete traversal, as before.\nComplete original inventory and test-only schema materializer remain independent\nexecutable parity controls. Other schema probes retain their existing owners.\n",
+          "before": "Complete original inventory/schema receivers remain independent compatibility\nand parity controls. Other schema probes retain their existing owners.\n"
+        }
+      ]
+    },
+    {
+      "source": "docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json",
+      "archive": "before/docs__evidence__main043-independent-custody-20261016__guard-extension-allowed.json",
+      "before_sha256": "f92337eca404e195e22435736a4a3d44acee53c8cd855c590214ce942a8e5a13",
+      "current_sha256": "d21f538e54a1b4418898638c04709346a8e1f9b93089ede3d230eb62cb23f79d",
+      "current_length": 17384,
+      "changed": true,
+      "inverse": [
+        {
+          "start": 1875,
+          "end": 2061,
+          "after": "      \"src/source_reflows_merge/main8a_historical.rs\": 1,\n      \"src/cleanup_plan/replay/schema/original_materializer.rs\": 1,\n      \"src/cleanup_plan/replay/schema/ordinary_tests.rs\": 1\n",
+          "before": "      \"src/source_reflows_merge/main8a_historical.rs\": 1\n"
+        },
+        {
+          "start": 4177,
+          "end": 4360,
+          "after": "      \"src/cleanup_plan/renewal_profile/funded.rs\": 1,\n      \"src/cleanup_plan/replay/schema/original_materializer.rs\": 1,\n      \"src/cleanup_plan/replay/schema/ordinary_tests.rs\": 1\n",
+          "before": "      \"src/cleanup_plan/renewal_profile/funded.rs\": 1\n"
+        },
+        {
+          "start": 8275,
+          "end": 8655,
+          "after": "      \"src/cleanup_plan/renewal_profile/funded.rs\": 1,\n      \"src/cleanup_plan/replay/schema/original_materializer.rs\": 1,\n      \"src/cleanup_plan/replay/schema/ordinary_tests.rs\": 1,\n      \"src/cleanup/schema_summary.rs\": 1,\n      \"src/cleanup/schema_summary/generic_record.rs\": 1,\n      \"src/cleanup/schema_summary/support.rs\": 1,\n      \"src/cleanup/schema_summary/tests.rs\": 1\n",
+          "before": "      \"src/cleanup_plan/renewal_profile/funded.rs\": 1\n"
+        },
+        {
+          "start": 12515,
+          "end": 12887,
+          "after": "      \"src/hir/vec_loop_renewal/funded.rs\": 1,\n      \"src/cleanup_plan/replay/schema/original_materializer.rs\": 1,\n      \"src/cleanup_plan/replay/schema/ordinary_tests.rs\": 1,\n      \"src/cleanup/schema_summary.rs\": 1,\n      \"src/cleanup/schema_summary/generic_record.rs\": 1,\n      \"src/cleanup/schema_summary/support.rs\": 1,\n      \"src/cleanup/schema_summary/tests.rs\": 1\n",
+          "before": "      \"src/hir/vec_loop_renewal/funded.rs\": 1\n"
+        },
+        {
+          "start": 15005,
+          "end": 15188,
+          "after": "      \"src/cleanup_plan/renewal_profile/funded.rs\": 1,\n      \"src/cleanup_plan/replay/schema/original_materializer.rs\": 1,\n      \"src/cleanup_plan/replay/schema/ordinary_tests.rs\": 1\n",
+          "before": "      \"src/cleanup_plan/renewal_profile/funded.rs\": 1\n"
+        },
+        {
+          "start": 17189,
+          "end": 17372,
+          "after": "      \"src/cleanup_plan/renewal_profile/funded.rs\": 1,\n      \"src/cleanup_plan/replay/schema/original_materializer.rs\": 1,\n      \"src/cleanup_plan/replay/schema/ordinary_tests.rs\": 1\n",
+          "before": "      \"src/cleanup_plan/renewal_profile/funded.rs\": 1\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/paid_type_facts.rs",
+      "archive": "before/src__cleanup_plan__replay__paid_type_facts.rs",
+      "before_sha256": "e508f5533dc1c8913e309d87a80dee963f92edffccb3f24ced35eae49ad904bf",
+      "current_sha256": "e508f5533dc1c8913e309d87a80dee963f92edffccb3f24ced35eae49ad904bf",
+      "current_length": 13293,
+      "changed": false,
+      "inverse": []
+    },
+    {
+      "source": "src/cleanup_plan/replay/paid_type_facts/inventory_substitute.rs",
+      "archive": "before/src__cleanup_plan__replay__paid_type_facts__inventory_substitute.rs",
+      "before_sha256": "fb5e511e1a4908860a55e74a9e862a847440d90d70f5647d618748ea63f4b07a",
+      "current_sha256": "fb5e511e1a4908860a55e74a9e862a847440d90d70f5647d618748ea63f4b07a",
+      "current_length": 8637,
+      "changed": false,
+      "inverse": []
+    },
+    {
+      "source": "src/cleanup_plan/replay/paid_type_facts/inventory_summary.rs",
+      "archive": "before/src__cleanup_plan__replay__paid_type_facts__inventory_summary.rs",
+      "before_sha256": "4611832675e77374338e603822d63671555d7aefb0473bcf8282de57d686af46",
+      "current_sha256": "4611832675e77374338e603822d63671555d7aefb0473bcf8282de57d686af46",
+      "current_length": 5648,
+      "changed": false,
+      "inverse": []
+    },
+    {
+      "source": "src/cleanup_plan/replay/paid_type_facts/inventory_tests.rs",
+      "archive": "before/src__cleanup_plan__replay__paid_type_facts__inventory_tests.rs",
+      "before_sha256": "52550e27fa5c03c61537ee703b4bc5f830695c3a5eecff027c920b6cc518c358",
+      "current_sha256": "52550e27fa5c03c61537ee703b4bc5f830695c3a5eecff027c920b6cc518c358",
+      "current_length": 10281,
+      "changed": false,
+      "inverse": []
+    },
+    {
+      "source": "src/cleanup_plan/replay/paid_type_facts/inventory_text.rs",
+      "archive": "before/src__cleanup_plan__replay__paid_type_facts__inventory_text.rs",
+      "before_sha256": "f0f3f5266fea382fab01c783c419f08afffa03da451b50952605cacc2ed12057",
+      "current_sha256": "f0f3f5266fea382fab01c783c419f08afffa03da451b50952605cacc2ed12057",
+      "current_length": 5056,
+      "changed": false,
+      "inverse": []
+    },
+    {
+      "source": "src/cleanup_plan/replay/paid_type_facts/oracle_inventory.rs",
+      "archive": "before/src__cleanup_plan__replay__paid_type_facts__oracle_inventory.rs",
+      "before_sha256": "a3b9b37c9b158124c19b688715aab82f70ca051d31943bdeea853af819a2fc67",
+      "current_sha256": "a3b9b37c9b158124c19b688715aab82f70ca051d31943bdeea853af819a2fc67",
+      "current_length": 6499,
+      "changed": false,
+      "inverse": []
+    },
+    {
+      "source": "src/cleanup_plan/replay/paid_type_facts/oracle_logical_tests.rs",
+      "archive": "before/src__cleanup_plan__replay__paid_type_facts__oracle_logical_tests.rs",
+      "before_sha256": "42c44571bef8fceb9c33f82f065b013f0691d5b617884b200e0b02df3abd8db1",
+      "current_sha256": "42c44571bef8fceb9c33f82f065b013f0691d5b617884b200e0b02df3abd8db1",
+      "current_length": 6781,
+      "changed": false,
+      "inverse": []
+    },
+    {
+      "source": "src/cleanup_plan/replay/paid_type_facts/oracle_work_tests.rs",
+      "archive": "before/src__cleanup_plan__replay__paid_type_facts__oracle_work_tests.rs",
+      "before_sha256": "ad98d1a61418d6f117875373e5ae7a7b30a3792483d036b50c8f248cf5c7d345",
+      "current_sha256": "ad98d1a61418d6f117875373e5ae7a7b30a3792483d036b50c8f248cf5c7d345",
+      "current_length": 9651,
+      "changed": false,
+      "inverse": []
+    },
+    {
+      "source": "src/cleanup_plan/replay/paid_type_facts/tests.rs",
+      "archive": "before/src__cleanup_plan__replay__paid_type_facts__tests.rs",
+      "before_sha256": "365372032ee47eb37f766e111c2b13cb61ebc6b6be9cd786ba0947b179f91b6c",
+      "current_sha256": "365372032ee47eb37f766e111c2b13cb61ebc6b6be9cd786ba0947b179f91b6c",
+      "current_length": 23358,
+      "changed": false,
+      "inverse": []
+    },
+    {
+      "source": "src/cleanup_plan/replay/schema.rs",
+      "archive": "before/src__cleanup_plan__replay__schema.rs",
+      "before_sha256": "457de8afc4d39928fb22f4a78fbcedc386aece8c86a45110e18c6b7aed4837c4",
+      "current_sha256": "47c85dfe56c589c1b7a45a451f55a91286427f3327e8c4a55a9fd7a6155addf7",
+      "current_length": 5703,
+      "changed": true,
+      "inverse": [
+        {
+          "start": 1245,
+          "end": 1393,
+          "after": "    let inventory = crate::cleanup::schema_summary::collect(program, function)?;\n    let has_nested_owned_bytes = inventory.has_nested_owned_bytes;\n",
+          "before": "    let inventory = crate::cleanup::build_inventory(program, function)?;\n    let has_nested_owned_bytes = inventory.slots.iter().try_fold(false, |nested, slot| {\n        crate::cleanup::cleanup_shape_profile(&slot.shape)\n            .map(|profile| nested || profile.has_nested_owned_bytes)\n    })?;\n"
+        },
+        {
+          "start": 2520,
+          "end": 2557,
+          "after": "    } else if inventory.has_iterator\n",
+          "before": "    } else if inventory\n        .flags\n        .iter()\n        .any(|flag| flag.lifecycle.as_str() == crate::cleanup::ITER_DROP_LIFECYCLE_ID)\n"
+        },
+        {
+          "start": 2814,
+          "end": 2850,
+          "after": "    } else if inventory.has_variant\n",
+          "before": "    } else if inventory.schema == crate::cleanup::CLEANUP_INVENTORY_SCHEMA_V2\n"
+        },
+        {
+          "start": 5617,
+          "end": 5703,
+          "after": "\n#[cfg(test)]\npub(super) mod original_materializer;\n\n#[cfg(test)]\nmod ordinary_tests;\n",
+          "before": ""
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/schema/paid_summary/original_receiver.rs",
+      "archive": "before/src__cleanup_plan__replay__schema__paid_summary__original_receiver.rs",
+      "before_sha256": "8e39bead4b03490de3d265871232efce1f0d65270cad6a9d6c48f67ca6e3c7fa",
+      "current_sha256": "9fe2ac2e469cfe6bc7678436a1154c6dfc304f3ac1e7b2233862192a59459805",
+      "current_length": 3567,
+      "changed": true,
+      "inverse": [
+        {
+          "start": 97,
+          "end": 148,
+          "after": "use super::super::original_materializer as schema;\n",
+          "before": ""
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/schema/paid_summary/tests.rs",
+      "archive": "before/src__cleanup_plan__replay__schema__paid_summary__tests.rs",
+      "before_sha256": "102d836482524609816b9cd71c4ecc979fde179a040e9b76dd0e7d75eade3557",
+      "current_sha256": "89760f3e8851f20e421fd8593e56d042d53ce4772561b067d673af726cee811a",
+      "current_length": 6491,
+      "changed": true,
+      "inverse": [
+        {
+          "start": 91,
+          "end": 232,
+          "after": "    let restored_schema = super::super::ordinary_tests::before_summary(ci_str!(\"../../schema.rs\"));\n    let root = restored_schema.as_str();\n",
+          "before": "    let root = ci_str!(\"../../schema.rs\");\n"
+        },
+        {
+          "start": 2613,
+          "end": 2878,
+          "after": "    let old_reference = super::super::ordinary_tests::before_original_receiver(ci_str!(\"original_receiver.rs\"));\n    let old=old_reference.strip_prefix(\"//! Complete pre-adoption receiving function, independently compiled for controls.\\nuse super::*;\\n\").unwrap();\n",
+          "before": "    let old=ci_str!(\"original_receiver.rs\").strip_prefix(\"//! Complete pre-adoption receiving function, independently compiled for controls.\\nuse super::*;\\n\").unwrap();\n"
+        }
+      ]
+    },
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "archive": "before/tests__hir_module_boundaries.rs",
+      "before_sha256": "c66f2dd19808377ba17ad4b79f04c00d0643531d87140abdb8333ed063209af5",
+      "current_sha256": "a0796e7c635391aa1c671c13113ace8556f4e1404663bdf7f769d342cf261e2e",
+      "current_length": 89604,
+      "changed": true,
+      "inverse": [
+        {
+          "start": 391,
+          "end": 661,
+          "after": "include_str!(\"../src/cleanup_plan/replay/schema/original_materializer.rs\"), include_str!(\"../src/cleanup_plan/replay/schema/ordinary_tests.rs\"), include_str!(\"../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\"),\n",
+          "before": "include_str!(\"../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\"),\n"
+        }
+      ]
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "archive": "before/tests__workspace__semantic_graph__source_inventory.rs",
+      "before_sha256": "28d9dc920640d190d483a5d70f7d4d764d1893f549e96c9c2fa6858e68aae3a7",
+      "current_sha256": "91bea420b3c80a1b44e5eb572048a945af849c5cc9b62d6962faa5bb3c91b19c",
+      "current_length": 82790,
+      "changed": true,
+      "inverse": [
+        {
+          "start": 553,
+          "end": 1073,
+          "after": "include_str!(\"../../src/cleanup_plan/replay/schema/original_materializer.rs\"), include_str!(\"../../src/cleanup_plan/replay/schema/ordinary_tests.rs\"), include_str!(\"../../src/cleanup/schema_summary.rs\"), include_str!(\"../../src/cleanup/schema_summary/generic_record.rs\"), include_str!(\"../../src/cleanup/schema_summary/support.rs\"), include_str!(\"../../src/cleanup/schema_summary/tests.rs\"), include_str!(\"../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\"),\n",
+          "before": "include_str!(\"../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\"),\n"
+        }
+      ]
+    }
+  ],
+  "new_sources": [
+    {
+      "source": "src/cleanup_plan/replay/schema/original_materializer.rs",
+      "sha256": "e77a7c6e455cd65cfc78ac7480196245ae2097c49a516f071a74197e5d879c9b",
+      "length": 3915
+    },
+    {
+      "source": "src/cleanup_plan/replay/schema/ordinary_tests.rs",
+      "sha256": "cc2c8426a2b599d3f00f372c0735c7295d3b471e153efda19e3df9d82ec09ae3",
+      "length": 4847
+    }
+  ],
+  "raw_guards": [
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+  ],
+  "extra_raw": {
+    "tests/workspace/semantic_graph/source_inventory.rs": [
+      "src/cleanup/schema_summary.rs",
+      "src/cleanup/schema_summary/generic_record.rs",
+      "src/cleanup/schema_summary/support.rs",
+      "src/cleanup/schema_summary/tests.rs"
+    ]
+  },
+  "assertion_subjects": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "src/cleanup_plan/replay/paid_type_facts.rs",
+    "src/cleanup_plan/replay/paid_type_facts/inventory_tests.rs",
+    "src/cleanup_plan/replay/paid_type_facts/oracle_logical_tests.rs",
+    "src/cleanup_plan/replay/paid_type_facts/oracle_work_tests.rs",
+    "src/cleanup_plan/replay/paid_type_facts/tests.rs",
+    "src/cleanup_plan/replay/schema/paid_summary/tests.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ]
+}

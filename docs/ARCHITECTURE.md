@@ -98,8 +98,12 @@ are canonical runtime order; projections and backends must never sort or repair 
 caller's streaming inventory validation and retained summary. Its lifecycle,
 shape and expression children preserve complete validation before publication;
 `schema/paid_summary` selects it only with the existing builder-like ReplayBudget.
-Complete original inventory/schema receivers remain independent compatibility
-and parity controls. Other schema probes retain their existing owners.
+`cleanup/schema_summary` owns the ordinary compatibility receiver: the complete
+ordinary validation walk retains summary flags and one last slot instead of
+discarded inventory directories, without a replay budget or physical payer. Its
+first profile failure is selected after the complete traversal, as before.
+Complete original inventory and test-only schema materializer remain independent
+executable parity controls. Other schema probes retain their existing owners.
 `hir/canonical_loan_storage/caller/shared` owns immutable lookup publication
 inside the existing captured preparation owner. Active compatibility validators
 and nested closures share exact-program storage; unobserved compatibility owns

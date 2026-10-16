@@ -1,0 +1,113 @@
+{
+  "base": "2c4306e1b19c9899a4b11abe7ca1e604f91fde15",
+  "component": "755c082541ffc8b724c7b932428b6bb80153ee6b",
+  "rebased_code_commit": "0ca588936f00d2d45b13d35510721a13332015cf",
+  "projection_rows": [
+    {
+      "source": "CHANGELOG.md",
+      "component_sha256": "d0b52f22b23a3da4a7a509450b79a14ce2a0ecc1962bc217cdf7c8d79ec9ef4e",
+      "current_sha256": "8e58fb789e944d0a0e28dc406dc19794b2d008f645b75e6c03ee15b201c2e715",
+      "component_archive": "component/CHANGELOG.md",
+      "current_archive": "current/CHANGELOG.md"
+    },
+    {
+      "source": "docs/ARCHITECTURE.md",
+      "component_sha256": "7498ee2eacdd6d0375570e7ad8343973165fed66160c05b089585b7bfef8e4c6",
+      "current_sha256": "c4a3584b30ddef71c0dcb48efa20aeb2e362cd5f31a7fba07a937cfdc85801ba",
+      "component_archive": "component/docs/ARCHITECTURE.md",
+      "current_archive": "current/docs/ARCHITECTURE.md"
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_boundary/paid.rs",
+      "component_sha256": "f47b3a5bb2aed911992d32efd2171307eaee21978b6f87c7295bd59935a50fff",
+      "current_sha256": "b0e0e77ae9b5f039e58a64bb4f907350e6498332759468d732d132373877f792",
+      "component_archive": "component/src/cleanup_plan/replay/lexical_boundary/paid.rs",
+      "current_archive": "current/src/cleanup_plan/replay/lexical_boundary/paid.rs"
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context/child.rs",
+      "component_sha256": "cc426939183121ebd6d23aff7c4752119c2f4bf2684f1e2e90a621df4e1843ac",
+      "current_sha256": "b02f7c8a01216cb8315606f486bf6d058805d50d87a2d52407fb821975e6b586",
+      "component_archive": "component/src/cleanup_plan/replay/selected_context/child.rs",
+      "current_archive": "current/src/cleanup_plan/replay/selected_context/child.rs"
+    }
+  ],
+  "changed_rust": [
+    {
+      "source": "src/cleanup_plan/renewal_profile.rs",
+      "sha256": "24bbba3b137deac36518988938bc458dd5f20b2efa3d0ad6d6e32205b420b7c6",
+      "lines": 320
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "sha256": "b14d3f652efc7159218da07b94e215dd62fe9d698306a4c7196c0739b92c1039",
+      "lines": 75
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/path_boundary_refusal.rs",
+      "sha256": "e96154ea9aaa35959ff7fdd6e4575e67755dbdd38e5ac6ee23a713b8b14ab72e",
+      "lines": 48
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records/tests.rs",
+      "sha256": "387e51662830765d7bb42addbd8f346a13ac56668a00f16db51502c10d384925",
+      "lines": 348
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records/tests/receiving_path_boundary.rs",
+      "sha256": "77aed2e82246b4e2b30ad42e74d812b50521ef3cc107a2854c675deb78f38a38",
+      "lines": 159
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_boundary.rs",
+      "sha256": "50f2118dfdcd8eac182f0cd5bba6271420a1ce188afcf5cbb5e8c0cf7bc78dd5",
+      "lines": 321
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_boundary/legacy_policy.rs",
+      "sha256": "f510ccee804c7839f4adebbcc88e597f76a9e770e4fb089b533b71906f224962",
+      "lines": 150
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_boundary/paid.rs",
+      "sha256": "b0e0e77ae9b5f039e58a64bb4f907350e6498332759468d732d132373877f792",
+      "lines": 393
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert/paid.rs",
+      "sha256": "6ccdfb5ef84a6262ec7f356106beb498b5b9e9bb3f48910e89e3feb0a76bf224",
+      "lines": 900
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert/paid/chains.rs",
+      "sha256": "15790866ef3cbf756dd626d7f25d381ed43ff9755054e4ce462517f09a1a4b53",
+      "lines": 54
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert/paid/chains_tests.rs",
+      "sha256": "fb83d5122403a7f70813d87ac3cf4c1fd8ffade280e4a6b79834be4d5ef6df1d",
+      "lines": 59
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert/paid/storage.rs",
+      "sha256": "caa16b33cb3b0080fac30a82463fef59c6b6c36f006ecb84c6edfbb26bdb7629",
+      "lines": 204
+    },
+    {
+      "source": "src/cleanup_plan/replay/path_join.rs",
+      "sha256": "b38a40a8d556835ff406bd3b150fc51f818b80769c6031423d3fedcf9d6a5849",
+      "lines": 1162
+    },
+    {
+      "source": "src/cleanup_plan/replay/path_join/before_path_boundary.rs",
+      "sha256": "f506ca9f67874d4119f6b5d8c3f1c8244b503260ab94258e859c1178a891ed4c",
+      "lines": 1129
+    },
+    {
+      "source": "src/cleanup_plan/replay/semantic_refusal.rs",
+      "sha256": "442d5aea71c475ae3e24a0e2284413fe689072f3ab146e81d48cc33eaf649906",
+      "lines": 185
+    }
+  ],
+  "rust_executed": false
+}

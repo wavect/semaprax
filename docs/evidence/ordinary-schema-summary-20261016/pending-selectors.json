@@ -1,0 +1,24 @@
+{
+  "scoped_required_checks": "PENDING_FRESH_FINAL_JOINED_BUILD",
+  "rust_executed": false,
+  "new_lib_exact_selectors": [
+    "cleanup_plan::replay::schema::ordinary_tests::ordinary_summary_matches_complete_original_schema_and_raw_diagnostics",
+    "cleanup_plan::replay::schema::ordinary_tests::ordinary_summary_retains_original_logical_sink_failure_selection",
+    "cleanup_plan::replay::schema::ordinary_tests::whole_schema_composition_refuses_missing_duplicate_and_foreign_source"
+  ],
+  "existing_lib_exact_selectors": [
+    "cleanup::schema_summary::tests::complete_ordinary_summary_matches_full_receiver_and_receiving_drop",
+    "cleanup::schema_summary::tests::late_missing_type_preserves_full_first_diagnostic_after_earlier_owners",
+    "cleanup::schema_summary::tests::discovery_indices_survive_discarded_directories_and_empty_flags",
+    "cleanup::schema_summary::tests::independently_compiled_full_producer_sources_remain_byte_exact",
+    "cleanup_plan::replay::schema::paid_summary::tests::complete_schema_original_and_receiving_body_remain_byte_exact",
+    "cleanup_plan::replay::schema::paid_summary::tests::full_schema_and_receiving_oracle_keep_late_tampering_all_diagnostic_fields",
+    "cleanup_plan::replay::schema::paid_summary::tests::full_unfunded_compatibility_and_selected_reservation_receiver_stay_original"
+  ],
+  "additional_existing_raw_owner": {
+    "role": "hir_module_boundaries",
+    "exact_selector": "core_validation_has_no_resolution_cleanup_build_or_physical_authority"
+  },
+  "ordinary_measurement": "PENDING_NO_ALLOCATION_REDUCTION_CLAIM",
+  "overall_authority": "PARENT_CORRECTING_SEPARATE_BOUNDARY_SCOPE"
+}

@@ -29,11 +29,8 @@ pub(super) fn selected_schema_with_index(
     if lexical_cert::requires_lexical(function) {
         return Ok(CLEANUP_PLAN_SCHEMA_V18);
     }
-    let inventory = crate::cleanup::build_inventory(program, function)?;
-    let has_nested_owned_bytes = inventory.slots.iter().try_fold(false, |nested, slot| {
-        crate::cleanup::cleanup_shape_profile(&slot.shape)
-            .map(|profile| nested || profile.has_nested_owned_bytes)
-    })?;
+    let inventory = crate::cleanup::schema_summary::collect(program, function)?;
+    let has_nested_owned_bytes = inventory.has_nested_owned_bytes;
     let has_nested_record_destructure = record_destructure::function_contains(program, function);
     let has_nested_record_update =
         record_destructure::update::function_contains(program, function)?;
@@ -55,10 +52,7 @@ pub(super) fn selected_schema_with_index(
         CLEANUP_PLAN_SCHEMA_V12
     } else if crate::hir::iterator_loop::function_contains(function) {
         CLEANUP_PLAN_SCHEMA_V11
-    } else if inventory
-        .flags
-        .iter()
-        .any(|flag| flag.lifecycle.as_str() == crate::cleanup::ITER_DROP_LIFECYCLE_ID)
+    } else if inventory.has_iterator
     {
         CLEANUP_PLAN_SCHEMA_V10
     } else if has_nested_record_update {
@@ -67,7 +61,7 @@ pub(super) fn selected_schema_with_index(
         CLEANUP_PLAN_SCHEMA_V8
     } else if has_nested_owned_bytes {
         CLEANUP_PLAN_SCHEMA_V7
-    } else if inventory.schema == crate::cleanup::CLEANUP_INVENTORY_SCHEMA_V2
+    } else if inventory.has_variant
         || function
             .requires
             .iter()
@@ -152,3 +146,9 @@ fn expression_has_explicit_variant_match(expression: &ResolvedExpr) -> bool {
 }
 
 pub(super) mod paid_summary;
+
+#[cfg(test)]
+pub(super) mod original_materializer;
+
+#[cfg(test)]
+mod ordinary_tests;

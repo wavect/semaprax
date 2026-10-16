@@ -1,0 +1,38 @@
+{
+  "status": "SOURCE_ONLY_ADDITIVE_PARENT_UNION",
+  "parent": "f61449708",
+  "candidate": "6a69a30cea8e269b2e0b2518de0d33e204dad4e3",
+  "rows": [
+    {
+      "guard": "tests/hir_module_boundaries.rs",
+      "added_tokens": {
+        "../src/cleanup_plan/replay/schema/original_materializer.rs": 1,
+        "../src/cleanup_plan/replay/schema/ordinary_tests.rs": 1
+      },
+      "all_prior_bytes_preserved": true,
+      "line_count": 897
+    },
+    {
+      "guard": "tests/workspace/semantic_graph/source_inventory.rs",
+      "added_tokens": {
+        "../../src/cleanup_plan/replay/schema/original_materializer.rs": 1,
+        "../../src/cleanup_plan/replay/schema/ordinary_tests.rs": 1,
+        "../../src/cleanup/schema_summary.rs": 1,
+        "../../src/cleanup/schema_summary/generic_record.rs": 1,
+        "../../src/cleanup/schema_summary/support.rs": 1,
+        "../../src/cleanup/schema_summary/tests.rs": 1
+      },
+      "all_prior_bytes_preserved": true,
+      "line_count": 777
+    },
+    {
+      "guard": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "added_tokens": {
+        "../../../../../src/cleanup_plan/replay/schema/original_materializer.rs": 1,
+        "../../../../../src/cleanup_plan/replay/schema/ordinary_tests.rs": 1
+      },
+      "all_prior_bytes_preserved": true,
+      "line_count": 1500
+    }
+  ]
+}

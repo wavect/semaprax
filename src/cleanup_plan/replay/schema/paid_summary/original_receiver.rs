@@ -1,5 +1,6 @@
 //! Complete pre-adoption receiving function, independently compiled for controls.
 use super::*;
+use super::super::original_materializer as schema;
 pub(super) fn validate_original<'hir>(
     program: &'hir dyn crate::cleanup::ReplayContext,
     function: &'hir ResolvedFunction,

@@ -44,7 +44,9 @@
       "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs": 1,
       "src/workspace_graph/validation/before_roots.rs": 1,
       "tests/support/production_source_inventory_original.rs": 1,
-      "tests/support/new_boundary_module.rs": 1
+      "tests/support/new_boundary_module.rs": 1,
+      "src/cleanup_plan/replay/schema/original_materializer.rs": 1,
+      "src/cleanup_plan/replay/schema/ordinary_tests.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -96,7 +98,9 @@
       "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs": 1,
       "src/workspace_graph/validation/before_roots.rs": 1,
       "tests/support/production_source_inventory_original.rs": 1,
-      "tests/support/new_boundary_module.rs": 1
+      "tests/support/new_boundary_module.rs": 1,
+      "src/cleanup_plan/replay/schema/original_materializer.rs": 1,
+      "src/cleanup_plan/replay/schema/ordinary_tests.rs": 1
     }
   },
   "tests/workspace/semantic_graph/source_inventory.rs": {
@@ -175,7 +179,13 @@
       "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs": 1,
       "src/workspace_graph/validation/before_roots.rs": 1,
       "tests/support/production_source_inventory_original.rs": 1,
-      "tests/support/new_boundary_module.rs": 1
+      "tests/support/new_boundary_module.rs": 1,
+      "src/cleanup_plan/replay/schema/original_materializer.rs": 1,
+      "src/cleanup_plan/replay/schema/ordinary_tests.rs": 1,
+      "src/cleanup/schema_summary.rs": 1,
+      "src/cleanup/schema_summary/generic_record.rs": 1,
+      "src/cleanup/schema_summary/support.rs": 1,
+      "src/cleanup/schema_summary/tests.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -252,7 +262,13 @@
       "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs": 1,
       "src/workspace_graph/validation/before_roots.rs": 1,
       "tests/support/production_source_inventory_original.rs": 1,
-      "tests/support/new_boundary_module.rs": 1
+      "tests/support/new_boundary_module.rs": 1,
+      "src/cleanup_plan/replay/schema/original_materializer.rs": 1,
+      "src/cleanup_plan/replay/schema/ordinary_tests.rs": 1,
+      "src/cleanup/schema_summary.rs": 1,
+      "src/cleanup/schema_summary/generic_record.rs": 1,
+      "src/cleanup/schema_summary/support.rs": 1,
+      "src/cleanup/schema_summary/tests.rs": 1
     }
   },
   "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
@@ -305,7 +321,9 @@
       "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs": 1,
       "src/workspace_graph/validation/before_roots.rs": 1,
       "tests/support/production_source_inventory_original.rs": 1,
-      "tests/support/new_boundary_module.rs": 1
+      "tests/support/new_boundary_module.rs": 1,
+      "src/cleanup_plan/replay/schema/original_materializer.rs": 1,
+      "src/cleanup_plan/replay/schema/ordinary_tests.rs": 1
     },
     "maximum": {
       "src/cleanup_plan/replay.rs": 1,
@@ -356,7 +374,9 @@
       "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs": 1,
       "src/workspace_graph/validation/before_roots.rs": 1,
       "tests/support/production_source_inventory_original.rs": 1,
-      "tests/support/new_boundary_module.rs": 1
+      "tests/support/new_boundary_module.rs": 1,
+      "src/cleanup_plan/replay/schema/original_materializer.rs": 1,
+      "src/cleanup_plan/replay/schema/ordinary_tests.rs": 1
     }
   }
 }

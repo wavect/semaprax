@@ -1062,14 +1062,26 @@ fn original_static_text_provider_numeric_mismatch_keeps_checked_refusal() {
 
 #[test]
 fn a_large_comment_keeps_ordinary_imports_admitted_without_authorizing_a_selected_helper() {
-    // Canonicalize the declaration first: the shared build() helper formats
-    // the whole source and would silently discard the comment under test.
+    // The full comment-bearing source needs the comment-aware formatter;
+    // formatting only its declaration does not canonicalize comment placement.
     let leaf = format!(
         "{}\n//{}\n",
         crate::format::canonical(&crate::parse(LEAF, "leaf.spx").unwrap()),
         "x".repeat(1_048_576)
     );
+    let (program, comments) =
+        crate::parse_with_comments(&leaf, std::path::Path::new("leaf.spx")).unwrap();
+    assert_eq!(comments.items.len(), 1);
+    assert_eq!(comments.items[0].text.len(), 1_048_576);
+    let leaf = crate::format::comments::canonical_with_comments(&program, &comments);
     assert!(leaf.len() > 1_048_576);
+    let (canonical_program, canonical_comments) =
+        crate::parse_with_comments(&leaf, std::path::Path::new("leaf.spx")).unwrap();
+    assert_eq!(canonical_comments.items[0].text, comments.items[0].text);
+    assert_eq!(
+        leaf,
+        crate::format::comments::canonical_with_comments(&canonical_program, &canonical_comments)
+    );
     let build_with_comment = |caller: &str| {
         let sources = [
             ("caller.spx", caller),

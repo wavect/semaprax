@@ -1,0 +1,15 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+    "checkpoint_revision": "67d0431c9cf315c3c89791075df5feef81e5a923",
+    "archive": "docs/evidence/boxed-state-saturating-clippy-20261016/boxed_states.before.rs.txt",
+    "current_sha256": "9e736102f9b39a731db6ab6ae3d17280eb04e5fa7df913c86cc503ec1771566f",
+    "original_sha256": "34fd1fbfa2ba214f1b9f5ffaa05045effb5d790cc438efe6357d1a9d278569db",
+    "edits": [
+      {
+        "new": "node.saturating_add(Self::entry_controls())",
+        "old": "node\n            .checked_add(Self::entry_controls())\n            .unwrap_or(usize::MAX)"
+      }
+    ]
+  }
+]

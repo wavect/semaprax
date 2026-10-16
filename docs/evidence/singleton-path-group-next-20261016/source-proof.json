@@ -1,0 +1,11 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "base": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+  "complete_group_body_copies": 2,
+  "multistate_suffix_verbatim": true,
+  "new_forwarding_protocol": false,
+  "fees_caps_changed": false,
+  "full_immediate_old_namespace": true,
+  "new_pending_lib_bodies": 3,
+  "rust_executed": false
+}

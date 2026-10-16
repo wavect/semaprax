@@ -1,0 +1,58 @@
+[
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract.rs",
+    "view": "parent_for_ours",
+    "current_sha256": "93e328799e7200273eadd54438c27d3e1872fe831aa299e27b6f160f4e8f98f3",
+    "previous_sha256": "edc7963894937fc560afd392a71c0039cd8c687eec489b2e44bea82f46b17a03",
+    "edits": [
+      {
+        "after": "                        .expect(\"capture complete actual calculator graph\");\n                }\n                previous_digests.push(historical_builder::main_digest(revision.semantic_graph()));\n                let actual = [\n                    revision.project_revision(),\n",
+        "before": "                        .expect(\"capture complete actual calculator graph\");\n                }\n                previous_digests.push(historical_builder::current_digest(revision.semantic_graph()));\n                let actual = [\n                    revision.project_revision(),\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract.rs",
+    "view": "parent_for_main",
+    "current_sha256": "93e328799e7200273eadd54438c27d3e1872fe831aa299e27b6f160f4e8f98f3",
+    "previous_sha256": "2e5e392cb33e2eb998093b21c29c2cab4decb8e85e99bbbaf27ca0a6fb50f9d5",
+    "edits": [
+      {
+        "after": "                        .expect(\"capture complete actual calculator graph\");\n                }\n                previous_digests.push(historical_builder::main_digest(revision.semantic_graph()));\n                let actual = [\n                    revision.project_revision(),\n",
+        "before": "                        .expect(\"capture complete actual calculator graph\");\n                }\n                previous_digests.push(historical_builder::digest(revision.semantic_graph()));\n                let actual = [\n                    revision.project_revision(),\n"
+      }
+    ]
+  },
+  {
+    "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "view": "runner_for_ours",
+    "current_sha256": "b84b2940d4f909f7240c3e698b3f920546b4f99e8ed141560c782e848708b935",
+    "previous_sha256": "873c7e40a692eebcc5e4bd468f66cc866b09eff146000aea4d30706b7b5aa4fe",
+    "edits": [
+      {
+        "after": "  result,\n}));\n// Exact hosted compiler records from 268cb0523, including the complete current\n// builder bill. The Rust browser contract retains full historical wire and\n// cursor controls; docs/evidence/browser-graph-pins-268cb0523 binds this capture.\nconst fixtureSpecs = [\n  { name: \"direct-source\", schema: \"semaprax.web.v4\" },\n",
+        "before": "  result,\n}));\n// Actual local 35cc compiler records include the complete current builder bill.\n// The Rust browser contract retains every complete historical wire and cursor\n// control; docs/evidence/browser-graph-pins-35cc-20261016 binds this capture.\nconst fixtureSpecs = [\n  { name: \"direct-source\", schema: \"semaprax.web.v4\" },\n"
+      },
+      {
+        "after": "    project_revision: \"sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053\",\n    workspace_revision: \"sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6\",\n    project_graph_digest: \"sha256:041e8b6ec3039aecf3c176f271b21239426c6e3a933e6bc116c9e9433463cc5d\",\n  },\n  {\n",
+        "before": "    project_revision: \"sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053\",\n    workspace_revision: \"sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6\",\n    project_graph_digest: \"sha256:82b22b0f2c49b594045bef876d491bb182df03a734b34b9a7430464e0c38f347\",\n  },\n  {\n"
+      },
+      {
+        "after": "    project_revision: \"sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7\",\n    workspace_revision: \"sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71\",\n    project_graph_digest: \"sha256:952423e076aa2792f1b9e46d031eaac56357fce2dfeaa5670fe401afe30c9870\",\n  },\n];\n",
+        "before": "    project_revision: \"sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7\",\n    workspace_revision: \"sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71\",\n    project_graph_digest: \"sha256:d47fc1d22cb152e19f9f99e64ff2d675babb111a75c9d4aaac639d032729abcf\",\n  },\n];\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/before_2600.rs",
+    "view": "before_2600",
+    "current_sha256": "c8f7162f8910572826e18000efd3415464a0f3653581c05b4b0a431c2761e32c",
+    "previous_sha256": "e9a110ae30efac1012deed4c9ac4750dbc4f82e4cb698f1b33508872d968ca26",
+    "edits": [
+      {
+        "after": "    );\n    let current = include_str!(\"../scalar_browser_ci_contract.rs\");\n    let current = super::super::custody::parent_for_main(current);\n    let changes = [\n        (\"#[path = \\\"scalar_browser_ci_contract/historical_builder.rs\\\"]\\nmod historical_builder;\\n\\n\", \"\"),\n",
+        "before": "    );\n    let current = include_str!(\"../scalar_browser_ci_contract.rs\");\n    let changes = [\n        (\"#[path = \\\"scalar_browser_ci_contract/historical_builder.rs\\\"]\\nmod historical_builder;\\n\\n\", \"\"),\n"
+      }
+    ]
+  }
+]

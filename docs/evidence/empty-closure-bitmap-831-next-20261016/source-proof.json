@@ -1,0 +1,12 @@
+{
+  "source_only": true,
+  "rust_execution": "NOT RUN",
+  "base": "2a9059ed80f76ce0d6e5215f72fc8cd22053af15",
+  "preserved_prototype": "67d8dce837c3ba244267a16fc2e748d275ca05b0",
+  "whole_inverse_rows": 5,
+  "new_source_owners": 11,
+  "pending_exact_selectors": 5,
+  "ordinary_memo_and_retained_sources_byteexact": true,
+  "copied_authentication_bodies_byteexact": true,
+  "source_custody_and_audit_join": "PENDING next batch; no global helper/audits edited"
+}

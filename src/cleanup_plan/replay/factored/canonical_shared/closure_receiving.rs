@@ -7,6 +7,8 @@ pub(in crate::cleanup_plan::replay::factored) struct ClosureReceiving {
     pub(super) value: Value,
     pub(super) refusal: Option<Diagnostic>,
     pub(super) ready: bool,
+    pub(super) overflow: bool,
+    pub(super) empty: bool,
     failed: bool,
     function: *const ResolvedFunction,
     budget: *const ReplayBudget,
@@ -38,6 +40,8 @@ impl ClosureReceiving {
             value: None,
             refusal: None,
             ready: false,
+            overflow: false,
+            empty: false,
             failed: false,
             function: std::ptr::from_ref(function),
             budget: std::ptr::from_ref(budget),
@@ -47,7 +51,9 @@ impl ClosureReceiving {
     // The unit producer borrows this owner. Its small success argument and
     // take/reset transport remain actual constructors; only the large inner
     // Result disappears. The outer Result and all nested Results still exist.
+    #[cfg(test)]
     pub(super) const PER_MISS_CONTROLS: usize = size_of::<&mut Self>() + 3 * size_of::<Value>();
+    pub(super) const QUERY_CONTROLS: usize = size_of::<&mut Self>();
     #[cfg(test)]
     pub(in crate::cleanup_plan::replay::factored) fn acquire(
         function: &ResolvedFunction,
@@ -64,6 +70,8 @@ impl ClosureReceiving {
             value: None,
             refusal: None,
             ready: false,
+            overflow: false,
+            empty: false,
             failed: false,
             function: std::ptr::from_ref(function),
             budget: std::ptr::from_ref(budget),
@@ -85,14 +93,21 @@ impl ClosureReceiving {
         true
     }
     pub(super) fn begin(&mut self) {
+        self.overflow = false;
+        self.empty = false;
         assert!(
             !self.ready && self.value.is_none() && self.refusal.is_none(),
             "previous receiving outcome consumed"
         );
     }
+    #[cfg(test)]
     pub(super) fn complete(&mut self, value: Value) {
         assert!(!self.ready && self.refusal.is_none());
         self.value = value;
+        self.ready = true;
+    }
+    pub(super) fn finish_overflow(&mut self) {
+        self.overflow = true;
         self.ready = true;
     }
     pub(super) fn refuse(&mut self, error: Diagnostic) {

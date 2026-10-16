@@ -2,9 +2,25 @@
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
 
+- Pair macOS CI Clang, its companion linker and C++ driver with the Command Line Tools installation used by the builder's explicit SDK, preserving held-tool admission and the unchanged SDK profile.
+
+- Refresh browser graph pins from complete hosted 2600e49eb records after measured builder-bill reductions; retain the entire previous compiled bridge and every historical graph and cursor control.
+
+- Publish the scoped #844/#845/#846 acceptance: original 8bb round 56 PASS/20 FAIL and a separate nine-owner supplement 9 PASS, retaining every failure and both scoped Clippy exits 101 for the unrelated #849 arithmetic spelling. Close only those three owning scopes; no whole-batch, application-fit, token or Clippy-PASS claim.
+
+- Author NEXT empty-closure bitmap storage and a singleton incoming-state path that avoids actual ControlKey/group-map/set/insertion constructors, preserving validators, work and order. Retain complete independent old receivers; the six bitmap and three singleton owners remain pending runtime qualification, with no application-fit claim.
+
+- Add a macOS CI tool-link reference that exposes native compiler stderr under an empty child environment while preserving the held SDK builder's diagnostic and publication contracts.
+
+- Complete hosted full-profile coverage with benchmark-target execution and explicit checks and formatting of the remaining named examples, including the nested calculator callback.
+
+- Acquire branch-history clone backing at the capacity of its immediately following push, preserving complete path enumeration, work debits and later growth while retaining the original clone and push controls.
+
+- Reuse the complete immutable closure for one unit-weight canonical input, preserving every work debit and full successor check while paying receiving metadata and retaining the entire previous producer.
+
 - Author fixed authenticated runtime transport for the test-only source-view helper (#848): preserve all 89 original JSON files (93,590,460 bytes), projection logic, stage order, and source guards, with a separate custody fixture. Join every new loader child into the three audits. Repository fixtures are required at test runtime; executable qualification and measured RAM benefit remain pending.
 
-- Author the sealed initial builder-report policy and actual typed CLI propagation (#845), provider-bound borrowed function aliases on the closed uncached route (#847), and a separate cached-prelude report acquisition observer (#796). Preserve original compatibility receivers, source assertions and unfunded output boundaries; executable qualification remains pending.
+- Author the sealed initial builder-report policy and actual typed CLI propagation (#845), provider-bound borrowed function aliases on the closed uncached route (#847), and a separate cached-prelude report acquisition observer (#796). Preserve original compatibility receivers, source assertions and unfunded output boundaries. The #845 owning acceptance is published at 8bb; alias and observer qualification remain separate.
 - Share the exact explicit-record presence census within one immutable renewal-directory phase, authenticating its declaration index on reuse and preserving full consuming checks under the unchanged work limit.
 
 - Box ownership path-state tree keys with separate prepaid backing, preserving complete value ordering, full join/replay checks, the original receiver, and exact-budget/allocation controls under the unchanged builder limit.
@@ -38,7 +54,7 @@
 - Bind browser graph pins to the hosted paid-cursor result: both complete graphs retain every prior byte after only the declared 458,408-byte bill reduction and self-digest restoration. Preserve all historical cursor controls.
 
 - Grow the paid expression-fact Arena cursor at actual traversal depth, reserving complete replacement backing and copy work while retaining the original factory, type cursor, depth ceiling, producer controls and preclone payload charges.
-- Author shared borrowed diagnostic rendering for the actual CLI and existing typed human report consumer (#846), preserving the full bounded compatibility route, selected status and independent old renderer. Focused executable qualification remains pending.
+- Author shared borrowed diagnostic rendering for the actual CLI and existing typed human report consumer (#846), preserving the full bounded compatibility route, selected status and independent old renderer. Its eleven owning acceptance controls passed at 8bb; output funding and allocating compatibility remain separate residuals.
 - Correct #836 while-body admission to count the literal field selector only in source, preserving three runtime operands and all existing shape/ownership limits. Restore the backend oracles through authenticated whole-input views; executable qualification remains pending.
 
 - Remove real held-slot and initial weighted-root Result carriers from the direct factored replay path (#831), retaining the complete original constructor fees and strict old receiver independently. Source review and inverse proofs passed; executable qualification and measured gains remain pending.
@@ -7288,3 +7304,5 @@ are authored. Qualification is pending; Catalog corpus and limits are unchanged.
   only on a distinct second child after full payment. Complete prior receiver
   and new algebra/physical/work/authority controls await combined execution;
   no cap changes or application recovery claim.
+
+- Reuse the complete immutable closure for one unit-weight canonical input, preserving every work debit and full successor check while paying receiving metadata and retaining the entire previous producer.

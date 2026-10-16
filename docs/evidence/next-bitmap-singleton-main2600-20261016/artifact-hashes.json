@@ -1,0 +1,16 @@
+{
+  "HANDOFF.md": "48ab364677498051842aa0391fecb38927bf80ba3d101566a5ed0ce1024c0de5",
+  "authority-source-proof.json": "6f59939e96cefe6f5f5b048713b0e9b6e0ef350621c9a78ce779d87cdaaa6e56",
+  "current-to-22fb.json": "0da1602a6673865717282231dac63dd82b3f54073b6a7a00d9090222346262ac",
+  "current-to-4fba.json": "79d510959eae14b2092d3695751912c45ebab65641c0b5147df21b5988fac66f",
+  "hir.json": "87fdab7c9a41790029e7992d5d2f6ec6646a3154b1962409d89e9cd2b87ff4a7",
+  "new-owners.json": "dbf038123134ad2a70e273e7bf2d8284e5522b88f77ac06e1115a0c7b4a4bc60",
+  "original-module-parser-prefix.py": "87a903ce0f9927d3d90063fdd686b50b5302e2ac10cfea324918f7c030b28599",
+  "pending-focused-selection.json": "7db79ba15cea12a41d76f7c6972cb050f088bab84ca3fd3bf94da731ab95018e",
+  "preflight-attempts.json": "6db2dbb889a828fd0551fb6d0dd6e6688d63f3c6191727e9a4aec84d6cc2d3dd",
+  "projection.json": "ef0d488ba51ec1df2bf7ce0944d37def9a754fffab3edf83644e67ce4dc4b5a2",
+  "source-inverses.json": "79d510959eae14b2092d3695751912c45ebab65641c0b5147df21b5988fac66f",
+  "source-proof.json": "9f2e5e99ae9d0f702a728a1a33e0e652c9ada03ac2f2885dc86408fa665637f8",
+  "verify-authority.py": "bae269eb669713f31d1fb7a081f9e58906532bf353921ab8f04df5076557315c",
+  "verify-source.py": "b8a6060520e46f3c50b2f1bb872cdd0759172953b18072c79350af1544fe0ac2"
+}

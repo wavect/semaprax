@@ -1,0 +1,17 @@
+
+running 1 test
+test cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact ... 
+thread 'cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact' (11965225) panicked at src/source_reflows_merge.rs:48:5:
+assertion `left == right` failed
+  left: "88389f912f0bd6c275a8cee2bec309210bb0c575c7b449547606d8449dfdb9cc"
+ right: String("da6c47e54879339c12b36858295cb22fe10760bd0dac6c056766d00c26d7d78e")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9187 filtered out; finished in 0.08s
+

@@ -1,0 +1,15 @@
+[
+  {
+    "source": "src/source_reflows_merge.rs",
+    "checkpoint_revision": "4fba2ee58ab595eb6ee1dc9aaa4bfa975358a7a4",
+    "archive": "docs/evidence/source36-classifier-frontier-8bb-20261016/source_reflows_merge.before.rs.txt",
+    "current_sha256": "7068e6d884439e806c154bfc9a3c1dd6dfd4c224a5f0874f39ec16da321bddc0",
+    "original_sha256": "108720ccfbe82e67345918106abe4e558d0eef59f464bc543130f297840b1112",
+    "edits": [
+      {
+        "new": "pub(crate) fn source36_classifier_input(source: &str, current: &str) -> String {\n    let staged = before_storage_oracle_join(source, current);\n    runtime_json::project(runtime_json::Fixture::F60, source, &staged)\n}",
+        "old": "pub(crate) fn source36_classifier_input(source: &str, current: &str) -> String {\n    runtime_json::project(runtime_json::Fixture::F60, source, current)\n}"
+      }
+    ]
+  }
+]

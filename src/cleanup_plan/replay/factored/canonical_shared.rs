@@ -12,6 +12,8 @@ mod before_alias;
 #[cfg(test)]
 pub(super) mod before_closure_receiver;
 #[cfg(test)]
+mod before_empty;
+#[cfg(test)]
 mod before_held;
 #[cfg(test)]
 mod before_index;
@@ -22,10 +24,15 @@ mod before_scratch;
 #[cfg(test)]
 mod before_targets;
 pub(in crate::cleanup_plan::replay) mod closure_receiving;
+mod empty_closure;
+#[cfg(test)]
+mod empty_closure_tests;
+mod empty_memo;
 #[cfg(test)]
 mod epsilon_alias;
 #[cfg(test)]
 mod held_auth_tests;
+#[cfg(test)]
 mod memo;
 mod ordered_alias;
 mod ordered_weights;
@@ -113,7 +120,7 @@ fn share_weighted(
 pub(super) struct Canonicalizer<'a> {
     automaton: &'a Automaton,
     sink: usize,
-    closures: memo::RetainedMemo<Rc<ordered_weights::OrderedWeights>>,
+    closures: empty_memo::RetainedMemo<Rc<ordered_weights::OrderedWeights>>,
     states: BTreeMap<SharedWeighted, usize>,
     ids: BTreeMap<(u64, Vec<(Label, usize)>), usize>,
     cursor: Vec<(usize, bool)>,
@@ -127,7 +134,7 @@ impl<'a> Canonicalizer<'a> {
         Self {
             automaton,
             sink,
-            closures: memo::RetainedMemo::new(),
+            closures: empty_memo::RetainedMemo::new(),
             states: BTreeMap::new(),
             ids: BTreeMap::new(),
             cursor: Vec::new(),
@@ -187,14 +194,25 @@ impl<'a> Canonicalizer<'a> {
         function: &ResolvedFunction,
         root: usize,
         budget: &mut ReplayBudget,
-    ) -> Result<Option<Rc<ordered_weights::OrderedWeights>>, Diagnostic> {
+    ) -> Result<Option<empty_closure::Closure>, Diagnostic> {
+        // Reject foreign/sticky owners before any adapter payment.
         self.closures.authenticate_retained(function, budget);
         if self.closures.failed() {
             return Err(self.closures.failure());
         }
+        if budget.pays_allocations() {
+            budget.reserve_bytes(
+                function,
+                empty_closure::Closure::ADAPTER_CONTROLS,
+                "test closure compatibility receiving",
+            )?;
+        }
         if self.closures.contains_key(&root) {
             budget.charge(function, 1, "factored closure cursor")?;
-            return Ok(self.closures.get(&root).cloned());
+            return Ok(Some(match self.closures.get(&root) {
+                Some(value) => empty_closure::Closure::Shared(Rc::clone(value)),
+                None => empty_closure::Closure::Empty,
+            }));
         }
         if budget.pays_allocations() {
             budget.reserve_bytes(
@@ -204,16 +222,29 @@ impl<'a> Canonicalizer<'a> {
             )?;
         }
         let mut receiving = closure_receiving::ClosureReceiving::from_prepaid(function, budget);
-        self.closure_with_receiving(function, root, budget, &mut receiving)
+        self.closure_query(function, root, budget, &mut receiving);
+        receiving.ready = false;
+        if receiving.refusal.is_some() {
+            return Err(receiving.refusal.take().expect("published refusal"));
+        }
+        if receiving.overflow {
+            return Ok(None);
+        }
+        Ok(Some(match self.closures.get(&root) {
+            Some(value) => empty_closure::Closure::Shared(Rc::clone(value)),
+            None => empty_closure::Closure::Empty,
+        }))
     }
+
+    #[cfg(test)]
     fn closure_with_receiving(
         &mut self,
         function: &ResolvedFunction,
         root: usize,
         budget: &mut ReplayBudget,
         receiving: &mut closure_receiving::ClosureReceiving,
-    ) -> Result<Option<Rc<ordered_weights::OrderedWeights>>, Diagnostic> {
-        // Validate the held destination before any ordinary payer query.
+    ) -> Result<Option<empty_closure::Closure>, Diagnostic> {
+        // Compatibility adapter is priced separately from actual unit production.
         if !receiving.valid(function, budget) {
             self.closures.reject_after_error();
             return Err(Diagnostic::io("SPX-H006", String::new()));
@@ -222,36 +253,99 @@ impl<'a> Canonicalizer<'a> {
         if self.closures.failed() {
             return Err(self.closures.failure());
         }
-        // The cached route still executes its original one cursor work debit.
-        // It constructs neither a cursor Vec nor a closure_inner Result
-        // receiver. Cold memo authentication still pays its real Result; warm
-        // authentication writes directly into its already paid refusal slot.
-        if self.closures.contains_key(&root) {
-            budget.charge(function, 1, "factored closure cursor")?;
-            return Ok(self.closures.get(&root).cloned());
-        }
         if budget.pays_allocations() {
             budget.reserve_bytes(
                 function,
-                closure_receiving::ClosureReceiving::PER_MISS_CONTROLS
-                    + std::mem::size_of::<Result<(), Diagnostic>>()
-                    + std::mem::size_of::<usize>(),
-                "factored closure scratch receiving",
+                empty_closure::Closure::ADAPTER_CONTROLS,
+                "test closure compatibility receiving",
             )?;
         }
-        self.prepare_scratch(function, budget)?;
+        self.closure_query(function, root, budget, receiving);
+        receiving.ready = false;
+        if receiving.refusal.is_some() {
+            return Err(receiving.refusal.take().expect("published refusal"));
+        }
+        if receiving.overflow {
+            return Ok(None);
+        }
+        Ok(Some(match self.closures.get(&root) {
+            Some(value) => empty_closure::Closure::Shared(Rc::clone(value)),
+            None => empty_closure::Closure::Empty,
+        }))
+    }
+
+    // Actual production gateway returns unit into the already-paid status/refusal
+    // owner. No Rc clone, Option<closure>, Result or new owned view is returned.
+    fn closure_query(
+        &mut self,
+        function: &ResolvedFunction,
+        root: usize,
+        budget: &mut ReplayBudget,
+        receiving: &mut closure_receiving::ClosureReceiving,
+    ) {
+        if !receiving.valid(function, budget) {
+            self.closures.reject_after_error();
+            receiving.refusal = Some(Diagnostic::io("SPX-H006", String::new()));
+            receiving.ready = true;
+            return;
+        }
+        self.closures.authenticate_retained(function, budget);
+        if self.closures.failed() {
+            receiving.refusal = Some(self.closures.failure());
+            receiving.ready = true;
+            return;
+        }
+        match self.closures.state(&root) {
+            1 => {
+                receiving.empty = true;
+                receiving.overflow = false;
+                match budget.charge(function, 1, "factored closure cursor") {
+                    Ok(()) => receiving.ready = true,
+                    Err(error) => {
+                        receiving.refusal = Some(error);
+                        receiving.ready = true;
+                    }
+                }
+                return;
+            }
+            2 => {
+                receiving.empty = false;
+                receiving.overflow = false;
+                match budget.charge(function, 1, "factored closure cursor") {
+                    Ok(()) => receiving.ready = true,
+                    Err(error) => {
+                        receiving.refusal = Some(error);
+                        receiving.ready = true;
+                    }
+                }
+                return;
+            }
+            _ => {}
+        }
+        if budget.pays_allocations() {
+            if let Err(error) = budget.reserve_bytes(
+                function,
+                closure_receiving::ClosureReceiving::QUERY_CONTROLS
+                    + std::mem::size_of::<Result<(), Diagnostic>>()
+                    + std::mem::size_of::<usize>(),
+                "factored held closure producer and take controls",
+            ) {
+                receiving.refusal = Some(error);
+                receiving.ready = true;
+                return;
+            }
+        }
+        if let Err(error) = self.prepare_scratch(function, budget) {
+            receiving.refusal = Some(error);
+            receiving.ready = true;
+            return;
+        }
         receiving.begin();
         #[cfg(test)]
         closure_receiving::note_producer();
         self.closure_inner_into(function, root, budget, receiving);
         self.cursor.clear();
         assert!(receiving.ready, "unit producer settled exactly once");
-        receiving.ready = false;
-        // Do not construct an Option<Diagnostic> receiver on success.
-        if receiving.refusal.is_some() {
-            return Err(receiving.refusal.take().expect("published refusal"));
-        }
-        Ok(receiving.value.take())
     }
 
     fn closure_inner_into(
@@ -313,6 +407,16 @@ impl<'a> Canonicalizer<'a> {
                 #[cfg(test)]
                 app_census::eligible();
                 let Some(inner) = self.closures.get(&state.epsilon()[0]) else {
+                    if self.closures.contains_key(&state.epsilon()[0]) {
+                        attempt!(budget.charge(function, 1, "factored skeleton closure"));
+                        attempt!(self.closures.insert_empty_retained(function, node, budget));
+                        #[cfg(test)]
+                        app_census::published();
+                        if node == root {
+                            receiving.empty = true;
+                        }
+                        continue;
+                    }
                     receiving.refuse(replay_error(function, "cleanup CFG contains a cycle"));
                     return;
                 };
@@ -335,6 +439,14 @@ impl<'a> Canonicalizer<'a> {
                 app_census::published();
                 continue;
             }
+            if node != self.sink && state.moves().is_empty() && state.epsilon().is_empty() {
+                attempt!(budget.charge(function, 1, "factored skeleton closure"));
+                attempt!(self.closures.insert_empty_retained(function, node, budget));
+                if node == root {
+                    receiving.empty = true;
+                }
+                continue;
+            }
             if budget.pays_allocations() {
                 attempt!(budget.reserve_bytes(
                     function,
@@ -351,6 +463,9 @@ impl<'a> Canonicalizer<'a> {
             }
             for target in state.epsilon() {
                 let Some(inner) = self.closures.get(target) else {
+                    if self.closures.contains_key(target) {
+                        continue;
+                    }
                     receiving.refuse(replay_error(function, "cleanup CFG contains a cycle"));
                     return;
                 };
@@ -366,7 +481,7 @@ impl<'a> Canonicalizer<'a> {
                         .get_mut(inner_node)
                         .expect("inserted ordered weight");
                     let Some(sum) = slot.checked_add(*routes) else {
-                        receiving.complete(None);
+                        receiving.finish_overflow();
                         return;
                     };
                     *slot = sum;
@@ -386,7 +501,7 @@ impl<'a> Canonicalizer<'a> {
                 .closures
                 .insert_retained(function, node, budget, || Rc::new(closure)));
         }
-        receiving.complete(self.closures.get(&root).cloned());
+        receiving.ready = true;
     }
 
     /// The accepted weight of `state` and its weighted successor per label.
@@ -398,11 +513,27 @@ impl<'a> Canonicalizer<'a> {
         budget: &mut ReplayBudget,
         receiving: &mut closure_receiving::ClosureReceiving,
     ) -> Result<Option<(u64, Vec<(Label, SharedWeighted)>)>, Diagnostic> {
-        // Only the selected branch initializes its owner. The common view is
-        // a borrow, not a large enum containing both possible owner layouts.
-        let borrowed;
-        let mut owned;
-        let closed = if let [(node, 1)] = state.as_slice() {
+        if let [(node, 1)] = state.as_slice() {
+            self.closure_query(function, *node, budget, receiving);
+            receiving.ready = false;
+            if receiving.refusal.is_some() {
+                return Err(receiving.refusal.take().expect("published refusal"));
+            }
+            if receiving.overflow {
+                return Ok(None);
+            }
+            if receiving.empty {
+                // No closed map, Rc, label-group map, or iterator is constructed.
+                // The original surviving empty vector and outer result remain.
+                budget.reserve_array::<(Label, SharedWeighted)>(
+                    function,
+                    0,
+                    "factored successor vector",
+                )?;
+                let accepted = 0;
+                let result = Vec::with_capacity(0);
+                return Ok(Some((accepted, result)));
+            }
             if budget.pays_allocations() {
                 budget.reserve_bytes(
                     function,
@@ -411,13 +542,7 @@ impl<'a> Canonicalizer<'a> {
                     "factored borrowed closed receiving controls",
                 )?;
             }
-            let Some(closure) = self.closure_with_receiving(function, *node, budget, receiving)?
-            else {
-                return Ok(None);
-            };
-            // The old empty accumulator saw every unique closure entry once.
-            // Execute its checked arithmetic and EACH original work debit,
-            // before moving the authenticated immutable owner into the view.
+            let closure = Rc::clone(self.closures.get(node).expect("computed shared closure"));
             for (_, routes) in closure.iter() {
                 let Some(_sum) = routes
                     .checked_mul(1)
@@ -427,42 +552,235 @@ impl<'a> Canonicalizer<'a> {
                 };
                 budget.charge(function, 1, "factored weighted route addition")?;
             }
-            borrowed = closure;
-            &*borrowed
-        } else {
+            let borrowed = closure;
+            let closed = &*borrowed;
+            let accepted = closed.get(&self.sink).copied().unwrap_or(0);
             if budget.pays_allocations() {
                 budget.reserve_bytes(
                     function,
-                    ordered_weights::OrderedWeights::CONTROLS
-                        + 2 * std::mem::size_of::<&ordered_weights::OrderedWeights>(),
-                    "factored ordered accumulator controls",
+                    std::mem::size_of::<BTreeMap<Label, successor_targets::Targets>>()
+                        + std::mem::size_of::<Option<&mut successor_targets::Targets>>(),
+                    "factored successor label receiving controls",
                 )?;
             }
-            owned = ordered_weights::OrderedWeights::new();
-            for (node, weight) in state.iter() {
-                let Some(closure) =
-                    self.closure_with_receiving(function, *node, budget, receiving)?
-                else {
-                    return Ok(None);
-                };
-                for (inner, routes) in closure.iter() {
-                    let Some(sum) = routes.checked_mul(*weight).and_then(|product| {
-                        owned.get(inner).copied().unwrap_or(0).checked_add(product)
-                    }) else {
-                        return Ok(None);
-                    };
-                    budget.charge(function, 1, "factored weighted route addition")?;
-                    if owned.get(inner).is_none() {
-                        if owned.needs_capacity() {
-                            owned.grow(function, budget)?;
+            let mut successors = BTreeMap::<Label, successor_targets::Targets>::new();
+            for (node, weight) in closed.iter() {
+                let moves = self.automaton.nodes[*node].moves();
+                budget.charge(
+                    function,
+                    moves.len().saturating_add(1),
+                    "factored skeleton subset construction",
+                )?;
+                for (label, child) in moves {
+                    if !successors.contains_key(label) {
+                        budget.reserve_btree_node::<Label, successor_targets::Targets>(
+                            function,
+                            "factored successor label node",
+                        )?;
+                        if budget.pays_allocations() {
+                            budget.reserve_bytes(
+                                function,
+                                2 * std::mem::size_of::<successor_targets::Targets>()
+                                    + std::mem::size_of::<Option<u64>>()
+                                    + std::mem::size_of::<Option<successor_targets::Targets>>(),
+                                "factored inline singleton target initializer and receiving",
+                            )?;
                         }
-                        owned.insert_prepaid(*inner, 0_u64);
+                        budget.reserve_bytes(
+                            function,
+                            0,
+                            "factored singleton target authentication",
+                        )?;
+                        let weight = 0_u64
+                            .checked_add(*weight)
+                            .expect("zero plus u64 cannot overflow");
+                        successors.insert(
+                            label.clone(),
+                            successor_targets::Targets::One {
+                                child: *child,
+                                weight,
+                            },
+                        );
+                    } else {
+                        let targets = successors.get_mut(label).expect("existing label");
+                        match targets {
+                            successor_targets::Targets::One {
+                                child: first,
+                                weight: total,
+                            } if *first == *child => {
+                                // Same repeated-child checked_add before any later
+                                // target acquisition or error, as in the old map.
+                                let Some(sum) = total.checked_add(*weight) else {
+                                    return Ok(None);
+                                };
+                                *total = sum;
+                            }
+                            successor_targets::Targets::One {
+                                child: first,
+                                weight: total,
+                            } => {
+                                assert_ne!(*first, *child);
+                                if budget.pays_allocations() {
+                                    budget.reserve_bytes(
+                                        function,
+                                        2 * std::mem::size_of::<BTreeMap<usize, u64>>()
+                                            + std::mem::size_of::<successor_targets::Targets>()
+                                            + 2 * std::mem::size_of::<Option<u64>>()
+                                            + 2 * std::mem::size_of::<(usize, u64)>(),
+                                        "factored inline successor promotion carriers",
+                                    )?;
+                                }
+                                budget.reserve_bytes(
+                                    function,
+                                    0,
+                                    "factored successor target promotion authentication",
+                                )?;
+                                budget.reserve_btree_node::<usize, u64>(
+                                    function,
+                                    "factored successor target node",
+                                )?;
+                                budget.reserve_btree_node::<usize, u64>(
+                                    function,
+                                    "factored successor target node",
+                                )?;
+                                let mut promoted = BTreeMap::new();
+                                promoted.insert(*first, *total);
+                                let sum = 0_u64
+                                    .checked_add(*weight)
+                                    .expect("zero plus u64 cannot overflow");
+                                promoted.insert(*child, sum);
+                                *targets = successor_targets::Targets::Many(promoted);
+                            }
+                            successor_targets::Targets::Many(targets) => {
+                                if !targets.contains_key(child) {
+                                    budget.reserve_btree_node::<usize, u64>(
+                                        function,
+                                        "factored successor target node",
+                                    )?;
+                                }
+                                let slot = targets.entry(*child).or_insert(0);
+                                let Some(sum) = slot.checked_add(*weight) else {
+                                    return Ok(None);
+                                };
+                                *slot = sum;
+                            }
+                        }
                     }
-                    *owned.get_mut(inner).expect("inserted ordered weight") = sum;
                 }
             }
-            &owned
-        };
+            budget.reserve_array::<(Label, SharedWeighted)>(
+                function,
+                successors.len(),
+                "factored successor vector",
+            )?;
+            let mut result = Vec::with_capacity(successors.len());
+            // Do not initialize an owning map iterator or its receiving tuple on
+            // the empty route. Zero-byte vector authentication above still runs.
+            if !successors.is_empty() {
+                if budget.pays_allocations() {
+                    budget.reserve_bytes(
+                        function,
+                        std::mem::size_of::<
+                            std::collections::btree_map::IntoIter<
+                                Label,
+                                successor_targets::Targets,
+                            >,
+                        >() + std::mem::size_of::<Option<(Label, successor_targets::Targets)>>()
+                            + std::mem::size_of::<(Label, successor_targets::Targets)>(),
+                        "factored successor target iterator receiving",
+                    )?;
+                }
+                for (label, targets) in successors {
+                    if budget.pays_allocations() {
+                        budget.reserve_bytes(
+                            function,
+                            2 * std::mem::size_of::<SharedWeighted>()
+                                + std::mem::size_of::<(usize, u64)>(),
+                            "factored inline successor finish receiving",
+                        )?;
+                    }
+                    budget.reserve_bytes(
+                        function,
+                        0,
+                        "factored successor target finish authentication",
+                    )?;
+                    let state = match targets {
+                        successor_targets::Targets::One { child, weight } => {
+                            if budget.pays_allocations() {
+                                budget.reserve_bytes(
+                                    function,
+                                    2 * std::mem::size_of::<SmallWeighted>()
+                                        + std::mem::size_of::<[(usize, u64); 1]>()
+                                        + std::mem::size_of::<Result<(), Diagnostic>>(),
+                                    "factored inline weighted enum and array receiving",
+                                )?;
+                            }
+                            budget.reserve_bytes(
+                                function,
+                                physical_clone::rc_backing_bytes::<SmallWeighted>(),
+                                "factored weighted shared header",
+                            )?;
+                            let singleton = SmallWeighted::One([(child, weight)]);
+                            Rc::new(singleton)
+                        }
+                        successor_targets::Targets::Many(targets) => {
+                            // The remaining fallible weighted producer still has
+                            // its real map argument and Result receiving carrier.
+                            if budget.pays_allocations() {
+                                budget.reserve_bytes(
+                                    function,
+                                    std::mem::size_of::<BTreeMap<usize, u64>>()
+                                        + std::mem::size_of::<Vec<(usize, u64)>>()
+                                        + std::mem::size_of::<Result<SharedWeighted, Diagnostic>>(),
+                                    "factored many weighted producer receiving",
+                                )?;
+                            }
+                            weighted_successor(function, budget, targets)?
+                        }
+                    };
+                    result.push((label, state));
+                }
+            }
+            return Ok(Some((accepted, result)));
+        }
+        if budget.pays_allocations() {
+            budget.reserve_bytes(
+                function,
+                ordered_weights::OrderedWeights::CONTROLS
+                    + 2 * std::mem::size_of::<&ordered_weights::OrderedWeights>(),
+                "factored ordered accumulator controls",
+            )?;
+        }
+        let mut owned = ordered_weights::OrderedWeights::new();
+        for (node, weight) in state.iter() {
+            self.closure_query(function, *node, budget, receiving);
+            receiving.ready = false;
+            if receiving.refusal.is_some() {
+                return Err(receiving.refusal.take().expect("published refusal"));
+            }
+            if receiving.overflow {
+                return Ok(None);
+            }
+            let Some(closure) = self.closures.get(node) else {
+                continue;
+            };
+            for (inner, routes) in closure.iter() {
+                let Some(sum) = routes.checked_mul(*weight).and_then(|product| {
+                    owned.get(inner).copied().unwrap_or(0).checked_add(product)
+                }) else {
+                    return Ok(None);
+                };
+                budget.charge(function, 1, "factored weighted route addition")?;
+                if owned.get(inner).is_none() {
+                    if owned.needs_capacity() {
+                        owned.grow(function, budget)?;
+                    }
+                    owned.insert_prepaid(*inner, 0_u64);
+                }
+                *owned.get_mut(inner).expect("inserted ordered weight") = sum;
+            }
+        }
+        let closed = &owned;
         let accepted = closed.get(&self.sink).copied().unwrap_or(0);
         if budget.pays_allocations() {
             budget.reserve_bytes(
@@ -852,3 +1170,6 @@ mod receiving_layer_tests;
 #[cfg(test)]
 #[path = "compact_nodes/before/canonical.rs"]
 pub(in crate::cleanup_plan::replay::factored) mod before_nodes;
+
+#[cfg(test)]
+mod main_unit_weight;

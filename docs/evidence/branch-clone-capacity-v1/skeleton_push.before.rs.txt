@@ -1,0 +1,18 @@
+fn skeleton_push<T>(
+    budget: &mut ReplayBudget,
+    function: &ResolvedFunction,
+    target: &mut Vec<T>,
+    value: impl physical_clone::IntoReplay<T>,
+    phase: &str,
+) -> Result<(), Diagnostic> {
+    budget.charge_skeleton(function, 1, phase)?;
+    note_skeleton_materialization();
+    budget.reserve_vec(function, target, 1, phase)?;
+    budget.reserve_bytes(
+        function,
+        physical_clone::conversion_bytes::<T, _>(&value),
+        phase,
+    )?;
+    target.push(value.into());
+    Ok(())
+}

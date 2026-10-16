@@ -1,0 +1,10 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "base": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+  "main": "beb0a8a508b2f8f30ca5277b8f88c687d859201d",
+  "whole_main_canonical_inverse": true,
+  "complete_main_source_rows": 9,
+  "main_test_bodies": 5,
+  "modern_production_unchanged": true,
+  "runtime_executed": false
+}

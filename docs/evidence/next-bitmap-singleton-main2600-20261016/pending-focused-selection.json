@@ -1,0 +1,804 @@
+{
+  "status": "EXTERNAL_SOURCE_ONLY_DRAFT_AWAIT_FINAL_NEXT_HEAD",
+  "source_subject": null,
+  "freeze_required": true,
+  "execution_performed": false,
+  "discovery_performed": false,
+  "expected_groups_authored": 50,
+  "expected_bodies_authored": 50,
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::receiver_tests::whole_original_and_boxed_replay_keep_success_work_and_hostile_diagnostic",
+      "reasons": [
+        "correctness"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-34.log",
+        "log_sha256": "ddf8d5ab515d417809983e3115f222fe69ccfd35ece08a9b8fc0434617b863e7",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::receiver_tests::complete_current_replay_has_exact_and_one_short_physical_limits_with_last_drop",
+      "reasons": [
+        "correctness"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-35.log",
+        "log_sha256": "cd9cfbfd8d3f0789969788612902eea6bb432282937f535fc2d9c5dd1117ac60",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::tests::boxed_prefix_keeps_every_history_union_and_control_disagreement",
+      "reasons": [
+        "correctness"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-37.log",
+        "log_sha256": "b6a5aec73e6b7cd0b531f52d3088d2f8b434afa70d6dc3f632488a16e252a567",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::duplicate_zero_auth_keeps_complete_main_diagnostic_and_first_receipt_at_sticky_floor",
+      "reasons": [
+        "correctness"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-71.log",
+        "log_sha256": "50f6a466ffdd41906c9446efdf2526f8d77245913b3a30c1e4e71ca291125a37",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::foreign_function_budget_and_scope_poison_only_original_owner_and_never_restore_entry",
+      "reasons": [
+        "correctness"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-72.log",
+        "log_sha256": "1ea63132efaa32d03828ab66e79bb6f1c17e732ffdbbaf6f90df2af453cafeb6",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+      "reasons": [
+        "unchanged_application_or_cap_recovery"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-11.log",
+        "log_sha256": "6f4bf96457a7620fa713cae3bcc437be601fb7ac0e9a4bc3a712ff79176df931",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax-toolchain",
+      "kind": "test:cli_new_project_v1",
+      "selector": "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+      "reasons": [
+        "unchanged_application_or_cap_recovery"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-16.log",
+        "log_sha256": "79c28130f6ca5df804530eb3cb4b8dd7a00890a228de27a5f997cbb21fb4c5f1",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::unfactored_schedule_retains_original_source_and_factored_admission",
+      "reasons": [
+        "unchanged_application_or_cap_recovery"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-17.log",
+        "log_sha256": "e5caff8ba90dfd4be673c9ce560bb4f24ed09bad40ace091300dd9d48a5b231f",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::owned::catalog_scoped_records::typed_catalog_derives_codecs_and_preserves_all_23_functional_cases",
+      "reasons": [
+        "unchanged_application_or_cap_recovery"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-40.log",
+        "log_sha256": "48886d0ee20c00852720b9603914ed44b450abf905c5006f3872a8c73ba3576e",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "reasons": [
+        "unchanged_application_or_cap_recovery"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-43.log",
+        "log_sha256": "f5b8d13db1ce7ec1c2bbc7d6634cb8937a3348c1aad7ff771c9c6a99f78a9cf6",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::callable_limit_exact_advances_and_one_over_is_g171",
+      "reasons": [
+        "unchanged_application_or_cap_recovery"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-66.log",
+        "log_sha256": "20daac0a5bbf7b1ed86e76a5c35d945c07a7965bb14c17544f2738928b4c3a8d",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::consuming::tests::phase_presence_keeps_full_current_directories_and_every_consuming_entry",
+      "reasons": [
+        "fixture_correction"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-65.log",
+        "log_sha256": "192d1e5942e978577b77c221c70c9432fa27bdebe732310e080b370953052a9d",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_complete_immediate_receiver_keeps_states_signatures_and_every_work_frontier",
+      "reasons": [
+        "existing_831_independent_work_or_strict_cost_owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+      "reasons": [
+        "existing_831_independent_work_or_strict_cost_owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_empty_bitmap_and_alias_cached_queries_keep_work_without_receiving_allocation_or_debit",
+      "reasons": [
+        "pending_bitmap_direct_or_independent_old_control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_nonempty_cached_query_borrows_original_rc_and_keeps_all_semantic_work_failures",
+      "reasons": [
+        "pending_bitmap_direct_or_independent_old_control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_whole_empty_owner_costs_and_all_short_frontiers_cover_new_bitmap_backing_and_drop",
+      "reasons": [
+        "pending_bitmap_direct_or_independent_old_control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_overflow_is_not_empty_and_the_same_paid_status_owner_can_receive_empty_afterward",
+      "reasons": [
+        "pending_bitmap_direct_or_independent_old_control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_primed_foreign_inputs_and_nested_scope_never_query_foreign_payer_or_restore_memo",
+      "reasons": [
+        "pending_bitmap_direct_or_independent_old_control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::before_empty::cached_tests::held_cached_closure_keeps_original_one_work_unit_and_same_result_without_auth_debit",
+      "reasons": [
+        "pending_bitmap_direct_or_independent_old_control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight::tests::actual_paid_map_moves_without_allocation_and_preserves_max_zero_routes_and_last_drop",
+      "reasons": [
+        "Preserve independent Main five controls plus changed full graph/Image alias assertion"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight::tests::work_refusal_and_preexisting_financial_refusal_cannot_publish_a_map",
+      "reasons": [
+        "Preserve independent Main five controls plus changed full graph/Image alias assertion"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight_tests::unit_weight_and_every_fallback_keep_full_prechange_ids_signatures_work_and_errors",
+      "reasons": [
+        "Preserve independent Main five controls plus changed full graph/Image alias assertion"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight_tests::whole_receiver_spends_less_backing_and_keeps_exact_short_and_zero_limits",
+      "reasons": [
+        "Preserve independent Main five controls plus changed full graph/Image alias assertion"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight_tests::complete_previous_successor_producer_and_whole_current_module_remain_bound",
+      "reasons": [
+        "Preserve independent Main five controls plus changed full graph/Image alias assertion"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core",
+      "reasons": [
+        "Preserve independent Main five controls plus changed full graph/Image alias assertion"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::singleton_direct_group_keeps_complete_old_success_work_and_hostile_diagnostic",
+      "reasons": [
+        "New singleton complete old/current semantic/work/cost/source control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::singleton_whole_replay_reports_real_costs_and_exact_short_zero_drop",
+      "reasons": [
+        "New singleton complete old/current semantic/work/cost/source control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::complete_immediate_old_and_unchanged_multistate_body_stay_source_bound",
+      "reasons": [
+        "New singleton complete old/current semantic/work/cost/source control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::complete_original_receivers_and_all_new_source_owners_remain_authenticated",
+      "reasons": [
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-02.log",
+        "log_sha256": "adc542b43335fe59c6059c743fd84669156ac6f961d708360899b8b2f7a513b4",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::immediate_parent_831_and_compact_storage_have_independent_complete_source_domains",
+      "reasons": [
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-03.log",
+        "log_sha256": "4110d034f9c04ba1946e4f1c3dac1c24a0c1950050776a185c9d6e772cf25385",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::amortized_source::ordered_amortized_checkpoint_full_sources_and_inverses_are_exact",
+      "reasons": [
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-04.log",
+        "log_sha256": "4370c64c0786091b289e412d9a14d598c23daeece8224b8aebe8829da0435c97",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "reasons": [
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-05.log",
+        "log_sha256": "ec0c2f69e6421c2569bfe9cbd36ec487b542d54612a5b615a4ec3ccb9802e7d3",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::b::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "reasons": [
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-06.log",
+        "log_sha256": "791cee6822c7fcff4ea01801b6c5f36ffffd809b98a6307503439be7eae20190",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::runtime_json::tests::fixed_projection_json_transport_refuses_hostile_io_before_parsing",
+      "reasons": [
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-07.log",
+        "log_sha256": "b1cbd2e619b0054d4793267f12d677063c3cf3eb37cc8c3ab0bab36e5c49f7dd",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::inline_weighted::source::inline_weighted_complete_source_inverses_and_immediate_receiver_are_exact",
+      "reasons": [
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-21.log",
+        "log_sha256": "c408c4e54e390ac6af2cfb8460eade27e1ee3f32f7e40f7ebfb1a556af342210",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::complete_immediate_receiver_helpers_and_all_seven_original_controls_remain_exact",
+      "reasons": [
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-28.log",
+        "log_sha256": "0f8e19fd4fbe1477c34d6426219436abe76f9a5674e95b8a276c6a817543d287",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:hir_module_boundaries",
+      "selector": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+      "reasons": [
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-29.log",
+        "log_sha256": "4e2d18e1066fbb4acea8f2dfcc96d3edab7a54325ce8c1969c58944379d84df5",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "reasons": [
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-30.log",
+        "log_sha256": "65b3a005c2199b1cb91d53d13f0a32fe4deb7343849ec60fd9d9f6318dcb4ff2",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::source_schema::static_text::primitive::helpers::tests::a_large_comment_keeps_ordinary_imports_admitted_without_authorizing_a_selected_helper",
+      "reasons": [
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-67.log",
+        "log_sha256": "e3e0ac9a62f0e3a7214c8b3ec67fcbba2acbdeb3b06bbf022fd08354bb3a2e0d",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::presence_tests::merged_current_ci_reflow_and_presence512_complete_inputs_remain_exact",
+      "reasons": [
+        "Final joined complete source-presence inventory"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:module_size",
+      "selector": "no_module_exceeds_its_recorded_size",
+      "reasons": [
+        "Actual changed Rust roots/children and module budgets"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::complete_builder_and_comparison_receivers_keep_work_and_later_semantic_diagnostics",
+      "reasons": [
+        "Current canonical bitmap changes actual complete844 comparison receiver, retain semantic+whole physical owners"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::complete_build_comparison_and_canonical_receivers_report_physical_costs_through_drop",
+      "reasons": [
+        "Current canonical bitmap changes actual complete844 comparison receiver, retain semantic+whole physical owners"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::tests::full_plan_enumerator_keeps_every_original_path_work_and_materialization",
+      "reasons": [
+        "Actual latestMAIN9a8ee branch_clone production route: direct new semantic/work, physical/Drop or complete-original-source control; pending final MAIN2600 registration"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::tests::clone_and_push_keep_capacity_contents_work_and_drop_with_less_backing",
+      "reasons": [
+        "Actual latestMAIN9a8ee branch_clone production route: direct new semantic/work, physical/Drop or complete-original-source control; pending final MAIN2600 registration"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::tests::whole_original_enumerator_and_clone_push_helpers_remain_byte_exact",
+      "reasons": [
+        "Actual latestMAIN9a8ee branch_clone production route: direct new semantic/work, physical/Drop or complete-original-source control; pending final MAIN2600 registration"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::funded_tests::fused_clone_push_pays_real_receivers_and_keeps_exact_short_zero_drop",
+      "reasons": [
+        "Shipping funded fused clone+push actual owner/control/Drop or full original work-refusal ordering; Main3 historical controls retained independently at original literal names"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::funded_tests::fused_clone_keeps_original_push_work_refusal_before_capacity_payment",
+      "reasons": [
+        "Shipping funded fused clone+push actual owner/control/Drop or full original work-refusal ordering; Main3 historical controls retained independently at original literal names"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project_product_acceptance_ci_contract",
+      "selector": "macos_native_jobs_pair_the_driver_with_the_explicit_builder_sdk",
+      "reasons": [
+        "Lateeb13 actualCI/SDKdriver source contract; readsworkflow/platformsource only, noSDK/fullprofile execution"
+      ]
+    }
+  ],
+  "literal_roles": [
+    {
+      "package": "semaprax",
+      "kind": "lib"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:hir_module_boundaries"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:module_size"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project_product_acceptance_ci_contract"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace"
+    },
+    {
+      "package": "semaprax-toolchain",
+      "kind": "test:cli_new_project_v1"
+    }
+  ],
+  "prior_actual_receipt": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-results.json",
+  "prior_actual_receipt_sha256": "cd95ec6a0b385cecba18aeca28554e6b142e1578fbb111b8f0b6f2aeb3eba5f1",
+  "prior_failed_not_selected": [
+    {
+      "harness": "semaprax::project",
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus",
+      "status": "PRIOR_FAILED_NOT_SELECTED_NOT_QUALIFIED",
+      "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-18.log",
+      "log_sha256": "6142df9ab6d053b083c0684bcab0eb69dc6bb107c2fcabca225ff62a8d4b646c",
+      "reason": "Pin consumers await fresh actual regeneration; other aliases/unaffected failures remain explicit historical failures, not silently passed."
+    },
+    {
+      "harness": "semaprax::project",
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::typed_vec_constructor_retains_exact_explicit_chain_application_control",
+      "status": "PRIOR_FAILED_NOT_SELECTED_NOT_QUALIFIED",
+      "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-19.log",
+      "log_sha256": "846b039503edc24089ea76f852c495ad8c90387db1e52913eb6962e1d42f1f9a",
+      "reason": "Pin consumers await fresh actual regeneration; other aliases/unaffected failures remain explicit historical failures, not silently passed."
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding",
+      "status": "PRIOR_FAILED_NOT_SELECTED_NOT_QUALIFIED",
+      "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-22.log",
+      "log_sha256": "942eaf3391cb686050693524a44fa613fdb8f423bc5435931e13ec5f8e19323b",
+      "reason": "Pin consumers await fresh actual regeneration; other aliases/unaffected failures remain explicit historical failures, not silently passed."
+    },
+    {
+      "harness": "semaprax::workspace",
+      "selector": "semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact",
+      "status": "PRIOR_FAILED_NOT_SELECTED_NOT_QUALIFIED",
+      "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-23.log",
+      "log_sha256": "52330a46aaf3a4a1b153595475632a2fbe337ffed59287f67c912a8cdca3b711",
+      "reason": "Pin consumers await fresh actual regeneration; other aliases/unaffected failures remain explicit historical failures, not silently passed."
+    },
+    {
+      "harness": "semaprax::workspace",
+      "selector": "semantic_graph::public_workspace_analysis_api_cli_kats_and_locking_are_exact",
+      "status": "PRIOR_FAILED_NOT_SELECTED_NOT_QUALIFIED",
+      "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-24.log",
+      "log_sha256": "3cbdf3e24db20cca8a064d410703860fd5e437b7881fcc0792932c90a18665b9",
+      "reason": "Pin consumers await fresh actual regeneration; other aliases/unaffected failures remain explicit historical failures, not silently passed."
+    },
+    {
+      "harness": "semaprax::wasm",
+      "selector": "scalar_browser_ci_contract::browser_known_answers_match_authenticated_baseline_and_rename_graphs",
+      "status": "PRIOR_FAILED_NOT_SELECTED_NOT_QUALIFIED",
+      "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-25.log",
+      "log_sha256": "d42a4694fde05c5f60514d2065a67f1d716eeaf693d5be62437946e5378e57ad",
+      "reason": "Pin consumers await fresh actual regeneration; other aliases/unaffected failures remain explicit historical failures, not silently passed."
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "workspace_graph::tests::builder_limits::pattern_source_workspace_fits_unchanged_builder_budget",
+      "status": "PRIOR_FAILED_NOT_SELECTED_NOT_QUALIFIED",
+      "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-38.log",
+      "log_sha256": "0e5ab26ee61136261405db4bf095052f92e26bdbb253f0109543d6bed5488b02",
+      "reason": "Pin consumers await fresh actual regeneration; other aliases/unaffected failures remain explicit historical failures, not silently passed."
+    },
+    {
+      "harness": "semaprax::project",
+      "selector": "standard_library::pattern_executes_on_all_three_backends",
+      "status": "PRIOR_FAILED_NOT_SELECTED_NOT_QUALIFIED",
+      "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-39.log",
+      "log_sha256": "9427356afde4b3243faa342ca013f13be149f90a3596af17d59f98690c8fbf63",
+      "reason": "Pin consumers await fresh actual regeneration; other aliases/unaffected failures remain explicit historical failures, not silently passed."
+    },
+    {
+      "harness": "semaprax-toolchain::cli_new_project_v1",
+      "selector": "application_starter::application_starter_selected_file_declared_native_tests_and_unchanged_cli49",
+      "status": "PRIOR_FAILED_NOT_SELECTED_NOT_QUALIFIED",
+      "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-41.log",
+      "log_sha256": "965b02488068b54f9d6912e34abba7bed11975ba2ba118a421d6a9c8ab708dce",
+      "reason": "Pin consumers await fresh actual regeneration; other aliases/unaffected failures remain explicit historical failures, not silently passed."
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+      "status": "PRIOR_FAILED_NOT_SELECTED_NOT_QUALIFIED",
+      "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-42.log",
+      "log_sha256": "30d37b864f270aeb3cd11156a988c68fc55b2aaa94abe71afb74c04bb421086e",
+      "reason": "Pin consumers await fresh actual regeneration; other aliases/unaffected failures remain explicit historical failures, not silently passed."
+    }
+  ],
+  "scope_note": "No whole76/175 rerun; no unchanged845 or846 behavioral owners. Current canonical change warrants two844 complete comparison controls. Actual pins regenerate after runtime+two scoped Clippy, then minimum pin consumers separately.",
+  "latest_main_addition": "9a8ee8f1a08a1d92f120c49e6068ce3be0d2b41b ancestry of2600e49eb; source inventories already covered by selected projection/authority owners",
+  "post_final_pin_consumer_phase": "NewMainbrowser3+before2600old4+ours35ccold4+currentknownanswer deferred until actualfreshNEXTcapture; do not runstale currentpins or declareallpass."
+}

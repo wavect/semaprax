@@ -1,0 +1,42 @@
+[
+  [
+    390,
+    "#[cfg(test)]\nmod before_unit;\n",
+    ""
+  ],
+  [
+    449,
+    "mod unit_weight;\n#[cfg(test)]\nmod unit_weight_tests;\n",
+    ""
+  ],
+  [
+    7398,
+    "        #[cfg(test)]\n        if unit_weight_tests::original_selected() {\n            return self.successors_before_unit(function, state, budget);\n        }\n        // The id() entry authenticated the exact memo/function/payer first.\n        // Pay both new Option constructions and the borrowed receiving view.\n        if budget.pays_allocations() {\n            budget.reserve_bytes(\n                function,\n                unit_weight::RECEIVER_BYTES,\n                \"factored weighted closure receiving view\",\n            )?;\n        }\n        budget.reserve_bytes(\n            function,\n            0,\n            \"factored weighted closure receiver authentication\",\n        )?;\n        let alias = if let [(node, 1)] = state.as_slice() {\n",
+    "        let mut closed = BTreeMap::<usize, u64>::new();\n        for (node, weight) in state.iter() {\n"
+  ],
+  [
+    8269,
+    "            Some(unit_weight::receive(function, closure, budget)?)\n        } else {\n            None\n        };\n        let mut closed = BTreeMap::<usize, u64>::new();\n        if alias.is_none() {\n            for (node, weight) in state.iter() {\n                let Some(closure) = self.closure(function, *node, budget)? else {\n",
+    "            for (inner, routes) in closure.iter() {\n                let Some(sum) = routes.checked_mul(*weight).and_then(|product| {\n                    closed.get(inner).copied().unwrap_or(0).checked_add(product)\n                }) else {\n"
+  ],
+  [
+    8653,
+    "                for (inner, routes) in closure.iter() {\n                    let Some(sum) = routes.checked_mul(*weight).and_then(|product| {\n                        closed.get(inner).copied().unwrap_or(0).checked_add(product)\n                    }) else {\n                        return Ok(None);\n                    };\n                    budget.charge(function, 1, \"factored weighted route addition\")?;\n                    if !closed.contains_key(inner) {\n                        budget.reserve_btree_node::<usize, u64>(\n                            function,\n                            \"factored weighted closure node\",\n                        )?;\n                    }\n                    closed.insert(*inner, sum);\n",
+    "                budget.charge(function, 1, \"factored weighted route addition\")?;\n                if !closed.contains_key(inner) {\n                    budget.reserve_btree_node::<usize, u64>(\n                        function,\n                        \"factored weighted closure node\",\n                    )?;\n"
+  ],
+  [
+    9392,
+    "",
+    "                closed.insert(*inner, sum);\n"
+  ],
+  [
+    9416,
+    "        let closed = alias.as_deref().unwrap_or(&closed);\n",
+    ""
+  ],
+  [
+    9620,
+    "        for (node, weight) in closed {\n",
+    "        for (node, weight) in &closed {\n"
+  ]
+]

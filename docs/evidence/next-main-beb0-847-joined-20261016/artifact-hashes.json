@@ -1,0 +1,14 @@
+{
+  "HANDOFF.md": "a45910df81443d0a06f062d9639fe1332a28da10c34adc38b6d4163cd7108506",
+  "authority-source-proof.json": "7851032e31886b18fee23a0ee763632af58f4707c298fbfd68cd48e3d843cb1e",
+  "current-to-8bb.json": "e4a52eae4f48b1e5594e49c52e2cd4d41dd3a4676a0fa50e80f5d5fa37073c6a",
+  "hir.json": "0ee8de07cc0d8500c1954d99286a58211d395f0d219e85ed84e915cc730ceaaf",
+  "original-module-parser-prefix.py": "87a903ce0f9927d3d90063fdd686b50b5302e2ac10cfea324918f7c030b28599",
+  "pending-selectors.json": "fb1ff860cd07d36292020f8659da407cd4782be755e20d4ace00fd296e6ecfa5",
+  "preflight-attempts.json": "97b39a5f69d1c241de21cefb75399d8f9ff68b98779c98729f9f043ee3570f3d",
+  "projection.json": "ef0d488ba51ec1df2bf7ce0944d37def9a754fffab3edf83644e67ce4dc4b5a2",
+  "source-inverses.json": "e4a52eae4f48b1e5594e49c52e2cd4d41dd3a4676a0fa50e80f5d5fa37073c6a",
+  "source-proof.json": "3d0f7ff1d17f064e0de49a56c6dc38914bad871237a128948063996d188580d7",
+  "verify-authority.py": "1733a79307922f70241a36ae93a1369f1026c622f344bd31d39434100b9d0d72",
+  "verify-source.py": "a59de614325b170f1f169855b9c6058647bc7969cd3fe9cec90a244d7bfaf14d"
+}

@@ -385,7 +385,7 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     let production_projection = production_source_inventory::production(
         &projection,
         include_str!(
-            "../../docs/evidence/private-175-actual-fixes-20261015/projection.json"
+            "../../docs/evidence/next-bitmap-singleton-main2600-20261016/projection.json"
         ),
     );
     assert!(root.contains("mod expected_projection;"));
@@ -1337,6 +1337,22 @@ fn public_workspace_analysis_cli_hostiles_and_mode_separation_are_exact() {
 
 // The historical equality remains complete and rejects any raw join drift.
 fn historical_projection_root_facade(current: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let row: serde_json::Value = serde_json::from_str(include_str!(
+        "../../docs/evidence/projection-facade-frontier-8bb-20261016/root-input.json"
+    )).unwrap();
+    assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))), row["current_sha256"]);
+    let mut previous = current.to_owned();
+    for edit in row["edits"].as_array().unwrap() {
+        let new = edit["new"].as_str().unwrap();
+        assert_eq!(previous.matches(new).count(), 1, "complete unique facade input inverse");
+        previous = previous.replacen(new, edit["old"].as_str().unwrap(), 1);
+    }
+    assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(previous.as_bytes()))), row["original_sha256"]);
+    historical_projection_root_facade_before(&previous)
+}
+
+fn historical_projection_root_facade_before(current: &str) -> String {
     use sha2::{Digest, Sha256};
     let row: serde_json::Value = serde_json::from_str(include_str!(
         "../../docs/evidence/ae91-source-consumer-corrections-20261015/facade.json"

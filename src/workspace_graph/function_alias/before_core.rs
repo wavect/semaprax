@@ -2,7 +2,7 @@
 use crate::workspace_graph::*;
 // Keep the source-authority inputs explicit at this audited construction boundary.
 #[allow(clippy::too_many_arguments)]
-pub(super) fn build_resolved_core_current(
+pub(in crate::workspace_graph) fn build_resolved_core_current(
     programs: &[Program],
     module_paths: &BTreeMap<&str, &str>,
     dependency_depths: &BTreeMap<&str, usize>,
@@ -357,3 +357,35 @@ pub(super) fn build_resolved_core_current(
 #[cfg(test)]
 #[path = "before_core/tests.rs"]
 mod tests;
+
+// Test-only selection preserves the complete old constructor above. It has no
+// cache, quota mutation, warmup or production configuration surface.
+thread_local! {
+    static PARITY: std::cell::Cell<Option<(bool, usize)>> = const { std::cell::Cell::new(None) };
+}
+pub(in crate::workspace_graph) fn selected() -> bool {
+    PARITY.with(|state| state.get().is_some_and(|(old, _)| old))
+}
+pub(in crate::workspace_graph) fn borrowed_entry() {
+    PARITY.with(|state| {
+        if let Some((old, count)) = state.get() {
+            assert!(
+                !old,
+                "the independent old constructor must never borrow alias payloads"
+            );
+            state.set(Some((old, count + 1)));
+        }
+    });
+}
+fn parity_run<T>(old: bool, run: impl FnOnce() -> T) -> (T, usize) {
+    struct Restore(Option<(bool, usize)>);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            PARITY.with(|state| state.set(self.0));
+        }
+    }
+    let _restore = Restore(PARITY.with(|state| state.replace(Some((old, 0)))));
+    let result = run();
+    let count = PARITY.with(|state| state.get().unwrap().1);
+    (result, count)
+}

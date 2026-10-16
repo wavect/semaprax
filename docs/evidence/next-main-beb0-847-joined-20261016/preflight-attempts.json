@@ -1,0 +1,9 @@
+[
+  {
+    "status": "INFRASTRUCTURE_SCHEMA_FAILURE",
+    "command": "python3 verify-source.py",
+    "reason": "graph/Image source-inverses is an object with sources array; initial verifier iterated object keys",
+    "rust_executed": false,
+    "historical_input_modified": false
+  }
+]

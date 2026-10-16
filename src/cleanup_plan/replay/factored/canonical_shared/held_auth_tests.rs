@@ -133,8 +133,8 @@ fn held_cached_closure_keeps_original_one_work_unit_and_same_result_without_auth
         let work=budget.remaining;let paid=active_remaining();let at=current_metrics().allocated;
         for offset in 1..=8 {
             let again=c.closure(&function,roots[3],&mut budget).unwrap().unwrap();
-            assert!(Rc::ptr_eq(&held,&again)); assert_eq!(budget.remaining,work-offset);
-            assert_eq!(active_remaining(),paid);assert_eq!(current_metrics().allocated,at);
+            assert!(super::empty_closure::Closure::same_storage(&held,&again)); assert_eq!(budget.remaining,work-offset);
+            assert_eq!(active_remaining(),paid.map(|remaining|remaining-offset*super::empty_closure::Closure::ADAPTER_CONTROLS));assert_eq!(current_metrics().allocated,at);
         }
         drop(held);drop(c);drop(budget);
     }));

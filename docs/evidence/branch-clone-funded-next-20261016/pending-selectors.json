@@ -1,0 +1,12 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::branch_clone::funded_tests::fused_clone_push_pays_real_receivers_and_keeps_exact_short_zero_drop"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::branch_clone::funded_tests::fused_clone_keeps_original_push_work_refusal_before_capacity_payment"
+  }
+]

@@ -188,6 +188,233 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                         .saturating_add(renewal::retained_units(state))
                 }));
         budget.charge(function, join_units, "all-path ownership replay")?;
+        // A single incoming state is already its complete unique control group.
+        // Keep every validation/join/transition/exit and scheduling step below;
+        // no control-key clone, grouping map/set, or held insertion is needed.
+        if states.len() == 1 {
+            let block = &plan.blocks[block_id.0 as usize];
+            // An owning break's fragment rejoins its wrapper's parent: every
+            // incoming state must agree exactly, with no ownership or history
+            // repair by the generic join below.
+            let exact_join = lexical.is_some_and(|auth| auth.exact_joins.contains(&block_id));
+            if exact_join && states.len() != 1 {
+                return Err(replay_error(
+                    function,
+                    "owning break fragment does not rejoin its parent with exact ownership state",
+                )
+                .into());
+            }
+            validate_control_group_with_budget(function, &states, block_id, budget)?;
+            let (live_order, mut conditional_variants) =
+                joined_ownership_state(program, function, &states, budget)?;
+            // Identical branch arms deduplicate to one state; the producer
+            // still joined them. An exact break rejoin is never re-keyed.
+            if states.len() == 1 {
+                conditional_variants = branch_joins.normalize(
+                    program,
+                    function,
+                    block_id,
+                    exact_join,
+                    conditional_variants,
+                    budget,
+                )?;
+            }
+            let mut state = *states
+                .into_iter()
+                .next()
+                .expect("replay control group is non-empty");
+            state.live_order = live_order;
+            state.conditional_variants = conditional_variants;
+            if let Some(auth) = lexical {
+                lexical_boundary::check(
+                    function,
+                    auth,
+                    block_id,
+                    &state,
+                    storage,
+                    &storage_regions,
+                    leaves,
+                    budget,
+                )?;
+            }
+            for transition in &block.transitions {
+                renewal::charge_transition(function, transition, &state, budget)?;
+                execute_replay_transition::<E>(
+                    program, function, transition, &mut state, storage, leaves, helpers, budget,
+                )?;
+            }
+            match &block.terminator {
+                CleanupTerminator::Goto(edge) => {
+                    require_normal_flow_state(function, &state, block_id)?;
+                    let edge = &plan.edges[edge.0 as usize];
+                    let state =
+                        state_for_edge(function, state, &edge.condition, &contract_sources)?;
+                    insertions.insert_owned(
+                        function,
+                        &mut incoming[edge.to.0 as usize],
+                        state,
+                        budget,
+                    );
+                    if insertions.failed {
+                        return Err(insertions.failure().into());
+                    }
+                }
+                CleanupTerminator::Branch(edges) => {
+                    require_normal_flow_state(function, &state, block_id)?;
+                    for edge in edges {
+                        let edge = &plan.edges[edge.0 as usize];
+                        budget.charge(
+                            function,
+                            renewal::retained_units(&state),
+                            "renewal branch history clone",
+                        )?;
+                        let cloned = if storage::empty_renewals::selected(&state, budget) {
+                            let payload = storage::empty_renewals::reserve(
+                                function,
+                                &state,
+                                budget,
+                                "ownership branch clone",
+                            )?;
+                            storage::empty_renewals::copy(payload)
+                        } else {
+                            storage::reserve_state_clone(
+                                function,
+                                &state,
+                                budget,
+                                "ownership branch clone",
+                            )?;
+                            state.clone()
+                        };
+                        let next =
+                            state_for_edge(function, cloned, &edge.condition, &contract_sources)?;
+                        if let Some(auth) = lexical {
+                            lexical_flow::capture_loop_entry(
+                                function,
+                                auth,
+                                &edge.condition,
+                                &next,
+                                &mut loop_entries,
+                                budget,
+                            )?;
+                        }
+                        insertions.insert_owned(
+                            function,
+                            &mut incoming[edge.to.0 as usize],
+                            next,
+                            budget,
+                        );
+                        if insertions.failed {
+                            return Err(insertions.failure().into());
+                        }
+                    }
+                }
+                CleanupTerminator::Exit(exit_id) => {
+                    let exit = &plan.exits[exit_id.0 as usize];
+                    let extra = lexical
+                        .and_then(|auth| auth.item_disposals.get(exit_id))
+                        .unwrap_or(&no_extra_disposal);
+                    match replay_exit(
+                        function,
+                        exit,
+                        state,
+                        &storage_regions,
+                        storage,
+                        leaves,
+                        extra,
+                        budget,
+                    )? {
+                        ExitFlow::Edge(edge, continued) => {
+                            let target = plan.edges[edge.0 as usize].to;
+                            if let Some(assignment) =
+                                lexical.and_then(|auth| auth.wrapper_cancels.get(exit_id))
+                            {
+                                // The authenticated hidden Step has no
+                                // one-leaf reservation. Preserve every unrelated
+                                // history; unexpected authority fails closed.
+                                if continued.renewals.contains_key(assignment) {
+                                    return Err(replay_error(function,
+                                        "owning Break conditional Step has unexpected renewal history").into());
+                                }
+                            }
+                            if let Some(auth) = lexical {
+                                lexical_flow::check_break(
+                                    function,
+                                    auth,
+                                    exit,
+                                    &continued,
+                                    &loop_entries,
+                                    leaves,
+                                )?;
+                            }
+                            insertions.insert_owned(
+                                function,
+                                &mut incoming[target.0 as usize],
+                                continued,
+                                budget,
+                            );
+                            if insertions.failed {
+                                return Err(insertions.failure().into());
+                            }
+                        }
+                        ExitFlow::Latch(latched) => {
+                            let auth = lexical.ok_or_else(|| {
+                                replay_error(function, "loop latch outside the lexical profile")
+                            })?;
+                            if let Some(entry) = lexical_cert::latch_resume(plan, exit.id) {
+                                // A certified continue enters its finite generated
+                                // advancement fragment, whose own latch checks entry.
+                                insertions.insert_owned(
+                                    function,
+                                    &mut incoming[entry.0 as usize],
+                                    latched,
+                                    budget,
+                                );
+                                if insertions.failed {
+                                    return Err(insertions.failure().into());
+                                }
+                            } else {
+                                lexical_flow::check_latch(
+                                    function,
+                                    auth,
+                                    exit,
+                                    &latched,
+                                    &loop_entries,
+                                )?;
+                                terminal_paths =
+                                    terminal_paths.checked_add(1).ok_or_else(|| {
+                                        replay_error(function, "too many terminal cleanup paths")
+                                    })?;
+                            }
+                        }
+                        ExitFlow::Terminal => {
+                            terminal_paths = terminal_paths.checked_add(1).ok_or_else(|| {
+                                replay_error(function, "too many terminal cleanup paths")
+                            })?;
+                            if matches!(
+                                exit.continuation,
+                                ExitContinuation::CommitResult { .. }
+                                    | ExitContinuation::ReturnUnit
+                            ) {
+                                successful_paths =
+                                    successful_paths.checked_add(1).ok_or_else(|| {
+                                        replay_error(function, "too many successful cleanup paths")
+                                    })?;
+                            }
+                        }
+                    }
+                }
+            }
+            for successor in block_successors(function, block_id) {
+                let remaining = &mut remaining_predecessors[successor.0 as usize];
+                *remaining = remaining
+                    .checked_sub(1)
+                    .ok_or_else(|| replay_error(function, "cleanup predecessor count underflowed"))?;
+                if *remaining == 0 {
+                    queue.push_back(successor);
+                }
+            }
+            continue;
+        }
         let mut groups = BTreeMap::<ControlKey, BTreeSet<Box<PathState>>>::new();
         for state in states {
             let key = if storage::atomic_controls::selected(&state, budget) {
@@ -721,3 +948,8 @@ fn join_conditional_variants(
     }
     Ok(joined)
 }
+
+#[cfg(test)]
+mod before_singleton;
+#[cfg(test)]
+mod singleton_tests;

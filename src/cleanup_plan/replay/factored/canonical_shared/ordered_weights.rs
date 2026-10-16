@@ -369,7 +369,7 @@ mod tests;
 // the measured region. The complete original assertions are archived/inverted.
 #[cfg(test)]
 pub(super) fn assert_closure_result(
-    actual: &Result<Option<std::rc::Rc<OrderedWeights>>, Diagnostic>,
+    actual: &Result<Option<impl ClosureEntries + std::fmt::Debug>, Diagnostic>,
     expected: &Result<Option<std::rc::Rc<std::collections::BTreeMap<usize, u64>>>, Diagnostic>,
 ) {
     match (actual, expected) {
@@ -377,7 +377,7 @@ pub(super) fn assert_closure_result(
         (Ok(None), Ok(None)) => {}
         (Ok(Some(actual)), Ok(Some(expected))) => {
             assert!(
-                actual.iter().eq(expected.iter()),
+                actual.same_entries(expected),
                 "complete numeric closure entries"
             );
         }
@@ -393,5 +393,26 @@ pub(super) fn assert_closure_view(
         (None, None) => {}
         (Some(actual), Some(expected)) => assert!(actual.iter().eq(expected.iter())),
         _ => panic!("closure view mismatch: actual={actual:?}, expected={expected:?}"),
+    }
+}
+
+// Test assertion transport only; production uses the original direct iterator.
+#[cfg(test)]
+pub(super) trait ClosureEntries {
+    fn same_entries(&self, expected: &std::collections::BTreeMap<usize, u64>) -> bool;
+}
+#[cfg(test)]
+impl ClosureEntries for std::rc::Rc<OrderedWeights> {
+    fn same_entries(&self, expected: &std::collections::BTreeMap<usize, u64>) -> bool {
+        self.iter().eq(expected.iter())
+    }
+}
+#[cfg(test)]
+impl ClosureEntries for super::empty_closure::Closure {
+    fn same_entries(&self, expected: &std::collections::BTreeMap<usize, u64>) -> bool {
+        match self {
+            Self::Empty => expected.is_empty(),
+            Self::Shared(value) => value.iter().eq(expected.iter()),
+        }
     }
 }

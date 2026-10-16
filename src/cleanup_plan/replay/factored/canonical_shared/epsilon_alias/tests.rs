@@ -87,7 +87,12 @@ fn epsilon_chain_diamond_duplicate_and_mixed_maps_keep_every_old_entry_and_actua
                 for (node, state) in a.nodes.iter().enumerate() {
                     let old_value = old.alias_view(&node);
                     let value = current.closures.get(&node);
-                    super::super::ordered_weights::assert_closure_view(value, old_value);
+                    if current.closures.state(&node) == 1 {
+                        assert!(value.is_none());
+                        assert_eq!(old_value.expect("computed old empty map").len(), 0);
+                    } else {
+                        super::super::ordered_weights::assert_closure_view(value, old_value);
+                    }
                     if node != sink && state.moves().is_empty() && state.epsilon().len() == 1 {
                         let child = state.epsilon()[0];
                         if let (Some(value), Some(inner)) = (value, current.closures.get(&child)) {

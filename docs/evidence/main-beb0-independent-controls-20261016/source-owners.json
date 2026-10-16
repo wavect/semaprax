@@ -1,0 +1,16 @@
+{
+  "all_three_audit_union_additions": [
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_alias.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_index.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_unit.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/epsilon_alias.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/memo.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/source.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight/tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight.rs"
+  ],
+  "cfg_test_registration": "src/cleanup_plan/replay/factored/canonical_shared.rs::main_unit_weight"
+}

@@ -3950,6 +3950,19 @@ fn build_resolved_core_current(
     compact_order: Option<&[usize]>,
 ) -> Result<ResolvedCore, constructor_failure::receiving::CoreFailure> {
     #[cfg(test)]
+    if constructor_failure::typed::before_function_alias_core::selected() {
+        return constructor_failure::typed::before_function_alias_core::build_resolved_core_current(
+            programs,
+            module_paths,
+            dependency_depths,
+            authored,
+            authenticated_sources,
+            frontend,
+            layouts,
+            compact_order,
+        );
+    }
+    #[cfg(test)]
     if constructor_failure::receiving::before::active() {
         return constructor_failure::receiving::before::build_resolved_core_current(
             programs,

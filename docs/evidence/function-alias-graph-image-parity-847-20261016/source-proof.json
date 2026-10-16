@@ -1,0 +1,10 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "base": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+  "full_inputs": 5,
+  "new_owning_tests": 1,
+  "old_core_body_preserved": true,
+  "original_test_body_preserved": true,
+  "normalization": null,
+  "runtime_executed": false
+}

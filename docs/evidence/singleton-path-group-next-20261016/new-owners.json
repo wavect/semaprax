@@ -1,0 +1,12 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/path_join/before_singleton.rs",
+    "sha256": "125599019c6bb7cdffe1e0742a90812a6a2f398ab1e599eed49b7ac34341f4c7",
+    "cfg_test_only": true
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+    "sha256": "b8a80827eb32e3f916f2e710d87fae2559e09ff4817c4ff85b9fecbff2efedd9",
+    "cfg_test_only": true
+  }
+]

@@ -1,0 +1,45 @@
+{
+  "status": "PENDING_FRESH_FINAL_JOINED_RUST_QUALIFICATION",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "test:hir_module_boundaries",
+      "selector": "production_source_inventory::boundary::tests::complete_original_domains_and_current_roles_remain_separate_and_source_bound"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:hir_module_boundaries",
+      "selector": "production_source_inventory::boundary::tests::complete_authentication_refuses_reclassification_source_drift_and_raw_drift"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:hir_module_boundaries",
+      "selector": "production_source_inventory::boundary::tests::old_test_roots_and_foreign_path_actual_children_cannot_escape_membership"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:hir_module_boundaries",
+      "selector": "production_source_inventory::boundary::tests::dropped_current_child_and_modified_typed_manifest_are_rejected"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::production_source_inventory::boundary::tests::complete_original_domains_and_current_roles_remain_separate_and_source_bound"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::production_source_inventory::boundary::tests::complete_authentication_refuses_reclassification_source_drift_and_raw_drift"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::production_source_inventory::boundary::tests::old_test_roots_and_foreign_path_actual_children_cannot_escape_membership"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::production_source_inventory::boundary::tests::dropped_current_child_and_modified_typed_manifest_are_rejected"
+    }
+  ]
+}

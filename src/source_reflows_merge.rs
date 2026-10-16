@@ -41,6 +41,8 @@ pub(crate) fn boxed849_previous(source: &str, current: &str) -> String {
 }
 // Direct current831 owner; inherited guards first receive the exact2d4b input.
 pub(crate) fn unit831_input(source: &str, current: &str) -> String {
+    let latest = main696_previous(source, current);
+    let current = latest.as_str();
     let joined = project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/next-unit-branch-receiving-joined-20261016/final-to-7c.json")), source, current);
     let current = joined.as_str();
     let preflight = project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/closure-unit-receiving-831-next-20261016/preflight-binding-successor/current-to-fac.json")), source, current);
@@ -67,7 +69,22 @@ fn main531_child_input(source: &str, current: &str) -> String {
     let current = fixed.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main531-original-tests-child-20261016/current-to-7e9f.json")), source, current)
 }
+fn main696_corrected_input(source: &str, current: &str) -> String {
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main696-funded-receiving-joined-20261016/current-to-ff7e.json")), source, current)
+}
+pub(crate) fn main696_input(source: &str, current: &str) -> String {
+    let corrected = main696_corrected_input(source, current);
+    let current = corrected.as_str();
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main696-source-reconciliation-20261016/current-to-main696.json")), source, current)
+}
+fn main696_previous(source: &str, current: &str) -> String {
+    let corrected = main696_corrected_input(source, current);
+    let current = corrected.as_str();
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main696-source-reconciliation-20261016/current-to-364d.json")), source, current)
+}
 fn actual50_fixture_input(source: &str, current: &str) -> String {
+    let latest = main696_previous(source, current);
+    let current = latest.as_str();
     let joined = project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/next-unit-branch-receiving-joined-20261016/final-to-bac.json")), source, current);
     let current = joined.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/actual50-fixture-and-facade-corrections-20261016/current-to-183.json")), source, current)

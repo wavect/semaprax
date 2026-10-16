@@ -1,5 +1,9 @@
 # One explicit-record census per immutable phase
 
+Status: private implementation evidence; current-head qualification follows CI.
+
+Audience: compiler maintainers and reviewers.
+
 The original callable-boundary test failed with the helper-census H006 diagnostic
 in [unit-heavy job 116636394120](https://github.com/wavect/semaprax/actions/runs/38796808320/job/116636394120).
 The ordinary consuming collector scanned the ordered declaration prefix once

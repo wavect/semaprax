@@ -1,5 +1,9 @@
 # Hosted graph bill after paid-scratch changes
 
+Status: private implementation evidence; current-head qualification follows CI.
+
+Audience: compiler maintainers and reviewers.
+
 CI run 38793590554, job 116624982882, built
 `17104e20c16db1d4ac6845266b78908f390b9896` using Rust 1.88 on Linux x86-64.
 The complete logged graph and compiler provenance records were decoded with

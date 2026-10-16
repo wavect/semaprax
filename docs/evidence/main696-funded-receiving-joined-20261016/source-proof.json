@@ -1,0 +1,18 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "whole_current_to_ff7e_rows": 14,
+  "compact_bytes": 55120,
+  "restored_original_ff7e_namespace": true,
+  "original_27_cutoff_and_3_Main_rows_replayed": true,
+  "four_Main_semantic_and_formatting_inverses_pass": true,
+  "reviewed_Main_correction_exact_d201": true,
+  "reviewed_831_shipping_exact_3ae": true,
+  "original_90_fixture_identities_and_all_old_JSON_unchanged": true,
+  "original_project_function_exact": true,
+  "two_new_closed_children_all3_raw_inventory": true,
+  "recursive_loaded_files": 7,
+  "Main_original_four_names_preserved": true,
+  "module_caps_pass": true,
+  "Rust_executed": false,
+  "prior_proof_reuse": "Complete restored namespace equality; the original831 global-scope verifier refused joined raw source and remains unchanged. Its two exact whole rows are replayed here."
+}

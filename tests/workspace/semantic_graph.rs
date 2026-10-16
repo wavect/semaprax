@@ -385,7 +385,7 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     let production_projection = production_source_inventory::production(
         &projection,
         include_str!(
-            "../../docs/evidence/next-unit-branch-receiving-joined-20261016/projection.json"
+            "../../docs/evidence/main696-funded-receiving-joined-20261016/projection.json"
         ),
     );
     assert!(root.contains("mod expected_projection;"));

@@ -106,18 +106,29 @@ name = "alias-parity"
 version = "1.0.0"
 
 [modules]
-entry = "alias.current"
-sources = ["src/app.spx", "src/tests.spx"]
+entry = "alias.app"
+sources = ["src/app.spx", "src/provider.spx", "src/tests.spx"]
 tests = ["alias.tests"]
 
 [exports]
-web = ["alias.current.main"]
+web = ["alias.current.value"]
 
 [dependencies]
 std.collections = "=0.1.0"
 "#;
+    // Entry and test roots import a shared provider that declares no main,
+    // matching the admitted three-module calculator Project shape.
+    const APP: &str = r#"module alias.app;
+use function @id("alias.current.value") from alias.current as current;
+@id("alias.app.main") fn main()->i64 {current()}
+"#;
+    const APP_PROVIDER: &str = r#"module alias.current;
+use function @id("std.collections.vec.with-capacity") from std.collections as with_capacity;
+use function @id("std.collections.vec.push") from std.collections as push;
+use function @id("std.collections.vec.get") from std.collections as get;
+@id("alias.current.value") fn value()->i64 {let values=with_capacity<i64>(2usize);let appended=push<i64>(values,42);get<i64>(appended,0usize)}"#;
     const TESTS: &str = r#"module alias.tests;
-use function @id("alias.current.main") from alias.current as current;
+use function @id("alias.current.value") from alias.current as current;
 @id("alias.tests.main") fn main()->i64 {if current()==42 {0} else {1}}
 "#;
     let build = || {
@@ -127,7 +138,11 @@ use function @id("alias.current.main") from alias.current as current;
         let sources = vec![
             SemanticWorkspaceSource::new(
                 "src/app.spx".to_owned(),
-                canonical(CALLER, "src/app.spx"),
+                canonical(APP, "src/app.spx"),
+            ),
+            SemanticWorkspaceSource::new(
+                "src/provider.spx".to_owned(),
+                canonical(APP_PROVIDER, "src/provider.spx"),
             ),
             SemanticWorkspaceSource::new(
                 "src/tests.spx".to_owned(),

@@ -1,5 +1,9 @@
 # Lazy fixed pattern scratch
 
+Status: private implementation evidence; current-head qualification follows CI.
+
+Audience: compiler maintainers and reviewers.
+
 The hosted `1e3a14ce7` integration-5 log
 `116577327396` reports `SPX-P402` before resolver work exhaustion is reached.
 The unchanged resolver fixture has 512 scalar payload declarations and one

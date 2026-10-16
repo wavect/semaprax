@@ -51,6 +51,38 @@ mod before_inline_weighted;
 mod inline_weighted;
 use inline_weighted::SmallWeighted;
 
+// Invoked only after preflight proved an unbound, nonfailed Memo. This is the
+// original cold activation body at its caller: no authenticate Result or
+// forwarded method arguments are constructed. Nested reservation Results,
+// first-refusal order, full Memo/Binding storage and capture remain real.
+macro_rules! activate_closure {
+    ($this:ident, $function:ident, $budget:ident, $error:ident, $failure:block) => {{
+        if let Err($error) =
+            $budget.reserve_bytes($function, 0, "factored closure memo authentication")
+        {
+            $this.closures.failed = true;
+            $failure
+        }
+        if $budget.pays_allocations() {
+            if let Err($error) = $budget.reserve_bytes(
+                $function,
+                std::mem::size_of::<empty_memo::Memo<Rc<ordered_weights::OrderedWeights>>>()
+                    + std::mem::size_of::<Option<empty_memo::Binding>>(),
+                "factored closure memo controls",
+            ) {
+                $this.closures.failed = true;
+                $failure
+            }
+        }
+        let binding = Some(empty_memo::Binding {
+            function: std::ptr::from_ref($function),
+            budget: std::ptr::from_ref($budget),
+            ledger: crate::bounded_output::classifier_string::ClassifierLedger::capture(),
+        });
+        $this.closures.binding = binding;
+    }};
+}
+
 // Lexical unit publication deliberately introduces no forwarding borrowed
 // receiver: preflight replaces the old RetainedMemo auth method boundary, and
 // the old zero-auth call borrows the already-live invocation refusal field here.
@@ -74,9 +106,11 @@ macro_rules! authenticate_closure {
         } else if $this.closures.failed() {
             $receiving.refusal = Some(Diagnostic::io("SPX-H006", String::new()));
         } else {
-            // Preserve complete original cold admission/receipt/binding order.
-            if let Err(error) = $this.closures.authenticate($function, $budget) {
-                $receiving.refusal = Some(error);
+            'activation: {
+                activate_closure!($this, $function, $budget, error, {
+                    $receiving.refusal = Some(error);
+                    break 'activation;
+                });
             }
         }
     }};
@@ -214,7 +248,11 @@ impl<'a> Canonicalizer<'a> {
             if self.closures.failed() {
                 return Err(Diagnostic::io("SPX-H006", String::new()));
             }
-            self.closures.authenticate(function, budget)?;
+            // Keep the first-cold failure before invocation-slot acquisition.
+            // The outer id Result is unchanged; the inner auth Result is absent.
+            activate_closure!(self, function, budget, error, {
+                return Err(error);
+            });
         }
         if budget.pays_allocations() {
             budget.reserve_bytes(
@@ -385,9 +423,7 @@ impl<'a> Canonicalizer<'a> {
         if budget.pays_allocations() {
             if let Err(error) = budget.reserve_bytes(
                 function,
-                closure_receiving::ClosureReceiving::QUERY_CONTROLS
-                    + std::mem::size_of::<Result<(), Diagnostic>>()
-                    + std::mem::size_of::<usize>(),
+                closure_receiving::ClosureReceiving::QUERY_CONTROLS + std::mem::size_of::<usize>(),
                 "factored held closure producer and take controls",
             ) {
                 receiving.refusal = Some(error);
@@ -395,10 +431,25 @@ impl<'a> Canonicalizer<'a> {
                 return;
             }
         }
-        if let Err(error) = self.prepare_scratch(function, budget) {
-            receiving.refusal = Some(error);
-            receiving.ready = true;
-            return;
+        // This lexical first-use block has no prepare_scratch Result or
+        // forwarded self/function/budget arguments. The reservation's own
+        // Result and all actual retained fields remain independently owned.
+        if !self.scratch_paid {
+            if budget.pays_allocations() {
+                if let Err(error) = budget.reserve_bytes(
+                    function,
+                    std::mem::size_of::<Vec<(usize, bool)>>()
+                        + std::mem::size_of::<Vec<CanonicalFrame>>()
+                        + std::mem::size_of::<Vec<SharedWeighted>>()
+                        + std::mem::size_of::<bool>(),
+                    "factored retained canonical scratch controls",
+                ) {
+                    receiving.refusal = Some(error);
+                    receiving.ready = true;
+                    return;
+                }
+            }
+            self.scratch_paid = true;
         }
         receiving.begin();
         #[cfg(test)]
@@ -1074,11 +1125,25 @@ impl<'a> Canonicalizer<'a> {
         if budget.pays_allocations() {
             budget.reserve_bytes(
                 function,
-                std::mem::size_of::<Weighted>() + std::mem::size_of::<Result<(), Diagnostic>>(),
-                "factored canonical scratch receiving and moved root",
+                std::mem::size_of::<Weighted>(),
+                "factored canonical moved root",
             )?;
         }
-        self.prepare_scratch(function, budget)?;
+        // Keep first-use acquisition at its original lexical position, but
+        // construct no forwarding prepare_scratch Result or argument receivers.
+        if !self.scratch_paid {
+            if budget.pays_allocations() {
+                budget.reserve_bytes(
+                    function,
+                    std::mem::size_of::<Vec<(usize, bool)>>()
+                        + std::mem::size_of::<Vec<CanonicalFrame>>()
+                        + std::mem::size_of::<Vec<SharedWeighted>>()
+                        + std::mem::size_of::<bool>(),
+                    "factored retained canonical scratch controls",
+                )?;
+            }
+            self.scratch_paid = true;
+        }
         self.id_inner_into(function, root, budget, receiving);
         // Retain capacity, never owned references, across either root and all
         // success, arithmetic, work, physical and semantic failure exits.
@@ -1093,27 +1158,6 @@ impl<'a> Canonicalizer<'a> {
             return Ok(None);
         }
         Ok(Some(receiving.id))
-    }
-
-    fn prepare_scratch(
-        &mut self,
-        function: &ResolvedFunction,
-        budget: &mut ReplayBudget,
-    ) -> Result<(), Diagnostic> {
-        if !self.scratch_paid {
-            if budget.pays_allocations() {
-                budget.reserve_bytes(
-                    function,
-                    std::mem::size_of::<Vec<(usize, bool)>>()
-                        + std::mem::size_of::<Vec<CanonicalFrame>>()
-                        + std::mem::size_of::<Vec<SharedWeighted>>()
-                        + std::mem::size_of::<bool>(),
-                    "factored retained canonical scratch controls",
-                )?;
-            }
-            self.scratch_paid = true;
-        }
-        Ok(())
     }
 
     fn id_inner_into(

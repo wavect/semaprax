@@ -1,5 +1,9 @@
 # Paid expression-fact Arena cursor
 
+Status: private implementation evidence; current-head qualification follows CI.
+
+Audience: compiler maintainers and reviewers.
+
 Current-head CI run 38770620786, job 116546107241, located the actual std/test-bytes
 builder refusal at `expression_facts/capacity.rs:32`: its original factory
 requests its complete `FactCapacity` plus a 514-entry expression-frame array.

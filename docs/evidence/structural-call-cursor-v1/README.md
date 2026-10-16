@@ -1,5 +1,9 @@
 # Structural call cursor storage
 
+Status: private implementation evidence; current-head qualification follows CI.
+
+Audience: compiler maintainers and reviewers.
+
 The current hosted STD-08 job on `1e3a14ce7` refused a 24,672-byte request during
 HIR validation (`116577327478`). The original structural call cursor requests
 514 lexical child-cursor slots before lookup; its actual production layout

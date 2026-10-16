@@ -4968,6 +4968,9 @@ The test-only `path_join::main_single_groups` namespace preserves the complete
 Main531 grouping producer, key constructors, prior boxed receiver and original
 controls independently. Production keeps its direct singleton route; historical
 Main measurements grant no production-cost or application-fit claim.
+The `path_array` module owns known-minimum capacity selection at the first
+actual output; its complete Main696 helper and four receivers remain independent
+test-only controls.
 The branch clone/push producer is owned inline by the existing cleanup plan
 enumerator in `replay.rs`; its nested work/census/backing Results remain paid,
 while the prior standalone helper and complete enumerator stay test-only controls.

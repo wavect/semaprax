@@ -1,0 +1,37 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_array::tests::four_complete_original_receivers_keep_all_path_fields_order_and_work"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_array::tests::append_pays_complete_backing_and_drop_with_exact_short_and_zero_controls"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_array::tests::complete_hir_enumeration_keeps_paths_work_materializations_and_legacy"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_array::tests::complete_old_functions_are_compiled_and_only_capacity_hooks_change"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "source_reflows::semantic_receivers::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "source_reflows::semantic_receivers::receiver_mutation_and_forged_predecessor_fail_closed"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "source_reflows::approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors"
+  }
+]

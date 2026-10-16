@@ -1,5 +1,9 @@
 # Supplemental receiving cursor growth
 
+Status: private implementation evidence; current-head qualification follows CI.
+
+Audience: compiler maintainers and reviewers.
+
 The hosted STD-08 job `116607589314` on `6dec6f011` still refuses 24,672 bytes
 with 6,103 left in its unchanged 64 MiB builder ledger. Caller propagation
 identifies `ordinary_inventory/storage.rs:10`, whose fixed 1,028-element array

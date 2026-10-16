@@ -1,0 +1,6 @@
+[
+  {
+    "status": "STATIC_CHECKER_ASSERTION_CORRECTED",
+    "detail": "Initial Python TOML checker expected dotted dependency as a flat key; TOML decodes unchanged std.collections syntax as nested std/collections. Corrected checker only, fixture bytes unchanged. No Rust execution."
+  }
+]

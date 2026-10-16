@@ -1,5 +1,9 @@
 # Darwin native tool reference
 
+Status: private implementation evidence; current-head qualification follows CI.
+
+Audience: compiler maintainers and reviewers.
+
 [Public SDK job 116714584363](https://github.com/wavect/semaprax/actions/runs/38819916075/job/116714584363)
 failed two calculator consumers with I231. The builder deliberately keeps that
 diagnostic static and suppresses child stderr. The new blocking macOS SDK step

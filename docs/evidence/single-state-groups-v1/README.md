@@ -1,5 +1,9 @@
 # Reuse a sole incoming ownership-state tree
 
+Status: private implementation evidence; current-head qualification follows CI.
+
+Audience: compiler maintainers and reviewers.
+
 [STD-08 job 116728653928](https://github.com/wavect/semaprax/actions/runs/38824367721/job/116728653928)
 still refused five JSON consumers at the unchanged 64 MiB builder limit. One
 refusal was a 3,992-byte control-group tree node in final HIR replay. A block

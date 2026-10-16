@@ -1,0 +1,16 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "full_source_inverse": true,
+  "actual_failed364d_image_preserved": true,
+  "whole_prior_other_test_bodies_unchanged": true,
+  "whole_parity_measurement_and_assertion_tail_unchanged": true,
+  "borrowed_route_assertions_preserved": true,
+  "provider_original_vector_operations_exact_except_function_id_and_display_name": true,
+  "entry_and_test_each_one_main_provider_none": true,
+  "public_exports_and_provider_edges_consistent": true,
+  "owning_spec": "docs/PROJECT-MANIFEST-V1.md:75",
+  "admitted_reference": "examples/calculator-project/{semaprax.toml,src/app.spx,src/core.spx,src/tests.spx}",
+  "production_changes": false,
+  "new_test_bodies": 0,
+  "Rust_or_language_parser_executed": false
+}

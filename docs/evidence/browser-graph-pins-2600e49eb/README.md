@@ -1,5 +1,9 @@
 # Hosted graph bill after replay allocation changes
 
+Status: private implementation evidence; current-head qualification follows CI.
+
+Audience: compiler maintainers and reviewers.
+
 [CI run 38824367721, job 116728654352](https://github.com/wavect/semaprax/actions/runs/38824367721/job/116728654352)
 built `2600e49eb6d5853197fa53c972179f71df002bc0` using Rust 1.88 on Linux
 x86-64. Complete logged graph and compiler provenance records were decoded

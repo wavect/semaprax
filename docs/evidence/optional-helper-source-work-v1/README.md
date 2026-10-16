@@ -1,5 +1,9 @@
 # Optional scalar-helper source work
 
+Status: private implementation evidence; current-head qualification follows CI.
+
+Audience: compiler maintainers and reviewers.
+
 The existing Explorer source-inclusive 16 MiB snapshot regression reaches a
 G410 capture refusal first: scalar-helper capture charges the entire defining
 source, including comments, against its 1,048,576-unit work allowance. The

@@ -1,0 +1,19 @@
+[
+  {
+    "source": "src/workspace_graph/function_alias/before_core/tests.rs",
+    "checkpoint_revision": "ff7e1afd945de67b0e51125168a273e6f93fc73c",
+    "archive": "docs/evidence/alias-project-provider-fixture-847-20261016/tests.before.rs.txt",
+    "current_sha256": "aff28f8a817d3af2ada129b063115ba1d6897250b9890b28ce7d193ac295c33b",
+    "original_sha256": "c0b19ee7a50b904fd21ee18f36941f9365500fa6fd138d01659b4f39e18bb7a0",
+    "edits": [
+      {
+        "new": "version = \"1.0.0\"\n\n[modules]\nentry = \"alias.app\"\nsources = [\"src/app.spx\", \"src/provider.spx\", \"src/tests.spx\"]\ntests = [\"alias.tests\"]\n\n[exports]\nweb = [\"alias.current.value\"]\n\n[dependencies]\nstd.collections = \"=0.1.0\"\n\"#;\n    // Entry and test roots import a shared provider that declares no main,\n    // matching the admitted three-module calculator Project shape.\n    const APP: &str = r#\"module alias.app;\nuse function @id(\"alias.current.value\") from alias.current as current;\n@id(\"alias.app.main\") fn main()->i64 {current()}\n\"#;\n    const APP_PROVIDER: &str = r#\"module alias.current;\nuse function @id(\"std.collections.vec.with-capacity\") from std.collections as with_capacity;\nuse function @id(\"std.collections.vec.push\") from std.collections as push;\nuse function @id(\"std.collections.vec.get\") from std.collections as get;\n@id(\"alias.current.value\") fn value()->i64 {let values=with_capacity<i64>(2usize);let appended=push<i64>(values,42);get<i64>(appended,0usize)}\"#;\n    const TESTS: &str = r#\"module alias.tests;\nuse function @id(\"alias.current.value\") from alias.current as current;\n@id(\"alias.tests.main\") fn main()->i64 {if current()==42 {0} else {1}}\n\"#;\n    let build = || {\n",
+        "old": "version = \"1.0.0\"\n\n[modules]\nentry = \"alias.current\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"alias.tests\"]\n\n[exports]\nweb = [\"alias.current.main\"]\n\n[dependencies]\nstd.collections = \"=0.1.0\"\n\"#;\n    const TESTS: &str = r#\"module alias.tests;\nuse function @id(\"alias.current.main\") from alias.current as current;\n@id(\"alias.tests.main\") fn main()->i64 {if current()==42 {0} else {1}}\n\"#;\n    let build = || {\n"
+      },
+      {
+        "new": "        let sources = vec![\n            SemanticWorkspaceSource::new(\n                \"src/app.spx\".to_owned(),\n                canonical(APP, \"src/app.spx\"),\n            ),\n            SemanticWorkspaceSource::new(\n                \"src/provider.spx\".to_owned(),\n                canonical(APP_PROVIDER, \"src/provider.spx\"),\n            ),\n            SemanticWorkspaceSource::new(\n                \"src/tests.spx\".to_owned(),\n",
+        "old": "        let sources = vec![\n            SemanticWorkspaceSource::new(\n                \"src/app.spx\".to_owned(),\n                canonical(CALLER, \"src/app.spx\"),\n            ),\n            SemanticWorkspaceSource::new(\n                \"src/tests.spx\".to_owned(),\n"
+      }
+    ]
+  }
+]

@@ -20,6 +20,11 @@ type Cache = HashMap<(&'static str, &'static str), &'static str>;
 static CACHE: OnceLock<Mutex<Cache>> = OnceLock::new();
 static RECORDS: OnceLock<serde_json::Value> = OnceLock::new();
 
+// Semantic successors have their own named, whole-file custody proof. Keep
+// those edits separate from the original formatting/lint repair registry.
+#[path = "source_reflows/semantic_receivers.rs"]
+mod semantic_receivers;
+
 fn records() -> &'static [serde_json::Value] {
     RECORDS
         .get_or_init(|| serde_json::from_str(REPAIRS).unwrap())
@@ -56,6 +61,12 @@ fn restore(record: &serde_json::Value, current: &str) -> String {
     let path = record["path"].as_str().unwrap();
     let merged = crate::source_reflows_merge::main(path, current);
     let current = merged.as_str();
+    restore_formatting(record, current)
+}
+
+// A semantic custody predecessor is already authenticated at its named front.
+fn restore_formatting(record: &serde_json::Value, current: &str) -> String {
+    let path = record["path"].as_str().unwrap();
     assert_eq!(
         format!(
             "{:x}",
@@ -91,14 +102,22 @@ pub(crate) fn source(
     current: &'static str,
 ) -> &'static str {
     let path = logical_path(caller, included);
-    let Some(record) = records().iter().find(|record| record["path"] == path) else {
+    let record = records().iter().find(|record| record["path"] == path);
+    if record.is_none() && !semantic_receivers::contains(&path) {
         return current;
-    };
+    }
     let mut cache = CACHE.get_or_init(Mutex::default).lock().unwrap();
     cache.entry((caller, included)).or_insert_with(|| {
+        let predecessor = semantic_receivers::predecessor(&path, current);
+        let current = predecessor.as_deref().unwrap_or(current);
         // One bounded fixture allocation per included file, retained only for
         // this test process. This helper is absent from production builds.
-        Box::leak(restore(record, current).into_boxed_str())
+        let restored = match record {
+            Some(record) if predecessor.is_some() => restore_formatting(record, current),
+            Some(record) => restore(record, current),
+            None => predecessor.unwrap(),
+        };
+        Box::leak(restored.into_boxed_str())
     })
 }
 
@@ -110,7 +129,11 @@ fn approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors()
         let path = record["path"].as_str().unwrap();
         assert!(paths.insert(path));
         let current = std::fs::read_to_string(root.join(path)).unwrap();
-        let old = restore(record, &current);
+        let predecessor = semantic_receivers::predecessor(path, &current);
+        let old = match predecessor {
+            Some(ref previous) => restore_formatting(record, previous),
+            None => restore(record, &current),
+        };
         assert_ne!(current, old);
     }
     let mut main_paths = std::collections::BTreeSet::new();

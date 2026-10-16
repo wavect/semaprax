@@ -1,0 +1,1 @@
+{"all19_actual_findings_covered": true, "cfgtest_macro_reexport_preserved": true, "eight_usize_array_layout_equivalent": true, "forward_inverse_patch_roundtrip": true, "inherited67b_algorithm": "PASS_SOURCE_ONLY", "lazy_terminal_error_formation_preserved": true, "rust_executed": false, "shipping_files": 7, "status": "PASS_SOURCE_ONLY", "whole67b_inputs": 8}

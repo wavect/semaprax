@@ -1,0 +1,299 @@
+diff --git b/CHANGELOG.md a/CHANGELOG.md
+index e19519437..a4cf4436c 100644
+--- b/CHANGELOG.md
++++ a/CHANGELOG.md
+@@ -8,8 +8,6 @@
+      distinct cold callers; full old receiver retained; qualification pending. -->
+ # Changelog
+ 
+-- Correct all 19 observed 67b production Clippy findings without weakening checks: retain test-only macro access, lazy terminal error formation, ordered funded branches and the exact eight-usize receiving layout. Runtime qualification remains pending.
+-
+ - Reconcile Main8a finished-path capacity, arbitrary final-suffix transfer and borrowed nominal context with lexical paid receiving; preserve original work-before-optional-payment priority and complete Main controls. Qualification and net application cost remain pending.
+ 
+ - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.
+diff --git b/src/cleanup/inventory_builder/typed.rs a/src/cleanup/inventory_builder/typed.rs
+index bc63fc21d..6156b7fdd 100644
+--- b/src/cleanup/inventory_builder/typed.rs
++++ a/src/cleanup/inventory_builder/typed.rs
+@@ -71,6 +71,7 @@ macro_rules! key_bytes {
+         }
+     }};
+ }
++use key_bytes;
+ /// Same actual two fields destructured from the invocation ReplayBudget. This
+ /// API creates no accounting owner or allowance and cannot accept a Diagnostic;
+ /// Ledger below is only a synchronous pair of borrows into those existing fields.
+@@ -294,11 +295,15 @@ impl InventoryBuilder<'_> {
+             receiving::REASON,
+             1
+         );
+-        let Some(slot) = self.slots.iter().find(|slot| slot.id == storage) else {
+-            return Err(InventoryFailure(Kind::Finite(
+-                Reason::ConditionalEntryReferencesUnknownStorage,
+-            )));
+-        };
++        let slot = self
++            .slots
++            .iter()
++            .find(|slot| slot.id == storage)
++            .ok_or_else(|| {
++                InventoryFailure(Kind::Finite(
++                    Reason::ConditionalEntryReferencesUnknownStorage,
++                ))
++            })?;
+         let FieldLivenessShape::Variant { declaration, cases } = &slot.shape else {
+             return Ok(None);
+         };
+diff --git b/src/cleanup/inventory_builder/typed/selected.rs a/src/cleanup/inventory_builder/typed/selected.rs
+index ef5bff1f0..21baf33a2 100644
+--- b/src/cleanup/inventory_builder/typed/selected.rs
++++ a/src/cleanup/inventory_builder/typed/selected.rs
+@@ -15,11 +15,9 @@ impl InventoryBuilder<'_> {
+     ) -> Result<T, InventoryFailure> {
+         receiving!(&self.ledger, T, super::receiving::REASON_OR_PHYSICAL, 1);
+         {
+-            let Some(bytes) = value.clone_payload_bytes() else {
+-                return Err(InventoryFailure(Kind::Finite(
+-                    Reason::SelectedInventoryCloneBackingOverflow,
+-                )));
+-            };
++            let bytes = value.clone_payload_bytes().ok_or_else(|| {
++                InventoryFailure(Kind::Finite(Reason::SelectedInventoryCloneBackingOverflow))
++            })?;
+             self.charge(bytes)?;
+             self.ledger
+                 .borrow_mut()
+@@ -82,11 +80,11 @@ impl InventoryBuilder<'_> {
+         if !primitive_drop!(ty) {
+             return Ok(FieldLivenessShape::NoDrop);
+         }
+-        let Some(id) = crate::cleanup::primitive_leaf_lifecycle_identity(ty) else {
+-            return Err(InventoryFailure(Kind::Finite(
++        let id = crate::cleanup::primitive_leaf_lifecycle_identity(ty).ok_or_else(|| {
++            InventoryFailure(Kind::Finite(
+                 Reason::SelectedInventoryHasNoPrimitiveLifecycle,
+-            )));
+-        };
++            ))
++        })?;
+         self.selected_lifecycle_shape(id, storage, projection)
+     }
+     fn selected_vector_shape(
+diff --git b/src/cleanup/inventory_builder/typed/traversal.rs a/src/cleanup/inventory_builder/typed/traversal.rs
+index d8cf9a33b..bff3f8053 100644
+--- b/src/cleanup/inventory_builder/typed/traversal.rs
++++ a/src/cleanup/inventory_builder/typed/traversal.rs
+@@ -1,7 +1,8 @@
+ use super::{receiving, reserve, reserve_legacy, InventoryBuilder, InventoryFailure, Kind, Reason};
+ use crate::cleanup::CleanupStorageOrigin;
+ use crate::hir::{
+-    OwnershipMode, ResolvedBinding, ResolvedExpr, ResolvedExprKind, ResolvedStatement, ResolvedType,
++    OwnershipMode, ResolvedBinding, ResolvedExpr, ResolvedExprKind, ResolvedMatchPattern,
++    ResolvedRecordMatchFieldPattern, ResolvedStatement, ResolvedType,
+ };
+ impl InventoryBuilder<'_> {
+     pub(super) fn collect_expression(
+@@ -290,18 +291,22 @@ impl InventoryBuilder<'_> {
+                     }
+                 }
+                 Item::Pattern(ResolvedMatchPattern::Record { record, fields, .. }) => {
+-                    let Some(declared) = self.program.declarations().record_fields(record) else {
+-                        return Err(InventoryFailure(Kind::Finite(
+-                            Reason::RecordPatternHasNoFieldInventory,
+-                        )));
+-                    };
++                    let declared = self
++                        .program
++                        .declarations()
++                        .record_fields(record)
++                        .ok_or_else(|| {
++                            InventoryFailure(Kind::Finite(Reason::RecordPatternHasNoFieldInventory))
++                        })?;
+                     for declaration in declared.iter().rev() {
+-                        let Some(field) = fields.iter().find(|field| field.field == declaration.id)
+-                        else {
+-                            return Err(InventoryFailure(Kind::Finite(
+-                                Reason::RecordPatternFieldInventoryIsIncomplete,
+-                            )));
+-                        };
++                        let field = fields
++                            .iter()
++                            .find(|field| field.field == declaration.id)
++                            .ok_or_else(|| {
++                                InventoryFailure(Kind::Finite(
++                                    Reason::RecordPatternFieldInventoryIsIncomplete,
++                                ))
++                            })?;
+                         reserve(&self.ledger, &mut pending, 1)?;
+                         pending.push(Item::RecordField(&field.pattern));
+                     }
+@@ -341,18 +346,24 @@ impl InventoryBuilder<'_> {
+                     fields,
+                     ..
+                 }) => {
+-                    let Some(declared) = self.program.declarations().record_fields(record) else {
+-                        return Err(InventoryFailure(Kind::Finite(
+-                            Reason::NestedRecordPatternHasNoFieldInventory,
+-                        )));
+-                    };
++                    let declared = self
++                        .program
++                        .declarations()
++                        .record_fields(record)
++                        .ok_or_else(|| {
++                            InventoryFailure(Kind::Finite(
++                                Reason::NestedRecordPatternHasNoFieldInventory,
++                            ))
++                        })?;
+                     for declaration in declared.iter().rev() {
+-                        let Some(field) = fields.iter().find(|field| field.field == declaration.id)
+-                        else {
+-                            return Err(InventoryFailure(Kind::Finite(
+-                                Reason::NestedRecordPatternFieldInventoryIsIncomplete,
+-                            )));
+-                        };
++                        let field = fields
++                            .iter()
++                            .find(|field| field.field == declaration.id)
++                            .ok_or_else(|| {
++                                InventoryFailure(Kind::Finite(
++                                    Reason::NestedRecordPatternFieldInventoryIsIncomplete,
++                                ))
++                            })?;
+                         reserve(&self.ledger, &mut pending, 1)?;
+                         pending.push(Item::RecordField(&field.pattern));
+                     }
+diff --git b/src/cleanup_plan/replay.rs a/src/cleanup_plan/replay.rs
+index 608052d71..10e5887c5 100644
+--- b/src/cleanup_plan/replay.rs
++++ a/src/cleanup_plan/replay.rs
+@@ -2919,7 +2919,7 @@ fn hir_skeleton_paths_with_index_storage<'hir>(
+         },
+         "completed HIR skeleton path"
+     );
+-    for path in paths {
++    while let Some(path) = paths.next() {
+         let terminal = lexical_skeleton::terminal(&path);
+         work.push_skeleton_path(
+             &mut completed,
+@@ -2982,8 +2982,10 @@ fn sequence_skeleton_paths(
+     )?;
+     let single = suffixes.len() == 1;
+     let mut precharged = false;
+-    if single && first {
+-        sequence_vector::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged);
++    if single {
++        if first {
++            sequence_vector::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged);
++        }
+     }
+     for mut prefix in prefixes {
+         if prefix.failed || prefix.residual {
+@@ -3002,8 +3004,10 @@ fn sequence_skeleton_paths(
+             );
+             continue;
+         }
+-        if !precharged && share_prefix {
+-            work.share_prefix_tail(&mut prefix.observations)?;
++        if !precharged {
++            if share_prefix {
++                work.share_prefix_tail(&mut prefix.observations)?;
++            }
+         }
+         if single {
+             if precharged {
+@@ -3140,9 +3144,13 @@ fn sequence_skeleton_paths(
+         let capacity = prefix.observations.items.capacity();
+         let suffix_len = last.observations.items.len();
+         let take = if work.budget.pays_allocations() {
+-            if work.budget.selected() || len < final_output::FINAL_MINIMUM_ITEMS {
++            if work.budget.selected() {
++                false
++            } else if len < final_output::FINAL_MINIMUM_ITEMS {
+                 false
+-            } else if last.observations.prefix.is_some() || capacity == len {
++            } else if last.observations.prefix.is_some() {
++                true
++            } else if capacity == len {
+                 true
+             } else {
+                 suffix_len <= capacity - len
+diff --git b/src/cleanup_plan/replay/final_output.rs a/src/cleanup_plan/replay/final_output.rs
+index 4b9211151..26eb85d05 100644
+--- b/src/cleanup_plan/replay/final_output.rs
++++ a/src/cleanup_plan/replay/final_output.rs
+@@ -175,7 +175,7 @@ pub(super) const FINAL_HEADER_CONTROLS: usize = size_of::<Result<(), Diagnostic>
+     + size_of::<&mut ReplayBudget>()
+     + size_of::<&ResolvedFunction>()
+     + size_of::<&str>()
+-    + size_of::<[usize; 8]>()
++    + 8 * size_of::<usize>()
+     + 6 * size_of::<&Vec<std::rc::Rc<SkeletonObservation>>>()
+     + 4 * size_of::<&ReplayBudget>()
+     + 2 * size_of::<&Option<std::rc::Rc<super::skeleton_work::ObservationDag>>>()
+diff --git b/src/cleanup_plan/replay/inventory_coverage/paid.rs a/src/cleanup_plan/replay/inventory_coverage/paid.rs
+index 479954773..d2d331369 100644
+--- b/src/cleanup_plan/replay/inventory_coverage/paid.rs
++++ a/src/cleanup_plan/replay/inventory_coverage/paid.rs
+@@ -2,8 +2,8 @@
+ //! supplemental checker are still the exact original owning Diagnostic route;
+ //! they are explicit #781 residuals, not relabelled budget provenance.
+ use super::{
+-    collect_supplemental, inventory_storage_id, replay_error, ReplayBudget, ReplayContext,
+-    ResolvedFunction,
++    collect_supplemental, inventory_storage_id, replay_error, Diagnostic, ReplayBudget,
++    ReplayContext, ResolvedFunction,
+ };
+ use crate::cleanup_plan::replay::expression_facts::errors::EngineError;
+ // This lexical frontier introduces no preflight helper or forwarding Result.
+@@ -40,7 +40,6 @@ macro_rules! admit_initial {
+         }
+     }};
+ }
+-#[cfg(test)]
+ pub(super) use admit_initial;
+ pub(in crate::cleanup_plan::replay) fn validate_inventory_coverage(
+     program: &dyn ReplayContext,
+diff --git b/src/cleanup_plan/replay/sequence_vector.rs a/src/cleanup_plan/replay/sequence_vector.rs
+index ef10daee9..36dfa177a 100644
+--- b/src/cleanup_plan/replay/sequence_vector.rs
++++ a/src/cleanup_plan/replay/sequence_vector.rs
+@@ -154,7 +154,8 @@ macro_rules! reuse {
+             if $minimum <= MAX_REPLAY_PATHS {
+                 let capacity = $prefixes.capacity();
+                 match $minimum.checked_next_power_of_two() {
+-                    Some(expected) if expected == capacity => {
++                    Some(expected) => {
++                        if expected == capacity {
+                             match capacity.checked_mul(std::mem::size_of::<ExprSkeletonPath>()) {
+                                 Some(bytes) => {
+                                     match $minimum.checked_mul($crate::cleanup_plan::replay::sequence_vector::SWAP_CONTROLS) {
+@@ -162,11 +163,13 @@ macro_rules! reuse {
+                                             match swap_bytes.checked_add($crate::cleanup_plan::replay::sequence_vector::FRAME) {
+                                                 Some(frame_bytes) => {
+                                                     match frame_bytes.checked_add($crate::cleanup_plan::replay::sequence_vector::QUERY) {
+-                                                        Some(min_saved) if bytes >= min_saved => {
+-                                                            $crate::cleanup_plan::replay::sequence_vector::transfer!(
+-                                                                $prefixes, $suffixes, $work, $share, $precharged, frame_bytes);
++                                                        Some(min_saved) => {
++                                                            if bytes >= min_saved {
++                                                                $crate::cleanup_plan::replay::sequence_vector::transfer!(
++                                                                    $prefixes, $suffixes, $work, $share, $precharged, frame_bytes);
++                                                            }
+                                                         }
+-                                                        _ => {}
++                                                        None => {}
+                                                     }
+                                                 }
+                                                 None => {}
+@@ -177,8 +180,9 @@ macro_rules! reuse {
+                                 }
+                                 None => {}
+                             }
++                        }
+                     }
+-                    _ => {}
++                    None => {}
+                 }
+             }
+         }

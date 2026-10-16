@@ -1,0 +1,64 @@
+{
+  "src/cleanup/inventory_builder/typed.rs": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "src/cleanup/inventory_builder/typed/selected.rs": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "src/cleanup/inventory_builder/typed/traversal.rs": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "src/cleanup_plan/replay.rs": [
+    "src/cleanup_plan/replay/allocation/tests/accounting_scope.rs",
+    "src/cleanup_plan/replay/branch_clone/before.rs",
+    "src/cleanup_plan/replay/branch_clone/main8a/tests.rs",
+    "src/cleanup_plan/replay/compact_stage/source_custody.rs",
+    "src/cleanup_plan/replay/compact_stage/source_custody_main8a.rs",
+    "src/cleanup_plan/replay/compact_stage/source_custody_maina3.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/regions_entry/tests.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/tests.rs",
+    "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+    "src/cleanup_plan/replay/path_array/main8a/completed_tests.rs",
+    "src/cleanup_plan/replay/path_array/main8a/tests.rs",
+    "src/cleanup_plan/replay/path_array/tests.rs",
+    "src/cleanup_plan/replay/schema/paid_summary/tests.rs",
+    "src/cleanup_plan/replay/sequence_vector/main_a3/path_array_source.rs",
+    "src/cleanup_plan/replay/sequence_vector/main_a3/tests.rs",
+    "src/source_reflows_merge.rs",
+    "src/source_reflows_merge/final_custody.rs",
+    "src/source_reflows_merge/main8a_custody.rs",
+    "src/source_reflows_merge/maina3_custody.rs",
+    "src/source_reflows_merge/metadata_json.rs",
+    "src/source_reflows_merge/prefix_custody.rs",
+    "src/source_reflows_merge/release_custody.rs",
+    "src/source_reflows_merge/runtime_json/membership.rs",
+    "src/source_reflows_merge/successor_custody.rs",
+    "tests/cleanup_backends/kernel_boundary.rs"
+  ],
+  "src/cleanup_plan/replay/final_output.rs": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "src/source_reflows_merge/main8a_custody.rs",
+    "src/source_reflows_merge/maina3_custody.rs",
+    "src/source_reflows_merge/metadata_json.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "src/cleanup_plan/replay/inventory_coverage/paid.rs": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "src/cleanup_plan/replay/sequence_vector.rs": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ]
+}

@@ -2919,7 +2919,7 @@ fn hir_skeleton_paths_with_index_storage<'hir>(
         },
         "completed HIR skeleton path"
     );
-    while let Some(path) = paths.next() {
+    for path in paths {
         let terminal = lexical_skeleton::terminal(&path);
         work.push_skeleton_path(
             &mut completed,
@@ -2982,10 +2982,8 @@ fn sequence_skeleton_paths(
     )?;
     let single = suffixes.len() == 1;
     let mut precharged = false;
-    if single {
-        if first {
-            sequence_vector::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged);
-        }
+    if single && first {
+        sequence_vector::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged);
     }
     for mut prefix in prefixes {
         if prefix.failed || prefix.residual {
@@ -3004,10 +3002,8 @@ fn sequence_skeleton_paths(
             );
             continue;
         }
-        if !precharged {
-            if share_prefix {
-                work.share_prefix_tail(&mut prefix.observations)?;
-            }
+        if !precharged && share_prefix {
+            work.share_prefix_tail(&mut prefix.observations)?;
         }
         if single {
             if precharged {
@@ -3144,13 +3140,9 @@ fn sequence_skeleton_paths(
         let capacity = prefix.observations.items.capacity();
         let suffix_len = last.observations.items.len();
         let take = if work.budget.pays_allocations() {
-            if work.budget.selected() {
+            if work.budget.selected() || len < final_output::FINAL_MINIMUM_ITEMS {
                 false
-            } else if len < final_output::FINAL_MINIMUM_ITEMS {
-                false
-            } else if last.observations.prefix.is_some() {
-                true
-            } else if capacity == len {
+            } else if last.observations.prefix.is_some() || capacity == len {
                 true
             } else {
                 suffix_len <= capacity - len

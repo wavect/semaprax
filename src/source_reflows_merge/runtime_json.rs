@@ -53,6 +53,12 @@ pub(super) fn final_custody(fixture: super::final_custody::Fixture) -> String {
     read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
         .expect("complete authenticated final source custody")
 }
+// Sealed successor inventory; identical private descriptor reader.
+pub(super) fn successor_custody(fixture: super::successor_custody::Fixture) -> String {
+    let spec = fixture.spec();
+    read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
+        .expect("complete authenticated successor source custody")
+}
 pub(super) fn load(fixture: Fixture) -> String {
     let spec = fixture.spec();
     read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)

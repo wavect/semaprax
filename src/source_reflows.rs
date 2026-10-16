@@ -221,3 +221,6 @@ fn restore_main927(record: &serde_json::Value, current: &str) -> String {
     );
     restored
 }
+
+#[path = "source_reflows/semantic_receivers_main_afba.rs"]
+mod semantic_receivers_main_afba;

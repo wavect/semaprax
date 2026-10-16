@@ -1,0 +1,47 @@
+[
+  {
+    "source": "CHANGELOG.md",
+    "current_sha256": "65a0c05e14c68f9141243b13f31cea732e69d5e2c9d0f07e3cba933d3fbec486",
+    "original_sha256": "24d75ac921a12af58bd40a2f9e9274bae40bf2487ca7d5669a892330197aadcf",
+    "edits": [
+      {
+        "new": "- Reuse the already-built exact HIR/plan comparison for fitting ordinary lexical proof after unchanged enumeration admission/reservation; retain complete forced old enumeration and all weighted receiver payments, with no allowance refund or measured application/agent improvement claim.\n\n- Move the validated singleton ownership state and its conditional variants through unchanged normalization, removing absent clones while preserving join validation, work, scheduling and the complete old receiver; focused numerical qualification remains pending.\n- Retain the original mixed String/Bytes programs as source, HIR and canonical graph acceptance regressions; keep unsupported-array declaration and pattern refusals under the existing exact diagnostics.\n\n- Adapt the final Option residual forgery check and move boxed residual types into the native builder’s unchanged iterative-disposal frames.\n\n- Compact HIR expression storage with funded residual-type boxes, preserving full type data, private cache bytes and limits, complete previous expression definitions, and physical allocation/refusal controls.\n\n",
+        "old": "- Reuse the already-built exact HIR/plan comparison for fitting ordinary lexical proof after unchanged enumeration admission/reservation; retain complete forced old enumeration and all weighted receiver payments, with no allowance refund or measured application/agent improvement claim.\n\n- Move the validated singleton ownership state and its conditional variants through unchanged normalization, removing absent clones while preserving join validation, work, scheduling and the complete old receiver; focused numerical qualification remains pending.\n\n- Compact HIR expression storage with funded residual-type boxes, preserving full type data, private cache bytes and limits, complete previous expression definitions, and physical allocation/refusal controls.\n\n"
+      },
+      {
+        "new": "  retain full prior algorithms and ordinary dynamic fallback, and add four\n  unexecuted whole-query/certificate controls. Remaining #781 families stay open.\n\n- Join source-only selected receiving, canonical arenas, fixed JSON transport and Main residual construction with independent complete historical views. Original fixtures and guards remain; memory, cost and application outcomes await the next qualification.\n\n- OPT850 next source component removes actual optional-presence transport from\n  the production ordinary directory factory, retaining its full preceding\n",
+        "old": "  retain full prior algorithms and ordinary dynamic fallback, and add four\n  unexecuted whole-query/certificate controls. Remaining #781 families stay open.\n\n\n- OPT850 next source component removes actual optional-presence transport from\n  the production ordinary directory factory, retaining its full preceding\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/ORDINARY-RENEWAL-DIRECTORY-V1.md",
+    "current_sha256": "167ba3ab6b8f8ed8330e6ec0f5e8122811290014aeae6c38de0dcda235e24c22",
+    "original_sha256": "167ba3ab6b8f8ed8330e6ec0f5e8122811290014aeae6c38de0dcda235e24c22",
+    "edits": []
+  },
+  {
+    "source": "src/cleanup_plan/renewal_profile/ordinary/mod.rs",
+    "current_sha256": "e480f42946f67762a7498e42b5350ef82b89b45798f7759b35815ec3288594af",
+    "original_sha256": "e480f42946f67762a7498e42b5350ef82b89b45798f7759b35815ec3288594af",
+    "edits": []
+  },
+  {
+    "source": "src/cleanup_plan/renewal_profile/ordinary/record_presence.rs",
+    "current_sha256": "685368b3288fbe5b26a880469e7173b41de5e3b285639f5a4dc791c568ee20a6",
+    "original_sha256": "685368b3288fbe5b26a880469e7173b41de5e3b285639f5a4dc791c568ee20a6",
+    "edits": []
+  },
+  {
+    "source": "src/cleanup_plan/renewal_profile/ordinary/record_presence/tests.rs",
+    "current_sha256": "c124aeefd523c28c4b065ca49d93f6d52d84c00d26a6b72cba625f0566b89203",
+    "original_sha256": "c124aeefd523c28c4b065ca49d93f6d52d84c00d26a6b72cba625f0566b89203",
+    "edits": []
+  },
+  {
+    "source": "src/loop_calls/byte_writer/module_index/ordinary.rs",
+    "current_sha256": "4d7c370bde40a30d397166ac2f703e32f84047088a5bf031f634341008084ca5",
+    "original_sha256": "4d7c370bde40a30d397166ac2f703e32f84047088a5bf031f634341008084ca5",
+    "edits": []
+  }
+]

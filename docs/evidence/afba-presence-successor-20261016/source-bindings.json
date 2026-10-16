@@ -1,0 +1,898 @@
+{
+  "sealed724": "72432ebb897920bb006855e500a64b151c4bfb5e",
+  "main_afba": "afba9a3cd3e285f9cf2a084485448c088396b189",
+  "presence_ref": "6e1b3e380a7243d9f3c71a0954cdc847fce628de",
+  "capsules": {
+    "sealed724": {
+      "ref": "72432ebb897920bb006855e500a64b151c4bfb5e",
+      "path": "current-to-sealed724.json",
+      "rows": 20,
+      "sha256": "a6792c890e1238a168880df94203fb824ca603d19d432f604ed20d3e62f901cb"
+    },
+    "main-afba": {
+      "ref": "afba9a3cd3e285f9cf2a084485448c088396b189",
+      "path": "current-to-main-afba.json",
+      "rows": 12,
+      "sha256": "31b040dc78c683585b498ab16d10c1939b20ed7c3a2a74c29c4394e652810760"
+    },
+    "presence": {
+      "ref": "6e1b3e380a7243d9f3c71a0954cdc847fce628de",
+      "path": "current-to-presence.json",
+      "rows": 6,
+      "sha256": "5c2bd36e43826dc9e3d8581b357a229f4a2537bd747b9430797a6c0e0c2f0de5"
+    }
+  },
+  "protected724": [
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/README.md",
+      "sha256": "d3bceed2cc1dd8853eebfa6f78e05f73780a1051395c147c5386c9c264f3d4f2"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/arm-contract.json",
+      "sha256": "847d2bdbcc001e469fb9fa8c02ddc9218ee83c702e20da3e078ba896fc01e174"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/authority-source-proof.json",
+      "sha256": "82986beb912dd85c5841151172367f2d8e222ab8575c006ab72aa683f7db91f2"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/CHANGELOG.md",
+      "sha256": "de061de3674877d7663e090422ab0bbf9e4aae75fdba1d330dc4d4db968dff6a"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/crates/semaprax-native-rust-interop-builder/src/implementation/capacity/hir_owned.rs",
+      "sha256": "84659f0710c93221ede7774f703743ea5a5888ddcd13e6720aa7dbbb05f11362"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/crates/semaprax-native-rust-interop-builder/src/implementation/tests/hir_traversal.rs",
+      "sha256": "a1befd7bf407a40576ed4a2003f8962c81ed966f712982eb20b22b1c55e294df"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "sha256": "6ff6aa74c81e8455f26db573b6561b64f6e091466311cfdb21a02a4cd3290088"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/docs/ARCHITECTURE.md",
+      "sha256": "ad9206645ce184e7e3700771adae15eaa5c4881e2b9e3b17ca93b251aaf1846c"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "sha256": "0c081e35cbbcae60e092c84023ffcb9a350d14cefcf9b2ad5d46eb24d28cf5f2"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+      "sha256": "e2dcb8f6a31a753891aeb04fa5269a28c555ec686a7945a8c5080bd54d7178a3"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/renewal_profile.rs",
+      "sha256": "46f3c87a7d1bd762ea86895c8dada6d980331f1e6cf13e63820a49c254219008"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "sha256": "fbd2da5b2009357bf8a1ff35f0bb4792e89c5dd41efde6afff740f41f0db4f42"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay.rs",
+      "sha256": "e20762a8c39c22f697ad721d3ea7df4fffca681497fca5425b3e5448899f8425"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/compact_stage.rs",
+      "sha256": "7bfb511c1ac993dc6c9ae97b9f04c6b0275d6ecc3ef8946a07fb3277e1cad4a4"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/compact_stage/source_custody.rs",
+      "sha256": "23802c3895189f78eec4ebdb35fc58e4bb034a53fc0587de43d49f52b44c0a5e"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/flat_records.rs",
+      "sha256": "fa3b9c6fe087b845d64d9ad8ca518b67f92a33827b4615f4c826d9518abbf660"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/flat_records/tests.rs",
+      "sha256": "fc953c5e95a5d1e285369610da6b0e1443235460f8d1f050f3e7c7bbbf60bf30"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/leaf_index.rs",
+      "sha256": "17a6913340db634eb8fde149d23738ce68cf2ba1ec5ea10150084bc7defe2335"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/lexical_boundary.rs",
+      "sha256": "5eee6a4cfaccc5cff4ab3ea39acaa772a472949ebfe16c8ab586ff346f6dc023"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/lexical_cert.rs",
+      "sha256": "09a4b64ce78b4dbc7ba77240152e84dd0960b0d1739a163bca1da12640d60d48"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/lexical_replay.rs",
+      "sha256": "00cfdd547cad552bde792319f9804ef2d36c50d853972098debec15fe14caa05"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/resolved_call.rs",
+      "sha256": "6736bed2215996b1b5ed754eab021975949d985fb8d5e5c0af1ca6de6bd75d7c"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/scalar_replay.rs",
+      "sha256": "414c0444a55574badd9d9b9a83a1f0c7298f57cc183eb6afb88b981cd2912b02"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/scalar_replay/records.rs",
+      "sha256": "d0a7ecff13b07ac0c5197fb5d590de2a734c45c4ebd02ab66eb8bcb1479ad09b"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/selected_context/child.rs",
+      "sha256": "1710f802f9b90889de12bbfc6bd5ad713e02d67a605f3c9ada8413580973fe7e"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/selected_entry/tests/driver_local_receivers.rs",
+      "sha256": "188d54a310b030e6f803ab8c37d1d93e410b80f6d1336f9aca3cd6c0f5ff3547"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/selected_profile/paid_children.rs",
+      "sha256": "9b959ccb9a045733478f24d14927c41f79af6a50a3d2c1c6382ef4753e223216"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/semantic_refusal.rs",
+      "sha256": "fc1a6f41a225e0936ede78ff9923eb0eea1e93ce5c8e37fbde9709e6ee78c823"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/status_construction.rs",
+      "sha256": "d72a80e34d5165cb87e307d9c0b0f3c4ec951656bb2a7515719635a43265c036"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/structural_maps.rs",
+      "sha256": "aacb833fa5db9e2494a415e12c4380c9cc102d500c8e113c302e92d43f878471"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/structural_maps/tests.rs",
+      "sha256": "54b538d0ae5403297d4a5a22088f6385784b539ffef5d1942d04f22a21134f81"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/codegen/native_emit/expression/owned_try.rs",
+      "sha256": "bf3d9653f75e8c35b3ea85dda573bd02017af19708876a2f9bf043447a00255b"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/hir.rs",
+      "sha256": "432395d875a954de8aee03c3fcbd827ecbb5066e0c6fa9fd0cc0ec2c2a36db7f"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/hir/cache_codec.rs",
+      "sha256": "94b6c209bd11e5c6912c1b6da5f90c606b6d3d771c849c6813e3c96c81e65d7c"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/hir/capacity_probe.rs",
+      "sha256": "75d6dc544abeb838bda3fc243eeddc015fbb7adb462302ad3becf29fb338ee0b"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/hir/expr_nodes.rs",
+      "sha256": "38b34d4f37ced73abb4e6054e668fa0454bcc9dbb0caabda31da680b44fa38fc"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/hir/monomorphize.rs",
+      "sha256": "07bd9aa057c0a2d1b34fdbbd95d5cb948e6601922f8d5e9a404ebfd3c043acdd"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/hir/owned_result_try.rs",
+      "sha256": "88f016e920f1e9dcc143bd1206b4e24c901f345c808d2b09c90b03521dc46f39"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/hir/resolve_program.rs",
+      "sha256": "227090a0a9b557473a8a92822a165c65813b3c5a575ac7aa2ba7fc76c7b2f8bb"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/hir/validation.rs",
+      "sha256": "b992401f880bc629ca3947db88285a2f18d94c0f49bfa0ef9b74070cff53cee2"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/interpreter/owned_try.rs",
+      "sha256": "2922014836228ba21a992c35168e233b71875d21360a5d3c74d52aa668a7caf3"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/loan_plan/children_tests.rs",
+      "sha256": "e848d945f617e862b6b6523cea2892de6ad174f6d12e42aa5460d481c3297c33"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/loan_plan/tests.rs",
+      "sha256": "31a1079a03c363e0040bdb35cffa5d5784db53ddc9a938422b4a6f985e616f7d"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/source_reflows.rs",
+      "sha256": "8fca19450e0085f7986e79a1878b9246f86fe884646c70fca5f1d4508d367505"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/source_reflows_merge.rs",
+      "sha256": "5a86aa5b2e81a33c0a84fd9b419c9d36443b343e74d5cb295a64fde6e52a79e7"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/source_reflows_merge/runtime_json.rs",
+      "sha256": "5eff71a7e49b61dbd6493a10f175be55804815502277b787d02e974b1180758d"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/source_reflows_merge/runtime_json/tests.rs",
+      "sha256": "cbe9336a17fa49c7555a905b61bcb4d8405301a12d168c78f25d76ef68cbd649"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/wasm/aggregate.rs",
+      "sha256": "84971b8a067d718beee6a131d4b87c4c1549c0c9c12345f447592a1ef5d06c59"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/workspace_graph/expected_projection/declaration_cost.rs",
+      "sha256": "292ddb639c85013c7382acbb073c0f15326eca6f4c529f7004336934fcdcac5d"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/workspace_graph/type_proof_tests.rs",
+      "sha256": "fc7995a691693f71686e264b60ef5803a8a724553ea948f5dfd34ce0b6e80eab"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/tests/hir_module_boundaries.rs",
+      "sha256": "22f2567c97053bdb80f10dad92c97ffb324285f441dfb2258836900626163e36"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/tests/language/owned_result_variants.rs",
+      "sha256": "5658d7342872c634d5c84412be3eec8dc99859237a157df3ab4a00c3091ec00e"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/tests/language/result_try_semantics.rs",
+      "sha256": "6252a47a8e033cb10b3534ccd62e634018b05a9a4da73f635bacd84c30a41c1a"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/tests/native/string_settlement/bulk_utf8.rs",
+      "sha256": "2d1188ac8b8b2bd51a690aa4759826e92e7ecf706dbf53eb74ce89121de045a8"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/tests/native/string_settlement/codec_allocation.rs",
+      "sha256": "8c350e08fafcccbf185a4aac5778f1e36ec59675b5e88af326f2f3dc8fc2b300"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/tests/native/string_settlement/codec_allocation/string_vectors.rs",
+      "sha256": "590c08774b5b29d20413fb9764152fd5a5168758a1fcf1cec40637521991b591"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/tests/native_string_settlement_v1/contents.rs",
+      "sha256": "d448143824939b0750f6951cbac780caec2789cca7ca1ba633296862f328e45b"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/tests/owned_data/bulk_utf8.rs",
+      "sha256": "6e9e6344b8c7c71adfee042a8fe56a7e8eb1887b7ccb5eaf5ccbb881d305b59a"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/tests/owned_data/owned_nested_outcome.rs",
+      "sha256": "cd01d38d514891fcd996a58cc941c96e4796bb64e8e44ecd0a37d41788d5d7ca"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/tests/owned_data/projected_string_views.rs",
+      "sha256": "a08c2438abf67e7216ace932b51fe0cffb0fbb4a0531872aa467ee17fc1c7533"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/tests/root_unsafe_quarantine.rs",
+      "sha256": "90fc9484eac3dabc51e2a8c9a638bc0aa9900ff6d750824b144993b4216b594d"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/tests/wasm/scalar_browser_ci_contract.rs",
+      "sha256": "00b1c8f92850779236c14c05e0302d76e812682b7055bc3229b7584184036593"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+      "sha256": "9bed9243d6ed3cbc89e0568e5a1b1c8bd845b3e0c07db173ff1349b3efbb80bc"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "sha256": "b6497eb6b650743410f5e9f6cb3a13fc5dd35aa3964ffa1fa8946aabe839dafd"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/tests/workspace/semantic_graph.rs",
+      "sha256": "63df950f53b949b89e806df5ad41a01f559ecea2735354283abce1ce4f563b96"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/tests/workspace/semantic_graph/source_inventory.rs",
+      "sha256": "97c38a8bf8d462f24be201588afe575239e7db37b47abf7ec07ff45436a01cd1"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/CHANGELOG.md",
+      "sha256": "2bb21118a2e56825fab8bbd9900ada1ec63b69d334fc4c7abb56227142a37eee"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/crates/semaprax-native-rust-interop-builder/src/implementation/capacity/hir_owned.rs",
+      "sha256": "84659f0710c93221ede7774f703743ea5a5888ddcd13e6720aa7dbbb05f11362"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/crates/semaprax-native-rust-interop-builder/src/implementation/tests/hir_traversal.rs",
+      "sha256": "a1befd7bf407a40576ed4a2003f8962c81ed966f712982eb20b22b1c55e294df"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "sha256": "7bd3207dd8ddb74c4f0199df539e6ae32b9fecdbcdc99f05d167b8178afdedca"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/docs/ARCHITECTURE.md",
+      "sha256": "4cd07c51c12a1a1521548928b8dc314b45535dde2a28c81f25c68d1fc2fbaf84"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "sha256": "d386e08dbebaaaa329834c9eb663627feab7e6b16b02e88a8dae23ea8604005f"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/renewal_profile.rs",
+      "sha256": "46f3c87a7d1bd762ea86895c8dada6d980331f1e6cf13e63820a49c254219008"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "sha256": "9929e58521c52246bd8467c0ad7da5844ba9ef2bcaabf9d0b7fc09bda4a7066f"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay.rs",
+      "sha256": "e20762a8c39c22f697ad721d3ea7df4fffca681497fca5425b3e5448899f8425"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay/compact_stage.rs",
+      "sha256": "7bfb511c1ac993dc6c9ae97b9f04c6b0275d6ecc3ef8946a07fb3277e1cad4a4"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay/factored.rs",
+      "sha256": "52c33a5e0fb60cdbf449dc3875115a77b49869f3d25c516f15301ab723a589d9"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "sha256": "f2f041a29fab395c239651b18265ce47eeee4d828cffa2be1ec40f2de0629df3"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs",
+      "sha256": "ba2cbe772ecabcd29f519778201f842609f045294ef514ead976b737ec157b50"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay/flat_records.rs",
+      "sha256": "fa3b9c6fe087b845d64d9ad8ca518b67f92a33827b4615f4c826d9518abbf660"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay/flat_records/tests.rs",
+      "sha256": "fc953c5e95a5d1e285369610da6b0e1443235460f8d1f050f3e7c7bbbf60bf30"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay/leaf_index.rs",
+      "sha256": "17a6913340db634eb8fde149d23738ce68cf2ba1ec5ea10150084bc7defe2335"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay/lexical_boundary.rs",
+      "sha256": "5eee6a4cfaccc5cff4ab3ea39acaa772a472949ebfe16c8ab586ff346f6dc023"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay/lexical_cert.rs",
+      "sha256": "09a4b64ce78b4dbc7ba77240152e84dd0960b0d1739a163bca1da12640d60d48"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay/lexical_replay.rs",
+      "sha256": "658f2ab6f189d4b084077b7948863566aaf31b8a319921764b35c9cf408d32f4"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay/resolved_call.rs",
+      "sha256": "6736bed2215996b1b5ed754eab021975949d985fb8d5e5c0af1ca6de6bd75d7c"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay/scalar_replay.rs",
+      "sha256": "1c5b9043a557876df42b2734dfac7cfcc20076b210f341779c6a579e7fb85083"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay/scalar_replay/records.rs",
+      "sha256": "d0a7ecff13b07ac0c5197fb5d590de2a734c45c4ebd02ab66eb8bcb1479ad09b"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay/selected_context/child.rs",
+      "sha256": "8bb723f948595f9788bd1507b52c4b1c1e21f2b7519fd8d0ccefe69cf7b785ec"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay/selected_profile/paid_children.rs",
+      "sha256": "9b959ccb9a045733478f24d14927c41f79af6a50a3d2c1c6382ef4753e223216"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay/semantic_refusal.rs",
+      "sha256": "fc1a6f41a225e0936ede78ff9923eb0eea1e93ce5c8e37fbde9709e6ee78c823"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay/status_construction.rs",
+      "sha256": "d72a80e34d5165cb87e307d9c0b0f3c4ec951656bb2a7515719635a43265c036"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/cleanup_plan/replay/structural_maps.rs",
+      "sha256": "f8c2b1f1de241caafbd30692fe172fb4e2afb58189252d4334878071d95b87a8"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/codegen/native_emit/expression/owned_try.rs",
+      "sha256": "bf3d9653f75e8c35b3ea85dda573bd02017af19708876a2f9bf043447a00255b"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/hir.rs",
+      "sha256": "432395d875a954de8aee03c3fcbd827ecbb5066e0c6fa9fd0cc0ec2c2a36db7f"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/hir/cache_codec.rs",
+      "sha256": "94b6c209bd11e5c6912c1b6da5f90c606b6d3d771c849c6813e3c96c81e65d7c"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/hir/capacity_probe.rs",
+      "sha256": "75d6dc544abeb838bda3fc243eeddc015fbb7adb462302ad3becf29fb338ee0b"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/hir/expr_nodes.rs",
+      "sha256": "38b34d4f37ced73abb4e6054e668fa0454bcc9dbb0caabda31da680b44fa38fc"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/hir/monomorphize.rs",
+      "sha256": "07bd9aa057c0a2d1b34fdbbd95d5cb948e6601922f8d5e9a404ebfd3c043acdd"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/hir/owned_result_try.rs",
+      "sha256": "88f016e920f1e9dcc143bd1206b4e24c901f345c808d2b09c90b03521dc46f39"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/hir/resolve_program.rs",
+      "sha256": "227090a0a9b557473a8a92822a165c65813b3c5a575ac7aa2ba7fc76c7b2f8bb"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/hir/validation.rs",
+      "sha256": "b992401f880bc629ca3947db88285a2f18d94c0f49bfa0ef9b74070cff53cee2"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/interpreter/owned_try.rs",
+      "sha256": "2922014836228ba21a992c35168e233b71875d21360a5d3c74d52aa668a7caf3"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/loan_plan/children_tests.rs",
+      "sha256": "e848d945f617e862b6b6523cea2892de6ad174f6d12e42aa5460d481c3297c33"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/loan_plan/tests.rs",
+      "sha256": "31a1079a03c363e0040bdb35cffa5d5784db53ddc9a938422b4a6f985e616f7d"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/source_reflows.rs",
+      "sha256": "8fca19450e0085f7986e79a1878b9246f86fe884646c70fca5f1d4508d367505"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/source_reflows_merge.rs",
+      "sha256": "16ff452d7d1e3fa461710184928ff3cc57de2449c182225bd3f33615aef2d05c"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/source_reflows_merge/metadata_json.rs",
+      "sha256": "f9eb9995cb2c1d4cfc2cdd8901430795681aa1b4a1ebe8507cf2cfb3a903ee0c"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/source_reflows_merge/runtime_json.rs",
+      "sha256": "6dd36b53aae6e2656db2e4328385a1157920a0c49f50a62166f987a76afb999c"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/source_reflows_merge/runtime_json/tests.rs",
+      "sha256": "9c4aad9ef1090a25e3f0f02a1199ea41cab982db41c31c156efffb1b6ff3d6ec"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/wasm/aggregate.rs",
+      "sha256": "84971b8a067d718beee6a131d4b87c4c1549c0c9c12345f447592a1ef5d06c59"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/src/workspace_graph/expected_projection/declaration_cost.rs",
+      "sha256": "292ddb639c85013c7382acbb073c0f15326eca6f4c529f7004336934fcdcac5d"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/tests/hir_module_boundaries.rs",
+      "sha256": "e4091c672bb164ca2d86245f3ed7d6edbf0d02f332249dcd6663efa7e5370f93"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/tests/language/owned_result_variants.rs",
+      "sha256": "5658d7342872c634d5c84412be3eec8dc99859237a157df3ab4a00c3091ec00e"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/tests/language/result_try_semantics.rs",
+      "sha256": "6252a47a8e033cb10b3534ccd62e634018b05a9a4da73f635bacd84c30a41c1a"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/tests/workspace/semantic_graph.rs",
+      "sha256": "9acd29673e96abac684f9d3d4d0c51ada56506ffde3ea77cc0251ce31f2c4325"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/common/tests/workspace/semantic_graph/source_inventory.rs",
+      "sha256": "80e9c7356955bce5891d6ce88c76b5b6b015b5f112e86e565607d77ef6bf44b9"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/main7c6/src/cleanup_plan/replay.rs",
+      "sha256": "6dabd9057ffe5ec0a1ad0e552c2a3f437e20487d7b0ce64d54b2ff0798ac62db"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/main7c6/src/cleanup_plan/replay/branch_clone/tests.rs",
+      "sha256": "053dbd5dee8d05d3ed56db80729de01e2f0e572c0299779bed1cfbf6a0f64303"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/main7c6/src/cleanup_plan/replay/factored.rs",
+      "sha256": "88ed9119b1af09c4875cf3ec8d07a0b0ced6af6b47528eae581647d401348dd1"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/main7c6/src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs",
+      "sha256": "01b3e408874930f2aad015d20cf8317fc1507183f92aae740d11985b99d223e1"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/main7c6/src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs",
+      "sha256": "c9c42329ff2e2ee3802de78f0da6484b42a7c58ae6636532024c4e955b743033"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/main7c6/src/cleanup_plan/replay/factored/oracle_hook.rs",
+      "sha256": "0126d25150ca4b96f11995293fc9043d23fc8fff2008485e9560abe5c85cb7ae"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/main7c6/src/hir.rs",
+      "sha256": "897bb10c195fcbc116cffaf86c3501d918770080a64c0112f86d147fadbb0faf"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/main7c6/src/hir/expr_nodes.rs",
+      "sha256": "ec971d9022e44d280dadce22ccabff5696b885f6a7ab2ca5db3bee7eefc85e34"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/main7c6/src/hir/validation.rs",
+      "sha256": "8f6e5941a7b9ef08c64c6f5ee3304b5a79d367d535ddb9bed5fd78a81d1545cf"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/main7c6/src/source_verify/declaration.rs",
+      "sha256": "61c807e1dc05a4f559830b4fa3d25eb79c73aac11a066aa7e3e775caaa655dec"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/main7c6/tests/hir_module_boundaries.rs",
+      "sha256": "d04b4860900517b19a26ee95008a75caa166136f8927289bfa8335aca7215bab"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/main7c6/tests/workspace/semantic_graph/source_inventory.rs",
+      "sha256": "1bc85c60dc9754b25ce07267821bf8cbc751ffe000df146639d0dd40ceb1f4b3"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/CHANGELOG.md",
+      "sha256": "b8d31d491254be9249b1164af02466f70f4b07510d74cf9fb8e46ae69e12e663"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/crates/semaprax-native-rust-interop-builder/src/implementation/capacity/hir_owned.rs",
+      "sha256": "84659f0710c93221ede7774f703743ea5a5888ddcd13e6720aa7dbbb05f11362"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/crates/semaprax-native-rust-interop-builder/src/implementation/tests/hir_traversal.rs",
+      "sha256": "a1befd7bf407a40576ed4a2003f8962c81ed966f712982eb20b22b1c55e294df"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "sha256": "87877089c0ed73eed89462405db693c13b2ee285c3e455d819554d4dde352f32"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/docs/ARCHITECTURE.md",
+      "sha256": "86928b029dcf5a9c85e02c36f3d3e899bbafddfce4d47f059670b5f261a28248"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+      "sha256": "e2dcb8f6a31a753891aeb04fa5269a28c555ec686a7945a8c5080bd54d7178a3"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/cleanup_plan/replay/compact_stage.rs",
+      "sha256": "7bfb511c1ac993dc6c9ae97b9f04c6b0275d6ecc3ef8946a07fb3277e1cad4a4"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/cleanup_plan/replay/compact_stage/source_custody.rs",
+      "sha256": "23802c3895189f78eec4ebdb35fc58e4bb034a53fc0587de43d49f52b44c0a5e"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/cleanup_plan/replay/factored.rs",
+      "sha256": "52c33a5e0fb60cdbf449dc3875115a77b49869f3d25c516f15301ab723a589d9"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "sha256": "f2f041a29fab395c239651b18265ce47eeee4d828cffa2be1ec40f2de0629df3"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs",
+      "sha256": "ba2cbe772ecabcd29f519778201f842609f045294ef514ead976b737ec157b50"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/cleanup_plan/replay/resolved_call.rs",
+      "sha256": "6736bed2215996b1b5ed754eab021975949d985fb8d5e5c0af1ca6de6bd75d7c"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/cleanup_plan/replay/selected_context/child.rs",
+      "sha256": "cc426939183121ebd6d23aff7c4752119c2f4bf2684f1e2e90a621df4e1843ac"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/codegen/native_emit/expression/owned_try.rs",
+      "sha256": "bf3d9653f75e8c35b3ea85dda573bd02017af19708876a2f9bf043447a00255b"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/hir.rs",
+      "sha256": "432395d875a954de8aee03c3fcbd827ecbb5066e0c6fa9fd0cc0ec2c2a36db7f"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/hir/cache_codec.rs",
+      "sha256": "94b6c209bd11e5c6912c1b6da5f90c606b6d3d771c849c6813e3c96c81e65d7c"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/hir/capacity_probe.rs",
+      "sha256": "75d6dc544abeb838bda3fc243eeddc015fbb7adb462302ad3becf29fb338ee0b"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/hir/expr_nodes.rs",
+      "sha256": "38b34d4f37ced73abb4e6054e668fa0454bcc9dbb0caabda31da680b44fa38fc"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/hir/monomorphize.rs",
+      "sha256": "07bd9aa057c0a2d1b34fdbbd95d5cb948e6601922f8d5e9a404ebfd3c043acdd"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/hir/owned_result_try.rs",
+      "sha256": "88f016e920f1e9dcc143bd1206b4e24c901f345c808d2b09c90b03521dc46f39"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/hir/resolve_program.rs",
+      "sha256": "227090a0a9b557473a8a92822a165c65813b3c5a575ac7aa2ba7fc76c7b2f8bb"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/hir/validation.rs",
+      "sha256": "b992401f880bc629ca3947db88285a2f18d94c0f49bfa0ef9b74070cff53cee2"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/interpreter/owned_try.rs",
+      "sha256": "2922014836228ba21a992c35168e233b71875d21360a5d3c74d52aa668a7caf3"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/loan_plan/children_tests.rs",
+      "sha256": "e848d945f617e862b6b6523cea2892de6ad174f6d12e42aa5460d481c3297c33"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/loan_plan/tests.rs",
+      "sha256": "31a1079a03c363e0040bdb35cffa5d5784db53ddc9a938422b4a6f985e616f7d"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/source_reflows.rs",
+      "sha256": "8fca19450e0085f7986e79a1878b9246f86fe884646c70fca5f1d4508d367505"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/source_reflows_merge.rs",
+      "sha256": "956d41e0596a3ce001e621b53ad37fab62da834ceb2c282ff995245e26c9bba7"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/source_reflows_merge/runtime_json.rs",
+      "sha256": "5eff71a7e49b61dbd6493a10f175be55804815502277b787d02e974b1180758d"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/source_reflows_merge/runtime_json/tests.rs",
+      "sha256": "cbe9336a17fa49c7555a905b61bcb4d8405301a12d168c78f25d76ef68cbd649"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/wasm/aggregate.rs",
+      "sha256": "84971b8a067d718beee6a131d4b87c4c1549c0c9c12345f447592a1ef5d06c59"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/workspace_graph/expected_projection/declaration_cost.rs",
+      "sha256": "292ddb639c85013c7382acbb073c0f15326eca6f4c529f7004336934fcdcac5d"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/src/workspace_graph/type_proof_tests.rs",
+      "sha256": "fc7995a691693f71686e264b60ef5803a8a724553ea948f5dfd34ce0b6e80eab"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/tests/hir_module_boundaries.rs",
+      "sha256": "040ec77f5166075e7ce25964cc76994ba3c88e2d06e3ce3bceb473c7e84708e1"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/tests/language/owned_result_variants.rs",
+      "sha256": "5658d7342872c634d5c84412be3eec8dc99859237a157df3ab4a00c3091ec00e"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/tests/language/result_try_semantics.rs",
+      "sha256": "6252a47a8e033cb10b3534ccd62e634018b05a9a4da73f635bacd84c30a41c1a"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/tests/native/string_settlement/bulk_utf8.rs",
+      "sha256": "2d1188ac8b8b2bd51a690aa4759826e92e7ecf706dbf53eb74ce89121de045a8"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/tests/native/string_settlement/codec_allocation.rs",
+      "sha256": "8c350e08fafcccbf185a4aac5778f1e36ec59675b5e88af326f2f3dc8fc2b300"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/tests/native/string_settlement/codec_allocation/string_vectors.rs",
+      "sha256": "590c08774b5b29d20413fb9764152fd5a5168758a1fcf1cec40637521991b591"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/tests/native_string_settlement_v1/contents.rs",
+      "sha256": "d448143824939b0750f6951cbac780caec2789cca7ca1ba633296862f328e45b"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/tests/owned_data/bulk_utf8.rs",
+      "sha256": "6e9e6344b8c7c71adfee042a8fe56a7e8eb1887b7ccb5eaf5ccbb881d305b59a"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/tests/owned_data/owned_nested_outcome.rs",
+      "sha256": "cd01d38d514891fcd996a58cc941c96e4796bb64e8e44ecd0a37d41788d5d7ca"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/tests/owned_data/projected_string_views.rs",
+      "sha256": "a08c2438abf67e7216ace932b51fe0cffb0fbb4a0531872aa467ee17fc1c7533"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/tests/root_unsafe_quarantine.rs",
+      "sha256": "90fc9484eac3dabc51e2a8c9a638bc0aa9900ff6d750824b144993b4216b594d"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/tests/wasm/scalar_browser_ci_contract.rs",
+      "sha256": "00b1c8f92850779236c14c05e0302d76e812682b7055bc3229b7584184036593"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+      "sha256": "9bed9243d6ed3cbc89e0568e5a1b1c8bd845b3e0c07db173ff1349b3efbb80bc"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "sha256": "b6497eb6b650743410f5e9f6cb3a13fc5dd35aa3964ffa1fa8946aabe839dafd"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/tests/workspace/semantic_graph.rs",
+      "sha256": "a8978ec0e36c75fef2d57b62362a83a304d09e214eb52f6df687c09fbda70707"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving781/tests/workspace/semantic_graph/source_inventory.rs",
+      "sha256": "54557c8d56a904930e750accc1cf1e53b697b5da7cdcc98525d1b239121768e9"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving855/CHANGELOG.md",
+      "sha256": "4edba7a729be631dedb9c9119e70f6e95fda43efefc28ae21001021b10d3521f"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving855/crates/semaprax-native-rust-interop-builder/src/implementation/tests/hir_traversal.rs",
+      "sha256": "ebf271928e6f3aa2e86b77c20851f56bf4bfe9025b7715bd48fa1ea44be0bc57"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving855/docs/ARCHITECTURE.md",
+      "sha256": "8c96f1aa42540f7eea00a4519550e8b4134c5e027437acc1b96c8626281b1863"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving855/src/hir.rs",
+      "sha256": "61945595a1a5ffd202c39ff4104fbc94b394c99866760eef2f7eaedcebed413a"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving855/src/hir/cache_codec.rs",
+      "sha256": "5e49365a09911d59f144de036d64b8e570c7224a758f98e2344462fad419bbd8"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving855/src/hir/expr_nodes.rs",
+      "sha256": "d3c8167e94ef25a3ed24cf7fbe562f7392c569e1ecb490b01a60246e0bc6e074"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving855/src/hir/monomorphize.rs",
+      "sha256": "f1632277c99f70ac6d89b02d5a70f0877815823192bf78fe619a6b1b0f4e0b88"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving855/src/hir/resolve_program.rs",
+      "sha256": "8539c5b063467ed6e9605899b777635287ed183e42f4cef90fe4edc942be3700"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving855/src/loan_plan/children_tests.rs",
+      "sha256": "55144d3762403e6f30f8795dece6bdc127d49b0efb361e537ff0daf9d76a9007"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/receiving855/src/loan_plan/tests.rs",
+      "sha256": "271b14d52c6a60040f94f9789088e544ff099131251e907cedfa0b884c4986f0"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/current-to-arena426.json",
+      "sha256": "dcdea065aace9fafb37e6dc015d7dcd33de5e507aed90f2299bec9f50180430a"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/current-to-common.json",
+      "sha256": "7232bac3d0b9e238b1b76bb7750739caa6acd361a16bcebcae463648bf21176e"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/current-to-main7c6.json",
+      "sha256": "8915b923e7455562c51b2f4cde2786e2fa87f363cb73226fc58206f13b11b6fc"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/current-to-receiving781.json",
+      "sha256": "fada177f24d8b7ef4df338c051770e42e75b05bb508e66e99759e63be24aa056"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/current-to-receiving855.json",
+      "sha256": "eddfff0c37c7f54910dacbb6ae24aae280986bcd51052472a5ca6542f2f6a20b"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/generate-authority.py",
+      "sha256": "c5dfca5df2e3dbcb8494b18498db4ee4b96340b1879abb2d57f4d5f5a9d96a09"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/hir.json",
+      "sha256": "2a3be4ff1997f20cd9aada873d8aeb4302c842967aa7ba7cd92226bcc32a0157"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/main7c6-scope.json",
+      "sha256": "f1ca0ed375b3dbe626d3751058cf35279651d9fc3b71d00f45ba7eaff9fdb74a"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/new-owners.json",
+      "sha256": "ec50841e348dacfa023f30c46d1675cb36d48cc876546dd155b9a7302984b2a7"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/pending-selectors.json",
+      "sha256": "d5cd211cb334736c4f03a2e44ab79e631b48f7b56d1bc56e71e11b6849d8cda4"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/prepare-arm-overlay.py",
+      "sha256": "d40d86ebf2d2bfe6b934766b87299445fefc390b6813bf25a2b9a4c6c005506d"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/projection.json",
+      "sha256": "3bb5b51704a7c4a3b9822f0691d547502ff503b2f236469c5415d6f1cc4f505b"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/receiving855-scope.json",
+      "sha256": "118962948c8540883c7b4a51f49391dde9d8a01bf720543d34ba4360d6b43d89"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/source-bindings.json",
+      "sha256": "bfaeb0e83d4cc6404e7004e04282cf1bcbc4427af2d8b29bb4d96edf86a37a2b"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/source-proof.json",
+      "sha256": "9e2c823189fc88166511888e3749eb19625a22589a5eee618fcefe11bd8df67c"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/verify-authority.py",
+      "sha256": "785f8c73c46e820c847f25a90b4789c059934534d6e1941d6b8c681d1a9af73b"
+    },
+    {
+      "path": "docs/evidence/owned-session-arena-bulk-joined-20261016/verify-source.py",
+      "sha256": "d28eae572fc6907d1d618dae86a2824a1fa2754790fdd31443cbe0ccb9370806"
+    }
+  ],
+  "presence_shipping": [
+    "src/cleanup_plan/renewal_profile/ordinary/mod.rs",
+    "src/cleanup_plan/renewal_profile/ordinary/record_presence.rs",
+    "src/loop_calls/byte_writer/module_index/ordinary.rs"
+  ],
+  "protected_presence": [
+    {
+      "path": "docs/evidence/direct-presence-receiving-850-next-20261016/HANDOFF.md",
+      "sha256": "58df806438f4f739c0a64da187bc42a8f266a0b49dafbbf5d7e50577857eabea"
+    },
+    {
+      "path": "docs/evidence/direct-presence-receiving-850-next-20261016/before/CHANGELOG.md",
+      "sha256": "2efd3b3dc5440264da4d41bd101dac1c2e44d1b3a0852fa8bdaa8a5292e0b920"
+    },
+    {
+      "path": "docs/evidence/direct-presence-receiving-850-next-20261016/before/docs/ORDINARY-RENEWAL-DIRECTORY-V1.md",
+      "sha256": "148280272af30a4ed713277b24a9bc344dc3e8cda42b70deeba57444dfd8f373"
+    },
+    {
+      "path": "docs/evidence/direct-presence-receiving-850-next-20261016/before/src/cleanup_plan/renewal_profile/ordinary/mod.rs",
+      "sha256": "fe66614ad571ad4f537dc57d471d2850f15b093769259d67d814c0c99ccd3533"
+    },
+    {
+      "path": "docs/evidence/direct-presence-receiving-850-next-20261016/before/src/cleanup_plan/renewal_profile/ordinary/record_presence.rs",
+      "sha256": "0d2df070cb4ce3494feb5e383b621ea58082eb0c84ea862181c090dddf78d001"
+    },
+    {
+      "path": "docs/evidence/direct-presence-receiving-850-next-20261016/before/src/cleanup_plan/renewal_profile/ordinary/record_presence/tests.rs",
+      "sha256": "eb7b354b482a176b2576405130f4e43bc593ee570dd19809cf042b70bb811ddd"
+    },
+    {
+      "path": "docs/evidence/direct-presence-receiving-850-next-20261016/before/src/loop_calls/byte_writer/module_index/ordinary.rs",
+      "sha256": "0c0d8f77c073ee56d5ee578bd102c28bd862d405a748a76950052cad7f3ce1fe"
+    },
+    {
+      "path": "docs/evidence/direct-presence-receiving-850-next-20261016/historical-failure.json",
+      "sha256": "37d63c2cb895887d12615344af2ba15a153ba7a7bd4d5f27d246da18a64cda31"
+    },
+    {
+      "path": "docs/evidence/direct-presence-receiving-850-next-20261016/pending-selectors.json",
+      "sha256": "717ef6fc311782d1669284fa718b5ac0227f8042047a70abacc0039a11646b07"
+    },
+    {
+      "path": "docs/evidence/direct-presence-receiving-850-next-20261016/runtime-inputs.json",
+      "sha256": "87df1c80fbbbf5a0f9ae930d3767a47a97bc1ddbf89aad5f6e2a5fcf4216b672"
+    },
+    {
+      "path": "docs/evidence/direct-presence-receiving-850-next-20261016/source-inverses.json",
+      "sha256": "08d439d9898277294fcc5b4fddf6cd12d08e494a10327b1aca11ea5cd7d1e25b"
+    },
+    {
+      "path": "docs/evidence/direct-presence-receiving-850-next-20261016/verify-source.py",
+      "sha256": "de542daa7413a9f040a390b03acec1718d29b582201f4c9025010b6b7f679465"
+    }
+  ]
+}

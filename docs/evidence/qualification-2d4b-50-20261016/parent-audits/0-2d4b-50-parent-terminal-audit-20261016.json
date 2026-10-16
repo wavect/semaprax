@@ -1,0 +1,39 @@
+{
+  "source": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+  "complete": true,
+  "actual": 50,
+  "PASS": 39,
+  "FAIL": 11,
+  "all_logs_authenticated": true,
+  "all_memory_samples_authenticated": true,
+  "all_groups_confirmed_empty": true,
+  "all_source_bindings_unchanged": true,
+  "runtime_receipt_sha256": "4956be8f703f38f1d524cde6032245091d076cab9ce762482bbc2e4e219951d5",
+  "runtime_manifest_sha256": "db7076908874ab299285b9fe29dfd6e061acc1d800513af4a26bf288070a3968",
+  "not_a_benchmark": true,
+  "failures": [
+    "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+    "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+    "standard_library::application_json::owned::shiftsim_typed_records::unfactored_schedule_retains_original_source_and_factored_admission",
+    "standard_library::application_json::owned::catalog_scoped_records::typed_catalog_derives_codecs_and_preserves_all_23_functional_cases",
+    "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+    "workspace_graph::tests::callable_limit_exact_advances_and_one_over_is_g171",
+    "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+    "workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core",
+    "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+    "cleanup_plan::replay::branch_clone::tests::full_plan_enumerator_keeps_every_original_path_work_and_materialization",
+    "cleanup_plan::replay::branch_clone::tests::clone_and_push_keep_capacity_contents_work_and_drop_with_less_backing"
+  ],
+  "scoped_clippy": [
+    {
+      "role": "clippy-production",
+      "exit_code": 0,
+      "receipt_sha256": "3bfdd2a7453fa4a1bd692a0488d1cb9c9ec8a5f4a71f649db092e8524824fb38"
+    },
+    {
+      "role": "clippy-production-toolchain-full-cli",
+      "exit_code": 0,
+      "receipt_sha256": "a8c42e7b269b26524794a8c422153b278ee62a9c9486aaec1932f438fc1e51c8"
+    }
+  ]
+}

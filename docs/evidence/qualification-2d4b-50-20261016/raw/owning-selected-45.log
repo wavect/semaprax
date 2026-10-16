@@ -1,0 +1,15 @@
+
+running 1 test
+test cleanup_plan::replay::branch_clone::tests::clone_and_push_keep_capacity_contents_work_and_drop_with_less_backing ... 
+thread 'cleanup_plan::replay::branch_clone::tests::clone_and_push_keep_capacity_contents_work_and_drop_with_less_backing' (12478187) panicked at src/cleanup_plan/replay/branch_clone/tests.rs:109:13:
+assertion failed: old.0.is_some()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::branch_clone::tests::clone_and_push_keep_capacity_contents_work_and_drop_with_less_backing
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9214 filtered out; finished in 1.22s
+

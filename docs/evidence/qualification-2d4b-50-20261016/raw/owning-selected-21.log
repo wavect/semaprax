@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight::tests::work_refusal_and_preexisting_financial_refusal_cannot_publish_a_map ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9214 filtered out; finished in 0.01s
+

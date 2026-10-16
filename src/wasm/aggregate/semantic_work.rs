@@ -96,6 +96,14 @@ fn selected<T>(read: impl FnOnce(&Selection) -> T) -> Option<T> {
     SELECTION.with(|selection| selection.borrow().as_ref().map(read))
 }
 
+/// Select storage for the private, already admitted metered stage build.
+/// Public descriptor and HIR admission still run before this choice. The stage
+/// can own local Strings without exporting a String carrier; unmetered public
+/// data builds retain their explicit UTF-8 profile requirement.
+pub(super) fn uses_owned_utf8(utf8_profile: bool) -> bool {
+    utf8_profile || selected(|_| ()).is_some()
+}
+
 /// Number of globals the selection appends (zero when unmetered).
 pub(super) fn global_count() -> u32 {
     selected(|_| FIXED_GLOBALS + SEMANTIC_EVENT_CAPACITY).unwrap_or(0)
@@ -331,4 +339,87 @@ fn union_finalizer_order(
         ));
     }
     Ok(order)
+}
+
+#[cfg(test)]
+mod storage_tests {
+    use super::*;
+
+    #[test]
+    fn private_string_storage_selection_is_scoped_and_does_not_authorize_a_public_profile() {
+        assert!(!uses_owned_utf8(false));
+        assert!(uses_owned_utf8(true));
+        let metering = WasmSemanticMetering {
+            fuel_limit: 5,
+            functions: BTreeMap::new(),
+        };
+        with_semantic_metering(metering.clone(), || {
+            assert!(uses_owned_utf8(false));
+            assert!(uses_owned_utf8(true));
+            assert!(!std::thread::spawn(|| uses_owned_utf8(false))
+                .join()
+                .unwrap());
+            assert!(with_semantic_metering(metering.clone(), || Ok(())).is_err());
+            assert!(uses_owned_utf8(false));
+            Ok(())
+        })
+        .unwrap();
+        assert!(!uses_owned_utf8(false));
+        let result = std::panic::catch_unwind(|| {
+            let _ = with_semantic_metering(metering, || -> Result<(), Diagnostic> {
+                assert!(uses_owned_utf8(false));
+                panic!("private selection unwind control");
+            });
+        });
+        assert!(result.is_err());
+        assert!(!uses_owned_utf8(false));
+        assert!(uses_owned_utf8(true));
+    }
+}
+
+#[cfg(test)]
+mod storage_source_tests {
+    #[test]
+    fn metered_storage_selection_keeps_complete_original_receivers() {
+        use sha2::{Digest, Sha256};
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let evidence = root.join("docs/evidence/metered-string-storage-v1");
+        let records: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(evidence.join("sources.json")).unwrap())
+                .unwrap();
+        for record in records.as_array().unwrap() {
+            let original =
+                std::fs::read_to_string(evidence.join(record["archive"].as_str().unwrap()))
+                    .unwrap();
+            assert_eq!(
+                format!(
+                    "{:x}",
+                    crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))
+                ),
+                record["sha256"].as_str().unwrap()
+            );
+            let current =
+                std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
+            let restore = |source: &str| -> Option<String> {
+                let mut restored = source.to_owned();
+                for edit in record["edits"].as_array().unwrap().iter().rev() {
+                    let new = edit["new"].as_str().unwrap();
+                    if restored.matches(new).count() != 1 {
+                        return None;
+                    }
+                    restored = restored.replacen(new, edit["old"].as_str().unwrap(), 1);
+                }
+                Some(restored)
+            };
+            assert_eq!(restore(&current).as_deref(), Some(original.as_str()));
+            assert_ne!(
+                restore(&(current.clone() + "\n")).as_deref(),
+                Some(original.as_str())
+            );
+            assert_ne!(
+                restore(&current.replacen("uses_owned_utf8", "changed_owned_utf8", 1)).as_deref(),
+                Some(original.as_str())
+            );
+        }
+    }
 }

@@ -3,15 +3,17 @@ use crate::diagnostic::Diagnostic;
 use crate::hir::{ResolvedExpr, ResolvedExprKind as K, ResolvedFunction};
 
 /// Borrowed authored-order child enumeration. The cursor has no heap backing.
-/// Block statements and match arms are visited once rather than rescanned for
-/// each flattened child index. Consumers retain their own depth/work bounds.
+/// The immutable expression kind supplies the state discriminator. `inner`
+/// stores only a statement child (at most two) or a match guard phase, so its
+/// maximum value can mark a fresh cursor without limiting any outer index.
 #[derive(Clone, Copy)]
 pub(crate) struct ChildCursor<'a> {
     expression: &'a ResolvedExpr,
-    position: Position,
-    started: bool,
+    outer: usize,
+    inner: usize,
 }
-#[derive(Clone, Copy)]
+#[cfg(test)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum Position {
     Indexed(usize),
     Block { statement: usize, child: usize },
@@ -19,107 +21,103 @@ enum Position {
 }
 impl<'a> ChildCursor<'a> {
     pub(crate) fn new(expression: &'a ResolvedExpr) -> Self {
-        let position = match &expression.kind {
-            K::Block { .. } | K::VecConstructor { .. } => Position::Block {
-                statement: 0,
-                child: 0,
-            },
-            K::Match { .. } => Position::Match {
-                arm: 0,
-                guard: true,
-            },
-            _ => Position::Indexed(0),
-        };
         Self {
             expression,
-            position,
-            started: false,
+            outer: 0,
+            inner: usize::MAX,
         }
     }
     pub(crate) fn expression(&self) -> &'a ResolvedExpr {
         self.expression
     }
     /// Statement edge most recently returned by `next`; tails have no statement.
-    /// This uses the saved position and never rescans a block prefix.
+    /// This uses saved progress and never rescans a block prefix.
     pub(crate) fn last_statement_child(
         &self,
     ) -> Option<(&'a crate::hir::ResolvedStatement, usize)> {
-        match (&self.expression.kind, self.position) {
-            (
-                K::Block { statements, .. } | K::VecConstructor { statements, .. },
-                Position::Block { statement, child },
-            ) if self.started && child != 0 => {
-                statements.get(statement).map(|item| (item, child - 1))
+        match &self.expression.kind {
+            K::Block { statements, .. } | K::VecConstructor { statements, .. }
+                if self.is_started() && self.inner != 0 =>
+            {
+                statements
+                    .get(self.outer)
+                    .map(|item| (item, self.inner - 1))
             }
             _ => None,
         }
     }
     pub(crate) fn is_started(&self) -> bool {
-        self.started
+        self.inner != usize::MAX
+    }
+    #[cfg(test)]
+    fn position(&self) -> Position {
+        match &self.expression.kind {
+            K::Block { .. } | K::VecConstructor { .. } => Position::Block {
+                statement: self.outer,
+                child: if self.is_started() { self.inner } else { 0 },
+            },
+            K::Match { .. } => Position::Match {
+                arm: self.outer,
+                guard: !self.is_started() || self.inner == 0,
+            },
+            _ => Position::Indexed(self.outer),
+        }
     }
 }
 impl<'a> Iterator for ChildCursor<'a> {
     type Item = &'a ResolvedExpr;
     fn next(&mut self) -> Option<Self::Item> {
-        let first = !self.started;
-        self.started = true;
-        match (&self.expression.kind, &mut self.position) {
-            (
-                K::Block { statements, tail }
-                | K::VecConstructor {
-                    statements, tail, ..
-                },
-                Position::Block {
-                    statement,
-                    child: index,
-                },
-            ) => {
-                while let Some(item) = statements.get(*statement) {
-                    if *index < item.child_count() {
-                        let result = item.child(*index);
-                        *index += 1;
+        let first = !self.is_started();
+        if first {
+            self.inner = 0;
+        }
+        match &self.expression.kind {
+            K::Block { statements, tail }
+            | K::VecConstructor {
+                statements, tail, ..
+            } => {
+                while let Some(item) = statements.get(self.outer) {
+                    if self.inner < item.child_count() {
+                        let result = item.child(self.inner);
+                        self.inner += 1;
                         return result;
                     }
-                    *statement += 1;
-                    *index = 0;
+                    self.outer += 1;
+                    self.inner = 0;
                 }
-                if *index == 0 {
-                    *index = 1;
+                if self.inner == 0 {
+                    self.inner = 1;
                     Some(tail)
                 } else {
                     None
                 }
             }
-            (
-                K::Match {
-                    scrutinee, arms, ..
-                },
-                Position::Match { arm, guard },
-            ) => {
+            K::Match {
+                scrutinee, arms, ..
+            } => {
                 if first {
                     return Some(scrutinee);
                 }
-                if let Some(item) = arms.get(*arm) {
-                    if *guard {
-                        *guard = false;
+                if let Some(item) = arms.get(self.outer) {
+                    if self.inner == 0 {
+                        self.inner = 1;
                         if let Some(value) = &item.guard {
                             return Some(value);
                         }
                     }
-                    *arm += 1;
-                    *guard = true;
+                    self.outer += 1;
+                    self.inner = 0;
                     return Some(&item.value);
                 }
                 None
             }
-            (_, Position::Indexed(index)) => {
-                let result = child(self.expression, *index);
+            _ => {
+                let result = child(self.expression, self.outer);
                 if result.is_some() {
-                    *index += 1;
+                    self.outer += 1;
                 }
                 result
             }
-            _ => unreachable!("child cursor position matches its immutable expression"),
         }
     }
 }
@@ -331,69 +329,61 @@ impl<'a> ChildCursor<'a> {
         work: &mut impl FnMut(usize) -> Result<(), E>,
     ) -> Result<Option<&'a ResolvedExpr>, E> {
         work(1)?;
-        let first = !self.started;
-        self.started = true;
-        Ok(match (&self.expression.kind, &mut self.position) {
-            (
-                K::Block { statements, tail }
-                | K::VecConstructor {
-                    statements, tail, ..
-                },
-                Position::Block {
-                    statement,
-                    child: index,
-                },
-            ) => {
+        let first = !self.is_started();
+        if first {
+            self.inner = 0;
+        }
+        Ok(match &self.expression.kind {
+            K::Block { statements, tail }
+            | K::VecConstructor {
+                statements, tail, ..
+            } => {
                 loop {
                     work(1)?;
-                    let Some(item) = statements.get(*statement) else {
+                    let Some(item) = statements.get(self.outer) else {
                         break;
                     };
-                    if *index < item.child_count() {
-                        let result = item.child(*index);
-                        *index += 1;
+                    if self.inner < item.child_count() {
+                        let result = item.child(self.inner);
+                        self.inner += 1;
                         return Ok(result);
                     }
-                    *statement += 1;
-                    *index = 0;
+                    self.outer += 1;
+                    self.inner = 0;
                 }
-                if *index == 0 {
-                    *index = 1;
+                if self.inner == 0 {
+                    self.inner = 1;
                     Some(tail)
                 } else {
                     None
                 }
             }
-            (
-                K::Match {
-                    scrutinee, arms, ..
-                },
-                Position::Match { arm, guard },
-            ) => {
+            K::Match {
+                scrutinee, arms, ..
+            } => {
                 if first {
                     return Ok(Some(scrutinee));
                 }
-                if let Some(item) = arms.get(*arm) {
-                    if *guard {
-                        *guard = false;
+                if let Some(item) = arms.get(self.outer) {
+                    if self.inner == 0 {
+                        self.inner = 1;
                         if let Some(value) = &item.guard {
                             return Ok(Some(value));
                         }
                     }
-                    *arm += 1;
-                    *guard = true;
+                    self.outer += 1;
+                    self.inner = 0;
                     return Ok(Some(&item.value));
                 }
                 None
             }
-            (_, Position::Indexed(index)) => {
-                let result = child(self.expression, *index);
+            _ => {
+                let result = child(self.expression, self.outer);
                 if result.is_some() {
-                    *index += 1;
+                    self.outer += 1;
                 }
                 result
             }
-            _ => unreachable!("child cursor position matches its immutable expression"),
         })
     }
 }

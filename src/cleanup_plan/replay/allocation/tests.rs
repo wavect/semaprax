@@ -195,6 +195,8 @@ fn active_builder_zero_exact_short_refusal_is_sticky_and_moves_paid_text() {
         // a physical enclosing-ledger refusal while that ledger still fits.
         assert!(!refused && receipt.is_none());
     }
+    // Historical producer control: retain the original scalar cursor fee and
+    // every physical/refusal assertion; current scalar clones have separate gates.
     // Independent literal backing inventory for the first type clone census:
     // one refusal String and one 514-entry fixed Option<(type-ref,ordinal)>.
     let cursor_bytes = 514 * std::mem::size_of::<Option<(&ResolvedType, usize)>>();
@@ -202,13 +204,22 @@ fn active_builder_zero_exact_short_refusal_is_sticky_and_moves_paid_text() {
         let (((), metrics), refused, used, receipt) = with_limit_usage_refusal(limit, || {
             measure(|| {
                 let mut budget = ReplayBudget::new();
-                let result = budget.reserve_clone(function, &ResolvedType::I64, "literal type");
+                let result = clone_cursor::before_scalar_clone(
+                    &mut budget,
+                    function,
+                    &ResolvedType::I64,
+                    "literal type",
+                );
                 if limit == text_bytes + cursor_bytes {
                     result.unwrap();
                     let before = current_metrics();
-                    budget
-                        .reserve_clone(function, &ResolvedType::I64, "reuse cursor")
-                        .unwrap();
+                    clone_cursor::before_scalar_clone(
+                        &mut budget,
+                        function,
+                        &ResolvedType::I64,
+                        "reuse cursor",
+                    )
+                    .unwrap();
                     assert_eq!(current_metrics(), before);
                     assert!(budget.builder_clone_cursor_paid);
                 } else {
@@ -216,9 +227,13 @@ fn active_builder_zero_exact_short_refusal_is_sticky_and_moves_paid_text() {
                     assert_eq!(error.code, "SPX-H006");
                     assert!(!budget.builder_clone_cursor_paid);
                     let before = current_metrics();
-                    assert!(budget
-                        .reserve_clone(function, &ResolvedType::I64, "retry")
-                        .is_err());
+                    assert!(clone_cursor::before_scalar_clone(
+                        &mut budget,
+                        function,
+                        &ResolvedType::I64,
+                        "retry"
+                    )
+                    .is_err());
                     assert_eq!(current_metrics(), before);
                     drop(error);
                 }

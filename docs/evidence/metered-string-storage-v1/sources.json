@@ -1,0 +1,28 @@
+[
+  {
+    "path": "src/wasm/aggregate.rs",
+    "archive": "aggregate.rs.before.txt",
+    "sha256": "307a7be09db0b6559db48a70efd8a997d5eee33058b07656226eaef482e71086",
+    "edits": [
+      {
+        "old": "        && super::functions_use_strings(executable_functions.iter().map(|(function, _)| *function));\n    if !owned_utf8_profile && uses_owned_strings {\n        return Err(error(\n",
+        "new": "        && super::functions_use_strings(executable_functions.iter().map(|(function, _)| *function));\n    if uses_owned_strings && !semantic_work::uses_owned_utf8(owned_utf8_profile) {\n        return Err(error(\n"
+      }
+    ]
+  },
+  {
+    "path": "src/wasm/aggregate/semantic_work.rs",
+    "archive": "semantic_work.rs.before.txt",
+    "sha256": "5cbab87f2f6ad14e75145dc757ed8574e340d569959a45a634259d45ea1eb0bb",
+    "edits": [
+      {
+        "old": "    SELECTION.with(|selection| selection.borrow().as_ref().map(read))\n}\n",
+        "new": "    SELECTION.with(|selection| selection.borrow().as_ref().map(read))\n}\n\n/// Select storage for the private, already admitted metered stage build.\n/// Public descriptor and HIR admission still run before this choice. The stage\n/// can own local Strings without exporting a String carrier; unmetered public\n/// data builds retain their explicit UTF-8 profile requirement.\npub(super) fn uses_owned_utf8(utf8_profile: bool) -> bool {\n    utf8_profile || selected(|_| ()).is_some()\n}\n"
+      },
+      {
+        "old": "}\n",
+        "new": "}\n\n#[cfg(test)]\nmod storage_tests {\n    use super::*;\n\n    #[test]\n    fn private_string_storage_selection_is_scoped_and_does_not_authorize_a_public_profile() {\n        assert!(!uses_owned_utf8(false));\n        assert!(uses_owned_utf8(true));\n        let metering = WasmSemanticMetering {\n            fuel_limit: 5,\n            functions: BTreeMap::new(),\n        };\n        with_semantic_metering(metering.clone(), || {\n            assert!(uses_owned_utf8(false));\n            assert!(uses_owned_utf8(true));\n            assert!(!std::thread::spawn(|| uses_owned_utf8(false))\n                .join()\n                .unwrap());\n            assert!(with_semantic_metering(metering.clone(), || Ok(())).is_err());\n            assert!(uses_owned_utf8(false));\n            Ok(())\n        })\n        .unwrap();\n        assert!(!uses_owned_utf8(false));\n        let result = std::panic::catch_unwind(|| {\n            let _ = with_semantic_metering(metering, || -> Result<(), Diagnostic> {\n                assert!(uses_owned_utf8(false));\n                panic!(\"private selection unwind control\");\n            });\n        });\n        assert!(result.is_err());\n        assert!(!uses_owned_utf8(false));\n        assert!(uses_owned_utf8(true));\n    }\n}\n\n#[cfg(test)]\nmod storage_source_tests {\n    #[test]\n    fn metered_storage_selection_keeps_complete_original_receivers() {\n        use sha2::{Digest, Sha256};\n        let root = std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n        let evidence = root.join(\"docs/evidence/metered-string-storage-v1\");\n        let records: serde_json::Value =\n            serde_json::from_str(&std::fs::read_to_string(evidence.join(\"sources.json\")).unwrap())\n                .unwrap();\n        for record in records.as_array().unwrap() {\n            let original =\n                std::fs::read_to_string(evidence.join(record[\"archive\"].as_str().unwrap()))\n                    .unwrap();\n            assert_eq!(\n                format!(\n                    \"{:x}\",\n                    crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))\n                ),\n                record[\"sha256\"].as_str().unwrap()\n            );\n            let current =\n                std::fs::read_to_string(root.join(record[\"path\"].as_str().unwrap())).unwrap();\n            let restore = |source: &str| -> Option<String> {\n                let mut restored = source.to_owned();\n                for edit in record[\"edits\"].as_array().unwrap().iter().rev() {\n                    let new = edit[\"new\"].as_str().unwrap();\n                    if restored.matches(new).count() != 1 {\n                        return None;\n                    }\n                    restored = restored.replacen(new, edit[\"old\"].as_str().unwrap(), 1);\n                }\n                Some(restored)\n            };\n            assert_eq!(restore(&current).as_deref(), Some(original.as_str()));\n            assert_ne!(\n                restore(&(current.clone() + \"\\n\")).as_deref(),\n                Some(original.as_str())\n            );\n            assert_ne!(\n                restore(&current.replacen(\"uses_owned_utf8\", \"changed_owned_utf8\", 1)).as_deref(),\n                Some(original.as_str())\n            );\n        }\n    }\n}\n"
+      }
+    ]
+  }
+]

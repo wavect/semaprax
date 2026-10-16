@@ -118,8 +118,10 @@ impl ReplayBudget {
         if !self.pays_allocations() {
             return Ok(());
         }
-        if self.payer == AllocationPayer::ActiveBuilder && !self.selected() && !T::NEEDS_TYPE_CURSOR
-        {
+        let without_type_cursor = self.payer == AllocationPayer::ActiveBuilder
+            && !self.selected()
+            && !value.clone_needs_type_cursor();
+        if without_type_cursor {
             // These preflights construct no recursive type cursor. Authenticate
             // and fund refusal text first, but leave the cursor unpaid so a
             // later recursive clone must still acquire its complete backing.
@@ -128,14 +130,21 @@ impl ReplayBudget {
             self.prepare_clone_cursor(function)?;
         }
         #[cfg(test)]
-        let payload = match self.oracle_lease() {
-            Some(lease) => {
-                value.clone_payload_bytes_with_work(&mut |units| lease.charge_work(units).is_ok())
+        let payload = if without_type_cursor {
+            value.clone_payload_bytes_without_type_cursor()
+        } else {
+            match self.oracle_lease() {
+                Some(lease) => value
+                    .clone_payload_bytes_with_work(&mut |units| lease.charge_work(units).is_ok()),
+                None => value.clone_payload_bytes(),
             }
-            None => value.clone_payload_bytes(),
         };
         #[cfg(not(test))]
-        let payload = value.clone_payload_bytes();
+        let payload = if without_type_cursor {
+            value.clone_payload_bytes_without_type_cursor()
+        } else {
+            value.clone_payload_bytes()
+        };
         let bytes = payload.ok_or_else(|| {
             self.budget_refusal(
                 function,

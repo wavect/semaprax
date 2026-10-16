@@ -1,0 +1,27 @@
+{
+  "status": "PREPARED_NO_CAPTURE_OR_APPLY",
+  "source_head": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+  "manifest_sha256": "db7076908874ab299285b9fe29dfd6e061acc1d800513af4a26bf288070a3968",
+  "round": "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016",
+  "skeleton_sha256": "cc11d3b83be454c7bdfa574add2b002d03a0139be4e776d4d77a8c833848410c",
+  "trusted_tool_sha256": {
+    "strict-828f-capture-only.py": "5b52bd6f903bc0a3930201717591643e18d481c4410ea27b4abdc13d09e772ce",
+    "prepare-after-actual-capture.py": "7431c3debf3aab49a402e7517bb71727ab0ab557a3398c958311f200fc610d5a",
+    "archive-actual-and-build-patch.py": "e976ff0c2218e870ba740e9eaa8379fa497476469919479f56d893c6cc7f4908",
+    "source_inverse_composition.py": "7219e0924d6dc42222796c96414a11a7aa90c222073e3ee188bb1a0197308946",
+    "check-ready.py": "9fe7a7742ff547d332799a7c25df94cbe9e7a58295b5681eaa0c18d313266e32",
+    "capture-browser.py": "2b7a5b43d934758fc1482ec07a2724a29c6e18f7a0c793b8c28f4e1e3e7127ee",
+    "original-tool-sources/run-current-prelude-pin-producers-role-fixed-20261015.py": "2dc92fddf4b28ca725d540c0f449227d6c5087af7f6a78287067de912a801e76",
+    "capture-managed.py": "5bbb8df7427e4dc53d34ddd52d262ae994f644cc69aaf988419c966aa1edaeca"
+  },
+  "strict_algorithm_exact_except_one_head_literal": true,
+  "role_fixed_producer_byteexact": true,
+  "all_original107_source_edits_replayed": true,
+  "actual_new_pin_values": null,
+  "all_four_build_commands_actual_success_required": true,
+  "both_CLI_artifacts_same_raw_build_required": true,
+  "publisher": "/Volumes/Semaprax/provenance/publication-2d4b-50-20261016",
+  "execution_performed": false,
+  "commands_sha256": "a30d9456609449e24d993c8be70226bc147543e23cab0b5ae871c7887f6bf1bd",
+  "publisher_derivation_sha256": "abba664d8c80be39c24f8a282af545d8f04e5c5e0a55f95de6e39530c47b4e06"
+}

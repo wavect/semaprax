@@ -1,0 +1,42 @@
+{
+  "strict-828f-capture-only.py": {
+    "before_sha256": "75b2275fe09186ea0e70c9a68a557174d80f94052fd0fba39f09d8027d906e10",
+    "after_sha256": "5b52bd6f903bc0a3930201717591643e18d481c4410ea27b4abdc13d09e772ce",
+    "changes": "explicithead and exactround-label literals; check-ready additionally requires actualexecuted/unchanged/settledgroups for allfour; algorithms otherwiseunchanged"
+  },
+  "prepare-after-actual-capture.py": {
+    "before_sha256": "e30242cce3c547635abdd3c369b1792aa07ae3d4601dd81d1b4852969fddca24",
+    "after_sha256": "7431c3debf3aab49a402e7517bb71727ab0ab557a3398c958311f200fc610d5a",
+    "changes": "explicithead and exactround-label literals; check-ready additionally requires actualexecuted/unchanged/settledgroups for allfour; algorithms otherwiseunchanged"
+  },
+  "archive-actual-and-build-patch.py": {
+    "before_sha256": "e976ff0c2218e870ba740e9eaa8379fa497476469919479f56d893c6cc7f4908",
+    "after_sha256": "e976ff0c2218e870ba740e9eaa8379fa497476469919479f56d893c6cc7f4908",
+    "changes": "explicithead and exactround-label literals; check-ready additionally requires actualexecuted/unchanged/settledgroups for allfour; algorithms otherwiseunchanged"
+  },
+  "source_inverse_composition.py": {
+    "before_sha256": "7219e0924d6dc42222796c96414a11a7aa90c222073e3ee188bb1a0197308946",
+    "after_sha256": "7219e0924d6dc42222796c96414a11a7aa90c222073e3ee188bb1a0197308946",
+    "changes": "explicithead and exactround-label literals; check-ready additionally requires actualexecuted/unchanged/settledgroups for allfour; algorithms otherwiseunchanged"
+  },
+  "check-ready.py": {
+    "before_sha256": "26ce27b8d37000ba118f063be24bb4f7d4c02318ef4d977b6094991eb49fc0ca",
+    "after_sha256": "9fe7a7742ff547d332799a7c25df94cbe9e7a58295b5681eaa0c18d313266e32",
+    "changes": "explicithead and exactround-label literals; check-ready additionally requires actualexecuted/unchanged/settledgroups for allfour; algorithms otherwiseunchanged"
+  },
+  "capture-browser.py": {
+    "before_sha256": "df0a0663c8ae8648077cbaa761fb0516024cd8553201aaaff04337df322a8136",
+    "after_sha256": "2b7a5b43d934758fc1482ec07a2724a29c6e18f7a0c793b8c28f4e1e3e7127ee",
+    "changes": "exact2d4b/fullround; independent completeMain2600 and actual8bb restores beforeunchanged35cc/17104/841restores; currentCIwholeSHA"
+  },
+  "capture-managed.py": {
+    "status": "NEW_EXPLICIT_GATE_WRAPPER_NOT_RELABELED_OLD_DRIVER",
+    "sha256": "5bbb8df7427e4dc53d34ddd52d262ae994f644cc69aaf988419c966aa1edaeca",
+    "original_producer_unchanged": true,
+    "operands": [
+      "expected-build-receipt-sha256",
+      "expected-readiness-sha256"
+    ],
+    "does_not_change_phase_or_admission_guards": true
+  }
+}

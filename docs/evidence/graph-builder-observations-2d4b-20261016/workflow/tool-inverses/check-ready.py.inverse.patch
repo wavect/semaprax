@@ -1,0 +1,28 @@
+--- derived/check-ready.py
++++ original/check-ready.py
+@@ -6,23 +6,19 @@
+ def sha(p):
+  with Path(p).open('rb') as f:return hashlib.file_digest(f,'sha256').hexdigest()
+ assert not a.out.exists() and not a.out.resolve().is_relative_to(root)
+-assert r==Path(record['required_round']).resolve(), 'exact50 round required'
+-assert sha(r/'expected-counts.json')==record['required_manifest_sha256'], 'exact50 manifest required'
++assert r==Path(record['required_round']).resolve(), 'exact76 round required'
++assert sha(r/'expected-counts.json')==record['required_manifest_sha256'], 'exact76 manifest required'
+ assert len(a.expected_build_receipt_sha256)==64 and sha(r/'owning-build-result.json')==a.expected_build_receipt_sha256
+ m=json.loads((r/'expected-counts.json').read_text());b=json.loads((r/'owning-build-result.json').read_text())
+ assert subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()==head
+ assert not subprocess.check_output(['git','status','--porcelain','--untracked-files=all'],cwd=root).strip()
+ assert m['source_subject']==b['source_subject']==head and m['source_tree']==b['source_tree']==record['frozen_source_tree']
+ assert b['exit_code']==0 and not b.get('artifact_refusals') and b['results'] and all(v['exit_code']==0 for v in b['results'])
+-assert all(v.get('executed') and not v.get('resource_refusal') and not v.get('observation_errors') and v.get('source_binding_status')=='unchanged' and v.get('group_settlement',{}).get('confirmed_empty') for v in b['results']), 'all four actual command groups must settle cleanly'
+-
+ assert len(record['required_ordered_build_commands'])==4
+ assert b['ordered_commands']==record['required_ordered_build_commands'], 'all FOUR exact source-bound build commands must complete in order'
+ assert len(b['ordered_commands'])==len(b['results']) and [v['command'] for v in b['results']]==b['ordered_commands']
+ assert not b.get('resource_refusal') and b.get('source_binding_status','unchanged')=='unchanged'
+ assert b['manifest_sha256']==sha(r/'expected-counts.json') and b['owning_build_metadata_sha256']==sha(r/'owning-build.jsonl')
+-assert b['driver_sha256']==m['prepared_driver_sha256']['build-owning.py'] and sha(r/'drivers/build-owning.py')==b['driver_sha256'], 'original source-bound build driver required'
+-
+ for n,h in record['trusted_tool_sha256'].items():assert sha(d/n)==h
+ for n,h in record['old_source_sha256'].items():assert sha(root/n)==h and (root/n).read_bytes()==(d/'frozen-source-before'/n).read_bytes()
+ for n,h in record['old_actual_all10_wire_sha256'].items():assert sha(Path(record['old_actual_capture'])/'wires'/n)==h

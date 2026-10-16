@@ -84,6 +84,7 @@ fn image(revision: Arc<ProjectRevision>) -> Arc<ProjectSemanticImage> {
     let expected = revision.project_revision().to_owned();
     Arc::new(ProjectSemanticImage::derive(revision, &expected).unwrap())
 }
+#[track_caller]
 fn same(cached: &Arc<ProjectRevision>, cold: Arc<ProjectRevision>) {
     assert_eq!(cached.project_revision(), cold.project_revision());
     assert_eq!(cached.workspace_revision(), cold.workspace_revision());

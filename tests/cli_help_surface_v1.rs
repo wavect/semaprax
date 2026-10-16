@@ -59,6 +59,11 @@ const DIAGNOSTIC_G171: &str = concat!(
     "wrote: resolved-core builder ledger refusal\n",
     "fix: Preserve behavior/caps; record source, requested/remaining/floor and compiler stage. Reduce source or optimize its compiler owner. Ledger bytes are not RSS/peak; do not infer unknowns.\n",
 );
+const DIAGNOSTIC_T267: &str = concat!(
+    "SPX-T267\n",
+    "wrote: Bytes allocation capacity: loop/cycle, per-value or full-path bound\n",
+    "fix: Follow the diagnostic's named limit; reduce complete allocation/input-read demand or per-value capacity. Keep Bytes allocation/copy and allocating calls out of ordinary while/cycles; nonallocating updates may fill a live owner where equivalent. Drops do not refund cumulative limits. Separate finite scratch/fused routes need their own proof/profile and qualification; help grants no admission. [Bytes](OWNED-BOUNDED-BYTE-BUFFER-V1.md)\n",
+);
 
 /// The command named by every indented entry of the guided overview.
 fn guide_commands(guide: &str) -> Vec<&str> {
@@ -494,6 +499,12 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     assert_eq!(g171.stdout, DIAGNOSTIC_G171.as_bytes());
     assert!(g171.stdout.len() <= 256);
     std::fs::remove_dir(g171_dir).unwrap();
+    let (t267, t267_dir) = invoke(&["help", "diagnostic", "SPX-T267"]);
+    assert!(t267.status.success());
+    assert!(t267.stderr.is_empty());
+    assert_eq!(t267.stdout, DIAGNOSTIC_T267.as_bytes());
+    assert!(t267.stdout.len() <= 768);
+    std::fs::remove_dir(t267_dir).unwrap();
     let (p106, p106_dir) = invoke(&["help", "diagnostic", "SPX-P106"]);
     assert!(p106.status.success());
     assert!(p106.stderr.is_empty());

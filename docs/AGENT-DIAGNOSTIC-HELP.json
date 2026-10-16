@@ -445,6 +445,15 @@
       ]
     },
     {
+      "code": "SPX-T267",
+      "rows": [
+        {
+          "fix": "Follow the diagnostic's named limit; reduce complete allocation/input-read demand or per-value capacity. Keep Bytes allocation/copy and allocating calls out of ordinary while/cycles; nonallocating updates may fill a live owner where equivalent. Drops do not refund cumulative limits. Separate finite scratch/fused routes need their own proof/profile and qualification; help grants no admission. [Bytes](OWNED-BOUNDED-BYTE-BUFFER-V1.md)",
+          "wrote": "Bytes allocation capacity: loop/cycle, per-value or full-path bound"
+        }
+      ]
+    },
+    {
       "code": "SPX-T269",
       "rows": [
         {

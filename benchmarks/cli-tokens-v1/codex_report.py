@@ -112,6 +112,7 @@ def recount(path: Path) -> dict:
         acceptance_wall, acceptance_subprocess = acceptance_times(original)
         rows.append({
             'arm': original['arm'], 'number': original['number'], 'status': original['status'],
+            'retained_compiler_file_inventories': original.get('retained_compiler_file_inventories'),
             'failure': original['failure'], 'resource_assessment': original.get('resource_assessment', {}),
             'model_requests': observed.get('model_request_count'),
             'raw_input_tokens': usage.get('input_tokens'), 'cached_input_tokens': usage.get('cached_input_tokens'),

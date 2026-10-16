@@ -1,0 +1,12 @@
+test_acceptance_subprocess_sum_does_not_claim_full_wall (test_codex_report.ReportTests.test_acceptance_subprocess_sum_does_not_claim_full_wall) ... ok
+test_failed_attempt_cost_is_in_accepted_task_denominator (test_codex_report.ReportTests.test_failed_attempt_cost_is_in_accepted_task_denominator) ... ok
+test_interrupted_paid_row_keeps_unknown_usage_cost_and_wall_time (test_codex_report.ReportTests.test_interrupted_paid_row_keeps_unknown_usage_cost_and_wall_time) ... ok
+test_partial_round_keeps_unlaunched_attempts_separate (test_codex_report.ReportTests.test_partial_round_keeps_unlaunched_attempts_separate) ... ok
+test_per_accepted_wall_includes_rejected_attempts_and_unknown_is_null (test_codex_report.ReportTests.test_per_accepted_wall_includes_rejected_attempts_and_unknown_is_null) ... ok
+test_resource_incident_keeps_cost_and_acceptance_but_forbids_clean_comparison (test_codex_report.ReportTests.test_resource_incident_keeps_cost_and_acceptance_but_forbids_clean_comparison) ... ok
+test_unknown_cost_does_not_become_zero_or_lower_bound (test_codex_report.ReportTests.test_unknown_cost_does_not_become_zero_or_lower_bound) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.001s
+
+OK

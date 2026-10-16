@@ -1024,6 +1024,7 @@ def _summarize(rows: list[dict[str, Any]], arms: tuple[str, ...] = ARMS) -> dict
         "clean_comparison_eligible": all(count >= MIN_TRIALS_PER_ARM for count in arm_counts.values())
             and sum(arm_counts.values()) == len(rows) and all(
                 row.get("resource_assessment", {}).get("clean_comparison_eligible") is True for row in rows),
+        "retained_compiler_file_inventories_per_attempt": [row.get("retained_compiler_file_inventories") for row in rows],
         "accepted_attempts": accepted,
         "failed_or_rejected_attempts": len(rows) - accepted,
         "codex_outer_turns_all_attempts": outer_turns,

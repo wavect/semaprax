@@ -1,0 +1,12 @@
+test_failed_attempt_cost_is_in_per_accepted_denominator (test_codex_report.ReportTests.test_failed_attempt_cost_is_in_per_accepted_denominator) ... ok
+test_failure_wall_is_included_and_missing_or_zero_accepted_stays_null (test_codex_report.ReportTests.test_failure_wall_is_included_and_missing_or_zero_accepted_stays_null) ... ok
+test_historical_subprocess_timings_cannot_establish_full_wall (test_codex_report.ReportTests.test_historical_subprocess_timings_cannot_establish_full_wall) ... ok
+test_partial_campaign_cannot_have_winner (test_codex_report.ReportTests.test_partial_campaign_cannot_have_winner) ... ok
+test_recount_rejects_malformed_trial (test_codex_report.ReportTests.test_recount_rejects_malformed_trial) ... ok
+test_recount_uses_real_codex_trace_adapter_and_preserves_missing_trace (test_codex_report.ReportTests.test_recount_uses_real_codex_trace_adapter_and_preserves_missing_trace) ... ok
+test_unknown_cost_stays_null (test_codex_report.ReportTests.test_unknown_cost_stays_null) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.002s
+
+OK

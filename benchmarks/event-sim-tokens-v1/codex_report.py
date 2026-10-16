@@ -185,6 +185,7 @@ def _recount_trial(original: dict[str, Any], price_book: dict[str, Any] | None =
     elapsed = original.get("elapsed_seconds") if _number(original.get("elapsed_seconds")) else None
     acceptance = _acceptance_seconds(original)
     return {
+        "retained_compiler_file_inventories": original.get("retained_compiler_file_inventories"),
         "arm": original.get("arm"), "number": original.get("number"),
         "status": original.get("status"), "failure": original.get("failure"),
         "resource_assessment": original.get("resource_assessment", {}),

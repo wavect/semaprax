@@ -1,0 +1,11 @@
+test_foreign_duplicate_escaping_and_orphan_receipts_refuse (test_retained_codec_inventory.RetainedCodecInventoryTests.test_foreign_duplicate_escaping_and_orphan_receipts_refuse) ... ok
+test_invalid_counts_and_broken_runtime_refuse_measurement (test_retained_codec_inventory.RetainedCodecInventoryTests.test_invalid_counts_and_broken_runtime_refuse_measurement) ... ok
+test_inventory_symlink_cannot_redirect_retained_bytes (test_retained_codec_inventory.RetainedCodecInventoryTests.test_inventory_symlink_cannot_redirect_retained_bytes) ... ok
+test_missing_tokenizer_retains_authenticated_originals_with_null_counts (test_retained_codec_inventory.RetainedCodecInventoryTests.test_missing_tokenizer_retains_authenticated_originals_with_null_counts) ... ok
+test_overwritten_schema_and_complete_mixed_output_stay_independent_without_subtraction (test_retained_codec_inventory.RetainedCodecInventoryTests.test_overwritten_schema_and_complete_mixed_output_stay_independent_without_subtraction) ... ok
+test_retained_byte_and_receipt_drift_refuse_without_candidate_fallback (test_retained_codec_inventory.RetainedCodecInventoryTests.test_retained_byte_and_receipt_drift_refuse_without_candidate_fallback) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.162s
+
+OK

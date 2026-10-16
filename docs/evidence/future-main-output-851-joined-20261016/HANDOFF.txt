@@ -1,0 +1,41 @@
+Whole future Main8fb / outgoing edge / final output / optional witness batch
+
+Merge the WHOLE clean branch, not only its final source seal. Parents retain
+actual bcd831 pin successor, original Main8fb reconciliation ff5, reviewed
+outgoing/finaloutput81a and corrected witness8512ad. No current21 file,
+ROOT source, Cargo, test binary, capture or producer was run or changed here.
+
+Entry points (successor physical source, not predecessor raw verifiers):
+python3 docs/evidence/future-main-output-851-joined-20261016/verify-source.py
+python3 docs/evidence/future-main-output-851-joined-20261016/verify-authority.py
+
+Four independent complete raw namespaces: bcd16, ff522,81a23,85121 rows.
+Runtime uses only bcd and ff5. Metadata-only81a/851 views bind complete
+component inputs without changing their old executable receivers.
+Inherited pin47_input authenticates current->bcd BEFORE the unchanged pin47
+and older Main/doc branches. The Main8fb declaration's direct front first
+authenticates current->ff5 and its original Main identity inverse; older four
+Main receivers retain the inherited Main696 domains. No serial cross-branch
+projection, expected hash change, old assertion removal or test oracle alias.
+Shipping transfer code is byte-exact reviewed81a; Main declaration, Node and
+receiver code is ff5; corrected hints and complete original helper/tests child
+are851. All six new actual Rust children join all three raw audits once; the
+current production/test partition uses the unchanged registration parser and
+forbidden lists. Interop source inventory remains exactly1500 lines.
+
+Original90 runtime JSON fixtures, inventory and membership remain unchanged.
+New compact compiled source tables total342862 bytes (bcd152825+ff5190037);
+metadata-only81a91323/851174780 bytes are not embedded. Three path_join views
+use one exact complete-input edit because overlapping unique contextual edits
+cannot form an ordered inverse; full SHA+whole Git+archive equality remain.
+Complete unchanged Git namespaces justify reuse of predecessor source-only
+proofs; predecessor verifiers are not run against wrong physical input.
+
+48 affected-owner draft pending-focused-checks.json is unregistered/unfrozen.
+Capture-first scheduling is parent-authorized: three producer-capable builds
+(unit lib, production lib, workspace), real managed3/browser2 captures, strict
+actual-only plan and test/evidence-only source-equivalent pin successor; then
+one final48+original15 consumer batch (63 unique/8roles, four original commands).
+No stale-pin execution, guessed bill, current producer/consumer PASS, measured
+savings, or issue closure is claimed. Current21 outcome/history stays separate.
+Both scoped production Clippy run once with the final same production cut.

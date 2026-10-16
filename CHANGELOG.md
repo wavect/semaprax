@@ -3,10 +3,17 @@
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
 
+- Select the existing paid borrowed-alias producer on the first ordinary uncached core attempt, preserving cache/invariant fallbacks and the complete old/current Project source, graph and Image parity gate. The previous compact-only gate left successful small Projects on the owning fallback; qualification is pending.
+
+- Source-only #851 admits exact capacity-witness control layouts before eligibility/length receivers and reserves optional String backing separately; preserve the complete Main receiver and all three original controls independently, with truthful paid-control spend on later backing refusal. Output, primary fields, sticky/floor behavior and limits remain; focused qualification is pending.
+
 - Add bounded V6 checked task/profile pages with repeated complete prerequisites, exact imported declaration rows and deterministic continuation; preserve V5 cards and scaffold capsules, explicitly refuse unverified stdin JSON composition, and leave executable qualification and agent-cost improvement unclaimed.
 - Reuse the already-built exact HIR/plan comparison for fitting ordinary lexical proof after unchanged enumeration admission/reservation; retain complete forced old enumeration and all weighted receiver payments, with no allowance refund or measured application/agent improvement claim.
 
 - Move the validated singleton ownership state and its conditional variants through unchanged normalization, removing absent clones while preserving join validation, work, scheduling and the complete old receiver; focused numerical qualification remains pending.
+- Preserve both the causal publication witness and the bounded-output repair hint, with exact optional funding and sticky-refusal controls.
+
+- Launch fused-source Wasm package test drivers from their fixture directory using relative names so Node does not receive Windows verbatim paths as its main script.
 
 - Report the first native-provider builder reservation and caller in outward C++ package diagnostic help, preserving primary diagnostics, all limits, and complete verification.
 
@@ -1373,6 +1380,14 @@ format: `Unreleased` then release buckets, grouped by impact.
 > [docs/CHANGELOG-ARCHIVE.md](docs/CHANGELOG-ARCHIVE.md).
 
 ## Unreleased
+
+- Source-only #808 moves an owned prefix into the sole HIR suffix or final
+  two-edge plan sibling when its existing buffer has spare capacity. Original
+  logical work, multiplicities and failure selection remain; complete old
+  receivers and the earlier inline-fusion footprint claim stay independent.
+  New whole-owner/capacity/removed-buffer and refusal/Drop controls are pending
+  execution. Full-capacity plan growth remains unchanged; no application-fit,
+  allocation-total or peak-memory improvement is claimed.
 
 - Source-only #836 adds consuming `vec_update_field<Row>(rows,index,value,"field")`
   for exact Copy scalar slots of invariant-free flat owned-leaf records, with

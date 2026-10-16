@@ -1,0 +1,188 @@
+{
+  "43e": {
+    "subject": "43e09017a21be4afec29bca40fa2aaa72f8695fd",
+    "complete_inputs": [
+      {
+        "source": "docs/evidence/final-edge-state-move-next-20261016/README.md",
+        "sha256": "9ea9f87799b0ab9567132fa4431d04dbdbb458f972ec135d4db21c823a0aa54f"
+      },
+      {
+        "source": "docs/evidence/final-edge-state-move-next-20261016/current-to-b3a.json",
+        "sha256": "f473fc849b2e92d8aa99f83c4d4b287d997f6d873e9a0ec494bd11e914160eae"
+      },
+      {
+        "source": "docs/evidence/final-edge-state-move-next-20261016/new-owners.json",
+        "sha256": "55ef861a492a7e8c33242985acb37e4c0a64d96450010747d31cf96b0f763b7e"
+      },
+      {
+        "source": "docs/evidence/final-edge-state-move-next-20261016/old-registration-adapters.json",
+        "sha256": "77a7da3ba62ac99f7b4dcdd60d658ee7d49189ec030827d4e25ce76858f83ad5"
+      },
+      {
+        "source": "docs/evidence/final-edge-state-move-next-20261016/path_join.rs.before",
+        "sha256": "251842e274adf65ec269615dda1b9ddfe9fbf93fe8390972b5631d41436147f9"
+      },
+      {
+        "source": "docs/evidence/final-edge-state-move-next-20261016/pending-selectors.json",
+        "sha256": "4510bab440b3ce276580e1511e475497da1d318298ddf7d95f92a046f3a44df1"
+      },
+      {
+        "source": "docs/evidence/final-edge-state-move-next-20261016/source-proof.json",
+        "sha256": "9adbac6a291e89f17f47d3737d9d4f8d2eee6d23b9aa043eb24e69a1097b0deb"
+      },
+      {
+        "source": "docs/evidence/final-edge-state-move-next-20261016/verify-source.py",
+        "sha256": "6619637e8c2878c7e3551cdb28af57dcef355026973edb09546316993ca1942b"
+      },
+      {
+        "source": "src/cleanup_plan/replay.rs",
+        "sha256": "7dea0c1ddc7901b76aa8152eb6e13593b83edec9ff370a55410df4599926de90"
+      },
+      {
+        "source": "src/cleanup_plan/replay/path_join.rs",
+        "sha256": "c710254e25f468da8f2712fb6991878ef0129a8f99fecfd4c3edddc5f535721e"
+      },
+      {
+        "source": "src/cleanup_plan/replay/path_join/before_final_edge.rs",
+        "sha256": "d294edafc66e3a8e4fa66c8d03b131cd45031b032b6f09f2462256d2a016c87e"
+      },
+      {
+        "source": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+        "sha256": "9e736102f9b39a731db6ab6ae3d17280eb04e5fa7df913c86cc503ec1771566f"
+      },
+      {
+        "source": "src/cleanup_plan/replay/path_join/branch_join.rs",
+        "sha256": "d3633b8f9fd25ed9036c7387541961e94147743613423e2f945051be3c434a54"
+      },
+      {
+        "source": "src/cleanup_plan/replay/path_join/final_edge_tests.rs",
+        "sha256": "a654131265e705b51c180661fae85034a4c747ef0f224bf800a865e6f1a86c84"
+      },
+      {
+        "source": "src/cleanup_plan/replay/path_join/receiver_tests.rs",
+        "sha256": "b988e44e6a1b1c4fb5a8353ae1377717b4613bc1982ac1e5a056099439008dda"
+      },
+      {
+        "source": "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+        "sha256": "79810d95fa864955dc08d7883b8c4b83f205837499fb07385bec9b80b6e954a6"
+      },
+      {
+        "source": "src/cleanup_plan/replay/path_join/state_move_tests.rs",
+        "sha256": "7c81b56268cdc2c7f899d9691b8f6083cecedd1375c26b65472bcddd3ca79059"
+      },
+      {
+        "source": "src/cleanup_plan/replay/path_join/storage.rs",
+        "sha256": "671900b2a5b62cba38ad34777f69d8f7fa2169bacac174a4237e1a24fbaf07c5"
+      },
+      {
+        "source": "src/cleanup_plan/replay/path_join/storage/empty_renewals.rs",
+        "sha256": "b65045d69e6727f782183ba1f30cebf976b431a8ef34c4af6ed410e857a82d59"
+      }
+    ]
+  },
+  "276": {
+    "subject": "276295dd4122e137105970476142e36ff22508d3",
+    "complete_inputs": [
+      {
+        "source": "CHANGELOG.md",
+        "sha256": "5841ea04da02f8e6f7e1c2c1849f116c9b3d4dacd2007b95d0fe78f92575deb8"
+      },
+      {
+        "source": "docs/ARCHITECTURE.md",
+        "sha256": "10f0413d599c82d17dc2cda23eca91f8ae5166966a4f45c1d9caa70cd2ed2f45"
+      },
+      {
+        "source": "docs/evidence/final-output-transfer-808-next-20261016/HANDOFF.txt",
+        "sha256": "912cf1f254939b4369b1c211f61675f3a981f1d7dca66e8e87b25b14319d9812"
+      },
+      {
+        "source": "docs/evidence/final-output-transfer-808-next-20261016/before/CHANGELOG.md",
+        "sha256": "a7d8db88c36fed257ea150d11a4a0b7332aab3a14e2cbca28fd985226b2e66af"
+      },
+      {
+        "source": "docs/evidence/final-output-transfer-808-next-20261016/before/docs__ARCHITECTURE.md",
+        "sha256": "502fb32c50359b8e8abd71a75b6306ccb4a4c6efc70fb5f1de9eec625d26ecb6"
+      },
+      {
+        "source": "docs/evidence/final-output-transfer-808-next-20261016/before/src__cleanup_plan__replay.rs",
+        "sha256": "7dea0c1ddc7901b76aa8152eb6e13593b83edec9ff370a55410df4599926de90"
+      },
+      {
+        "source": "docs/evidence/final-output-transfer-808-next-20261016/before/src__cleanup_plan__replay__branch_clone__inline_tests.rs",
+        "sha256": "1d994ae4d485f50f3787b6596027267894f5858f5cb6626fa7b08c68755acc6a"
+      },
+      {
+        "source": "docs/evidence/final-output-transfer-808-next-20261016/pending-selectors.json",
+        "sha256": "18b87198b41543f8310e6e27d7cef29f75b86d53b241530e491ec25c25025ff5"
+      },
+      {
+        "source": "docs/evidence/final-output-transfer-808-next-20261016/plan_skeleton_paths.before.rs.txt",
+        "sha256": "db9260c65965f528c070470ac0283d221b65f6649031d953915ece936e74159e"
+      },
+      {
+        "source": "docs/evidence/final-output-transfer-808-next-20261016/sequence_skeleton_paths.before.rs.txt",
+        "sha256": "61bfac369d6e1a7abd4181e6498531fd12bc95aa67d9364ff8177fde00c12208"
+      },
+      {
+        "source": "docs/evidence/final-output-transfer-808-next-20261016/source-inverses.json",
+        "sha256": "f60cfbfe44ec1c5158ef20feb8081dfafc0aace3f076b4689ca7d61e54235f32"
+      },
+      {
+        "source": "docs/evidence/final-output-transfer-808-next-20261016/source-proof.json",
+        "sha256": "d35fdebc0055db1a250e304cdf6d819e55d08b7d863ffaf022fc771620376d41"
+      },
+      {
+        "source": "docs/evidence/final-output-transfer-808-next-20261016/verify-source.py",
+        "sha256": "76a12a42d76fe6cd2def08fd4ae60ae169d4935332993c0e1dd421862c0345e9"
+      },
+      {
+        "source": "src/cleanup_plan/replay.rs",
+        "sha256": "3adb9ca4a8317fd36ee346b6b091367e49ce4eb1269d404a36feff831c45f5ac"
+      },
+      {
+        "source": "src/cleanup_plan/replay/branch_clone.rs",
+        "sha256": "c205be3e78dbd53bcb2fd7598b64828895fdcaacff62c2d6661fe0a110a4c160"
+      },
+      {
+        "source": "src/cleanup_plan/replay/branch_clone/inline_tests.rs",
+        "sha256": "dd8bad0811ee000806ec177d7ab485e48d9f0b25e84f735f02e886d7aae5ab41"
+      },
+      {
+        "source": "src/cleanup_plan/replay/final_output.rs",
+        "sha256": "df659184de6fa2b8015ebd9c1a020c4115a6c701beb373c9143c637f87f1a2ae"
+      },
+      {
+        "source": "src/cleanup_plan/replay/final_output/before.rs",
+        "sha256": "f7be016b8050ba2c7113915daece93cc671fa3065afd04e7b8b9821ba498ec33"
+      },
+      {
+        "source": "src/cleanup_plan/replay/final_output/tests.rs",
+        "sha256": "efe34b17d220c1ad0f1bc62d6683555303bae19142a8666525e0b0d82dddfc7c"
+      },
+      {
+        "source": "src/cleanup_plan/replay/lexical_skeleton.rs",
+        "sha256": "316fb7e4ffac72d9ad9817e2d64effea32710f2956612d9f40e75c7ff606d353"
+      },
+      {
+        "source": "src/cleanup_plan/replay/path_array.rs",
+        "sha256": "7f7c27629686915e599931f378e3bde0da2d7d8eb1484e137d1549c314e63964"
+      },
+      {
+        "source": "src/cleanup_plan/replay/physical_budget.rs",
+        "sha256": "21838768b0d7d3cf4dbbc2aaadb6e7361159b8ebc9a55750e37323416197b727"
+      },
+      {
+        "source": "src/cleanup_plan/replay/physical_clone.rs",
+        "sha256": "7562958a30b1c75afadc4d2110b42b06a209e3f54b3a8e5111ecdd08d6488bb6"
+      },
+      {
+        "source": "src/cleanup_plan/replay/skeleton_work.rs",
+        "sha256": "f6163b3cc48322bf40549c18cccf8ea412a52a450daadd82d7f93e5daa6b8716"
+      },
+      {
+        "source": "src/cleanup_plan/replay/skeleton_work/ordinary_dag.rs",
+        "sha256": "3d1a9ab1fd584910af3044e44a19e4c429263778cc611fa44c4a3df6250e2ab5"
+      }
+    ]
+  }
+}

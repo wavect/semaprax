@@ -1,0 +1,38 @@
+{
+  "base": "36f47201b5a87054a846afbfe06c86e9876bff1a",
+  "rows": [
+    {
+      "path": "src/workspace_graph.rs",
+      "before_sha256": "c23b19943f20470c3619a6fdb7a356794e5d616f6f360e8b9c65b01f55bb61d3",
+      "after_sha256": "9eab12b59d54c41c3b71f2e0b3b3d6937390da03cd8c7d4b2fe2ed1da39ae565",
+      "edits": [
+        {
+          "before": "(if retained_output_only & frontend.is_none() {",
+          "after": "(if frontend.is_none() {"
+        }
+      ]
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "before_sha256": "6c986bcfdaad7e8f0261a49e1762ed950469c7b306f6c0c5b1041f9bb72d9047",
+      "after_sha256": "f79ad89e34f2eb8ee546852f004219976cc1f80928f305001c6ff049c3c74928",
+      "edits": [
+        {
+          "before": "The function-alias graph/Image\ncontrol compares real Project outputs against the complete immediate-old core.",
+          "after": "The function-alias graph/Image\ncontrol compares real Project outputs against the complete immediate-old core.\nThe same paid retained-wrapper alias producer is selected on the first ordinary\nuncached attempt as well as compact output attempts. Its provider AST borrow\nends at resolution; both routes retain owned resolved HIR. Cache-enabled calls\nand invariant-rewriting programs retain the original constructor. This does\nnot change the conservative forecast, dynamic payments or failure limits."
+        }
+      ]
+    },
+    {
+      "path": "CHANGELOG.md",
+      "before_sha256": "af917a2924d23406b116079d69ce21d1255d32413dd2a605d39a314b07697b35",
+      "after_sha256": "5a54e99ba47fd322eca82a8fba419fa1b4f09fe8a6b503a04d8e83f2173be51e",
+      "edits": [
+        {
+          "before": "# Changelog\n",
+          "after": "# Changelog\n\n- Select the existing paid borrowed-alias producer on the first ordinary uncached core attempt, preserving cache/invariant fallbacks and the complete old/current Project source, graph and Image parity gate. The previous compact-only gate left successful small Projects on the owning fallback; qualification is pending.\n"
+        }
+      ]
+    }
+  ]
+}

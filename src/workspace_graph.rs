@@ -4039,7 +4039,7 @@ fn build_resolved_core_current(
         }
         let synthetic = staged!(
             SyntheticModule,
-            (if retained_output_only & frontend.is_none() {
+            (if frontend.is_none() {
                 constructor_failure::typed::construct_transient_alias_core(
                     program,
                     authored,

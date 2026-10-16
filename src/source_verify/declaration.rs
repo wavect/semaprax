@@ -282,7 +282,7 @@ fn verify_profile<'p>(
             let witness_help = capacity.witness_help;
             let mut diagnostic = error(program, capacity.diagnostic.code(), capacity.detail, span);
             if let Some(witness_help) = witness_help {
-                diagnostic = diagnostic.with_help(witness_help);
+                diagnostic = super::hints::with_capacity_witness(diagnostic, witness_help);
             }
             if let Some(help) = help {
                 diagnostic = diagnostic.with_help(help);

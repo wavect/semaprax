@@ -1,0 +1,10 @@
+[
+  {
+    "source": "src/source_verify/declaration.rs",
+    "checkpoint_revision": "8fb7b025582bd96750b8ceeb9b246f4d795bce8c",
+    "archive": "docs/evidence/main8fb-source-reconciliation-20261016/before/main8fb/src/source_verify/declaration.rs.txt",
+    "current_sha256": "61c807e1dc05a4f559830b4fa3d25eb79c73aac11a066aa7e3e775caaa655dec",
+    "original_sha256": "61c807e1dc05a4f559830b4fa3d25eb79c73aac11a066aa7e3e775caaa655dec",
+    "edits": []
+  }
+]

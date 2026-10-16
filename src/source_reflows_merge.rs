@@ -107,7 +107,39 @@ fn fitting759_input(source: &str, current: &str) -> String {
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/task722-held-fitting759-join-20261016/current-to-0e7b.json")), source, current)
 }
 fn pin47_input(source: &str, current: &str) -> String {
+    let joined = future_bcd_input(source, current);
+    let current = joined.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/actual47f-pin-fixture-successor-20261016/current-to-47f.json")), source, current)
+}
+// The new Main receiver has one additional, independently authenticated input;
+// its older four owners still use their exact Main696 domains.
+pub(crate) fn main8fb_input(source: &str, current: &str) -> String {
+    if source == "src/source_verify/declaration.rs" {
+        let joined = future_main8fb_input(source, current);
+        let current = joined.as_str();
+        return project(
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/docs/evidence/main8fb-source-reconciliation-20261016/current-to-main8fb.json"
+            )),
+            source,
+            current,
+        );
+    }
+    main696_input(source, current)
+}
+pub(crate) fn future_bcd_input(source: &str, current: &str) -> String {
+    let joined = post21_input(source, current);
+    let current = joined.as_str();
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/future-main-output-851-joined-20261016/current-to-bcd.json")), source, current)
+}
+pub(crate) fn future_main8fb_input(source: &str, current: &str) -> String {
+    let joined = post21_input(source, current);
+    let current = joined.as_str();
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/future-main-output-851-joined-20261016/current-to-ff5.json")), source, current)
+}
+fn post21_input(source: &str, current: &str) -> String {
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/post21-alias-observer-source-join-20261016/current-to-36f.json")), source, current)
 }
 fn project(rows: &str, source: &str, current: &str) -> String {
     let rows: serde_json::Value = serde_json::from_str(rows).expect("fixed merge projections");

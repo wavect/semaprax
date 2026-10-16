@@ -1,0 +1,24 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "actual_failure": {
+    "source_subject": "bcd83107ccda58800e9f2b848950cece03979de6",
+    "original_log": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-18.log",
+    "sha256": "69143b194b0c06e7e0339b8c561a4b7e9356f6b86b7e3d387e25640176e1f055",
+    "count": 0,
+    "old_paid": 513,
+    "current_paid": 735,
+    "old_allocated": 2817,
+    "current_allocated": 2817,
+    "outcome": "FAIL_physical_bound"
+  },
+  "scope": "Legacy ordinary context construction/Drop outside ACTIVE and array allocation observer; seed/append/partial-path/Diagnostic/paid-budget Drop inside. No claim that legacy setup is funded.",
+  "unchanged_independent_old": {
+    "src/cleanup_plan/replay/path_array/before.rs": "1e6f9b2f9d6252d0c24a70584d7ba67d203ff01d611ff381810c3fb8415dc7fb",
+    "src/cleanup_plan/replay/path_array/main696.rs": "0d507d3043e0fbbc896781f76a9d1f4b7827d403d7817bdf13e51c9270c1653d"
+  },
+  "selector": {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_exact_short_zero_and_first_output_work_frontier"
+  }
+}

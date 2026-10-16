@@ -1,0 +1,108 @@
+{
+  "base": "b3a53367d4def76240d14dca25ee414785bed9d6",
+  "direction": "complete current to immediate old",
+  "rows": [
+    {
+      "path": "src/cleanup_plan/replay.rs",
+      "current_sha256": "3adb9ca4a8317fd36ee346b6b091367e49ce4eb1269d404a36feff831c45f5ac",
+      "before_sha256": "7dea0c1ddc7901b76aa8152eb6e13593b83edec9ff370a55410df4599926de90",
+      "before_archive": "before/src__cleanup_plan__replay.rs",
+      "edits": [
+        {
+          "current_start_line": 8,
+          "current_end_line": 9,
+          "old_start_line": 8,
+          "old_end_line": 8,
+          "current": "mod final_output;\n",
+          "old": ""
+        },
+        {
+          "current_start_line": 2952,
+          "current_end_line": 2958,
+          "old_start_line": 2951,
+          "old_end_line": 2951,
+          "current": "    work.budget.reserve_bytes(\n        work.function,\n        final_output::HIR_SELECTION_CONTROLS,\n        \"HIR single-suffix selection controls\",\n    )?;\n    let single = suffixes.len() == 1;\n",
+          "old": ""
+        },
+        {
+          "current_start_line": 2972,
+          "current_end_line": 3010,
+          "old_start_line": 2965,
+          "old_end_line": 2965,
+          "current": "        }\n        if single {\n            work.budget.reserve_bytes(\n                work.function,\n                final_output::HIR_MOVE_CONTROLS,\n                \"HIR single-suffix move controls\",\n            )?;\n            let suffix = &suffixes[0];\n            work.charge(1, \"skeleton prefix clone\")?;\n            note_skeleton_materialization();\n            let observations = prefix.observations;\n            let observations = work.extend_owned_observations(\n                observations,\n                &suffix.observations,\n                \"skeleton suffix clone\",\n            )?;\n            let owned_source = work.clone_owned(\n                &suffix.owned_source,\n                \"sequenced skeleton owned-source clone\",\n            )?;\n            path_array::push!(\n                work,\n                first,\n                minimum,\n                &mut combined,\n                ExprSkeletonPath {\n                    observations,\n                    owned_source,\n                    failed: suffix.failed,\n                    residual: suffix.residual,\n                    continuation: lexical_skeleton::Continuation::sequenced(\n                        &prefix.continuation,\n                        &suffix.continuation,\n                    ),\n                },\n                \"sequenced skeleton path\",\n            );\n            continue;\n",
+          "old": ""
+        },
+        {
+          "current_start_line": 6714,
+          "current_end_line": 6827,
+          "old_start_line": 6669,
+          "old_end_line": 6669,
+          "current": "                budget.reserve_bytes(\n                    function,\n                    final_output::PLAN_SELECTION_CONTROLS,\n                    \"plan final-output selection controls\",\n                )?;\n                if edges.len() == 2 && observations.len() < observations.capacity() {\n                    let edge = &plan.edges[edges[0].0 as usize];\n                    let observation = final_output::observation!(edge, budget, function);\n                    budget.reserve_bytes(\n                        function,\n                        branch_clone::inline_controls::<std::rc::Rc<SkeletonObservation>>(),\n                        \"branch clone receiving controls\",\n                    )?;\n                    // The branch producer has no Result<Vec<_>, Diagnostic>\n                    // receiver or owned observation forwarding argument. Its\n                    // nested work/census/payment Results retain their charges.\n                    let mut branch;\n                    if !budget.pays_allocations() {\n                        branch = skeleton_clone(\n                            budget,\n                            function,\n                            &observations,\n                            \"cleanup-plan skeleton branch clone\",\n                        )?;\n                        skeleton_push(\n                            budget,\n                            function,\n                            &mut branch,\n                            observation,\n                            \"plan branch observation push\",\n                        )?;\n                    } else {\n                        budget.charge_skeleton(\n                            function,\n                            1,\n                            \"cleanup-plan skeleton branch clone\",\n                        )?;\n                        budget.reserve_clone(\n                            function,\n                            &observations,\n                            \"cleanup-plan skeleton branch clone\",\n                        )?;\n                        note_skeleton_materialization();\n                        // Original push work precedes every extra backing debit.\n                        budget.charge_skeleton(function, 1, \"plan branch observation push\")?;\n                        note_skeleton_materialization();\n                        let capacity = if observations.is_empty() {\n                            1\n                        } else {\n                            if observations.len() > usize::MAX / 2 {\n                                return Err(budget.budget_refusal(\n                                    function,\n                                    \"cleanup replay branch capacity overflowed\",\n                                    \"\",\n                                ));\n                            }\n                            observations.len() * 2\n                        };\n                        budget.reserve_array::<std::rc::Rc<SkeletonObservation>>(\n                            function,\n                            capacity - observations.len(),\n                            \"plan branch observation push\",\n                        )?;\n                        budget.reserve_bytes(\n                            function,\n                            physical_clone::conversion_bytes::<std::rc::Rc<SkeletonObservation>, _>(\n                                &observation,\n                            ),\n                            \"plan branch observation push\",\n                        )?;\n                        branch = Vec::with_capacity(capacity);\n                        branch.extend(observations.iter().cloned());\n                        branch.push(observation.into());\n                    }\n                    skeleton_queue_push(\n                        budget,\n                        function,\n                        &mut queue,\n                        (edge.to, branch),\n                        \"plan branch state push\",\n                    )?;\n                    let edge = &plan.edges[edges[1].0 as usize];\n                    let observation = final_output::observation!(edge, budget, function);\n                    budget.reserve_bytes(\n                        function,\n                        final_output::PLAN_MOVE_CONTROLS,\n                        \"plan final-output move controls\",\n                    )?;\n                    budget.charge_skeleton(function, 1, \"cleanup-plan skeleton branch clone\")?;\n                    note_skeleton_materialization();\n                    #[cfg(test)]\n                    final_output::record_move(observations.len(), observations.capacity());\n                    let mut branch = observations;\n                    budget.charge_skeleton(function, 1, \"plan branch observation push\")?;\n                    note_skeleton_materialization();\n                    budget.reserve_bytes(function, 0, \"plan branch observation push\")?;\n                    budget.reserve_bytes(\n                        function,\n                        physical_clone::conversion_bytes::<std::rc::Rc<SkeletonObservation>, _>(\n                            &observation,\n                        ),\n                        \"plan branch observation push\",\n                    )?;\n                    branch.push(observation.into());\n                    skeleton_queue_push(\n                        budget,\n                        function,\n                        &mut queue,\n                        (edge.to, branch),\n                        \"plan branch state push\",\n                    )?;\n                    continue;\n                }\n",
+          "old": ""
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/branch_clone/inline_tests.rs",
+      "current_sha256": "dd8bad0811ee000806ec177d7ab485e48d9f0b25e84f735f02e886d7aae5ab41",
+      "before_sha256": "1d994ae4d485f50f3787b6596027267894f5858f5cb6626fa7b08c68755acc6a",
+      "before_archive": "before/src__cleanup_plan__replay__branch_clone__inline_tests.rs",
+      "edits": [
+        {
+          "current_start_line": 49,
+          "current_end_line": 52,
+          "old_start_line": 49,
+          "old_end_line": 50,
+          "current": "        // Historical inline-fusion claim: the subsequent final-output transfer\n        // has its own complete shipping observer in final_output::tests.\n        super::super::final_output::before::plan_skeleton_paths(function, budget)\n",
+          "old": "        super::super::plan_skeleton_paths(function, budget)\n"
+        }
+      ]
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "current_sha256": "10f0413d599c82d17dc2cda23eca91f8ae5166966a4f45c1d9caa70cd2ed2f45",
+      "before_sha256": "502fb32c50359b8e8abd71a75b6306ccb4a4c6efc70fb5f1de9eec625d26ecb6",
+      "before_archive": "before/docs__ARCHITECTURE.md",
+      "edits": [
+        {
+          "current_start_line": 4977,
+          "current_end_line": 4985,
+          "old_start_line": 4977,
+          "old_end_line": 4977,
+          "current": "The `final_output` module owns fixed receiving-layout payments for the exact\none-suffix HIR and two-edge/spare-capacity plan routes. The final output receives\nits already-owned flat prefix; the original work, observation identity, suffix\nextension and queue order remain. Full-capacity and other arities retain their\ncomplete old loops. Independent immediate-old functions and the historical\ninline-fusion footprint contract remain test-only; direct shipping observers\nreport retained capacities, removed buffers and complete Drop. No shared-history\nrepresentation or universal cost improvement follows from this transfer.\n",
+          "old": ""
+        }
+      ]
+    },
+    {
+      "path": "CHANGELOG.md",
+      "current_sha256": "5841ea04da02f8e6f7e1c2c1849f116c9b3d4dacd2007b95d0fe78f92575deb8",
+      "before_sha256": "a7d8db88c36fed257ea150d11a4a0b7332aab3a14e2cbca28fd985226b2e66af",
+      "before_archive": "before/CHANGELOG.md",
+      "edits": [
+        {
+          "current_start_line": 1373,
+          "current_end_line": 1381,
+          "old_start_line": 1373,
+          "old_end_line": 1373,
+          "current": "\n- Source-only #808 moves an owned prefix into the sole HIR suffix or final\n  two-edge plan sibling when its existing buffer has spare capacity. Original\n  logical work, multiplicities and failure selection remain; complete old\n  receivers and the earlier inline-fusion footprint claim stay independent.\n  New whole-owner/capacity/removed-buffer and refusal/Drop controls are pending\n  execution. Full-capacity plan growth remains unchanged; no application-fit,\n  allocation-total or peak-memory improvement is claimed.\n",
+          "old": ""
+        }
+      ]
+    }
+  ],
+  "new_sources": [
+    {
+      "path": "src/cleanup_plan/replay/final_output.rs",
+      "sha256": "df659184de6fa2b8015ebd9c1a020c4115a6c701beb373c9143c637f87f1a2ae"
+    },
+    {
+      "path": "src/cleanup_plan/replay/final_output/before.rs",
+      "sha256": "f7be016b8050ba2c7113915daece93cc671fa3065afd04e7b8b9821ba498ec33"
+    },
+    {
+      "path": "src/cleanup_plan/replay/final_output/tests.rs",
+      "sha256": "efe34b17d220c1ad0f1bc62d6683555303bae19142a8666525e0b0d82dddfc7c"
+    }
+  ]
+}

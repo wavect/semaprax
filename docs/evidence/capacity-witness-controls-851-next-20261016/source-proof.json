@@ -1,0 +1,12 @@
+{
+  "status": "PASS_SMALL_SOURCE_ONLY",
+  "complete_before_inverse_inputs": 2,
+  "whole_old_receiver_helpers": 2,
+  "original_Main_bodies_unchanged_independently_compiled": 3,
+  "shipping_bodies_pending": 3,
+  "old_authoring_helpers_and_four_controls_exact": true,
+  "initial_before_receivers_backing_before_String": true,
+  "all_original_JSON_unchanged": true,
+  "global_custody_audits_deferred_to_compositor": true,
+  "Rust_executed": false
+}

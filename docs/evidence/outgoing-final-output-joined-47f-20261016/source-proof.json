@@ -1,0 +1,47 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "base": "47f80b0f7a06fde9b2388439a9c0bfe998a05af1",
+  "complete_independent_named_input_frontiers": {
+    "43e": 1,
+    "276": 2,
+    "47f": 5
+  },
+  "whole_component_verifier_inputs": {
+    "43e": 19,
+    "276": 25
+  },
+  "original_verifiers_replayed_unchanged_on_complete_immutable_subjects": true,
+  "shipping_exact_reviewed_components": true,
+  "new_owners": [
+    {
+      "source": "src/cleanup_plan/replay/path_join/before_final_edge.rs",
+      "sha256": "d294edafc66e3a8e4fa66c8d03b131cd45031b032b6f09f2462256d2a016c87e",
+      "lines": 938
+    },
+    {
+      "source": "src/cleanup_plan/replay/path_join/final_edge_tests.rs",
+      "sha256": "a654131265e705b51c180661fae85034a4c747ef0f224bf800a865e6f1a86c84",
+      "lines": 192
+    },
+    {
+      "source": "src/cleanup_plan/replay/final_output.rs",
+      "sha256": "df659184de6fa2b8015ebd9c1a020c4115a6c701beb373c9143c637f87f1a2ae",
+      "lines": 145
+    },
+    {
+      "source": "src/cleanup_plan/replay/final_output/before.rs",
+      "sha256": "f7be016b8050ba2c7113915daece93cc671fa3065afd04e7b8b9821ba498ec33",
+      "lines": 546
+    },
+    {
+      "source": "src/cleanup_plan/replay/final_output/tests.rs",
+      "sha256": "efe34b17d220c1ad0f1bc62d6683555303bae19142a8666525e0b0d82dddfc7c",
+      "lines": 346
+    }
+  ],
+  "new_selected_bodies": 4,
+  "protected_component_packets_byte_exact": true,
+  "global_runtime_frontiers_audits_authority": "PENDING_CANONICAL_COMPOSITION",
+  "rust_execution": false,
+  "quantified_gain_claim": false
+}

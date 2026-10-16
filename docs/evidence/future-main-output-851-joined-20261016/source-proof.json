@@ -1,0 +1,18 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "whole_independent_parent_namespaces": {
+    "bcd": 16,
+    "ff5": 22,
+    "81a": 23,
+    "851": 21
+  },
+  "shipping_transfers_exact_reviewed81a": true,
+  "main_declaration_Node_receivers_exact_ff5": true,
+  "hints_correction_exact851": true,
+  "original90_runtime_fixtures_and_pin_successor_controls_unchanged": true,
+  "original_project_body_exact": true,
+  "new_Rust_owners": 6,
+  "current_authority": "SEPARATE_REQUIRED_VERIFY_AUTHORITY",
+  "old_verifier_reuse": "complete restored input namespace, no new Rust execution",
+  "new_runtime_or_pin_PASS_claim": false
+}

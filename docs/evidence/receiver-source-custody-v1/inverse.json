@@ -94,5 +94,17 @@
       }
     ],
     "after_sha256": "401c904b0941c4dc7e4677936366d23375d7503944692061ee024f9278d40cb1"
+  },
+  {
+    "path": "src/source_verify/declaration.rs",
+    "after_sha256": "61c807e1dc05a4f559830b4fa3d25eb79c73aac11a066aa7e3e775caaa655dec",
+    "before_sha256": "11b26f1bc56c129657268cf90436753cfaf037fa7c37ec49596284fd5d1bdcd8",
+    "archive": "src__source_verify__declaration.rs.before.txt",
+    "inverse": [
+      {
+        "after": "diagnostic = super::hints::with_capacity_witness(diagnostic, witness_help);",
+        "before": "diagnostic = diagnostic.with_help(witness_help);"
+      }
+    ]
   }
 ]

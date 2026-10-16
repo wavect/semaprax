@@ -1,0 +1,53 @@
+Actual prospective receiving layouts — #851
+
+No Diagnostic header is added: existing (Diagnostic,String) parameters replace
+Main8fb's same receiver/value, and old fallback moves those same owners through
+Diagnostic::with_help. No new Result<Diagnostic> or allocating fallback exists.
+The only new field publication replaces the same existing Option<String> slot.
+
+All following controls are admitted at the initial optional static frontier
+BEFORE eligibility or length computation; the selected String backing is admitted
+separately at its exact computed byte length. Success admission includes these
+prospective controls; if a later branch refuses, acquired control spend stays.
+Failure to acquire the initial bank is explicitly unreceived and moves the
+pre-existing fallback owners. It neither invents a paid receipt nor allocates.
+
+2 String: String::new initializer, named composed owner.
+19 usize, individually corresponding to:
+  1 price function return; 2 initial reserve amount argument; 3 initial floor0;
+  4 witness.len result; 5 witness_bytes named receiver;
+  6 repair.len result; 7 repair_bytes named receiver;
+  8 first checked_add self; 9 literal2 argument;
+  10 first Some(length) binding; 11 with_separator named match receiver;
+  12 second checked_add self; 13 repair_bytes argument;
+  14 second Some(length) binding; 15 final length named match receiver;
+  16 backing reserve length argument; 17 backing floor0;
+  18 try_reserve_exact length argument; 19 composed.capacity result.
+2 Option<usize>: each checked_add's actual result. There is no and_then closure,
+  named Option-length/payment receiver, tuple-of-Options or payment checked add.
+1 Option<&str>: actual unchanged authoring_repair_help return at the match.
+1 &Option<String>: borrow of diagnostic.help for direct match (no as_deref/filter).
+6 &String: Some(help) binding; help.as_str receiver; message coercion;
+  witness.len receiver; witness push coercion; composed.capacity receiver.
+10 &str: classifier code/message params; expected pattern binding; selected
+  repair receiver; help.as_str result; repair.len receiver; witness/separator/
+  repair push arguments; code-comparison literal. Existing stored code/message
+  fields are not charged as a second Diagnostic owner.
+4 &&str: two equality-operator argument pairs (code and exact repair text).
+4 &mut String: try_reserve_exact and the three original push_str receivers.
+1 Result<(),TryReserveError>: actual try_reserve_exact result.
+1 &Result<(),TryReserveError>: its is_err receiving borrow.
+9 bool: two optional admission results and two negations; code/repair guards;
+  is_err result; exact-capacity comparison; the original OR result.
+
+The two reserve_active_preserving calls retain the original authority primitive
+unchanged; there is no captured parent, donated payer, new global Budget API or
+retained reservation object. A fixed initial bank is real control layout, not
+an estimate of String backing. Only the actual optional backing length is used
+at stage2. No borrowing of an unrelated old fee, padding, refund or cap change.
+
+Original Main8fb atomic-used0 short observation remains an independent original
+receiver/test claim. New shipping semantics truthfully allow the initial control
+bank to remain spent on backing-short/eligibility-fallback cases. Output bytes,
+all primary Diagnostic fields, complete old witness fallback, sticky first
+receipt and reserved floors remain. No measured benefit or closure is claimed.

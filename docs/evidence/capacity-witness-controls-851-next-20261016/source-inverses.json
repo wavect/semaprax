@@ -1,0 +1,135 @@
+{
+  "base": "ff5f11a325fedf0754c1a2eaa371fd46d1858eb1",
+  "rows": [
+    {
+      "path": "src/source_verify/hints.rs",
+      "before_archive": "hints.rs.before.txt",
+      "before_sha256": "f568a53d58fd347520654c3d5dde5e65a012f298fbe0890cc7d0bffb61504dcc",
+      "current_sha256": "eb8ee06bd22de47d9c66cc23c492f2784ede93d16ff7f7d94b8f5e53fc26eeb6",
+      "inverse_line_edits": [
+        {
+          "current_start_line": 786,
+          "current_end_line": 798,
+          "current": "    // Full actual prospective controls, admitted before their first formation.\n    // The existing Diagnostic/witness arguments replace the old with_help\n    // receiver/value; no extra Diagnostic owner or failure Result is introduced.\n    2 * size_of::<String>() // String::new initializer and named composed owner\n        + 19 * size_of::<usize>() // initializer/binding/argument site map in the source packet\n        + 2 * size_of::<Option<usize>>() // two checked-add results, no and_then\n        + size_of::<Option<&str>>() // exact classifier return; no filter transport\n        + size_of::<&Option<String>>() // match the already-owned help field\n        + 6 * size_of::<&String>() // help binding/as_str, message, witness len/push, capacity\n        + 10 * size_of::<&str>() // classifier/selected/comparison/push/len receiving roles\n        + 4 * size_of::<&&str>() // code and exact repair-text equality arguments\n        + 4 * size_of::<&mut String>() // try_reserve_exact and three push_str calls\n",
+          "old": "    size_of::<String>()\n        + 3 * size_of::<usize>()\n        + 2 * size_of::<&str>()\n        + size_of::<Option<usize>>()\n"
+        },
+        {
+          "current_start_line": 799,
+          "current_end_line": 801,
+          "current": "        + size_of::<&Result<(), std::collections::TryReserveError>>() // is_err\n        + 9 * size_of::<bool>() // two admissions/negations, two guards, error/capacity/OR\n",
+          "old": "        + 2 * size_of::<bool>()\n"
+        },
+        {
+          "current_start_line": 803,
+          "current_end_line": 806,
+          "current": "/// Optional composition has two real frontiers: control acquisition, then\n/// exact String backing. A later refusal keeps the already-paid control spend;\n/// neither frontier selects a failure or makes the optional String mandatory.\n",
+          "old": "/// A causal witness supplements the exact authoring repair instead of replacing\n/// it. If optional composition cannot be funded, retain the complete witness\n/// and the original primary diagnostic, as the previous receiver did.\n"
+        },
+        {
+          "current_start_line": 807,
+          "current_end_line": 809,
+          "current": "    if !crate::bounded_output::reserve_active_preserving(capacity_witness_receiving_bytes(), 0) {\n        // Initial unreceived admission publishes the already-owned old fallback.\n",
+          "old": "    let repair = diagnostic.help.as_deref().filter(|help| {\n        diagnostic.code == \"SPX-T269\"\n            && Some(*help) == authoring_repair_help(diagnostic.code, &diagnostic.message)\n    });\n    let Some(repair) = repair else {\n"
+        },
+        {
+          "current_start_line": 810,
+          "current_end_line": 819,
+          "current": "    }\n    let repair = match &diagnostic.help {\n        Some(help) if diagnostic.code == \"SPX-T269\" => {\n            match authoring_repair_help(diagnostic.code, &diagnostic.message) {\n                Some(expected) if expected == help.as_str() => expected,\n                _ => return diagnostic.with_help(witness),\n            }\n        }\n        _ => return diagnostic.with_help(witness),\n",
+          "old": ""
+        },
+        {
+          "current_start_line": 820,
+          "current_end_line": 825,
+          "current": "    let witness_bytes = witness.len();\n    let repair_bytes = repair.len();\n    let with_separator = match witness_bytes.checked_add(2) {\n        Some(length) => length,\n        None => return diagnostic.with_help(witness),\n",
+          "old": "    let length = witness\n        .len()\n        .checked_add(2)\n        .and_then(|n| n.checked_add(repair.len()));\n    let payment = length.and_then(|n| n.checked_add(capacity_witness_receiving_bytes()));\n    let (Some(length), Some(payment)) = (length, payment) else {\n        return diagnostic.with_help(witness);\n"
+        },
+        {
+          "current_start_line": 826,
+          "current_end_line": 831,
+          "current": "    let length = match with_separator.checked_add(repair_bytes) {\n        Some(length) => length,\n        None => return diagnostic.with_help(witness),\n    };\n    if !crate::bounded_output::reserve_active_preserving(length, 0) {\n",
+          "old": "    if !crate::bounded_output::reserve_active_preserving(payment, 0) {\n"
+        },
+        {
+          "current_start_line": 843,
+          "current_end_line": 846,
+          "current": "\n#[cfg(test)]\nmod before_capacity_witness;\n",
+          "old": ""
+        },
+        {
+          "current_start_line": 921,
+          "current_end_line": 923,
+          "current": "        use crate::bounded_output::{set_active_floor, with_limit_usage_refusal};\n        let mut original = with_authoring_repair_help(Diagnostic::io_static(\n",
+          "old": "        use crate::bounded_output::with_limit_usage_refusal;\n        let original = with_authoring_repair_help(Diagnostic::io_static(\n"
+        },
+        {
+          "current_start_line": 926,
+          "current_end_line": 933,
+          "current": "        original.path = Some(\"publication.spx\".to_owned());\n        original.span = Some(crate::ast::Span {\n            start: 7,\n            end: 13,\n            line: 2,\n            column: 3,\n        });\n",
+          "old": ""
+        },
+        {
+          "current_start_line": 935,
+          "current_end_line": 947,
+          "current": "        let controls = capacity_witness_receiving_bytes();\n        let exact = controls + expected.len();\n        assert!(controls > 0 && expected.len() > 1);\n        for (limit, floor) in [\n            (0, 0),\n            (controls - 1, 0),\n            (controls, 0),\n            (exact - 1, 0),\n            (exact, 0),\n            (controls, 1),\n            (exact, 1),\n        ] {\n",
+          "old": "        let exact = expected.len() + capacity_witness_receiving_bytes();\n        for limit in [0, exact - 1, exact] {\n"
+        },
+        {
+          "current_start_line": 949,
+          "current_end_line": 953,
+          "current": "            let (actual, refused, used, first) = with_limit_usage_refusal(limit, || {\n                assert!(set_active_floor(floor));\n                with_capacity_witness(input, proof)\n            });\n",
+          "old": "            let (actual, refused, used, first) =\n                with_limit_usage_refusal(limit, || with_capacity_witness(input, proof));\n"
+        },
+        {
+          "current_start_line": 954,
+          "current_end_line": 956,
+          "current": "            eprintln!(\"capacity_witness controls={controls} backing={} limit={limit} floor={floor} used={used}\", expected.len());\n            if limit == exact && floor == 0 {\n",
+          "old": "            if limit == exact {\n"
+        },
+        {
+          "current_start_line": 958,
+          "current_end_line": 959,
+          "current": "                assert_eq!(actual.help.as_ref().unwrap().capacity(), expected.len());\n",
+          "old": ""
+        },
+        {
+          "current_start_line": 961,
+          "current_end_line": 970,
+          "current": "                // Paid control work is not refunded when optional backing is short.\n                assert_eq!(\n                    used,\n                    if limit - floor >= controls {\n                        controls\n                    } else {\n                        0\n                    }\n                );\n",
+          "old": "                assert_eq!(used, 0);\n"
+        },
+        {
+          "current_start_line": 998,
+          "current_end_line": 1014,
+          "current": "        // An absent repair and an explicit empty repair remain distinct inputs;\n        // both preserve the old complete Some(\"\") witness fallback.\n        for help in [None, Some(String::new())] {\n            let mut original =\n                Diagnostic::io_static(\"SPX-T269\", \"stdout_write path reaches 2 sites; limit is 1\");\n            original.help = help;\n            let expected = original.clone().with_help(String::new());\n            let (actual, refused, used, first) =\n                with_limit_usage_refusal(capacity_witness_receiving_bytes(), || {\n                    with_capacity_witness(original, String::new())\n                });\n            assert_eq!(actual, expected);\n            assert_eq!(actual.help.as_deref(), Some(\"\"));\n            assert_eq!(used, capacity_witness_receiving_bytes());\n            assert!(!refused && first.is_none());\n        }\n",
+          "old": ""
+        },
+        {
+          "current_start_line": 1042,
+          "current_end_line": 1088,
+          "current": "        // Input ownership and every partial Drop are inside this second probe.\n        let controls = capacity_witness_receiving_bytes();\n        let (((), allocation), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {\n            measure(|| {\n                let diagnostic = with_authoring_repair_help(Diagnostic::io_static(\n                    \"SPX-T269\",\n                    \"stdout_write path reaches 2 sites; limit is 1\",\n                ));\n                let witness = \"original causal witness\";\n                assert!(reserve_active_required(witness.len()));\n                let witness = witness.to_owned();\n                // A floor leaves room only for the real control bank. No String\n                // backing is acquired, and the complete old witness is retained.\n                let remaining = crate::bounded_output::active_remaining().unwrap();\n                assert!(crate::bounded_output::set_active_floor(\n                    remaining - controls\n                ));\n                let diagnostic = with_capacity_witness(diagnostic, witness);\n                assert_eq!(diagnostic.code, \"SPX-T269\");\n                assert_eq!(diagnostic.help.as_deref(), Some(\"original causal witness\"));\n                drop(diagnostic);\n            })\n        });\n        assert!(!refused && first.is_none());\n        assert!(!allocation.invalid && allocation.live == 0);\n        assert_eq!(allocation.allocated, allocation.freed);\n        assert!(allocation.allocated <= paid);\n        complete_capacity_witness_source_custody();\n    }\n\n    fn complete_capacity_witness_source_custody() {\n        let helpers = include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/capacity-witness-controls-851-next-20261016/helpers.before.rs.txt\"\n        ));\n        let tests = include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/capacity-witness-controls-851-next-20261016/three-tests.before.rs.txt\"\n        ));\n        let expected = format!(\"//! Complete Main8fb capacity-witness receiver and all three original controls.\\nuse super::*;\\n\\n{helpers}\\n#[cfg(test)]\\nmod tests {{\\n    use super::*;\\n\\n{tests}\\n}}\\n\");\n        assert_eq!(include_str!(\"hints/before_capacity_witness.rs\"), expected);\n        let receiving = include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/capacity-witness-controls-851-next-20261016/helpers.after.rs.txt\"\n        ));\n        assert_eq!(include_str!(\"hints.rs\").matches(receiving).count(), 1);\n",
+          "old": ""
+        }
+      ]
+    },
+    {
+      "path": "CHANGELOG.md",
+      "before_archive": "CHANGELOG.md.before.txt",
+      "before_sha256": "8021422573a1707d12acc5a025f853051cc9df9b5311fbd29945d1447a38dc09",
+      "current_sha256": "d0ed3918035e2dd4926e97008c5f8c0ab7291709f0aa1258ddccb04526cf9d27",
+      "inverse_line_edits": [
+        {
+          "current_start_line": 5,
+          "current_end_line": 7,
+          "current": "\n- Source-only #851 admits exact capacity-witness control layouts before eligibility/length receivers and reserves optional String backing separately; preserve the complete Main receiver and all three original controls independently, with truthful paid-control spend on later backing refusal. Output, primary fields, sticky/floor behavior and limits remain; focused qualification is pending.\n",
+          "old": ""
+        }
+      ]
+    }
+  ],
+  "new_sources": [
+    {
+      "path": "src/source_verify/hints/before_capacity_witness.rs",
+      "sha256": "08b35a359b94a740f7e349ec8ac3178f56678059c498dfcd5d1f5ac2e262f737"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+[
+  "#[cfg(test)]\n#[allow(dead_code, reason = \"complete original path-state replay receiver\")]\nmod before;\n",
+  "#[cfg(test)]\n#[allow(dead_code, reason = \"complete MAIN019d callback receiver\")]\n#[path = \"path_join/before_receiving.rs\"]\nmod before_receiving;\n",
+  "mod boxed_states;\n",
+  "mod branch_join;\n",
+  "#[cfg(test)]\nmod receiver_tests;\n",
+  "pub(super) mod storage;\n",
+  "#[cfg(test)]\nmod tests;\n",
+  "#[cfg(test)]\nmod before_singleton;\n",
+  "#[cfg(test)]\nmod singleton_tests;\n",
+  "#[cfg(test)]\n#[path = \"path_join/main_single_groups/mod.rs\"]\nmod main_single_groups;\n",
+  "#[cfg(test)]\nmod before_state_move;\n",
+  "#[cfg(test)]\nmod state_move_tests;\n"
+]

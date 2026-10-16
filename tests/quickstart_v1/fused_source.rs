@@ -355,8 +355,9 @@ fn explicit_fused_source_wasm_package_uses_paired_loader_one_account_and_lossles
             std::fs::write(path, module).unwrap();
         }
         let output = Command::new("node")
-            .arg(&driver)
-            .arg(&package)
+            .current_dir(&fixture.root)
+            .arg(driver.file_name().unwrap())
+            .arg(package.file_name().unwrap())
             .arg(mode)
             .arg("8386560")
             .arg(digest)
@@ -446,8 +447,9 @@ console.log('public-source-outcome-ok');
                 .unwrap();
         let package = build(name, amount);
         let output = Command::new("node")
-            .arg(&source_driver)
-            .arg(package)
+            .current_dir(&fixture.root)
+            .arg(source_driver.file_name().unwrap())
+            .arg(package.file_name().unwrap())
             .arg(outcome)
             .arg(expected)
             .output()

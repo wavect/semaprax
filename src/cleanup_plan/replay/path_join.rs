@@ -260,8 +260,21 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                 }
                 CleanupTerminator::Branch(edges) => {
                     require_normal_flow_state(function, &state, block_id)?;
-                    for edge in edges {
-                        let edge = &plan.edges[edge.0 as usize];
+                    // Initial selection receivers are paid before len/index queries.
+                    // This is a new metadata refusal frontier, not clone backing.
+                    budget.reserve_bytes(
+                        function,
+                        std::mem::size_of::<Result<(), Diagnostic>>()
+                            + std::mem::size_of::<&mut ReplayBudget>()
+                            + std::mem::size_of::<&ResolvedFunction>()
+                            + std::mem::size_of::<&str>()
+                            + 4 * std::mem::size_of::<usize>()
+                            + std::mem::size_of::<bool>()
+                            + 3 * std::mem::size_of::<&Vec<EdgeId>>(),
+                        "branch final-state selection controls",
+                    )?;
+                    if edges.len() == 2 {
+                        let edge = &plan.edges[edges[0].0 as usize];
                         budget.charge(
                             function,
                             renewal::retained_units(&state),
@@ -304,6 +317,88 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                         );
                         if insertions.failed {
                             return Err(insertions.failure().into());
+                        }
+                        // The earlier sibling owns its independent clone. The final
+                        // sibling receives the original state, with identical work.
+
+                        let edge = &plan.edges[edges[1].0 as usize];
+                        budget.charge(
+                            function,
+                            renewal::retained_units(&state),
+                            "renewal branch history clone",
+                        )?;
+                        let next =
+                            state_for_edge(function, state, &edge.condition, &contract_sources)?;
+                        if let Some(auth) = lexical {
+                            lexical_flow::capture_loop_entry(
+                                function,
+                                auth,
+                                &edge.condition,
+                                &next,
+                                &mut loop_entries,
+                                budget,
+                            )?;
+                        }
+                        insertions.insert_owned(
+                            function,
+                            &mut incoming[edge.to.0 as usize],
+                            next,
+                            budget,
+                        );
+                        if insertions.failed {
+                            return Err(insertions.failure().into());
+                        }
+                    } else {
+                        // Complete old fallback for low-level malformed cardinality.
+                        for edge in edges {
+                            let edge = &plan.edges[edge.0 as usize];
+                            budget.charge(
+                                function,
+                                renewal::retained_units(&state),
+                                "renewal branch history clone",
+                            )?;
+                            let cloned = if storage::empty_renewals::selected(&state, budget) {
+                                let payload = storage::empty_renewals::reserve(
+                                    function,
+                                    &state,
+                                    budget,
+                                    "ownership branch clone",
+                                )?;
+                                storage::empty_renewals::copy(payload)
+                            } else {
+                                storage::reserve_state_clone(
+                                    function,
+                                    &state,
+                                    budget,
+                                    "ownership branch clone",
+                                )?;
+                                state.clone()
+                            };
+                            let next = state_for_edge(
+                                function,
+                                cloned,
+                                &edge.condition,
+                                &contract_sources,
+                            )?;
+                            if let Some(auth) = lexical {
+                                lexical_flow::capture_loop_entry(
+                                    function,
+                                    auth,
+                                    &edge.condition,
+                                    &next,
+                                    &mut loop_entries,
+                                    budget,
+                                )?;
+                            }
+                            insertions.insert_owned(
+                                function,
+                                &mut incoming[edge.to.0 as usize],
+                                next,
+                                budget,
+                            );
+                            if insertions.failed {
+                                return Err(insertions.failure().into());
+                            }
                         }
                     }
                 }
@@ -512,8 +607,21 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                 }
                 CleanupTerminator::Branch(edges) => {
                     require_normal_flow_state(function, &state, block_id)?;
-                    for edge in edges {
-                        let edge = &plan.edges[edge.0 as usize];
+                    // Initial selection receivers are paid before len/index queries.
+                    // This is a new metadata refusal frontier, not clone backing.
+                    budget.reserve_bytes(
+                        function,
+                        std::mem::size_of::<Result<(), Diagnostic>>()
+                            + std::mem::size_of::<&mut ReplayBudget>()
+                            + std::mem::size_of::<&ResolvedFunction>()
+                            + std::mem::size_of::<&str>()
+                            + 4 * std::mem::size_of::<usize>()
+                            + std::mem::size_of::<bool>()
+                            + 3 * std::mem::size_of::<&Vec<EdgeId>>(),
+                        "branch final-state selection controls",
+                    )?;
+                    if edges.len() == 2 {
+                        let edge = &plan.edges[edges[0].0 as usize];
                         budget.charge(
                             function,
                             renewal::retained_units(&state),
@@ -556,6 +664,88 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                         );
                         if insertions.failed {
                             return Err(insertions.failure().into());
+                        }
+                        // The earlier sibling owns its independent clone. The final
+                        // sibling receives the original state, with identical work.
+
+                        let edge = &plan.edges[edges[1].0 as usize];
+                        budget.charge(
+                            function,
+                            renewal::retained_units(&state),
+                            "renewal branch history clone",
+                        )?;
+                        let next =
+                            state_for_edge(function, state, &edge.condition, &contract_sources)?;
+                        if let Some(auth) = lexical {
+                            lexical_flow::capture_loop_entry(
+                                function,
+                                auth,
+                                &edge.condition,
+                                &next,
+                                &mut loop_entries,
+                                budget,
+                            )?;
+                        }
+                        insertions.insert_owned(
+                            function,
+                            &mut incoming[edge.to.0 as usize],
+                            next,
+                            budget,
+                        );
+                        if insertions.failed {
+                            return Err(insertions.failure().into());
+                        }
+                    } else {
+                        // Complete old fallback for low-level malformed cardinality.
+                        for edge in edges {
+                            let edge = &plan.edges[edge.0 as usize];
+                            budget.charge(
+                                function,
+                                renewal::retained_units(&state),
+                                "renewal branch history clone",
+                            )?;
+                            let cloned = if storage::empty_renewals::selected(&state, budget) {
+                                let payload = storage::empty_renewals::reserve(
+                                    function,
+                                    &state,
+                                    budget,
+                                    "ownership branch clone",
+                                )?;
+                                storage::empty_renewals::copy(payload)
+                            } else {
+                                storage::reserve_state_clone(
+                                    function,
+                                    &state,
+                                    budget,
+                                    "ownership branch clone",
+                                )?;
+                                state.clone()
+                            };
+                            let next = state_for_edge(
+                                function,
+                                cloned,
+                                &edge.condition,
+                                &contract_sources,
+                            )?;
+                            if let Some(auth) = lexical {
+                                lexical_flow::capture_loop_entry(
+                                    function,
+                                    auth,
+                                    &edge.condition,
+                                    &next,
+                                    &mut loop_entries,
+                                    budget,
+                                )?;
+                            }
+                            insertions.insert_owned(
+                                function,
+                                &mut incoming[edge.to.0 as usize],
+                                next,
+                                budget,
+                            );
+                            if insertions.failed {
+                                return Err(insertions.failure().into());
+                            }
                         }
                     }
                 }
@@ -961,3 +1151,8 @@ mod main_single_groups;
 mod before_state_move;
 #[cfg(test)]
 mod state_move_tests;
+
+#[cfg(test)]
+mod before_final_edge;
+#[cfg(test)]
+mod final_edge_tests;

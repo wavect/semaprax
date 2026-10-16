@@ -1,0 +1,101 @@
+[
+  {
+    "source": "CHANGELOG.md",
+    "checkpoint_revision": "36f47201b5a87054a846afbfe06c86e9876bff1a",
+    "archive": "docs/evidence/post21-alias-observer-source-join-20261016/before/CHANGELOG.md.txt",
+    "current_sha256": "5a54e99ba47fd322eca82a8fba419fa1b4f09fe8a6b503a04d8e83f2173be51e",
+    "original_sha256": "af917a2924d23406b116079d69ce21d1255d32413dd2a605d39a314b07697b35",
+    "edits": [
+      {
+        "new": "<!-- Source-only #833: invocation-owned identifier census scratch reuse across\n     distinct cold callers; full old receiver retained; qualification pending. -->\n# Changelog\n\n- Select the existing paid borrowed-alias producer on the first ordinary uncached core attempt, preserving cache/invariant fallbacks and the complete old/current Project source, graph and Image parity gate. The previous compact-only gate left successful small Projects on the owning fallback; qualification is pending.\n\n- Source-only #851 admits exact capacity-witness control layouts before eligibility/length receivers and reserves optional String backing separately; preserve the complete Main receiver and all three original controls independently, with truthful paid-control spend on later backing refusal. Output, primary fields, sticky/floor behavior and limits remain; focused qualification is pending.\n\n",
+        "old": "<!-- Source-only #833: invocation-owned identifier census scratch reuse across\n     distinct cold callers; full old receiver retained; qualification pending. -->\n# Changelog\n\n- Source-only #851 admits exact capacity-witness control layouts before eligibility/length receivers and reserves optional String backing separately; preserve the complete Main receiver and all three original controls independently, with truthful paid-control spend on later backing refusal. Output, primary fields, sticky/floor behavior and limits remain; focused qualification is pending.\n\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/ARCHITECTURE.md",
+    "checkpoint_revision": "36f47201b5a87054a846afbfe06c86e9876bff1a",
+    "archive": "docs/evidence/post21-alias-observer-source-join-20261016/before/docs/ARCHITECTURE.md.txt",
+    "current_sha256": "f79ad89e34f2eb8ee546852f004219976cc1f80928f305001c6ff049c3c74928",
+    "original_sha256": "6c986bcfdaad7e8f0261a49e1762ed950469c7b306f6c0c5b1041f9bb72d9047",
+    "edits": [
+      {
+        "new": "all three raw source inventories; their measurements describe that historical\nreceiver rather than the production route. The function-alias graph/Image\ncontrol compares real Project outputs against the complete immediate-old core.\nThe same paid retained-wrapper alias producer is selected on the first ordinary\nuncached attempt as well as compact output attempts. Its provider AST borrow\nends at resolution; both routes retain owned resolved HIR. Cache-enabled calls\nand invariant-rewriting programs retain the original constructor. This does\nnot change the conservative forecast, dynamic payments or failure limits.\n\nCanonical empty-closure bookkeeping is invocation-owned by `empty_memo`.\nIts cold admission retains the original receipt/binding boundary; warm auth and\n",
+        "old": "all three raw source inventories; their measurements describe that historical\nreceiver rather than the production route. The function-alias graph/Image\ncontrol compares real Project outputs against the complete immediate-old core.\n\nCanonical empty-closure bookkeeping is invocation-owned by `empty_memo`.\nIts cold admission retains the original receipt/binding boundary; warm auth and\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_array/funded_tests.rs",
+    "checkpoint_revision": "36f47201b5a87054a846afbfe06c86e9876bff1a",
+    "archive": "docs/evidence/post21-alias-observer-source-join-20261016/before/src/cleanup_plan/replay/path_array/funded_tests.rs.txt",
+    "current_sha256": "b8b494b0608a2dcadca9d2c27b6feae4280d297b6c7de423747c0eb35ed367e8",
+    "original_sha256": "ab501e8e0d51ff25f3f379cdaab5fd50701b63095835c2b4f5811677e3eaeace",
+    "edits": [
+      {
+        "new": "fn funded_capacity_exact_short_zero_and_first_output_work_frontier() {\n    let program = program();\n    let function = &program.functions[0];\n    // Ordinary SkeletonWork inventories are immutable caller input here. Their\n    // legacy collectors have unpriced traversal scratch: construct AND drop\n    // them outside the array account/observer, keeping the borrow alive. This\n    // probe owns seeds, append, partial paths, Diagnostics and the paid budget;\n    // it does not claim funding for that independent ordinary setup.\n    let observe = |old: bool, count: usize, output_work: usize, limit| {\n        let mut caller_budget = ReplayBudget::unobserved();\n        let mut work =\n            SkeletonWork::with_index(&program, function, &mut caller_budget, None).unwrap();\n        let observed = with_limit_usage_refusal(limit, || {\n            measure(|| {\n                // Bind the real array payer only after caller input exists.\n                *work.budget = ReplayBudget::new();\n                let result = (|| {\n                    work.budget.reserve_skeleton(function, count + output_work)?;\n                    let mut input = Vec::new();\n                    for _ in 0..count {\n                        work.push_expr_path(&mut input, empty_expr_path(), \"seed\")?;\n",
+        "old": "fn funded_capacity_exact_short_zero_and_first_output_work_frontier() {\n    let program = program();\n    let function = &program.functions[0];\n    // Input production and all partial-owner Drop occur inside each account.\n    let observe = |old: bool, count: usize, output_work: usize, limit| {\n        with_limit_usage_refusal(limit, || {\n            measure(|| {\n                let mut budget = ReplayBudget::new();\n                let result = (|| {\n                    budget.reserve_skeleton(function, count + output_work)?;\n                    let mut work = SkeletonWork::with_index(&program, function, &mut budget, None)?;\n                    let mut input = Vec::new();\n                    for _ in 0..count {\n                        work.push_expr_path(&mut input, empty_expr_path(), \"seed\")?;\n"
+      },
+      {
+        "new": "                    drop(target);\n                    Ok::<_, Diagnostic>(())\n                })();\n                let remaining = work.budget.skeleton_remaining;\n                let spent = work.budget.skeleton_spent;\n                // A second selected failure cannot replace or allocate the first.\n                let retry = if result.is_err() {\n                    Some(work.budget.reserve_bytes(function, 0, \"retry\"))\n                } else {\n                    None\n                };\n",
+        "old": "                    drop(target);\n                    Ok::<_, Diagnostic>(())\n                })();\n                let remaining = budget.skeleton_remaining;\n                let spent = budget.skeleton_spent;\n                // A second selected failure cannot replace or allocate the first.\n                let retry = if result.is_err() {\n                    Some(budget.reserve_bytes(function, 0, \"retry\"))\n                } else {\n                    None\n                };\n"
+      },
+      {
+        "new": "                    assert!(retry.path.is_none() && retry.span.is_none() && retry.help.is_none());\n                }\n                let retry_failed = retry.as_ref().is_some_and(Result::is_err);\n                // All paid-budget backing and partial failure owners die in\n                // this same observer. The replacement is an unobserved empty\n                // placeholder for the still-borrowed ordinary caller context.\n                let budget = std::mem::replace(work.budget, ReplayBudget::unobserved());\n                drop((result, retry, budget));\n                (failed, retry_failed, remaining, spent)\n            })\n        });\n        drop(work);\n        drop(caller_budget);\n        observed\n    };\n    for count in [0usize, 1, 7, 8, 9, 17] {\n        let ((old, old_allocation), old_refused, old_paid, old_first) =\n",
+        "old": "                    assert!(retry.path.is_none() && retry.span.is_none() && retry.help.is_none());\n                }\n                let retry_failed = retry.as_ref().is_some_and(Result::is_err);\n                drop((result, retry, budget));\n                (failed, retry_failed, remaining, spent)\n            })\n        })\n    };\n    for count in [0usize, 1, 7, 8, 9, 17] {\n        let ((old, old_allocation), old_refused, old_paid, old_first) =\n"
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "checkpoint_revision": "36f47201b5a87054a846afbfe06c86e9876bff1a",
+    "archive": "docs/evidence/post21-alias-observer-source-join-20261016/before/src/source_reflows_merge.rs.txt",
+    "current_sha256": "26a79bba23b48d2ee81aed9f99f0c682af51e54f88e6d2bfff18b049c4a5bd6e",
+    "original_sha256": "f3d0d3bb50f4215e55e74f3917dd4ccb44b240a497dcc75ada415cecd4b57493",
+    "edits": [
+      {
+        "new": "    main696_input(source, current)\n}\npub(crate) fn future_bcd_input(source: &str, current: &str) -> String {\n    let joined = post21_input(source, current);\n    let current = joined.as_str();\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future-main-output-851-joined-20261016/current-to-bcd.json\")), source, current)\n}\npub(crate) fn future_main8fb_input(source: &str, current: &str) -> String {\n    let joined = post21_input(source, current);\n    let current = joined.as_str();\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future-main-output-851-joined-20261016/current-to-ff5.json\")), source, current)\n}\nfn post21_input(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/post21-alias-observer-source-join-20261016/current-to-36f.json\")), source, current)\n}\nfn project(rows: &str, source: &str, current: &str) -> String {\n    let rows: serde_json::Value = serde_json::from_str(rows).expect(\"fixed merge projections\");\n",
+        "old": "    main696_input(source, current)\n}\npub(crate) fn future_bcd_input(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future-main-output-851-joined-20261016/current-to-bcd.json\")), source, current)\n}\npub(crate) fn future_main8fb_input(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future-main-output-851-joined-20261016/current-to-ff5.json\")), source, current)\n}\nfn project(rows: &str, source: &str, current: &str) -> String {\n    let rows: serde_json::Value = serde_json::from_str(rows).expect(\"fixed merge projections\");\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph.rs",
+    "checkpoint_revision": "36f47201b5a87054a846afbfe06c86e9876bff1a",
+    "archive": "docs/evidence/post21-alias-observer-source-join-20261016/before/src/workspace_graph.rs.txt",
+    "current_sha256": "9eab12b59d54c41c3b71f2e0b3b3d6937390da03cd8c7d4b2fe2ed1da39ae565",
+    "original_sha256": "c23b19943f20470c3619a6fdb7a356794e5d616f6f360e8b9c65b01f55bb61d3",
+    "edits": [
+      {
+        "new": "        }\n        let synthetic = staged!(\n            SyntheticModule,\n            (if frontend.is_none() {\n                constructor_failure::typed::construct_transient_alias_core(\n                    program,\n                    authored,\n",
+        "old": "        }\n        let synthetic = staged!(\n            SyntheticModule,\n            (if retained_output_only & frontend.is_none() {\n                constructor_failure::typed::construct_transient_alias_core(\n                    program,\n                    authored,\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "checkpoint_revision": "36f47201b5a87054a846afbfe06c86e9876bff1a",
+    "archive": "docs/evidence/post21-alias-observer-source-join-20261016/before/tests/hir_module_boundaries.rs.txt",
+    "current_sha256": "5ad5da1a0c227a7e7b768fb68596a288d269a43c82e9fd6100749edf89528597",
+    "original_sha256": "5e8b604a5c53a22fe2174e5ff0e8d8945ceba115e93225e2f184a73039fa120c",
+    "edits": [
+      {
+        "new": "    );\n    let validation = production_source_inventory::production(\n        validation_raw,\n        include_str!(\"../docs/evidence/post21-alias-observer-source-join-20261016/hir.json\"),\n    );\n    for forbidden in [\n        \"struct Resolver\",\n",
+        "old": "    );\n    let validation = production_source_inventory::production(\n        validation_raw,\n        include_str!(\"../docs/evidence/future-main-output-851-joined-20261016/hir.json\"),\n    );\n    for forbidden in [\n        \"struct Resolver\",\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph.rs",
+    "checkpoint_revision": "36f47201b5a87054a846afbfe06c86e9876bff1a",
+    "archive": "docs/evidence/post21-alias-observer-source-join-20261016/before/tests/workspace/semantic_graph.rs.txt",
+    "current_sha256": "18381f5d670ec921654b844c04dd9d23be3813abba0f405f403de5c2aa1e8014",
+    "original_sha256": "02cab41b67ef9c431c50d166014b5c5822310bcf01b4ec3a969c14259fa8a78c",
+    "edits": [
+      {
+        "new": "    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\n            \"../../docs/evidence/post21-alias-observer-source-join-20261016/projection.json\"\n        ),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n",
+        "old": "    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\n            \"../../docs/evidence/future-main-output-851-joined-20261016/projection.json\"\n        ),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n"
+      }
+    ]
+  }
+]

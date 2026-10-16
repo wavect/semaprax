@@ -1,0 +1,78 @@
+#808 bounded final-output ownership transfer — source only
+
+Base: b3a53367d4def76240d14dca25ee414785bed9d6. No Cargo/build/test/Clippy
+was run. This is a NEXT component, not a change to the frozen qualification.
+
+Shipping scope
+- sequence_skeleton_paths: exactly one suffix receives each owned prefix's
+  Observations. Original suffix extension, owned-source clone, continuation,
+  failed/residual path handling and output order remain. Every other suffix
+  cardinality retains the complete original for-loop, byte for byte.
+- plan_skeleton_paths: exactly two edges AND an existing spare observation slot.
+  First sibling executes the complete original inline clone/push/queue body.
+  Final sibling receives the original Vec, authenticates its spare slot and
+  pays conversion before push. All other shapes keep the complete old for-loop.
+- No shared history, pointer-based equality, new persistent holder, Result<Vec>
+  wrapper, retry, quota refund, transferred authority or changed global cap.
+
+Resource order / actual control inventory
+The new initial len/capacity/index payment precedes those new receivers; it can
+legitimately reject before the old observation/work frontier. It is not valid to
+promise universal mixed-byte/work first-winner equality. With sufficient bytes,
+original clone and push logical work and materialization markers remain in their
+original order. The move eliminates only the actual cloned Vec/tail backing and
+its clone census. Test Oracle census work can therefore disappear; ordinary
+logical skeleton work is retained. All surviving suffix/clone/extension,
+queue/paths, conversion, physical reserve and nested Result producers stay.
+The final_output constants enumerate the actual payment, borrow, scalar, direct
+index and moved receiving layouts. They are not fixed guessed backing credits.
+The same live ReplayBudget handles every bank/authentication, preserving its
+ordinary sticky/floor/payer behavior; no retained payer or identity is introduced.
+
+Scope limits / growth residual
+The plan move is deliberately spare-only. If the Vec is full, moving followed by
+the existing reserve_vec growth could avoid the clone too, but it introduces
+checked-growth/Result/borrow receivers and changes old/full-buffer overlap and
+post-materialization refusal frontiers. An inline paid growth branch is feasible
+without a new forwarding Result; it needs its own exact nested controls and
+whole old/current growth observation. That is an explicit residual, not a hidden
+claim that all branch clones are gone. Even spare transfer can change later
+growth because the retained original capacity differs from old 2*len capacity.
+No universal cumulative-byte, allocation, capacity, peak or application-fit claim.
+
+Tests / historical allocation-equality custody
+The earlier inline-fusion test module is archived in full. Its only adapter
+changes enumerate(false) to the complete immediate-b3a plan function. Every old
+fixture, literal, assertion, error-field/work/Drop check remains. This explicitly
+preserves the historical == backing claim for that earlier optimization.
+The new SHIPPING observers separately cover the identical original complete
+corpus, plus 33 owned locals followed by a final branch, and direct HIR tails of
+128 observations. They compare every HIR field and complete ordered plan paths,
+zero/one/multiple suffixes, failed/residual prefixes, duplicate histories, retained
+Rc identity, original work/materializations, full hostile Diagnostic fields,
+current exact/one-short/zero byte limits and complete balanced Drop. Setup and
+input backing are inside both HIR probes; source parse/format is outside both.
+Actual input/output capacities are reported, not mistaken for fresh allocation.
+A cfg(test), allocation-free Cell counts actual final moves and the absent old
+fused buffer bytes. On this bounded whole-plan corpus, the shipping observer
+requires exact allocation-byte and allocation-count conservation against those
+real events, unchanged reallocations, and complete Drop. This is a pending
+assertion, not a measured saving or a universal later-growth theorem.
+
+Source custody / integration
+verify-source.py authenticates all four full Git before images and exact reverse
+hunks, both complete independently compiled old functions, exact generic loops,
+exact first-sibling body, and original observation match tokens (only macro
+metavariables/transparent rustfmt arm braces and optional commas adapt). Unchanged
+physical budget/clone, work, continuation, path-array and branch helper bytes are
+Git verified. Original runtime JSONs and evidence are untouched.
+Three new source owners: final_output.rs (production), final_output/before.rs and
+final_output/tests.rs (closed cfg(test) children). Canonical assembly must join
+all three into all raw audits and regenerate current authority/source fronts for
+replay.rs + historical inline test + docs; this component does not modify those
+global files or rewrite any old source table. No self-hash cycle.
+
+Pending owners: pending-selectors.json (two lib bodies). Preserve the two
+historical inline owners too; they are not substitutes for shipping coverage.
+Run source-only verifier:
+python3 docs/evidence/final-output-transfer-808-next-20261016/verify-source.py --repo .

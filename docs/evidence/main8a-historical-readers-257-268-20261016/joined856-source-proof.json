@@ -5,8 +5,10 @@
   "explicit_private_views": [
     "CHANGELOG.md",
     "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "docs/ARCHITECTURE.md",
     "src/bounded_output.rs",
     "src/bounded_output/checked_string.rs",
+    "src/cleanup_plan/replay/physical_budget.rs",
     "src/hir/nodes/instance_key.rs",
     "tests/hir_module_boundaries.rs",
     "tests/workspace/semantic_graph/source_inventory.rs"

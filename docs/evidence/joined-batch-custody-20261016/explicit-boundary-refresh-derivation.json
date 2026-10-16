@@ -1,0 +1,9 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED_REFRESH_RECIPE",
+  "before_sha256": "8795d8771f24ee8f1c8a229460e0f2d84c6e8dd3d3a14b9105f1499091491bdb",
+  "after_sha256": "30a0fd4a25d4be3b62e6e085942d45a31d0dceae0672e108ee53b71647af991a",
+  "original_generator_and_verifier_unchanged": true,
+  "original_full_role_source_authentication_before_boundary_predicates": true,
+  "original_global_verifier_main_not_claimed_pass": true,
+  "python_children_use_explicit_parent_interpreter": true
+}

@@ -1,0 +1,30 @@
+{
+  "status": "ACTUAL_MINIMAL_RUST_PATH_PROBE_AND_SOURCE_REGISTRATION_FIX",
+  "original_probe_receipt": "/Volumes/Semaprax/provenance/scratch-module-path-probe-20261016.json",
+  "actual_implicit_path": "directory/tests.rs",
+  "actual_explicit_path": "directory/scratch/tests.rs",
+  "command": [
+    "/Users/kevin/.cargo/bin/rustup",
+    "run",
+    "1.97.1",
+    "rustc",
+    "--edition=2021",
+    "--cfg",
+    "test",
+    "--emit=metadata",
+    "-o",
+    "/Volumes/Semaprax/runtime-tmp/module-path-probe-20261016/explicit.rmeta",
+    "/Volumes/Semaprax/runtime-tmp/module-path-probe-20261016/root.rs"
+  ],
+  "expected_diagnostic_exit": 1,
+  "stderr": "error: STEM_DIRECTORY_TEST_SELECTED\n --> /Volumes/Semaprax/runtime-tmp/module-path-probe-20261016/directory/scratch/tests.rs:1:1\n  |\n1 | compile_error!(\"STEM_DIRECTORY_TEST_SELECTED\");\n  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nerror: aborting due to 1 previous error\n\n",
+  "source": "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs",
+  "before_sha256": "2bf0a2f6d587a24415efa2893345aa8a3a69a12ad1a05a4df5abed757b976e2b",
+  "current_sha256": "faeb4b64e3f99c22deb35086b78a5c2cb35a9d40d4267848a5f50a25746361c4",
+  "only_change": {
+    "before": "#[cfg(test)]\nmod tests;\n",
+    "after": "#[cfg(test)]\n#[path = \"scratch/tests.rs\"]\nmod tests;\n"
+  },
+  "production_and_test_function_bodies_unchanged": true,
+  "full_semaprax_build_or_test_executed": false
+}

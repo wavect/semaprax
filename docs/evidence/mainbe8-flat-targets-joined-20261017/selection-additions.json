@@ -1,0 +1,45 @@
+{
+  "incoming": "be8fb9326e069ab596a1c3ff16392460a32b9864",
+  "additions": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::tests::targets::sorted_targets_preserve_zero_duplicate_maximum_and_overflow_weights",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+      "status": "PENDING",
+      "line": 441,
+      "source_sha256": "7f1f4ff20511927fe02a8d05b41806271929e1b5cecbf06bda460064b5a9b39a"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::tests::targets::paid_targets_move_backing_and_keep_exact_short_zero_and_sticky_limits",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+      "status": "PENDING",
+      "line": 468,
+      "source_sha256": "7f1f4ff20511927fe02a8d05b41806271929e1b5cecbf06bda460064b5a9b39a"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::tests::targets::target_work_refusal_precedes_growth_and_preserves_existing_weights",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+      "status": "PENDING",
+      "line": 539,
+      "source_sha256": "7f1f4ff20511927fe02a8d05b41806271929e1b5cecbf06bda460064b5a9b39a"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::tests::targets::complete_predecessors_and_new_target_sources_are_bound",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+      "status": "PENDING",
+      "line": 556,
+      "source_sha256": "7f1f4ff20511927fe02a8d05b41806271929e1b5cecbf06bda460064b5a9b39a"
+    }
+  ],
+  "production_flat_many_adopted": false,
+  "followup": "https://github.com/wavect/semaprax/issues/870",
+  "base": "51c1dfc49962e046566ad21ec31f20c6b3a9bdae",
+  "current_selection_modified": false
+}

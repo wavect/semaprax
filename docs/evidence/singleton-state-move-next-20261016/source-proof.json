@@ -1,0 +1,24 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "base": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+  "whole_current_to_git_inverse": 1,
+  "complete_compiled_old_receiver": "registration-only adapters",
+  "multistate_and_all_other_edges_exact": true,
+  "shipping_sha256": "251842e274adf65ec269615dda1b9ddfe9fbf93fe8390972b5631d41436147f9",
+  "new_owners": [
+    {
+      "source": "src/cleanup_plan/replay/path_join/before_state_move.rs",
+      "sha256": "a10ef5dea30565641b1810485a00acb402bfb3d91e0ad7a31d787ad3079bee12",
+      "lines": 938
+    },
+    {
+      "source": "src/cleanup_plan/replay/path_join/state_move_tests.rs",
+      "sha256": "7c81b56268cdc2c7f899d9691b8f6083cecedd1375c26b65472bcddd3ca79059",
+      "lines": 163
+    }
+  ],
+  "new_test_bodies": 2,
+  "canonical_global_front_and_three_audit_joins": "PENDING_COMPOSITION",
+  "rust_execution": false,
+  "numerical_gain_claim": false
+}

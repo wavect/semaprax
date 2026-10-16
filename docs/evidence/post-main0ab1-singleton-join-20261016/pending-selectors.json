@@ -1,0 +1,575 @@
+{
+  "status": "UNREGISTERED_NO_EXECUTION",
+  "external_selection": "/Volumes/Semaprax/provenance/main696-pin-minimum-draft-20261016/selection-draft.json",
+  "external_sha256": "c3b2bc8f826183d8aa9a3f7f96edcaf97bf6dbd2a9498035bdcd7bf4a0b0e1e9",
+  "counts": {
+    "union": 68,
+    "before_pins": 53,
+    "post_actual_pins": 15,
+    "roles": 7
+  },
+  "pre_pin_53": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::tests::four_complete_original_receivers_keep_all_path_fields_order_and_work",
+      "phase": "focused_source_qualification",
+      "category": "Main696",
+      "reason": "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::tests::append_pays_complete_backing_and_drop_with_exact_short_and_zero_controls",
+      "phase": "focused_source_qualification",
+      "category": "Main696",
+      "reason": "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::tests::complete_hir_enumeration_keeps_paths_work_materializations_and_legacy",
+      "phase": "focused_source_qualification",
+      "category": "Main696",
+      "reason": "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::tests::complete_old_functions_are_compiled_and_only_capacity_hooks_change",
+      "phase": "focused_source_qualification",
+      "category": "Main696",
+      "reason": "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::semantic_receivers::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+      "phase": "focused_source_qualification",
+      "category": "Main696",
+      "reason": "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::semantic_receivers::receiver_mutation_and_forged_predecessor_fail_closed",
+      "phase": "focused_source_qualification",
+      "category": "Main696",
+      "reason": "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors",
+      "phase": "focused_source_qualification",
+      "category": "Main696",
+      "reason": "Direct new/changed Main696 unit owner; final correction may add precise protocol owners, not guessed here."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight_tests::complete_previous_successor_producer_and_whole_current_module_remain_bound",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "phase": "focused_source_qualification",
+      "category": "affected_source_authority"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::complete_original_receivers_and_all_new_source_owners_remain_authenticated",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "phase": "focused_source_qualification",
+      "category": "affected_source_authority"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::immediate_parent_831_and_compact_storage_have_independent_complete_source_domains",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "phase": "focused_source_qualification",
+      "category": "affected_source_authority"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::amortized_source::ordered_amortized_checkpoint_full_sources_and_inverses_are_exact",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "phase": "focused_source_qualification",
+      "category": "affected_source_authority"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "phase": "focused_source_qualification",
+      "category": "affected_source_authority"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::b::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "phase": "focused_source_qualification",
+      "category": "affected_source_authority"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::runtime_json::tests::fixed_projection_json_transport_refuses_hostile_io_before_parsing",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "phase": "focused_source_qualification",
+      "category": "affected_source_authority"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::inline_weighted::source::inline_weighted_complete_source_inverses_and_immediate_receiver_are_exact",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "phase": "focused_source_qualification",
+      "category": "affected_source_authority"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::complete_immediate_receiver_helpers_and_all_seven_original_controls_remain_exact",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "phase": "focused_source_qualification",
+      "category": "affected_source_authority"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:hir_module_boundaries",
+      "selector": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "phase": "focused_source_qualification",
+      "category": "affected_source_authority"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "phase": "focused_source_qualification",
+      "category": "affected_source_authority"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::presence_tests::merged_current_ci_reflow_and_presence512_complete_inputs_remain_exact",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "phase": "focused_source_qualification",
+      "category": "affected_source_authority"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:module_size",
+      "selector": "no_module_exceeds_its_recorded_size",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "phase": "focused_source_qualification",
+      "category": "affected_source_authority"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::tests::whole_original_enumerator_and_clone_push_helpers_remain_byte_exact",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "phase": "focused_source_qualification",
+      "category": "affected_source_authority"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_keeps_full_immediate_sources_and_old_receiver_bodies_bound",
+      "reason": "Full source/helper/raw inventory input is changed by Main696 and its authenticated predecessor fronts; retain whole assertions and current authority.",
+      "phase": "focused_source_qualification",
+      "category": "affected_source_authority",
+      "also_categories": [
+        "reviewed_next831_owning_control"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+      "reason": "Unchanged relevant application probe already in current60; Main696 alters full replay backing reached during the same ordinary compiler preparation. Run and disclose actual result, not universal app-success closure gate.",
+      "phase": "focused_source_qualification",
+      "category": "unchanged_application"
+    },
+    {
+      "package": "semaprax-toolchain",
+      "kind": "test:cli_new_project_v1",
+      "selector": "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+      "reason": "Unchanged relevant application probe already in current60; Main696 alters full replay backing reached during the same ordinary compiler preparation. Run and disclose actual result, not universal app-success closure gate.",
+      "phase": "focused_source_qualification",
+      "category": "unchanged_application"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::unfactored_schedule_retains_original_source_and_factored_admission",
+      "reason": "Unchanged relevant application probe already in current60; Main696 alters full replay backing reached during the same ordinary compiler preparation. Run and disclose actual result, not universal app-success closure gate.",
+      "phase": "focused_source_qualification",
+      "category": "unchanged_application"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::owned::catalog_scoped_records::typed_catalog_derives_codecs_and_preserves_all_23_functional_cases",
+      "reason": "Unchanged relevant application probe already in current60; Main696 alters full replay backing reached during the same ordinary compiler preparation. Run and disclose actual result, not universal app-success closure gate.",
+      "phase": "focused_source_qualification",
+      "category": "unchanged_application"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "reason": "Unchanged relevant application probe already in current60; Main696 alters full replay backing reached during the same ordinary compiler preparation. Run and disclose actual result, not universal app-success closure gate.",
+      "phase": "focused_source_qualification",
+      "category": "unchanged_application"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::builder_limits::pattern_source_workspace_fits_unchanged_builder_budget",
+      "reason": "Builds actual std.pattern examples/library/tests through build_owned; path-array hooks change known-minimum ownership replay backing under the unchanged builder cap.",
+      "phase": "focused_source_qualification",
+      "category": "Pattern"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::pattern_executes_on_all_three_backends",
+      "reason": "Same std.pattern package crosses real Project preparation and backend conformance; known-minimum path backing can change admission before backend execution.",
+      "phase": "focused_source_qualification",
+      "category": "Pattern"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core",
+      "reason": "Actual364d owner25 G172 fixture corrected to admitted distinct entry/provider/test modules; retain borrowed-route and complete graph/Image parity, no new body.",
+      "phase": "focused_source_qualification",
+      "category": "actual_current60_fixture_correction"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_preserves_complete_main_hir_work_and_drop",
+      "status": "PENDING_NOT_EXECUTED",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_component_owning_control",
+      "reason": "Exact protocol/whole-owner control required by reviewed Main funding or831 lexical receiving production correction; strict physical assertion remains unchanged."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_exact_short_zero_and_first_output_work_frontier",
+      "status": "PENDING_NOT_EXECUTED",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_component_owning_control",
+      "reason": "Exact protocol/whole-owner control required by reviewed Main funding or831 lexical receiving production correction; strict physical assertion remains unchanged."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_component_owning_control",
+      "reason": "Exact protocol/whole-owner control required by reviewed Main funding or831 lexical receiving production correction; strict physical assertion remains unchanged."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_keeps_complete_immediate_ids_work_and_all_six_failure_fields",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_component_owning_control",
+      "reason": "Exact protocol/whole-owner control required by reviewed Main funding or831 lexical receiving production correction; strict physical assertion remains unchanged."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_reports_whole_immediate_costs_and_exact_short_zero_drop",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_component_owning_control",
+      "reason": "Exact protocol/whole-owner control required by reviewed Main funding or831 lexical receiving production correction; strict physical assertion remains unchanged."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::state_move_tests::singleton_move_keeps_complete_immediate_work_and_hostile_diagnostic",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_successor_or_positive_owner",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::state_move_tests::singleton_move_reports_whole_immediate_costs_and_exact_short_zero_drop",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_successor_or_positive_owner",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::identical_branch_arms_replay_the_producer_join_and_refuse_either_repaired_order",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_successor_or_positive_owner",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::actual_lexical_exact_rejoin_is_never_rekeyed_or_charged",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_successor_or_positive_owner",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::normalization_debits_root_comparisons_and_the_self_join_before_rekeying",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_successor_or_positive_owner",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::singleton_direct_group_keeps_complete_old_success_work_and_hostile_diagnostic",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_successor_or_positive_owner",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::singleton_whole_replay_reports_real_costs_and_exact_short_zero_drop",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_successor_or_positive_owner",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::complete_immediate_old_and_unchanged_multistate_body_stay_source_bound",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_successor_or_positive_owner",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "project::cxx_owned_data::provider_refusal_tests::outward_help_uses_the_first_actual_reservation_and_caller",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_successor_or_positive_owner",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "project::cxx_owned_data::provider_refusal_tests::missing_evidence_and_a_surrounding_budget_keep_the_original_error",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_successor_or_positive_owner",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "command_argument_borrow::retained_hir_still_rejects_a_mutable_command_argument_alias_independently",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_successor_or_positive_owner",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::receiver_tests::whole_original_and_boxed_replay_keep_success_work_and_hostile_diagnostic",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_successor_or_positive_owner",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::receiver_tests::complete_current_replay_has_exact_and_one_short_physical_limits_with_last_drop",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_successor_or_positive_owner",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::tests::boxed_prefix_keeps_every_history_union_and_control_disagreement",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_successor_or_positive_owner",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::duplicate_zero_auth_keeps_complete_main_diagnostic_and_first_receipt_at_sticky_floor",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_successor_or_positive_owner",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::foreign_function_budget_and_scope_poison_only_original_owner_and_never_restore_entry",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_successor_or_positive_owner",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::callable_limit_exact_advances_and_one_over_is_g171",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_successor_or_positive_owner",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::consuming::tests::phase_presence_keeps_full_current_directories_and_every_consuming_entry",
+      "phase": "focused_source_qualification",
+      "category": "reviewed_successor_or_positive_owner",
+      "reason": "Exact reviewed0ab1/singleton protocol owner, strict850positive, or original five849 whole replay/refusal controls whose complete caller changes under the new path backing/singleton route; no blanket suite."
+    }
+  ],
+  "conditional_post_pin_15": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding",
+      "reason": "Exact managed projection wire/digest pin consumer.",
+      "phase": "post_actual_pin_update",
+      "category": "actual_pin_consumers"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact",
+      "reason": "Exact managed public API wire/digest pin consumer.",
+      "phase": "post_actual_pin_update",
+      "category": "actual_pin_consumers"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::public_workspace_analysis_api_cli_kats_and_locking_are_exact",
+      "reason": "Exact managed workspace wire/digest pin consumer.",
+      "phase": "post_actual_pin_update",
+      "category": "actual_pin_consumers"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::current_hosted_wires_replay_complete_historical_cursor_controls",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "phase": "post_actual_pin_update",
+      "category": "actual_pin_consumers"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "phase": "post_actual_pin_update",
+      "category": "actual_pin_consumers"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::a_rehashed_non_builder_budget_mutation_cannot_pass_the_historical_bridge",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "phase": "post_actual_pin_update",
+      "category": "actual_pin_consumers"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::complete_prior_browser_contract_has_only_registration_and_call_adapter_changes",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "phase": "post_actual_pin_update",
+      "category": "actual_pin_consumers"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::before_2600::current_hosted_wires_replay_complete_historical_cursor_controls",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "phase": "post_actual_pin_update",
+      "category": "actual_pin_consumers"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::before_2600::current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "phase": "post_actual_pin_update",
+      "category": "actual_pin_consumers"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::before_2600::a_rehashed_non_builder_budget_mutation_cannot_pass_the_historical_bridge",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "phase": "post_actual_pin_update",
+      "category": "actual_pin_consumers"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::before_2600::complete_prior_browser_contract_has_only_registration_and_call_adapter_changes",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "phase": "post_actual_pin_update",
+      "category": "actual_pin_consumers"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "phase": "post_actual_pin_update",
+      "category": "actual_pin_consumers"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "phase": "post_actual_pin_update",
+      "category": "actual_pin_consumers"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::the_complete_old_bridge_changes_only_its_retained_runner_include",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "phase": "post_actual_pin_update",
+      "category": "actual_pin_consumers"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::browser_known_answers_match_authenticated_baseline_and_rename_graphs",
+      "reason": "Actual browser amount/digest bridge consumer; execute only after exact fresh capture/pin successor, no dual-amount acceptance.",
+      "phase": "post_actual_pin_update",
+      "category": "actual_pin_consumers"
+    }
+  ],
+  "original364d_history": {
+    "scope": 60,
+    "PASS": 52,
+    "FAIL": 8,
+    "builds_PASS": 4,
+    "both_scoped_Clippy": [
+      0,
+      0
+    ]
+  },
+  "all_older_subjects_distinct": true
+}

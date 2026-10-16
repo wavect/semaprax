@@ -26,6 +26,12 @@ and at most 32 adapters. This bounds artifact bytes, not allocator capacity or
 resident memory. Borrowed input and owned output together stay within 65,536
 bytes; Project v1-v7 and v9-v11 remain unchanged.
 
+When native-provider construction refuses its builder account, outward diagnostic
+help can report the first actual reservation, remaining allowance, reserved
+floor, and compiler-owned caller. This cumulative debit is separate from the
+canonical artifact length and process resident memory. A surrounding active
+builder account keeps the original error without allocating additional help.
+
 ## C boundary
 
 `semaprax_owned_data.h` is a directly consumable C11 boundary and contains only fixed-width integers,

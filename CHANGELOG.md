@@ -3,6 +3,10 @@
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
 
+- Move the validated singleton ownership state and its conditional variants through unchanged normalization, removing absent clones while preserving join validation, work, scheduling and the complete old receiver; focused numerical qualification remains pending.
+
+- Report the first native-provider builder reservation and caller in outward C++ package diagnostic help, preserving primary diagnostics, all limits, and complete verification.
+
 - Fund known-minimum ownership-path controls before staging and select backing at the original first-output work boundary; retain complete Main696 controls and remove real closure-scratch forwarding Results without changing nested reservation fees. Source-only qualification and actual pin regeneration remain pending.
 
 - Execute the paid cleanup branch clone/push producer inline in its existing enumerator, removing actual Vec Result and forwarding receivers while retaining every nested charge and complete old controls; focused execution and application savings remain pending.

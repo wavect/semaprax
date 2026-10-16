@@ -1,0 +1,50 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_join::state_move_tests::singleton_move_keeps_complete_immediate_work_and_hostile_diagnostic",
+    "new": true
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_join::state_move_tests::singleton_move_reports_whole_immediate_costs_and_exact_short_zero_drop",
+    "new": true
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_join::branch_join::tests::identical_branch_arms_replay_the_producer_join_and_refuse_either_repaired_order",
+    "new": false
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_join::branch_join::tests::actual_lexical_exact_rejoin_is_never_rekeyed_or_charged",
+    "new": false
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_join::branch_join::tests::normalization_debits_root_comparisons_and_the_self_join_before_rekeying",
+    "new": false
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_join::singleton_tests::singleton_direct_group_keeps_complete_old_success_work_and_hostile_diagnostic",
+    "new": false
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_join::singleton_tests::singleton_whole_replay_reports_real_costs_and_exact_short_zero_drop",
+    "new": false
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_join::singleton_tests::complete_immediate_old_and_unchanged_multistate_body_stay_source_bound",
+    "new": false
+  }
+]

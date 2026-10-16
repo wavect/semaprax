@@ -1,0 +1,23 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "whole_current_to3177_rows": 10,
+  "compact_bytes": 32995,
+  "prior14_27_3_rows_replayed": [
+    14,
+    27,
+    3
+  ],
+  "four_immutable_Main_semantic_and_formatting_inverses": true,
+  "Main0ab1_three_changed_sources_exact": true,
+  "Main_funded_files_exact_d201": true,
+  "831_exact_3ae": true,
+  "singleton_exact_edac": true,
+  "complete_state_receiver_registration_only": true,
+  "original90_runtime_fixtures_and_old_JSON_exact": true,
+  "old_project_function_exact": true,
+  "two_new_closed_state_children_all3_raw_joins": true,
+  "recursive_loaded_files": 31,
+  "module_caps_pass": true,
+  "Rust_executed": false,
+  "prior_proof_reuse": "Whole restored namespace equality; strict predecessor scripts remain historical, never weakened."
+}

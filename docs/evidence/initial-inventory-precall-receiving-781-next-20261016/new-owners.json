@@ -1,0 +1,17 @@
+[
+  {
+    "source": "src/cleanup/inventory_builder/typed/before_initial.rs",
+    "sha256": "575d4af74507702f8f352aeb26bb0852f1936a310275f0703b7faea55c35c916",
+    "lines": 97
+  },
+  {
+    "source": "src/cleanup/inventory_builder/typed/before_initial_receiving.rs",
+    "sha256": "d3a4d8e11b1bfd0a11c50dc8f54ca2eb0eee34bbc2b84a999aeda5439af0a990",
+    "lines": 59
+  },
+  {
+    "source": "src/cleanup_plan/replay/inventory_coverage/typed_tests/initial_tests.rs",
+    "sha256": "d455c3010bc02246f562810a27fdccbfd44c793e38ac9b312454ebf6681a55ba",
+    "lines": 222
+  }
+]

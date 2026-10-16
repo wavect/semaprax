@@ -142,3 +142,15 @@ fn read_body(
 }
 #[path = "runtime_json/tests.rs"]
 mod tests;
+
+// Separate fixed a3 tables; the original single-fd/length/SHA/UTF8 reader is unchanged.
+pub(super) fn maina3_metadata(fixture: super::maina3_custody::Fixture) -> String {
+    let spec = fixture.spec();
+    read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
+        .expect("complete authenticated a3 immutable metadata")
+}
+pub(super) fn maina3_input(fixture: super::maina3_custody::Input) -> String {
+    let spec = fixture.spec();
+    read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
+        .expect("complete authenticated a3 input capsule")
+}

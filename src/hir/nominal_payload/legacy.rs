@@ -50,3 +50,7 @@ mod source_tests;
 #[cfg(test)]
 #[path = "legacy/source_tests_main8a.rs"]
 mod source_tests_main8a;
+
+#[cfg(test)]
+#[path = "legacy/source_tests_maina3.rs"]
+mod source_tests_maina3;

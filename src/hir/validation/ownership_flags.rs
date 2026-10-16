@@ -65,6 +65,36 @@ impl TypeFactsPayer for Payer {
     }
     fn clone_type(&mut self, ty: &ResolvedType) -> Result<ResolvedType, Diagnostic> {
         Self::authenticate()?;
+        // These variants own no recursive backing. Identity clones retain
+        // their existing Arc, and an empty argument vector clones to no buffer.
+        // Avoid calling the fixed-cursor census at all on this exact shape.
+        if match ty {
+            ResolvedType::Function { .. } => false,
+            ResolvedType::Nominal { arguments, .. } => arguments.is_empty(),
+            ResolvedType::Never
+            | ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
+            | ResolvedType::Unit
+            | ResolvedType::I64
+            | ResolvedType::I32
+            | ResolvedType::Char
+            | ResolvedType::U8
+            | ResolvedType::Usize
+            | ResolvedType::ArrayU8(_)
+            | ResolvedType::F32
+            | ResolvedType::F64
+            | ResolvedType::Bool
+            | ResolvedType::String
+            | ResolvedType::Bytes
+            | ResolvedType::Str
+            | ResolvedType::SliceU8
+            | ResolvedType::StringMap
+            | ResolvedType::TypeParameter { .. } => true,
+        } {
+            return Ok(ty.clone());
+        }
         if !self.clone_cursor_paid {
             pay(Some(size_of::<[Option<(&ResolvedType, usize)>; 514]>()))?;
             self.clone_cursor_paid = true;

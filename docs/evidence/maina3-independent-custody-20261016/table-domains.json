@@ -1,0 +1,42 @@
+[
+  {
+    "original_path": "docs/evidence/compact-staged-observations-v1/inverse.json",
+    "base_head": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+    "original_sha256": "ef2d603d1d9190002b8e6b0c44fe6e1fb2bfb940e9497bf14db3026d3bf133ae",
+    "Maina3_copy": "docs/evidence/maina3-independent-custody-20261016/compact-inverse7.json",
+    "Maina3_sha256": "433ee4914aefd2f596a93b285858da46d043ebf1966f41304409e4243c854f3d",
+    "bytes": 60728
+  },
+  {
+    "original_path": "docs/evidence/legacy-nominal-sharing-827/exact-source-inverses.json",
+    "base_head": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+    "original_sha256": "98335b571361f43b4d199270a9eb9c5918126e1a4b46a7ceefdaec5e63648e7f",
+    "Maina3_copy": "docs/evidence/maina3-independent-custody-20261016/legacy-nominal-inverse18.json",
+    "Maina3_sha256": "16ded8556f9460661a4056b1d8b8a3a113ca5c495b9efeed95f6a404d04a0059",
+    "bytes": 897602
+  },
+  {
+    "original_path": "docs/evidence/prefix-certified-expression-lookup/exact-source-inverses.json",
+    "base_head": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+    "original_sha256": "86770dca8d0e0efdb49729626f9a7b7186b1d9d7b3e92c0acd856e2913b37682",
+    "Maina3_copy": "docs/evidence/maina3-independent-custody-20261016/prefix-certified-inverse3.json",
+    "Maina3_sha256": "38292a299893d202646644174e985d6a63e87e96d5eb93a1a8ef5deb5cd9e23d",
+    "bytes": 1056800
+  },
+  {
+    "original_path": "docs/evidence/receiver-source-custody-v1/inverse.json",
+    "base_head": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+    "original_sha256": "17758338cdb03f1a294fb75d923ccc515c814aa3d257521f41ef8593a7d9da1b",
+    "Maina3_copy": "docs/evidence/maina3-independent-custody-20261016/receiver-inverse12.json",
+    "Maina3_sha256": "d986684a9d1b95e31a3b29f824c0f3255b4acb2c306564d6a1260bd9437eea9b",
+    "bytes": 87333
+  },
+  {
+    "original_path": "docs/evidence/selected-session-static-refusal-781/exact-source-inverses.json",
+    "base_head": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+    "original_sha256": "5080ec6ca01d0d3165427f06fe3a2d8413e171d2725fbf8c8f15c07de91d5cce",
+    "Maina3_copy": "docs/evidence/maina3-independent-custody-20261016/selected-session-inverse19.json",
+    "Maina3_sha256": "7b12f6b0806a8a8daa7089fc385f122dec7c7beaade797e143ca19f8074886ff",
+    "bytes": 2040968
+  }
+]

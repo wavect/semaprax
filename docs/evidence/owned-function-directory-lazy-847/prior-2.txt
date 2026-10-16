@@ -1,0 +1,396 @@
+use super::*;
+use crate::ast::program_source::ProgramSource;
+use crate::bounded_output::{with_limit_usage_refusal, ReservationRefusal};
+use crate::test_allocation_observer::{measure, Metrics};
+use crate::workspace_graph::index_authored;
+use sha2::{Digest, Sha256};
+
+const LIMIT: usize = 32 * 1024 * 1024;
+const PROVIDER: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/std/collections/src/collections.spx"
+));
+const IMPORTS: &str = "module directory.app;\nuse function @id(\"std.collections.vec.with-capacity\") from std.collections as with_capacity;\nuse function @id(\"std.collections.vec.push\") from std.collections as push;\nuse function @id(\"std.collections.vec.get\") from std.collections as get;\n";
+const MAIN: &str = "@id(\"directory.main\") fn main()->i64 {let a=with_capacity<i64>(2usize);let b=push<i64>(a,42);get<i64>(b,0usize)}";
+
+fn programs(caller: &str) -> [Program; 2] {
+    [
+        crate::parse(caller, "caller.spx").unwrap(),
+        crate::parse(PROVIDER, "provider.spx").unwrap(),
+    ]
+}
+fn renamed(caller: &str) -> String {
+    caller
+        .replace("as with_capacity;", "as make_vec;")
+        .replace("with_capacity<i64>", "make_vec<i64>")
+        .replace("as push;", "as append;")
+        .replace("push<i64>", "append<i64>")
+        .replace("as get;", "as read_value;")
+        .replace("get<i64>", "read_value<i64>")
+}
+thread_local! {
+    static OBSERVE_PUSH: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static FIRST_PUSH_REMAINING: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+}
+// Test-only observation after an actual owning push, never a forecasted count.
+pub(super) fn observe_owned_push() {
+    if OBSERVE_PUSH.with(std::cell::Cell::get) {
+        FIRST_PUSH_REMAINING.with(|first| {
+            if first.get().is_none() {
+                first.set(crate::bounded_output::active_remaining());
+            }
+        });
+    }
+}
+#[derive(Debug)]
+struct Observed {
+    accepted: bool,
+    overflowed: bool,
+    paid: usize,
+    first: Option<ReservationRefusal>,
+    first_owned_paid: Option<usize>,
+    metrics: Metrics,
+}
+fn observe(programs: &[Program], current: bool, limit: usize) -> Observed {
+    let authored = index_authored(programs).unwrap();
+    FIRST_PUSH_REMAINING.with(|first| first.set(None));
+    OBSERVE_PUSH.with(|active| active.set(current));
+    let ((ok, metrics), overflowed, paid, first) = with_limit_usage_refusal(limit, || {
+        measure(|| {
+            let registry = LayoutRegistry::new(programs, &authored);
+            let mut owner = match Receiver::acquire() {
+                Ok(owner) => owner,
+                Err(_) => return false,
+            };
+            let result = if current {
+                construct_transient(
+                    &programs[0],
+                    &authored,
+                    programs,
+                    &registry,
+                    None,
+                    &mut owner,
+                )
+            } else {
+                super::before_owned_directory::construct_transient(
+                    &programs[0],
+                    &authored,
+                    programs,
+                    &registry,
+                    None,
+                    &mut owner,
+                )
+            };
+            let ok = result.is_ok();
+            drop(result);
+            drop(owner);
+            drop(registry);
+            ok
+        })
+    });
+    OBSERVE_PUSH.with(|active| active.set(false));
+    let first_owned_paid =
+        FIRST_PUSH_REMAINING.with(|first| first.get().map(|remaining| limit - remaining));
+    Observed {
+        first_owned_paid,
+        accepted: ok && !overflowed,
+        overflowed,
+        paid,
+        first,
+        metrics,
+    }
+}
+fn settled(value: &Observed) {
+    assert!(
+        !value.metrics.invalid
+            && value.metrics.live == 0
+            && value.metrics.allocated == value.metrics.freed,
+        "{value:?}"
+    );
+}
+
+#[test]
+fn borrowed_owned_mixed_and_synthetic_main_have_exact_live_function_backing_and_full_hir_parity() {
+    let caller = format!("{IMPORTS}{MAIN}");
+    let owned = renamed(&caller);
+    let mixed = caller
+        .replace("as get;", "as read_value;")
+        .replace("get<i64>", "read_value<i64>");
+    for (source, expected_owned) in [
+        (caller.as_str(), 0usize),
+        (owned.as_str(), 3usize),
+        (mixed.as_str(), 1usize),
+        (IMPORTS, 1usize),
+    ] {
+        let programs = programs(source);
+        let authored = index_authored(&programs).unwrap();
+        let ((), overflowed, _, first) = with_limit_usage_refusal(LIMIT, || {
+            let registry = LayoutRegistry::new(&programs, &authored);
+            let mut owner = Receiver::acquire().unwrap();
+            let old = super::before_owned_directory::construct_transient(
+                &programs[0],
+                &authored,
+                &programs,
+                &registry,
+                None,
+                &mut owner,
+            )
+            .unwrap();
+            let current = construct_transient(
+                &programs[0],
+                &authored,
+                &programs,
+                &registry,
+                None,
+                &mut owner,
+            )
+            .unwrap();
+            assert_eq!(current.functions.roots.functions.len(), expected_owned);
+            assert_eq!(current.functions.roots.functions.capacity(), expected_owned);
+            assert_eq!(
+                old.functions().iter().collect::<Vec<_>>(),
+                current.functions().iter().collect::<Vec<_>>()
+            );
+            assert_eq!(
+                old.types().iter().collect::<Vec<_>>(),
+                current.types().iter().collect::<Vec<_>>()
+            );
+            let layout = registry.get(&programs[0], &authored, &programs).unwrap();
+            crate::vec_ops::with_authenticated_linked_source(|| {
+                let expected = crate::hir::identity_resolution::resolve_source_nominal(
+                    &old,
+                    layout.presentation(&programs[0], &old).unwrap(),
+                    crate::workspace_graph::reserve_builder_structure,
+                )
+                .unwrap()
+                .0;
+                let actual = crate::hir::identity_resolution::resolve_source_nominal(
+                    &current,
+                    layout.presentation(&programs[0], &current).unwrap(),
+                    crate::workspace_graph::reserve_builder_structure,
+                )
+                .unwrap()
+                .0;
+                assert_eq!(expected, actual);
+                crate::hir::validate(&actual).unwrap();
+            });
+        });
+        assert!(!overflowed && first.is_none());
+    }
+}
+
+#[test]
+fn complete_old_current_allocations_reservations_reallocations_frontiers_and_drop_are_observed() {
+    let caller = format!("{IMPORTS}{MAIN}");
+    for (name, source) in [
+        ("all-borrowed", caller.clone()),
+        ("all-owned", renamed(&caller)),
+        (
+            "mixed",
+            caller
+                .replace("as get;", "as read_value;")
+                .replace("get<i64>", "read_value<i64>"),
+        ),
+        ("synthetic-main", IMPORTS.to_owned()),
+    ] {
+        let programs = programs(&source);
+        // Initialize unchanged shared metadata using the complete predecessor.
+        assert!(observe(&programs, false, LIMIT).accepted);
+        let old = observe(&programs, false, LIMIT);
+        let current = observe(&programs, true, LIMIT);
+        assert!(old.accepted && current.accepted);
+        settled(&old);
+        settled(&current);
+        if name == "all-borrowed" {
+            assert_eq!(
+                old.metrics.allocated - current.metrics.allocated,
+                3 * std::mem::size_of::<Function>()
+            );
+            assert_eq!(old.metrics.allocations, current.metrics.allocations + 1);
+        }
+        // Never require every case to improve: the owned lane really reallocates.
+        if name == "all-owned" {
+            assert!(current.metrics.reallocations > old.metrics.reallocations);
+        }
+        eprintln!("847 owned directory {name}: old={old:?}; current={current:?}");
+        for limit in [0, current.paid / 2, current.paid - 1, current.paid] {
+            let result = observe(&programs, true, limit);
+            settled(&result);
+            assert_eq!(
+                result.accepted,
+                limit == current.paid,
+                "{name}: limit={limit} {result:?}"
+            );
+            if limit == current.paid {
+                assert!(!result.overflowed && result.first.is_none());
+            }
+            if limit == current.paid - 1 {
+                assert!(result.overflowed);
+            }
+        }
+        if name == "all-owned" {
+            let prefix = current
+                .first_owned_paid
+                .expect("an actual owned payload was initialized");
+            assert!(prefix < current.paid);
+            let partial = observe(&programs, true, prefix);
+            assert!(!partial.accepted && partial.overflowed && partial.first.is_some());
+            assert!(partial.metrics.allocated > 0);
+            assert_eq!(partial.first_owned_paid, Some(prefix));
+            settled(&partial);
+            eprintln!("847 after real first owned push limit={prefix}: {partial:?}");
+        }
+        // Observe rather than equate the changed physical/receiving frontier.
+        let old_at_new = observe(&programs, false, current.paid);
+        settled(&old_at_new);
+        eprintln!(
+            "847 owned directory old at new limit={}: {old_at_new:?}",
+            current.paid
+        );
+    }
+}
+
+#[test]
+fn reserved_alias_diagnostics_and_sticky_partial_owned_failure_remain_exact() {
+    let caller = format!("{IMPORTS}{MAIN}");
+    let mut programs = programs(&caller);
+    programs[0].module_uses[2].alias = "string_from_utf8".to_owned();
+    let authored = index_authored(&programs).unwrap();
+    let ((), overflowed, _, _) = with_limit_usage_refusal(LIMIT, || {
+        let registry = LayoutRegistry::new(&programs, &authored);
+        let mut owner = Receiver::acquire().unwrap();
+        let old = super::before_owned_directory::construct_transient(
+            &programs[0],
+            &authored,
+            &programs,
+            &registry,
+            None,
+            &mut owner,
+        )
+        .unwrap();
+        let current = construct_transient(
+            &programs[0],
+            &authored,
+            &programs,
+            &registry,
+            None,
+            &mut owner,
+        )
+        .unwrap();
+        let expected = crate::source_verify::verify(&old);
+        let actual = crate::source_verify::verify(&current);
+        assert_eq!(expected, actual);
+        assert!(actual
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-S113"));
+    });
+    assert!(!overflowed);
+    let programs = programs_for_owned(&caller);
+    let authored = index_authored(&programs).unwrap();
+    let ((), overflowed, _, first) = with_limit_usage_refusal(LIMIT, || {
+        let registry = LayoutRegistry::new(&programs, &authored);
+        let mut owner = Receiver::acquire().unwrap();
+        // Select the original sticky refusal, then demand a new constructor.
+        assert!(owner.reserve(LIMIT).is_err());
+        let before = crate::bounded_output::active_remaining();
+        let ((), metrics) = measure(|| {
+            assert!(construct_transient(
+                &programs[0],
+                &authored,
+                &programs,
+                &registry,
+                None,
+                &mut owner
+            )
+            .is_err());
+        });
+        assert_eq!(before, crate::bounded_output::active_remaining());
+        assert!(!metrics.invalid && metrics.allocated == 0);
+    });
+    assert!(overflowed && first.is_some());
+}
+fn programs_for_owned(caller: &str) -> [Program; 2] {
+    programs(&renamed(caller))
+}
+
+// Restore only exact authenticated complete immediate predecessor inputs before
+// the original 847 source closure's independent inverses run. Tables unchanged.
+pub(super) fn previous_source(source: &str, current: &str) -> String {
+    let manifest: serde_json::Value = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/owned-function-directory-847/source-custody.json"
+    )))
+    .unwrap();
+    for row in manifest["changed"].as_array().unwrap() {
+        if row["source"].as_str().unwrap() != source {
+            continue;
+        }
+        assert_eq!(
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+            ),
+            row["sha256"]
+        );
+        let before = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(row["before"].as_str().unwrap()),
+        )
+        .unwrap();
+        assert_eq!(
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(before.as_bytes()))
+            ),
+            row["before_sha256"]
+        );
+        return before;
+    }
+    current.to_owned()
+}
+#[test]
+fn complete_immediate_directory_producer_and_expanded_acquisition_remain_source_bound() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let manifest: serde_json::Value = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/owned-function-directory-847/source-custody.json"
+    )))
+    .unwrap();
+    for section in ["changed", "added"] {
+        for row in manifest[section].as_array().unwrap() {
+            let source = std::fs::read(root.join(row["source"].as_str().unwrap())).unwrap();
+            assert_eq!(
+                format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(&source))),
+                row["sha256"]
+            );
+        }
+    }
+    let original = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/owned-function-directory-847/alias.before.rs.txt"
+    ));
+    let expected = original
+        .split_once("#[cfg(test)]\n#[path = \"alias/tests.rs\"]")
+        .unwrap()
+        .0
+        .replace(
+            "super::super::super::super::",
+            "super::super::super::super::super::",
+        )
+        .replace("use super::super::{", "use super::super::super::{")
+        .replace("use super::typed_cost;", "use super::super::typed_cost;");
+    assert_eq!(
+        format!("{}\n", expected.trim_end()),
+        include_str!("before_owned_directory.rs")
+    );
+    let tests = include_str!("tests.rs").replace(
+        "        let current = super::owned_growth_tests::previous_source(source, &current);\n",
+        "",
+    );
+    assert_eq!(
+        tests,
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/owned-function-directory-847/tests.before.rs.txt"
+        ))
+    );
+}

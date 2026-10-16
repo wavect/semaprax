@@ -923,10 +923,33 @@ pub(crate) fn main8a_metadata(fixture: Main8aFixture) -> String {
 
 // Independent current raw domains: never serialize Main predecessors through old raw guards.
 pub(crate) fn main8a_previous(source: &str, current: &str) -> String {
+    let previous = maina3_previous(source, current);
+    let current = previous.as_str();
     let normalized = main8a_custody::normalize(source, current);
     main8a_custody::input(main8a_custody::Input::Previous55e, source, &normalized)
 }
 pub(crate) fn main8a_input(source: &str, current: &str) -> String {
+    let previous = maina3_previous(source, current);
+    let current = previous.as_str();
     let normalized = main8a_custody::normalize(source, current);
     main8a_custody::input(main8a_custody::Input::Main8a, source, &normalized)
+}
+
+#[path = "source_reflows_merge/maina3_custody.rs"]
+mod maina3_custody;
+pub(crate) use maina3_custody::Fixture as Maina3Fixture;
+pub(crate) fn maina3_metadata(fixture: Maina3Fixture) -> String {
+    runtime_json::maina3_metadata(fixture)
+}
+pub(crate) fn maina3_previous(source: &str, current: &str) -> String {
+    let normalized = maina3_custody::normalize(source, current);
+    maina3_custody::input(maina3_custody::Input::Previous16c, source, &normalized)
+}
+pub(crate) fn maina3_input(source: &str, current: &str) -> String {
+    let normalized = maina3_custody::normalize(source, current);
+    maina3_custody::input(maina3_custody::Input::Maina3, source, &normalized)
+}
+pub(crate) fn maina3_847_input(source: &str, current: &str) -> String {
+    let normalized = maina3_custody::normalize(source, current);
+    maina3_custody::input(maina3_custody::Input::Alias1ae, source, &normalized)
 }

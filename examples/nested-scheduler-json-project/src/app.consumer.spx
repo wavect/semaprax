@@ -1,0 +1,48 @@
+module scheduler.app;
+use type @id("scheduler.configuration") from scheduler.schema as Configuration;
+use type @id("scheduler.job") from scheduler.schema as Job;
+use type @id("scheduler.request") from scheduler.schema as ScheduleRequest;
+use type @id("scheduler.request.json.nested.decode-result") from scheduler.schema as Outcome;
+use function @id("scheduler.request.json.nested.decode") from scheduler.schema as decode;
+
+@id("scheduler.read-fixture")
+fn read_fixture() -> Outcome
+{
+    let raw = [123u8, 34u8, 99u8, 111u8, 110u8, 102u8, 105u8, 103u8, 117u8, 114u8, 97u8, 116u8, 105u8, 111u8, 110u8, 34u8, 58u8, 123u8, 34u8, 108u8, 97u8, 98u8, 101u8, 108u8, 34u8, 58u8, 34u8, 92u8, 117u8, 48u8, 48u8, 101u8, 57u8, 92u8, 117u8, 48u8, 48u8, 48u8, 48u8, 34u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 101u8, 114u8, 95u8, 99u8, 111u8, 117u8, 110u8, 116u8, 34u8, 58u8, 50u8, 125u8, 44u8, 34u8, 106u8, 111u8, 98u8, 115u8, 34u8, 58u8, 91u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 48u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 51u8, 125u8, 44u8, 123u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 52u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 53u8, 44u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 49u8, 34u8, 125u8, 93u8, 44u8, 34u8, 112u8, 114u8, 101u8, 101u8, 109u8, 112u8, 116u8, 105u8, 118u8, 101u8, 34u8, 58u8, 102u8, 97u8, 108u8, 115u8, 101u8, 125u8];
+    let input = bytes_copy(array_as_slice(raw));
+    decode(bytes_as_slice(input), 159usize)
+}
+
+@id("scheduler.jobs-match")
+fn jobs_match(jobs: borrow Vec<Job>) -> bool
+{
+    let mut valid = vec_len<Job>(jobs) == 2usize;
+    let mut at = 0usize;
+    while valid && at < vec_len<Job>(jobs) {
+        let job = vec_clone_at<Job>(jobs, at);
+        let id = str_as_bytes(string_as_str(job.id));
+        let first = match byte_get(id, 0usize) { Option::Some { value } => value == 74u8, Option::None {} => false, };
+        let expected = if at == 0usize { 48u8 } else { 49u8 };
+        let last = match byte_get(id, 1usize) { Option::Some { value } => value == expected, Option::None {} => false, };
+        let arrival = if at == 0usize { 0 } else { 5 };
+        let service = if at == 0usize { 3u8 } else { 4u8 };
+        valid = byte_len(id) == 2usize && first && last && job.arrival == arrival && job.service == service;
+        at = at + 1usize;
+        valid && at < vec_len<Job>(jobs)
+    }
+    valid
+}
+
+@id("scheduler.fixture.check")
+fn check_fixture() -> i64
+{
+    let outcome = read_fixture();
+    let valid = match own outcome { Outcome::Error { code: _code, offset: _offset, field: _field } => false, Outcome::Ready { value: request } => match own request { ScheduleRequest { configuration: Configuration { label, server_count }, jobs, preemptive } => { let bytes = str_as_bytes(string_as_str(label)); let first = match byte_get(bytes, 0usize) { Option::Some { value } => value == 195u8, Option::None {} => false, }; let second = match byte_get(bytes, 1usize) { Option::Some { value } => value == 169u8, Option::None {} => false, }; let nul = match byte_get(bytes, 2usize) { Option::Some { value } => value == 0u8, Option::None {} => false, }; byte_len(bytes) == 3usize && first && second && nul && server_count == 2usize && !preemptive && jobs_match(jobs) }, }, };
+    if valid { 729 } else { 0 }
+}
+
+@id("scheduler.main")
+fn main() -> i64
+{
+    check_fixture()
+}

@@ -1,0 +1,37 @@
+{
+  "status": "SOURCE_ONLY_NO_EXECUTION",
+  "new_owners": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::inventory_coverage::typed_tests::initial_tests::initial_receiving_precedes_raw_entry_and_preserves_complete_inventory_through_drop"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::inventory_coverage::typed_tests::initial_tests::initial_admission_exact_short_zero_work_and_floor_keep_first_receipt"
+    }
+  ],
+  "affected_existing": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::inventory_coverage::typed_tests::complete_raw_inventory_keeps_all_fields_original_work_and_reports_real_receiving_tradeoffs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::inventory_coverage::typed_tests::raw_primitive_failures_keep_six_fields_sticky_ledger_and_attached_inventory_non_authority"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_entry::tests::driver_local_receivers::duplicated_driver_profile_and_owner_keep_raw_oracle_and_transfer_one_paid_report"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_entry::tests::session_errors::selected_session_receipt_full_carrier_exact_short_zero_sticky_report_and_drop"
+    }
+  ]
+}

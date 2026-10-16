@@ -1,4 +1,14 @@
 //! Complete overlay walk; only default and directory refusal custody changes.
+#[macro_use]
+#[path = "alias/owned_growth.rs"]
+mod owned_growth;
+#[cfg(test)]
+#[path = "alias/before_owned_directory.rs"]
+mod before_owned_directory;
+#[cfg(test)]
+#[path = "alias/owned_growth_tests.rs"]
+mod owned_growth_tests;
+
 use super::super::{
     alias_clone, budgeted_format, eligible, graph_error, import_stub, iterative, refusal,
     type_rewrite, AuthoredDeclaration, LayoutRegistry,
@@ -136,12 +146,8 @@ pub(in crate::workspace_graph) fn construct_transient<'p>(
         .iter()
         .filter(|import| import.kind == ModuleUseKind::Function)
         .count();
-    directory_owner.roots.functions = directory::<Function>(
-        imports
-            .checked_add(usize::from(needs_main))
-            .ok_or_else(refusal)?,
-        owner,
-    )?;
+    // GeneratedRoots already holds the empty owned directory. Borrowed entries
+    // acquire no Function backing; owning fallback acquires the original full bound at its real frontier.
     directory_owner.entries = directory::<FunctionEntry<'p>>(
         imports
             .checked_add(usize::from(needs_main))
@@ -215,6 +221,7 @@ pub(in crate::workspace_graph) fn construct_transient<'p>(
                 typed_cost::teardown_function(original, false, owner)?;
             }
         }
+        owned_function_directory!(functions, entries, owner);
         let function = if retain_body {
             alias_clone::retained_function(original, &import.alias)
         } else {
@@ -223,6 +230,8 @@ pub(in crate::workspace_graph) fn construct_transient<'p>(
         owner.reserve(std::mem::size_of::<FunctionEntry<'p>>() + std::mem::size_of::<usize>())?;
         entries.push(FunctionEntry::Owned(functions.len()));
         functions.push(function);
+        #[cfg(test)]
+        owned_growth_tests::observe_owned_push();
         owner.reserve(0)?;
         if retain_body {
             continue;
@@ -265,6 +274,7 @@ pub(in crate::workspace_graph) fn construct_transient<'p>(
     }
     // Same old rule also recognizes an imported alias named main.
     if needs_main && !functions.iter().any(|function| function.name == "main") {
+        owned_function_directory!(functions, entries, owner);
         owner.reserve(std::mem::size_of::<Expr>())?;
         let stable_id =
             budgeted_format(format_args!("workspace.synthetic.main.{}", program.module));

@@ -113,3 +113,7 @@ mod final_before;
 #[path="current.rs"]
 mod current;
 use current::{append_expr_paths,sequence_skeleton_paths,split_status_paths,split_contract};
+
+// Exact Maina3 test-only fixture interfaces for its independent vector scope.
+pub(in crate::cleanup_plan::replay) fn original_route_selected() -> bool { tests::original_selected() }
+pub(in crate::cleanup_plan::replay) fn fixture_program() -> ResolvedProgram { tests::program() }

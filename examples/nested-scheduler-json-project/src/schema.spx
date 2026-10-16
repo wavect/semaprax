@@ -1,0 +1,35 @@
+module scheduler.schema;
+
+@id("scheduler.configuration")
+record Configuration {
+    @id("scheduler.configuration.label")
+    label: string,
+    @id("scheduler.configuration.server_count")
+    server_count: usize,
+}
+
+@id("scheduler.job")
+record Job {
+    @id("scheduler.job.id")
+    id: string,
+    @id("scheduler.job.arrival")
+    arrival: i64,
+    @id("scheduler.job.service")
+    service: u8,
+}
+
+@id("scheduler.request")
+record ScheduleRequest {
+    @id("scheduler.request.configuration")
+    configuration: Configuration,
+    @id("scheduler.request.jobs")
+    jobs: Vec<Job>,
+    @id("scheduler.request.preemptive")
+    preemptive: bool,
+}
+
+@id("scheduler.schema.anchor")
+fn schema_anchor() -> i64
+{
+    0
+}

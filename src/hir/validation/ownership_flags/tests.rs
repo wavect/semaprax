@@ -610,3 +610,183 @@ fn complete_original_paid_entry_and_lazy_fast_gates_stay_source_exact() {
     };
     assert_eq!(gates(&current[start..end]), gates(original));
 }
+
+#[test]
+fn leaf_clone_reuses_held_identities_without_a_census_cursor_and_keeps_sticky_zero() {
+    let leaves = [
+        ResolvedType::Never,
+        ResolvedType::OnceFunction,
+        ResolvedType::OnceFunctionI64,
+        ResolvedType::OnceFunctionI64Pair,
+        ResolvedType::MutFunctionI64,
+        ResolvedType::Unit,
+        ResolvedType::I64,
+        ResolvedType::I32,
+        ResolvedType::Char,
+        ResolvedType::U8,
+        ResolvedType::Usize,
+        ResolvedType::ArrayU8(u32::MAX),
+        ResolvedType::F32,
+        ResolvedType::F64,
+        ResolvedType::Bool,
+        ResolvedType::String,
+        ResolvedType::Bytes,
+        ResolvedType::Str,
+        ResolvedType::SliceU8,
+        ResolvedType::StringMap,
+        ResolvedType::TypeParameter {
+            owner: DeclarationId::new("leaf:é\0.owner"),
+            index: u32::MAX,
+        },
+        ResolvedType::Nominal {
+            declaration: DeclarationId::new("leaf:é\0.nominal"),
+            arguments: Vec::new(),
+        },
+    ];
+    let observe = |original, limit| {
+        crate::bounded_output::with_limit_usage_refusal(limit, || {
+            measure(|| {
+                let result = (|| {
+                    let mut payer = Payer::new()?;
+                    for ty in &leaves {
+                        let value = if original {
+                            payer.clone_type_before(ty)?
+                        } else {
+                            payer.clone_type(ty)?
+                        };
+                        assert_eq!(&value, ty);
+                        drop(value);
+                    }
+                    Ok::<_, Diagnostic>(())
+                })();
+                if result.is_err() {
+                    let before = crate::test_allocation_observer::current_metrics();
+                    let remaining = crate::bounded_output::active_remaining();
+                    assert!(Payer::authenticate().is_err());
+                    assert_eq!(remaining, crate::bounded_output::active_remaining());
+                    assert_eq!(before, crate::test_allocation_observer::current_metrics());
+                }
+                let accepted = result.is_ok();
+                drop(result);
+                accepted
+            })
+        })
+    };
+    let ((old_ok, old), old_refused, old_paid, old_first) = observe(true, usize::MAX);
+    let ((ok, current), refused, paid, first) = observe(false, usize::MAX);
+    assert!(old_ok && ok && !old_refused && !refused && old_first.is_none() && first.is_none());
+    assert_eq!(
+        old_paid - paid,
+        514 * std::mem::size_of::<Option<(&ResolvedType, usize)>>()
+    );
+    assert_eq!(paid, std::mem::size_of::<Payer>());
+    assert_eq!(old, current);
+    assert!(!current.invalid && current.live == 0 && current.allocated == 0 && current.freed == 0);
+    let ((old_ok, old), refused, old_paid, first) = observe(true, paid);
+    assert!(!old_ok && refused && old_paid == paid);
+    assert_eq!(
+        first.unwrap().requested,
+        514 * std::mem::size_of::<Option<(&ResolvedType, usize)>>()
+    );
+    assert!(!old.invalid && old.live == 0 && old.allocated == 0);
+    for limit in [0, paid - 1, paid] {
+        let ((ok, allocation), refused, used, first) = observe(false, limit);
+        assert_eq!(ok, limit == paid);
+        assert_eq!(refused, limit != paid);
+        assert_eq!(first.is_some(), limit != paid);
+        assert!(used <= limit && !allocation.invalid && allocation.live == 0);
+        assert_eq!((allocation.allocated, allocation.freed), (0, 0));
+    }
+}
+
+#[test]
+fn complete_clone_predecessor_and_recursive_census_fallback_remain_source_bound() {
+    use sha2::{Digest, Sha256};
+    let record: serde_json::Value = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/ownership-leaf-clone-v1/function.json"
+    )))
+    .unwrap();
+    let body = record["body"].as_str().unwrap();
+    let digest = format!(
+        "{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(body.as_bytes()))
+    );
+    assert_eq!(digest, record["sha256"].as_str().unwrap());
+    assert_eq!(
+        digest,
+        "193c8dc2803409158e0dbeb3d133ab6651eb2568a40e277d1396d913a90e9438"
+    );
+    let archived = body.replacen(
+        "    fn clone_type(",
+        "    pub(super) fn clone_type_before(",
+        1,
+    );
+    assert_eq!(include_str!("before.rs").matches(&archived).count(), 1);
+    let current = include_str!("../ownership_flags.rs");
+    let hook="        // These variants own no recursive backing. Identity clones retain\n        // their existing Arc, and an empty argument vector clones to no buffer.\n        // Avoid calling the fixed-cursor census at all on this exact shape.\n        if match ty {\n            ResolvedType::Function { .. } => false,\n            ResolvedType::Nominal { arguments, .. } => arguments.is_empty(),\n            ResolvedType::Never\n            | ResolvedType::OnceFunction\n            | ResolvedType::OnceFunctionI64\n            | ResolvedType::OnceFunctionI64Pair\n            | ResolvedType::MutFunctionI64\n            | ResolvedType::Unit\n            | ResolvedType::I64\n            | ResolvedType::I32\n            | ResolvedType::Char\n            | ResolvedType::U8\n            | ResolvedType::Usize\n            | ResolvedType::ArrayU8(_)\n            | ResolvedType::F32\n            | ResolvedType::F64\n            | ResolvedType::Bool\n            | ResolvedType::String\n            | ResolvedType::Bytes\n            | ResolvedType::Str\n            | ResolvedType::SliceU8\n            | ResolvedType::StringMap\n            | ResolvedType::TypeParameter { .. } => true,\n        } {\n            return Ok(ty.clone());\n        }\n";
+    let updated = body.replacen(
+        "        Self::authenticate()?;\n",
+        &format!("        Self::authenticate()?;\n{hook}"),
+        1,
+    );
+    assert_eq!(current.matches(&updated).count(), 1);
+}
+
+#[test]
+fn a_leaf_does_not_mark_the_later_recursive_clone_cursor_as_paid() {
+    let nested = ResolvedType::Function {
+        parameters: vec![ResolvedType::I64],
+        result: Box::new(ResolvedType::Bool),
+    };
+    let cursor = 514 * std::mem::size_of::<Option<(&ResolvedType, usize)>>();
+    let payload = 2 * std::mem::size_of::<ResolvedType>();
+    for original in [false, true] {
+        let (((), allocation), refused, paid, first) =
+            crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {
+                measure(|| {
+                    let mut payer = Payer::new().unwrap();
+                    let leaf = if original {
+                        payer.clone_type_before(&ResolvedType::I64)
+                    } else {
+                        payer.clone_type(&ResolvedType::I64)
+                    }
+                    .unwrap();
+                    assert_eq!(leaf, ResolvedType::I64);
+                    drop(leaf);
+                    let before = crate::bounded_output::active_remaining().unwrap();
+                    let first = if original {
+                        payer.clone_type_before(&nested)
+                    } else {
+                        payer.clone_type(&nested)
+                    }
+                    .unwrap();
+                    assert_eq!(first, nested);
+                    let remaining = crate::bounded_output::active_remaining().unwrap();
+                    assert_eq!(
+                        before - remaining,
+                        payload + if original { 0 } else { cursor }
+                    );
+                    let second = if original {
+                        payer.clone_type_before(&nested)
+                    } else {
+                        payer.clone_type(&nested)
+                    }
+                    .unwrap();
+                    assert_eq!(second, nested);
+                    assert_eq!(
+                        remaining - crate::bounded_output::active_remaining().unwrap(),
+                        payload
+                    );
+                    drop((first, second));
+                })
+            });
+        assert!(!refused && first.is_none());
+        assert_eq!(paid, std::mem::size_of::<Payer>() + cursor + 2 * payload);
+        assert_eq!(
+            (allocation.allocated, allocation.freed),
+            (2 * payload, 2 * payload)
+        );
+        assert!(!allocation.invalid && allocation.live == 0 && allocation.allocated <= paid);
+    }
+}

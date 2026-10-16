@@ -1,0 +1,49 @@
+//! Lexical acquisition: no forwarded Function/Vec/owner arguments or Result.
+//! The root already owns every initialized payload through a failed growth.
+use crate::ast::Function;
+use crate::workspace_graph::constructor_failure::{
+    receiving::{Receiver, Setup},
+    typed::Failure,
+};
+use std::mem::size_of;
+
+// Each method argument, result, named receiving slot and comparison is counted
+// before the first len query. Setup/Failure conversion roles cover every early
+// exit; the enclosing producer's complete Result remains independently paid.
+pub(super) const CONTROLS: usize = 2 * size_of::<&Vec<Function>>() // len and capacity receivers
+    + 7 * size_of::<usize>() // len, add self/operand, required binding, layout argument, capacity result and comparison operand
+    + size_of::<Option<usize>>() // checked next count
+    + size_of::<Result<std::alloc::Layout, std::alloc::LayoutError>>()
+    + size_of::<std::alloc::Layout>()
+    + size_of::<&std::alloc::Layout>()
+    + size_of::<usize>() // layout size result passed to the prepaid receiver
+    + size_of::<&mut Vec<Function>>()
+    + size_of::<usize>() // reserve-exact additional operand
+    + size_of::<Result<(), std::collections::TryReserveError>>()
+    + size_of::<bool>() // exact capacity comparison
+    + size_of::<&mut Receiver>() // physical refusal receiver
+    + 2 * size_of::<Setup>() // physical result and conversion operand
+    + size_of::<Failure>(); // converted refusal before enclosing return
+
+macro_rules! owned_function_slot {
+    ($functions:ident, $owner:ident) => {{
+        $owner.reserve(owned_growth::CONTROLS)?;
+        let Some(required) = $functions.len().checked_add(1) else {
+            return Err($owner.physical().into());
+        };
+        let layout = match std::alloc::Layout::array::<crate::ast::Function>(required) {
+            Ok(layout) => layout,
+            Err(_) => return Err($owner.physical().into()),
+        };
+        // Charge the complete requested new allocation before reserve_exact.
+        // Existing backing remains charged and owned; nothing is refunded.
+        $owner.reserve(layout.size())?;
+        match $functions.try_reserve_exact(1) {
+            Ok(()) => {}
+            Err(_) => return Err($owner.physical().into()),
+        }
+        if $functions.capacity() != required {
+            return Err($owner.physical().into());
+        }
+    }};
+}

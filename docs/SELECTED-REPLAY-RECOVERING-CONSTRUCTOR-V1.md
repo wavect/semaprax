@@ -769,3 +769,41 @@ The existing eight path-boundary inputs enter one direct error-policy body. Diag
 These new per-call bank payments can legitimately refuse before old semantic lookup or scratch insertion and consume work before later refusal. They grant no retry, refund, donor authority, new cap or old mixed-resource first-winner guarantee. Ordinary Diagnostic policy and complete immediate-old path replay remain executable independently. Borrowed rejecting chain macros consume the existing caller permit, preserve checked-sub-before-region-get and all lazy surrounding predicates. The separate or-false macro keeps the original intentional error suppression with no added debit; ordinary query fallback stays unchanged.
 
 The initial bank failure remains the existing unreceived ABI boundary. All new static paths preserve complete six-field diagnostic rendering through the existing funded report. Raw inventory callbacks, schema/checked-binding children, ordinary dynamic type facts and other unmigrated descendants remain owning boundaries. #781 remains open and this source checkpoint makes no executable or cost claim.
+
+
+### Synchronous typed raw-inventory boundary
+
+The selected flat-record inventory twin accepts the existing physical reservation and remaining-work fields borrowed synchronously from the caller's actual ReplayBudget. It creates no allowance, retained payer, callback authority, or source verdict. InventoryFailure is opaque: work originates only at actual checked subtraction, physical/receiving failures only at actual reservations, and finite classifier failures only at their closed primitive branches. Arbitrary Diagnostics cannot be converted into it. Original public-private Diagnostic builder/callback entrypoints and their complete checker remain independently executable.
+
+Before the new Builder, Ledger, RefCell, Vec headers and inventory outputs are formed, an actual-layout initial bank is debited; each method admits its actual compact result/failure and added ledger-borrow controls before subsequent producers. Initial metadata acquisition itself is an explicit unreceived ABI on failure, including the bank's own primitive borrow/result path; no failed debit retroactively funds it. Successful metadata and initializer work remain spent. Original traversal/probe/clone work and parameter/requires/body/result/ensures order remain unchanged and are separately observed. No donor, retry, refund, cap change, or reservation estimate grants authority. The raw API retains no owner between calls, so its explicit borrowed ledger is not represented as a retained foreign-owner capability.
+
+The paid coverage caller uses the existing affine selected-child permit for actual raw failures. Its remaining inventory comparisons and supplemental/schema checker are still ordinary owning diagnostics, explicitly outside this tranche. Same-format publication uses the existing receipt/Diagnostic bridges; this boundary does not reinterpret a returned Diagnostic. New metadata frontiers can select an earlier refusal and increase common costs. Exact mixed-resource first-winner equality and application-fit gains are not claimed from source; focused owners must report the real tradeoff.
+
+## Raw inventory initial receiving (#781, source-only)
+
+The selected lexical/scalar coverage caller now admits the complete raw
+`Result<CleanupInventory, InventoryFailure>` boundary before forming its four
+arguments. A dedicated lexical expansion calls the existing authenticated
+`ReplayBudget::reserve_bytes` on the same retained physical reservation, then
+calls the existing checked/zeroing typed debit on that budget's remaining field.
+The debit is irreversible, not a temporary grant: no scope exit refunds it.
+There is no additional preflight function, callback or forwarding Result.
+The physical acquiring primitive retains its existing paid Diagnostic/inline
+initial-refusal contract; no failed raw self-payment is credited retroactively.
+
+After admission, the shipping constructor starts at the original builder body.
+Its former initial reserve and work self-payment are absent. The exact raw
+receiving inventory has44 fields: the prior42 minus the removed primitive
+physical Result pair and byte-argument pair, plus the program/function argument
+and parameter pairs and the debit remaining reborrow/parameter pair. Complete
+Kind/InventoryFailure layouts pay their actual maximum alternative; no arbitrary
+Diagnostic can enter those sealed constructors. Existing per-method acquisition
+boundaries, schema/supplemental diagnostics and other #781 residuals remain open.
+
+The complete60ad typed entry and initial layout remain independent cfg(test)
+controls, as do the original Diagnostic builder/callback and full coverage
+checker. New owners assert whole inventory/six-field mismatch parity, actual raw
+entry and retained ledger/remaining pointers, irreversible charge across result
+conversion/Drop, exact/one-short/zero physical frontiers, work zero/short/exact,
+floors and first refusal. They are authored only; no Rust execution, numerical
+benefit, application admission or #781 closure is claimed.

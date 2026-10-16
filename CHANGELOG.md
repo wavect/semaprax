@@ -11,6 +11,15 @@
 - Reconcile Main8a finished-path capacity, arbitrary final-suffix transfer and borrowed nominal context with lexical paid receiving; preserve original work-before-optional-payment priority and complete Main controls. Qualification and net application cost remain pending.
 
 - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.
+- Compare every private expression-path field explicitly in vector-reuse controls, retaining the production carrier's existing traits and all parity assertions.
+
+- Clone ownership-classifier leaf types without acquiring a recursive census cursor, preserving sticky authentication and the full paid recursive fallback.
+
+- Restore artifact-free release-blocking test jobs by removing failed-unit executable uploads and their unused collector.
+
+- Reuse an already-owned same-capacity path vector for a single successor, funding the complete receiving frame and preserving original fallback, canonical fields, logical work, materializations and future growth under unchanged limits.
+
+
 - Preserve the first HIR diagnostic before selecting lexical Copy-discard graph profiles, retaining current native-import and finite-composition guards after HIR authentication.
 
 - Retain Mainf82 complete hosted browser records and prior bridges independently; keep current55e runner pins until the reconciled source receives fresh actual captures.
@@ -7439,3 +7448,12 @@ are authored. Qualification is pending; Catalog corpus and limits are unchanged.
 - Source-only #781 path boundary/finalizer and borrowed-chain tranche: direct per-error-policy implementations retain complete prior algorithms and diagnostic order; closed semantic atoms use actual same-ledger child/node receiving. Earlier receiving refusal frontiers are explicit. Three focused owners remain unexecuted; raw inventory/schema/dynamic descendants keep #781 open.
 
 - Source-only #854 acceptance controls now retain independently built equivalent automata, real signature hit/miss and node counts, sticky/foreign/restored-owner checks and complete Drop; all focused outcomes remain unexecuted.
+
+- Reconcile Maina3 vector reuse through a paid lexical first-work frontier;
+  preserve independent Main vector controls, ownership-leaf cloning and
+  artifact-free CI. Source-only qualification and actual cost remain pending.
+- Acquire imported owned-function backing once at the first real owned payload,
+  preserving the original checked bound and paying both actual method borrows.
+- Add typed raw-inventory refusals at genuine primitive failure sites and transfer
+  only sealed budget failures through the same paid ledger. Preserve the complete
+  original callback/builder; schema and supplemental families remain open.

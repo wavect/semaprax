@@ -44,3 +44,17 @@ impl HirValidator<'_> {
             })
     }
 }
+
+// Complete immediate predecessor; only its method name/visibility changes.
+impl Payer {
+    #[rustfmt::skip]
+    pub(super) fn clone_type_before(&mut self, ty: &ResolvedType) -> Result<ResolvedType, Diagnostic> {
+        Self::authenticate()?;
+        if !self.clone_cursor_paid {
+            pay(Some(size_of::<[Option<(&ResolvedType, usize)>; 514]>()))?;
+            self.clone_cursor_paid = true;
+        }
+        pay(ty.clone_payload_bytes())?;
+        Ok(ty.clone())
+    }
+}

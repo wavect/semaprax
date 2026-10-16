@@ -67,7 +67,7 @@ pub(super) fn validate_paid(
     let expression_facts = expression_facts::paid_arena(function, budget)?;
     let selected = budget.selected();
     let (storage, leaves) = if selected {
-        inventory_coverage::validate_inventory_coverage(program, function, budget)?;
+        inventory_coverage::paid::validate_inventory_coverage(program, function, budget)?;
         status_construction::paid::validate_required_status_sources(program, function, budget)?;
         let storage = structural_maps::paid::slots(function, budget)?;
         let leaves = structural_maps::paid::leaves(function, budget)?;

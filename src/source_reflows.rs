@@ -231,3 +231,7 @@ mod semantic_receivers_main_f1;
 #[cfg(test)]
 #[path = "source_reflows/semantic_receivers_main8a.rs"]
 mod semantic_receivers_main8a;
+
+#[cfg(test)]
+#[path = "source_reflows/semantic_receivers_maina3.rs"]
+mod semantic_receivers_maina3;

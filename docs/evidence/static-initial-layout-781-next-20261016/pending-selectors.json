@@ -1,0 +1,12 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::inventory_coverage::typed_tests::complete_raw_inventory_keeps_all_fields_original_work_and_reports_real_receiving_tradeoffs"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::inventory_coverage::typed_tests::raw_primitive_failures_keep_six_fields_sticky_ledger_and_attached_inventory_non_authority"
+  }
+]

@@ -1,0 +1,127 @@
+module scheduler.tests;
+use type @id("scheduler.request.json.nested.decode-result") from scheduler.schema as Outcome;
+use type @id("scheduler.request") from scheduler.schema as ScheduleRequest;
+use type @id("scheduler.configuration") from scheduler.schema as Configuration;
+use type @id("scheduler.job") from scheduler.schema as Job;
+use function @id("scheduler.request.json.nested.decode") from scheduler.schema as decode;
+use function @id("scheduler.fixture.check") from scheduler.app as check_fixture;
+
+@id("scheduler.tests.main")
+fn main() -> i64
+{
+    0
+}
+
+@id("scheduler.tests.detached_configuration_and_jobs")
+fn test_detached_configuration_and_jobs() -> i64
+{
+    if check_fixture() == 729 { 0 } else { 1 }
+}
+
+@id("scheduler.tests.empty_jobs")
+fn test_empty_jobs() -> i64
+{
+    let raw = [123u8, 34u8, 99u8, 111u8, 110u8, 102u8, 105u8, 103u8, 117u8, 114u8, 97u8, 116u8, 105u8, 111u8, 110u8, 34u8, 58u8, 123u8, 34u8, 108u8, 97u8, 98u8, 101u8, 108u8, 34u8, 58u8, 34u8, 34u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 101u8, 114u8, 95u8, 99u8, 111u8, 117u8, 110u8, 116u8, 34u8, 58u8, 50u8, 125u8, 44u8, 34u8, 106u8, 111u8, 98u8, 115u8, 34u8, 58u8, 91u8, 93u8, 44u8, 34u8, 112u8, 114u8, 101u8, 101u8, 109u8, 112u8, 116u8, 105u8, 118u8, 101u8, 34u8, 58u8, 102u8, 97u8, 108u8, 115u8, 101u8, 125u8];
+    let input = bytes_copy(array_as_slice(raw));
+    let outcome = decode(bytes_as_slice(input), 76usize);
+    match own outcome { Outcome::Error { code: _code, offset: _offset, field: _field } => 1, Outcome::Ready { value: request } => match own request { ScheduleRequest { configuration: Configuration { label: _label, server_count: _server_count }, jobs, preemptive: _preemptive } => if vec_len<Job>(jobs) == 0usize { 0 } else { 1 }, }, }
+}
+
+@id("scheduler.tests.exact_string_and_array")
+fn test_exact_string_and_array() -> i64
+{
+    let raw = [123u8, 34u8, 99u8, 111u8, 110u8, 102u8, 105u8, 103u8, 117u8, 114u8, 97u8, 116u8, 105u8, 111u8, 110u8, 34u8, 58u8, 123u8, 34u8, 108u8, 97u8, 98u8, 101u8, 108u8, 34u8, 58u8, 34u8, 48u8, 49u8, 50u8, 51u8, 52u8, 53u8, 54u8, 55u8, 56u8, 57u8, 65u8, 66u8, 67u8, 68u8, 69u8, 70u8, 34u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 101u8, 114u8, 95u8, 99u8, 111u8, 117u8, 110u8, 116u8, 34u8, 58u8, 50u8, 125u8, 44u8, 34u8, 106u8, 111u8, 98u8, 115u8, 34u8, 58u8, 91u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 49u8, 125u8, 44u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 49u8, 125u8, 44u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 49u8, 125u8, 44u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 49u8, 125u8, 44u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 49u8, 125u8, 44u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 49u8, 125u8, 44u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 49u8, 125u8, 44u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 49u8, 125u8, 93u8, 44u8, 34u8, 112u8, 114u8, 101u8, 101u8, 109u8, 112u8, 116u8, 105u8, 118u8, 101u8, 34u8, 58u8, 102u8, 97u8, 108u8, 115u8, 101u8, 125u8];
+    let input = bytes_copy(array_as_slice(raw));
+    let outcome = decode(bytes_as_slice(input), 371usize);
+    match own outcome { Outcome::Error { code: _code, offset: _offset, field: _field } => 1, Outcome::Ready { value: request } => match own request { ScheduleRequest { configuration: Configuration { label: _label, server_count: _server_count }, jobs, preemptive: _preemptive } => if vec_len<Job>(jobs) == 8usize { 0 } else { 1 }, }, }
+}
+
+@id("scheduler.tests.string_over")
+fn test_string_over() -> i64
+{
+    let raw = [123u8, 34u8, 99u8, 111u8, 110u8, 102u8, 105u8, 103u8, 117u8, 114u8, 97u8, 116u8, 105u8, 111u8, 110u8, 34u8, 58u8, 123u8, 34u8, 108u8, 97u8, 98u8, 101u8, 108u8, 34u8, 58u8, 34u8, 48u8, 49u8, 50u8, 51u8, 52u8, 53u8, 54u8, 55u8, 56u8, 57u8, 65u8, 66u8, 67u8, 68u8, 69u8, 70u8, 71u8, 34u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 101u8, 114u8, 95u8, 99u8, 111u8, 117u8, 110u8, 116u8, 34u8, 58u8, 50u8, 125u8, 44u8, 34u8, 106u8, 111u8, 98u8, 115u8, 34u8, 58u8, 91u8, 93u8, 44u8, 34u8, 112u8, 114u8, 101u8, 101u8, 109u8, 112u8, 116u8, 105u8, 118u8, 101u8, 34u8, 58u8, 102u8, 97u8, 108u8, 115u8, 101u8, 125u8];
+    let input = bytes_copy(array_as_slice(raw));
+    let outcome = decode(bytes_as_slice(input), 93usize);
+    match own outcome { Outcome::Ready { value: _request } => 1, Outcome::Error { code, offset, field } => if code == 6 && field == 2 && offset == 26usize { 0 } else { 1 }, }
+}
+
+@id("scheduler.tests.array_over")
+fn test_array_over() -> i64
+{
+    let raw = [123u8, 34u8, 99u8, 111u8, 110u8, 102u8, 105u8, 103u8, 117u8, 114u8, 97u8, 116u8, 105u8, 111u8, 110u8, 34u8, 58u8, 123u8, 34u8, 108u8, 97u8, 98u8, 101u8, 108u8, 34u8, 58u8, 34u8, 113u8, 117u8, 101u8, 117u8, 101u8, 34u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 101u8, 114u8, 95u8, 99u8, 111u8, 117u8, 110u8, 116u8, 34u8, 58u8, 50u8, 125u8, 44u8, 34u8, 106u8, 111u8, 98u8, 115u8, 34u8, 58u8, 91u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 49u8, 125u8, 44u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 49u8, 125u8, 44u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 49u8, 125u8, 44u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 49u8, 125u8, 44u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 49u8, 125u8, 44u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 49u8, 125u8, 44u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 49u8, 125u8, 44u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 49u8, 125u8, 44u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 49u8, 125u8, 93u8, 44u8, 34u8, 112u8, 114u8, 101u8, 101u8, 109u8, 112u8, 116u8, 105u8, 118u8, 101u8, 34u8, 58u8, 102u8, 97u8, 108u8, 115u8, 101u8, 125u8];
+    let input = bytes_copy(array_as_slice(raw));
+    let outcome = decode(bytes_as_slice(input), 395usize);
+    match own outcome { Outcome::Ready { value: _request } => 1, Outcome::Error { code, offset, field } => if code == 8 && field == 4 && offset == 340usize { 0 } else { 1 }, }
+}
+
+@id("scheduler.tests.duplicate_nested_label")
+fn test_duplicate_nested_label() -> i64
+{
+    let raw = [123u8, 34u8, 99u8, 111u8, 110u8, 102u8, 105u8, 103u8, 117u8, 114u8, 97u8, 116u8, 105u8, 111u8, 110u8, 34u8, 58u8, 123u8, 34u8, 108u8, 97u8, 98u8, 101u8, 108u8, 34u8, 58u8, 34u8, 97u8, 34u8, 44u8, 34u8, 108u8, 97u8, 98u8, 101u8, 108u8, 34u8, 58u8, 34u8, 98u8, 34u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 101u8, 114u8, 95u8, 99u8, 111u8, 117u8, 110u8, 116u8, 34u8, 58u8, 50u8, 125u8, 44u8, 34u8, 106u8, 111u8, 98u8, 115u8, 34u8, 58u8, 91u8, 93u8, 44u8, 34u8, 112u8, 114u8, 101u8, 101u8, 109u8, 112u8, 116u8, 105u8, 118u8, 101u8, 34u8, 58u8, 102u8, 97u8, 108u8, 115u8, 101u8, 125u8];
+    let input = bytes_copy(array_as_slice(raw));
+    let outcome = decode(bytes_as_slice(input), 89usize);
+    match own outcome { Outcome::Ready { value: _request } => 1, Outcome::Error { code, offset, field } => if code == 2 && field == 2 && offset == 30usize { 0 } else { 1 }, }
+}
+
+@id("scheduler.tests.missing_server_count")
+fn test_missing_server_count() -> i64
+{
+    let raw = [123u8, 34u8, 99u8, 111u8, 110u8, 102u8, 105u8, 103u8, 117u8, 114u8, 97u8, 116u8, 105u8, 111u8, 110u8, 34u8, 58u8, 123u8, 34u8, 108u8, 97u8, 98u8, 101u8, 108u8, 34u8, 58u8, 34u8, 97u8, 34u8, 125u8, 44u8, 34u8, 106u8, 111u8, 98u8, 115u8, 34u8, 58u8, 91u8, 93u8, 44u8, 34u8, 112u8, 114u8, 101u8, 101u8, 109u8, 112u8, 116u8, 105u8, 118u8, 101u8, 34u8, 58u8, 102u8, 97u8, 108u8, 115u8, 101u8, 125u8];
+    let input = bytes_copy(array_as_slice(raw));
+    let outcome = decode(bytes_as_slice(input), 60usize);
+    match own outcome { Outcome::Ready { value: _request } => 1, Outcome::Error { code, offset, field } => if code == 3 && field == 3 && offset == 60usize { 0 } else { 1 }, }
+}
+
+@id("scheduler.tests.wrong_bool_kind")
+fn test_wrong_bool_kind() -> i64
+{
+    let raw = [123u8, 34u8, 99u8, 111u8, 110u8, 102u8, 105u8, 103u8, 117u8, 114u8, 97u8, 116u8, 105u8, 111u8, 110u8, 34u8, 58u8, 123u8, 34u8, 108u8, 97u8, 98u8, 101u8, 108u8, 34u8, 58u8, 34u8, 113u8, 117u8, 101u8, 117u8, 101u8, 34u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 101u8, 114u8, 95u8, 99u8, 111u8, 117u8, 110u8, 116u8, 34u8, 58u8, 50u8, 125u8, 44u8, 34u8, 106u8, 111u8, 98u8, 115u8, 34u8, 58u8, 91u8, 93u8, 44u8, 34u8, 112u8, 114u8, 101u8, 101u8, 109u8, 112u8, 116u8, 105u8, 118u8, 101u8, 34u8, 58u8, 49u8, 125u8];
+    let input = bytes_copy(array_as_slice(raw));
+    let outcome = decode(bytes_as_slice(input), 77usize);
+    match own outcome { Outcome::Ready { value: _request } => 1, Outcome::Error { code, offset, field } => if code == 5 && field == 8 && offset == 75usize { 0 } else { 1 }, }
+}
+
+@id("scheduler.tests.service_range")
+fn test_service_range() -> i64
+{
+    let raw = [123u8, 34u8, 99u8, 111u8, 110u8, 102u8, 105u8, 103u8, 117u8, 114u8, 97u8, 116u8, 105u8, 111u8, 110u8, 34u8, 58u8, 123u8, 34u8, 108u8, 97u8, 98u8, 101u8, 108u8, 34u8, 58u8, 34u8, 113u8, 117u8, 101u8, 117u8, 101u8, 34u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 101u8, 114u8, 95u8, 99u8, 111u8, 117u8, 110u8, 116u8, 34u8, 58u8, 50u8, 125u8, 44u8, 34u8, 106u8, 111u8, 98u8, 115u8, 34u8, 58u8, 91u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 50u8, 53u8, 54u8, 125u8, 93u8, 44u8, 34u8, 112u8, 114u8, 101u8, 101u8, 109u8, 112u8, 116u8, 105u8, 118u8, 101u8, 34u8, 58u8, 102u8, 97u8, 108u8, 115u8, 101u8, 125u8];
+    let input = bytes_copy(array_as_slice(raw));
+    let outcome = decode(bytes_as_slice(input), 117usize);
+    match own outcome { Outcome::Ready { value: _request } => 1, Outcome::Error { code, offset, field } => if code == 6 && field == 7 && offset == 92usize { 0 } else { 1 }, }
+}
+
+@id("scheduler.tests.input_one_short")
+fn test_input_one_short() -> i64
+{
+    let raw = [123u8, 34u8, 99u8, 111u8, 110u8, 102u8, 105u8, 103u8, 117u8, 114u8, 97u8, 116u8, 105u8, 111u8, 110u8, 34u8, 58u8, 123u8, 34u8, 108u8, 97u8, 98u8, 101u8, 108u8, 34u8, 58u8, 34u8, 113u8, 117u8, 101u8, 117u8, 101u8, 34u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 101u8, 114u8, 95u8, 99u8, 111u8, 117u8, 110u8, 116u8, 34u8, 58u8, 50u8, 125u8, 44u8, 34u8, 106u8, 111u8, 98u8, 115u8, 34u8, 58u8, 91u8, 123u8, 34u8, 105u8, 100u8, 34u8, 58u8, 34u8, 74u8, 34u8, 44u8, 34u8, 97u8, 114u8, 114u8, 105u8, 118u8, 97u8, 108u8, 34u8, 58u8, 48u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 34u8, 58u8, 49u8, 125u8, 93u8, 44u8, 34u8, 112u8, 114u8, 101u8, 101u8, 109u8, 112u8, 116u8, 105u8, 118u8, 101u8, 34u8, 58u8, 102u8, 97u8, 108u8, 115u8, 101u8, 125u8];
+    let input = bytes_copy(array_as_slice(raw));
+    let outcome = decode(bytes_as_slice(input), 114usize);
+    match own outcome { Outcome::Ready { value: _request } => 1, Outcome::Error { code, offset, field } => if code == 7 && field == 0 && offset == 0usize { 0 } else { 1 }, }
+}
+
+@id("scheduler.tests.unknown_root_key")
+fn test_unknown_root_key() -> i64
+{
+    let raw = [123u8, 34u8, 99u8, 111u8, 110u8, 102u8, 105u8, 103u8, 117u8, 114u8, 97u8, 116u8, 105u8, 111u8, 110u8, 34u8, 58u8, 123u8, 34u8, 108u8, 97u8, 98u8, 101u8, 108u8, 34u8, 58u8, 34u8, 113u8, 117u8, 101u8, 117u8, 101u8, 34u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 101u8, 114u8, 95u8, 99u8, 111u8, 117u8, 110u8, 116u8, 34u8, 58u8, 50u8, 125u8, 44u8, 34u8, 106u8, 111u8, 98u8, 115u8, 34u8, 58u8, 91u8, 93u8, 44u8, 34u8, 112u8, 114u8, 101u8, 101u8, 109u8, 112u8, 116u8, 105u8, 118u8, 101u8, 34u8, 58u8, 102u8, 97u8, 108u8, 115u8, 101u8, 44u8, 34u8, 110u8, 111u8, 105u8, 115u8, 101u8, 34u8, 58u8, 48u8, 125u8];
+    let input = bytes_copy(array_as_slice(raw));
+    let outcome = decode(bytes_as_slice(input), 91usize);
+    match own outcome { Outcome::Ready { value: _request } => 1, Outcome::Error { code, offset, field } => if code == 4 && field == 0 && offset == 81usize { 0 } else { 1 }, }
+}
+
+@id("scheduler.tests.duplicate_root_jobs")
+fn test_duplicate_root_jobs() -> i64
+{
+    let raw = [123u8, 34u8, 99u8, 111u8, 110u8, 102u8, 105u8, 103u8, 117u8, 114u8, 97u8, 116u8, 105u8, 111u8, 110u8, 34u8, 58u8, 123u8, 34u8, 108u8, 97u8, 98u8, 101u8, 108u8, 34u8, 58u8, 34u8, 113u8, 117u8, 101u8, 117u8, 101u8, 34u8, 44u8, 34u8, 115u8, 101u8, 114u8, 118u8, 101u8, 114u8, 95u8, 99u8, 111u8, 117u8, 110u8, 116u8, 34u8, 58u8, 50u8, 125u8, 44u8, 34u8, 106u8, 111u8, 98u8, 115u8, 34u8, 58u8, 91u8, 93u8, 44u8, 34u8, 112u8, 114u8, 101u8, 101u8, 109u8, 112u8, 116u8, 105u8, 118u8, 101u8, 34u8, 58u8, 102u8, 97u8, 108u8, 115u8, 101u8, 44u8, 34u8, 106u8, 111u8, 98u8, 115u8, 34u8, 58u8, 91u8, 93u8, 125u8];
+    let input = bytes_copy(array_as_slice(raw));
+    let outcome = decode(bytes_as_slice(input), 91usize);
+    match own outcome { Outcome::Ready { value: _request } => 1, Outcome::Error { code, offset, field } => if code == 2 && field == 4 && offset == 81usize { 0 } else { 1 }, }
+}
+
+@id("scheduler.tests.malformed")
+fn test_malformed() -> i64
+{
+    let raw = [123u8];
+    let input = bytes_copy(array_as_slice(raw));
+    let outcome = decode(bytes_as_slice(input), 1usize);
+    match own outcome { Outcome::Ready { value: _request } => 1, Outcome::Error { code, offset, field } => if code == 1 && field == 0 { 0 } else { 1 }, }
+}

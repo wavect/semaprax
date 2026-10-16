@@ -1,0 +1,193 @@
+{
+  "base": "755c082541ffc8b724c7b932428b6bb80153ee6b",
+  "rows": [
+    {
+      "source": "CHANGELOG.md",
+      "before_archive": "before/CHANGELOG.md",
+      "before_sha256": "d0b52f22b23a3da4a7a509450b79a14ce2a0ecc1962bc217cdf7c8d79ec9ef4e",
+      "after_sha256": "99135a92c1908d8eaef553c690b9db2e1dd5081ac903f57fb9a58eef9fadf4a9",
+      "offset": 544260,
+      "before": "",
+      "after": "\n- Add a sealed selected raw-inventory constructor using the invocation's existing physical/work fields, with explicit receiving costs and independent original builder/callback controls. Source-only focused owners cover full inventories, work order, limits, hostile provenance and Drop; runtime benefit and broader #781 closure remain unqualified.\n"
+    },
+    {
+      "source": "docs/ARCHITECTURE.md",
+      "before_archive": "before/docs/ARCHITECTURE.md",
+      "before_sha256": "7498ee2eacdd6d0375570e7ad8343973165fed66160c05b089585b7bfef8e4c6",
+      "after_sha256": "81a97ac040bafb45180e4d7b41bf6b7bcdef82e6ede5ec81a83caa5e44019ad8",
+      "offset": 366906,
+      "before": "",
+      "after": "\nThe selected raw-inventory twin in `cleanup/inventory_builder/typed.rs` owns its synchronous borrowed physical/work ledger and opaque primitive failures. Its `failure`, `receiving`, `queries`, `selected`, and `traversal` children preserve the original selected shape and traversal boundaries; `replay/inventory_coverage/paid.rs` transfers only those actual failures into the existing selected-child receipt. The original Diagnostic builder/callback and coverage checker remain independent; supplemental/schema diagnostics retain their ordinary publication boundary.\n"
+    },
+    {
+      "source": "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "before_archive": "before/docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "before_sha256": "1e9dce9960823b2a53adbb0f0aa7817f8d628dfeb2ebda7c0aa0f597f9d06a04",
+      "after_sha256": "31bd6a223aa56bf2eb89384149c6a16814ba3803519a87d579052ebf55e6ee5e",
+      "offset": 49660,
+      "before": "",
+      "after": "\n### Synchronous typed raw-inventory boundary\n\nThe selected flat-record inventory twin accepts the existing physical reservation and remaining-work fields borrowed synchronously from the caller's actual ReplayBudget. It creates no allowance, retained payer, callback authority, or source verdict. InventoryFailure is opaque: work originates only at actual checked subtraction, physical/receiving failures only at actual reservations, and finite classifier failures only at their closed primitive branches. Arbitrary Diagnostics cannot be converted into it. Original public-private Diagnostic builder/callback entrypoints and their complete checker remain independently executable.\n\nBefore the new Builder, Ledger, RefCell, Vec headers and inventory outputs are formed, an actual-layout initial bank is debited; each method admits its actual compact result/failure and added ledger-borrow controls before subsequent producers. Initial metadata acquisition itself is an explicit unreceived ABI on failure, including the bank's own primitive borrow/result path; no failed debit retroactively funds it. Successful metadata and initializer work remain spent. Original traversal/probe/clone work and parameter/requires/body/result/ensures order remain unchanged and are separately observed. No donor, retry, refund, cap change, or reservation estimate grants authority. The raw API retains no owner between calls, so its explicit borrowed ledger is not represented as a retained foreign-owner capability.\n\nThe paid coverage caller uses the existing affine selected-child permit for actual raw failures. Its remaining inventory comparisons and supplemental/schema checker are still ordinary owning diagnostics, explicitly outside this tranche. Same-format publication uses the existing receipt/Diagnostic bridges; this boundary does not reinterpret a returned Diagnostic. New metadata frontiers can select an earlier refusal and increase common costs. Exact mixed-resource first-winner equality and application-fit gains are not claimed from source; focused owners must report the real tradeoff.\n"
+    },
+    {
+      "source": "src/cleanup.rs",
+      "before_archive": "before/src/cleanup.rs",
+      "before_sha256": "7481c128ef581ef9f19fea61cf26faec4ded5461ea01c63da0c4b346f218719e",
+      "after_sha256": "d545c00a4339117833f6bfabc1d370df5e61245b8a016aeeee0a6db7f10ae7ea",
+      "offset": 27877,
+      "before": "",
+      "after": "\npub(crate) use inventory_builder::typed::{\n    build as build_typed_flat_record_inventory, InventoryFailure,\n};\n\n#[cfg(test)]\npub(crate) use inventory_builder::typed::{\n    metadata_work as typed_inventory_metadata_work,\n    reset_metadata_work as reset_typed_inventory_metadata_work,\n};\n\n#[cfg(test)]\npub(crate) use inventory_builder::typed::{\n    begin_logical_trace as begin_typed_inventory_trace,\n    take_logical_trace as take_typed_inventory_trace,\n};\n"
+    },
+    {
+      "source": "src/cleanup/inventory_builder.rs",
+      "before_archive": "before/src/cleanup/inventory_builder.rs",
+      "before_sha256": "488fe089e7ecaed678bb421ed0d8793302a930bc6c1c6674df37c54ed742f6c5",
+      "after_sha256": "74761ad25d83020ed34e245643d95a62fe29bdaa6f144d71720f2b777ba6881f",
+      "offset": 48427,
+      "before": "",
+      "after": "\npub(crate) mod typed;\n"
+    },
+    {
+      "source": "src/cleanup_plan.rs",
+      "before_archive": "before/src/cleanup_plan.rs",
+      "before_sha256": "58f4ca8f4b449b2b63f19c0111af9f4dae6525f382f99130b189a8bf1e1457fb",
+      "after_sha256": "0e19e80ed9cc80eafe015ff4e11688d6aa24b80755e6afbe1ed727f5d2a63621",
+      "offset": 1679,
+      "before": "SelectedReplayPreparation,\n    SelectedReplayRefusal, SelectedReplayRefused, SelectedReplayReport, SelectedReplayReportForm,\n    SelectedReplayUnpaid,\n};\n#[cfg(test)]\npub(crate) use replay::{\n    ReplayBorrowedIdentity, ReplayBorrowedLease, ReplayPhysicalRefusal",
+      "after": "ReplayPhysicalRefusal, SelectedReplayPreparation,\n    SelectedReplayRefusal, SelectedReplayRefused, SelectedReplayReport, SelectedReplayReportForm,\n    SelectedReplayUnpaid,\n};\n#[cfg(test)]\npub(crate) use replay::{\n    ReplayBorrowedIdentity, ReplayBorrowedLease"
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "before_archive": "before/src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "before_sha256": "b14d3f652efc7159218da07b94e215dd62fe9d698306a4c7196c0739b92c1039",
+      "after_sha256": "1fc1de8cf8fca981aee22ff979075e7aba03a05debaaebdd140562af1f31be25",
+      "offset": 765,
+      "before": "LexicalDepth,\n    RenewalCensus,\n    HelperCensus,\n    CollectionProbe,\n    RenewalWork,\n    LostPhysical,\n}\nimpl Refusal {\n    pub(crate) fn detail(self) -> &'static str {\n        match self {\n            Self::Profile(reason) => reason.detail(),\n            Self::ReferenceCoverage(reason) => reason.detail(),\n            Self::Structural(reason) => reason.detail(),\n            Self::Status(reason) => reason.detail(),\n            Self::Scalar(reason) => reason.detail(),\n            Self::Certificate(reason) => reason.detail(),\n            Self::Boundary(reason) => reason.detail(),\n            Self::TypeDrop(reason) => reason.detail(),\n            Self::PathBoundary(reason) => reason.detail(),\n            Self::LexicalDepth => \"lexical control scan exceeds admitted expression depth\",\n            Self::RenewalCensus => \"selected primitive renewal census refused\",\n            Self::HelperCensus => {\n                \"byte helper renewal census exceeds admitted scratch, work or depth\"\n            }\n            Self::CollectionProbe => \"selected collection probe prepayment refused\",\n            Self::RenewalWork => \"selected renewal work exhausted\",\n            Self::LostPhysical => \"selected replay lost physical reservation\",\n        }\n    }\n    pub(crate) fn prefixed(self) -> bool {\n        match self {\n            Self::Profile(reason) => reason.prefixed(),\n            Self::TypeDrop(_) => false",
+      "after": "Inventory(crate::cleanup::InventoryFailure),\n    LexicalDepth,\n    RenewalCensus,\n    HelperCensus,\n    CollectionProbe,\n    RenewalWork,\n    LostPhysical,\n}\nimpl Refusal {\n    pub(crate) fn detail(self) -> &'static str {\n        match self {\n            Self::Profile(reason) => reason.detail(),\n            Self::ReferenceCoverage(reason) => reason.detail(),\n            Self::Structural(reason) => reason.detail(),\n            Self::Status(reason) => reason.detail(),\n            Self::Scalar(reason) => reason.detail(),\n            Self::Certificate(reason) => reason.detail(),\n            Self::Boundary(reason) => reason.detail(),\n            Self::TypeDrop(reason) => reason.detail(),\n            Self::PathBoundary(reason) => reason.detail(),\n            Self::Inventory(reason)=>reason.detail(),\n            Self::LexicalDepth => \"lexical control scan exceeds admitted expression depth\",\n            Self::RenewalCensus => \"selected primitive renewal census refused\",\n            Self::HelperCensus => {\n                \"byte helper renewal census exceeds admitted scratch, work or depth\"\n            }\n            Self::CollectionProbe => \"selected collection probe prepayment refused\",\n            Self::RenewalWork => \"selected renewal work exhausted\",\n            Self::LostPhysical => \"selected replay lost physical reservation\",\n        }\n    }\n    pub(crate) fn prefixed(self) -> bool {\n        match self {\n            Self::Profile(reason) => reason.prefixed(),\n            Self::TypeDrop(_) => false,\n            Self::Inventory(reason)=>reason.prefixed()"
+    },
+    {
+      "source": "src/cleanup_plan/replay.rs",
+      "before_archive": "before/src/cleanup_plan/replay.rs",
+      "before_sha256": "519f8a66d1023314c982d05c243f660e9c305ecbd4858598aadaab93f7264e23",
+      "after_sha256": "f5b8520156847e811117ba33a8baf95e93372f20907f5d753bad88b493b557e0",
+      "offset": 1955,
+      "before": "#[cfg(test)]\n",
+      "after": ""
+    },
+    {
+      "source": "src/cleanup_plan/replay/inventory_coverage.rs",
+      "before_archive": "before/src/cleanup_plan/replay/inventory_coverage.rs",
+      "before_sha256": "d1b1e3a19c9fc7cdd50ded3b8bb60eb77e45163004ab7e58ff679e4edc95f470",
+      "after_sha256": "696345a7159a7f7589cbd87e9fbc7f1f24f894351467161982b93bef81a1a25c",
+      "offset": 17066,
+      "before": "",
+      "after": "\npub(in crate::cleanup_plan::replay) mod paid;\n\n#[cfg(test)]\nmod typed_tests;\n"
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_replay.rs",
+      "before_archive": "before/src/cleanup_plan/replay/lexical_replay.rs",
+      "before_sha256": "f304f463d47fbc3e04782ef539d49ddb91c8d5010bf2df8beed0406aa8b3f470",
+      "after_sha256": "52a1b94530881bd2f59d873a71663fcd1656a9a2401440bc4f8edb69839fbd7f",
+      "offset": 2649,
+      "before": "",
+      "after": "paid::"
+    },
+    {
+      "source": "src/cleanup_plan/replay/scalar_replay.rs",
+      "before_archive": "before/src/cleanup_plan/replay/scalar_replay.rs",
+      "before_sha256": "9cfd09c6ef5db2be115d362c29afac7e499be53eab994337c066d141856c8379",
+      "after_sha256": "8fafbce9e4612ace44c9956530f11cbf639e0b98ebd044fd469e062c6e6e1108",
+      "offset": 3787,
+      "before": "",
+      "after": "paid::"
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context/child.rs",
+      "before_archive": "before/src/cleanup_plan/replay/selected_context/child.rs",
+      "before_sha256": "cc426939183121ebd6d23aff7c4752119c2f4bf2684f1e2e90a621df4e1843ac",
+      "after_sha256": "91a37017cbcb8afa0f082bd72f09915e245d80919def8e192b69464b38d41059",
+      "offset": 1385,
+      "before": "",
+      "after": "in super::"
+    }
+  ],
+  "new_sources": [
+    {
+      "source": "src/cleanup/inventory_builder/typed.rs",
+      "sha256": "82355483cb3bd454eb1f79ed7654d3e42a18d67da184efb8e12a7a538354632d",
+      "lines": 384
+    },
+    {
+      "source": "src/cleanup/inventory_builder/typed/failure.rs",
+      "sha256": "63a5367637e17674e28b8fcf77fd98db3719b3f468c8d3d0c33942c2d5c4c208",
+      "lines": 104
+    },
+    {
+      "source": "src/cleanup/inventory_builder/typed/queries.rs",
+      "sha256": "48be9402a5d7792089e53b19eaaeeb93a7e2913aca789fccf925d780049815dd",
+      "lines": 223
+    },
+    {
+      "source": "src/cleanup/inventory_builder/typed/receiving.rs",
+      "sha256": "f9f1cfd3aeeb6cec80d89efac30cfb4076b23f85ff00a89405f7373612bfe621",
+      "lines": 165
+    },
+    {
+      "source": "src/cleanup/inventory_builder/typed/selected.rs",
+      "sha256": "4f8ad91b1d31c8b38e67692e7c6284f4b02c02d9f1ce6d12d37f2d6e7865f421",
+      "lines": 170
+    },
+    {
+      "source": "src/cleanup/inventory_builder/typed/traversal.rs",
+      "sha256": "30a44a440f2799e1a48baddd337dd95d7191d303549f838586df923e8c5c0da0",
+      "lines": 393
+    },
+    {
+      "source": "src/cleanup_plan/replay/inventory_coverage/paid.rs",
+      "sha256": "b9dd9f7e6367d59ced142de04a2b7064eb5133d94d889850779dc93aab23c446",
+      "lines": 172
+    },
+    {
+      "source": "src/cleanup_plan/replay/inventory_coverage/typed_tests.rs",
+      "sha256": "94d2ae0e11a60cf31b7bfc99b3d47c85c15a600e5c11401b325dbf736b594f54",
+      "lines": 278
+    }
+  ],
+  "unchanged_original_dependency_namespace": [
+    {
+      "source": "src/cleanup/generic_record.rs",
+      "sha256": "a46d2b2b6b83918f72eab634ced94c6982b4e25f92b3b585afd4b40f84328c1a"
+    },
+    {
+      "source": "src/cleanup/inventory_builder/selected.rs",
+      "sha256": "6b124bec80c967ce3b90abb0131a51d5e4cd63dbee2d8c44db2a32dc9b583f28"
+    },
+    {
+      "source": "src/cleanup/inventory_builder/selected/flat_record.rs",
+      "sha256": "832887e5c6ee5d5f6230baba723b4392f6c5d99a728acaf17e347d016366c4e3"
+    },
+    {
+      "source": "src/cleanup/inventory_builder/selected/flat_record/tests.rs",
+      "sha256": "4395e32c877318a08503488584d214c2a8234d40b352d03a9acbc0e95ab30498"
+    },
+    {
+      "source": "src/cleanup/inventory_builder/selected/vector.rs",
+      "sha256": "d99a56bf53d9f2c20432de957d92c87c627786e71d523a720ed605089c8cd76f"
+    },
+    {
+      "source": "src/cleanup/inventory_builder/selected_inline.rs",
+      "sha256": "893b87ae8ec16924a3a6e7980d4fea6480bf5926e5ffb9003d35938ea973a3c3"
+    },
+    {
+      "source": "src/cleanup/inventory_builder/tests.rs",
+      "sha256": "16c713ce6dcf0d43f7221cb133de50fd51b8468971a2062f050ce85a59de3af4"
+    },
+    {
+      "source": "src/cleanup/iterator.rs",
+      "sha256": "a7df6c5e71379ed1da347b943d19b4dca35af17de8b659acbd61cf6311038ede"
+    },
+    {
+      "source": "src/cleanup/replay_context.rs",
+      "sha256": "24adfc4d8e2e0f7ecbe33d4816c19d038ba0ff8a80a1d3bcf1deb0e9417711cf"
+    }
+  ]
+}

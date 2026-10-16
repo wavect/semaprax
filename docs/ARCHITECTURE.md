@@ -5060,6 +5060,12 @@ available to ordinary replay and independent test drivers. Pure type-key math
 is lexical in the paid record receiver, with no extra forwarding Result or
 serialized-key authority. These owners do not cover inventory construction,
 lexical certificates, schema adapters or path/factored child diagnostics.
+The independent Maina3 `sequence_vector/main_a3` scope retains the complete
+incoming vector helper, producer, predecessor and five original controls. Its
+original borrowed Candidate and completed-minimum APIs are historical controls;
+shipping sequence selection is lexical and preserves the first original work
+frontier. `path_array_main8a` remains the independent historical finished-path
+receiver; shipping completed capacity remains at its first output frontier.
 
 The private #854 canonical interning component keeps same-comparison weighted states and signatures in prepaid ordered AVL arenas. Its borrowed query resolves every child identity before lookup, and only a missing signature receives an owning label/ID vector. Separate immediate-parent BTree receivers and complete source views remain test-only; scratch capacity, new owner controls and growth overlap are admitted on the original budget before acquisition. Qualification and application effects remain pending.
 
@@ -5128,3 +5134,14 @@ nominal context pays its literal receiving layout in `source_schema::select`
 before forming its three borrowed fields; Main8a's complete `Types::new`
 constructor and original controls remain independently compiled. Authenticated
 lookup keeps the local emitted view and conservative profile fallback.
+
+The reconciled Maina3 vector route uses a lexical first-item view in the owning
+sequence function. Original first work precedes optional selection; a false
+selection consumes that work once and continues the original output growth.
+One persistent empty observations scratch transfers each active slot through the
+unchanged owned extension, including general DAG suffixes. Counted swap argument
+receiving is prepaid cumulatively; no whole-path or per-slot default replacement
+is constructed. The complete
+Main vector helper and its original tests are independent historical controls.
+Eligibility and new receiving costs are explicit; executable qualification and
+unfavorable/common-case cost observations remain pending.

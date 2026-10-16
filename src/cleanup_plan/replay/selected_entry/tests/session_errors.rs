@@ -457,3 +457,7 @@ fn actual_raw_child_refusal_keeps_one_prepaid_session_report_and_ledger_through_
 #[cfg(test)]
 #[path = "session_errors/source_main8a.rs"]
 mod source_main8a;
+
+#[cfg(test)]
+#[path = "session_errors/source_maina3.rs"]
+mod source_maina3;

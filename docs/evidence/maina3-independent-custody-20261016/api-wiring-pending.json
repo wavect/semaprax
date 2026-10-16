@@ -1,0 +1,21 @@
+{
+  "status": "FIXED_APIS_WIRED_FINAL_INPUT_DESCRIPTORS_AWAIT_CODEQUIET",
+  "APIs": [
+    "maina3_previous",
+    "maina3_input",
+    "maina3_847_input",
+    "maina3_metadata"
+  ],
+  "protected_previous": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+  "preserved_exact8a_readers": true,
+  "new_readers": [
+    "src/source_reflows/semantic_receivers_maina3.rs",
+    "src/cleanup_plan/replay/compact_stage/source_custody_maina3.rs",
+    "src/cleanup_plan/replay/expression_facts/arena/prefix/source_maina3.rs",
+    "src/hir/nominal_payload/legacy/source_tests_maina3.rs",
+    "src/cleanup_plan/replay/selected_entry/tests/session_errors/source_maina3.rs"
+  ],
+  "new_custody_child": "src/source_reflows_merge/maina3_custody.rs",
+  "no_future_hashes_guessed": true,
+  "no_Cargo_or_index": true
+}

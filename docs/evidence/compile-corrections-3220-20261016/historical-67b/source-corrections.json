@@ -1,0 +1,54 @@
+{
+  "base": "3220d0bf17ebf41f73abdbad1b5f5c66e5bbfbf8",
+  "scope": "FOUR SOURCE COMPILE CORRECTIONS ONLY; no Rust execution by this receipt",
+  "rows": [
+    {
+      "source": "src/cleanup/inventory_builder/typed/before_initial.rs",
+      "before_sha256": "575d4af74507702f8f352aeb26bb0852f1936a310275f0703b7faea55c35c916",
+      "current_sha256": "4ca7f78d1d9819591ee5a3259675f2633a4b840e248e6bffc29270618c2870c4",
+      "archive": "docs/evidence/compile-corrections-3220-20261016/before/src/cleanup/inventory_builder/typed/before_initial.rs.txt",
+      "edits": [
+        {
+          "new": "use super::{debit, reserve, InventoryBuilder, InventoryFailure, Kind, Ledger, Reason};\n",
+          "old": "use super::{debit, InventoryBuilder, InventoryFailure, Kind, Reason};\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup/inventory_builder/typed/traversal.rs",
+      "before_sha256": "30a44a440f2799e1a48baddd337dd95d7191d303549f838586df923e8c5c0da0",
+      "current_sha256": "730e64d95a9ece5f3ab120bce2631874c45629defe6f51b8aa5b2cce1a397794",
+      "archive": "docs/evidence/compile-corrections-3220-20261016/before/src/cleanup/inventory_builder/typed/traversal.rs.txt",
+      "edits": [
+        {
+          "new": "    pub(super) fn collect_expression(\n        &mut self,\n        expression: &ResolvedExpr,\n    ) -> Result<(), InventoryFailure> {\n",
+          "old": "    fn collect_expression(&mut self, expression: &ResolvedExpr) -> Result<(), InventoryFailure> {\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/compact_stage/tests.rs",
+      "before_sha256": "61af5a101159dd7aee2b9da06cb39605dcac1ce7b446bad5e87ac33ada54e364",
+      "current_sha256": "6c9860cf8b34c9c420811a3efab07b72a06a99613fe562a15fa06e80769232d6",
+      "archive": "docs/evidence/compile-corrections-3220-20261016/before/src/cleanup_plan/replay/compact_stage/tests.rs.txt",
+      "edits": [
+        {
+          "new": "use crate::cleanup_plan::replay::MAX_REPLAY_WORK_UNITS;\n",
+          "old": ""
+        }
+      ]
+    },
+    {
+      "source": "src/workspace_graph/source_schema/nominal_context/tests.rs",
+      "before_sha256": "26418a0f5c41a199b12946299473be761c700a8f78228c3c89ac76c639638b11",
+      "current_sha256": "fe8a8d461eb4a0977a69a929be63651959a24638ffc87d6ac079a1577a6a5bc7",
+      "archive": "docs/evidence/compile-corrections-3220-20261016/before/src/workspace_graph/source_schema/nominal_context/tests.rs.txt",
+      "edits": [
+        {
+          "new": "    let observe = |construct: bool, limit, floor| {\n",
+          "old": "    let observe = |construct, limit, floor| {\n"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "source": "f7666352f59ba0569b8dad769c162fbf0b978b22",
+  "manifest_sha256": "c639f9e904dd447f88412ad0669dea164af663a2ce17056c51772d1486c3d5f3",
+  "wrapper": "/Volumes/Semaprax/provenance/focused-build-pressure-wrapper-v5-20261015.py",
+  "wrapper_sha256": "115dfba227713331fe0b021d787e9c7ddff44e3cf5ad1524526da45bb322021a",
+  "command": [
+    "python3",
+    "/Volumes/Semaprax/provenance/focused-build-pressure-wrapper-v5-20261015.py",
+    "--round",
+    "/Volumes/Semaprax/lane-prompts/producer-f766-closure3-20261016",
+    "--rss-limit-gib",
+    "8",
+    "--build-driver",
+    "build-owning.py"
+  ],
+  "execution_performed": false
+}

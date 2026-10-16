@@ -1,0 +1,70 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "current_sha256": "f781d62291ca0cfecc204d7ea45fa60ae5b2cc8acb19a575c8ebc9e1903914f3",
+    "original_sha256": "9f9633769910868cbaed3050f384ed45a73ca6b4b8f6cb99f305dcbc65dabbfb",
+    "edits": [
+      {
+        "new": "                            ));\n                            let mut key = Vec::with_capacity(successors.len());\n                            let mut index = 0;\n                            #[expect(\n                                clippy::explicit_counter_loop,\n                                reason = \"The scalar cursor is prepaid above; enumerate would add an iterator-adapter receiving layout.\"\n                            )]\n                            for (label, _child) in successors {\n                                key.push((label, self.child_ids[index]));\n                                index += 1;\n",
+        "old": "                            ));\n                            let mut key = Vec::with_capacity(successors.len());\n                            let mut index = 0;\n                            for (label, _child) in successors {\n                                key.push((label, self.child_ids[index]));\n                                index += 1;\n"
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "current_sha256": "049530c34e66c388893a6a66ce2ae41a5b6ba24c769ccf4bd830009b61b35d52",
+    "original_sha256": "af106869bbb56e2078a0c6cec96735e55e71eb3839f1f73ff1aee1de94fa3094",
+    "edits": [
+      {
+        "new": "\n// Main's compiled test corpus keeps every original source-domain check.\nfn main_dd0_previous(source: &str, current: &str) -> String {\n    let cursor = cursor_clippy_input(source, current);\n    let current = cursor.as_str();\n    let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);\n    let current = release.as_str();\n    let joined = joined_custody::input(source, current);\n",
+        "old": "\n// Main's compiled test corpus keeps every original source-domain check.\nfn main_dd0_previous(source: &str, current: &str) -> String {\n    let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);\n    let current = release.as_str();\n    let joined = joined_custody::input(source, current);\n"
+      },
+      {
+        "new": "\n// New owner and inherited domains remain independent; all old tables stay exact.\npub(crate) fn arena854_input(source: &str, current: &str) -> String {\n    let cursor = cursor_clippy_input(source, current);\n    let current = cursor.as_str();\n    let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);\n    let current = release.as_str();\n    let joined = joined_custody::input(source, current);\n",
+        "old": "\n// New owner and inherited domains remain independent; all old tables stay exact.\npub(crate) fn arena854_input(source: &str, current: &str) -> String {\n    let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);\n    let current = release.as_str();\n    let joined = joined_custody::input(source, current);\n"
+      },
+      {
+        "new": "\n// The complete twelve-row Main receiver has an independent scoped input.\npub(crate) fn main7c6_input(source: &str, current: &str) -> String {\n    let cursor = cursor_clippy_input(source, current);\n    let current = cursor.as_str();\n    let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);\n    let current = release.as_str();\n    let joined = joined_custody::input(source, current);\n",
+        "old": "\n// The complete twelve-row Main receiver has an independent scoped input.\npub(crate) fn main7c6_input(source: &str, current: &str) -> String {\n    let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);\n    let current = release.as_str();\n    let joined = joined_custody::input(source, current);\n"
+      },
+      {
+        "new": "\n// Independent complete Main-afba receiver scope.\npub(crate) fn main_afba_input(source: &str, current: &str) -> String {\n    let cursor = cursor_clippy_input(source, current);\n    let current = cursor.as_str();\n    let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);\n    let current = release.as_str();\n    let joined = joined_custody::input(source, current);\n",
+        "old": "\n// Independent complete Main-afba receiver scope.\npub(crate) fn main_afba_input(source: &str, current: &str) -> String {\n    let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);\n    let current = release.as_str();\n    let joined = joined_custody::input(source, current);\n"
+      },
+      {
+        "new": "}\n\npub(crate) fn main_f1_input(source: &str, current: &str) -> String {\n    let cursor = cursor_clippy_input(source, current);\n    let current = cursor.as_str();\n    let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);\n    let current = release.as_str();\n    let joined = joined_custody::input(source, current);\n",
+        "old": "}\n\npub(crate) fn main_f1_input(source: &str, current: &str) -> String {\n    let release = release_custody::input(release_custody::Fixture::Previous2c, source, current);\n    let current = release.as_str();\n    let joined = joined_custody::input(source, current);\n"
+      },
+      {
+        "new": "\n// Updated Main24 inputs are independent of every inherited predecessor domain.\npub(crate) fn main24_input(source: &str, current: &str) -> String {\n    let cursor = cursor_clippy_input(source, current);\n    let current = cursor.as_str();\n    release_custody::input(release_custody::Fixture::Main24, source, current)\n}\npub(crate) fn main24_proofs(compact: bool) -> String {\n",
+        "old": "\n// Updated Main24 inputs are independent of every inherited predecessor domain.\npub(crate) fn main24_input(source: &str, current: &str) -> String {\n    release_custody::input(release_custody::Fixture::Main24, source, current)\n}\npub(crate) fn main24_proofs(compact: bool) -> String {\n"
+      },
+      {
+        "new": "        release_custody::Fixture::Receivers24\n    })\n}\n\n// Complete raw source difference for the statement-local prepaid-cursor lint expectation.\nfn cursor_clippy_input(source: &str, current: &str) -> String {\n    const KEYS: &[&str] = &[\n        \"src/cleanup_plan/replay/factored/canonical_shared.rs\",\n        \"src/source_reflows_merge.rs\",\n        \"tests/hir_module_boundaries.rs\",\n        \"tests/workspace/semantic_graph.rs\",\n    ];\n    if KEYS.binary_search(&source).is_err() {\n        return current.to_owned();\n    }\n    project(\n        include_str!(\n            \"../docs/evidence/prepaid-canonical-cursor-clippy-20261016/current-to-f766.json\"\n        ),\n        source,\n        current,\n    )\n}\n",
+        "old": "        release_custody::Fixture::Receivers24\n    })\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "current_sha256": "86075b215d9686117baf6fc2390ebb9fada591d2699ead34fccbcde9752c25d3",
+    "original_sha256": "c6e1249184baa02430634f2b2171d2944ab25a427e0d8bca423222edf835c966",
+    "edits": [
+      {
+        "new": "    );\n    let validation = production_source_inventory::production(\n        &validation_raw,\n        include_str!(\"../docs/evidence/prepaid-canonical-cursor-clippy-20261016/hir.json\"),\n    );\n    for forbidden in [\n        \"struct Resolver\",\n",
+        "old": "    );\n    let validation = production_source_inventory::production(\n        &validation_raw,\n        include_str!(\"../docs/evidence/release-755-main24-arena-joined-20261016/hir.json\"),\n    );\n    for forbidden in [\n        \"struct Resolver\",\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph.rs",
+    "current_sha256": "fd0089c1a1bdfaa643fbf82aa3a77b18c6fd4170e2f34a5f257af3953326ae04",
+    "original_sha256": "ab904e91325a98b283d71ccac04d0b7971f9adeeb80d4c5e44076e0c4f6a8b0d",
+    "edits": [
+      {
+        "new": "    );\n    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\"../../docs/evidence/prepaid-canonical-cursor-clippy-20261016/projection.json\"),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n    assert!(!production_projection.contains(\"use super::*;\"));\n",
+        "old": "    );\n    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\"../../docs/evidence/release-755-main24-arena-joined-20261016/projection.json\"),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n    assert!(!production_projection.contains(\"use super::*;\"));\n"
+      }
+    ]
+  }
+]

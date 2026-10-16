@@ -1,0 +1,118 @@
+{
+  "source_subject": "f7666352f59ba0569b8dad769c162fbf0b978b22",
+  "source_tree": "c4fa61b52746cf07f4e3de7d6658b4bdd31fd9d4",
+  "frozen": true,
+  "source_only_preparation": true,
+  "execution_performed": false,
+  "selected_bodies": 3,
+  "literal_compilation_roles": 2,
+  "ordered_build_commands": [
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "build",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--test",
+      "workspace",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ]
+  ],
+  "manifest_sha256": "c639f9e904dd447f88412ad0669dea164af663a2ce17056c51772d1486c3d5f3",
+  "driver_sha256": {
+    "run-owning-selected.py": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450",
+    "draft_contract.py": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1",
+    "semaprax_pressure_observation_v3.py": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+    "run-production-lib-cli-clippy.py": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077",
+    "build-owning.py": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888",
+    "observed_phase.py": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+  },
+  "registered_source_sha256": "ab803b8f8cb3ff37a01548f29fdab988d05ef7a01dae013bc83ec05afede8e87",
+  "previous_actual60": {
+    "source": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "passed": 52,
+    "failed": 8,
+    "both_scoped_clippy_exit_codes": [
+      0,
+      0
+    ],
+    "selected_prior_failures": 0,
+    "not_selected_failed": 8
+  },
+  "historical_raw_receipts": [
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-results.json",
+      "sha256": "b8d64b2ab56903eca8bccff962aa357c144d99e81f58ef77ca0cac4a8b9eab9c",
+      "retention": "IMMUTABLE_EXTERNAL_REFERENCE_NOT_COPIED"
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-build-result.json",
+      "sha256": "6b519dfefdb8d3239626b622b4c11d94fbe360b04d7f7e4f3c639212167744b8",
+      "retention": "IMMUTABLE_EXTERNAL_REFERENCE_NOT_COPIED"
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/clippy-production-result.json",
+      "sha256": "c86cae8dd29d974e6c1e9e6d8fb46dde2c0168587a43c6d7d5ab10eaac5b7920",
+      "retention": "IMMUTABLE_EXTERNAL_REFERENCE_NOT_COPIED"
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/clippy-production-toolchain-full-cli-result.json",
+      "sha256": "4597041e4cd342981848d1f6ed3e62abcdc42965ebc41486daa5cd54af6bccd5",
+      "retention": "IMMUTABLE_EXTERNAL_REFERENCE_NOT_COPIED"
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/expected-counts.json",
+      "sha256": "2aaf11803b37d0df0b9ba5d8d423b092a9eed32ac6787aabf6b90410606ba7d1",
+      "retention": "IMMUTABLE_EXTERNAL_REFERENCE_NOT_COPIED"
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/preparation-receipt.json",
+      "sha256": "5f8d43c8061bcead30a307f44a09ae3409174f9571d563969feca293acf70937",
+      "retention": "IMMUTABLE_EXTERNAL_REFERENCE_NOT_COPIED"
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/supplemental-historical-outcomes.json",
+      "sha256": "0e27ffa67b5898a071527332d1b8342222c5a7dbeef2b862c4f258e67be19af0",
+      "retention": "IMMUTABLE_EXTERNAL_REFERENCE_NOT_COPIED"
+    }
+  ],
+  "effective_prior_rss_limit_bytes": 8589934592
+}

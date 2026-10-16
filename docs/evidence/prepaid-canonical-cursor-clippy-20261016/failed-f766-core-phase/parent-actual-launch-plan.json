@@ -1,0 +1,48 @@
+{
+  "status": "BOUND_UNEXECUTED_PARENT_ACTUAL_LAUNCH_PLAN",
+  "source": "f7666352f59ba0569b8dad769c162fbf0b978b22",
+  "source_tree": "c4fa61b52746cf07f4e3de7d6658b4bdd31fd9d4",
+  "manifest_sha256": "c639f9e904dd447f88412ad0669dea164af663a2ce17056c51772d1486c3d5f3",
+  "inherited_launch_binding_unchanged_sha256": "0c7e9ed3c1d695731beeecaa287f20afdff0c49bd40f13f8fe6fadf72e7b3017",
+  "note": "Inherited v5/8GiB launch is retained history, not used. Actual build uses original strict v6/9GiB; actual scoped Clippy uses reviewed command-only v6 adapter and unchanged8GiB phase driver limits. Serial focused phases, no full gates.",
+  "build_guardian": {
+    "path": "/Volumes/Semaprax/provenance/focused-build-pressure-wrapper-v6-single9-20261016.py",
+    "sha256": "8188fc7040a3ce3557971243059f9621cad74c76d5cc71b02d7d9bec43534de4",
+    "command": [
+      "python3",
+      "/Volumes/Semaprax/provenance/focused-build-pressure-wrapper-v6-single9-20261016.py",
+      "--round",
+      "/Volumes/Semaprax/lane-prompts/producer-f766-closure3-20261016",
+      "--rss-limit-gib",
+      "9",
+      "--build-driver",
+      "build-owning.py"
+    ]
+  },
+  "clippy_guardian": {
+    "path": "/Volumes/Semaprax/provenance/focused-clippy-pressure-wrapper-v6-20261016.py",
+    "sha256": "f3568e48b997628f8534f27b1a08af81882bd0e8641d89d1d19dba0f42266996",
+    "command_core": [
+      "python3",
+      "/Volumes/Semaprax/provenance/focused-clippy-pressure-wrapper-v6-20261016.py",
+      "--round",
+      "/Volumes/Semaprax/lane-prompts/producer-f766-closure3-20261016",
+      "--rss-limit-gib",
+      "8",
+      "--phase",
+      "clippy-production"
+    ],
+    "command_full_cli": [
+      "python3",
+      "/Volumes/Semaprax/provenance/focused-clippy-pressure-wrapper-v6-20261016.py",
+      "--round",
+      "/Volumes/Semaprax/lane-prompts/producer-f766-closure3-20261016",
+      "--rss-limit-gib",
+      "8",
+      "--phase",
+      "clippy-production-toolchain-full-cli"
+    ]
+  },
+  "full_cli_adapter_sha256": "1f54fd082b8aa5292a257a51c8109f1fc71200fc53247823a944e66049fb1131",
+  "execution_performed": false
+}

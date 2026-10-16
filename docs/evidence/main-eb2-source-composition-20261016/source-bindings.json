@@ -1,0 +1,169 @@
+{
+  "parent": "d7138ab7609b5ba335aee11cd01c434e3e136c16",
+  "incoming": "eb2c6d853c6878f3341d85cab2ff2e610d7cbf2c",
+  "merge": "92e9047bfe2b1b11ebfe177480b285250f215c5f",
+  "packets": [
+    "compact-child-cursor-v1",
+    "scalar-clone-cursor-v1",
+    "metered-string-storage-v1",
+    "replay-clone-cursor-v1"
+  ],
+  "inputs_sha256": "805be510a86e46dfb8cd58b63eca7b89e347053674e3357e8cb3c48924ce4955",
+  "helper_sha256": "f126a40e353062a097df4065ee3c3e65f0c60e04747c82097c2bcc8fcd90cd96",
+  "all_input_count": 15,
+  "incoming_paths": [
+    "docs/evidence/replay-clone-cursor-v1/sources.json",
+    "src/cleanup_plan/replay/allocation/tests.rs",
+    "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs",
+    "src/cleanup_plan/replay/lexical_skeleton.rs",
+    "src/cleanup_plan/replay/live_oracle/source_custody/presence.json",
+    "src/cleanup_plan/replay/physical_budget.rs",
+    "src/cleanup_plan/replay/physical_clone.rs",
+    "src/hir/lexical_exit/walk.rs",
+    "src/hir/lexical_exit/walk/tests.rs",
+    "src/wasm/aggregate.rs",
+    "src/wasm/aggregate/semantic_work.rs"
+  ],
+  "before": [
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "archive": "before/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs",
+      "before_sha256": "2cc88fefcbdd3be77aadb2894743ea4f2eeb6f544bdf364e7e1d83bea5d09d6c",
+      "current_sha256": "447611d7bcbdf6110f77dd13dab9dcb6bfcbd2002446d450c2c6e4b712a551be"
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json",
+      "archive": "before/docs__evidence__main043-independent-custody-20261016__guard-extension-allowed.json",
+      "before_sha256": "4cd190b30d9334fd0be03bae9aef6d8e5c32d70ee6c166c1fcf6ec9ee3b4a094",
+      "current_sha256": "483096b4be993792d52cadde5be2f06de49a13f9ed67be9eafb89e32bfcb53ee"
+    },
+    {
+      "path": "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs",
+      "archive": "before/src__cleanup_plan__replay__allocation__tests__clone_cursor.rs",
+      "before_sha256": "c8ea197ff1b15c88d59168d00df95cbfce3db239007dd51ae085b9adf33c5974",
+      "current_sha256": "6c031f6fc2ed45f973c12da9b84d84ccab8ac76467d7ffdde3e2b313526fee17"
+    },
+    {
+      "path": "src/cleanup_plan/replay/live_oracle/source_custody/presence.rs",
+      "archive": "before/src__cleanup_plan__replay__live_oracle__source_custody__presence.rs",
+      "before_sha256": "03b4585e17a71796a4daf7fcee5ac9b527b226ffc255e97e41bedc0c5291b987",
+      "current_sha256": "c7a3cab3473b69f55413d1dbe1fe6c4ab18c4ca73b02c1168124289fb35533ae"
+    },
+    {
+      "path": "src/hir/lexical_exit/walk/tests.rs",
+      "archive": "before/src__hir__lexical_exit__walk__tests.rs",
+      "before_sha256": "ba5e449c3fc1b6507812d1edd6022c20e781f3d7950e393428a31e90aeb332a1",
+      "current_sha256": "412a9092ccdf367c7db50e42c75ec2f514f6102e8435b4084d17e9a8a45d6d70"
+    },
+    {
+      "path": "src/source_reflows_merge.rs",
+      "archive": "before/src__source_reflows_merge.rs",
+      "before_sha256": "8261dca3ceca52685e26d60652d20a48d51b7ada6c92cda844dd97e6534eb5c9",
+      "current_sha256": "408767696ffa7b1623e03a116fd518a8fa0f0960cd0c4d37de3c5da85d17940b"
+    },
+    {
+      "path": "src/wasm/aggregate/semantic_work.rs",
+      "archive": "before/src__wasm__aggregate__semantic_work.rs",
+      "before_sha256": "ee94b118976a453568dfeec1fabd6fc7b18139c94a2d9b40236a7a8f69cb0483",
+      "current_sha256": "c341401652ff0c7cc6be923c455fec316ff7e5c11e303b024a0a24ea59767cff"
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "archive": "before/tests__hir_module_boundaries.rs",
+      "before_sha256": "3d8d5c070e9ac86d005ed2356872a3be53ee6558fb5bf3a9a9cc52fbce49e627",
+      "current_sha256": "975d32ee3ce5380479890a5d1f2129babc1b706cc64006802ff4620ab5c58865"
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "archive": "before/tests__workspace__semantic_graph__source_inventory.rs",
+      "before_sha256": "cc7c0fefbfe05532f7ecd17d0a76acf320d11286bbe7f342562fe8e32a6a784c",
+      "current_sha256": "cc97c47b89f1750c0c595184124fdc824d19e96c33a53d4c67f4481fc1255e64"
+    }
+  ],
+  "immutable_incoming_capsules": [
+    {
+      "path": "docs/evidence/compact-child-cursor-v1/README.md",
+      "sha256": "341a1cfece147a5c5fb161513166d61884de20472c16f98a628fb24b747706a5"
+    },
+    {
+      "path": "docs/evidence/compact-child-cursor-v1/presence.json.before.txt",
+      "sha256": "3d00424b485ab7c624d08c996dae483878b32be696c37885feb2527db53244fe"
+    },
+    {
+      "path": "docs/evidence/compact-child-cursor-v1/sources.json",
+      "sha256": "f08816750b470236c74b09e8332c3711d38355c8698b197c2e33589eea777c01"
+    },
+    {
+      "path": "docs/evidence/compact-child-cursor-v1/tests.rs.before.txt",
+      "sha256": "2b49aabc62543d23a3e7a7119ab1f35ab2f7abd4e440abe75a23dbdd69a0a51f"
+    },
+    {
+      "path": "docs/evidence/compact-child-cursor-v1/walk.rs.before.txt",
+      "sha256": "47adb85ccd9863fbaaf765f7948ee69cd2782d572063f39a8e190a97454fdded"
+    },
+    {
+      "path": "docs/evidence/scalar-clone-cursor-v1/0.before.txt",
+      "sha256": "d6f67cba92a2746b0d15bdb1249daa79fc3b7176e88bf1e8bcd727ac81cc7a46"
+    },
+    {
+      "path": "docs/evidence/scalar-clone-cursor-v1/1.before.txt",
+      "sha256": "ff6d93172384a18c4fe86d9f6fdb10a034f50f027f411a08742e32e31318a5f8"
+    },
+    {
+      "path": "docs/evidence/scalar-clone-cursor-v1/2.before.txt",
+      "sha256": "f07ebc3a88af8aa5f8d94a29e92b1947c359b950c33e7b87b7cf53cb93647422"
+    },
+    {
+      "path": "docs/evidence/scalar-clone-cursor-v1/3.before.txt",
+      "sha256": "2df97f25d560b80050a2e8fe2492e11587af535a3940028151ed2e66d167fb47"
+    },
+    {
+      "path": "docs/evidence/scalar-clone-cursor-v1/4.before.txt",
+      "sha256": "3b112cc00df14a44c612de88473c370af90c1db3dff0dcdcf1a99fc214c91679"
+    },
+    {
+      "path": "docs/evidence/scalar-clone-cursor-v1/README.md",
+      "sha256": "87d124aea5086878df79a9fa282880f07a40f68ce56c4ed04ad0feda00617e68"
+    },
+    {
+      "path": "docs/evidence/scalar-clone-cursor-v1/sources.json",
+      "sha256": "268e8fb672258c61a29dcd464f9b00889b3f993df47954f5012f07255d404c19"
+    },
+    {
+      "path": "docs/evidence/metered-string-storage-v1/README.md",
+      "sha256": "3337fb04815a0c34f6a53d848b3a18ac53ad79825fa7f7414b61fce371347ae6"
+    },
+    {
+      "path": "docs/evidence/metered-string-storage-v1/aggregate.rs.before.txt",
+      "sha256": "307a7be09db0b6559db48a70efd8a997d5eee33058b07656226eaef482e71086"
+    },
+    {
+      "path": "docs/evidence/metered-string-storage-v1/semantic_work.rs.before.txt",
+      "sha256": "5cbab87f2f6ad14e75145dc757ed8574e340d569959a45a634259d45ea1eb0bb"
+    },
+    {
+      "path": "docs/evidence/metered-string-storage-v1/sources.json",
+      "sha256": "1c7364aaa05a0c90a940541a63c070317dbbff56f1d2d137e6de89953da7a2a6"
+    },
+    {
+      "path": "docs/evidence/replay-clone-cursor-v1/README.md",
+      "sha256": "2d29c82a315f54c718f0a0d476e8cf27199baec19649e60c2d035abac72caa4b"
+    },
+    {
+      "path": "docs/evidence/replay-clone-cursor-v1/lexical_skeleton.rs.before.txt",
+      "sha256": "316fb7e4ffac72d9ad9817e2d64effea32710f2956612d9f40e75c7ff606d353"
+    },
+    {
+      "path": "docs/evidence/replay-clone-cursor-v1/physical_budget.rs.before.txt",
+      "sha256": "31f1ec5525f566268384254fcd09dd695ddd9d4d45df8fd1069f9846bff0c410"
+    },
+    {
+      "path": "docs/evidence/replay-clone-cursor-v1/physical_clone.rs.before.txt",
+      "sha256": "7562958a30b1c75afadc4d2110b42b06a209e3f54b3a8e5111ecdd08d6488bb6"
+    },
+    {
+      "path": "docs/evidence/replay-clone-cursor-v1/sources.json",
+      "sha256": "14f8bdcb6060ac8d6a5d265a99d65d9030795f068416bbc14f8a31f10a737a08"
+    }
+  ]
+}

@@ -995,3 +995,5 @@ pub(crate) fn release_current_input(source: &str, current: &str) -> String {
 pub(crate) mod main8a_historical;
 
 mod opt858_sequence_input;
+
+pub(crate) mod main_eb2_inputs;

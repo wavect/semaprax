@@ -9,6 +9,7 @@ fn digest(text: &str) -> String {
     )
 }
 pub(super) fn restore(path: &str, current: &mut String) {
+    *current = crate::source_reflows_merge::main_eb2_inputs::presence(path, current);
     let records: serde_json::Value = serde_json::from_str(include_str!("presence.json")).unwrap();
     let record = records
         .as_array()

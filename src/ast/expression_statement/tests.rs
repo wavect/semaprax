@@ -429,12 +429,12 @@ fn resolver_512_payload_source_fits_the_same_canonical_budget_without_pattern_sc
     let payloads = (0..512)
         .map(|index| {
             format!(
-        "\n@id(\"{package}.payload.{index}\")\nfn payload_{index}_{padding}() -> i64 {{\n    0\n}}\n"
+        "\n@id(\"{package}.payload.{index}\")\nfn payload_{index}_{padding}() -> i64\n{{\n    0\n}}\n"
     )
         })
         .collect::<String>();
     let exact_source = format!(
-        "module {package};\n{payloads}\n@id(\"{package}.main\")\nfn main() -> i64 {{\n    0\n}}\n"
+        "module {package};\n{payloads}\n@id(\"{package}.main\")\nfn main() -> i64\n{{\n    0\n}}\n"
     );
     assert_eq!(actual, exact_source);
     assert!(used < 1_048_576);

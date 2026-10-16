@@ -182,7 +182,25 @@ fn explicit_match_modes_select_v21_and_are_distinct_in_graph_and_agent_views() {
     assert_ne!(own_graph, borrow_graph);
 
     let filters = std::collections::BTreeSet::from([AgentContextFilter::Ownership]);
-    let agent = agent_function_json(&borrow, borrow_function, &filters).unwrap();
+    assert_eq!(
+        agent_function_json(&borrow, borrow_function, &filters)
+            .unwrap_err()
+            .code,
+        "SPX-H006"
+    );
+    // Preserve the frozen inspection bytes through the same raw serializer
+    // used after query schema selection. The checked boundary above refuses
+    // this forged program before any function fact is published.
+    let schema = super::byte_helper_renewal::graph_schema(&borrow).unwrap();
+    let calls = super::agent_query::AgentCallables::new(&borrow).function_calls(borrow_function);
+    let agent = super::function_facts::agent_function_json_for_schema(
+        &borrow,
+        borrow_function,
+        &filters,
+        schema,
+        &calls,
+    )
+    .unwrap();
     assert!(agent.contains("\"ownership_mode\":\"borrow\""));
     assert!(!agent.contains("\"ownership_mode\":\"own\""));
 }

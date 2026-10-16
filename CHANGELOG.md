@@ -18,6 +18,12 @@
 - Reconcile Main8a finished-path capacity, arbitrary final-suffix transfer and borrowed nominal context with lexical paid receiving; preserve original work-before-optional-payment priority and complete Main controls. Qualification and net application cost remain pending.
 
 - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.
+- Bind allocation release-order watches to the initial allocation lifetime, retaining duplicate/missing-free refusals when System reuses an address during DAG destruction.
+
+- Require the checked agent-function boundary to reject forged match ownership while preserving the complete legacy mode-encoding assertions through the existing query serializer.
+
+- Match the documented canonical function-brace layout in the 512-payload formatter golden, retaining its complete byte equality and unchanged scratch budget.
+
 - Capture a bounded debugger trace from the exact current Linux unit executable after its owning shard fails, retaining the original low-stack test and failure result.
 
 - Compose source-audit inverses through later module additions, preserving every original archive and fixed hash; authenticate both complete live source-reader successors before replaying their historical formatting controls.

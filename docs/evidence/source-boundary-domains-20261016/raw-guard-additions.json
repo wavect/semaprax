@@ -1,0 +1,35 @@
+{
+  "status": "SOURCE_ONLY_PREPARED_NO_RUST",
+  "rows": [
+    {
+      "guard": "tests/hir_module_boundaries.rs",
+      "added_sources": [
+        "tests/support/production_source_inventory_original.rs",
+        "tests/support/new_boundary_module.rs"
+      ],
+      "exact_fragment": " include_str!(\"support/production_source_inventory_original.rs\"), include_str!(\"support/new_boundary_module.rs\"),",
+      "all_three_targets_present_after": true,
+      "line_count_unchanged": true
+    },
+    {
+      "guard": "tests/workspace/semantic_graph/source_inventory.rs",
+      "added_sources": [
+        "tests/support/production_source_inventory_original.rs",
+        "tests/support/new_boundary_module.rs"
+      ],
+      "exact_fragment": " include_str!(\"../support/production_source_inventory_original.rs\"), include_str!(\"../support/new_boundary_module.rs\"),",
+      "all_three_targets_present_after": true,
+      "line_count_unchanged": true
+    },
+    {
+      "guard": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "added_sources": [
+        "tests/support/production_source_inventory_original.rs",
+        "tests/support/new_boundary_module.rs"
+      ],
+      "exact_fragment": " include_str!(\"../../../../../tests/support/production_source_inventory_original.rs\"), include_str!(\"../../../../../tests/support/new_boundary_module.rs\"),",
+      "all_three_targets_present_after": true,
+      "line_count_unchanged": true
+    }
+  ]
+}

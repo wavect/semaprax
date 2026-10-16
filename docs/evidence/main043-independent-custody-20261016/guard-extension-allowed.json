@@ -35,7 +35,16 @@
       "src/source_reflows_merge/main8a_historical.rs": 1,
       "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs": 1,
       "src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs": 1,
-      "src/hir/validation/byte_traversal/nested/tests/source_composition.rs": 1
+      "src/hir/validation/byte_traversal/nested/tests/source_composition.rs": 1,
+      "src/bounded_output/invocation_binding.rs": 1,
+      "src/workspace_graph/before_private_roots.rs": 1,
+      "src/workspace_graph/cache_key_original.rs": 1,
+      "src/workspace_graph/constructor_failure/receiving/before.rs": 1,
+      "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs": 1,
+      "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs": 1,
+      "src/workspace_graph/validation/before_roots.rs": 1,
+      "tests/support/production_source_inventory_original.rs": 1,
+      "tests/support/new_boundary_module.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -78,7 +87,16 @@
       "src/cleanup_plan/renewal_profile/funded.rs": 1,
       "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs": 1,
       "src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs": 1,
-      "src/hir/validation/byte_traversal/nested/tests/source_composition.rs": 1
+      "src/hir/validation/byte_traversal/nested/tests/source_composition.rs": 1,
+      "src/bounded_output/invocation_binding.rs": 1,
+      "src/workspace_graph/before_private_roots.rs": 1,
+      "src/workspace_graph/cache_key_original.rs": 1,
+      "src/workspace_graph/constructor_failure/receiving/before.rs": 1,
+      "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs": 1,
+      "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs": 1,
+      "src/workspace_graph/validation/before_roots.rs": 1,
+      "tests/support/production_source_inventory_original.rs": 1,
+      "tests/support/new_boundary_module.rs": 1
     }
   },
   "tests/workspace/semantic_graph/source_inventory.rs": {
@@ -150,7 +168,14 @@
       "src/cleanup_plan/renewal_profile/funded.rs": 1,
       "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs": 1,
       "src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs": 1,
-      "src/hir/validation/byte_traversal/nested/tests/source_composition.rs": 1
+      "src/hir/validation/byte_traversal/nested/tests/source_composition.rs": 1,
+      "src/bounded_output/invocation_binding.rs": 1,
+      "src/workspace_graph/before_private_roots.rs": 1,
+      "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs": 1,
+      "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs": 1,
+      "src/workspace_graph/validation/before_roots.rs": 1,
+      "tests/support/production_source_inventory_original.rs": 1,
+      "tests/support/new_boundary_module.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -220,7 +245,14 @@
       "src/hir/vec_loop_renewal/funded.rs": 1,
       "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs": 1,
       "src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs": 1,
-      "src/hir/validation/byte_traversal/nested/tests/source_composition.rs": 1
+      "src/hir/validation/byte_traversal/nested/tests/source_composition.rs": 1,
+      "src/bounded_output/invocation_binding.rs": 1,
+      "src/workspace_graph/before_private_roots.rs": 1,
+      "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs": 1,
+      "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs": 1,
+      "src/workspace_graph/validation/before_roots.rs": 1,
+      "tests/support/production_source_inventory_original.rs": 1,
+      "tests/support/new_boundary_module.rs": 1
     }
   },
   "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
@@ -264,7 +296,16 @@
       "src/cleanup_plan/renewal_profile/funded.rs": 1,
       "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs": 1,
       "src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs": 1,
-      "src/hir/validation/byte_traversal/nested/tests/source_composition.rs": 1
+      "src/hir/validation/byte_traversal/nested/tests/source_composition.rs": 1,
+      "src/bounded_output/invocation_binding.rs": 1,
+      "src/workspace_graph/before_private_roots.rs": 1,
+      "src/workspace_graph/cache_key_original.rs": 1,
+      "src/workspace_graph/constructor_failure/receiving/before.rs": 1,
+      "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs": 1,
+      "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs": 1,
+      "src/workspace_graph/validation/before_roots.rs": 1,
+      "tests/support/production_source_inventory_original.rs": 1,
+      "tests/support/new_boundary_module.rs": 1
     },
     "maximum": {
       "src/cleanup_plan/replay.rs": 1,
@@ -306,7 +347,16 @@
       "src/cleanup_plan/renewal_profile/funded.rs": 1,
       "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs": 1,
       "src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs": 1,
-      "src/hir/validation/byte_traversal/nested/tests/source_composition.rs": 1
+      "src/hir/validation/byte_traversal/nested/tests/source_composition.rs": 1,
+      "src/bounded_output/invocation_binding.rs": 1,
+      "src/workspace_graph/before_private_roots.rs": 1,
+      "src/workspace_graph/cache_key_original.rs": 1,
+      "src/workspace_graph/constructor_failure/receiving/before.rs": 1,
+      "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs": 1,
+      "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs": 1,
+      "src/workspace_graph/validation/before_roots.rs": 1,
+      "tests/support/production_source_inventory_original.rs": 1,
+      "tests/support/new_boundary_module.rs": 1
     }
   }
 }

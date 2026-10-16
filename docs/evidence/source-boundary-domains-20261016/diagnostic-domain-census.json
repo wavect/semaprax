@@ -1,0 +1,22 @@
+[
+  {
+    "domain": "hir",
+    "all_original_classes_preserved": 1046,
+    "current_boundary_classes": 1051,
+    "current_boundary_production": 392,
+    "unrelated_new_raw_custody_classes": 159,
+    "known_forbidden_hits_within_actual_original_and_descendant_boundary": [],
+    "outside_hits": 1,
+    "status": "DRAFT_DOMAIN_DIAGNOSIS_NOT_FINAL_SOURCE_OR_RUST_QUALIFICATION"
+  },
+  {
+    "domain": "projection",
+    "all_original_classes_preserved": 179,
+    "current_boundary_classes": 181,
+    "current_boundary_production": 69,
+    "unrelated_new_raw_custody_classes": 1228,
+    "known_forbidden_hits_within_actual_original_and_descendant_boundary": [],
+    "outside_hits": 341,
+    "status": "DRAFT_DOMAIN_DIAGNOSIS_NOT_FINAL_SOURCE_OR_RUST_QUALIFICATION"
+  }
+]

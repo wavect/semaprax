@@ -14,7 +14,7 @@
 //! - [`capacity`] projects storage capacity; [`oracle`] is the test-only
 //!   recursive cross-check of the frame loop.
 
-use crate::ast::program_source::ProgramSource;
+use crate::ast::program_source::{FunctionRef, ProgramSource};
 #[cfg(test)]
 use std::collections::HashSet;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -32,9 +32,13 @@ mod binding;
 pub(crate) mod borrowed_closure;
 mod byte_traversal;
 mod capacity;
+pub(crate) mod funding;
 pub(crate) mod closure;
 mod contract_owners;
 mod declaration;
+mod function_map;
+pub(crate) use capacity::source_capacity_functions as function_cells;
+pub(crate) use declaration::{verify_presenting_with_cells, verify_presenting_with_cells_funded};
 mod declared_type;
 pub(crate) use declared_type::copy_record_collection::declaration_admitted as copy_record_declaration_admitted;
 pub(crate) use declared_type::owned_leaf_collection::declaration_admitted as owned_leaf_declaration_admitted;
@@ -161,7 +165,10 @@ pub(crate) fn program_uses_record_iterator(program: &dyn ProgramSource) -> bool 
         }
         false
     };
-    program.functions().iter().any(function_uses)
+    program
+        .function_refs()
+        .iter()
+        .any(|function| function_uses(function.payload()))
         || program.types().iter().any(|declaration| {
             matches!(&declaration.kind, TypeDeclarationKind::Class { methods, .. }
                 if methods.iter().any(function_uses))
@@ -187,12 +194,12 @@ use capacity::{
     source_type_scope_copy_totals, verify_byte_data_capacity, SourceCapacityContext,
 };
 
-struct IterativeVerifier<'a, 'p> {
+struct IterativeVerifier<'a, 'v, 'p> {
     program: &'p dyn ProgramSource,
-    current: &'p Function,
+    current: &'v FunctionRef<'p>,
     constructor_hygiene: Option<bool>,
     byte_helpers: Option<&'a dyn crate::loop_calls::byte_writer::SourceHelpers>,
-    functions: &'p HashMap<&'p str, &'p Function>,
+    functions: &'p crate::source_verify::function_map::FunctionMap<'p>,
     types: &'p TypeTable<'p>,
     result_type: Option<&'p Type>,
     allow_moves: bool,
@@ -231,13 +238,36 @@ struct IterativeVerifier<'a, 'p> {
 /// Declared in the module root, rather than beside the frame loop, because the
 /// interop builder pins the verifier frame and variant match state layouts to
 /// this file.
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     #[allow(clippy::too_many_arguments)]
     fn new(
         program: &'p dyn ProgramSource,
-        current: &'p Function,
+        current: &'v FunctionRef<'p>,
         variables: HashMap<String, Binding>,
-        functions: &'p HashMap<&'p str, &'p Function>,
+        functions: &'p crate::source_verify::function_map::FunctionMap<'p>,
+        types: &'p TypeTable<'p>,
+        result_type: Option<&'p Type>,
+        allow_moves: bool,
+        diagnostics: &'a mut Vec<Diagnostic>,
+    ) -> Self {
+        Self::new_ref(
+            program,
+            current,
+            variables,
+            functions,
+            types,
+            result_type,
+            allow_moves,
+            diagnostics,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn new_ref(
+        program: &'p dyn ProgramSource,
+        current: &'v FunctionRef<'p>,
+        variables: HashMap<String, Binding>,
+        functions: &'p crate::source_verify::function_map::FunctionMap<'p>,
         types: &'p TypeTable<'p>,
         result_type: Option<&'p Type>,
         allow_moves: bool,
@@ -249,10 +279,20 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             .values()
             .filter(|binding| binding.borrow_origin.is_some())
             .count();
-        let mut recovery =
-            recovery::Recovery::signature(program, current, &variables, types, diagnostics);
+        let mut recovery = recovery::Recovery::signature(
+            program,
+            current.payload(),
+            &variables,
+            types,
+            diagnostics,
+        );
         declaration::record_shape::seed(
-            &mut recovery, program, current, &variables, types, diagnostics,
+            &mut recovery,
+            program,
+            current.payload(),
+            &variables,
+            types,
+            diagnostics,
         );
         Self {
             program,

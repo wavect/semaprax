@@ -17,7 +17,7 @@ use std::collections::HashSet;
 #[cfg(test)]
 mod records_before_extended;
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     #[allow(clippy::too_many_arguments)]
     pub(super) fn frame_prepare_record_field(
         &mut self,

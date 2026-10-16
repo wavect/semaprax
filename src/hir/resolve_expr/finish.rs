@@ -1,7 +1,7 @@
 //! Finish resolver result stacks and already-resolved class-prefix projections.
 use super::path_arena::{ExprPath, PathArena};
 use super::*;
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     /// `id` is the slot identity, emitted first exactly as before.
     pub(super) fn finish_upcast(
         &self,
@@ -26,7 +26,7 @@ impl Resolver<'_> {
     }
 }
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(super) fn finish_expression_results(
         &self,
         mut results: Vec<ResolvedExpr>,
@@ -119,7 +119,7 @@ pub(super) fn finish_unary(
     }
 }
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(super) fn finish_lexical_match(
         &self,
         function: &FunctionExecutionId,

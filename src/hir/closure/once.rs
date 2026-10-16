@@ -13,7 +13,7 @@ pub(crate) const PAIR_DROP_ID: &str = "core.fn_once_i64_pair.drop.v3";
 pub(crate) const PAIR_CONSTRUCT_ID: &str = "core.fn_once_i64_pair.construct.v3";
 pub(crate) const PAIR_INVOKE_ID: &str = "core.fn_once_i64_pair.invoke.v3";
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(in crate::hir) fn resolve_once_closure(
         &self,
         parent: &FunctionExecutionId,
@@ -60,19 +60,17 @@ impl Resolver<'_> {
             return Err(hir_error("affine closure must transfer one captured owner"));
         };
         let target = self
-            .program
-            .functions()
-            .iter()
-            .find(|f| f.name == *name)
+            .source_functions()
+            .find(|f| f.name() == name.as_str())
             .ok_or_else(|| hir_error("affine closure target is absent"))?;
         if !type_arguments.is_empty()
-            || !target.type_parameters.is_empty()
-            || !target.effects.is_empty()
-            || target.return_type != Type::I64
-            || target.params.len() != args.len()
+            || !target.payload().type_parameters.is_empty()
+            || !target.payload().effects.is_empty()
+            || target.payload().return_type != Type::I64
+            || target.payload().params.len() != args.len()
             || !(args.len() == 1 || mixed || pair)
-            || target.params[0].ty != Type::Bytes
-            || target.params[0].mode != ParamMode::Own
+            || target.payload().params[0].ty != Type::Bytes
+            || target.payload().params[0].mode != ParamMode::Own
         {
             return Err(hir_error(
                 "affine closure target must be pure (own Bytes)->i64",
@@ -88,7 +86,7 @@ impl Resolver<'_> {
                 let binding = outer
                     .get(name)
                     .ok_or_else(|| hir_error("mixed scalar capture absent"))?;
-                let parameter = &target.params[offset + 1];
+                let parameter = &target.payload().params[offset + 1];
                 if binding.ty != ResolvedType::I64
                     || binding.ownership != OwnershipMode::Value
                     || parameter.ty != Type::I64

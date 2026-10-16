@@ -7,7 +7,7 @@ mod owned_growth;
 mod before_owned_directory;
 #[cfg(test)]
 #[path = "alias/owned_growth_tests.rs"]
-mod owned_growth_tests;
+pub(super) mod owned_growth_tests;
 
 use super::super::{
     alias_clone, budgeted_format, eligible, graph_error, import_stub, iterative, refusal,
@@ -42,6 +42,37 @@ pub(in crate::workspace_graph) fn construct_transient<'p>(
             "SPX-G173",
             "imported borrowed projection requires the owned route",
         )));
+    }
+    // Direct callers receive the same preselection as the actual core route:
+    // invariant transforms get the complete owning imported-function producer.
+    owner.reserve(
+        std::mem::size_of::<bool>() + std::mem::size_of::<std::slice::Iter<'_, Program>>(),
+    )?;
+    owner.reserve(
+        std::mem::size_of::<std::slice::Iter<'_, TypeDeclaration>>()
+            + std::mem::size_of::<Option<&TypeDeclaration>>()
+            + std::mem::size_of::<&[Expr]>()
+            + std::mem::size_of::<bool>(),
+    )?;
+    let mut owning_invariants = program
+        .types
+        .iter()
+        .any(|declaration| !declaration.invariants().is_empty());
+    for candidate in programs {
+        owner.reserve(
+            std::mem::size_of::<std::slice::Iter<'_, TypeDeclaration>>()
+                + std::mem::size_of::<Option<&TypeDeclaration>>()
+                + std::mem::size_of::<&[Expr]>()
+                + std::mem::size_of::<bool>(),
+        )?;
+        if candidate
+            .types
+            .iter()
+            .any(|declaration| !declaration.invariants().is_empty())
+        {
+            owning_invariants = true;
+            break;
+        }
     }
     let layout = registry.get(program, authored, programs)?;
     let explicit = program
@@ -177,7 +208,9 @@ pub(in crate::workspace_graph) fn construct_transient<'p>(
                     || crate::box_ops::source_wrapper(provider, original).is_some()
             });
         owner.reserve(2 * std::mem::size_of::<bool>())?;
-        if retain_body && import.alias == original.name {
+        // Raw byte-helper proof memo/cursors have ordinary payload subjects.
+        // A Bytes-returning alias must retain the complete owning producer.
+        if retain_body && !owning_invariants && original.return_type != Type::Bytes {
             // The entire real view, its Some/receiving carriers and forwarded
             // arguments are paid before evaluating the checked constructor.
             owner.reserve(
@@ -355,3 +388,7 @@ fn directory<T>(count: usize, owner: &mut Receiver) -> Result<Vec<T>, Failure> {
 #[cfg(test)]
 #[path = "alias/tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "alias/rename_tests.rs"]
+mod rename_tests;

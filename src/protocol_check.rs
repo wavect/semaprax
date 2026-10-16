@@ -296,7 +296,7 @@ pub(crate) fn validate_program_source(
     // collisions introduced from the protocol side fail here.
     let mut ids = std::collections::BTreeSet::new();
     for function in program.functions() {
-        ids.insert(function.stable_id.as_str());
+        ids.insert(function.payload().stable_id.as_str());
     }
     for declaration in program.types() {
         ids.insert(declaration.stable_id.as_str());

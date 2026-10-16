@@ -319,11 +319,12 @@ fn state(source: &str, old: bool) -> std::collections::BTreeMap<String, BindingF
         .iter()
         .find(|function| function.name == "main")
         .unwrap();
-    let functions = program
-        .functions
+    let function_cells = crate::source_verify::capacity::source_capacity_functions(&program);
+    let functions = function_cells
         .iter()
-        .map(|function| (function.name.as_str(), function))
-        .collect::<HashMap<_, _>>();
+        .take(program.functions.len())
+        .map(|(_, function)| (function.name(), function))
+        .collect::<crate::source_verify::function_map::FunctionMap<'_>>();
     let types = crate::source_verify::type_table::TypeTable::new(&program);
     let mut variables = current
         .params
@@ -448,17 +449,20 @@ fn actual_dependency_directory_and_repeated_receiver_acquisitions_release_throug
             .iter()
             .find(|function| function.name == "main")
             .unwrap();
-        let functions = program
-            .functions
+        let function_cells = crate::source_verify::capacity::source_capacity_functions(&program);
+        let functions = function_cells
             .iter()
-            .map(|function| (function.name.as_str(), function))
-            .collect::<HashMap<_, _>>();
+            .take(program.functions.len())
+            .map(|(_, function)| (function.name(), function))
+            .collect::<crate::source_verify::function_map::FunctionMap<'_>>();
         let types = crate::source_verify::type_table::TypeTable::new(&program);
         let (_, observed) = measure(|| {
             let mut diagnostics = Vec::new();
             let mut verifier = crate::source_verify::IterativeVerifier::new(
                 &program,
-                current,
+                functions
+                    .get(current.name.as_str())
+                    .expect("frozen current declaration cell"),
                 HashMap::new(),
                 &functions,
                 &types,

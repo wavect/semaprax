@@ -1,5 +1,5 @@
 //! Transient retained wrappers lend their exact provider payload. Admission is
-//! deliberately name-equal: renamed imports keep the complete owning producer.
+//! limited to provider-authenticated retained Vec/Box wrappers by its producer.
 //! This view grants no import/wrapper authority. The producer runs the complete
 //! unchanged wrapper classifier before choosing this representation; ordinary
 //! source verification/resolution subsequently runs on the actual payload.
@@ -19,11 +19,10 @@ impl<'a> FunctionView<'a> {
         original: &'a Function,
         alias: &'a str,
     ) -> Option<Self> {
-        if alias != original.name
-            || !provider
-                .functions
-                .iter()
-                .any(|item| std::ptr::eq(item, original))
+        if !provider
+            .functions
+            .iter()
+            .any(|item| std::ptr::eq(item, original))
         {
             return None;
         }
@@ -107,4 +106,12 @@ impl ProgramSource for TransientFunctions<'_> {
         DeclSlices::projected(&self.authored.functions, &self.functions)
             .expect("producer checked complete function count")
     }
+    fn function_refs(&self) -> super::FunctionSlices<'_> {
+        super::FunctionSlices::projected(&self.authored.functions, &self.functions)
+            .expect("producer checked complete function count")
+    }
 }
+
+// The stored alias cell is immutable while source, verifier and HIR receivers
+// borrow it. Unsupported producer shapes keep the complete owning route.
+pub(crate) mod presentation;

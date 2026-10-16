@@ -18,7 +18,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 
 pub(super) fn check_record_invariants(
     program: &dyn ProgramSource,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {

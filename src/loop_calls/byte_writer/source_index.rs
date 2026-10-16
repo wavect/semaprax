@@ -238,11 +238,13 @@ impl<'a> SourceIndex<'a> {
         if !Self::may_require_body_proof(function) {
             return false;
         }
+        // Recover the exact member from this frozen index, preserving the old
+        // Option receiver and owner lifetime. A bool membership result cannot
+        // authorize storing a shorter caller reference in the proof memo.
         let Some(function) = self
             .program
-            .functions()
-            .iter()
-            .find(|candidate| std::ptr::eq(*candidate, function))
+            .function_refs()
+            .unaliased_payload_member(function)
         else {
             return false;
         };
@@ -266,15 +268,70 @@ impl<'a> SourceIndex<'a> {
                 function,
                 |owner, name| {
                     owner
-                        .functions()
-                        .iter()
-                        .find(|f| f.name == name)
+                        .function_refs()
+                        .unaliased_payload_by_name(name)
                         .map(|f| (owner, f))
                 },
                 ast_param,
                 super::super::ast_result_admitted,
                 self.program
                     .functions()
+                    .len()
+                    .saturating_add(self.program.module_uses().len()),
+            )
+            .unwrap_or(false)
+    }
+    /// Authenticate the exact stored presentation before structural body proof.
+    /// The proof kernel never reads a Function name: its memo subject is the
+    /// original immutable body and current owner, while every transitive lookup
+    /// below selects the effective projected spelling before borrowing payload.
+    /// General alias-specific byte proof caching remains outside this producer
+    /// subset: a stored alias cannot enter the raw payload memo or cursor.
+    pub(crate) fn target_ref(
+        &self,
+        function: &crate::ast::program_source::FunctionRef<'_>,
+    ) -> bool {
+        if function.has_stored_alias() || !Self::may_require_body_proof(function.payload()) {
+            return false;
+        }
+        // Every stored alias was refused above. For this ordinary-only route,
+        // the original pointer-find authenticates the exact source member and
+        // recovers its owner lifetime; detached same-content payloads fail.
+        let Some(function) = self
+            .program
+            .function_refs()
+            .unaliased_payload_member(function.payload())
+        else {
+            return false;
+        };
+        if !function
+            .params
+            .iter()
+            .all(|p| ast_param(self.program, p.mode, &p.ty))
+        {
+            return false;
+        }
+        let mut proofs = self.proofs.borrow_mut();
+        if proofs.entries.is_empty() && !proofs.failed {
+            let carrier = std::mem::size_of::<Self>() - std::mem::size_of::<SourceProofs<'a>>();
+            if proofs.reserve_carrier(carrier).is_err() {
+                return false;
+            }
+        }
+        proofs
+            .prove(
+                self.program,
+                function,
+                |owner, name| {
+                    owner
+                        .function_refs()
+                        .unaliased_payload_by_name(name)
+                        .map(|f| (owner, f))
+                },
+                ast_param,
+                super::super::ast_result_admitted,
+                self.program
+                    .function_refs()
                     .len()
                     .saturating_add(self.program.module_uses().len()),
             )
@@ -289,7 +346,7 @@ impl<'a> SourceIndex<'a> {
         else {
             return false;
         };
-        let Some(target) = self.program.functions().iter().find(|f| f.name == *name) else {
+        let Some(target) = self.program.function_refs().unaliased_payload_by_name(name) else {
             return false;
         };
         type_arguments.is_empty()
@@ -318,6 +375,7 @@ mod tests;
 
 pub(crate) trait SourceHelpers {
     fn target(&self, function: &Function) -> bool;
+    fn target_ref(&self, function: &crate::ast::program_source::FunctionRef<'_>) -> bool;
     fn assignment(&self, binding: &str, value: &Expr) -> bool;
     #[cfg(test)]
     fn owned_capacity_bytes(&self) -> usize;
@@ -325,6 +383,9 @@ pub(crate) trait SourceHelpers {
 impl SourceHelpers for SourceIndex<'_> {
     fn target(&self, function: &Function) -> bool {
         self.target(function)
+    }
+    fn target_ref(&self, function: &crate::ast::program_source::FunctionRef<'_>) -> bool {
+        self.target_ref(function)
     }
     fn assignment(&self, binding: &str, value: &Expr) -> bool {
         self.assignment(binding, value)

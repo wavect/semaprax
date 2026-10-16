@@ -87,7 +87,7 @@ pub(crate) fn inventory(program: &dyn ProgramSource) -> Option<Inventory<'_>> {
     {
         return None;
     }
-    let function = program.functions().get(0)?;
+    let function = program.functions().get(0)?.payload();
     if !function.explicit_id
         || !function.type_parameters.is_empty()
         || !function.params.is_empty()
@@ -309,7 +309,7 @@ pub(crate) fn finite_loop(program: &dyn ProgramSource, expression: &Expr) -> Opt
     if program.functions().len() != 1 {
         return None;
     }
-    let function = program.functions().get(0)?;
+    let function = program.functions().get(0)?.payload();
     let K::Block { statements, .. } = &function.body.kind else {
         return None;
     };

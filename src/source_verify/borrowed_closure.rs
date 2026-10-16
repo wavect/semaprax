@@ -87,19 +87,18 @@ pub(crate) fn profile(
         ));
     }
     let target = program
-        .functions()
-        .iter()
-        .find(|f| f.name == *name)
+        .function_refs()
+        .payload_by_name(name.as_str())
         .ok_or_else(|| reject("borrowed closure transition must be an ordinary local function"))?;
-    if !target.type_parameters.is_empty()
-        || !target.effects.is_empty()
-        || target.yields.is_some()
-        || target.return_type != Type::I64
-        || target.params.len() != 2
-        || target.params[0].ty != Type::Str
-        || target.params[0].mode != ParamMode::Borrow
-        || target.params[1].ty != Type::I64
-        || target.params[1].mode != ParamMode::Value
+    if !target.payload().type_parameters.is_empty()
+        || !target.payload().effects.is_empty()
+        || target.payload().yields.is_some()
+        || target.payload().return_type != Type::I64
+        || target.payload().params.len() != 2
+        || target.payload().params[0].ty != Type::Str
+        || target.payload().params[0].mode != ParamMode::Borrow
+        || target.payload().params[1].ty != Type::I64
+        || target.payload().params[1].mode != ParamMode::Value
     {
         return Err(reject(
             "borrowed transition requires pure (borrow str, i64) -> i64",

@@ -206,5 +206,24 @@ impl ProgramSource for ReadySource<'_> {
             }
         }
     }
+    fn function_refs(&self) -> super::FunctionSlices<'_> {
+        match self {
+            Self::Owned(p) => p.function_refs(),
+            Self::Shared { authored, key } => {
+                match key.owner.get().expect("completed key").original_ordinals() {
+                    Some(positions) => super::FunctionSlices::selected(
+                        &authored.functions,
+                        positions,
+                        &key.generated.functions,
+                    )
+                    .expect("completion checked ordered selection"),
+                    None => {
+                        super::FunctionSlices::append(&authored.functions, &key.generated.functions)
+                            .expect("completion checked function lengths")
+                    }
+                }
+            }
+        }
+    }
 }
 mod encode;

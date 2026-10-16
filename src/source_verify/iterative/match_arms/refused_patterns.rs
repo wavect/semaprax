@@ -23,7 +23,7 @@ enum Task<'p> {
     },
 }
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     pub(super) fn prepare_refused_match_pattern(
         &mut self,
         pattern: &'p MatchPattern,
@@ -147,9 +147,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 Task::Pattern(MatchPattern::Wildcard { .. }, _) => {}
                 Task::Pattern(MatchPattern::Literal { .. }, _) => {}
                 Task::Record(name, fields, span) => {
-                    let rejected_shape = crate::source_verify::declaration::record_shape::origin_named(
-                        self.program, self.types, name, self.diagnostics,
-                    ) == Some(origin);
+                    let rejected_shape =
+                        crate::source_verify::declaration::record_shape::origin_named(
+                            self.program,
+                            self.types,
+                            name,
+                            self.diagnostics,
+                        ) == Some(origin);
                     let declared = self.types.declaration(name).and_then(|declaration| {
                         match &declaration.kind {
                             TypeDeclarationKind::Record { fields } => Some(fields.as_slice()),

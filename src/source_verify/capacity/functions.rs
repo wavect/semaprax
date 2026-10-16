@@ -1,11 +1,11 @@
 use super::*;
 use crate::ast::program_source::ProgramSource;
 
-pub(in crate::source_verify) fn source_capacity_functions(
+pub(crate) fn source_capacity_functions(
     program: &dyn ProgramSource,
-) -> Vec<(Option<&str>, &Function)> {
+) -> Vec<crate::ast::program_source::FunctionCell<'_>> {
     let mut functions = program
-        .functions()
+        .function_refs()
         .iter()
         .map(|function| (None, function))
         .collect::<Vec<_>>();
@@ -14,7 +14,7 @@ pub(in crate::source_verify) fn source_capacity_functions(
             functions.extend(
                 methods
                     .iter()
-                    .map(|method| (Some(declaration.name.as_str()), method)),
+                    .map(|method| (Some(declaration), FunctionRef::ordinary(method))),
             );
         }
     }

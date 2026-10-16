@@ -81,15 +81,15 @@ pub(super) fn construction(
         ));
     }
     let target = program
-        .functions()
-        .iter()
-        .find(|function| function.name == *name)
+        .function_refs()
+        .payload_by_name(name.as_str())
         .ok_or_else(|| reject("mutable update target must be an ordinary local function"))?;
-    if !target.type_parameters.is_empty()
-        || !target.effects.is_empty()
-        || target.return_type != Type::I64
-        || target.params.len() != 2
+    if !target.payload().type_parameters.is_empty()
+        || !target.payload().effects.is_empty()
+        || target.payload().return_type != Type::I64
+        || target.payload().params.len() != 2
         || target
+            .payload()
             .params
             .iter()
             .any(|p| p.ty != Type::I64 || p.mode != ParamMode::Value)

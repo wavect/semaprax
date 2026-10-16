@@ -6,6 +6,7 @@ fn current_after_validation(
     // Full frozen receiver with the independently saved complete index. No
     // shared constructor, payload oracle, schema substitute, or partial view.
     (Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(program)),
         program,
         byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(program),
         declarations: DeclarationIndex::from_verified_with_prelude(

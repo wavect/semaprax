@@ -5,12 +5,13 @@ mod command_io;
 mod empty_clone;
 mod functions;
 mod fused_selection;
-pub(super) use functions::{source_array_payload, source_capacity_functions};
-pub(super) use fused_selection::verify_selected_capacity;
+pub(super) use functions::source_array_payload;
+pub(crate) use functions::source_capacity_functions;
+pub(super) use fused_selection::{verify_selected_capacity, verify_selected_capacity_with_cells};
 pub(super) struct SourceCapacityContext<'a> {
     pub(super) program: &'a dyn ProgramSource,
     pub(super) types: &'a TypeTable<'a>,
-    pub(super) ordinary: &'a BTreeMap<&'a str, &'a Function>,
+    pub(super) ordinary: &'a BTreeMap<&'a str, &'a FunctionRef<'a>>,
     pub(super) enclosing_class: Option<&'a str>,
     /// Held `FusedConstructionV1` selection; `None` on every default path.
     pub(super) fused: Option<&'a crate::source_verify::fused_construction::SourceProof<'a>>,
@@ -283,7 +284,7 @@ pub(super) fn source_capacity_expr_type(
                 context
                     .ordinary
                     .get(name.as_str())
-                    .map(|item| item.return_type.clone())
+                    .map(|item| item.payload().return_type.clone())
             }),
         ExprKind::VecConstructor { .. } => crate::ast::vec_constructor::return_type(expression),
         ExprKind::LexicalExit { .. } => Some(Type::Never),
@@ -298,7 +299,7 @@ pub(super) fn source_capacity_expr_type(
         | ExprKind::Block { .. }
         | ExprKind::Match { .. } => None,
         ExprKind::SuperMethod { method, .. } => source_capacity_super_method(context, method)
-            .map(|function| function.return_type.clone()),
+            .map(|function| function.payload().return_type.clone()),
         ExprKind::ConstructRecord {
             type_name,
             type_arguments,
@@ -420,7 +421,7 @@ pub(super) fn source_capacity_expr_type(
                             return None;
                         };
                         resolve_class_method(context.types, &name, method)
-                            .map(|(_, function)| function.return_type.clone())
+                            .map(|(_, function)| function.payload().return_type.clone())
                     });
                 }
                 Continuation::Project(field) => {
@@ -998,7 +999,7 @@ fn source_capacity_expr(
                 match &expression.kind {
                     ExprKind::Closure { .. } => frames.push(Frame::Emit(CapacityFlow::Empty)),
                     ExprKind::Call { name, args, .. } => {
-                        let target = context.ordinary.get(name.as_str()).copied();
+                        let target = context.ordinary.get(name.as_str()).copied().copied();
                         let effect = if let Some(flow) =
                             empty_clone::clone_capacity_flow(context, expression, &path)
                         {
@@ -1042,7 +1043,7 @@ fn source_capacity_expr(
                         } else {
                             target.map(|target| CapacityFlow::Call {
                                 site: path.clone(),
-                                callee: target.stable_id.clone(),
+                                callee: target.payload().stable_id.clone(),
                             })
                         };
                         let count = args.len() + usize::from(effect.is_some());
@@ -1055,7 +1056,7 @@ fn source_capacity_expr(
                                 expression: argument,
                                 path: format!("{path}.arg.{index}.value"),
                                 slot: target
-                                    .and_then(|function| function.params.get(index))
+                                    .and_then(|function| function.payload().params.get(index))
                                     .map(|param| (format!("{path}.arg.{index}"), param.ty.clone())),
                                 scope: std::rc::Rc::clone(&scope),
                             });
@@ -1080,7 +1081,7 @@ fn source_capacity_expr(
                         });
                         let effect = target.map(|target| CapacityFlow::Call {
                             site: path.clone(),
-                            callee: target.stable_id.clone(),
+                            callee: target.payload().stable_id.clone(),
                         });
                         frames.push(Frame::Sequence(
                             1 + args.len() + usize::from(effect.is_some()),
@@ -1093,7 +1094,7 @@ fn source_capacity_expr(
                                 expression: argument,
                                 path: format!("{path}.arg.{index}.value"),
                                 slot: target.and_then(|function| {
-                                    function.params.get(index + 1).map(|param| {
+                                    function.payload().params.get(index + 1).map(|param| {
                                         (format!("{path}.arg.{index}"), param.ty.clone())
                                     })
                                 }),
@@ -1105,6 +1106,7 @@ fn source_capacity_expr(
                             path: format!("{path}.receiver.value"),
                             slot: target.and_then(|function| {
                                 function
+                                    .payload()
                                     .params
                                     .first()
                                     .map(|param| (format!("{path}.receiver"), param.ty.clone()))
@@ -1114,7 +1116,9 @@ fn source_capacity_expr(
                     }
                     ExprKind::SuperMethod { method, args, .. } => {
                         let target = source_capacity_super_method(context, method);
-                        if let Some(param) = target.and_then(|function| function.params.first()) {
+                        if let Some(param) =
+                            target.and_then(|function| function.payload().params.first())
+                        {
                             source_capacity_slot(
                                 slots,
                                 context.types,
@@ -1125,7 +1129,7 @@ fn source_capacity_expr(
                         }
                         let effect = target.map(|target| CapacityFlow::Call {
                             site: path.clone(),
-                            callee: target.stable_id.clone(),
+                            callee: target.payload().stable_id.clone(),
                         });
                         frames.push(Frame::Sequence(args.len() + usize::from(effect.is_some())));
                         if let Some(effect) = effect {
@@ -1136,7 +1140,7 @@ fn source_capacity_expr(
                                 expression: argument,
                                 path: format!("{path}.arg.{index}.value"),
                                 slot: target.and_then(|function| {
-                                    function.params.get(index + 1).map(|param| {
+                                    function.payload().params.get(index + 1).map(|param| {
                                         (format!("{path}.arg.{index}"), param.ty.clone())
                                     })
                                 }),
@@ -1420,7 +1424,7 @@ fn source_capacity_expr(
                             });
                             let finite = if matches!(statement, Statement::ForOwn { .. }) {
                                 context.ordinary.values().find_map(|function| {
-                                    crate::finite_byte_scratch::source(function, body)
+                                    crate::finite_byte_scratch::source(function.payload(), body)
                                         .map(|proof| proof.iterations)
                                 })
                             } else {
@@ -1430,7 +1434,8 @@ fn source_capacity_expr(
                                             .then(|| {
                                                 context.ordinary.values().find_map(|function| {
                                                     crate::finite_owned_record_loop::source(
-                                                        function, body,
+                                                        function.payload(),
+                                                        body,
                                                     )
                                                     .map(|proof| proof.iterations)
                                                 })

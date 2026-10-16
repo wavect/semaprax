@@ -4,7 +4,7 @@ use super::*;
 use crate::ast::{Expr, ExprKind, ParamMode, Type};
 use std::collections::BTreeMap;
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(in crate::hir) fn resolve_mutable_closure(
         &self,
         parent: &FunctionExecutionId,
@@ -32,15 +32,13 @@ impl Resolver<'_> {
         let owner = parent
             .monomorphic_declaration()
             .and_then(|id| {
-                self.program
-                    .functions()
-                    .iter()
-                    .find(|f| f.stable_id == id.as_str())
+                self.source_functions()
+                    .find(|f| f.payload().stable_id == id.as_str())
             })
             .ok_or_else(|| {
                 hir_error("mutable closures require an ordinary lexical creation site")
             })?;
-        if !owner.type_parameters.is_empty() {
+        if !owner.payload().type_parameters.is_empty() {
             return Err(hir_error(
                 "generic mutable closure creation is not admitted",
             ));
@@ -84,16 +82,15 @@ impl Resolver<'_> {
             ));
         }
         let target = self
-            .program
-            .functions()
-            .iter()
-            .find(|f| f.name == *name)
+            .source_functions()
+            .find(|f| f.name() == name.as_str())
             .ok_or_else(|| hir_error("mutable closure update function is absent"))?;
-        if !target.effects.is_empty()
-            || !target.type_parameters.is_empty()
-            || target.return_type != Type::I64
-            || target.params.len() != 2
+        if !target.payload().effects.is_empty()
+            || !target.payload().type_parameters.is_empty()
+            || target.payload().return_type != Type::I64
+            || target.payload().params.len() != 2
             || target
+                .payload()
                 .params
                 .iter()
                 .any(|p| p.ty != Type::I64 || p.mode != ParamMode::Value)

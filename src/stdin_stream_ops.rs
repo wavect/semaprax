@@ -185,9 +185,9 @@ pub(crate) fn source_next_is_same_owner(
         && matches!(args.as_slice(), [crate::ast::Expr { kind: crate::ast::ExprKind::Var(owner), .. }] if owner == name)
         && (operation == "stdin_stream_next"
             || program
-                .functions()
-                .iter()
-                .any(|function| function.name == *operation && ast_forward_signature(function)))
+                .function_refs()
+                .find_named_payload(operation.as_str(), ast_forward_signature)
+                .is_some())
 }
 pub(crate) fn ast_forward_signature(function: &crate::ast::Function) -> bool {
     function.type_parameters.is_empty()
@@ -378,7 +378,10 @@ pub(crate) fn program_uses(program: &dyn ProgramSource) -> bool {
                 .chain(&function.ensures)
                 .any(ast_expression_uses)
     }
-    program.functions().iter().any(function_uses)
+    program
+        .functions()
+        .iter()
+        .any(|function| function_uses(function.payload()))
         || program
             .types()
             .iter()

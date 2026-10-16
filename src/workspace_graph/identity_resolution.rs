@@ -24,6 +24,8 @@ pub(super) type Parts = (
 
 #[derive(Debug)]
 pub(super) enum ModuleFailure {
+    /// Changed presentation acquisition stopped after an exact owned prefix.
+    SourceStop(crate::source_verify::funding::SourceAbort),
     /// Fixed report acquisition refused; no report backing exists.
     Setup(Refused),
     /// Owned source/semantic diagnostics (legacy) or the published identity
@@ -38,6 +40,25 @@ impl ModuleFailure {
     pub(super) fn into_legacy(self) -> Vec<Diagnostic> {
         match self {
             Self::Report(report) => report,
+            Self::SourceStop(abort) => {
+                // This existing compatibility boundary is outside funded
+                // resolution. Preserve every prefix field before rendering the
+                // sticky outer budget refusal; no source pass resumes here.
+                let (mut prefix, stop) = abort.into_parts();
+                let diagnostic = match stop {
+                    crate::source_verify::funding::SourceStop::Reservation(_) => {
+                        super::limit_error("builder_bytes", super::active_builder_limit())
+                    }
+                    crate::source_verify::funding::SourceStop::InvariantRoute => {
+                        super::graph_error(
+                            "SPX-G173",
+                            "invariant source requires its complete owning projection",
+                        )
+                    }
+                };
+                prefix.push(diagnostic);
+                prefix
+            }
             Self::Setup(_) => vec![super::limit_error(
                 "builder_bytes",
                 super::active_builder_limit(),

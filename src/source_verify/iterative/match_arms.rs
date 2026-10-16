@@ -25,7 +25,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 mod arms_before_799;
 mod refused_patterns;
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     pub(super) fn frame_resume_record_match_arm(
         &mut self,
         arm: &'p crate::ast::MatchArm,
@@ -64,21 +64,21 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             &arm_bindings,
             &outer_names,
         );
-        let generic_template = self.functions.get(self.current.name.as_str()).copied();
+        let generic_template = self.functions.get(self.current.name()).copied();
         let generic_owned_result = generic_template.is_some_and(|function| {
-            generic_function_has_owned_record_composition(function, self.types)
+            generic_function_has_owned_record_composition(function.payload(), self.types)
         });
         if result.as_ref().is_some_and(|value| {
             value.ty!=Type::Never && (!matches!(value.ty, Type::I64 | Type::Bool) || value.mode != ParamMode::Value)
-                && !(generic_template.is_some_and(|function| function.type_parameters.is_empty())
+                && !(generic_template.is_some_and(|function| function.payload().type_parameters.is_empty())
                     && (value.mode == ParamMode::Value || owns_record_input)
                     && crate::source_verify::declared_type::ordinary_record_match_result(&value.ty, value.mode, self.types))
                 && !(generic_owned_result
-                    && (((value.ty == self.current.return_type || (self.types.is_nested_owned_byte_record(&value.ty) || crate::source_verify::declared_type::string_record::runtime_admitted(&value.ty, self.types))) && value.mode == ParamMode::Own)
+                    && (((value.ty == self.current.payload().return_type || (self.types.is_nested_owned_byte_record(&value.ty) || crate::source_verify::declared_type::string_record::runtime_admitted(&value.ty, self.types))) && value.mode == ParamMode::Own)
                         || (value.mode == ParamMode::Value
                             && (crate::source_verify::type_table::owned_byte_record_copy_field_is_admitted(&value.ty)
                                 || matches!(&value.ty, Type::Named { name, arguments }
-                                    if arguments.is_empty() && generic_template.is_some_and(|function| function.type_parameters.iter().any(|parameter| parameter.name == *name)))))))
+                                    if arguments.is_empty() && generic_template.is_some_and(|function| function.payload().type_parameters.iter().any(|parameter| parameter.name == *name)))))))
         }) {
             self.diagnostics.push(error(
                 self.program,
@@ -492,7 +492,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 if value.ty != Type::Never
                     && !collection_result(&value.ty, value.mode)
                     && !crate::source_verify::declared_type::generic_variant::match_result(
-                        self.functions.get(self.current.name.as_str()).copied(),
+                        self.functions
+                            .get(self.current.name())
+                            .map(|function| function.payload()),
                         self.types,
                         state.mode,
                         &value.ty,
@@ -513,7 +515,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 && state.needs_drop
                 && !collection_result(&arm_value.ty, arm_value.mode)
                 && !crate::source_verify::declared_type::generic_variant::match_result(
-                    self.functions.get(self.current.name.as_str()).copied(),
+                    self.functions
+                        .get(self.current.name())
+                        .map(|function| function.payload()),
                     self.types,
                     state.mode,
                     &arm_value.ty,

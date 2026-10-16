@@ -3,7 +3,7 @@ use super::resolve_expr::path_arena::Seg;
 use super::*;
 use crate::ast::{Expr, ExprKind, Span};
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(super) fn resolve_stdin_inspection<'p>(
         &self,
         execution: &FunctionExecutionId,

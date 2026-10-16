@@ -40,7 +40,7 @@ pub(in crate::source_verify) fn loan_argument(
     })
 }
 
-impl crate::source_verify::IterativeVerifier<'_, '_> {
+impl crate::source_verify::IterativeVerifier<'_, '_, '_> {
     /// Record each admitted row argument of one ordinary call before any
     /// argument is entered; the row `Var` then reads as `borrow R`.
     pub(in crate::source_verify) fn note_row_loan_arguments(

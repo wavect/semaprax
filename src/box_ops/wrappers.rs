@@ -47,6 +47,16 @@ pub(crate) fn is_source_candidate(program: &dyn ProgramSource, function: &Functi
                 .into_iter()
                 .any(|op| wrapper_name(op) == function.name))
 }
+pub(crate) fn is_source_candidate_ref(
+    program: &dyn ProgramSource,
+    function: &crate::ast::program_source::FunctionRef<'_>,
+) -> bool {
+    program.module() == MODULE
+        && (wrapper_by_id(&function.payload().stable_id).is_some()
+            || super::ALL
+                .into_iter()
+                .any(|op| wrapper_name(op) == function.name()))
+}
 pub(crate) fn source_wrapper(program: &dyn ProgramSource, function: &Function) -> Option<BoxOp> {
     if !source_module_is_authenticated(program)
         || !function.explicit_id
@@ -82,6 +92,49 @@ pub(crate) fn source_wrapper(program: &dyn ProgramSource, function: &Function) -
         return None;
     }
     exact_source_body(&function.body, op, &function.params[0]).then_some(op)
+}
+
+/// Downstream presentation classification: the current projected module and
+/// effective name control recognition; provider authentication uses the
+/// unchanged raw classifier above. No payload-name substitution is allowed.
+pub(crate) fn source_wrapper_ref(
+    program: &dyn ProgramSource,
+    function: &crate::ast::program_source::FunctionRef<'_>,
+) -> Option<BoxOp> {
+    if !source_module_is_authenticated(program)
+        || !function.payload().explicit_id
+        || function.payload().type_parameters.len() != 1
+        || function.payload().type_parameters[0].name != "T"
+        || !function.payload().effects.is_empty()
+        || !function.payload().requires.is_empty()
+        || !function.payload().ensures.is_empty()
+    {
+        return None;
+    }
+    let op = wrapper_by_id(&function.payload().stable_id)?;
+    if function.name() != wrapper_name(op) {
+        return None;
+    }
+    if function.payload().params.len() != 1
+        || function.payload().params[0].name != "value"
+        || function.payload().params[0].mode
+            != match op.param_ownership() {
+                crate::hir::OwnershipMode::Own => crate::ast::ParamMode::Own,
+                crate::hir::OwnershipMode::Borrow => crate::ast::ParamMode::Borrow,
+                _ => crate::ast::ParamMode::Value,
+            }
+        || !match op {
+            BoxOp::New => generic_parameter(&function.payload().params[0].ty),
+            _ => generic_box(&function.payload().params[0].ty),
+        }
+        || !match op {
+            BoxOp::New => generic_box(&function.payload().return_type),
+            _ => generic_parameter(&function.payload().return_type),
+        }
+    {
+        return None;
+    }
+    exact_source_body(&function.payload().body, op, &function.payload().params[0]).then_some(op)
 }
 fn exact_source_body(body: &Expr, op: BoxOp, param: &crate::ast::Param) -> bool {
     let ExprKind::Block { statements, tail } = &body.kind else {
@@ -122,6 +175,31 @@ pub(crate) fn source_arguments_are_admitted(
     args: &[Type],
 ) -> bool {
     source_wrapper(program, function).is_some()
+        && matches!(args,[arg] if super::ast_element_is_admitted(arg))
+}
+#[cfg_attr(
+    not(test),
+    allow(dead_code, reason = "staged alias-aware verifier map receiver")
+)]
+pub(crate) fn source_parameter_is_admitted_ref(
+    program: &dyn ProgramSource,
+    function: &crate::ast::program_source::FunctionRef<'_>,
+    op: BoxOp,
+    ty: &Type,
+) -> bool {
+    source_wrapper_ref(program, function) == Some(op)
+        && matches!(ty,Type::Named{name,arguments} if name=="T"&&arguments.is_empty())
+}
+#[cfg_attr(
+    not(test),
+    allow(dead_code, reason = "staged alias-aware verifier map receiver")
+)]
+pub(crate) fn source_arguments_are_admitted_ref(
+    program: &dyn ProgramSource,
+    function: &crate::ast::program_source::FunctionRef<'_>,
+    args: &[Type],
+) -> bool {
+    source_wrapper_ref(program, function).is_some()
         && matches!(args,[arg] if super::ast_element_is_admitted(arg))
 }
 pub(crate) fn hir_wrapper(template: &ResolvedFunctionTemplate) -> Option<BoxOp> {

@@ -48,7 +48,7 @@ pub(super) fn schedule<'a>(
     });
 }
 pub(super) fn resume<'a>(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     mut frame: ForOwnFrame<'a>,
     frames: &mut Vec<Frame<'a>>,
@@ -134,7 +134,7 @@ pub(super) fn resume<'a>(
     Ok(())
 }
 fn source_element(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     source: &ResolvedExpr,
 ) -> Result<ResolvedType, Diagnostic> {
@@ -406,7 +406,7 @@ fn lower(
 #[cfg(test)]
 #[allow(clippy::too_many_arguments)]
 pub(super) fn resolve_reference(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     scope: &BTreeMap<String, Binding>,
     path: &str,
@@ -484,7 +484,7 @@ pub(super) fn capacity(
 
 // Shared continuation adapter keeps the legacy Vec traversal unchanged.
 pub(super) fn resume_vec<'a>(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     frame: Frame<'a>,
     frames: &mut Vec<Frame<'a>>,
@@ -512,7 +512,7 @@ pub(super) fn resume_vec<'a>(
 }
 #[cfg(test)]
 pub(super) fn resolve_statement_reference(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     scope: &BTreeMap<String, Binding>,
     path: &str,

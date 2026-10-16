@@ -163,3 +163,28 @@ fn actual_source_diagnostic_precedes_any_base_producer_activation() {
     assert_eq!(report, expected);
     assert!(receipt.is_none());
 }
+
+#[test]
+fn source_abort_owner_preserves_actual_old_failure_carrier_layouts() {
+    use std::mem::{align_of, size_of};
+    #[allow(dead_code, reason = "exact historical layout control")]
+    enum OldModuleFailure {
+        Setup(Refused),
+        Report(Vec<Diagnostic>),
+    }
+    #[allow(dead_code, reason = "exact historical layout control")]
+    enum OldNominalFailure {
+        Resolve(crate::hir::identity_resolution::Failure<Refused>),
+        Base(crate::hir::prelude_bundle::InvocationFailure<Refused>),
+    }
+    assert_eq!(size_of::<OldModuleFailure>(), size_of::<ModuleFailure>());
+    assert_eq!(align_of::<OldModuleFailure>(), align_of::<ModuleFailure>());
+    assert_eq!(
+        size_of::<OldNominalFailure>(),
+        size_of::<crate::hir::identity_resolution::NominalReceiverFailure>()
+    );
+    assert_eq!(
+        align_of::<OldNominalFailure>(),
+        align_of::<crate::hir::identity_resolution::NominalReceiverFailure>()
+    );
+}

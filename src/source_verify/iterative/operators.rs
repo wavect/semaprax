@@ -18,7 +18,7 @@ use std::collections::HashMap;
 #[cfg(test)]
 mod before_799;
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     pub(super) fn frame_resume_unary(
         &mut self,
         expression: &'p Expr,

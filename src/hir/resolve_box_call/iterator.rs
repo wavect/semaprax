@@ -2,7 +2,7 @@ use super::*;
 use crate::iterator_ops::IteratorOp;
 #[allow(clippy::too_many_arguments)]
 pub(super) fn schedule<'expr>(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     frames: &mut Vec<Frame<'expr>>,
     type_arguments: &[Type],
@@ -76,7 +76,7 @@ pub(super) fn finish<'p>(
 }
 #[cfg(test)]
 pub(super) fn reference(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     call: ReferenceCall<'_>,
     op: IteratorOp,
@@ -100,17 +100,17 @@ pub(super) fn reference(
 }
 
 fn resolve_element(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     ty: &Type,
     span: Span,
 ) -> Result<ResolvedType, Diagnostic> {
     if let FunctionExecutionId::Monomorphic(owner) = function {
-        if let Some(candidate) = resolver.program.functions().iter().find(|candidate| {
-            candidate.stable_id == owner.as_str()
-                && crate::source_verify::generic_collection_profile(candidate)
+        if let Some(candidate) = resolver.source_functions().find(|candidate| {
+            candidate.payload().stable_id == owner.as_str()
+                && crate::source_verify::generic_collection_profile(candidate.payload())
         }) {
-            return resolver.resolve_function_type(candidate, ty, span);
+            return resolver.resolve_function_type_ref(candidate, ty, span);
         }
     }
     resolver.resolve_type(ty, span)

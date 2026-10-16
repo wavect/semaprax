@@ -92,6 +92,17 @@ pub(crate) fn is_source_candidate(program: &dyn ProgramSource, function: &Functi
                 .any(|op| wrapper_name(op) == Some(function.name.as_str())))
 }
 
+pub(crate) fn is_source_candidate_ref(
+    program: &dyn ProgramSource,
+    function: &crate::ast::program_source::FunctionRef<'_>,
+) -> bool {
+    program.module() == MODULE
+        && (wrapper_by_id(&function.payload().stable_id).is_some()
+            || super::ALL
+                .into_iter()
+                .any(|op| wrapper_name(op) == Some(function.name())))
+}
+
 pub(crate) fn source_wrapper(program: &dyn ProgramSource, function: &Function) -> Option<VecOp> {
     if !source_module_is_authenticated(program)
         || !function.explicit_id
@@ -145,6 +156,68 @@ pub(crate) fn source_wrapper(program: &dyn ProgramSource, function: &Function) -
         return None;
     }
     exact_source_body(&function.body, op, &function.params).then_some(op)
+}
+
+/// Downstream presentation classification: the current projected module and
+/// effective name control recognition; provider authentication uses the
+/// unchanged raw classifier above. No payload-name substitution is allowed.
+pub(crate) fn source_wrapper_ref(
+    program: &dyn ProgramSource,
+    function: &crate::ast::program_source::FunctionRef<'_>,
+) -> Option<VecOp> {
+    if !source_module_is_authenticated(program)
+        || !function.payload().explicit_id
+        || function.payload().type_parameters.len() != 1
+        || function.payload().type_parameters[0].name != "T"
+        || !function.payload().effects.is_empty()
+        || !function.payload().requires.is_empty()
+        || !function.payload().ensures.is_empty()
+    {
+        return None;
+    }
+    let op = wrapper_by_id(&function.payload().stable_id)?;
+    if function.name() != wrapper_name(op)? {
+        return None;
+    }
+    let expected_names: &[&str] = match op {
+        VecOp::WithCapacity => &["capacity"],
+        VecOp::Push => &["values", "value"],
+        VecOp::Len | VecOp::Capacity => &["values"],
+        VecOp::Get => &["values", "index"],
+        VecOp::ReserveExact => &["values", "additional"],
+        VecOp::Set => &["values", "index", "value"],
+        VecOp::Clear | VecOp::Sort => &["values"],
+        VecOp::CloneAt
+        | VecOp::Replace
+        | VecOp::ReserveOwned
+        | VecOp::SortOwned
+        | VecOp::SortBy
+        | VecOp::StrAt
+        | VecOp::UniqueBy
+        | VecOp::UpdateField => return None,
+    };
+    if function.payload().params.len() != expected_names.len()
+        || function
+            .payload()
+            .params
+            .iter()
+            .zip(expected_names)
+            .enumerate()
+            .any(|(index, (actual, name))| {
+                let mode = match op.param_ownership(index) {
+                    OwnershipMode::Own => crate::ast::ParamMode::Own,
+                    OwnershipMode::Borrow => crate::ast::ParamMode::Borrow,
+                    _ => crate::ast::ParamMode::Value,
+                };
+                actual.name != *name
+                    || actual.mode != mode
+                    || !parameter_type(op, index, &actual.ty)
+            })
+        || !return_type(op, &function.payload().return_type)
+    {
+        return None;
+    }
+    exact_source_body(&function.payload().body, op, &function.payload().params).then_some(op)
 }
 
 fn exact_source_body(body: &Expr, op: VecOp, params: &[crate::ast::Param]) -> bool {
@@ -212,6 +285,29 @@ pub(crate) fn source_arguments_are_admitted(
     arguments: &[Type],
 ) -> bool {
     source_wrapper(program, function).is_some()
+        && matches!(arguments, [argument] if super::ast_element_is_admitted(argument))
+}
+
+pub(crate) fn source_parameter_is_admitted_ref(
+    program: &dyn ProgramSource,
+    function: &crate::ast::program_source::FunctionRef<'_>,
+    op: VecOp,
+    ty: &Type,
+) -> bool {
+    source_wrapper_ref(program, function) == Some(op)
+        && matches!(ty, Type::Named { name, arguments } if name == "T" && arguments.is_empty())
+}
+
+#[cfg_attr(
+    not(test),
+    allow(dead_code, reason = "staged alias-aware verifier map receiver")
+)]
+pub(crate) fn source_arguments_are_admitted_ref(
+    program: &dyn ProgramSource,
+    function: &crate::ast::program_source::FunctionRef<'_>,
+    arguments: &[Type],
+) -> bool {
+    source_wrapper_ref(program, function).is_some()
         && matches!(arguments, [argument] if super::ast_element_is_admitted(argument))
 }
 

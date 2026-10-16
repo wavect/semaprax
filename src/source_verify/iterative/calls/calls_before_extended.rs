@@ -18,7 +18,7 @@ use crate::source_verify::IterativeVerifier;
 
 // Parent registers the complete prior component receiver.
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     #[allow(clippy::too_many_arguments)]
     pub(super) fn before_extended_frame_resume_call_argument(
         &mut self,
@@ -70,7 +70,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         };
                         check_argument_ownership(
                             self.program,
-                            self.current,
+                            self.current.payload(),
                             name,
                             argument,
                             &parameter,
@@ -91,7 +91,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     reject_native_unit_value(self.program, argument, actual, self.diagnostics);
                     check_argument_ownership(
                         self.program,
-                        self.current,
+                        self.current.payload(),
                         name,
                         argument,
                         parameter,
@@ -124,7 +124,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     Some(VerifierFunctionSignature::Borrowed(function)) => self
                         .recovery
                         .callee_component_refusal(
-                            function,
+                            function.payload(),
                             Some(index),
                             self.program,
                             self.types,
@@ -163,7 +163,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     }
                     check_argument_ownership(
                         self.program,
-                        self.current,
+                        self.current.payload(),
                         name,
                         argument,
                         param,
@@ -177,7 +177,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         matches!(
                             specialized.as_ref(),
                             Some(VerifierFunctionSignature::Borrowed(function))
-                                if function.type_parameters.is_empty()
+                                if function.payload().type_parameters.is_empty()
                         ),
                         self.diagnostics,
                     );
@@ -234,7 +234,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     if let Some(parameter) = crate::command_io_ops::ast_params(*op).get(index) {
                         check_argument_ownership(
                             self.program,
-                            self.current,
+                            self.current.payload(),
                             name,
                             argument,
                             parameter,
@@ -292,7 +292,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 VerifierCallTarget::Ordinary(Some(VerifierFunctionSignature::Borrowed(
                     function,
                 ))) => self.recovery.callee_component_refusal(
-                    function,
+                    function.payload(),
                     None,
                     self.program,
                     self.types,
@@ -483,7 +483,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         }
         check_argument_ownership(
             self.program,
-            self.current,
+            self.current.payload(),
             method_fn.name.as_str(),
             receiver,
             self_param,
@@ -556,7 +556,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             }
             check_argument_ownership(
                 self.program,
-                self.current,
+                self.current.payload(),
                 method.name.as_str(),
                 argument,
                 param,
@@ -616,7 +616,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         }
         let exact_owned_result = crate::source_verify::declared_type::generic_result::concrete_try(
             &operand_value.ty,
-            &self.current.return_type,
+            &self.current.payload().return_type,
         );
         if exact_owned_result && self.allow_moves {
             mark_value_sources_moved(
@@ -639,14 +639,14 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         }
         if let Some((ok, error_ty)) = ordinary_result_arguments(&operand_value.ty) {
             let Some((_residual_ok_ty, residual_error_ty)) =
-                ordinary_result_arguments(&self.current.return_type)
+                ordinary_result_arguments(&self.current.payload().return_type)
             else {
                 self.diagnostics.push(error(
                     self.program,
                     "SPX-T218",
                     format!(
                         "function `{}` must return the ordinary compiler-owned Result to propagate a Result with `?`",
-                        self.current.name
+                        self.current.name()
                     ),
                     expression.span,
                 ).with_help(crate::source_verify::hints::TRY_RESULT_RETURN_HELP));
@@ -678,12 +678,12 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             return Ok(());
         }
         if let Some(some) = ordinary_option_argument(&operand_value.ty) {
-            let outer = ordinary_option_argument(&self.current.return_type);
+            let outer = ordinary_option_argument(&self.current.payload().return_type);
             if outer.is_none() {
                 self.diagnostics.push(error(
                     self.program,
                     "SPX-T218",
-                    format!("function `{}` must return the ordinary compiler-owned Option to propagate an Option with `?`", self.current.name),
+                    format!("function `{}` must return the ordinary compiler-owned Option to propagate an Option with `?`", self.current.name()),
                     expression.span,
                 ));
             } else if !matches!(some, Type::I64 | Type::Bool)
@@ -732,6 +732,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         self.values.pop();
         let value = self
             .current
+            .payload()
             .yields
             .as_ref()
             .map(|yields| CheckedValue::value(yields.response_type.clone()));
@@ -809,7 +810,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
     }
 }
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     pub(super) fn before_extended_refused_callee_return(
         &mut self,
         target: &VerifierCallTarget<'p>,
@@ -817,7 +818,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         let origin = match target {
             VerifierCallTarget::Ordinary(Some(VerifierFunctionSignature::Borrowed(function))) => {
                 self.recovery.callee_component_refusal(
-                    function,
+                    function.payload(),
                     None,
                     self.program,
                     self.types,

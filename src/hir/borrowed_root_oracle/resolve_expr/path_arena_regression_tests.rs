@@ -127,6 +127,7 @@ fn compare() {
         "deterministic cache bytes"
     );
     let resolver = Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(&parsed)),
         program: &parsed,
         byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(&parsed),
         declarations: DeclarationIndex::from_verified(&parsed).unwrap(),

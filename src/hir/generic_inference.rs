@@ -6,17 +6,17 @@ use crate::ast::{BinaryOp, Expr, ExprKind, Type, UnaryOp};
 const MAX_EVIDENCE_NODES: usize = 4_096;
 const MAX_EVIDENCE_DEPTH: usize = 128;
 
-impl Resolver<'_> {
-    pub(super) fn infer_call_arguments(
+impl Resolver<'_, '_> {
+    pub(super) fn infer_call_arguments_ref(
         &self,
         caller: &FunctionExecutionId,
-        target: &crate::ast::Function,
+        target: &crate::ast::program_source::FunctionRef<'_>,
         args: &[Expr],
         bindings: &BTreeMap<String, Binding>,
     ) -> Option<Vec<Type>> {
         if !matches!(caller, FunctionExecutionId::Monomorphic(_))
-            || target.type_parameters.is_empty()
-            || args.len() != target.params.len()
+            || target.payload().type_parameters.is_empty()
+            || args.len() != target.payload().params.len()
         {
             return None;
         }
@@ -27,20 +27,22 @@ impl Resolver<'_> {
     fn infer_call_arguments_with_budget(
         &self,
         caller: &FunctionExecutionId,
-        target: &crate::ast::Function,
+        target: &crate::ast::program_source::FunctionRef<'_>,
         args: &[Expr],
         bindings: &BTreeMap<String, Binding>,
         remaining: &mut usize,
         depth: usize,
     ) -> Option<Vec<Type>> {
-        if target.type_parameters.is_empty() || args.len() != target.params.len() {
+        if target.payload().type_parameters.is_empty()
+            || args.len() != target.payload().params.len()
+        {
             return None;
         }
-        let owner = DeclarationId::new(target.stable_id.clone());
-        let mut inferred = vec![None; target.type_parameters.len()];
-        for (formal, argument) in target.params.iter().zip(args) {
+        let owner = DeclarationId::new(target.payload().stable_id.clone());
+        let mut inferred = vec![None; target.payload().type_parameters.len()];
+        for (formal, argument) in target.payload().params.iter().zip(args) {
             let formal = self
-                .resolve_function_type(target, &formal.ty, formal.span)
+                .resolve_function_type_ref(target, &formal.ty, formal.span)
                 .ok()?;
             let actual = self.evidence_type(caller, argument, bindings, remaining, depth)?;
             let mut pending = vec![(&formal, &actual)];
@@ -210,16 +212,14 @@ impl Resolver<'_> {
         };
         let span = expression.span;
         let target = self
-            .program
-            .functions()
-            .iter()
-            .find(|function| function.name == *name)?;
-        if args.len() != target.params.len() {
+            .source_functions()
+            .find(|function| function.name() == name)?;
+        if args.len() != target.payload().params.len() {
             return None;
         }
-        if target.type_parameters.is_empty() {
+        if target.payload().type_parameters.is_empty() {
             return type_arguments.is_empty().then(|| {
-                self.resolve_function_type(target, &target.return_type, span)
+                self.resolve_function_type_ref(target, &target.payload().return_type, span)
                     .ok()
             })?;
         }
@@ -231,7 +231,7 @@ impl Resolver<'_> {
         } else {
             type_arguments
         };
-        if arguments.len() != target.type_parameters.len() {
+        if arguments.len() != target.payload().type_parameters.len() {
             return None;
         }
         let resolved = arguments
@@ -239,13 +239,13 @@ impl Resolver<'_> {
             .map(|argument| self.resolve_call_type_argument(caller, argument, span))
             .collect::<Result<Vec<_>, _>>()
             .ok()?;
-        self.generic_function_arguments_are_admitted(caller, target, &resolved)
+        self.generic_function_arguments_are_admitted_ref(caller, target, &resolved)
             .ok()?
             .then(|| {
                 super::monomorphize::substitute_source_function_type(
-                    target,
+                    target.payload(),
                     arguments,
-                    &target.return_type,
+                    &target.payload().return_type,
                 )
                 .and_then(|result| self.resolve_call_type_argument(caller, &result, span).ok())
             })?
@@ -286,12 +286,11 @@ impl Resolver<'_> {
                     return None;
                 }
                 let function = self
-                    .program
-                    .functions()
-                    .iter()
-                    .find(|function| function.stable_id == caller.as_str())?;
+                    .source_functions()
+                    .find(|function| function.payload().stable_id == caller.as_str())?;
                 Some(Type::Named {
                     name: function
+                        .payload()
                         .type_parameters
                         .get(usize::try_from(*index).ok()?)?
                         .name
@@ -361,30 +360,31 @@ fn ordered(ty: &ResolvedType) -> bool {
     )
 }
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     /// Prepare one ordinary call without evaluating or resolving its arguments.
     /// Both resolver engines use this boundary and then visit arguments once.
-    pub(super) fn ordinary_call_signature(
+    pub(super) fn ordinary_call_signature_ref(
         &self,
         caller: &FunctionExecutionId,
-        target: &crate::ast::Function,
+        target: &crate::ast::program_source::FunctionRef<'_>,
         authored_arguments: &[Type],
         args: &[Expr],
         bindings: &BTreeMap<String, Binding>,
         span: Span,
     ) -> Result<(Vec<ResolvedType>, Option<FunctionInstanceId>, Type), Diagnostic> {
-        let inferred = if authored_arguments.is_empty() && !target.type_parameters.is_empty() {
-            self.infer_call_arguments(caller, target, args, bindings)
-        } else {
-            None
-        };
+        let inferred =
+            if authored_arguments.is_empty() && !target.payload().type_parameters.is_empty() {
+                self.infer_call_arguments_ref(caller, target, args, bindings)
+            } else {
+                None
+            };
         let arguments = inferred.as_deref().unwrap_or(authored_arguments);
         let resolved = arguments
             .iter()
             .map(|argument| self.resolve_call_type_argument(caller, argument, span))
             .collect::<Result<Vec<_>, _>>()?;
-        let template = DeclarationId::new(target.stable_id.clone());
-        if target.type_parameters.is_empty() {
+        let template = DeclarationId::new(target.payload().stable_id.clone());
+        if target.payload().type_parameters.is_empty() {
             if !resolved.is_empty() {
                 return Err(self.error(
                     "SPX-H006",
@@ -392,10 +392,10 @@ impl Resolver<'_> {
                     span,
                 ));
             }
-            return Ok((resolved, None, target.return_type.clone()));
+            return Ok((resolved, None, target.payload().return_type.clone()));
         }
-        if resolved.len() != target.type_parameters.len()
-            || !self.generic_function_arguments_are_admitted(caller, target, &resolved)?
+        if resolved.len() != target.payload().type_parameters.len()
+            || !self.generic_function_arguments_are_admitted_ref(caller, target, &resolved)?
         {
             return Err(self.error(
                 "SPX-H006",
@@ -405,9 +405,9 @@ impl Resolver<'_> {
         }
         let instance = FunctionInstanceId::derive(&template, &resolved);
         let return_type = super::monomorphize::substitute_source_function_type(
-            target,
+            target.payload(),
             arguments,
-            &target.return_type,
+            &target.payload().return_type,
         )
         .ok_or_else(|| {
             self.error(
@@ -420,12 +420,51 @@ impl Resolver<'_> {
     }
 }
 
+impl Resolver<'_, '_> {
+    #[cfg(test)]
+    pub(super) fn infer_call_arguments(
+        &self,
+        caller: &FunctionExecutionId,
+        target: &crate::ast::Function,
+        args: &[Expr],
+        bindings: &BTreeMap<String, Binding>,
+    ) -> Option<Vec<Type>> {
+        self.infer_call_arguments_ref(
+            caller,
+            &crate::ast::program_source::FunctionRef::ordinary(target),
+            args,
+            bindings,
+        )
+    }
+
+    #[cfg(test)]
+    pub(super) fn ordinary_call_signature(
+        &self,
+        caller: &FunctionExecutionId,
+        target: &crate::ast::Function,
+        authored_arguments: &[Type],
+        args: &[Expr],
+        bindings: &BTreeMap<String, Binding>,
+        span: Span,
+    ) -> Result<(Vec<ResolvedType>, Option<FunctionInstanceId>, Type), Diagnostic> {
+        self.ordinary_call_signature_ref(
+            caller,
+            &crate::ast::program_source::FunctionRef::ordinary(target),
+            authored_arguments,
+            args,
+            bindings,
+            span,
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn resolver(program: &crate::ast::Program) -> Resolver<'_> {
+    fn resolver(program: &crate::ast::Program) -> Resolver<'_, '_> {
         Resolver {
+            function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(program)),
             program,
             byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(program),
             declarations: DeclarationIndex::from_verified(program).expect("declaration index"),

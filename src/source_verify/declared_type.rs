@@ -1033,6 +1033,22 @@ pub(super) fn check_ownership_mode(
     types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
+    check_ownership_mode_ref(
+        program,
+        &crate::ast::program_source::FunctionRef::ordinary(function),
+        param,
+        types,
+        diagnostics,
+    )
+}
+
+pub(super) fn check_ownership_mode_ref(
+    program: &dyn ProgramSource,
+    function: &crate::ast::program_source::FunctionRef<'_>,
+    param: &crate::ast::Param,
+    types: &TypeTable<'_>,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
     if param.ty == Type::MutFunctionI64 {
         diagnostics.push(error(
             program,
@@ -1043,7 +1059,7 @@ pub(super) fn check_ownership_mode(
         return;
     }
     if param.ty.is_once_function() {
-        if param.mode != ParamMode::Own || !function.type_parameters.is_empty() {
+        if param.mode != ParamMode::Own || !function.payload().type_parameters.is_empty() {
             diagnostics.push(error(
                 program,
                 "SPX-T308",
@@ -1061,7 +1077,8 @@ pub(super) fn check_ownership_mode(
                     "SPX-O115",
                     format!(
                         "borrowed text parameter `{}.{}` must use `borrow str`",
-                        function.name, param.name
+                        function.name(),
+                        param.name
                     ),
                     param.span,
                 )
@@ -1078,7 +1095,8 @@ pub(super) fn check_ownership_mode(
                     "SPX-T263",
                     format!(
                         "byte-slice parameter `{}.{}` must use `borrow Slice<u8>`",
-                        function.name, param.name
+                        function.name(),
+                        param.name
                     ),
                     param.span,
                 )
@@ -1088,13 +1106,14 @@ pub(super) fn check_ownership_mode(
         return;
     }
     if param.ty == Type::Bytes {
-        if param.mode == ParamMode::Borrow && !function.type_parameters.is_empty() {
+        if param.mode == ParamMode::Borrow && !function.payload().type_parameters.is_empty() {
             diagnostics.push(error(
                 program,
                 "SPX-T263",
                 format!(
                     "borrowed Bytes parameter `{}.{}` requires a monomorphic function",
-                    function.name, param.name
+                    function.name(),
+                    param.name
                 ),
                 param.span,
             ));
@@ -1104,7 +1123,8 @@ pub(super) fn check_ownership_mode(
                 "SPX-T263",
                 format!(
                     "byte parameter `{}.{}` must use `own Bytes` or `borrow Bytes`",
-                    function.name, param.name
+                    function.name(),
+                    param.name
                 ),
                 param.span,
             ));
@@ -1123,7 +1143,7 @@ pub(super) fn check_ownership_mode(
                 "SPX-T263",
                 format!(
                     "owned-string variant parameter `{}.{}` must use `own {}` or `borrow {}`",
-                    function.name,
+                    function.name(),
                     param.name,
                     shown(),
                     shown()
@@ -1158,7 +1178,7 @@ pub(super) fn check_ownership_mode(
                 "SPX-O001",
                 format!(
                     "resource parameter `{}.{}` needs `own`, `borrow`, or `shared`",
-                    function.name, param.name
+                    function.name(), param.name
                 ),
                 param.span,
             );

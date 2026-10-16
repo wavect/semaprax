@@ -1,3 +1,4 @@
+use super::super::name_equal::construct_transient;
 use super::*;
 use crate::ast::program_source::ProgramSource;
 use crate::bounded_output::{with_limit_usage_refusal, ReservationRefusal};
@@ -33,7 +34,8 @@ thread_local! {
     static FIRST_PUSH_REMAINING: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
 }
 // Test-only observation after an actual owning push, never a forecasted count.
-pub(super) fn observe_owned_push() {
+pub(in crate::workspace_graph::expected_projection::borrowed_imports::typed) fn observe_owned_push()
+{
     if OBSERVE_PUSH.with(std::cell::Cell::get) {
         FIRST_PUSH_REMAINING.with(|first| {
             if first.get().is_none() {

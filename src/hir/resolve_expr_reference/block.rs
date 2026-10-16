@@ -1,6 +1,6 @@
 //! Saved recursive Block semantics; no iterative resolver frames are reused.
 use super::*;
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(super) fn resolve_block_reference(
         &self,
         function: &FunctionExecutionId,

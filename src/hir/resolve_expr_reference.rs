@@ -22,7 +22,7 @@ mod literal_format;
 mod projection;
 mod static_text;
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(super) fn resolve_expr_recursive_reference_inner(
         &self,
         function: &FunctionExecutionId,

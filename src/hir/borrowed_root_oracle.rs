@@ -16,9 +16,9 @@ mod closure {
     mod once;
     mod resolve;
 }
-pub(super) struct Resolver<'r, 'p>(pub(super) &'r super::Resolver<'p>);
+pub(super) struct Resolver<'r, 'p>(pub(super) &'r super::Resolver<'p, 'p>);
 impl<'r, 'p> std::ops::Deref for Resolver<'r, 'p> {
-    type Target = super::Resolver<'p>;
+    type Target = super::Resolver<'p, 'p>;
     fn deref(&self) -> &Self::Target {
         self.0
     }

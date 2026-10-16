@@ -155,6 +155,7 @@ fn source_pass<E>(
         &mut *reserve,
     )?;
     (Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(program)),
         program,
         byte_helpers,
         declarations,
@@ -201,6 +202,7 @@ fn pass<E>(
         &mut *reserve,
     )?;
     (Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(program)),
         program,
         byte_helpers,
         declarations,
@@ -284,7 +286,10 @@ pub(crate) use nominal::{
 #[cfg(test)]
 mod nominal_tests;
 
-pub(crate) use nominal::{resolve_source_checked_previous_with_base, NominalReceiverFailure};
+pub(crate) use nominal::{
+    resolve_source_checked_previous_with_base, resolve_source_checked_previous_with_owner,
+    NominalReceiverFailure,
+};
 
 #[cfg(test)]
 pub(crate) mod nominal_original;

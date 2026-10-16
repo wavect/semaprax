@@ -2,7 +2,7 @@
 use super::*;
 use crate::ast::ParamMode;
 use crate::source_verify::loans::mark_value_sources_moved;
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     pub(super) fn resume_lexical_return(
         &mut self,
         expression: &'p Expr,
@@ -12,8 +12,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         let value = self.values.pop().unwrap_or(None);
         if let Some(value) = value {
             if value.native_unit
-                || (value.ty != self.current.return_type
-                    && !self.recovery.explains(operand, &self.current.return_type))
+                || (value.ty != self.current.payload().return_type
+                    && !self
+                        .recovery
+                        .explains(operand, &self.current.payload().return_type))
             {
                 self.diagnostics.push(error(
                     self.program,

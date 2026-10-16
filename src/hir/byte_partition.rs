@@ -41,6 +41,9 @@ impl<'source> ValidatedPartitionProgram<'source> {
                 return Err(diagnostic);
             }
             let (program, _) = Resolver {
+                function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(
+                    source,
+                )),
                 program: source,
                 byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(source),
                 declarations: DeclarationIndex::from_verified(source)?,
@@ -102,7 +105,7 @@ impl<'source> ValidatedPartitionProgram<'source> {
     }
 }
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     /// Both iterative and reference resolution use this identical guard.
     pub(super) fn byte_operation(
         &self,

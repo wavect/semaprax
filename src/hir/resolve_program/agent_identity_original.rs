@@ -3,7 +3,7 @@ use super::*;
 use crate::hir::{record_invariants, DeclarationIndex, FunctionResolutionWork, FunctionReuse};
 use crate::Program;
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(in crate::hir) fn resolve_agent_identity_original(
         mut self,
     ) -> Result<(ResolvedProgram, crate::hir::FunctionResolutionWork), Diagnostic> {
@@ -238,11 +238,9 @@ impl Resolver<'_> {
                 .filter(|function| function.type_parameters.is_empty())
                 .count();
         let mut functions = Vec::with_capacity(function_count);
-        for function in self
-            .program
-            .functions()
+        for (_, function) in self.function_cells[..self.program.functions().len()]
             .iter()
-            .filter(|function| function.type_parameters.is_empty())
+            .filter(|(_, function)| function.payload().type_parameters.is_empty())
         {
             let (resolved, cost, reused) = self.resolve_or_reuse_function(function)?;
             if reused {
@@ -250,7 +248,7 @@ impl Resolver<'_> {
             }
             self.function_work
                 .costs
-                .insert(function.stable_id.clone(), cost);
+                .insert(function.payload().stable_id.clone(), cost);
             functions.push(resolved);
         }
         for decl in self.program.types() {
@@ -491,6 +489,9 @@ pub(in crate::hir) fn resolve_verified_original(
     let clause_program = record_invariants::clause_program(program);
     let inventory_program = clause_program.as_ref().unwrap_or(program);
     let resolved = (Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(
+            inventory_program,
+        )),
         program: inventory_program,
         byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(inventory_program),
         declarations: DeclarationIndex::from_verified(inventory_program)?,
@@ -508,6 +509,7 @@ pub(in crate::hir) fn resolve_verified_original(
         return Ok(resolved);
     };
     (Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(&desugared)),
         program: &desugared,
         byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(&desugared),
         declarations: DeclarationIndex::from_verified(&desugared)?,

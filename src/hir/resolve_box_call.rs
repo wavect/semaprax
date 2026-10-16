@@ -65,7 +65,7 @@ impl OwnedGenericCallSite {
     #[allow(clippy::too_many_arguments)]
     pub(super) fn schedule<'expr>(
         self,
-        resolver: &Resolver<'_>,
+        resolver: &Resolver<'_, '_>,
         function: &FunctionExecutionId,
         frames: &mut Vec<Frame<'expr>>,
         type_arguments: &[Type],
@@ -134,7 +134,7 @@ impl OwnedGenericCallSite {
     #[allow(clippy::too_many_arguments)]
     pub(super) fn resolve_reference(
         self,
-        resolver: &Resolver<'_>,
+        resolver: &Resolver<'_, '_>,
         function: &FunctionExecutionId,
         call: ReferenceCall<'_>,
     ) -> Result<ResolvedExpr, Diagnostic> {
@@ -151,7 +151,7 @@ impl OwnedGenericCallSite {
 }
 
 pub(super) fn finish_owned(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     path: ExprPath<'_>,
     span: Span,
@@ -180,7 +180,7 @@ use crate::diagnostic::Diagnostic;
 use std::collections::BTreeMap;
 
 fn resolve_element(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     op: crate::box_ops::BoxOp,
     ty: &Type,
@@ -188,16 +188,14 @@ fn resolve_element(
 ) -> Result<ResolvedType, Diagnostic> {
     if let FunctionExecutionId::Monomorphic(owner) = function {
         if let Some(candidate) = resolver
-            .program
-            .functions()
-            .iter()
-            .find(|candidate| candidate.stable_id == owner.as_str())
+            .source_functions()
+            .find(|candidate| candidate.payload().stable_id == owner.as_str())
             .filter(|candidate| {
-                crate::box_ops::source_wrapper(resolver.program, candidate) == Some(op)
-                    || crate::source_verify::generic_collection_profile(candidate)
+                crate::box_ops::source_wrapper_ref(resolver.program, candidate) == Some(op)
+                    || crate::source_verify::generic_collection_profile(candidate.payload())
             })
         {
-            return resolver.resolve_function_type(candidate, ty, span);
+            return resolver.resolve_function_type_ref(candidate, ty, span);
         }
     }
     resolver.resolve_type(ty, span)
@@ -205,7 +203,7 @@ fn resolve_element(
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn schedule<'expr>(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     frames: &mut Vec<Frame<'expr>>,
     type_arguments: &[Type],
@@ -295,7 +293,7 @@ pub(super) fn finish<'p>(
 #[cfg(test)]
 #[allow(clippy::too_many_arguments)]
 pub(super) fn resolve_reference(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     call: ReferenceCall<'_>,
     op: crate::box_ops::BoxOp,

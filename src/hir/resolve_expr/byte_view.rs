@@ -1,7 +1,7 @@
 //! Lower only rooted view operands; the source and HIR boundaries authenticate them.
 use super::*;
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(in crate::hir) fn byte_range_source_shape(&self, source: &ResolvedExpr) -> bool {
         match &source.kind {
             ResolvedExprKind::Place(place) => place.projections.is_empty(),

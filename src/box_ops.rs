@@ -197,7 +197,10 @@ pub(crate) fn program_uses_owned_payload(program: &dyn ProgramSource) -> bool {
                     found
                 })
     }
-    program.functions().iter().any(function_uses)
+    program
+        .function_refs()
+        .iter()
+        .any(|function| function_uses(function.payload()))
         || program
             .types()
             .iter()

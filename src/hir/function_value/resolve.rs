@@ -44,7 +44,7 @@ pub(crate) fn source_type(ty: &Type) -> Option<ResolvedType> {
         result: Box::new(source_scalar(result)?),
     })
 }
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(in crate::hir) fn finish_invocation<'p>(
         &self,
         function: &FunctionExecutionId,
@@ -68,13 +68,14 @@ impl Resolver<'_> {
         if bindings.contains_key(name) {
             return Ok(None);
         }
-        let Some(target) = self.program.functions().iter().find(|f| f.name == *name) else {
+        let Some(target) = self.source_functions().find(|f| f.name() == name) else {
             return Ok(None);
         };
-        if !target.type_parameters.is_empty()
-            || !target.effects.is_empty()
-            || target.params.len() > 8
+        if !target.payload().type_parameters.is_empty()
+            || !target.payload().effects.is_empty()
+            || target.payload().params.len() > 8
             || target
+                .payload()
                 .params
                 .iter()
                 .any(|p| p.mode != crate::ast::ParamMode::Value)
@@ -83,13 +84,14 @@ impl Resolver<'_> {
         }
         let ty = ResolvedType::Function {
             parameters: target
+                .payload()
                 .params
                 .iter()
                 .map(|p| source_scalar(&p.ty))
                 .collect::<Option<_>>()
                 .ok_or_else(|| error("function reference parameter is not scalar"))?,
             result: Box::new(
-                source_scalar(&target.return_type)
+                source_scalar(&target.payload().return_type)
                     .ok_or_else(|| error("function reference result is not scalar"))?,
             ),
         };
@@ -98,7 +100,7 @@ impl Resolver<'_> {
             ty,
             ownership: OwnershipMode::Value,
             kind: ResolvedExprKind::FunctionReference {
-                target: self.declarations.held_identity(&target.stable_id),
+                target: self.declarations.held_identity(&target.payload().stable_id),
             },
             span: expr.span,
         }))
@@ -184,10 +186,10 @@ pub(in crate::hir) fn finish<'p>(
     Ok(expr)
 }
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(in crate::hir) fn resolve_generic_callable_type(
         &self,
-        function: &crate::ast::Function,
+        function: &crate::ast::program_source::FunctionRef<'_>,
         parameters: &[Type],
         result: &Type,
         span: crate::ast::Span,
@@ -195,16 +197,18 @@ impl Resolver<'_> {
         let ty = ResolvedType::Function {
             parameters: parameters
                 .iter()
-                .map(|ty| self.resolve_function_type(function, ty, span))
+                .map(|ty| self.resolve_function_type_ref(function, ty, span))
                 .collect::<Result<_, _>>()?,
-            result: Box::new(self.resolve_function_type(function, result, span)?),
+            result: Box::new(self.resolve_function_type_ref(function, result, span)?),
         };
         if !is_signature(&ty)
-            && !((1..=2).contains(&function.type_parameters.len())
+            && !((1..=2).contains(&function.payload().type_parameters.len())
                 && super::super::generic_collection::callback(
                     &ty,
-                    &self.declarations.held_identity(&function.stable_id),
-                    function.type_parameters.len(),
+                    &self
+                        .declarations
+                        .held_identity(&function.payload().stable_id),
+                    function.payload().type_parameters.len(),
                 ))
         {
             return Err(error("invalid scoped callable signature"));

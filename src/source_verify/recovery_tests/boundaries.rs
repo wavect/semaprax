@@ -124,17 +124,20 @@ fn repeated_source_uses_visit_only_active_scope_rows_and_release_actual_storage(
         let source = source(&body);
         let program = crate::parse(&source, Path::new("repeated-recovery.spx")).unwrap();
         let current_function = &program.functions[0];
-        let functions = program
-            .functions
+        let function_cells = crate::source_verify::capacity::source_capacity_functions(&program);
+        let functions = function_cells
             .iter()
-            .map(|function| (function.name.as_str(), function))
-            .collect();
+            .take(program.functions.len())
+            .map(|(_, function)| (function.name(), function))
+            .collect::<crate::source_verify::function_map::FunctionMap<'_>>();
         let types = super::TypeTable::new(&program);
         let (visited, storage) = measure(|| {
             let mut diagnostics = Vec::new();
             let mut verifier = crate::source_verify::IterativeVerifier::new(
                 &program,
-                current_function,
+                functions
+                    .get(current_function.name.as_str())
+                    .expect("frozen current declaration cell"),
                 std::collections::HashMap::new(),
                 &functions,
                 &types,

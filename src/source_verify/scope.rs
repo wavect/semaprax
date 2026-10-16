@@ -374,14 +374,14 @@ pub(super) enum VerifierCallTarget<'a> {
 }
 
 pub(super) enum VerifierFunctionSignature<'a> {
-    Borrowed(&'a Function),
+    Borrowed(&'a crate::ast::program_source::FunctionRef<'a>),
     Specialized {
         params: Vec<Param>,
         return_type: Type,
         implicit_unique_ownership: bool,
     },
     SourceSpecialized {
-        function: &'a Function,
+        function: &'a crate::ast::program_source::FunctionRef<'a>,
         params: Vec<Param>,
         return_type: Type,
     },
@@ -616,7 +616,9 @@ pub(super) fn verifier_frame_owned_capacity(frame: &VerifierFrame<'_>) -> usize 
 }
 
 impl<'p> VerifierFunctionSignature<'p> {
-    pub(super) fn source_function(&self) -> Option<&'p Function> {
+    pub(super) fn source_function(
+        &self,
+    ) -> Option<&'p crate::ast::program_source::FunctionRef<'p>> {
         match self {
             Self::Borrowed(function) | Self::SourceSpecialized { function, .. } => Some(*function),
             Self::Specialized { .. } => None,
@@ -625,14 +627,14 @@ impl<'p> VerifierFunctionSignature<'p> {
 
     pub(super) fn params(&self) -> &[Param] {
         match self {
-            Self::Borrowed(function) => &function.params,
+            Self::Borrowed(function) => &function.payload().params,
             Self::Specialized { params, .. } | Self::SourceSpecialized { params, .. } => params,
         }
     }
 
     pub(super) fn return_type(&self) -> &Type {
         match self {
-            Self::Borrowed(function) => &function.return_type,
+            Self::Borrowed(function) => &function.payload().return_type,
             Self::Specialized { return_type, .. } | Self::SourceSpecialized { return_type, .. } => {
                 return_type
             }

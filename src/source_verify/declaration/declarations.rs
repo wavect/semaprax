@@ -26,7 +26,9 @@ pub(super) fn check_byte_data_declarations<'p>(
     for declaration in program.types() {
         match &declaration.kind {
             TypeDeclarationKind::Record { .. } => {
-                if let Some(diagnostic) = super::record_shape::diagnostic(program, types, declaration) {
+                if let Some(diagnostic) =
+                    super::record_shape::diagnostic(program, types, declaration)
+                {
                     diagnostics.push(diagnostic);
                 }
             }
@@ -179,9 +181,9 @@ pub(super) fn check_native_rust_imports<'p>(
             }
             if import.native_rust
                 && program
-                    .functions()
-                    .iter()
-                    .any(|function| function.name == import.name)
+                    .function_refs()
+                    .payload_by_name(&import.name)
+                    .is_some()
             {
                 diagnostics.push(error(
                     program,

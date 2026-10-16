@@ -15,7 +15,7 @@ pub(super) fn validate(program: &dyn ProgramSource, diagnostics: &mut Vec<Diagno
             _ => &[],
         }))
     {
-        check_function(program, function, diagnostics);
+        check_function(program, function.payload(), diagnostics);
     }
 }
 fn check_function(

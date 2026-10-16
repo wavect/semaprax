@@ -126,7 +126,27 @@ impl<'p> Recovery<'p> {
         origin: &super::declaration::SignatureOrigin<'p>,
         result_type: Option<&Type>,
     ) -> Option<Self> {
-        let template = origin.template_for(program, current)?;
+        Self::signature_origin_ref(
+            program,
+            &crate::ast::program_source::FunctionRef::ordinary(current),
+            variables,
+            types,
+            diagnostics,
+            origin,
+            result_type,
+        )
+    }
+
+    pub(super) fn signature_origin_ref(
+        program: &'p dyn crate::ast::program_source::ProgramSource,
+        current: &crate::ast::program_source::FunctionRef<'p>,
+        variables: &std::collections::HashMap<String, super::binding::Binding>,
+        types: &super::type_table::TypeTable<'_>,
+        diagnostics: &[Diagnostic],
+        origin: &super::declaration::SignatureOrigin<'p>,
+        result_type: Option<&Type>,
+    ) -> Option<Self> {
+        let template = origin.template_for_ref(program, current)?.payload();
         let mut recovery = Self::default();
         if !diagnostics
             .iter()
@@ -137,7 +157,7 @@ impl<'p> Recovery<'p> {
         recovery.unknown_declarations = true;
         let mut parameters = None;
         let mut scratch = Vec::new();
-        for (parameter, actual) in template.params.iter().zip(&current.params) {
+        for (parameter, actual) in template.params.iter().zip(&current.payload().params) {
             if types.needs_drop(&actual.ty)
                 || variables
                     .get(&parameter.name)
@@ -188,8 +208,8 @@ impl<'p> Recovery<'p> {
         // The reserved result name has its own actual postcondition carrier;
         // it never becomes available in a requires clause or ordinary body.
         if let Some(index) = result_type
-            .filter(|ty| std::ptr::eq(*ty, &current.return_type))
-            .and_then(|_| origin.return_refusal(program, current, types, diagnostics))
+            .filter(|ty| std::ptr::eq(*ty, &current.payload().return_type))
+            .and_then(|_| origin.return_refusal_ref(program, current, types, diagnostics))
         {
             recovery.ensure(0);
             recovery.scopes[0]

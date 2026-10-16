@@ -103,7 +103,7 @@ const AGGREGATE_NOT_YET_ADMITTED: &str = "SPX-T307";
 /// until that gap closes. Every other owned or aggregate value also keeps
 /// `SPX-T303`.
 fn profile_refusal(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     ty: &ResolvedType,
     ownership: super::OwnershipMode,
 ) -> (&'static str, &'static str) {
@@ -130,7 +130,7 @@ fn profile_refusal(
     (NON_SCALAR_BODY, "a value is not an admitted Copy scalar")
 }
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     /// The type a `yield` node carries while its function body resolves: the
     /// enclosing function's declared response type, so a yielded binding in
     /// a nested block (issue #296) is typed correctly for later statements.
@@ -144,11 +144,9 @@ impl Resolver<'_> {
         let super::FunctionExecutionId::Monomorphic(id) = function else {
             return request.clone();
         };
-        self.program
-            .functions()
-            .iter()
-            .find(|candidate| candidate.stable_id == id.as_str())
-            .and_then(|candidate| candidate.yields.as_ref())
+        self.source_functions()
+            .find(|candidate| candidate.payload().stable_id == id.as_str())
+            .and_then(|candidate| candidate.payload().yields.as_ref())
             .and_then(|clause| self.resolve_type(&clause.response_type, clause.span).ok())
             .unwrap_or_else(|| request.clone())
     }
@@ -164,21 +162,33 @@ impl Resolver<'_> {
     /// `hir::resolve`'s existing source-verification gate -- generic
     /// functions never reach `resolve_function_in_scope`, so a second,
     /// unreachable check here would be dead code.
+    #[cfg(test)]
     pub(super) fn resolve_yields_clause(
         &self,
         function: &ast::Function,
         params: &[ResolvedParam],
     ) -> Result<Option<ResolvedYieldsClause>, Diagnostic> {
-        let Some(yields) = &function.yields else {
+        self.resolve_yields_clause_ref(
+            &crate::ast::program_source::FunctionRef::ordinary(function),
+            params,
+        )
+    }
+
+    pub(super) fn resolve_yields_clause_ref(
+        &self,
+        function: &crate::ast::program_source::FunctionRef<'_>,
+        params: &[ResolvedParam],
+    ) -> Result<Option<ResolvedYieldsClause>, Diagnostic> {
+        let Some(yields) = &function.payload().yields else {
             return Ok(None);
         };
-        if !function.effects.is_empty() {
+        if !function.payload().effects.is_empty() {
             return Err(self.error(
                 EFFECTFUL_YIELDS,
                 format!(
                     "function `{}` declares both `uses` and `yields`; resuming would \
                      redispatch its host effects a second time, which is not yet admitted",
-                    function.name
+                    function.name()
                 ),
                 yields.span,
             ));
@@ -194,7 +204,7 @@ impl Resolver<'_> {
                 format!(
                     "function `{}` declares a `yields` response with a bounded `Bytes` leaf; \
                      the current direct sequential profile admits `Bytes` leaves on requests only",
-                    function.name
+                    function.name()
                 ),
                 yields.span,
             ));
@@ -230,7 +240,7 @@ impl Resolver<'_> {
                                  or variant but does not fit the admitted bounded Copy-scalar \
                                  aggregate shape (docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md \
                                  §12.1): {reason}",
-                                function.name
+                                function.name()
                             ),
                             yields.span,
                         ));
@@ -243,7 +253,7 @@ impl Resolver<'_> {
                     "function `{}` declares a `yields` {role} type that is not an admitted \
                      Copy scalar; only a Copy scalar, or a bounded flat record/variant of Copy \
                      scalars, is admitted here",
-                    function.name
+                    function.name()
                 ),
                 yields.span,
             ));
@@ -268,7 +278,8 @@ impl Resolver<'_> {
                     format!(
                         "function `{}` declares `yields` but parameter `{}` is outside the \
                      resumable profile: {reason}",
-                        function.name, offender.name
+                        function.name(),
+                        offender.name
                     ),
                     offender.span,
                 ));
@@ -384,7 +395,7 @@ impl Resolver<'_> {
 }
 
 fn check_scalar(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function_name: &str,
     yields: &ResolvedYieldsClause,
     params: &[ResolvedParam],
@@ -501,7 +512,7 @@ fn body_is_control_dependent(body: &ResolvedExpr) -> bool {
 /// `is_root` forced `false`, so a nested block's tail never admits a
 /// `yield`.
 fn scan_expr(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function_name: &str,
     yields: &ResolvedYieldsClause,
     params: &[ResolvedParam],
@@ -938,7 +949,7 @@ fn scan_expr(
 }
 
 fn scan_children(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function_name: &str,
     yields: &ResolvedYieldsClause,
     params: &[ResolvedParam],
@@ -965,7 +976,7 @@ fn scan_children(
 }
 
 fn scan_fields(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function_name: &str,
     yields: &ResolvedYieldsClause,
     params: &[ResolvedParam],
@@ -992,7 +1003,7 @@ fn scan_fields(
 }
 
 fn scan_arm(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function_name: &str,
     yields: &ResolvedYieldsClause,
     params: &[ResolvedParam],
@@ -1030,7 +1041,7 @@ fn scan_arm(
 }
 
 fn scan_statement(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function_name: &str,
     yields: &ResolvedYieldsClause,
     params: &[ResolvedParam],

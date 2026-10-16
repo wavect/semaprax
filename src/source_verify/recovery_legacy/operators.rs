@@ -7,7 +7,7 @@ use crate::source_verify::diagnostics::{
 use crate::source_verify::hints;
 use crate::source_verify::loans::join_conditional;
 use crate::source_verify::IterativeVerifier;
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     pub(in crate::source_verify) fn recovery_old_frame_resume_unary(
         &mut self,
         expression: &'p Expr,

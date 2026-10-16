@@ -15,7 +15,7 @@ use crate::source_verify::scope::{
 };
 use crate::source_verify::IterativeVerifier;
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     #[allow(clippy::collapsible_else_if)]
     pub(in crate::source_verify) fn run(
         &mut self,

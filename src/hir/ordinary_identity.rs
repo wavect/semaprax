@@ -100,6 +100,7 @@ fn legacy_pass<'a>(
     prelude: &[crate::ast::TypeDeclaration],
 ) -> Result<(ResolvedProgram, FunctionResolutionWork), Diagnostic> {
     Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(program)),
         program,
         byte_helpers: helpers,
         declarations: DeclarationIndex::from_verified_with_prelude(program, prelude)?,
@@ -130,6 +131,7 @@ fn pass<'a>(
             IdentityIndexError::Identity(_) => PassFailure::Identity,
         })?;
     Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(program)),
         program,
         byte_helpers: helpers,
         declarations,

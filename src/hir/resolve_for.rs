@@ -18,7 +18,7 @@ use super::{
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn schedule<'expr>(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     frames: &mut Vec<Frame<'expr>>,
     paths: &mut PathArena<'_>,
@@ -141,7 +141,7 @@ pub(super) fn schedule<'expr>(
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn resume<'expr>(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     frames: &mut Vec<Frame<'expr>>,
     paths: &PathArena<'_>,
@@ -211,7 +211,7 @@ pub(super) fn resume<'expr>(
 #[cfg(test)]
 #[allow(clippy::too_many_arguments)]
 pub(super) fn resolve_reference(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     scope: &BTreeMap<String, Binding>,
     statement_path: &str,
@@ -299,7 +299,7 @@ pub(super) fn resolve_reference(
 /// The exact traversal item type: a Copy-scalar `Vec<T>` element, or the `u8`
 /// of one immutable named `Slice<u8>` view. Every other source stays closed.
 fn element(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     source: &Binding,
     values: &crate::ast::Expr,
 ) -> Result<ResolvedType, crate::diagnostic::Diagnostic> {
@@ -334,7 +334,7 @@ fn element(
 /// on the active builder ledger and constructs no traversal.
 #[allow(clippy::too_many_arguments)]
 fn lower_source(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     statement_path: &str,
     item_name: &str,

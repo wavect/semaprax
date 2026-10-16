@@ -23,16 +23,17 @@ type Scope<'a> = HashMap<&'a str, Binding>;
 
 pub(crate) fn function_value_targets(
     program: &dyn ProgramSource,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
 ) -> BTreeSet<String> {
     let mut targets = BTreeSet::new();
     for function in program.functions() {
-        let scope = initial_scope(function);
+        let scope = initial_scope(function.payload());
         for expression in function
+            .payload()
             .requires
             .iter()
-            .chain(std::iter::once(&function.body))
-            .chain(&function.ensures)
+            .chain(std::iter::once(&function.payload().body))
+            .chain(&function.payload().ensures)
         {
             visit(
                 expression,
@@ -48,16 +49,17 @@ pub(crate) fn function_value_targets(
 
 pub(crate) fn calls(
     function: &Function,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     universe: &BTreeSet<String>,
 ) -> Vec<String> {
-    let scope = initial_scope(function);
+    let scope = initial_scope(function.payload());
     let mut output = BTreeSet::new();
     for expression in function
+        .payload()
         .requires
         .iter()
-        .chain(std::iter::once(&function.body))
-        .chain(&function.ensures)
+        .chain(std::iter::once(&function.payload().body))
+        .chain(&function.payload().ensures)
     {
         visit(
             expression,
@@ -72,6 +74,7 @@ pub(crate) fn calls(
 
 fn initial_scope(function: &Function) -> Scope<'_> {
     function
+        .payload()
         .params
         .iter()
         .map(|parameter| {
@@ -92,7 +95,7 @@ fn initial_scope(function: &Function) -> Scope<'_> {
 fn visit(
     expression: &Expr,
     scope: &mut Scope<'_>,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     output: &mut BTreeSet<String>,
     universe: Option<&BTreeSet<String>>,
 ) {
@@ -208,7 +211,7 @@ fn binding_for_let(
     declared: Option<&Type>,
     value: &Expr,
     scope: &Scope<'_>,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
 ) -> Binding {
     let signature = declared
         .cloned()
@@ -226,7 +229,7 @@ fn binding_for_let(
 fn reference_signature(
     value: &Expr,
     scope: &Scope<'_>,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
 ) -> Option<Type> {
     if let ExprKind::Closure {
         params,
@@ -252,7 +255,7 @@ fn reference_signature(
 fn reference_target(
     value: &Expr,
     scope: &Scope<'_>,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
 ) -> Option<BTreeSet<String>> {
     let ExprKind::Var(name) = &value.kind else {
         return None;
@@ -267,22 +270,25 @@ fn reference_target(
     }
 }
 
-fn function_value_signature_for(name: &str, functions: &HashMap<&str, &Function>) -> Option<Type> {
+fn function_value_signature_for(
+    name: &str,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
+) -> Option<Type> {
     functions
         .get(name)
-        .and_then(|function| function_value_signature(function))
+        .and_then(|function| function_value_signature(function.payload()))
 }
 
 fn candidates(
     signature: &Type,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     universe: &BTreeSet<String>,
 ) -> BTreeSet<String> {
     functions
         .iter()
         .filter(|(name, function)| {
             universe.contains(**name)
-                && function_value_signature(function).as_ref() == Some(signature)
+                && function_value_signature(function.payload()).as_ref() == Some(signature)
         })
         .map(|(name, _)| (*name).to_owned())
         .collect()

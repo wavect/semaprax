@@ -31,12 +31,13 @@ fn receive_function_route(
 ) -> (Option<crate::ast::Type>, Vec<Diagnostic>) {
     let program = crate::parse(source, Path::new("extended-components.spx")).unwrap();
     let types = TypeTable::new(&program);
-    let functions = program
-        .functions
+    let function_cells = crate::source_verify::capacity::source_capacity_functions(&program);
+    let functions = function_cells
         .iter()
-        .map(|function| (function.name.as_str(), function))
-        .collect::<HashMap<_, _>>();
-    let main = functions[name];
+        .take(program.functions.len())
+        .map(|(_, function)| (function.name(), function))
+        .collect::<crate::source_verify::function_map::FunctionMap<'_>>();
+    let main = functions[name].payload();
     let mut diagnostics = Vec::new();
     // Real signature checker creates the original receipts before body checking.
     for function in program.functions() {
@@ -149,7 +150,9 @@ fn receive_function_route(
     });
     let mut verifier = IterativeVerifier::new(
         &program,
-        main,
+        functions
+            .get(main.name.as_str())
+            .expect("frozen current declaration cell"),
         variables,
         &functions,
         &types,
@@ -901,7 +904,7 @@ fn actual_failure_repair_keeps_complete_previous_component_receiver_and_projecti
     assert_eq!(saved, include_str!("../../../docs/evidence/actual-refusal-components-799/src__source_verify__recovery__callee_components.rs.before"));
     let calls = include_str!("../iterative/calls.rs");
     let boundary =
-        "\nimpl IterativeVerifier<'_, '_> {\n    // Availability and partial-move diagnostics";
+        "\nimpl IterativeVerifier<'_, '_, '_> {\n    // Availability and partial-move diagnostics";
     assert_eq!(calls.matches(boundary).count(), 1);
     assert_eq!(calls.split_once(boundary).unwrap().0, include_str!("../../../docs/evidence/actual-refusal-components-799/src__source_verify__iterative__calls.rs.before"));
     let recovery = include_str!("../recovery.rs");

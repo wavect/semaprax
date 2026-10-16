@@ -162,7 +162,10 @@ pub(super) fn check_construction(
         ));
         return None;
     };
-    let Some(target) = program.functions().iter().find(|f| f.name == *target_name) else {
+    let Some(target) = program
+        .function_refs()
+        .payload_by_name(target_name.as_str())
+    else {
         diagnostics.push(error(
             program,
             "SPX-T293",
@@ -171,12 +174,12 @@ pub(super) fn check_construction(
         ));
         return None;
     };
-    if !target.type_parameters.is_empty()
-        || target.params.len() != args.len()
-        || target.params[0].mode != ParamMode::Own
-        || target.params[0].ty != Type::Bytes
-        || target.return_type != *return_type
-        || (retained && !target.effects.is_empty())
+    if !target.payload().type_parameters.is_empty()
+        || target.payload().params.len() != args.len()
+        || target.payload().params[0].mode != ParamMode::Own
+        || target.payload().params[0].ty != Type::Bytes
+        || target.payload().return_type != *return_type
+        || (retained && !target.payload().effects.is_empty())
     {
         diagnostics.push(error(
             program,
@@ -191,8 +194,8 @@ pub(super) fn check_construction(
     if mixed || pair {
         let valid = args[1..].iter().enumerate().all(|(offset, argument)| {
             matches!(&argument.kind, ExprKind::Var(name) if variables.get(name).is_some_and(|binding| binding.ty == Type::I64 && binding.mode == ParamMode::Value && binding.availability == Availability::Available))
-                && target.params[offset + 1].ty == Type::I64
-                && target.params[offset + 1].mode == ParamMode::Value
+                && target.payload().params[offset + 1].ty == Type::I64
+                && target.payload().params[offset + 1].mode == ParamMode::Value
         });
         if !valid {
             diagnostics.push(error(

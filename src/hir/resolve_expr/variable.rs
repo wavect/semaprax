@@ -3,7 +3,7 @@
 //! ordinary call can bind; every other row use is refused here.
 use super::path_arena::ExprPath;
 use super::*;
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(super) fn named_value(
         &self,
         function: &FunctionExecutionId,

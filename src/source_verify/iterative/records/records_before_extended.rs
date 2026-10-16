@@ -14,7 +14,7 @@ use crate::source_verify::type_table::{effective_record_fields, TypeTable};
 use crate::source_verify::IterativeVerifier;
 use std::collections::HashSet;
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     #[allow(clippy::too_many_arguments)]
     pub(super) fn before_extended_frame_prepare_record_field(
         &mut self,

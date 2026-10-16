@@ -229,6 +229,7 @@ fn old_with_setup_refusal(
     let prelude = crate::prelude::declarations_for_program(inventory);
     assert!(matches!(refuse_setup(), Err(Refused::Budget(_))));
     let resolved = (Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(inventory)),
         program: inventory,
         byte_helpers: helpers,
         declarations: DeclarationIndex::from_verified_with_prelude(inventory, prelude)
@@ -244,6 +245,7 @@ fn old_with_setup_refusal(
         return Ok(resolved);
     };
     (Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(&desugared)),
         program: &desugared,
         byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(&desugared),
         declarations: DeclarationIndex::from_verified(&desugared).map_err(|error| vec![error])?,

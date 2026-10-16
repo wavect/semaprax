@@ -1,7 +1,7 @@
 //! Independent recursive literal-format reference resolution.
 use super::*;
 
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(super) fn resolve_literal_format_reference(
         &self,
         function: &FunctionExecutionId,

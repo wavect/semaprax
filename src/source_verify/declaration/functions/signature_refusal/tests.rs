@@ -116,21 +116,27 @@ fn borrowed_producer_origin_rejects_foreign_stale_and_malformed_templates_withou
     )
     .unwrap();
     let raw = &program.functions[0];
+    let raw_view = FunctionRef::ordinary(raw);
     let current =
         crate::source_verify::declared_type::validation_specialize_function(raw, &[Type::I64])
             .unwrap();
     let foreign = program.clone();
     let copy = current.clone();
     let ((), metrics) = crate::test_allocation_observer::measure(|| {
-        let held = origin(&program, raw, &current).unwrap();
+        let held = origin(&program, &raw_view, &current).unwrap();
         assert!(std::ptr::eq(
             held.template_for(&program, &current).unwrap(),
             raw
         ));
         assert!(held.template_for(&foreign, &current).is_none());
         assert!(held.template_for(&program, &copy).is_none());
-        assert!(origin(&program, &foreign.functions[0], &current).is_none());
-        assert!(origin(&program, raw, raw).is_none());
+        assert!(origin(
+            &program,
+            &FunctionRef::ordinary(&foreign.functions[0]),
+            &current
+        )
+        .is_none());
+        assert!(origin(&program, &raw_view, raw).is_none());
     });
     assert!(!metrics.invalid);
     assert_eq!(
@@ -155,7 +161,12 @@ fn borrowed_producer_origin_rejects_foreign_stale_and_malformed_templates_withou
             3 => malformed.functions[0].params[0].span.start += 1,
             _ => unreachable!(),
         }
-        assert!(origin(&malformed, &malformed.functions[0], &current).is_none());
+        assert!(origin(
+            &malformed,
+            &FunctionRef::ordinary(&malformed.functions[0]),
+            &current
+        )
+        .is_none());
     }
 }
 
@@ -167,15 +178,17 @@ fn specialized_public_receiver_keeps_exact_six_field_authentication() {
     )
     .unwrap();
     let raw = &program.functions[0];
+    let raw_view = FunctionRef::ordinary(raw);
     let current =
         crate::source_verify::declared_type::validation_specialize_function(raw, &[Type::I64])
             .unwrap();
     let types = TypeTable::new(&program);
-    let functions = program
-        .functions
+    let function_cells = crate::source_verify::capacity::source_capacity_functions(&program);
+    let functions = function_cells
         .iter()
-        .map(|function| (function.name.as_str(), function))
-        .collect();
+        .take(program.functions.len())
+        .map(|(_, function)| (function.name(), function))
+        .collect::<crate::source_verify::function_map::FunctionMap<'_>>();
     let mut receipt = Vec::new();
     crate::source_verify::declared_type::check_declared_type(
         &program,
@@ -211,7 +224,7 @@ fn specialized_public_receiver_keeps_exact_six_field_authentication() {
             &mut diagnostics,
             None,
             None,
-            origin(&program, raw, &current),
+            origin(&program, &raw_view, &current),
         );
         assert!(value.is_none());
         assert!(diagnostics
@@ -413,15 +426,17 @@ fn actual_contract_receiver_rejects_six_field_forgeries_and_foreign_body_origins
     )
     .unwrap();
     let raw = &program.functions[0];
+    let raw_view = FunctionRef::ordinary(raw);
     let current =
         crate::source_verify::declared_type::validation_specialize_function(raw, &[Type::I64])
             .unwrap();
     let types = TypeTable::new(&program);
-    let functions = program
-        .functions
+    let function_cells = crate::source_verify::capacity::source_capacity_functions(&program);
+    let functions = function_cells
         .iter()
-        .map(|function| (function.name.as_str(), function))
-        .collect();
+        .take(program.functions.len())
+        .map(|(_, function)| (function.name(), function))
+        .collect::<crate::source_verify::function_map::FunctionMap<'_>>();
     let bindings = variables(&current);
     let mut receipt = Vec::new();
     crate::source_verify::declared_type::check_declared_type(
@@ -455,7 +470,7 @@ fn actual_contract_receiver_rejects_six_field_forgeries_and_foreign_body_origins
             None,
             &mut diagnostics,
             "precondition",
-            origin(&program, raw, &current),
+            origin(&program, &raw_view, &current),
         );
         assert_eq!(
             diagnostics
@@ -471,12 +486,10 @@ fn actual_contract_receiver_rejects_six_field_forgeries_and_foreign_body_origins
     )
     .unwrap();
     let stale_body = current.clone();
+    let foreign_view = FunctionRef::ordinary(&foreign.functions[0]);
     for (body, held) in [
-        (
-            &current,
-            origin(&foreign, &foreign.functions[0], &foreign_body),
-        ),
-        (&stale_body, origin(&program, raw, &current)),
+        (&current, origin(&foreign, &foreign_view, &foreign_body)),
+        (&stale_body, origin(&program, &raw_view, &current)),
     ] {
         let mut diagnostics = receipt.clone();
         crate::source_verify::diagnostics::require_bool_with_signature(
@@ -578,6 +591,7 @@ fn paired_origin_requires_actual_binding_and_exact_return_receipt_including_fore
     )
     .unwrap();
     let raw = &program.functions[0];
+    let raw_view = FunctionRef::ordinary(raw);
     let current =
         crate::source_verify::declared_type::validation_specialize_function(raw, &[Type::I64])
             .unwrap();
@@ -605,7 +619,7 @@ fn paired_origin_requires_actual_binding_and_exact_return_receipt_including_fore
             _ => unreachable!(),
         }
         assert_eq!(
-            origin(&program, raw, &current)
+            origin(&program, &raw_view, &current)
                 .unwrap()
                 .return_refusal(&program, &current, &types, &forged)
                 .is_some(),
@@ -614,7 +628,7 @@ fn paired_origin_requires_actual_binding_and_exact_return_receipt_including_fore
     }
     let foreign = program.clone();
     let stale = current.clone();
-    let held = origin(&program, raw, &current).unwrap();
+    let held = origin(&program, &raw_view, &current).unwrap();
     assert!(held
         .return_refusal(&foreign, &current, &types, &receipt)
         .is_none());

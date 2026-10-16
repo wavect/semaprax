@@ -172,7 +172,10 @@ pub(crate) fn program_uses_iterator(program: &dyn ProgramSource) -> bool {
                 .chain(&function.ensures)
                 .any(ast_expression_uses_iterator)
     }
-    program.functions().iter().any(uses_function)
+    program
+        .functions()
+        .iter()
+        .any(|function| uses_function(function.payload()))
         || program.types().iter().any(|declaration| {
             matches!(&declaration.kind, crate::ast::TypeDeclarationKind::Class { methods, .. }
                 if methods.iter().any(uses_function))

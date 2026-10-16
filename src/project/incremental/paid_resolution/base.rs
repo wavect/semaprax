@@ -41,7 +41,7 @@ impl FrontendPass {
             .get(path)
             .and_then(|entry| entry.synthetic.ready());
         Some(
-            crate::hir::identity_resolution::resolve_source_checked_previous_with_base(
+            crate::hir::identity_resolution::resolve_source_checked_previous_with_owner(
                 synthetic,
                 previous
                     .as_ref()
@@ -50,7 +50,7 @@ impl FrontendPass {
                 self.checked.get(path).map(|entry| &entry.function_costs),
                 private,
                 invocation,
-                |bytes| owner.reserve(bytes),
+                owner,
             )
             .map(module)
             .map_err(BaseSelectiveFailure::Resolve),
@@ -76,7 +76,7 @@ impl FrontendPass {
         let entry = self.checked.get(path);
         let previous = entry.and_then(|entry| entry.synthetic.ready());
         Some(
-            crate::hir::identity_resolution::resolve_source_checked_previous_with_base(
+            crate::hir::identity_resolution::resolve_source_checked_previous_with_owner(
                 synthetic,
                 previous
                     .as_ref()
@@ -85,7 +85,7 @@ impl FrontendPass {
                 entry.map(|entry| &entry.function_costs),
                 private,
                 invocation,
-                |bytes| owner.reserve(bytes),
+                owner,
             )
             .map(module)
             .map_err(BaseSelectiveFailure::Resolve),

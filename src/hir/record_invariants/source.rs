@@ -20,7 +20,18 @@ fn clone_source(program: &dyn ProgramSource) -> Program {
         implementations: program.implementations().to_vec(),
         session_protocols: program.session_protocols().to_vec(),
         agents: program.agents().to_vec(),
-        functions: program.functions().iter().cloned().collect(),
+        // Production invariant inputs are preselected to the full owning
+        // producer before aliases exist. Keep its unchanged Function clone
+        // receiver; the ordinary private API retains complete view fallback.
+        functions: if program.function_refs().has_stored_aliases() {
+            program
+                .function_refs()
+                .iter()
+                .map(|view| view.materialize())
+                .collect()
+        } else {
+            program.functions().iter().cloned().collect()
+        },
     }
 }
 

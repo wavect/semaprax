@@ -3,23 +3,23 @@ use crate::ast::program_source::ProgramSource;
 use crate::bounded_output::{active_remaining, with_limit_usage_refusal};
 use crate::test_allocation_observer::measure;
 use crate::workspace_graph::index_authored;
-const LIMIT: usize = 32 * 1024 * 1024;
-const PROVIDER: &str = include_str!(concat!(
+pub(super) const LIMIT: usize = 32 * 1024 * 1024;
+pub(super) const PROVIDER: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/std/collections/src/collections.spx"
 ));
-const CALLER: &str = r#"module alias.current;
+pub(super) const CALLER: &str = r#"module alias.current;
 use function @id("std.collections.vec.with-capacity") from std.collections as with_capacity;
 use function @id("std.collections.vec.push") from std.collections as push;
 use function @id("std.collections.vec.get") from std.collections as get;
 @id("alias.current.main") fn main()->i64 {let values=with_capacity<i64>(2usize);let appended=push<i64>(values,42);get<i64>(appended,0usize)}"#;
-fn sources(caller: &str) -> [Program; 2] {
+pub(super) fn sources(caller: &str) -> [Program; 2] {
     [
         crate::parse(caller, "caller.spx").unwrap(),
         crate::parse(PROVIDER, "provider.spx").unwrap(),
     ]
 }
-fn linked<T>(f: impl FnOnce() -> T) -> T {
+pub(super) fn linked<T>(f: impl FnOnce() -> T) -> T {
     crate::vec_ops::with_authenticated_linked_source(|| {
         crate::box_ops::with_authenticated_linked_source(f)
     })
@@ -127,6 +127,7 @@ fn retained_same_name_views_lend_actual_provider_payload_in_original_order_and_h
             Ok((resolved,_))=>assert_eq!(resolved,expected),
             Err(crate::hir::identity_resolution::before_function_alias::NominalReceiverFailure::Resolve(error))=>panic!("old resolver refusal: {error:?}"),
             Err(crate::hir::identity_resolution::before_function_alias::NominalReceiverFailure::Base(error))=>panic!("old base refusal: {error:?}"),
+            Err(crate::hir::identity_resolution::before_function_alias::NominalReceiverFailure::SourceStop(error))=>panic!("adapted old receiver source refusal: {error:?}"),
         }
         drop((owning, old_key, invocation, identity_owner));
         drop((actual, expected, layout, view, owner));
@@ -135,7 +136,68 @@ fn retained_same_name_views_lend_actual_provider_payload_in_original_order_and_h
     assert!(!refused && first.is_none());
 }
 #[test]
+fn actual_identity_owner_lends_one_frozen_inventory_through_source_and_hir() {
+    let programs = sources(CALLER);
+    let authored = index_authored(&programs).unwrap();
+    let ((), refused, _, first) = with_limit_usage_refusal(LIMIT, || {
+        let registry = LayoutRegistry::new(&programs, &authored);
+        let mut receiver = Receiver::acquire().unwrap();
+        let old = super::super::before_alias::construct_using(
+            &programs[0],
+            &authored,
+            &programs,
+            &registry,
+            None,
+            &mut receiver,
+        )
+        .unwrap();
+        let view = construct_transient(
+            &programs[0],
+            &authored,
+            &programs,
+            &registry,
+            None,
+            &mut receiver,
+        )
+        .unwrap();
+        let layout = registry.get(&programs[0], &authored, &programs).unwrap();
+        let expected = linked(|| {
+            crate::hir::identity_resolution::before_function_alias::resolve_source_nominal(
+                &old,
+                layout.presentation(&programs[0], &old).unwrap(),
+                |bytes| crate::workspace_graph::reserve_builder_structure(bytes),
+            )
+        })
+        .unwrap()
+        .0;
+        let mut owner =
+            crate::bounded_output::identity_reservation::IdentityReservation::acquire().unwrap();
+        let mut invocation = crate::hir::prelude_bundle::Invocation::new();
+        let actual = linked(|| {
+            crate::hir::identity_resolution::resolve_source_checked_previous_with_owner(
+                &view,
+                None,
+                None,
+                None,
+                layout.presentation(&programs[0], &view).unwrap(),
+                &mut invocation,
+                &mut owner,
+            )
+        })
+        .unwrap()
+        .0;
+        assert_eq!(actual, expected);
+        crate::hir::validate(&actual).unwrap();
+        drop((
+            actual, expected, invocation, owner, layout, view, old, receiver,
+        ));
+        drop(registry);
+    });
+    assert!(!refused && first.is_none());
+}
+#[test]
 fn renamed_and_malformed_wrapper_payloads_keep_the_complete_owned_fallback() {
+    use super::super::name_equal::construct_transient;
     for caller in [
         CALLER
             .replace("as get;", "as read_value;")
@@ -321,6 +383,7 @@ fn foreign_and_restored_owner_fail_before_any_projection_or_allocation() {
 
 #[test]
 fn mixed_borrowed_renamed_and_owned_type_roots_keep_partial_recursive_drop() {
+    use super::super::name_equal::construct_transient;
     let provider=format!("{PROVIDER}\n@id(\"alias.row\") record Row {{ @id(\"alias.row.value\") value:i64, }}\n@id(\"alias.plain\") fn plain(value:Row)->Row {{value}}\n");
     let caller=CALLER.replace("@id(\"alias.current.main\")", "use type @id(\"alias.row\") from std.collections as Row; use function @id(\"alias.plain\") from std.collections as ordinary; @id(\"alias.current.main\")").replace("as get;","as read_value;").replace("get<i64>(appended","read_value<i64>(appended");
     let programs = [
@@ -494,4 +557,69 @@ fn complete_immediate_sources_and_independent_old_receivers_remain_authenticated
         .unwrap();
         assert_eq!(old, row["original"].as_str().unwrap());
     }
+}
+
+#[test]
+fn bytes_returning_alias_keeps_the_complete_owning_producer() {
+    let programs = [
+        crate::parse(
+            r#"module alias.bytes;
+use function @id("helper.leaf") from helper.bytes as write_byte;
+@id("alias.bytes.main") fn main()->i64 {0}"#,
+            "byte-caller.spx",
+        )
+        .unwrap(),
+        crate::parse(
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/tests/owned_data/byte_helper_renewal.spx"
+            )),
+            "byte-provider.spx",
+        )
+        .unwrap(),
+    ];
+    let authored = index_authored(&programs).unwrap();
+    let ((), refused, _, first) = with_limit_usage_refusal(LIMIT, || {
+        let registry = LayoutRegistry::new(&programs, &authored);
+        let mut owner = Receiver::acquire().unwrap();
+        let old = super::super::before_alias::construct_using(
+            &programs[0],
+            &authored,
+            &programs,
+            &registry,
+            None,
+            &mut owner,
+        )
+        .unwrap();
+        let current = construct_transient(
+            &programs[0],
+            &authored,
+            &programs,
+            &registry,
+            None,
+            &mut owner,
+        )
+        .unwrap();
+        assert_eq!(
+            current.functions().iter().collect::<Vec<_>>(),
+            old.functions().iter().collect::<Vec<_>>()
+        );
+        let cell = current
+            .function_refs()
+            .get(programs[0].functions.len())
+            .unwrap();
+        assert_eq!(cell.name(), "write_byte");
+        assert!(!cell.has_stored_alias());
+        assert!(!std::ptr::eq(
+            cell.payload(),
+            authored["helper.leaf"].function.unwrap()
+        ));
+        assert!(matches!(
+            current.functions.entries[0],
+            crate::ast::program_source::function_alias::FunctionEntry::Owned(_)
+        ));
+        drop((current, old, owner));
+        drop(registry);
+    });
+    assert!(!refused && first.is_none());
 }

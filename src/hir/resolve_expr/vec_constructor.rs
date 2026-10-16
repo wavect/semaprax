@@ -10,7 +10,7 @@ use crate::hir::{FunctionExecutionId, ResolvedExpr, ResolvedExprKind, ResolvedTy
 use std::collections::BTreeMap;
 
 pub(super) fn schedule<'a>(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     expression: &'a Expr,
     bindings: Scope<'a>,
@@ -55,7 +55,7 @@ pub(in crate::hir) fn finish(
 }
 
 #[cfg(test)]
-impl Resolver<'_> {
+impl Resolver<'_, '_> {
     pub(in crate::hir) fn resolve_constructor_reference(
         &self,
         function: &FunctionExecutionId,

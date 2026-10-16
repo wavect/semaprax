@@ -26,7 +26,7 @@ pub(super) fn oracle_call(
     current: &Function,
     expr: &Expr,
     variables: &mut HashMap<String, Binding>,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
     result_type: Option<&Type>,
     allow_moves: bool,
@@ -933,21 +933,21 @@ pub(super) fn oracle_call(
     if target.is_none() {
         diagnostics.push(hints::unknown_function(program, name, functions, expr.span));
     }
-    if target.is_some_and(|target| args.len() != target.params.len()) {
+    if target.is_some_and(|target| args.len() != target.payload().params.len()) {
         let target = target.expect("checked above");
         diagnostics.push(error(
             program,
             "SPX-T204",
             format!(
                 "`{name}` expects {} arguments, received {}",
-                target.params.len(),
+                target.payload().params.len(),
                 args.len()
             ),
             expr.span,
         ));
     }
     let specialized_target = target.and_then(|target| {
-        if target.type_parameters.is_empty() {
+        if target.payload().type_parameters.is_empty() {
             if !type_arguments.is_empty() {
                 diagnostics.push(error(
                     program,
@@ -957,25 +957,27 @@ pub(super) fn oracle_call(
                 ));
                 return None;
             }
-            return Some(target.clone());
+            let mut complete = target.payload().clone();
+            if complete.name != target.name() { complete.name = target.name().to_owned(); }
+            return Some(complete);
         }
         let inferred_arguments;
         let type_arguments = if type_arguments.is_empty() {
             inferred_arguments = crate::source_verify::generic_inference::arguments(
-                program, current, target, args, variables, functions, types,
+                program, current, target.payload(), args, variables, functions, types,
             );
             inferred_arguments.as_deref().unwrap_or(type_arguments)
         } else {
             type_arguments
         };
-        if type_arguments.len() != target.type_parameters.len() {
+        if type_arguments.len() != target.payload().type_parameters.len() {
             diagnostics.push(
                 error(
                     program,
                     "SPX-T225",
                     format!(
                         "generic function `{name}` expects {} explicit type arguments, received {}",
-                        target.type_parameters.len(),
+                        target.payload().type_parameters.len(),
                         type_arguments.len()
                     ),
                     expr.span,
@@ -984,10 +986,10 @@ pub(super) fn oracle_call(
             );
             return None;
         }
-        if !generic_function_arguments_are_admitted(target, type_arguments, types)
-            && !generic_function_arguments_are_forwarded(current, target, type_arguments)
-            && !crate::vec_ops::source_arguments_are_admitted(program, target, type_arguments)
-            && !crate::box_ops::source_arguments_are_admitted(program, target, type_arguments)
+        if !generic_function_arguments_are_admitted(target.payload(), type_arguments, types)
+            && !generic_function_arguments_are_forwarded(current, target.payload(), type_arguments)
+            && !crate::vec_ops::source_arguments_are_admitted_ref(program, &target, type_arguments)
+            && !crate::box_ops::source_arguments_are_admitted_ref(program, &target, type_arguments)
         {
             diagnostics.push(error(
                 program,
@@ -999,19 +1001,36 @@ pub(super) fn oracle_call(
             ));
             return None;
         }
-        validation_specialize_function(target, type_arguments)
+        validation_specialize_function(target.payload(), type_arguments).map(|mut complete| {
+            if complete.name != target.name() { complete.name = target.name().to_owned(); }
+            complete
+        })
     });
     let borrowed_bytes_loans = specialized_target.as_ref().map_or_else(Vec::new, |target| {
-        activate_borrowed_bytes_call_loans(program, args, &target.params, variables, types)
+        activate_borrowed_bytes_call_loans(
+            program,
+            args,
+            &target.payload().params,
+            variables,
+            types,
+        )
     });
     for (index, arg) in args.iter().enumerate() {
         // Row Loan v1: the one admitted value use of a traversal row.
         let loan = target.and_then(|target| {
             super::super::record_traversal::row_loan::loan_argument(
-                arg, target, index, variables, types,
+                arg,
+                target.payload(),
+                index,
+                variables,
+                types,
             )
             .inspect(|_| {
-                if !super::super::record_traversal::row_loan::reader_proof(types, target, index) {
+                if !super::super::record_traversal::row_loan::reader_proof(
+                    types,
+                    target.payload(),
+                    index,
+                ) {
                     diagnostics.push(error(
                         program,
                         "SPX-T284",
@@ -1036,7 +1055,7 @@ pub(super) fn oracle_call(
         });
         let Some(param) = specialized_target
             .as_ref()
-            .and_then(|target| target.params.get(index))
+            .and_then(|target| target.payload().params.get(index))
         else {
             continue;
         };
@@ -1071,15 +1090,15 @@ pub(super) fn oracle_call(
             types,
             allow_moves,
             true,
-            target.is_some_and(|target| target.type_parameters.is_empty()),
+            target.is_some_and(|target| target.payload().type_parameters.is_empty()),
             diagnostics,
         );
     }
     release_borrowed_bytes_call_loans(variables, &borrowed_bytes_loans);
     specialized_target.map(|target| {
         CheckedValue::returned(
-            target.return_type.clone(),
-            types.needs_drop(&target.return_type),
+            target.payload().return_type.clone(),
+            types.needs_drop(&target.payload().return_type),
         )
     })
 }
@@ -1094,7 +1113,7 @@ pub(super) fn oracle_method_call(
     current: &Function,
     expr: &Expr,
     variables: &mut HashMap<String, Binding>,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
     result_type: Option<&Type>,
     allow_moves: bool,

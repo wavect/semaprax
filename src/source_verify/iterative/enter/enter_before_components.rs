@@ -23,7 +23,7 @@ use crate::source_verify::type_table::effective_record_fields;
 use crate::source_verify::IterativeVerifier;
 use std::collections::HashSet;
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     pub(super) fn before_components_frame_enter(
         &mut self,
         expression: &'p Expr,
@@ -40,16 +40,19 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 let hygienic = *self.constructor_hygiene.get_or_insert_with(|| {
                     crate::ast::expression_statement::projection_roots(
                         self.current
+                            .payload()
                             .requires
                             .iter()
-                            .chain(std::iter::once(&self.current.body))
-                            .chain(&self.current.ensures),
+                            .chain(std::iter::once(&self.current.payload().body))
+                            .chain(&self.current.payload().ensures),
                         self.current
+                            .payload()
                             .params
                             .iter()
                             .map(|param| param.name.as_str())
                             .chain(
                                 self.current
+                                    .payload()
                                     .type_parameters
                                     .iter()
                                     .map(|param| param.name.as_str()),
@@ -209,7 +212,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 let value = value.or_else(|| {
                     self.functions
                         .get(name.as_str())
-                        .and_then(|function| function_value_signature(function))
+                        .and_then(|function| function_value_signature(function.payload()))
                         .map(CheckedValue::value)
                 });
                 if value.is_none() && !self.recovery.reads_refused(scope, name) {
@@ -217,7 +220,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         error(
                             self.program,
                             "SPX-T202",
-                            format!("unknown value `{name}` in `{}`", self.current.name),
+                            format!("unknown value `{name}` in `{}`", self.current.name()),
                             expression.span,
                         ),
                         hints::variant_shorthand_help(name).map(str::to_owned),
@@ -257,7 +260,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 args,
             } => {
                 let args: &[Expr] = if name == crate::vec_ops::sort_keys::NAME {
-                    if !self.current.type_parameters.is_empty()
+                    if !self.current.payload().type_parameters.is_empty()
                         || crate::source_verify::sort_keys::descriptor(
                             self.types,
                             type_arguments,
@@ -271,7 +274,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     }
                     &args[..1]
                 } else if name == crate::vec_ops::field_unique::NAME {
-                    if !self.current.type_parameters.is_empty()
+                    if !self.current.payload().type_parameters.is_empty()
                         || crate::source_verify::field_unique::descriptor(
                             self.types,
                             type_arguments,
@@ -384,7 +387,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         ));
                     }
                     for effect in &import.effects {
-                        if !self.current.effects.contains(effect) {
+                        if !self.current.payload().effects.contains(effect) {
                             self.diagnostics.push(error(
                                 self.program,
                                 "SPX-B107",
@@ -431,7 +434,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         self.values.push(None);
                         return Ok(());
                     };
-                    if !self.current.type_parameters.is_empty() {
+                    if !self.current.payload().type_parameters.is_empty() {
                         self.diagnostics.push(error(
                             self.program,
                             "SPX-T310",
@@ -453,7 +456,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             expression.span,
                         ));
                     }
-                    if !self.current.type_parameters.is_empty() {
+                    if !self.current.payload().type_parameters.is_empty() {
                         self.diagnostics.push(error(
                             self.program,
                             "SPX-T225",
@@ -562,7 +565,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     }))
                 } else if let Some(op) = crate::vec_ops::by_name(name) {
                     if op == crate::vec_ops::VecOp::StrAt
-                        && (!self.current.type_parameters.is_empty()
+                        && (!self.current.payload().type_parameters.is_empty()
                             || crate::source_verify::string_slot::root(
                                 type_arguments,
                                 args,
@@ -585,7 +588,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     if (if op == crate::vec_ops::VecOp::StrAt { !type_arguments.is_empty() } else { type_arguments.len() != 1 })
                         || element.is_none_or(|ty| {
                             !crate::source_verify::declared_type::owned_leaf_collection::vec_operation_admitted(self.types, op, ty)
-                                && !crate::vec_ops::source_parameter_is_admitted(self.program, self.current, op, ty)
+                                && !crate::vec_ops::source_parameter_is_admitted_ref(self.program, self.current, op, ty)
                         })
                     {
                         self.diagnostics.push(error(
@@ -675,7 +678,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             !crate::box_ops::ast_operation_element_is_admitted(op, ty)
                                 && !crate::box_ops::source_parameter_is_admitted(
                                     self.program,
-                                    self.current,
+                                    self.current.payload(),
                                     op,
                                     ty,
                                 )
@@ -814,7 +817,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     }
                     VerifierCallTarget::CommandIo(op)
                 } else {
-                    let target = self.functions.get(name.as_str()).copied();
+                    let target = self.functions.get(name.as_str());
                     if target.is_none() {
                         self.diagnostics.push(hints::unknown_function(
                             self.program,
@@ -823,21 +826,21 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             expression.span,
                         ));
                     }
-                    if target.is_some_and(|target| args.len() != target.params.len()) {
+                    if target.is_some_and(|target| args.len() != target.payload().params.len()) {
                         let target = target.expect("checked above");
                         self.diagnostics.push(error(
                             self.program,
                             "SPX-T204",
                             format!(
                                 "`{name}` expects {} arguments, received {}",
-                                target.params.len(),
+                                target.payload().params.len(),
                                 args.len()
                             ),
                             expression.span,
                         ));
                     }
                     let specialized = target.and_then(|target| {
-                        if target.type_parameters.is_empty() {
+                        if target.payload().type_parameters.is_empty() {
                             if !type_arguments.is_empty() {
                                 self.diagnostics.push(error(
                                     self.program,
@@ -851,7 +854,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         }
                         let inferred_arguments;
                         let type_arguments = if type_arguments.is_empty() {
-                            inferred_arguments = crate::source_verify::generic_inference::arguments(
+                            inferred_arguments = crate::source_verify::generic_inference::arguments_ref(
                                 self.program,
                                 self.current,
                                 target,
@@ -864,27 +867,27 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         } else {
                             type_arguments
                         };
-                        if type_arguments.len() != target.type_parameters.len() {
+                        if type_arguments.len() != target.payload().type_parameters.len() {
                             self.diagnostics.push(error(
                                 self.program,
                                 "SPX-T225",
-                                format!("generic function `{name}` expects {} explicit type arguments, received {}", target.type_parameters.len(), type_arguments.len()),
+                                format!("generic function `{name}` expects {} explicit type arguments, received {}", target.payload().type_parameters.len(), type_arguments.len()),
                                 expression.span,
                             ).with_help(hints::generic_call_help(name)));
                             return None;
                         }
-                        if !generic_function_arguments_are_admitted(target, type_arguments, self.types)
+                        if !generic_function_arguments_are_admitted(target.payload(), type_arguments, self.types)
                             && !generic_function_arguments_are_forwarded(
-                                self.current,
-                                target,
+                                self.current.payload(),
+                                target.payload(),
                                 type_arguments,
                             )
-                            && !crate::vec_ops::source_arguments_are_admitted(
+                            && !crate::vec_ops::source_arguments_are_admitted_ref(
                                 self.program,
-                                target,
+                                &target,
                                 type_arguments,
                             )
-                            && !crate::box_ops::source_arguments_are_admitted(self.program, target, type_arguments)
+                            && !crate::box_ops::source_arguments_are_admitted_ref(self.program, &target, type_arguments)
                         {
                             self.diagnostics.push(error(
                                 self.program,
@@ -894,7 +897,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             ));
                             return None;
                         }
-                        validation_specialize_signature(target, type_arguments).map(
+                        validation_specialize_signature(target.payload(), type_arguments).map(
                             |(params, return_type)| {
                                 VerifierFunctionSignature::Specialized {
                                     params,
@@ -910,7 +913,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     function,
                 ))) = &target
                 {
-                    self.note_row_loan_arguments(function, args, scope);
+                    self.note_row_loan_arguments(function.payload(), args, scope);
                 }
                 let borrowed_bytes_loans = match &target {
                     VerifierCallTarget::Ordinary(Some(VerifierFunctionSignature::Borrowed(
@@ -918,7 +921,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     ))) => activate_borrowed_bytes_call_loans(
                         self.program,
                         args,
-                        &function.params,
+                        &function.payload().params,
                         &mut self.scopes[scope].bindings,
                         self.types,
                     ),

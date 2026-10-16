@@ -5,7 +5,7 @@ use crate::ast::{Expr, ExprKind, ParamMode, Statement, Type};
 use crate::source_verify::diagnostics::error;
 use crate::source_verify::IterativeVerifier;
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     pub(in crate::source_verify) fn reject_for_body_disallowed_before_nested(
         &mut self,
         body: &'p Expr,
@@ -86,7 +86,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         &mut self,
         expression: &'p Expr,
     ) -> Result<(), ()> {
-        if crate::finite_owned_record_loop::source(self.current, expression).is_some() {
+        if crate::finite_owned_record_loop::source(self.current.payload(), expression).is_some() {
             return Ok(());
         }
         self.reject_iterator_body_before_nested(expression, None)
@@ -96,8 +96,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         expression: &'p Expr,
         owned_item: Option<&str>,
     ) -> Result<(), ()> {
-        let finite_scratch =
-            owned_item.and_then(|_| crate::finite_byte_scratch::source(self.current, expression));
+        let finite_scratch = owned_item
+            .and_then(|_| crate::finite_byte_scratch::source(self.current.payload(), expression));
         enum Frame<'a> {
             Expression(&'a Expr),
             Statement(&'a Statement),
@@ -449,9 +449,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     // loop cleanup-edge-free; unknown names keep flowing so the
                     // established unresolved-value diagnostic fires instead.
                     if let Some(declared) = self.functions.get(name.as_str()) {
-                        let scalar_signature = self.byte_helper_target(declared) || crate::stdin_stream_ops::ast_forward_signature(declared) || ( crate::loop_calls::effects_admitted(&declared.effects)
-                            && crate::loop_calls::ast_result_admitted(self.program, &declared.return_type)
-                            && declared.params.iter().zip(args).all(|(param, argument)| {
+                        let scalar_signature = self.byte_helper_target(declared) || crate::stdin_stream_ops::ast_forward_signature(declared.payload()) || ( crate::loop_calls::effects_admitted(&declared.payload().effects)
+                            && crate::loop_calls::ast_result_admitted(self.program, &declared.payload().return_type)
+                            && declared.payload().params.iter().zip(args).all(|(param, argument)| {
                                 crate::loop_calls::ast_param_admitted(self.program, param.mode, &param.ty)
                                     || (param.mode == ParamMode::Borrow
                                         && crate::source_verify::declared_type::owned_record_collection::is_owner_renewal_record(self.types, &param.ty))
@@ -598,28 +598,34 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             return false;
         };
         type_arguments.is_empty()
-            && target.type_parameters.is_empty()
-            && target.effects.is_empty()
+            && target.payload().type_parameters.is_empty()
+            && target.payload().effects.is_empty()
             && crate::source_verify::declared_type::owned_record_collection::is_owner_renewal_record(
                 self.types,
-                &target.return_type,
+                &target.payload().return_type,
             )
-            && target.params.len() == args.len()
+            && target.payload().params.len() == args.len()
             && target
+                .payload()
                 .params
                 .iter()
                 .zip(args)
                 .filter(|(parameter, argument)| {
                     parameter.mode == ParamMode::Own
-                        && parameter.ty == target.return_type
+                        && parameter.ty == target.payload().return_type
                         && matches!(&argument.kind, ExprKind::Var(name) if name == binding)
                 })
                 .count()
                 == 1
-            && target.params.iter().zip(args).all(|(parameter, argument)| {
-                match parameter.mode {
+            && target
+                .payload()
+                .params
+                .iter()
+                .zip(args)
+                .all(|(parameter, argument)| {
+                    match parameter.mode {
                     ParamMode::Own => {
-                        parameter.ty == target.return_type
+                        parameter.ty == target.payload().return_type
                             && matches!(&argument.kind, ExprKind::Var(name) if name == binding)
                     }
                     ParamMode::Borrow => {
@@ -631,7 +637,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     ParamMode::Value => true,
                     ParamMode::Shared => false,
                 }
-            })
+                })
     }
 }
 
@@ -665,11 +671,12 @@ fn record_renewal_named_view_admission_agrees_with_iterative_verifier() {
             .replace("matcher, input_alias, text, 1usize", arguments);
         let program = crate::parse(&source, std::path::Path::new("renewal-admission.spx")).unwrap();
         let current = program.functions.iter().find(|f| f.name == "run").unwrap();
-        let functions = program
-            .functions
+        let function_cells = crate::source_verify::capacity::source_capacity_functions(&program);
+        let functions = function_cells
             .iter()
-            .map(|f| (f.name.as_str(), f))
-            .collect();
+            .take(program.functions.len())
+            .map(|(_, function)| (function.name(), function))
+            .collect::<crate::source_verify::function_map::FunctionMap<'_>>();
         let types = TypeTable::new(&program);
         let ExprKind::Block { statements, .. } = &current.body.kind else {
             panic!("run block")
@@ -692,7 +699,9 @@ fn record_renewal_named_view_admission_agrees_with_iterative_verifier() {
         let mut actual_diagnostics = Vec::new();
         let mut verifier = crate::source_verify::IterativeVerifier::new(
             &program,
-            current,
+            functions
+                .get(current.name.as_str())
+                .expect("frozen current declaration cell"),
             HashMap::new(),
             &functions,
             &types,
@@ -723,11 +732,12 @@ fn string_slot_loop_admission(source: &str, admitted: bool) {
         .iter()
         .find(|f| f.name == "inspect")
         .unwrap();
-    let functions = program
-        .functions
+    let function_cells = crate::source_verify::capacity::source_capacity_functions(&program);
+    let functions = function_cells
         .iter()
-        .map(|f| (f.name.as_str(), f))
-        .collect();
+        .take(program.functions.len())
+        .map(|(_, function)| (function.name(), function))
+        .collect::<crate::source_verify::function_map::FunctionMap<'_>>();
     let types = TypeTable::new(&program);
     let ExprKind::Block { statements, .. } = &current.body.kind else {
         panic!("inspect block")
@@ -750,7 +760,9 @@ fn string_slot_loop_admission(source: &str, admitted: bool) {
     let mut actual_diagnostics = Vec::new();
     let mut verifier = crate::source_verify::IterativeVerifier::new(
         &program,
-        current,
+        functions
+            .get(current.name.as_str())
+            .expect("frozen current declaration cell"),
         HashMap::new(),
         &functions,
         &types,

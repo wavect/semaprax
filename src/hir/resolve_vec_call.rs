@@ -25,7 +25,7 @@ impl VecCallSite {
 }
 
 fn resolve_element(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     op: crate::vec_ops::VecOp,
     ty: &Type,
@@ -33,23 +33,21 @@ fn resolve_element(
 ) -> Result<ResolvedType, Diagnostic> {
     if let FunctionExecutionId::Monomorphic(owner) = function {
         if let Some(candidate) = resolver
-            .program
-            .functions()
-            .iter()
-            .find(|candidate| candidate.stable_id == owner.as_str())
+            .source_functions()
+            .find(|candidate| candidate.payload().stable_id == owner.as_str())
             .filter(|candidate| {
-                crate::vec_ops::source_wrapper(resolver.program, candidate) == Some(op)
-                    || crate::source_verify::generic_collection_profile(candidate)
+                crate::vec_ops::source_wrapper_ref(resolver.program, candidate) == Some(op)
+                    || crate::source_verify::generic_collection_profile(candidate.payload())
             })
         {
-            return resolver.resolve_function_type(candidate, ty, span);
+            return resolver.resolve_function_type_ref(candidate, ty, span);
         }
     }
     resolver.resolve_type(ty, span)
 }
 
 pub(super) fn validate_whole_assignment(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     execution: &FunctionExecutionId,
     target: &ResolvedBinding,
     value: &ResolvedExpr,
@@ -89,7 +87,7 @@ pub(super) fn validate_whole_assignment(
 }
 
 fn record_owner_renewal(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     binding: &ResolvedBinding,
     value: &ResolvedExpr,
 ) -> bool {
@@ -110,21 +108,20 @@ fn record_owner_renewal(
         return false;
     };
     let Some(target) = resolver
-        .program
-        .functions()
-        .iter()
-        .find(|function| function.stable_id == callee.as_str())
+        .source_functions()
+        .find(|function| function.payload().stable_id == callee.as_str())
     else {
         return false;
     };
-    target.effects.is_empty()
-        && target.type_parameters.is_empty()
+    target.payload().effects.is_empty()
+        && target.payload().type_parameters.is_empty()
         && type_arguments.is_empty()
         && resolver
-            .resolve_type(&target.return_type, value.span)
+            .resolve_type(&target.payload().return_type, value.span)
             .is_ok_and(|ty| ty == binding.ty)
-        && target.params.len() == args.len()
+        && target.payload().params.len() == args.len()
         && target
+            .payload()
             .params
             .iter()
             .zip(args)
@@ -138,37 +135,42 @@ fn record_owner_renewal(
             })
             .count()
             == 1
-        && target.params.iter().zip(args).all(|(parameter, argument)| {
-            resolver
-                .resolve_type(&parameter.ty, argument.span)
-                .is_ok_and(|ty| ty == argument.ty)
-                && match parameter.mode {
-                    crate::ast::ParamMode::Own => {
-                        argument.ownership == OwnershipMode::Own
-                            && argument.ty == binding.ty
-                            && matches!(&argument.kind, ResolvedExprKind::Place(place)
+        && target
+            .payload()
+            .params
+            .iter()
+            .zip(args)
+            .all(|(parameter, argument)| {
+                resolver
+                    .resolve_type(&parameter.ty, argument.span)
+                    .is_ok_and(|ty| ty == argument.ty)
+                    && match parameter.mode {
+                        crate::ast::ParamMode::Own => {
+                            argument.ownership == OwnershipMode::Own
+                                && argument.ty == binding.ty
+                                && matches!(&argument.kind, ResolvedExprKind::Place(place)
                                 if place.root == binding.id && place.projections.is_empty())
-                    }
-                    crate::ast::ParamMode::Borrow => {
-                        matches!(
-                            argument.ownership,
-                            OwnershipMode::Own | OwnershipMode::Borrow
-                        ) && matches!(&argument.kind, ResolvedExprKind::Place(place)
+                        }
+                        crate::ast::ParamMode::Borrow => {
+                            matches!(
+                                argument.ownership,
+                                OwnershipMode::Own | OwnershipMode::Borrow
+                            ) && matches!(&argument.kind, ResolvedExprKind::Place(place)
                                 if place.projections.is_empty())
-                            && (crate::hir::iterator_loop::is_owner_renewal_record(
-                                &resolver.declarations,
-                                &argument.ty,
-                            ) || (argument.ownership == OwnershipMode::Borrow
-                                && crate::loop_calls::resolved_renewal_view(&argument.ty)))
+                                && (crate::hir::iterator_loop::is_owner_renewal_record(
+                                    &resolver.declarations,
+                                    &argument.ty,
+                                ) || (argument.ownership == OwnershipMode::Borrow
+                                    && crate::loop_calls::resolved_renewal_view(&argument.ty)))
+                        }
+                        crate::ast::ParamMode::Value => argument.ownership == OwnershipMode::Value,
+                        crate::ast::ParamMode::Shared => false,
                     }
-                    crate::ast::ParamMode::Value => argument.ownership == OwnershipMode::Value,
-                    crate::ast::ParamMode::Shared => false,
-                }
-        })
+            })
 }
 
 pub(super) fn schedule<'expr>(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     frames: &mut Vec<Frame<'expr>>,
     type_arguments: &[Type],
@@ -226,7 +228,7 @@ pub(super) fn schedule<'expr>(
 }
 
 pub(super) fn finish<'p>(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     path: impl Into<ExprPath<'p>>,
     span: Span,
@@ -278,7 +280,7 @@ pub(super) fn finish<'p>(
 
 #[cfg(test)]
 pub(super) fn resolve_reference(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     function: &FunctionExecutionId,
     call: super::resolve_box_call::ReferenceCall<'_>,
     op: crate::vec_ops::VecOp,
@@ -338,20 +340,20 @@ pub(super) fn resolve_reference(
 }
 
 fn scoped_collection_assignment(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     execution: &FunctionExecutionId,
     target: &ResolvedBinding,
     value: &ResolvedExpr,
 ) -> bool {
     if let ResolvedType::TypeParameter { owner, .. } = &value.ty {
         if value.ownership == OwnershipMode::Value
-            && resolver.program.functions().iter().any(|function| {
-                function.stable_id == owner.as_str()
-                    && crate::source_verify::generic_collection_profile(function)
+            && resolver.source_functions().any(|function| {
+                function.payload().stable_id == owner.as_str()
+                    && crate::source_verify::generic_collection_profile(function.payload())
                     && super::generic_collection::parameter(
                         &value.ty,
                         owner,
-                        function.type_parameters.len(),
+                        function.payload().type_parameters.len(),
                     )
             })
         {
@@ -361,8 +363,9 @@ fn scoped_collection_assignment(
     let Some(owner) = execution.monomorphic_declaration() else {
         return false;
     };
-    if !resolver.program.functions().iter().any(|f| {
-        f.stable_id == owner.as_str() && crate::source_verify::generic_collection_profile(f)
+    if !resolver.source_functions().any(|f| {
+        f.payload().stable_id == owner.as_str()
+            && crate::source_verify::generic_collection_profile(f.payload())
     }) {
         return false;
     }
@@ -400,7 +403,7 @@ fn scoped_collection_assignment(
 }
 
 fn byte_helper_renewal(
-    resolver: &Resolver<'_>,
+    resolver: &Resolver<'_, '_>,
     binding: &ResolvedBinding,
     value: &ResolvedExpr,
 ) -> bool {
@@ -414,18 +417,16 @@ fn byte_helper_renewal(
         return false;
     };
     let Some(target) = resolver
-        .program
-        .functions()
-        .iter()
-        .find(|f| f.stable_id == callee.as_str())
+        .source_functions()
+        .find(|f| f.payload().stable_id == callee.as_str())
     else {
         return false;
     };
     binding.ty == super::ResolvedType::Bytes && value.ty == binding.ty
         && binding.ownership == OwnershipMode::Own && value.ownership == OwnershipMode::Own
-        && type_arguments.is_empty() && args.len() == target.params.len()
-        && resolver.byte_helpers.target(target)
-        && target.params.iter().zip(args).all(|(p, arg)| {
+        && type_arguments.is_empty() && args.len() == target.payload().params.len()
+        && resolver.byte_helpers.target_ref(&target)
+        && target.payload().params.iter().zip(args).all(|(p, arg)| {
             resolver.resolve_type(&p.ty, arg.span).is_ok_and(|ty| ty == arg.ty)
                 && (p.mode != crate::ast::ParamMode::Own || matches!(&arg.kind, ResolvedExprKind::Place(place) if place.root == binding.id && place.projections.is_empty()))
         })

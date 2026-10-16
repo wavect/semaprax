@@ -2,7 +2,7 @@
 //! predicates that decide whether an identifier or scalar type is admitted.
 
 use super::binding::{Availability, Binding, CheckedValue};
-use super::iterative::{check_expr_with_helpers_view, check_expr_with_signature_view};
+use super::iterative::check_expr_with_signature_cell;
 use super::type_table::TypeTable;
 use crate::ast::program_source::ProgramSource;
 use crate::ast::{Expr, ExprKind, Function, ParamMode, Span, Type};
@@ -166,7 +166,7 @@ pub(super) fn require_bool(
     function: &Function,
     contract: &Expr,
     variables: &HashMap<String, Binding>,
-    functions: &HashMap<&str, &Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &TypeTable<'_>,
     result_type: Option<&Type>,
     diagnostics: &mut Vec<Diagnostic>,
@@ -192,7 +192,34 @@ pub(super) fn require_bool_with_signature<'p>(
     function: &'p Function,
     contract: &'p Expr,
     variables: &HashMap<String, Binding>,
-    functions: &'p HashMap<&'p str, &'p Function>,
+    functions: &'p crate::source_verify::function_map::FunctionMap<'p>,
+    types: &'p TypeTable<'p>,
+    result_type: Option<&'p Type>,
+    diagnostics: &mut Vec<Diagnostic>,
+    kind: &str,
+    signature: Option<super::declaration::SignatureOrigin<'p>>,
+) {
+    require_bool_with_signature_ref(
+        program,
+        &crate::ast::program_source::FunctionRef::ordinary(function),
+        contract,
+        variables,
+        functions,
+        types,
+        result_type,
+        diagnostics,
+        kind,
+        signature,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn require_bool_with_signature_ref<'p>(
+    program: &'p dyn ProgramSource,
+    function: &crate::ast::program_source::FunctionRef<'p>,
+    contract: &'p Expr,
+    variables: &HashMap<String, Binding>,
+    functions: &'p crate::source_verify::function_map::FunctionMap<'p>,
     types: &'p TypeTable<'p>,
     result_type: Option<&'p Type>,
     diagnostics: &mut Vec<Diagnostic>,
@@ -202,15 +229,15 @@ pub(super) fn require_bool_with_signature<'p>(
     contract.visit_calls(&mut |callee, span| {
         if variables.contains_key(callee) { return; }
         if let Some(target) = functions.get(callee) {
-            if !target.effects.is_empty() {
+            if !target.payload().effects.is_empty() {
                 diagnostics.push(
                     error(
                         program,
                         "SPX-C102",
                         format!(
                             "{kind} on `{}` calls effectful function `{callee}` with effects {{{}}}",
-                            function.name,
-                            target.effects.join(", ")
+                            function.name(),
+                            target.payload().effects.join(", ")
                         ),
                         span,
                     )
@@ -227,7 +254,7 @@ pub(super) fn require_bool_with_signature<'p>(
     if let Some(ty) = result_type {
         // A provisional owned result is readable only in this postcondition
         // scope. It stays immutable and contract transfers still select O105.
-        if ty == &function.return_type
+        if ty == &function.payload().return_type
             && (matches!(ty, Type::Bytes | Type::String)
                 || matches!(ty, Type::Named { name, arguments }
                 if name == "Result" && arguments.as_slice() == [Type::Bytes, Type::Bytes]))
@@ -251,7 +278,7 @@ pub(super) fn require_bool_with_signature<'p>(
         }
     }
     let (contract_value, refusal_view) = match signature {
-        Some(signature) => check_expr_with_signature_view(
+        Some(signature) => check_expr_with_signature_cell(
             program,
             function,
             contract,
@@ -265,7 +292,7 @@ pub(super) fn require_bool_with_signature<'p>(
             None,
             Some(signature),
         ),
-        None => check_expr_with_helpers_view(
+        None => check_expr_with_signature_cell(
             program,
             function,
             contract,
@@ -275,6 +302,7 @@ pub(super) fn require_bool_with_signature<'p>(
             result_type,
             false,
             diagnostics,
+            None,
             None,
             None,
         ),
@@ -288,7 +316,7 @@ pub(super) fn require_bool_with_signature<'p>(
             diagnostics.push(error(
                 program,
                 "SPX-C101",
-                format!("{kind} on `{}` must be bool", function.name),
+                format!("{kind} on `{}` must be bool", function.name()),
                 contract.span,
             ));
         }

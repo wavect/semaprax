@@ -72,10 +72,10 @@ pub(super) fn source_parameter(
     program
         .functions()
         .iter()
-        .find(|function| function.stable_id == owner.as_str())
+        .find(|function| function.payload().stable_id == owner.as_str())
         .is_some_and(|function| {
-            crate::source_verify::generic_collection_profile(function)
-                && parameter(ty, owner, function.type_parameters.len())
+            crate::source_verify::generic_collection_profile(function.payload())
+                && parameter(ty, owner, function.payload().type_parameters.len())
         })
 }
 pub(super) fn source_count(
@@ -85,8 +85,8 @@ pub(super) fn source_count(
     program
         .functions()
         .iter()
-        .find(|function| function.stable_id == owner.as_str())
-        .map_or(0, |function| function.type_parameters.len())
+        .find(|function| function.payload().stable_id == owner.as_str())
+        .map_or(0, |function| function.payload().type_parameters.len())
 }
 
 #[cfg(test)]

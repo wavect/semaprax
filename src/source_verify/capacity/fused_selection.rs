@@ -44,6 +44,16 @@ pub(in crate::source_verify) fn verify_selected_capacity(
     types: &TypeTable<'_>,
     selected: Option<&SourceProof<'_>>,
 ) -> Result<(), crate::byte_data_capacity::CapacityError> {
+    let cells = source_capacity_functions(program);
+    verify_selected_capacity_with_cells(program, types, selected, &cells)
+}
+
+pub(in crate::source_verify) fn verify_selected_capacity_with_cells(
+    program: &dyn ProgramSource,
+    types: &TypeTable<'_>,
+    selected: Option<&SourceProof<'_>>,
+    cells: &[crate::ast::program_source::FunctionCell<'_>],
+) -> Result<(), crate::byte_data_capacity::CapacityError> {
     use crate::byte_data_capacity::{ArrayStorageKind, CapacityFlow, FunctionCapacityInput};
 
     if selected.is_some_and(|proof| !proof.authenticate(program)) {
@@ -52,24 +62,26 @@ pub(in crate::source_verify) fn verify_selected_capacity(
             "fused selection is not held by this program",
         ));
     }
-    let ordinary = program
-        .functions()
+    let ordinary = cells
         .iter()
-        .map(|function| (function.name.as_str(), function))
+        .take(program.function_refs().len())
+        .map(|(_, function)| (function.name(), function))
         .collect::<BTreeMap<_, _>>();
-    let inputs = source_capacity_functions(program)
-        .into_iter()
+    let inputs = cells
+        .iter()
+        .copied()
         .map(|(enclosing_class, function)| {
             let context = SourceCapacityContext {
                 program,
                 types,
                 ordinary: &ordinary,
-                enclosing_class,
+                enclosing_class: enclosing_class.map(|declaration| declaration.name.as_str()),
                 fused: selected,
             };
             let mut slots = Vec::new();
             let mut bindings = BTreeMap::new();
             let mut transcript_roots = function
+                .payload()
                 .params
                 .iter()
                 .map(|parameter| {
@@ -79,75 +91,85 @@ pub(in crate::source_verify) fn verify_selected_capacity(
                     )
                 })
                 .collect::<BTreeMap<_, _>>();
-            for (index, parameter) in function.params.iter().enumerate() {
+            for (index, parameter) in function.payload().params.iter().enumerate() {
                 source_capacity_slot(
                     &mut slots,
                     types,
-                    format!("{}.param.{index}", function.stable_id),
+                    format!("{}.param.{index}", function.payload().stable_id),
                     ArrayStorageKind::Parameter,
                     &parameter.ty,
                 )
-                .map_err(|()| command_io::source_capacity_invariant(&function.stable_id))?;
+                .map_err(|()| {
+                    command_io::source_capacity_invariant(&function.payload().stable_id)
+                })?;
                 bindings.insert(parameter.name.clone(), parameter.ty.clone());
             }
             source_capacity_slot(
                 &mut slots,
                 types,
-                format!("{}.result", function.stable_id),
+                format!("{}.result", function.payload().stable_id),
                 ArrayStorageKind::ProvisionalResult,
-                &function.return_type,
+                &function.payload().return_type,
             )
-            .map_err(|()| command_io::source_capacity_invariant(&function.stable_id))?;
+            .map_err(|()| command_io::source_capacity_invariant(&function.payload().stable_id))?;
             let mut execution = function
+                .payload()
                 .requires
                 .iter()
                 .enumerate()
                 .map(|(index, expression)| {
                     source_capacity_expr(
                         expression,
-                        &format!("{}.requires.{index}", function.stable_id),
+                        &format!("{}.requires.{index}", function.payload().stable_id),
                         &mut bindings.clone(),
                         &mut transcript_roots.clone(),
                         &mut slots,
                         &context,
                         false,
                     )
-                    .map_err(|()| command_io::source_capacity_invariant(&function.stable_id))
+                    .map_err(|()| {
+                        command_io::source_capacity_invariant(&function.payload().stable_id)
+                    })
                 })
                 .collect::<Result<Vec<_>, _>>()?;
             execution.push(
                 source_capacity_expr(
-                    &function.body,
-                    &format!("{}.body", function.stable_id),
+                    &function.payload().body,
+                    &format!("{}.body", function.payload().stable_id),
                     &mut bindings,
                     &mut transcript_roots,
                     &mut slots,
                     &context,
                     true,
                 )
-                .map_err(|()| command_io::source_capacity_invariant(&function.stable_id))?,
+                .map_err(|()| {
+                    command_io::source_capacity_invariant(&function.payload().stable_id)
+                })?,
             );
             execution.extend(
                 function
+                    .payload()
                     .ensures
                     .iter()
                     .enumerate()
                     .map(|(index, expression)| {
                         source_capacity_expr(
                             expression,
-                            &format!("{}.ensures.{index}", function.stable_id),
+                            &format!("{}.ensures.{index}", function.payload().stable_id),
                             &mut bindings.clone(),
                             &mut transcript_roots.clone(),
                             &mut slots,
                             &context,
                             false,
                         )
-                        .map_err(|()| command_io::source_capacity_invariant(&function.stable_id))
+                        .map_err(|()| {
+                            command_io::source_capacity_invariant(&function.payload().stable_id)
+                        })
                     })
                     .collect::<Result<Vec<_>, _>>()?,
             );
             Ok(FunctionCapacityInput {
-                function: function.stable_id.clone(),
+                function: function.payload().stable_id.clone(),
                 array_slots: slots,
                 execution: CapacityFlow::Sequence(execution),
             })

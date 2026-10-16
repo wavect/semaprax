@@ -19,7 +19,7 @@ pub(crate) fn capture_names_scoped(
 ) -> Result<Vec<String>, Diagnostic> {
     let scalar = |ty: &Type| {
         function_value_scalar_type(ty) || scope.is_some_and(|function| {
-        super::generic_collection_profile(function) && matches!(ty, Type::Named { name, arguments } if arguments.is_empty() && function.type_parameters.iter().any(|p| p.name == *name))
+        super::generic_collection_profile(function) && matches!(ty, Type::Named { name, arguments } if arguments.is_empty() && function.payload().type_parameters.iter().any(|p| p.name == *name))
     })
     };
     let reject = |message| error(program, "SPX-T288", message, body.span);
@@ -143,10 +143,9 @@ pub(crate) fn capture_names_scoped(
                         || outer.contains_key(name.as_str())
                         || !type_arguments.is_empty()
                         || program
-                            .functions()
-                            .iter()
-                            .find(|f| f.name == *name)
-                            .and_then(function_value_signature)
+                            .function_refs()
+                            .payload_by_name(name.as_str())
+                            .and_then(|target| function_value_signature(target.payload()))
                             .is_none()
                     {
                         return Err(reject(
@@ -182,7 +181,7 @@ fn scalar_binding(ty: Type) -> Binding {
     }
 }
 
-impl<'a, 'p> IterativeVerifier<'a, 'p> {
+impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
     pub(super) fn enter_closure(
         &mut self,
         expression: &'p Expr,
@@ -202,7 +201,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         if *owning {
             let value = super::owning_closure::check_construction(
                 self.program,
-                self.current,
+                self.current.payload(),
                 expression,
                 return_type,
                 body,
@@ -216,7 +215,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         if *mutable {
             self.values.push(Some(super::mutable_closure::construction(
                 self.program,
-                self.current,
+                self.current.payload(),
                 expression,
                 &self.scopes[scope].bindings,
             )?));
@@ -224,15 +223,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         }
         if let Some(value) = super::borrowed_closure::construction(
             self.program,
-            self.current,
+            self.current.payload(),
             expression,
             &self.scopes[scope].bindings,
         )? {
             self.values.push(Some(value));
             return Ok(());
         }
-        if !self.current.type_parameters.is_empty()
-            && !super::generic_collection_profile(self.current)
+        if !self.current.payload().type_parameters.is_empty()
+            && !super::generic_collection_profile(self.current.payload())
         {
             return Err(error(
                 self.program,
@@ -252,7 +251,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             return_type,
             body,
             &outer,
-            Some(self.current),
+            Some(self.current.payload()),
         )?;
         let mut bindings = HashMap::new();
         for name in names {
@@ -340,7 +339,7 @@ pub(super) fn oracle(
     current: &crate::ast::Function,
     expression: &Expr,
     outer: &HashMap<String, Binding>,
-    functions: &HashMap<&str, &crate::ast::Function>,
+    functions: &crate::source_verify::function_map::FunctionMap<'_>,
     types: &super::type_table::TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Option<CheckedValue> {
@@ -463,10 +462,10 @@ pub(super) fn validate_generic_syntax(
     program: &dyn ProgramSource,
     function: &crate::ast::Function,
 ) -> Result<(), Diagnostic> {
-    if function.type_parameters.is_empty() {
+    if function.payload().type_parameters.is_empty() {
         return Ok(());
     }
-    let mut pending = vec![(&function.body, false)];
+    let mut pending = vec![(&function.payload().body, false)];
     while let Some((expression, in_closure)) = pending.pop() {
         if let ExprKind::Closure { owning: true, .. } = &expression.kind {
             return Err(error(
@@ -487,7 +486,7 @@ pub(super) fn validate_generic_syntax(
         {
             let scalar = |ty: &Type| {
                 function_value_scalar_type(ty)
-                    || matches!(ty, Type::Named { name, arguments } if arguments.is_empty() && function.type_parameters.iter().any(|parameter| parameter.name == *name))
+                    || matches!(ty, Type::Named { name, arguments } if arguments.is_empty() && function.payload().type_parameters.iter().any(|parameter| parameter.name == *name))
             };
             if in_closure
                 || !super::generic_collection_profile(function)
@@ -526,10 +525,9 @@ pub(super) fn validate_generic_syntax(
                     ..
                 } if type_arguments.is_empty()
                     && program
-                        .functions()
-                        .iter()
-                        .find(|candidate| candidate.name == *name)
-                        .and_then(function_value_signature)
+                        .function_refs()
+                        .payload_by_name(name.as_str())
+                        .and_then(|target| function_value_signature(target.payload()))
                         .is_some() => {}
                 _ => {
                     return Err(error(
@@ -573,5 +571,5 @@ pub(super) fn specialize_checked(
 pub(super) fn scoped_scalar(function: &crate::ast::Function, ty: &Type) -> bool {
     function_value_scalar_type(ty)
         || (super::generic_collection_profile(function)
-            && matches!(ty, Type::Named { name, arguments } if arguments.is_empty() && function.type_parameters.iter().any(|parameter| parameter.name == *name)))
+            && matches!(ty, Type::Named { name, arguments } if arguments.is_empty() && function.payload().type_parameters.iter().any(|parameter| parameter.name == *name)))
 }

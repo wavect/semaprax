@@ -1,0 +1,20 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::flat_records::tests::receiving_path_boundary::complete_old_and_paid_path_boundaries_keep_all_fields_order_and_hostile_state",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::flat_records::tests::receiving_path_boundary::paid_path_boundary_actual_limits_work_sticky_and_complete_drop",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::lexical_cert::paid::chains::tests::exact_borrowed_queries_keep_unknown_cycle_and_intentional_or_false",
+    "status": "PENDING_NOT_EXECUTED"
+  }
+]

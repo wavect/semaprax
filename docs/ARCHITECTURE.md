@@ -5094,3 +5094,5 @@ moves the complete funded prefix and skips the clone for every sole suffix.
 No optional helper argument/result boundary or fallback eligibility probe is
 added to production. A complete corpus compares the real Main receiver with
 this shipping path. Original path-array work preflight remains unchanged.
+
+`lexical_boundary::Policy` directly owns the complete ordinary Diagnostic or paid Engine boundary-check algorithm. Its paid finalizer uses the same-ledger child bank and existing node primitive. `lexical_cert/paid/chains` expands the exact bounded selected borrowed walk; its intentionally or-false query adds no budget failure to swallow. Immediate-old whole path replay and ordinary checking remain independently compiled in tests.

@@ -225,7 +225,7 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                 budget,
             )?;
             if let Some(auth) = lexical {
-                lexical_boundary::check(
+                <E as lexical_boundary::Policy>::check(
                     function,
                     auth,
                     block_id,
@@ -572,7 +572,7 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
             state.live_order = live_order;
             state.conditional_variants = conditional_variants;
             if let Some(auth) = lexical {
-                lexical_boundary::check(
+                <E as lexical_boundary::Policy>::check(
                     function,
                     auth,
                     block_id,
@@ -1156,3 +1156,7 @@ mod state_move_tests;
 mod before_final_edge;
 #[cfg(test)]
 mod final_edge_tests;
+
+#[cfg(test)]
+#[allow(dead_code, reason="complete immediate old path boundary receiver")]
+pub(in crate::cleanup_plan::replay) mod before_path_boundary;

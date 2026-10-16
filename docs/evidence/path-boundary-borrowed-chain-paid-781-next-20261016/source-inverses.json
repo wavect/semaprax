@@ -1,0 +1,265 @@
+{
+  "base": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+  "rows": [
+    {
+      "source": "CHANGELOG.md",
+      "before_sha256": "b8d31d491254be9249b1164af02466f70f4b07510d74cf9fb8e46ae69e12e663",
+      "after_sha256": "d0b52f22b23a3da4a7a509450b79a14ce2a0ecc1962bc217cdf7c8d79ec9ef4e",
+      "before_archive": "before/CHANGELOG.md",
+      "edits": [
+        {
+          "old_offset": 543879,
+          "new_offset": 543879,
+          "before": "",
+          "after": "\n- Source-only #781 path boundary/finalizer and borrowed-chain tranche: direct per-error-policy implementations retain complete prior algorithms and diagnostic order; closed semantic atoms use actual same-ledger child/node receiving. Earlier receiving refusal frontiers are explicit. Three focused owners remain unexecuted; raw inventory/schema/dynamic descendants keep #781 open.\n"
+        }
+      ]
+    },
+    {
+      "source": "docs/ARCHITECTURE.md",
+      "before_sha256": "86928b029dcf5a9c85e02c36f3d3e899bbafddfce4d47f059670b5f261a28248",
+      "after_sha256": "7498ee2eacdd6d0375570e7ad8343973165fed66160c05b089585b7bfef8e4c6",
+      "before_archive": "before/docs/ARCHITECTURE.md",
+      "edits": [
+        {
+          "old_offset": 366471,
+          "new_offset": 366471,
+          "before": "",
+          "after": "\n`lexical_boundary::Policy` directly owns the complete ordinary Diagnostic or paid Engine boundary-check algorithm. Its paid finalizer uses the same-ledger child bank and existing node primitive. `lexical_cert/paid/chains` expands the exact bounded selected borrowed walk; its intentionally or-false query adds no budget failure to swallow. Immediate-old whole path replay and ordinary checking remain independently compiled in tests.\n"
+        }
+      ]
+    },
+    {
+      "source": "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "before_sha256": "a60872f8cd055d6bf83338d52f79c59b454b44a72d2ab3e05b34dc106f34bf8b",
+      "after_sha256": "1e9dce9960823b2a53adbb0f0aa7817f8d628dfeb2ebda7c0aa0f597f9d06a04",
+      "before_archive": "before/docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "edits": [
+        {
+          "old_offset": 47923,
+          "new_offset": 47923,
+          "before": "",
+          "after": "\n## Direct path boundary and borrowed chain receiving (#781, source-only)\n\nThe existing eight path-boundary inputs enter one direct error-policy body. Diagnostic keeps the complete original algorithm. Engine retains its ordinary unobserved fallback; on a paying invocation it acquires the existing actual `Permit::acquire<()>` bank before boundary lookup/failure formation, and the complete finalizer body acquires its own bank. Each new unique finalized flag uses the existing per-actual-call profile/node primitive on the same ReplayBudget. No Diagnostic is relabelled as paid provenance. Full storage/leaf/return/contour/error order survives, including the original selected conditional-profile refusal.\n\nThese new per-call bank payments can legitimately refuse before old semantic lookup or scratch insertion and consume work before later refusal. They grant no retry, refund, donor authority, new cap or old mixed-resource first-winner guarantee. Ordinary Diagnostic policy and complete immediate-old path replay remain executable independently. Borrowed rejecting chain macros consume the existing caller permit, preserve checked-sub-before-region-get and all lazy surrounding predicates. The separate or-false macro keeps the original intentional error suppression with no added debit; ordinary query fallback stays unchanged.\n\nThe initial bank failure remains the existing unreceived ABI boundary. All new static paths preserve complete six-field diagnostic rendering through the existing funded report. Raw inventory callbacks, schema/checked-binding children, ordinary dynamic type facts and other unmigrated descendants remain owning boundaries. #781 remains open and this source checkpoint makes no executable or cost claim.\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile.rs",
+      "before_sha256": "fc2151b1867ce98e57f150496c483c335518444e6cf560a58feb891969ef6a74",
+      "after_sha256": "24bbba3b137deac36518988938bc458dd5f20b2efa3d0ad6d6e32205b420b7c6",
+      "before_archive": "before/src/cleanup_plan/renewal_profile.rs",
+      "edits": [
+        {
+          "old_offset": 12129,
+          "new_offset": 12129,
+          "before": "",
+          "after": "\npub(crate) mod path_boundary_refusal;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "before_sha256": "41f05482cdafe038f5e9276fcba5465ba339a6c684ef213573416fc5e7be20b9",
+      "after_sha256": "b14d3f652efc7159218da07b94e215dd62fe9d698306a4c7196c0739b92c1039",
+      "before_archive": "before/src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "edits": [
+        {
+          "old_offset": 692,
+          "new_offset": 692,
+          "before": "",
+          "after": "    PathBoundary(super::path_boundary_refusal::PathBoundaryRefusal),\n"
+        },
+        {
+          "old_offset": 1339,
+          "new_offset": 1408,
+          "before": "",
+          "after": "            Self::PathBoundary(reason) => reason.detail(),\n"
+        },
+        {
+          "old_offset": 2054,
+          "new_offset": 2182,
+          "before": "            Self::ReferenceCoverage(_) | Self::Structural(_) | Self::Status(_) | Self::Scalar(_) | Self::Certificate(_) | Self::Boundary(_) => true,\n",
+          "after": "            Self::ReferenceCoverage(_) | Self::Structural(_) | Self::Status(_) | Self::Scalar(_) | Self::Certificate(_) | Self::Boundary(_) | Self::PathBoundary(_) => true,\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records/tests.rs",
+      "before_sha256": "08ef6c7236191a9660cc86fb7953a73f432fdc00e084e10be228e7f3890dfe1c",
+      "after_sha256": "387e51662830765d7bb42addbd8f346a13ac56668a00f16db51502c10d384925",
+      "before_archive": "before/src/cleanup_plan/replay/flat_records/tests.rs",
+      "edits": [
+        {
+          "old_offset": 12495,
+          "new_offset": 12495,
+          "before": "",
+          "after": "\n#[path=\"tests/receiving_path_boundary.rs\"]\nmod receiving_path_boundary;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_boundary.rs",
+      "before_sha256": "a2c30f8d2dee8e2c895f47bcda02a4cf5fca3012b7de85deeaea3c6f182b3d03",
+      "after_sha256": "50f2118dfdcd8eac182f0cd5bba6271420a1ce188afcf5cbb5e8c0cf7bc78dd5",
+      "before_archive": "before/src/cleanup_plan/replay/lexical_boundary.rs",
+      "edits": [
+        {
+          "old_offset": 6411,
+          "new_offset": 6411,
+          "before": "",
+          "after": "#[cfg(test)]\n"
+        },
+        {
+          "old_offset": 11528,
+          "new_offset": 11541,
+          "before": "",
+          "after": "\n/// Per-error-policy actual boundary implementation. No source/payer authority.\npub(in crate::cleanup_plan::replay) trait Policy: Sized {\n    #[allow(clippy::too_many_arguments)]\n    fn check(\n        function: &ResolvedFunction,\n        auth: &LexicalAuth,\n        block: BlockId,\n        state: &PathState,\n        storage: &BTreeSet<StorageId>,\n        storage_regions: &BTreeMap<StorageId, CleanupRegionId>,\n        leaves: &Leaves,\n        budget: &mut ReplayBudget,\n    ) -> Result<(), Self>;\n}\nmod legacy_policy;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_boundary/paid.rs",
+      "before_sha256": "03a8a084b6fde205d7a970bcc8ef1312d1f638f45561fe6db7b21328d4e1ff5c",
+      "after_sha256": "f47b3a5bb2aed911992d32efd2171307eaee21978b6f87c7295bd59935a50fff",
+      "before_archive": "before/src/cleanup_plan/replay/lexical_boundary/paid.rs",
+      "edits": [
+        {
+          "old_offset": 5909,
+          "new_offset": 5909,
+          "before": "",
+          "after": "\nuse super::{\n    BTreeSet, CleanupRegionId, CleanupResultSource, Diagnostic, ExitContinuation, Leaves,\n    LexicalAuth, PathState, Policy, ResolvedType, ReturnedSource, StorageId,\n};\nuse crate::cleanup_plan::renewal_profile::path_boundary_refusal::PathBoundaryRefusal;\nmacro_rules! required_path {\n    ($permit:ident,$value:expr,$reason:ident) => {\n        match $value {\n            Some(value) => value,\n            None => return Err($permit.refuse(Refusal::PathBoundary(PathBoundaryRefusal::$reason))),\n        }\n    };\n}\nimpl Policy for Error {\n    #[allow(clippy::too_many_arguments)]\n    fn check(\n        function: &ResolvedFunction,\n        auth: &LexicalAuth,\n        block: BlockId,\n        state: &PathState,\n        storage: &BTreeSet<StorageId>,\n        storage_regions: &BTreeMap<StorageId, CleanupRegionId>,\n        leaves: &Leaves,\n        budget: &mut ReplayBudget,\n    ) -> Result<(), Error> {\n        if !budget.pays_allocations() {\n            return <Diagnostic as super::Policy>::check(\n                function,\n                auth,\n                block,\n                state,\n                storage,\n                storage_regions,\n                leaves,\n                budget,\n            )\n            .map_err(Error::Owned);\n        }\n        let permit = Permit::acquire::<()>(function, budget)?;\n        let Some(boundary) = auth.boundaries.get(&block) else {\n            return Ok(());\n        };\n        let item = required_path!(\n            permit,\n            function\n                .cleanup_plan\n                .lexical_control\n                .as_deref()\n                .and_then(|control| control.execution_boundaries.get(boundary.index)),\n            ExecutionBoundaryHasNoCertificate\n        );\n        if state.pending_failure.is_some() || state.selected_failure.is_some() || state.published {\n            return Err(permit.refuse(Refusal::PathBoundary(\n                PathBoundaryRefusal::ExecutionBoundaryIsReachedWithFailureOrPublicationState,\n            )));\n        }\n        let return_matches = match (&state.returned, boundary.returned) {\n            (None, None) => true,\n            (Some(returned), Some(id)) => match (\n                returned,\n                &function.cleanup_plan.exits[id.0 as usize].continuation,\n            ) {\n                (\n                    ReturnedSource::Scalar(actual),\n                    ExitContinuation::FunctionReturn {\n                        source: CleanupResultSource::Scalar { expression },\n                        ..\n                    },\n                ) => actual == expression,\n                (\n                    ReturnedSource::Owned(actual),\n                    ExitContinuation::FunctionReturn {\n                        source: CleanupResultSource::Owned { storage },\n                        ..\n                    },\n                ) => actual == storage,\n                _ => false,\n            },\n            _ => false,\n        };\n        if !return_matches {\n            return Err(permit.refuse(Refusal::PathBoundary(\n                PathBoundaryRefusal::ExecutionBoundaryCarriesAnotherPhaseSReturnedResult,\n            )));\n        }\n        finalizer_actions(function, &item.finalize_in_order, storage, leaves, budget)?;\n        if budget.selected() {\n            if !state.conditional_variants.is_empty()\n                || item\n                    .finalize_in_order\n                    .iter()\n                    .any(|action| action.active_case.is_some())\n            {\n                return Err(permit.refuse(Refusal::PathBoundary(PathBoundaryRefusal::SelectedLexicalBoundaryConditionalOwnershipIsOutsideThePrimitiveProfile)));\n            }\n            let actual = item.finalize_in_order.iter().filter_map(|action| {\n                state\n                    .live_order\n                    .contains(&action.guard_flag)\n                    .then_some(action.guard_flag)\n            });\n            if actual.ne(state.live_order.iter().rev().copied())\n                || item.finalize_in_order.len() != state.live_order.len()\n            {\n                return Err(permit.refuse(Refusal::PathBoundary(PathBoundaryRefusal::ExecutionBoundaryFinalizersDifferFromTheReplayedLiveOwnershipContour)));\n            }\n            return Ok(());\n        }\n        // Authenticate all region references before comparing either contour,\n        // preserving the ordinary route's first-error order. Compare borrowed\n        // case facts instead of allocating four vectors and cloning each guard.\n        for variant in state.conditional_variants.iter().rev() {\n            let _ = required_path!(\n                permit,\n                storage_regions.get(&variant.root.storage),\n                ExecutionBoundaryVariantHasNoRegion\n            );\n        }\n        let expected = state.live_order.iter().rev().copied();\n        let expected_conditional = state.conditional_variants.iter().rev().flat_map(|variant| {\n            variant.cases.iter().rev().flat_map(move |(case, flags)| {\n                flags\n                    .iter()\n                    .rev()\n                    .map(move |flag| (*flag, &variant.root.storage, &variant.variant, case))\n            })\n        });\n        let actual = item.finalize_in_order.iter().filter_map(|action| {\n            state\n                .live_order\n                .contains(&action.guard_flag)\n                .then_some(action.guard_flag)\n        });\n        let actual_conditional = item.finalize_in_order.iter().filter_map(|action| {\n            action.active_case.as_ref().map(|condition| {\n                (\n                    action.guard_flag,\n                    &condition.storage,\n                    &condition.variant,\n                    &condition.case,\n                )\n            })\n        });\n        // Every action must finalize a live leaf of this exact state: a stale\n        // finalizer for a dead flag would double-release at a guard failure.\n        let actions = item\n            .finalize_in_order\n            .iter()\n            .filter(|action| action.active_case.is_none())\n            .count();\n        if actual.ne(expected)\n            || actual_conditional.ne(expected_conditional)\n            || actions != state.live_order.len()\n        {\n            return Err(permit.refuse(Refusal::PathBoundary(PathBoundaryRefusal::ExecutionBoundaryFinalizersDifferFromTheReplayedLiveOwnershipContour)));\n        }\n        Ok(())\n    }\n}\npub(in crate::cleanup_plan::replay) fn finalizer_actions(\n    function: &ResolvedFunction,\n    actions: &[crate::cleanup_plan::FinalizeAction],\n    known: &BTreeSet<StorageId>,\n    leaves: &Leaves,\n    budget: &mut ReplayBudget,\n) -> Result<(), Error> {\n    if !budget.pays_allocations() {\n        return crate::cleanup_plan::replay::validate_finalizer_actions(\n            function, actions, known, leaves,\n        )\n        .map_err(Error::Owned);\n    }\n    let permit = Permit::acquire::<()>(function, budget)?;\n    let mut finalized = BTreeSet::new();\n    for action in actions {\n        if !known.contains(&action.source.storage) {\n            return Err(permit.refuse(Refusal::PathBoundary(\n                PathBoundaryRefusal::CleanupPlaceReferencesUnknownStorage,\n            )));\n        }\n        let mut under = leaves.iter().filter(|(_, leaf)| {\n            leaf.place.storage == action.source.storage\n                && leaf\n                    .place\n                    .projections\n                    .starts_with(&action.source.projections)\n        });\n        let first = under.next();\n        if first.is_none() {\n            return Err(permit.refuse(Refusal::PathBoundary(\n                PathBoundaryRefusal::CleanupPlaceHasNoDroppableLeaf,\n            )));\n        }\n        let (flag, leaf) = first.expect(\"nonempty borrowed leaf query\");\n        if under.next().is_some() || *flag != action.guard_flag || leaf.place != action.source {\n            return Err(permit.refuse(Refusal::PathBoundary(\n                PathBoundaryRefusal::FinalizerGuardDoesNotNameItsExactCleanupLeaf,\n            )));\n        }\n        if leaf.lifecycle != action.lifecycle_id\n            || !crate::cleanup_plan::replay::lexical_cert::paid::storage::insert_set(\n                function,\n                budget,\n                &mut finalized,\n                action.guard_flag,\n            )?\n        {\n            return Err(permit.refuse(Refusal::PathBoundary(\n                PathBoundaryRefusal::FinalizerLifecycleOrGuardIsInvalidOrRepeated,\n            )));\n        }\n        if let Some(condition) = &action.active_case {\n            // Paying ordinary backing does not select the primitive profile.\n            // Keep the original variant/path authentication without a cloned\n            // leaf vector; insert_set above funds the only growing scratch.\n            if budget.selected() {\n                return Err(permit.refuse(Refusal::PathBoundary(PathBoundaryRefusal::SelectedLexicalBoundaryConditionalOwnershipIsOutsideThePrimitiveProfile)));\n            }\n            if condition.storage != action.source.storage\n                || action.source.projections.first() != Some(&condition.case)\n                || function\n                    .cleanup_plan\n                    .slots\n                    .iter()\n                    .find(|slot| slot.storage == condition.storage)\n                    .is_none_or(|slot| {\n                        !matches!(\n                            &slot.ty,\n                            ResolvedType::Nominal { declaration, .. }\n                                if declaration == &condition.variant\n                        )\n                    })\n            {\n                return Err(permit.refuse(Refusal::PathBoundary(\n                    PathBoundaryRefusal::ConditionalFinalizerDoesNotBindItsExactVariantCasePath,\n                )));\n            }\n        }\n    }\n    Ok(())\n}\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert/paid.rs",
+      "before_sha256": "dec6007912be7fb97f9679ca5e6f78114d112c60f3ccbef06c848b8eb121dfa9",
+      "after_sha256": "6ccdfb5ef84a6262ec7f356106beb498b5b9e9bb3f48910e89e3feb0a76bf224",
+      "before_archive": "before/src/cleanup_plan/replay/lexical_cert/paid.rs",
+      "edits": [
+        {
+          "old_offset": 910,
+          "new_offset": 910,
+          "before": "",
+          "after": "pub(in crate::cleanup_plan::replay) mod chains;\n"
+        },
+        {
+          "old_offset": 13628,
+          "new_offset": 13676,
+          "before": "                    || !storage::chain_contains(function, exit.from, lp.region, budget.selected())?\n",
+          "after": "                    || !crate::cleanup_plan::replay::lexical_cert::paid::chains::contains!(permit,function,exit.from,lp.region,budget.selected())\n"
+        },
+        {
+          "old_offset": 34605,
+          "new_offset": 34699,
+          "before": "                        && crate::cleanup_plan::replay::lexical_cert::storage::chain_contains(\n",
+          "after": "                        && crate::cleanup_plan::replay::lexical_cert::paid::chains::contains_or_false!(\n"
+        },
+        {
+          "old_offset": 34923,
+          "new_offset": 35026,
+          "before": "                        .unwrap_or(false)\n",
+          "after": ""
+        },
+        {
+          "old_offset": 36134,
+          "new_offset": 36195,
+          "before": "                && storage::chain_contains(function, edge.from, region.id, budget.selected())?\n                && !storage::chain_contains(function, edge.to, region.id, budget.selected())?\n",
+          "after": "                && crate::cleanup_plan::replay::lexical_cert::paid::chains::contains!(permit,function,edge.from,region.id,budget.selected())\n                && !crate::cleanup_plan::replay::lexical_cert::paid::chains::contains!(permit,function,edge.to,region.id,budget.selected())\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert/paid/storage.rs",
+      "before_sha256": "d8d6e80d9bb335547a76fc45926315c72d814972c924a7715c918d8d453f3983",
+      "after_sha256": "caa16b33cb3b0080fac30a82463fef59c6b6c36f006ecb84c6edfbb26bdb7629",
+      "before_archive": "before/src/cleanup_plan/replay/lexical_cert/paid/storage.rs",
+      "edits": [
+        {
+          "old_offset": 877,
+          "new_offset": 877,
+          "before": "// Original selected borrowed query remains an explicit semantic-error residual.\npub(super) use super::super::storage::chain_contains;\n\n",
+          "after": ""
+        },
+        {
+          "old_offset": 1672,
+          "new_offset": 1536,
+          "before": "pub(super) fn insert_set<K: Ord>(\n",
+          "after": "pub(in crate::cleanup_plan::replay) fn insert_set<K: Ord>(\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/path_join.rs",
+      "before_sha256": "c710254e25f468da8f2712fb6991878ef0129a8f99fecfd4c3edddc5f535721e",
+      "after_sha256": "b38a40a8d556835ff406bd3b150fc51f818b80769c6031423d3fedcf9d6a5849",
+      "before_archive": "before/src/cleanup_plan/replay/path_join.rs",
+      "edits": [
+        {
+          "old_offset": 9281,
+          "new_offset": 9281,
+          "before": "                lexical_boundary::check(\n",
+          "after": "                <E as lexical_boundary::Policy>::check(\n"
+        },
+        {
+          "old_offset": 26029,
+          "new_offset": 26044,
+          "before": "                lexical_boundary::check(\n",
+          "after": "                <E as lexical_boundary::Policy>::check(\n"
+        },
+        {
+          "old_offset": 49392,
+          "new_offset": 49422,
+          "before": "",
+          "after": "\n#[cfg(test)]\n#[allow(dead_code, reason=\"complete immediate old path boundary receiver\")]\npub(in crate::cleanup_plan::replay) mod before_path_boundary;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/semantic_refusal.rs",
+      "before_sha256": "354c0def650509387ebfb5c2bf1598152172fdc7930f73aa7725b2bd8e04ee26",
+      "after_sha256": "442d5aea71c475ae3e24a0e2284413fe689072f3ab146e81d48cc33eaf649906",
+      "before_archive": "before/src/cleanup_plan/replay/semantic_refusal.rs",
+      "edits": [
+        {
+          "old_offset": 6554,
+          "new_offset": 6554,
+          "before": "pub(super) trait Error: From<Diagnostic> {\n",
+          "after": "pub(super) trait Error: From<Diagnostic> + lexical_boundary::Policy {\n"
+        }
+      ]
+    }
+  ],
+  "new_sources": [
+    {
+      "source": "src/cleanup_plan/renewal_profile/path_boundary_refusal.rs",
+      "sha256": "e96154ea9aaa35959ff7fdd6e4575e67755dbdd38e5ac6ee23a713b8b14ab72e",
+      "lines": 48
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records/tests/receiving_path_boundary.rs",
+      "sha256": "77aed2e82246b4e2b30ad42e74d812b50521ef3cc107a2854c675deb78f38a38",
+      "lines": 159
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_boundary/legacy_policy.rs",
+      "sha256": "f510ccee804c7839f4adebbcc88e597f76a9e770e4fb089b533b71906f224962",
+      "lines": 150
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert/paid/chains.rs",
+      "sha256": "15790866ef3cbf756dd626d7f25d381ed43ff9755054e4ce462517f09a1a4b53",
+      "lines": 54
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert/paid/chains_tests.rs",
+      "sha256": "fb83d5122403a7f70813d87ac3cf4c1fd8ffade280e4a6b79834be4d5ef6df1d",
+      "lines": 59
+    },
+    {
+      "source": "src/cleanup_plan/replay/path_join/before_path_boundary.rs",
+      "sha256": "f506ca9f67874d4119f6b5d8c3f1c8244b503260ab94258e859c1178a891ed4c",
+      "lines": 1129
+    }
+  ]
+}

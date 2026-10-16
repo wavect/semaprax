@@ -761,3 +761,11 @@ Macro receiving preserves the original explicit trait-object and type-reference
 parameter shapes. The flat-field block returns a borrowed slice via as_slice,
 corresponding to the old implicit Vec-to-slice return coercion; it does not
 introduce a thin &Vec view or new iterator forwarding.
+
+## Direct path boundary and borrowed chain receiving (#781, source-only)
+
+The existing eight path-boundary inputs enter one direct error-policy body. Diagnostic keeps the complete original algorithm. Engine retains its ordinary unobserved fallback; on a paying invocation it acquires the existing actual `Permit::acquire<()>` bank before boundary lookup/failure formation, and the complete finalizer body acquires its own bank. Each new unique finalized flag uses the existing per-actual-call profile/node primitive on the same ReplayBudget. No Diagnostic is relabelled as paid provenance. Full storage/leaf/return/contour/error order survives, including the original selected conditional-profile refusal.
+
+These new per-call bank payments can legitimately refuse before old semantic lookup or scratch insertion and consume work before later refusal. They grant no retry, refund, donor authority, new cap or old mixed-resource first-winner guarantee. Ordinary Diagnostic policy and complete immediate-old path replay remain executable independently. Borrowed rejecting chain macros consume the existing caller permit, preserve checked-sub-before-region-get and all lazy surrounding predicates. The separate or-false macro keeps the original intentional error suppression with no added debit; ordinary query fallback stays unchanged.
+
+The initial bank failure remains the existing unreceived ABI boundary. All new static paths preserve complete six-field diagnostic rendering through the existing funded report. Raw inventory callbacks, schema/checked-binding children, ordinary dynamic type facts and other unmigrated descendants remain owning boundaries. #781 remains open and this source checkpoint makes no executable or cost claim.

@@ -149,3 +149,245 @@ let site:&crate::hir::ExpressionId=$site;let domain=$domain;let returned=$return
     }
     Ok(by_block)
 }
+
+use super::{
+    BTreeSet, CleanupRegionId, CleanupResultSource, Diagnostic, ExitContinuation, Leaves,
+    LexicalAuth, PathState, Policy, ResolvedType, ReturnedSource, StorageId,
+};
+use crate::cleanup_plan::renewal_profile::path_boundary_refusal::PathBoundaryRefusal;
+macro_rules! required_path {
+    ($permit:ident,$value:expr,$reason:ident) => {
+        match $value {
+            Some(value) => value,
+            None => return Err($permit.refuse(Refusal::PathBoundary(PathBoundaryRefusal::$reason))),
+        }
+    };
+}
+impl Policy for Error {
+    #[allow(clippy::too_many_arguments)]
+    fn check(
+        function: &ResolvedFunction,
+        auth: &LexicalAuth,
+        block: BlockId,
+        state: &PathState,
+        storage: &BTreeSet<StorageId>,
+        storage_regions: &BTreeMap<StorageId, CleanupRegionId>,
+        leaves: &Leaves,
+        budget: &mut ReplayBudget,
+    ) -> Result<(), Error> {
+        if !budget.pays_allocations() {
+            return <Diagnostic as super::Policy>::check(
+                function,
+                auth,
+                block,
+                state,
+                storage,
+                storage_regions,
+                leaves,
+                budget,
+            )
+            .map_err(Error::Owned);
+        }
+        let permit = Permit::acquire::<()>(function, budget)?;
+        let Some(boundary) = auth.boundaries.get(&block) else {
+            return Ok(());
+        };
+        let item = required_path!(
+            permit,
+            function
+                .cleanup_plan
+                .lexical_control
+                .as_deref()
+                .and_then(|control| control.execution_boundaries.get(boundary.index)),
+            ExecutionBoundaryHasNoCertificate
+        );
+        if state.pending_failure.is_some() || state.selected_failure.is_some() || state.published {
+            return Err(permit.refuse(Refusal::PathBoundary(
+                PathBoundaryRefusal::ExecutionBoundaryIsReachedWithFailureOrPublicationState,
+            )));
+        }
+        let return_matches = match (&state.returned, boundary.returned) {
+            (None, None) => true,
+            (Some(returned), Some(id)) => match (
+                returned,
+                &function.cleanup_plan.exits[id.0 as usize].continuation,
+            ) {
+                (
+                    ReturnedSource::Scalar(actual),
+                    ExitContinuation::FunctionReturn {
+                        source: CleanupResultSource::Scalar { expression },
+                        ..
+                    },
+                ) => actual == expression,
+                (
+                    ReturnedSource::Owned(actual),
+                    ExitContinuation::FunctionReturn {
+                        source: CleanupResultSource::Owned { storage },
+                        ..
+                    },
+                ) => actual == storage,
+                _ => false,
+            },
+            _ => false,
+        };
+        if !return_matches {
+            return Err(permit.refuse(Refusal::PathBoundary(
+                PathBoundaryRefusal::ExecutionBoundaryCarriesAnotherPhaseSReturnedResult,
+            )));
+        }
+        finalizer_actions(function, &item.finalize_in_order, storage, leaves, budget)?;
+        if budget.selected() {
+            if !state.conditional_variants.is_empty()
+                || item
+                    .finalize_in_order
+                    .iter()
+                    .any(|action| action.active_case.is_some())
+            {
+                return Err(permit.refuse(Refusal::PathBoundary(PathBoundaryRefusal::SelectedLexicalBoundaryConditionalOwnershipIsOutsideThePrimitiveProfile)));
+            }
+            let actual = item.finalize_in_order.iter().filter_map(|action| {
+                state
+                    .live_order
+                    .contains(&action.guard_flag)
+                    .then_some(action.guard_flag)
+            });
+            if actual.ne(state.live_order.iter().rev().copied())
+                || item.finalize_in_order.len() != state.live_order.len()
+            {
+                return Err(permit.refuse(Refusal::PathBoundary(PathBoundaryRefusal::ExecutionBoundaryFinalizersDifferFromTheReplayedLiveOwnershipContour)));
+            }
+            return Ok(());
+        }
+        // Authenticate all region references before comparing either contour,
+        // preserving the ordinary route's first-error order. Compare borrowed
+        // case facts instead of allocating four vectors and cloning each guard.
+        for variant in state.conditional_variants.iter().rev() {
+            let _ = required_path!(
+                permit,
+                storage_regions.get(&variant.root.storage),
+                ExecutionBoundaryVariantHasNoRegion
+            );
+        }
+        let expected = state.live_order.iter().rev().copied();
+        let expected_conditional = state.conditional_variants.iter().rev().flat_map(|variant| {
+            variant.cases.iter().rev().flat_map(move |(case, flags)| {
+                flags
+                    .iter()
+                    .rev()
+                    .map(move |flag| (*flag, &variant.root.storage, &variant.variant, case))
+            })
+        });
+        let actual = item.finalize_in_order.iter().filter_map(|action| {
+            state
+                .live_order
+                .contains(&action.guard_flag)
+                .then_some(action.guard_flag)
+        });
+        let actual_conditional = item.finalize_in_order.iter().filter_map(|action| {
+            action.active_case.as_ref().map(|condition| {
+                (
+                    action.guard_flag,
+                    &condition.storage,
+                    &condition.variant,
+                    &condition.case,
+                )
+            })
+        });
+        // Every action must finalize a live leaf of this exact state: a stale
+        // finalizer for a dead flag would double-release at a guard failure.
+        let actions = item
+            .finalize_in_order
+            .iter()
+            .filter(|action| action.active_case.is_none())
+            .count();
+        if actual.ne(expected)
+            || actual_conditional.ne(expected_conditional)
+            || actions != state.live_order.len()
+        {
+            return Err(permit.refuse(Refusal::PathBoundary(PathBoundaryRefusal::ExecutionBoundaryFinalizersDifferFromTheReplayedLiveOwnershipContour)));
+        }
+        Ok(())
+    }
+}
+pub(in crate::cleanup_plan::replay) fn finalizer_actions(
+    function: &ResolvedFunction,
+    actions: &[crate::cleanup_plan::FinalizeAction],
+    known: &BTreeSet<StorageId>,
+    leaves: &Leaves,
+    budget: &mut ReplayBudget,
+) -> Result<(), Error> {
+    if !budget.pays_allocations() {
+        return crate::cleanup_plan::replay::validate_finalizer_actions(
+            function, actions, known, leaves,
+        )
+        .map_err(Error::Owned);
+    }
+    let permit = Permit::acquire::<()>(function, budget)?;
+    let mut finalized = BTreeSet::new();
+    for action in actions {
+        if !known.contains(&action.source.storage) {
+            return Err(permit.refuse(Refusal::PathBoundary(
+                PathBoundaryRefusal::CleanupPlaceReferencesUnknownStorage,
+            )));
+        }
+        let mut under = leaves.iter().filter(|(_, leaf)| {
+            leaf.place.storage == action.source.storage
+                && leaf
+                    .place
+                    .projections
+                    .starts_with(&action.source.projections)
+        });
+        let first = under.next();
+        if first.is_none() {
+            return Err(permit.refuse(Refusal::PathBoundary(
+                PathBoundaryRefusal::CleanupPlaceHasNoDroppableLeaf,
+            )));
+        }
+        let (flag, leaf) = first.expect("nonempty borrowed leaf query");
+        if under.next().is_some() || *flag != action.guard_flag || leaf.place != action.source {
+            return Err(permit.refuse(Refusal::PathBoundary(
+                PathBoundaryRefusal::FinalizerGuardDoesNotNameItsExactCleanupLeaf,
+            )));
+        }
+        if leaf.lifecycle != action.lifecycle_id
+            || !crate::cleanup_plan::replay::lexical_cert::paid::storage::insert_set(
+                function,
+                budget,
+                &mut finalized,
+                action.guard_flag,
+            )?
+        {
+            return Err(permit.refuse(Refusal::PathBoundary(
+                PathBoundaryRefusal::FinalizerLifecycleOrGuardIsInvalidOrRepeated,
+            )));
+        }
+        if let Some(condition) = &action.active_case {
+            // Paying ordinary backing does not select the primitive profile.
+            // Keep the original variant/path authentication without a cloned
+            // leaf vector; insert_set above funds the only growing scratch.
+            if budget.selected() {
+                return Err(permit.refuse(Refusal::PathBoundary(PathBoundaryRefusal::SelectedLexicalBoundaryConditionalOwnershipIsOutsideThePrimitiveProfile)));
+            }
+            if condition.storage != action.source.storage
+                || action.source.projections.first() != Some(&condition.case)
+                || function
+                    .cleanup_plan
+                    .slots
+                    .iter()
+                    .find(|slot| slot.storage == condition.storage)
+                    .is_none_or(|slot| {
+                        !matches!(
+                            &slot.ty,
+                            ResolvedType::Nominal { declaration, .. }
+                                if declaration == &condition.variant
+                        )
+                    })
+            {
+                return Err(permit.refuse(Refusal::PathBoundary(
+                    PathBoundaryRefusal::ConditionalFinalizerDoesNotBindItsExactVariantCasePath,
+                )));
+            }
+        }
+    }
+    Ok(())
+}

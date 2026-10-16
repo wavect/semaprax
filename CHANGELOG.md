@@ -7410,3 +7410,5 @@ are authored. Qualification is pending; Catalog corpus and limits are unchanged.
 - OPT798 next source transport keeps complete live Rust audit inputs compiled
   as separate pieces and joins only inside existing unmeasured integration
   source/layout audits. No production behavior, gate or memory benefit claim.
+
+- Source-only #781 path boundary/finalizer and borrowed-chain tranche: direct per-error-policy implementations retain complete prior algorithms and diagnostic order; closed semantic atoms use actual same-ledger child/node receiving. Earlier receiving refusal frontiers are explicit. Three focused owners remain unexecuted; raw inventory/schema/dynamic descendants keep #781 open.

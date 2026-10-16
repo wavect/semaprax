@@ -20,9 +20,6 @@ macro_rules! required {
         }
     };
 }
-// Original selected borrowed query remains an explicit semantic-error residual.
-pub(super) use super::super::storage::chain_contains;
-
 pub(in crate::cleanup_plan::replay) fn insert<K: Ord, V>(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
@@ -46,7 +43,7 @@ pub(in crate::cleanup_plan::replay) fn insert<K: Ord, V>(
     }
     Ok(map.insert(key, value))
 }
-pub(super) fn insert_set<K: Ord>(
+pub(in crate::cleanup_plan::replay) fn insert_set<K: Ord>(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
     set: &mut BTreeSet<K>,

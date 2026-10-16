@@ -316,3 +316,5 @@ pub(crate) mod certificate_refusal;
 pub(crate) mod boundary_refusal;
 
 pub(crate) mod type_drop_refusal;
+
+pub(crate) mod path_boundary_refusal;

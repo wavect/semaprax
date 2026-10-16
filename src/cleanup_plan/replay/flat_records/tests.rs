@@ -343,3 +343,6 @@ mod receiving_boundary;
 
 #[path="tests/receiving_type_drop.rs"]
 mod receiving_type_drop;
+
+#[path="tests/receiving_path_boundary.rs"]
+mod receiving_path_boundary;

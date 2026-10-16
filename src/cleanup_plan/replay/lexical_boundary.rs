@@ -158,6 +158,7 @@ pub(super) fn authenticate(
 /// Dataflow authentication at the boundary block: the certificate's finalizer
 /// vector must be exactly the live leaves of the replayed ownership state, in
 /// canonical reverse-initialization order with exact conditional case guards.
+#[cfg(test)]
 #[allow(clippy::too_many_arguments)]
 pub(super) fn check(
     function: &ResolvedFunction,
@@ -302,3 +303,19 @@ pub(super) fn check(
 }
 
 pub(in crate::cleanup_plan::replay) mod paid;
+
+/// Per-error-policy actual boundary implementation. No source/payer authority.
+pub(in crate::cleanup_plan::replay) trait Policy: Sized {
+    #[allow(clippy::too_many_arguments)]
+    fn check(
+        function: &ResolvedFunction,
+        auth: &LexicalAuth,
+        block: BlockId,
+        state: &PathState,
+        storage: &BTreeSet<StorageId>,
+        storage_regions: &BTreeMap<StorageId, CleanupRegionId>,
+        leaves: &Leaves,
+        budget: &mut ReplayBudget,
+    ) -> Result<(), Self>;
+}
+mod legacy_policy;

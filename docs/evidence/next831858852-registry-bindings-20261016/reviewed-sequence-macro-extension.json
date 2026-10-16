@@ -1,0 +1,10 @@
+{
+  "scope": "Sole exact858 shipping macro target substitution; complete13 constructor bodies remain untouched",
+  "reviewed_commit": "1f1521e2d4f07ae06e4d1a1d90dbcbdbe92a50f3",
+  "source": "src/cleanup_plan/replay.rs",
+  "before_sha256": "a684cd8cf14545809a38789ae587ec827c2945395565fab810da756427bcb213",
+  "actual_sha256": "0cf35a330c89ec7ae532f3ac39ecc4cb0b056cb9538966962ac04851c3a611bc",
+  "script_before_sha256": "363ec1ac668c2a9c65664b25ce442e0c2c8b0b49cc207c5079cfead2b7fc91df",
+  "script_after_sha256": "73c2dbcbf50263e7e5f5830d2fb47c29a10c1f55efdc23f0c5c98134815214fd",
+  "rust_executed": false
+}

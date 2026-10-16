@@ -76,7 +76,7 @@ for path in guards:assert len((R/path).read_bytes().splitlines())<=1500 or path.
 # Only the exact two helper subjects extend the existing finite allowed registry;
 # parent ad5 is an independently committed second predecessor, never guessed scope.
 registry='docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json';current=json.loads((R/registry).read_text());accepted=False
-for ref in [BASE,PARENT]:
+for ref in [BASE,PARENT,'1f1521e2d4f07ae06e4d1a1d90dbcbdbe92a50f3']:
  expected=json.loads(old(ref,registry))
  for guard in guards:
   for key in ['required','maximum']:expected[guard][key].update({x:1 for x in new})

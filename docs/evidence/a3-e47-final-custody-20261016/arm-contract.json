@@ -15,6 +15,7 @@
     "docs/ARCHITECTURE.md",
     "docs/BORROWED-BYTE-SLICE-FOR-TRAVERSAL-V2.md",
     "docs/CLI-HELP-V6.md",
+    "docs/FACTORED-SINGLETON-TARGETS-V1.md",
     "docs/QUALITY-GATES.md",
     "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
     "docs/SUMMARY.md",
@@ -43,6 +44,7 @@
     "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
     "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
     "src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs",
+    "src/cleanup_plan/replay/factored/oracle_order/tests.rs",
     "src/cleanup_plan/replay/final_output.rs",
     "src/cleanup_plan/replay/flat_records/tests/receiving_boundary.rs",
     "src/cleanup_plan/replay/flat_records/tests/receiving_certificate.rs",
@@ -89,6 +91,7 @@
     "src/hir/lexical_exit/owner_funded.rs",
     "src/hir/nodes/instance_key.rs",
     "src/hir/nominal_payload/legacy.rs",
+    "src/hir/validation/byte_traversal/nested.rs",
     "src/hir/validation/byte_traversal/nested/tests.rs",
     "src/hir/validation/ownership_flags.rs",
     "src/hir/validation/ownership_flags/before.rs",
@@ -151,6 +154,7 @@
     "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
     "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs",
     "tests/wasm/scalar_browser_ci_contract/historical_main_f82.rs",
+    "tests/workspace.rs",
     "tests/workspace/semantic_graph.rs",
     "tests/workspace/semantic_graph/source_inventory.rs"
   ],
@@ -159,7 +163,7 @@
   "selected_child_pilot": "runtime unchanged in both arms",
   "execution": "NONE_SOURCE_ONLY",
   "final_normalizer": "src/source_reflows_merge/maina3_custody.rs",
-  "final_normalizer_sha256": "408def5034d1bcb845afd46237cbf205fdfd61d87577203d33bd36720796b8ba",
+  "final_normalizer_sha256": "21f2f778d74c209cf49d18c7b4d9318061ee276b6094329b2dfeaa91047fb22b",
   "component_runtime_source": "c75520f013a2dd420450c9b232c1bc11d65d974f",
   "scope": "a3/e47 shipping vector/leaf +847/781 +729; original90 selector only arm difference, fixed36 common runtime",
   "Main_source": "a3cdfa095db21055558099ecef5e051b8472f6a3",
@@ -169,5 +173,5 @@
   "joined_source_commit": "1aaaa78f1def8a7c1e0e25642f8fc4e4e0ffac61",
   "postpin_phase": "postpin-218a-20261016",
   "baseline_source_commit": "218a9583138d78ef5aed9a495a9150dee9b64619",
-  "joined_batch_source_commit": "545c92c631ece84c65f57b9eef20db9fcf2d9f5f"
+  "joined_batch_source_commit": "1f1521e2d4f07ae06e4d1a1d90dbcbdbe92a50f3"
 }

@@ -1,0 +1,38 @@
+{
+  "scope": "One exact reviewed joined registry predecessor plus exact joined architecture; original predecessor cases preserved",
+  "reviewed_commit": "1f1521e2d4f07ae06e4d1a1d90dbcbdbe92a50f3",
+  "whole_registry_sha256": "4cd190b30d9334fd0be03bae9aef6d8e5c32d70ee6c166c1fcf6ec9ee3b4a094",
+  "rows": [
+    {
+      "source": "docs/evidence/opt859-record-shape-recovery-20261016/verify-source.py",
+      "before_archive": "docs__evidence__opt859-record-shape-recovery-20261016__verify-source.py.txt",
+      "before_sha256": "6387d96fe63922a8a5776e672da9e5d8774106ce25164ddcf18a0ed10a1b3f68",
+      "after_sha256": "0cbbdc7e7ca41fd120677782cfd646e212e668b5a948c762446e3abfe2b0fbdf",
+      "replacement": {
+        "before": "for ref in [BASE,PARENT]:",
+        "after": "for ref in [BASE,PARENT,'1f1521e2d4f07ae06e4d1a1d90dbcbdbe92a50f3']:"
+      }
+    },
+    {
+      "source": "docs/evidence/ordinary-schema-summary-20261016/verify-source.py",
+      "before_archive": "docs__evidence__ordinary-schema-summary-20261016__verify-source.py.txt",
+      "before_sha256": "ebbe738169da805d2ed9ce789aa48632dd981c038b33cda7ba3e716ce42d481b",
+      "after_sha256": "d63536f08aba8c054b6b8f7487493c1bf12e0349814f1c802fd21cf20455af86",
+      "replacement": {
+        "before": "allowed_registry=False\nfor predecessor in [before,joined,boundary_joined,record_joined]:",
+        "after": "next_joined=json.loads(subprocess.check_output(['git','show','1f1521e2d4f07ae06e4d1a1d90dbcbdbe92a50f3:'+allowed],cwd=R))\nallowed_registry=False\nfor predecessor in [before,joined,boundary_joined,record_joined,next_joined]:"
+      }
+    },
+    {
+      "source": "docs/evidence/main8a-historical-readers-257-268-20261016/verify856-joined.py",
+      "before_archive": "docs__evidence__main8a-historical-readers-257-268-20261016__verify856-joined.py.txt",
+      "before_sha256": "4300369bbd0f4b1cfa70e7fe42458c350dd8ae0ac31552e8d18c37dbf0df694e",
+      "after_sha256": "363ec1ac668c2a9c65664b25ce442e0c2c8b0b49cc207c5079cfead2b7fc91df",
+      "replacement": {
+        "before": "'docs/ARCHITECTURE.md': {'commit': 'd96247b3cb69282c3d1b835b2428779e8bde82c7', 'sha256': 'c4b012d163ec1e8623a51d57ad4ee561c4246aec837a2f6ae87a604407c1a042'}",
+        "after": "'docs/ARCHITECTURE.md': {'commit': '1f1521e2d4f07ae06e4d1a1d90dbcbdbe92a50f3', 'sha256': '1057d4b0aabf76841f2c5c6b4e061c360f6ff221977e8060930b78480f159305'}"
+      }
+    }
+  ],
+  "rust_executed": false
+}

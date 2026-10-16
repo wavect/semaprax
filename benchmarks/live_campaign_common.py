@@ -150,6 +150,10 @@ def require_authored_source_tokenizer(settings: dict[str, Any]) -> None:
     actual = tokenizer_metadata(declared["tokenizer_dir"])
     if actual != declared:
         raise ValueError("authored-source tokenizer differs from its pinned declaration")
+    # Exercise the pinned local runtime/data before spending on a scored task.
+    probe = tokenize_texts([{"path": "readiness-probe.txt", "content": "tokenizer readiness"}], declared)
+    if len(probe) != 1 or type(probe[0]) is not int or probe[0] < 0:
+        raise RuntimeError("authored-source tokenizer readiness returned invalid token counts")
 
 
 def tokenize_texts(texts: list[dict[str, str]], metadata: dict[str, Any]) -> list[int]:

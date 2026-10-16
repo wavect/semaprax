@@ -1,0 +1,19 @@
+test_mock_trial_uses_current_seed_prompt_usage_archive_and_cleanup_apis (test_codex_campaign.CodexShiftSimTests.test_mock_trial_uses_current_seed_prompt_usage_archive_and_cleanup_apis) ... FAIL
+test_plan_replaces_all_provider_metadata_and_binds_binary (test_codex_campaign.CodexShiftSimTests.test_plan_replaces_all_provider_metadata_and_binds_binary) ... ok
+
+======================================================================
+FAIL: test_mock_trial_uses_current_seed_prompt_usage_archive_and_cleanup_apis (test_codex_campaign.CodexShiftSimTests.test_mock_trial_uses_current_seed_prompt_usage_archive_and_cleanup_apis)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/next831858852-combined-20261016/AI-Lang/benchmarks/event-sim-tokens-v1/test_codex_campaign.py", line 178, in test_mock_trial_uses_current_seed_prompt_usage_archive_and_cleanup_apis
+    self.assertEqual(row["final_candidate_source_metrics"]["status"], "unmeasured")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'measurement_failed' != 'unmeasured'
+- measurement_failed
++ unmeasured
+
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.787s
+
+FAILED (failures=1)

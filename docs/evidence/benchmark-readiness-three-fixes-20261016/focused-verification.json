@@ -1,0 +1,62 @@
+{
+  "status": "PASS_FOCUSED_OFFLINE_FINAL_SOURCE",
+  "total": 66,
+  "webapp_class": 44,
+  "shiftsim_class": 16,
+  "new_readiness_controls": 6,
+  "rows": [
+    {
+      "name": "web-positive-class",
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "-m",
+        "unittest",
+        "test_codex_campaign.WebappCampaignTests",
+        "-v"
+      ],
+      "cwd": "/Volumes/Semaprax/worktrees/next831858852-combined-20261016/AI-Lang/benchmarks/webapp-tokens-v2",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/provenance/benchmark-readiness-three-fixes-final-probe-20261016/web-positive-class.log",
+      "test_count": 44,
+      "archived_log": "focused-final/web-positive-class.log",
+      "sha256": "f6a1f9c1b7bed3d9a1ddb89cfe46716a61d589b17485189f8aa71339c6f1e02e"
+    },
+    {
+      "name": "shift-positive-class",
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "-m",
+        "unittest",
+        "test_codex_campaign.CodexShiftSimTests",
+        "-v"
+      ],
+      "cwd": "/Volumes/Semaprax/worktrees/next831858852-combined-20261016/AI-Lang/benchmarks/event-sim-tokens-v1",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/provenance/benchmark-readiness-three-fixes-final-probe-20261016/shift-positive-class.log",
+      "test_count": 16,
+      "archived_log": "focused-final/shift-positive-class.log",
+      "sha256": "f3a463a4b24e0d28cadb15050fb8f6ea6046c17345a2f2c271be32e7af7c7796"
+    },
+    {
+      "name": "new-focused-controls",
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "-m",
+        "unittest",
+        "test_codex_accounting_readiness.AccountingReadinessTests",
+        "-v"
+      ],
+      "cwd": "/Volumes/Semaprax/worktrees/next831858852-combined-20261016/AI-Lang/benchmarks",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/provenance/benchmark-readiness-three-fixes-final-probe-20261016/new-focused-controls.log",
+      "test_count": 6,
+      "archived_log": "focused-final/new-focused-controls.log",
+      "sha256": "fa906762dc61ca5efc01c843e7dce02102517d6528e18adca3cb7d8d82db4662"
+    }
+  ],
+  "provider_calls": false,
+  "Cargo": false,
+  "full_Python_suite": false,
+  "earlier_failures_retained": "focused-initial",
+  "repair_reason": "Explicit fake tokenizer runtime, plan-only None preservation, and original mock-trial dated card/unmeasured metric receiver"
+}

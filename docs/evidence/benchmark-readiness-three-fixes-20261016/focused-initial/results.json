@@ -1,0 +1,41 @@
+[
+  {
+    "name": "web-positive-class",
+    "command": [
+      "/opt/homebrew/bin/python3",
+      "-m",
+      "unittest",
+      "test_codex_campaign.WebappCampaignTests",
+      "-v"
+    ],
+    "cwd": "/Volumes/Semaprax/worktrees/next831858852-combined-20261016/AI-Lang/benchmarks/webapp-tokens-v2",
+    "exit_code": 0,
+    "log": "/Volumes/Semaprax/provenance/benchmark-readiness-three-fixes-affected-20261016/web-positive-class.log"
+  },
+  {
+    "name": "shift-positive-class",
+    "command": [
+      "/opt/homebrew/bin/python3",
+      "-m",
+      "unittest",
+      "test_codex_campaign.CodexShiftSimTests",
+      "-v"
+    ],
+    "cwd": "/Volumes/Semaprax/worktrees/next831858852-combined-20261016/AI-Lang/benchmarks/event-sim-tokens-v1",
+    "exit_code": 1,
+    "log": "/Volumes/Semaprax/provenance/benchmark-readiness-three-fixes-affected-20261016/shift-positive-class.log"
+  },
+  {
+    "name": "new-focused-controls",
+    "command": [
+      "/opt/homebrew/bin/python3",
+      "-m",
+      "unittest",
+      "test_codex_accounting_readiness.AccountingReadinessTests",
+      "-v"
+    ],
+    "cwd": "/Volumes/Semaprax/worktrees/next831858852-combined-20261016/AI-Lang/benchmarks",
+    "exit_code": 0,
+    "log": "/Volumes/Semaprax/provenance/benchmark-readiness-three-fixes-affected-20261016/new-focused-controls.log"
+  }
+]

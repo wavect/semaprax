@@ -28,5 +28,5 @@ for p,names in contracts.items():
  def body(text,name):return ast.get_source_segment(text,next(n for n in ast.parse(text).body if isinstance(n,ast.FunctionDef)and n.name==name))
  for name in names:assert body(old,name)==body(new,name),(p,name)
 for p in [R/'benchmarks/test_codex_accounting_readiness.py',E/'verify-source.py']:ast.parse(p.read_text())
-proof=dict(status='PASS_SOURCE_ONLY_BENCHMARK_READINESS',base=m['base'],whole_preimages=len(m['rows']),all_old_test_assertions_preserved=assertions,whole_unchanged_task_report_prompt_files=len(unchanged),unchanged_named_accounting_functions=sum(map(len,contracts.values())),provider_calls=False,Cargo=False,ROOT_edits=False,offline_test_log='offline-tests.log',offline_test_count=6,full_Python_suite=False)
+proof=dict(status='PASS_SOURCE_ONLY_BENCHMARK_READINESS',base=m['base'],whole_preimages=len(m['rows']),all_old_test_assertions_preserved=assertions,whole_unchanged_task_report_prompt_files=len(unchanged),unchanged_named_accounting_functions=sum(map(len,contracts.values())),provider_calls=False,Cargo=False,ROOT_edits=False,offline_test_log='focused-verification.json',offline_test_count=66,full_Python_suite=False)
 print(json.dumps(proof,sort_keys=True))

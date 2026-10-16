@@ -13,6 +13,10 @@
         {
           "before": "def tokenize_texts(",
           "after": "def codex_sessions_root() -> Path:\n    \"\"\"Follow the CLI's existing configured home; never replace account state.\"\"\"\n    configured = os.environ.get(\"CODEX_HOME\")\n    home = Path(configured).expanduser() if configured else Path.home() / \".codex\"\n    return (home / \"sessions\").resolve()\n\n\ndef require_authored_source_tokenizer(settings: dict[str, Any]) -> None:\n    \"\"\"A scored launch must retain a declared, unchanged final-file proxy.\"\"\"\n    declared = settings.get(\"authored_source_tokenizer\")\n    if (not isinstance(declared, dict)\n            or declared.get(\"package\") != TOKENIZER_PACKAGE\n            or declared.get(\"version\") != TOKENIZER_VERSION\n            or declared.get(\"encoding_identity\") != TOKENIZER_ENCODING\n            or not isinstance(declared.get(\"tokenizer_dir\"), str)\n            or not isinstance(declared.get(\"fingerprint_sha256\"), str)\n            or re.fullmatch(r\"[0-9a-f]{64}\", declared[\"fingerprint_sha256\"]) is None):\n        raise ValueError(\"scored trial requires a declared pinned authored-source tokenizer; pass --tokenizer-dir\")\n    actual = tokenizer_metadata(declared[\"tokenizer_dir\"])\n    if actual != declared:\n        raise ValueError(\"authored-source tokenizer differs from its pinned declaration\")\n\n\ndef tokenize_texts("
+        },
+        {
+          "before": "    if actual != declared:\n        raise ValueError(\"authored-source tokenizer differs from its pinned declaration\")\n",
+          "after": "    if actual != declared:\n        raise ValueError(\"authored-source tokenizer differs from its pinned declaration\")\n    # Exercise the pinned local runtime/data before spending on a scored task.\n    probe = tokenize_texts([{\"path\": \"readiness-probe.txt\", \"content\": \"tokenizer readiness\"}], declared)\n    if len(probe) != 1 or type(probe[0]) is not int or probe[0] < 0:\n        raise RuntimeError(\"authored-source tokenizer readiness returned invalid token counts\")\n"
         }
       ]
     },
@@ -109,6 +113,14 @@
         {
           "before": "settings = {\"compiler_source_commit\": \"a\" * 40,\n                            \"source_binary_sha256\": campaign.common.digest(compiler)}",
           "after": "settings = {\"authored_source_tokenizer\": self.tokenizer, \"compiler_source_commit\": \"a\" * 40,\n                            \"source_binary_sha256\": campaign.common.digest(compiler)}"
+        },
+        {
+          "before": "self.enterContext(patch.object(campaign.common, \"tokenizer_metadata\", return_value=self.tokenizer))",
+          "after": "self.enterContext(patch.object(campaign.common, \"tokenizer_metadata\",\n                                     side_effect=lambda directory: self.tokenizer if directory is not None else None))"
+        },
+        {
+          "before": "        # These fixtures fake model/acceptance execution; resource admission is\n",
+          "after": "        self.enterContext(patch.object(campaign.common, \"tokenize_texts\",\n                                     side_effect=lambda texts, metadata: [len(row[\"content\"]) for row in texts]))\n        # These fixtures fake model/acceptance execution; resource admission is\n"
         }
       ]
     },
@@ -124,6 +136,22 @@
         {
           "before": "\"authored_source_tokenizer\": None",
           "after": "\"authored_source_tokenizer\": self.tokenizer"
+        },
+        {
+          "before": "self.enterContext(patch.object(adapter.shiftsim.common, \"tokenizer_metadata\", return_value=self.tokenizer))",
+          "after": "self.enterContext(patch.object(adapter.shiftsim.common, \"tokenizer_metadata\",\n                                     side_effect=lambda directory: self.tokenizer if directory is not None else None))"
+        },
+        {
+          "before": "return {\"timeout_seconds\": 1800, \"model\": adapter.MODEL, \"effort\": adapter.EFFORT,",
+          "after": "return {\"timeout_seconds\": 1800, \"model\": adapter.MODEL, \"effort\": adapter.EFFORT,\n                \"price_book\": {\"date\": \"2026-10-08\", \"standard_short_context_usd_per_million\":\n                    dict(adapter.codex.PRICE_USD_PER_MTOK)},"
+        },
+        {
+          "before": "            settings = self.settings(root)\n            self.patches(stack, root)\n            acceptance = stack.enter_context(patch.object(adapter.shiftsim, \"check_program\", return_value={\"accepted\": True}))",
+          "after": "            settings = self.settings(root)\n            self.patches(stack, root)\n            # This receiver-only fixture retains its original offline/unmeasured\n            # metric response; actual tokenizer readiness is checked separately.\n            stack.enter_context(patch.object(adapter.shiftsim.common, \"authored_source_metrics\",\n                return_value={\"status\": \"unmeasured\", \"total_tokens\": None, \"files\": [], \"tokenizer\": None}))\n            acceptance = stack.enter_context(patch.object(adapter.shiftsim, \"check_program\", return_value={\"accepted\": True}))"
+        },
+        {
+          "before": "        # These fixtures fake model/acceptance execution; resource admission is\n",
+          "after": "        self.enterContext(patch.object(adapter.shiftsim.common, \"tokenize_texts\",\n                                     side_effect=lambda texts, metadata: [len(row[\"content\"]) for row in texts]))\n        # These fixtures fake model/acceptance execution; resource admission is\n"
         }
       ]
     }

@@ -1,0 +1,61 @@
+{
+  "main": "24ffa85e83d06d71f8214fdae9f631d0baea894e",
+  "resolved": [
+    {
+      "path": "CHANGELOG.md",
+      "resolution": "Retain complete integration bytes, with Main24 counterpart independently preserved. Docs disclose historical namespace; audit pieces additionally join all9 new owners."
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "resolution": "Retain complete integration bytes, with Main24 counterpart independently preserved. Docs disclose historical namespace; audit pieces additionally join all9 new owners."
+    },
+    {
+      "path": "docs/evidence/compact-staged-observations-v1/inverse.json",
+      "resolution": "Retain complete integration bytes, with Main24 counterpart independently preserved. Docs disclose historical namespace; audit pieces additionally join all9 new owners."
+    },
+    {
+      "path": "docs/evidence/receiver-source-custody-v1/inverse.json",
+      "resolution": "Retain complete integration bytes, with Main24 counterpart independently preserved. Docs disclose historical namespace; audit pieces additionally join all9 new owners."
+    },
+    {
+      "path": "src/cleanup_plan/replay.rs",
+      "resolution": "Retain complete integration bytes, with Main24 counterpart independently preserved. Docs disclose historical namespace; audit pieces additionally join all9 new owners."
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_array/tests.rs",
+      "resolution": "Retain complete integration bytes, with Main24 counterpart independently preserved. Docs disclose historical namespace; audit pieces additionally join all9 new owners."
+    },
+    {
+      "path": "src/cleanup_plan/replay/sequence_prefix.rs",
+      "resolution": "Retain complete integration bytes, with Main24 counterpart independently preserved. Docs disclose historical namespace; audit pieces additionally join all9 new owners."
+    },
+    {
+      "path": "src/cleanup_plan/replay/sequence_prefix/tests.rs",
+      "resolution": "Retain complete integration bytes, with Main24 counterpart independently preserved. Docs disclose historical namespace; audit pieces additionally join all9 new owners."
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "resolution": "Retain complete integration bytes, with Main24 counterpart independently preserved. Docs disclose historical namespace; audit pieces additionally join all9 new owners."
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "resolution": "Retain complete integration bytes, with Main24 counterpart independently preserved. Docs disclose historical namespace; audit pieces additionally join all9 new owners."
+    }
+  ],
+  "relocated_exact_main_files": [
+    "before_wrapper.rs",
+    "before_wrapper_tests.rs"
+  ],
+  "main24_path_array_delta": "Full Main24 tests archived. Its 5-line current-probe source inverse is not applied to shipping lexical route; ours preflight/assertions unchanged.",
+  "new_main24_owner_joins": [
+    "src/cleanup_plan/replay/sequence_prefix/main24/before.rs",
+    "src/cleanup_plan/replay/sequence_prefix/main24/before_wrapper.rs",
+    "src/cleanup_plan/replay/sequence_prefix/main24/before_wrapper_tests.rs",
+    "src/cleanup_plan/replay/sequence_prefix/main24/current.rs",
+    "src/cleanup_plan/replay/sequence_prefix/main24/helper.rs",
+    "src/cleanup_plan/replay/sequence_prefix/main24/mod.rs",
+    "src/cleanup_plan/replay/sequence_prefix/main24/old_current.rs",
+    "src/cleanup_plan/replay/sequence_prefix/main24/tests.rs",
+    "src/cleanup_plan/replay/sequence_prefix/main24/wrapper_context.rs"
+  ]
+}

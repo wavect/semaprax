@@ -1,0 +1,8 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_whole_empty_owner_costs_and_all_short_frontiers_cover_new_bitmap_backing_and_drop ... bitmap-empty root=1 immediate/current=[(10910, Metrics { allocations: 6, reallocations: 0, allocated: 701, freed: 701, live: 0, highwater: 701, invalid: false }), (10782, Metrics { allocations: 5, reallocations: 0, allocated: 637, freed: 637, live: 0, highwater: 637, invalid: false })]
+bitmap-empty root=2 immediate/current=[(11094, Metrics { allocations: 7, reallocations: 1, allocated: 733, freed: 733, live: 0, highwater: 717, invalid: false }), (10814, Metrics { allocations: 6, reallocations: 1, allocated: 669, freed: 669, live: 0, highwater: 653, invalid: false })]
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9214 filtered out; finished in 1.16s
+

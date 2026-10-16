@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_overflow_is_not_empty_and_the_same_paid_status_owner_can_receive_empty_afterward ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9214 filtered out; finished in 0.02s
+

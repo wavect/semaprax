@@ -1,0 +1,15 @@
+
+running 1 test
+test workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core ... 
+thread 'workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core' (12469375) panicked at src/workspace_graph/constructor_failure/../function_alias/before_core/tests.rs:122:57:
+called `Result::unwrap()` on an `Err` value: [Diagnostic { code: "SPX-J100", severity: Error, message: "Package Manifest v1 manifest is not canonical", path: None, span: None, help: Some("line 2: expected ``, found `[package]`; tables follow the order `[package]`, `[modules]`, `[exports]`, `[command]`, `[capabilities]`, `[dependencies]`, `[dependency-sources]`, `[rust-dependencies]`, `[targets]`, keys follow the specification order, arrays are one line with `, ` separators, and blocks are separated by one blank line; start from `semaprax new <destination>` or render a canonical template with `semaprax project-scaffold --name <name> --layout tables`") }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9214 filtered out; finished in 0.05s
+

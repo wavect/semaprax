@@ -1,0 +1,15 @@
+
+running 1 test
+test cleanup_plan::replay::branch_clone::tests::full_plan_enumerator_keeps_every_original_path_work_and_materialization ... 
+thread 'cleanup_plan::replay::branch_clone::tests::full_plan_enumerator_keeps_every_original_path_work_and_materialization' (12477346) panicked at src/cleanup_plan/replay/branch_clone/tests.rs:39:90:
+called `Result::unwrap()` on an `Err` value: Diagnostic { code: "SPX-H006", severity: Error, message: "cleanup plan for function `f` failed independent replay: cleanup replay work budget exhausted during cleanup-plan root state push", path: None, span: None, help: None }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::branch_clone::tests::full_plan_enumerator_keeps_every_original_path_work_and_materialization
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9214 filtered out; finished in 1.29s
+

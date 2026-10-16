@@ -1,0 +1,228 @@
+{
+  "node_version": "v24.3.0",
+  "private_target_dir": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012",
+  "source_subject": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+  "source_tree": "bea332606feb8e62f540ae03dbd3e5a2b559e487",
+  "manifest_sha256": "db7076908874ab299285b9fe29dfd6e061acc1d800513af4a26bf288070a3968",
+  "command": [
+    "/Users/kevin/.cargo/bin/rustup",
+    "run",
+    "1.97.1",
+    "cargo",
+    "clippy",
+    "--locked",
+    "--offline",
+    "-p",
+    "semaprax-toolchain",
+    "--bin",
+    "semaprax-full",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "executed": true,
+  "exit_code": 0,
+  "resource_refusal": null,
+  "observation_errors": [],
+  "peak_process_group_rss_bytes": 5452382208,
+  "rss_limit_bytes": 8589934592,
+  "last_system_free_percent": 75,
+  "process_high_water_marks": [
+    {
+      "pid": 14866,
+      "ppid": 14855,
+      "rss_bytes": 25149440,
+      "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/cargo-clippy"
+    },
+    {
+      "pid": 14869,
+      "ppid": 14866,
+      "rss_bytes": 98025472,
+      "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/cargo"
+    },
+    {
+      "pid": 14872,
+      "ppid": 14869,
+      "rss_bytes": 5329207296,
+      "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/clippy-driver"
+    },
+    {
+      "pid": 19931,
+      "ppid": 14869,
+      "rss_bytes": 787955712,
+      "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/clippy-driver"
+    },
+    {
+      "pid": 20683,
+      "ppid": 14869,
+      "rss_bytes": 476889088,
+      "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/clippy-driver"
+    },
+    {
+      "pid": 20696,
+      "ppid": 14869,
+      "rss_bytes": 264863744,
+      "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/clippy-driver"
+    },
+    {
+      "pid": 20699,
+      "ppid": 14869,
+      "rss_bytes": 326483968,
+      "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/clippy-driver"
+    }
+  ],
+  "wall_seconds": 76.7250684590108,
+  "baseline_telemetry": {
+    "kernel_pressure": {
+      "raw": 1,
+      "label": "normal",
+      "label_status": "exact_kernel_mapping",
+      "kernel_version": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:06 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6030",
+      "mapping_provenance": {
+        "source_tag": "xnu-12377.121.6",
+        "conversion_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/kern/kern_memorystatus_notify.c",
+        "conversion_spans": "1651-1679;1754-1768",
+        "constants_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/sys/event_private.h",
+        "constants_span": "276-278"
+      }
+    },
+    "swap": {
+      "total_bytes": 6442450944,
+      "available_bytes": 847118336,
+      "used_bytes": 5595332608,
+      "page_size": 16384,
+      "encrypted": true,
+      "raw_sha256": "23f9c1581fcdcce46e322960e012600a7c4a1cbf8b1ee06084669e0ef6fc7ef8"
+    },
+    "vm": {
+      "page_size": 16384,
+      "counters": {
+        "Pages free": 302191,
+        "Pages inactive": 263870,
+        "Pages purgeable": 1237,
+        "File-backed pages": 336910,
+        "Pages occupied by compressor": 146292,
+        "Swapins": 104765384,
+        "Swapouts": 142105326
+      }
+    },
+    "windows": [
+      {
+        "command": [
+          "/usr/sbin/sysctl",
+          "-n",
+          "kern.memorystatus_vm_pressure_level"
+        ],
+        "started": 121847.448601875,
+        "finished": 121847.452298166
+      },
+      {
+        "command": [
+          "/usr/sbin/sysctl",
+          "-b",
+          "vm.swapusage"
+        ],
+        "started": 121847.452399166,
+        "finished": 121847.455041125
+      },
+      {
+        "command": [
+          "/usr/bin/vm_stat"
+        ],
+        "started": 121847.455069625,
+        "finished": 121847.457899875
+      }
+    ],
+    "finished": 121847.458088791,
+    "atomic": false
+  },
+  "post_stop_telemetry": {
+    "kernel_pressure": {
+      "raw": 1,
+      "label": "normal",
+      "label_status": "exact_kernel_mapping",
+      "kernel_version": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:06 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6030",
+      "mapping_provenance": {
+        "source_tag": "xnu-12377.121.6",
+        "conversion_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/kern/kern_memorystatus_notify.c",
+        "conversion_spans": "1651-1679;1754-1768",
+        "constants_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/sys/event_private.h",
+        "constants_span": "276-278"
+      }
+    },
+    "swap": {
+      "total_bytes": 6442450944,
+      "available_bytes": 863895552,
+      "used_bytes": 5578555392,
+      "page_size": 16384,
+      "encrypted": true,
+      "raw_sha256": "5da2772476cf70bd214f809737a96a1db74f63c2a09690ce648ae8b797744973"
+    },
+    "vm": {
+      "page_size": 16384,
+      "counters": {
+        "Pages free": 300222,
+        "Pages inactive": 393885,
+        "Pages purgeable": 908,
+        "File-backed pages": 310850,
+        "Pages occupied by compressor": 115880,
+        "Swapins": 104766284,
+        "Swapouts": 142105326
+      }
+    },
+    "windows": [
+      {
+        "command": [
+          "/usr/sbin/sysctl",
+          "-n",
+          "kern.memorystatus_vm_pressure_level"
+        ],
+        "started": 121923.417168916,
+        "finished": 121923.419850041
+      },
+      {
+        "command": [
+          "/usr/sbin/sysctl",
+          "-b",
+          "vm.swapusage"
+        ],
+        "started": 121923.419873416,
+        "finished": 121923.421734458
+      },
+      {
+        "command": [
+          "/usr/bin/vm_stat"
+        ],
+        "started": 121923.4217595,
+        "finished": 121923.425914583
+      }
+    ],
+    "finished": 121923.425957625,
+    "atomic": false
+  },
+  "post_stop_observation_status": "collected_after_confirmed_empty_group",
+  "admission_system_free_percent": 73,
+  "telemetry_sample_count": 38,
+  "maximum_positive_swap_used_delta_bytes": 0,
+  "failed_telemetry_samples": [],
+  "group_settlement": {
+    "owned_pgid": 14866,
+    "confirmed_empty": true,
+    "signals": [],
+    "operation_failures": [],
+    "observation_errors": [],
+    "resource_refusal": null,
+    "finished": 121923.416881458
+  },
+  "source_binding_status": "unchanged",
+  "observation_helper_path": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/drivers/semaprax_pressure_observation_v3.py",
+  "observation_helper_sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+  "phase_monitor_path": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/drivers/observed_phase.py",
+  "phase_monitor_sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867",
+  "executed_test_bodies": 0,
+  "log": "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016/clippy-production-toolchain-full-cli.log",
+  "log_sha256": "06a370aa0ddaaa1bafd011fa9f7bdb6f37a46d4d226e17b579d8c91eb78ed161",
+  "driver_sha256": "47ff9dd51db73eb2b1e6b666c06ad37429d34e2959253179ed14ecb81f2ac8fe",
+  "memory_samples_path": "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016/clippy-production-toolchain-full-cli-memory-samples.jsonl",
+  "memory_samples_sha256": "377320ffa015e380098f17f339a2bd274f5d44a1693c531d615396a499c50215"
+}

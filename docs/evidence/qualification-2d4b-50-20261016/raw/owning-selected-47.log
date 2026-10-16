@@ -1,0 +1,7 @@
+
+running 1 test
+test cleanup_plan::replay::branch_clone::funded_tests::fused_clone_push_pays_real_receivers_and_keeps_exact_short_zero_drop ... branch_clone old_paid=21028 current_paid=18414 old_allocation=Metrics { allocations: 3, reallocations: 1, allocated: 12804, freed: 12804, live: 0, highwater: 12804, invalid: false } current_allocation=Metrics { allocations: 2, reallocations: 0, allocated: 8708, freed: 8708, live: 0, highwater: 8708, invalid: false }
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9214 filtered out; finished in 0.01s
+

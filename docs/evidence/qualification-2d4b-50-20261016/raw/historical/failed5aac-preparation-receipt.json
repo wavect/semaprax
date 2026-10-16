@@ -1,0 +1,134 @@
+{
+  "source_subject": "5aacb8e5e652ce4d05bc8717d7277145695167a7",
+  "source_tree": "bee9cabdf75c915cc6cf6336edb6e7ab04716107",
+  "frozen": true,
+  "source_only_preparation": true,
+  "execution_performed": false,
+  "selected_bodies": 50,
+  "literal_compilation_roles": 7,
+  "ordered_build_commands": [
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "build",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--test",
+      "hir_module_boundaries",
+      "--test",
+      "module_size",
+      "--test",
+      "project",
+      "--test",
+      "project_product_acceptance_ci_contract",
+      "--test",
+      "workspace",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax-toolchain",
+      "--test",
+      "cli_new_project_v1",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ]
+  ],
+  "manifest_sha256": "fb1b9793aae70a76f0a9b04a01e6265d3de97491608f92b864fde024b0fe3d87",
+  "driver_sha256": {
+    "run-owning-selected.py": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450",
+    "draft_contract.py": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1",
+    "semaprax_pressure_observation_v3.py": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+    "run-production-lib-cli-clippy.py": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077",
+    "build-owning.py": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888",
+    "observed_phase.py": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+  },
+  "registered_source_sha256": "dc32bf39f4cd9dd008005debc0265ed305fab2bf975d11f8462664fa48de0eb4",
+  "previous_actual76": {
+    "source": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+    "passed": 56,
+    "failed": 20,
+    "selected_prior_failures": 10,
+    "not_selected_failed": 10
+  },
+  "historical_raw_receipts": [
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-results.json",
+      "retained": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/historical/8bb76-owning-selected-results.json",
+      "sha256": "cd95ec6a0b385cecba18aeca28554e6b142e1578fbb111b8f0b6f2aeb3eba5f1"
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-build-result.json",
+      "retained": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/historical/8bb76-owning-build-result.json",
+      "sha256": "adaeeaa70d39722dfe0110b7e073f8300988d7fc337c33c80f500d92b945bc4f"
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/clippy-production-result.json",
+      "retained": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/historical/8bb76-clippy-production-result.json",
+      "sha256": "cf2ef8901008ae87b774e14271dccd6bfc93115f28b0f5c17101588ec6e0e9d5"
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/clippy-production-toolchain-full-cli-result.json",
+      "retained": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/historical/8bb76-clippy-production-toolchain-full-cli-result.json",
+      "sha256": "296e59abfbd097c46ffe4518bedbb10ab9330f019e72c8bc016ab10671d9f66a"
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/closure-8bb9-844845-nine-supplement-20261016/owning-selected-results.json",
+      "retained": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/historical/8bb9supplement-owning-selected-results.json",
+      "sha256": "abe0a45c5da123e244dde1c65fec3c2f58e6aed21985fe8320b9132cf8745e82"
+    },
+    {
+      "original": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/owning-build-result.json",
+      "retained": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/historical/8bb-original-resource-stop-owning-build-result.json",
+      "sha256": "12a6367d287dd6717428a38d39dfd6c79d70325a9871ad6e237d2a1ca3ff0fab"
+    }
+  ],
+  "effective_prior_rss_limit_bytes": 8589934592
+}

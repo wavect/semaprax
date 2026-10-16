@@ -2,7 +2,7 @@
 from pathlib import Path
 import json,hashlib
 E=Path(__file__).resolve().parent
-SHA='0b9948cc2277684540d55e6e5886e6e5010a30e47c826ec646e9146ebdbff2a3';LENGTH=101692
+SHA='ac665ab736e8b43e13c1a4174f3a140192e7ce35e6a6e3e190c81a6c2feaf7bf';LENGTH=103016
 sha=lambda b:hashlib.sha256(b).hexdigest()
 def compose(domain,path,raw):
  data=(E/'extensions.json').read_bytes();assert len(data)==LENGTH and sha(data)==SHA

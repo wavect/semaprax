@@ -17,7 +17,12 @@ for row in json.loads((E/'output-bindings.json').read_text()):
 compose=runpy.run_path(str(E/'finite.py'))['compose'];inputs=json.loads((E/'extensions.json').read_text());assert inputs['head']==HEAD
 negatives=0
 for row in inputs['rows']:
- raw=(R/row['path']).read_bytes();assert raw==git(HEAD,row['path']);assert sha(raw)==row['current_sha256'];target=(E/row['target_archive']).read_bytes();assert sha(target)==row['target_sha256']
+ raw=(R/row['path']).read_bytes()
+ if 'source_head' in row:
+  assert (row['domain'],row['path'],row['source_head'],row['current_sha256'],row['target_sha256'])==('next-858','docs/evidence/main44-independent-custody-20261016/current-to-main44.json','7528979b0141bfe400587371ca89d90c6fb5bd58','701fbe15391acbc13a61302e5cd1b008dd709d4ddfe4786a1cd16422bf32770a','f698c661ebafca8e72a14c176eafa876aa8331f4d797c52715a7f3812e1e646e')
+  assert raw==git(row['source_head'],row['path'])
+ else:assert raw==git(HEAD,row['path'])
+ assert sha(raw)==row['current_sha256'];target=(E/row['target_archive']).read_bytes();assert sha(target)==row['target_sha256']
  assert compose(row['domain'],row['path'],raw)==target
  assert compose(row['domain'],row['path'],target)==target
  for bad in [raw[:-1],raw+b' ',raw+raw,(b'!'if raw[:1]!=b'!'else b'?')+raw[1:]]:

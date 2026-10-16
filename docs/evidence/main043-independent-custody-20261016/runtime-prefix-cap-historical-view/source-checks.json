@@ -1,0 +1,23 @@
+{
+  "status": "PASS_SOURCE_ONLY_RUNTIME_PREFIX_VIEW",
+  "base_head": "38602e6c71a2d80d9f0853b208441613dabc5b26",
+  "current_source_sha256": "864301d0b87f8de95c6b8d1f2fd306c3bb96eac92f5669986308065f2abdaeef",
+  "precap_full_sha256": "004c365b22682d38e0de3fa840119c5afb700547efb10dbdd2731e47641e78ad",
+  "original_full_sha256": "987ec7791e7a04a3ecbd1149c59f379a134150709b7ee0283f37737aa6bc152e",
+  "actual_raw_reader_prefix_sha256": "c9019b8c4e08e5945bd71e6f70cf6ecb37c8acb587c742b04b4872898adbacf0",
+  "whole_predecessor_and_original_prefix_equal": true,
+  "actual_read_fixture_read_body_cap_bytes_unchanged": true,
+  "current_source_specific_dispatch_and_selected_key_check_unchanged": true,
+  "inverse_spans": 1,
+  "before_extended_verifier_sha256": "77cb7e8c29f54bda153f3dd692e4b576cefc2a8d61a61f3b79895480fae29c7d",
+  "previous_recipe_prefix_preserved": true,
+  "whole_extended_verifier_recipe_reconstruction": true,
+  "hostile_controls": [
+    "missing",
+    "extra",
+    "duplicate",
+    "tampered",
+    "forged_predecessor"
+  ],
+  "Rust_or_Cargo_or_common_generation": false
+}

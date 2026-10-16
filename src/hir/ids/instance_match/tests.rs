@@ -176,7 +176,8 @@ fn streamed_instance_exact_short_zero_sticky_floor_keep_all_key_producers_and_dr
     assert_eq!(count(), args.len());
     // Reserved-floor truncation is distinct from absolute exhaustion: the
     // complete child still fits remaining bytes but would invade the floor.
-    // Use the actual successful comparison bill, not a guessed byte cap.
+    // Observe the exact pre-child write under the unchanged successful bill.
+    // Later rematerialization is part of the whole bill, not child headroom.
     let child = ResolvedType::Nominal {
         declaration: DeclarationId::new("x".repeat(8192)),
         arguments: vec![],
@@ -192,6 +193,21 @@ fn streamed_instance_exact_short_zero_sticky_floor_keep_all_key_producers_and_dr
             instance_matches!(&canonical, &template, &compound)
         });
     assert!(accepted && !overflowed);
+    count();
+    let ((accepted, at_child), overflowed, calibrated_bill, first, site) =
+        with_limit_usage_refusal_site(complete_bill, || {
+            crate::bounded_output::CheckedCappedString::capture_write_frontier(child_bytes, || {
+                instance_matches!(&canonical, &template, &compound)
+            })
+        });
+    assert!(accepted && !overflowed && first.is_none() && site.is_none());
+    assert_eq!(calibrated_bill, complete_bill);
+    assert_eq!(count(), compound.len());
+    let floor = at_child
+        .checked_sub(child_bytes)
+        .unwrap()
+        .checked_add(1)
+        .unwrap();
     let truncated = format!("nominal:1:N:1:{child_bytes}:");
     let forged = FunctionInstanceId(format!(
         "semaprax.function-instance.v1:{}:{}:1:{}:{}",
@@ -202,9 +218,12 @@ fn streamed_instance_exact_short_zero_sticky_floor_keep_all_key_producers_and_dr
     ));
     let ((accepted, retried), overflowed, _, first, site) =
         with_limit_usage_refusal_site(complete_bill, || {
-            assert!(crate::bounded_output::set_active_floor(child_bytes));
+            assert!(crate::bounded_output::set_active_floor(floor));
             let accepted = instance_matches!(&forged, &template, &compound);
+            assert!(crate::bounded_output::active_refused());
+            let after_first = crate::bounded_output::active_remaining();
             let retried = instance_matches!(&forged, &template, &compound);
+            assert_eq!(crate::bounded_output::active_remaining(), after_first);
             (accepted, retried)
         });
     assert!(
@@ -213,13 +232,14 @@ fn streamed_instance_exact_short_zero_sticky_floor_keep_all_key_producers_and_dr
     );
     let first = first.unwrap();
     assert_eq!(first.requested, child_bytes);
-    assert_eq!(first.floor, child_bytes);
+    assert_eq!(first.floor, floor);
     assert!(first.remaining >= child_bytes);
+    assert!(first.remaining - child_bytes < floor);
     assert_eq!(first.stage, None);
     let site = site.unwrap();
     assert!(site.file().ends_with("bounded_output/checked_string.rs"));
     assert!(site.line() > 0);
-    count();
+    assert_eq!(count(), 2 * compound.len());
     let zero = Vec::<ResolvedType>::new();
     let small = vec![ResolvedType::I64];
     for (shape, arguments) in [
@@ -307,4 +327,76 @@ fn streamed_instance_validator_preserves_duplicate_before_canonical_refusal() {
         frozen,
         with_legacy(|| crate::graph::to_hir_json(&program, &crate::graph::revision(&ast))).unwrap()
     );
+}
+
+#[test]
+fn streamed_instance_zero_argument_nominal_omission_cannot_authenticate_empty_key() {
+    let template = DeclarationId::new("floor.template");
+    let declaration_bytes = 8192;
+    let argument = ResolvedType::Nominal {
+        declaration: DeclarationId::new("x".repeat(declaration_bytes)),
+        arguments: vec![],
+    };
+    let complete_key = argument.identity_key();
+    // Execute the complete old checked method: its ordinary formatter can
+    // return empty at a silent floor boundary with completeness still true.
+    let mut old_complete = true;
+    let (old_key, overflowed, _, first, site) =
+        with_limit_usage_refusal_site(complete_key.len(), || {
+            assert!(crate::bounded_output::set_active_floor(1));
+            argument.identity_key_before_format_completion(&mut old_complete)
+        });
+    assert!(old_key.is_empty() && old_complete && !overflowed);
+    assert!(first.is_none() && site.is_none());
+
+    let arguments = [argument];
+    let canonical = FunctionInstanceId::derive(&template, &arguments);
+    let (matched, overflowed, bill, first, site) =
+        with_limit_usage_refusal_site(usize::MAX, || {
+            instance_matches!(&canonical, &template, &arguments)
+        });
+    assert!(matched && !overflowed && first.is_none() && site.is_none());
+    count();
+    let ((matched, at_declaration), overflowed, exact_bill, first, site) =
+        with_limit_usage_refusal_site(bill, || {
+            crate::bounded_output::CheckedCappedString::capture_write_frontier(
+                declaration_bytes,
+                || instance_matches!(&canonical, &template, &arguments),
+            )
+        });
+    assert!(matched && !overflowed && first.is_none() && site.is_none());
+    assert_eq!(exact_bill, bill);
+    assert_eq!(count(), arguments.len());
+    let floor = at_declaration
+        .checked_sub(declaration_bytes)
+        .unwrap()
+        .checked_add(1)
+        .unwrap();
+    let forged = FunctionInstanceId(format!(
+        "semaprax.function-instance.v1:{}:{}:1:0:",
+        template.as_str().len(),
+        template
+    ));
+    let ((matched, retried), overflowed, _, first, site) =
+        with_limit_usage_refusal_site(bill, || {
+            assert!(crate::bounded_output::set_active_floor(floor));
+            let matched = instance_matches!(&forged, &template, &arguments);
+            assert!(crate::bounded_output::active_refused());
+            let after_first = crate::bounded_output::active_remaining();
+            let retried = instance_matches!(&forged, &template, &arguments);
+            assert_eq!(crate::bounded_output::active_remaining(), after_first);
+            (matched, retried)
+        });
+    assert!(!matched && !retried && overflowed);
+    assert_eq!(count(), 2 * arguments.len());
+    let first = first.unwrap();
+    assert_eq!(first.requested, declaration_bytes);
+    assert_eq!(first.floor, floor);
+    assert!(first.remaining >= declaration_bytes);
+    assert!(first.remaining - declaration_bytes < floor);
+    assert_eq!(first.stage, None);
+    assert!(site
+        .unwrap()
+        .file()
+        .ends_with("bounded_output/checked_string.rs"));
 }

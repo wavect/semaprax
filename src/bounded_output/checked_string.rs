@@ -45,6 +45,26 @@ impl<'a> CheckedCappedString<'a> {
         + 3 * size_of::<usize>()
         + size_of::<&str>();
 
+    // The checked formatter also replaces budgeted_format's direct reserve
+    // writer. Its reserve_sink call has an independent active/captured payer
+    // selection: caller/parameter captured Option and reference, length,
+    // active return/receiving Option<Rc> values and Rc clone, borrow/Ref views,
+    // Rc/Option references, as_deref/or_else/map receiver/return Options and
+    // closure capture/receiver, plus the forwarding bool. Charge this selection
+    // for EVERY checked callback; no guessed callback count or reused old bank.
+    const SINK_SELECTION_CONTROLS: usize = 3 * size_of::<Option<Rc<Budget>>>()
+        + size_of::<Rc<Budget>>()
+        + size_of::<Ref<'static, Option<Rc<Budget>>>>()
+        + 2 * size_of::<&RefCell<Option<Rc<Budget>>>>()
+        + size_of::<&Ref<'static, Option<Rc<Budget>>>>()
+        + 3 * size_of::<&Option<Rc<Budget>>>()
+        + 2 * size_of::<&Rc<Budget>>()
+        + 2 * size_of::<Option<&Rc<Budget>>>()
+        + 3 * size_of::<Option<&Budget>>()
+        + 3 * size_of::<&Option<&Rc<Budget>>>()
+        + size_of::<usize>()
+        + size_of::<bool>();
+
     // Successful extra required-entry admission, in addition to the surviving
     // original reserve_sink byte call: active borrow/clone and Option views,
     // outer overflow/admitted/caller bools (9), reserve overflow bools (3),
@@ -54,7 +74,8 @@ impl<'a> CheckedCappedString<'a> {
     // values, remaining/floor/set Cell references and scalar receiving sites.
     // Its own failed admission is the explicit initial metadata ABI boundary;
     // no failed debit is described as having prepaid its own capture.
-    const ENTRY_CONTROLS: usize = 2 * size_of::<Option<Rc<Budget>>>()
+    const ENTRY_CONTROLS: usize = Self::SINK_SELECTION_CONTROLS
+        + 2 * size_of::<Option<Rc<Budget>>>()
         + size_of::<Rc<Budget>>()
         + size_of::<Ref<'static, Option<Rc<Budget>>>>()
         + 2 * size_of::<&RefCell<Option<Rc<Budget>>>>()
@@ -78,6 +99,11 @@ impl<'a> CheckedCappedString<'a> {
         }
     }
 
+    #[cfg(test)]
+    pub(crate) fn capture_write_frontier<T>(bytes: usize, body: impl FnOnce() -> T) -> (T, usize) {
+        frontier_observer::capture(bytes, body)
+    }
+
     pub(crate) fn into_string(self) -> String {
         self.bytes
     }
@@ -92,6 +118,8 @@ impl fmt::Write for CheckedCappedString<'_> {
             *self.complete = false;
             return Ok(());
         }
+        #[cfg(test)]
+        frontier_observer::record(value.len());
         // Same original current-or-captured sink selection and byte request.
         if reserve_sink(self.budget.as_ref(), value.len()) {
             self.bytes.push_str(value);
@@ -105,5 +133,40 @@ impl fmt::Write for CheckedCappedString<'_> {
         }
         // Preserve every later formatter invocation and argument key producer.
         Ok(())
+    }
+}
+
+// Diagnostic-only exact write frontier. No allocation, reservation, floor change,
+// or production field; it observes after real ENTRY admission and before bytes.
+#[cfg(test)]
+pub(crate) mod frontier_observer {
+    use std::cell::Cell;
+    thread_local! {
+        static TARGET: Cell<Option<usize>> = const { Cell::new(None) };
+        static FIRST: Cell<Option<usize>> = const { Cell::new(None) };
+    }
+    pub(super) fn record(bytes: usize) {
+        if TARGET.with(Cell::get) == Some(bytes) && FIRST.with(Cell::get).is_none() {
+            FIRST.with(|first| first.set(crate::bounded_output::active_remaining()));
+        }
+    }
+    pub(crate) fn capture<T>(bytes: usize, body: impl FnOnce() -> T) -> (T, usize) {
+        struct Restore(Option<usize>, Option<usize>);
+        impl Drop for Restore {
+            fn drop(&mut self) {
+                TARGET.with(|target| target.set(self.0));
+                FIRST.with(|first| first.set(self.1));
+            }
+        }
+        let restore = Restore(
+            TARGET.with(|target| target.replace(Some(bytes))),
+            FIRST.with(|first| first.replace(None)),
+        );
+        let value = body();
+        let remaining = FIRST
+            .with(Cell::get)
+            .expect("the complete admitted write frontier was reached");
+        drop(restore);
+        (value, remaining)
     }
 }

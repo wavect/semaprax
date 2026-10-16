@@ -4,8 +4,8 @@
   "before_archive": "optimized_tests.rs.before.txt",
   "before_length": 22021,
   "before_sha256": "3a9766f90634e5843161e61fba311d1949350a269b6b06d965ac7db9370df8da",
-  "current_sha256": "efda66b752b719820b399f1e28b495eecbcb86ea4a8fb75cf4d9b21b321dd7c7",
-  "complete_added_body_sha256": "89dc33c014adfa26919a4a7a9afc0938f959c5adb1fa241a1149686b0e991822",
+  "current_sha256": "ed1a28f5f57be809f5ebe5b28999f1d118c019167dd603b91e8b0c248d4e90b6",
+  "complete_added_body_sha256": "c7a9e2197728816409938c63842509b7cb2cd8c71eeb5faf5a41ca8cf480e58f",
   "unchanged": [
     {
       "path": "src/cleanup_plan/replay/path_array/sequence_minimum/optimized.rs",

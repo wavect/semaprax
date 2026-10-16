@@ -1,0 +1,7 @@
+{
+  "source": "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs",
+  "change": "Explicit usize fixture binding before checked_next_power_of_two macro receiver",
+  "all_previous_test_prefix_and_assertions_unchanged": true,
+  "source_review": "/Volumes/Semaprax/provenance/schema-summary-and858-floor-compile-risk-22c3ef4f-20261016/REPORT.md",
+  "Rust_execution": "PENDING"
+}

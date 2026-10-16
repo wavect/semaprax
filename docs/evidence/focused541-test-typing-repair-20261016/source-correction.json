@@ -1,0 +1,13 @@
+{
+  "scope": "Type-only usize annotation and equivalent mandatory Err extraction; no production type or original assertion edits",
+  "base": "541bd279b4ae243e30bb7f39d4c7db7c62b7fa01",
+  "source": "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs",
+  "before_sha256": "f119587abd226a601f72ba4246ba93159ccbd5ad2f203ba34cf97ee2a5bed861",
+  "after_sha256": "3546628ba58180f048d230b7f723f2f7ab04cce635fb4c6b452d1bab3d339018",
+  "original_assertion_count": 79,
+  "current_assertion_count": 79,
+  "failed_round": "/Volumes/Semaprax/lane-prompts/final-focused244-541bd279-20261016",
+  "actual_compiler_errors": 3,
+  "executed_test_bodies": 0,
+  "rust_fix_qualification": "PENDING"
+}

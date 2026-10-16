@@ -387,7 +387,7 @@ fn isolated_first(
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
     let mut result = Vec::new();
-    let minimum = path_array::count!(work, true, 9, "isolated sequencing count");
+    let minimum: usize = path_array::count!(work, true, 9, "isolated sequencing count");
     path_array::select!(first, minimum, &result, work);
     let pending = suffixes[1..].iter();
     if old {
@@ -470,8 +470,8 @@ fn expired_and_foreign_account_keep_the_original_failure_before_probe() {
             drop((work, budget, suffixes, live));
             result
         };
-        let actual = run(false).unwrap_err();
-        let expected = run(true).unwrap_err();
+        let actual = run(false).err().expect("optimized receiver must refuse");
+        let expected = run(true).err().expect("original receiver must refuse");
         assert_eq!(actual, expected, "all six original Diagnostic fields");
     }
 }

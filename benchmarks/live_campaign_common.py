@@ -10,6 +10,8 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
+import re
 import shutil
 import subprocess
 import time
@@ -125,6 +127,29 @@ def tokenizer_metadata(tokenizer_dir: str | Path | None) -> dict[str, Any] | Non
         "runtime": "node", "runtime_version": node_version.stdout.strip() if node_version.returncode == 0 else None,
         "tokenizer_dir": str(root), "fingerprint_sha256": fingerprint.hexdigest(),
     }
+
+
+def codex_sessions_root() -> Path:
+    """Follow the CLI's existing configured home; never replace account state."""
+    configured = os.environ.get("CODEX_HOME")
+    home = Path(configured).expanduser() if configured else Path.home() / ".codex"
+    return (home / "sessions").resolve()
+
+
+def require_authored_source_tokenizer(settings: dict[str, Any]) -> None:
+    """A scored launch must retain a declared, unchanged final-file proxy."""
+    declared = settings.get("authored_source_tokenizer")
+    if (not isinstance(declared, dict)
+            or declared.get("package") != TOKENIZER_PACKAGE
+            or declared.get("version") != TOKENIZER_VERSION
+            or declared.get("encoding_identity") != TOKENIZER_ENCODING
+            or not isinstance(declared.get("tokenizer_dir"), str)
+            or not isinstance(declared.get("fingerprint_sha256"), str)
+            or re.fullmatch(r"[0-9a-f]{64}", declared["fingerprint_sha256"]) is None):
+        raise ValueError("scored trial requires a declared pinned authored-source tokenizer; pass --tokenizer-dir")
+    actual = tokenizer_metadata(declared["tokenizer_dir"])
+    if actual != declared:
+        raise ValueError("authored-source tokenizer differs from its pinned declaration")
 
 
 def tokenize_texts(texts: list[dict[str, str]], metadata: dict[str, Any]) -> list[int]:

@@ -25,6 +25,13 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class WebappCampaignTests(unittest.TestCase):
     def setUp(self):
+        # Declare the same pinned fake tokenizer as the isolated fake authoring
+        # environment. Real missing/drifted prerequisites have independent controls.
+        self.tokenizer = {"package": campaign.common.TOKENIZER_PACKAGE,
+                          "version": campaign.common.TOKENIZER_VERSION,
+                          "encoding_identity": campaign.common.TOKENIZER_ENCODING,
+                          "tokenizer_dir": "/fixture/tokenizer", "fingerprint_sha256": "a" * 64}
+        self.enterContext(patch.object(campaign.common, "tokenizer_metadata", return_value=self.tokenizer))
         # These fixtures fake model/acceptance execution; resource admission is
         # independently exercised with low-space and ENOSPC controls.
         self.enterContext(patch("campaign_resources.snapshot", return_value=[
@@ -169,7 +176,7 @@ class WebappCampaignTests(unittest.TestCase):
             root = Path(directory); receipt, _, summary = self.bootstrap_fixture(root)
             compiler = root / "compiler"
             compiler.write_text("#!/bin/sh\nexit 0\n"); compiler.chmod(0o755)
-            settings = {"typescript_bootstrap": {"receipt_path": str(receipt),
+            settings = {"authored_source_tokenizer": self.tokenizer, "typescript_bootstrap": {"receipt_path": str(receipt),
                         "receipt_sha256": dependencies.digest(receipt)},
                         "qualification": {"spec_sha256": "spec", "receipt_sha256": dependencies.digest(summary)},
                         "acceptance": {"capabilities": {"node_binary": "fixture-node"}},
@@ -684,7 +691,7 @@ class WebappCampaignTests(unittest.TestCase):
                 root = Path(directory)
                 compiler = root / "compiler"
                 compiler.write_text("#!/bin/sh\nexit 0\n"); compiler.chmod(0o755)
-                settings = {"compiler_source_commit": "a" * 40,
+                settings = {"authored_source_tokenizer": self.tokenizer, "compiler_source_commit": "a" * 40,
                             "source_binary_sha256": campaign.common.digest(compiler)}
 
                 def prepare(_repo, _workspace, _commit):
@@ -716,7 +723,7 @@ class WebappCampaignTests(unittest.TestCase):
             compiler.write_text("#!/bin/sh\nexit 0\n"); compiler.chmod(0o755)
             settings = {
                 "codex_binary": "codex", "timeout_seconds": 1800,
-                "acceptance_timeout_seconds": 2700, "authored_source_tokenizer": None,
+                "acceptance_timeout_seconds": 2700, "authored_source_tokenizer": self.tokenizer,
                 "compiler_source_commit": "a" * 40,
                 "source_binary_sha256": campaign.common.digest(compiler),
                 "seed_files_sha256": {

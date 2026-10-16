@@ -395,6 +395,13 @@ def trace_usage(exec_usage: dict[str, Any], rollout: Path) -> dict[str, Any]:
     }
 
 
+def telemetry_valid(observed: dict[str, Any]) -> bool:
+    return (observed.get("reconciled") is True
+            and observed.get("model_observed") == MODEL
+            and observed.get("effort_observed") == EFFORT
+            and observed.get("invalid_stream_lines") == 0)
+
+
 def list_price_estimate(requests: list[dict[str, Any]], price_book: dict[str, Any] | None = None) -> dict[str, Any]:
     """Conditional standard-price estimate; actual billing and cache-write amount remain unknown."""
     # Compatibility calls use the explicitly dated historical card, never a
@@ -542,7 +549,7 @@ def copy_task_rollout(thread_ids: list[str], workspace: Path, destination: Path,
     """Read only the exact CLI-emitted thread, authenticated by ID and cwd."""
     if len(thread_ids) != 1 or not re.fullmatch(r"[0-9a-f-]{36}", thread_ids[0]):
         return None
-    root = sessions_root or (Path.home() / ".codex" / "sessions")
+    root = sessions_root if sessions_root is not None else common.codex_sessions_root()
     paths = list(root.rglob(f"*{thread_ids[0]}.jsonl"))
     if len(paths) != 1:
         return None
@@ -595,6 +602,7 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
     require_compiler_build_receipt(settings, semaprax_bin)
     arm, number = trial["arm"], trial["number"]
     legacy.qualification.require_settings(settings)
+    common.require_authored_source_tokenizer(settings)
     label = f"{arm}-{number:02d}"
     workspace = artifacts / "worktrees" / label
     row: dict[str, Any] = {**trial, "workspace": str(workspace), "status": "failed", "failure": None}
@@ -638,12 +646,14 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
         authoring_env = {**env, "SEMAPRAX_BIN": str(authoring_binary)} if arm == "semaprax" else env
         common.require_compiler_binding(settings, semaprax_bin)
         require_compiler_build_receipt(settings, semaprax_bin)
+        common.require_authored_source_tokenizer(settings)
         process = run_codex(_command(settings, prompt), workspace, authoring_env, transcript, stderr, settings["timeout_seconds"])
     row.update(process); row.update({"transcript": str(transcript), "stderr_path": str(stderr)})
     exec_usage = parse_exec_jsonl(transcript)
     copied = copy_task_rollout(exec_usage["thread_ids"], workspace, trace)
     trace_result = trace_usage(exec_usage, copied) if copied else {"reconciled": False, "model_request_count": None, "model_observed": None}
     row["observed"] = {**exec_usage, **trace_result, "stable_context_tokens": None}
+    row["telemetry_valid"] = telemetry_valid(row["observed"])
     row["rollout_trace"] = str(copied) if copied else None
     row["list_price"] = list_price_estimate(trace_result.get("model_requests", []), settings.get("price_book", {}))
     row["provider_receipt_actual_usd"] = None
@@ -651,10 +661,8 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
         row["failure"] = "trial hit wall-clock timeout"
     elif process["process_exit_code"] != 0:
         row["failure"] = f"Codex exited with {process['process_exit_code']}"
-    elif not trace_result.get("reconciled"):
-        row["failure"] = "missing or unreconciled task-owned rollout usage"
-    elif trace_result.get("model_observed") != MODEL or trace_result.get("effort_observed") != EFFORT:
-        row["failure"] = "observed rollout model or effort differs from pinned request"
+    elif not row["telemetry_valid"]:
+        row["failure"] = "missing, invalid, or mismatched task-owned rollout telemetry"
     else:
         guard, guard_error = legacy.trial_workspace_guard(workspace, settings)
         row["workspace_integrity_before_acceptance"] = guard
@@ -717,13 +725,13 @@ def launch_calibration(repo: Path, artifacts: Path, commit: str, settings: dict[
     usage = parse_exec_jsonl(transcript); copied = copy_task_rollout(usage["thread_ids"], workspace, trace)
     trace_result = trace_usage(usage, copied) if copied else {"reconciled": False}
     row["observed"] = {**usage, **trace_result, "stable_context_tokens": None}
+    row["telemetry_valid"] = telemetry_valid(row["observed"])
     row["rollout_trace"] = str(copied) if copied else None
     row["list_price"] = list_price_estimate(trace_result.get("model_requests", []), settings.get("price_book", {}))
     messages = [json.loads(line).get("item", {}) for line in transcript.read_text().splitlines() if line]
     replies = [item.get("text", "").strip() for item in messages if item.get("type") == "agent_message"]
     counts = usage.get("tool_item_counts", {})
-    row["status"] = "ready" if (row["process_exit_code"] == 0 and trace_result.get("reconciled")
-        and trace_result.get("model_observed") == MODEL and trace_result.get("effort_observed") == EFFORT
+    row["status"] = "ready" if (row["process_exit_code"] == 0 and row["telemetry_valid"]
         and replies == ["READY"] and all(kind == "agent_message" or not count for kind, count in counts.items())) else "failed"
     cleanup_trial(repo, workspace, settings, row)
     return row

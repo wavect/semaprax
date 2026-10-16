@@ -183,6 +183,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
     """Persist one attempt, reconcile exact task telemetry, and recheck each boundary."""
     shiftsim.require_authoring_eligibility(settings, semaprax_bin)
     shiftsim.common.require_compiler_binding(settings, semaprax_bin)
+    shiftsim.common.require_authored_source_tokenizer(settings)
     label = f"{trial['arm']}-{trial['number']:02d}"
     workspace = artifacts / "worktrees" / label
     row: dict[str, Any] = {**trial, "workspace": str(workspace), "status": "failed", "failure": None,
@@ -228,6 +229,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
             authoring_env = {**env, "SEMAPRAX_BIN": str(authoring_binary)} if trial["arm"] == "semaprax" else env
             shiftsim.require_authoring_eligibility(settings, semaprax_bin)
             shiftsim.common.require_compiler_binding(settings, semaprax_bin)
+            shiftsim.common.require_authored_source_tokenizer(settings)
             row.update(codex.run_codex(command_for(settings, prompt), workspace,
                                        authoring_env, stream, stderr, settings["timeout_seconds"]))
         row.update(observe(workspace, artifacts, label, stream, settings.get("price_book", {})))

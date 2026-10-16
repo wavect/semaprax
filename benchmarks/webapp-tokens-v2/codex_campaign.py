@@ -568,7 +568,7 @@ def copy_task_rollout(thread_ids: list[str], workspace: Path, destination: Path,
     """Read only the exact CLI-emitted thread, authenticated by ID and cwd."""
     if len(thread_ids) != 1 or not re.fullmatch(r"[0-9a-f-]{36}", thread_ids[0]):
         return None
-    root = sessions_root or (Path.home() / ".codex" / "sessions")
+    root = sessions_root if sessions_root is not None else common.codex_sessions_root()
     paths = list(root.rglob(f"*{thread_ids[0]}.jsonl"))
     if len(paths) != 1:
         return None
@@ -798,6 +798,7 @@ def check_candidate(candidate: Path, output: Path, arm: str, settings: dict[str,
 def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any], settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
     """Run one paid attempt. Every attempted trial remains in the result denominator."""
     common.require_compiler_binding(settings, semaprax_bin)
+    common.require_authored_source_tokenizer(settings)
     arm, number = trial["arm"], trial["number"]
     label = f"{arm}-{number:02d}"
     workspace = artifacts / "worktrees" / label
@@ -843,6 +844,7 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
             row["prompt_sha256"] = hashlib.sha256(prompt.encode()).hexdigest()
             row["fixed_prompt_utf8_bytes"] = len(prompt.encode())
             common.require_compiler_binding(settings, semaprax_bin)
+            common.require_authored_source_tokenizer(settings)
             process = run_codex(_command(settings, prompt), workspace, trial_environment(authoring_binary),
                                 transcript, stderr, settings["timeout_seconds"])
         row.update(process)

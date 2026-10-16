@@ -1,0 +1,131 @@
+{
+  "base": "73a8f006988a68e28c6e2840ff08d46cf79650e4",
+  "rows": [
+    {
+      "path": "benchmarks/live_campaign_common.py",
+      "archive": "before/benchmarks__live_campaign_common.py",
+      "before_sha256": "7be9881cf3e14a1941538314282b523e07372774743ac268793c5972edb91268",
+      "replacements": [
+        {
+          "before": "import math\n",
+          "after": "import math\nimport os\nimport re\n"
+        },
+        {
+          "before": "def tokenize_texts(",
+          "after": "def codex_sessions_root() -> Path:\n    \"\"\"Follow the CLI's existing configured home; never replace account state.\"\"\"\n    configured = os.environ.get(\"CODEX_HOME\")\n    home = Path(configured).expanduser() if configured else Path.home() / \".codex\"\n    return (home / \"sessions\").resolve()\n\n\ndef require_authored_source_tokenizer(settings: dict[str, Any]) -> None:\n    \"\"\"A scored launch must retain a declared, unchanged final-file proxy.\"\"\"\n    declared = settings.get(\"authored_source_tokenizer\")\n    if (not isinstance(declared, dict)\n            or declared.get(\"package\") != TOKENIZER_PACKAGE\n            or declared.get(\"version\") != TOKENIZER_VERSION\n            or declared.get(\"encoding_identity\") != TOKENIZER_ENCODING\n            or not isinstance(declared.get(\"tokenizer_dir\"), str)\n            or not isinstance(declared.get(\"fingerprint_sha256\"), str)\n            or re.fullmatch(r\"[0-9a-f]{64}\", declared[\"fingerprint_sha256\"]) is None):\n        raise ValueError(\"scored trial requires a declared pinned authored-source tokenizer; pass --tokenizer-dir\")\n    actual = tokenizer_metadata(declared[\"tokenizer_dir\"])\n    if actual != declared:\n        raise ValueError(\"authored-source tokenizer differs from its pinned declaration\")\n\n\ndef tokenize_texts("
+        }
+      ]
+    },
+    {
+      "path": "benchmarks/cli-tokens-v1/codex_campaign.py",
+      "archive": "before/benchmarks__cli-tokens-v1__codex_campaign.py",
+      "before_sha256": "04a4c54c5213f4631798016f3fc00636f3e644a1e673d7a00fcee8ac319633c3",
+      "replacements": [
+        {
+          "before": "    root = sessions_root or (Path.home() / \".codex\" / \"sessions\")",
+          "after": "    root = sessions_root if sessions_root is not None else common.codex_sessions_root()"
+        },
+        {
+          "before": "def list_price_estimate(",
+          "after": "def telemetry_valid(observed: dict[str, Any]) -> bool:\n    return (observed.get(\"reconciled\") is True\n            and observed.get(\"model_observed\") == MODEL\n            and observed.get(\"effort_observed\") == EFFORT\n            and observed.get(\"invalid_stream_lines\") == 0)\n\n\ndef list_price_estimate("
+        },
+        {
+          "before": "    legacy.qualification.require_settings(settings)\n    label =",
+          "after": "    legacy.qualification.require_settings(settings)\n    common.require_authored_source_tokenizer(settings)\n    label ="
+        },
+        {
+          "before": "        process = run_codex(_command(settings, prompt),",
+          "after": "        common.require_authored_source_tokenizer(settings)\n        process = run_codex(_command(settings, prompt),"
+        },
+        {
+          "before": "    row[\"observed\"] = {**exec_usage, **trace_result, \"stable_context_tokens\": None}",
+          "after": "    row[\"observed\"] = {**exec_usage, **trace_result, \"stable_context_tokens\": None}\n    row[\"telemetry_valid\"] = telemetry_valid(row[\"observed\"])"
+        },
+        {
+          "before": "    elif not trace_result.get(\"reconciled\"):\n        row[\"failure\"] = \"missing or unreconciled task-owned rollout usage\"\n    elif trace_result.get(\"model_observed\") != MODEL or trace_result.get(\"effort_observed\") != EFFORT:\n        row[\"failure\"] = \"observed rollout model or effort differs from pinned request\"",
+          "after": "    elif not row[\"telemetry_valid\"]:\n        row[\"failure\"] = \"missing, invalid, or mismatched task-owned rollout telemetry\""
+        },
+        {
+          "before": "    row[\"observed\"] = {**usage, **trace_result, \"stable_context_tokens\": None}",
+          "after": "    row[\"observed\"] = {**usage, **trace_result, \"stable_context_tokens\": None}\n    row[\"telemetry_valid\"] = telemetry_valid(row[\"observed\"])"
+        },
+        {
+          "before": "row[\"process_exit_code\"] == 0 and trace_result.get(\"reconciled\")\n        and trace_result.get(\"model_observed\") == MODEL and trace_result.get(\"effort_observed\") == EFFORT",
+          "after": "row[\"process_exit_code\"] == 0 and row[\"telemetry_valid\"]"
+        }
+      ]
+    },
+    {
+      "path": "benchmarks/webapp-tokens-v2/codex_campaign.py",
+      "archive": "before/benchmarks__webapp-tokens-v2__codex_campaign.py",
+      "before_sha256": "66d9a7cf5e0b3cb574c17fadc1169f206d7e2c4b92279bd46456dec115d6f2b6",
+      "replacements": [
+        {
+          "before": "    root = sessions_root or (Path.home() / \".codex\" / \"sessions\")",
+          "after": "    root = sessions_root if sessions_root is not None else common.codex_sessions_root()"
+        },
+        {
+          "before": "    \"\"\"Run one paid attempt. Every attempted trial remains in the result denominator.\"\"\"\n    common.require_compiler_binding(settings, semaprax_bin)",
+          "after": "    \"\"\"Run one paid attempt. Every attempted trial remains in the result denominator.\"\"\"\n    common.require_compiler_binding(settings, semaprax_bin)\n    common.require_authored_source_tokenizer(settings)"
+        },
+        {
+          "before": "            process = run_codex(_command(settings, prompt),",
+          "after": "            common.require_authored_source_tokenizer(settings)\n            process = run_codex(_command(settings, prompt),"
+        }
+      ]
+    },
+    {
+      "path": "benchmarks/event-sim-tokens-v1/codex_campaign.py",
+      "archive": "before/benchmarks__event-sim-tokens-v1__codex_campaign.py",
+      "before_sha256": "d2c465f2e178799f5b0b59ead639e6774415561f524d7fe74bcf95ff7f64204a",
+      "replacements": [
+        {
+          "before": "    \"\"\"Persist one attempt, reconcile exact task telemetry, and recheck each boundary.\"\"\"\n    shiftsim.require_authoring_eligibility(settings, semaprax_bin)\n    shiftsim.common.require_compiler_binding(settings, semaprax_bin)",
+          "after": "    \"\"\"Persist one attempt, reconcile exact task telemetry, and recheck each boundary.\"\"\"\n    shiftsim.require_authoring_eligibility(settings, semaprax_bin)\n    shiftsim.common.require_compiler_binding(settings, semaprax_bin)\n    shiftsim.common.require_authored_source_tokenizer(settings)"
+        },
+        {
+          "before": "            row.update(codex.run_codex(command_for(settings, prompt),",
+          "after": "            shiftsim.common.require_authored_source_tokenizer(settings)\n            row.update(codex.run_codex(command_for(settings, prompt),"
+        }
+      ]
+    },
+    {
+      "path": "benchmarks/webapp-tokens-v2/test_codex_campaign.py",
+      "archive": "before/benchmarks__webapp-tokens-v2__test_codex_campaign.py",
+      "before_sha256": "bebfe79cb081c6052584399189c48e8d43c4b12a0401bb0bd4c8feeb86fe02ce",
+      "replacements": [
+        {
+          "before": "        # These fixtures fake model/acceptance execution; resource admission is\n",
+          "after": "        # Declare the same pinned fake tokenizer as the isolated fake authoring\n        # environment. Real missing/drifted prerequisites have independent controls.\n        self.tokenizer = {\"package\": campaign.common.TOKENIZER_PACKAGE,\n                          \"version\": campaign.common.TOKENIZER_VERSION,\n                          \"encoding_identity\": campaign.common.TOKENIZER_ENCODING,\n                          \"tokenizer_dir\": \"/fixture/tokenizer\", \"fingerprint_sha256\": \"a\" * 64}\n        self.enterContext(patch.object(campaign.common, \"tokenizer_metadata\", return_value=self.tokenizer))\n        # These fixtures fake model/acceptance execution; resource admission is\n"
+        },
+        {
+          "before": "\"authored_source_tokenizer\": None",
+          "after": "\"authored_source_tokenizer\": self.tokenizer"
+        },
+        {
+          "before": "settings = {\"typescript_bootstrap\": {\"receipt_path\": str(receipt),",
+          "after": "settings = {\"authored_source_tokenizer\": self.tokenizer, \"typescript_bootstrap\": {\"receipt_path\": str(receipt),"
+        },
+        {
+          "before": "settings = {\"compiler_source_commit\": \"a\" * 40,\n                            \"source_binary_sha256\": campaign.common.digest(compiler)}",
+          "after": "settings = {\"authored_source_tokenizer\": self.tokenizer, \"compiler_source_commit\": \"a\" * 40,\n                            \"source_binary_sha256\": campaign.common.digest(compiler)}"
+        }
+      ]
+    },
+    {
+      "path": "benchmarks/event-sim-tokens-v1/test_codex_campaign.py",
+      "archive": "before/benchmarks__event-sim-tokens-v1__test_codex_campaign.py",
+      "before_sha256": "14b5857f4a55ac8e8d43812c455e8558f6205db5c9cf29b30c5090837074d1f5",
+      "replacements": [
+        {
+          "before": "        # These fixtures fake model/acceptance execution; resource admission is\n",
+          "after": "        # Declare the same pinned fake tokenizer as the isolated fake authoring\n        # environment. Real missing/drifted prerequisites have independent controls.\n        self.tokenizer = {\"package\": adapter.shiftsim.common.TOKENIZER_PACKAGE,\n                          \"version\": adapter.shiftsim.common.TOKENIZER_VERSION,\n                          \"encoding_identity\": adapter.shiftsim.common.TOKENIZER_ENCODING,\n                          \"tokenizer_dir\": \"/fixture/tokenizer\", \"fingerprint_sha256\": \"a\" * 64}\n        self.enterContext(patch.object(adapter.shiftsim.common, \"tokenizer_metadata\", return_value=self.tokenizer))\n        # These fixtures fake model/acceptance execution; resource admission is\n"
+        },
+        {
+          "before": "\"authored_source_tokenizer\": None",
+          "after": "\"authored_source_tokenizer\": self.tokenizer"
+        }
+      ]
+    }
+  ]
+}

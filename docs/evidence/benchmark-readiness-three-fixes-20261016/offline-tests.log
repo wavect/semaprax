@@ -1,0 +1,11 @@
+test_all_scored_routes_refuse_missing_tokenizer_before_workspace_or_dispatch (test_codex_accounting_readiness.AccountingReadinessTests.test_all_scored_routes_refuse_missing_tokenizer_before_workspace_or_dispatch) ... ok
+test_configured_session_root_preserves_thread_and_cwd_authentication (test_codex_accounting_readiness.AccountingReadinessTests.test_configured_session_root_preserves_thread_and_cwd_authentication) ... ok
+test_declared_tokenizer_is_required_and_drift_fails_without_inventing_tokens (test_codex_accounting_readiness.AccountingReadinessTests.test_declared_tokenizer_is_required_and_drift_fails_without_inventing_tokens) ... ok
+test_loglens_calibration_requires_zero_invalid_stream_lines_but_not_tokenizer (test_codex_accounting_readiness.AccountingReadinessTests.test_loglens_calibration_requires_zero_invalid_stream_lines_but_not_tokenizer) ... ok
+test_loglens_trial_does_not_accept_reconciled_but_malformed_outer_stream (test_codex_accounting_readiness.AccountingReadinessTests.test_loglens_trial_does_not_accept_reconciled_but_malformed_outer_stream) ... ok
+test_unset_and_empty_codex_home_keep_default_without_environment_mutation (test_codex_accounting_readiness.AccountingReadinessTests.test_unset_and_empty_codex_home_keep_default_without_environment_mutation) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.179s
+
+OK

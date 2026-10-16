@@ -13,6 +13,13 @@ import test_campaign_adapter as fixtures
 
 class CodexShiftSimTests(unittest.TestCase):
     def setUp(self):
+        # Declare the same pinned fake tokenizer as the isolated fake authoring
+        # environment. Real missing/drifted prerequisites have independent controls.
+        self.tokenizer = {"package": adapter.shiftsim.common.TOKENIZER_PACKAGE,
+                          "version": adapter.shiftsim.common.TOKENIZER_VERSION,
+                          "encoding_identity": adapter.shiftsim.common.TOKENIZER_ENCODING,
+                          "tokenizer_dir": "/fixture/tokenizer", "fingerprint_sha256": "a" * 64}
+        self.enterContext(patch.object(adapter.shiftsim.common, "tokenizer_metadata", return_value=self.tokenizer))
         # These fixtures fake model/acceptance execution; resource admission is
         # independently exercised with low-space and ENOSPC controls.
         self.enterContext(patch("campaign_resources.snapshot", return_value=[
@@ -23,7 +30,7 @@ class CodexShiftSimTests(unittest.TestCase):
         if not binary.exists():
             binary.write_bytes(b"fixture compiler")
         return {"timeout_seconds": 1800, "model": adapter.MODEL, "effort": adapter.EFFORT,
-                "codex_binary": "/fixture/codex", "authored_source_tokenizer": None,
+                "codex_binary": "/fixture/codex", "authored_source_tokenizer": self.tokenizer,
                 "source_binary_sha256": adapter.shiftsim.common.digest(binary),
                 "qualification": {"scored_trials_allowed": True},
                 "seed_files_sha256": {adapter.shiftsim.SPEC_RELATIVE:

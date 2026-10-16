@@ -1,0 +1,19 @@
+# Three benchmark accounting readiness corrections
+
+Isolated source candidate from frozen73a8f006988a68e28c6e2840ff08d46cf79650e4, owned by existing [OPT606](https://github.com/wavect/semaprax/issues/606). This does not complete606's paid measurement obligations.610 continues to own unavailable hidden context composition. No issue write, push, provider call, live benchmark, Cargo or ROOT edit occurred.
+
+Both Codex whole-trace readers now discover sessions under the existing configured CODEX_HOME, with the normal home/.codex fallback. Explicit fixture sessions_root still wins. Unique exact thread ID, session metadata ID, exact cwd, complete JSON decode and existing redaction remain unchanged. The helper does not replace HOME or CODEX_HOME or create account directories. Local installed CLI help identifies CODEX_HOME as the configuration/profile root; the existing configured root and sessions directory were read-only inspected. Official OpenAI troubleshooting documents session transcripts at $CODEX_HOME/sessions (default ~/.codex/sessions): https://learn.chatgpt.com/docs/reference/troubleshooting . No live CLI invocation was used to manufacture evidence; only local --help/static strings were inspected.
+
+Scored LogLens, TeamDesk and ShiftSim launches require a declared tokenizer package/version/encoding and full fingerprint, and reauthenticate its complete metadata before workspace preparation and immediately before dispatch. Missing or drifted prerequisites fail before a scored provider call. Offline planning/inventory and separately invoked calibration remain usable without authored-token measurement; a whole scored campaign's existing calibration remains separate. The declared tokenizer is still the pinned legacy-Claude BPE final accepted-file inventory proxy, never exact GPT/provider tokens or cumulative authored edits. Two old positive-launch fixture classes now supply matching fake pinned tokenizer metadata in their existing fake execution environment; every original assertion is preserved in full.
+
+LogLens now uses the same zero-invalid-stream-lines, reconciled usage and exact client model/effort predicate at both trial acceptance and calibration READY. Existing timeout/process/model/usage refusals remain; incomplete telemetry is not repaired. Raw/cache usage, provider-resolved model null, actual billing null, fixed context null, legacy NET proxy, failed-attempt cost numerators and frozen task/prompt requirements are unchanged.
+
+One focused offline test command was run once, with all tmp/output on the external SSD:
+
+```sh
+TMPDIR=/Volumes/Semaprax/runtime-tmp PYTHONDONTWRITEBYTECODE=1 /opt/homebrew/bin/python3 -m unittest discover -s benchmarks -p test_codex_accounting_readiness.py -v
+```
+
+Six tests PASS (0.179s): configured-root discovery plus exact ID/cwd/duplicate refusal, unset/empty fallback without environment mutation, declared/missing/drifted tokenizer and optional offline semantics, all3 scored route pre-dispatch refusal, LogLens calibration malformed-stream rejection with optional tokenizer, and LogLens trial refusal before acceptance despite reconciled inner trace. Model dispatch, compiler checks and resource guards are mocked/scoped where needed; no benchmark gains are claimed. The later old-fixture declaration updates were source-checked, not executed as a full suite.
+
+Full6 predecessor source files are archived. changes.json records reversible exact recipes. verify-source.py restores every whole original and confirms all old test assertions, eight complete task/report/prompt files and14 named accounting functions remain exact. Only this bounded source check accompanied the focused offline tests; no broad Python suite was run. Parent may review/cherry-pick after the frozen258 build; no Rust selection addition or core authority refresh is intrinsically required by these benchmark-only files.

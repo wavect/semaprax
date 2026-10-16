@@ -1,0 +1,12 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "independent_complete_rows": {
+    "df2": 30,
+    "main": 6
+  },
+  "whole_df2_namespace_restored": true,
+  "all_prior_JSON_unchanged": true,
+  "browser_component_inputs_exact": true,
+  "project_body_exact": true,
+  "Rust_or_capture_execution": false
+}

@@ -1,0 +1,13 @@
+{
+  "source": "src/source_reflows/semantic_receivers_mainb80.rs",
+  "component": "f73b3019cacf5d55d059eeec8d7af0313631ca2d",
+  "archive": "docs/evidence/main-b80-complete-source-join-20261016/before/Main9-component-semantic-receiver.rs",
+  "current_sha256": "778a3a4b0356b3b3f74f93ed93a1aa1f6a31f87d2cb91a1fe219b90f937148be",
+  "original_sha256": "a045efc677f50921261e73a0c839e3381c97f50b8c2d8e7c5c039514baecba59",
+  "edits": [
+    {
+      "new": "restore_formatting(repair, &restored)",
+      "old": "restore(repair, &restored)"
+    }
+  ]
+}

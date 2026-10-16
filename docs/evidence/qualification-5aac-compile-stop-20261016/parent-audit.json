@@ -1,0 +1,9 @@
+{
+  "source": "5aacb8e5e652ce4d05bc8717d7277145695167a7",
+  "build_receipt_sha256": "19d7c5ebdc3b69eaf855e8c2f036eee9a0f3d0c8dcde74e798fc68ebf1fc6ddd",
+  "status": "ACTUAL_UNIT_COMPILATION_FAILED_11_ERRORS_0_BODIES",
+  "exit_code": 101,
+  "wall_seconds": 114.81291504199908,
+  "executed_test_bodies": 0,
+  "rerun_only_after_combined_source_corrections": true
+}

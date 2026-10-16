@@ -1,0 +1,135 @@
+{
+  "source": "5aacb8e5e652ce4d05bc8717d7277145695167a7",
+  "status": "COMPILE_FAILED_ZERO_TEST_BODIES",
+  "assets": [
+    {
+      "path": "raw/READY.md",
+      "sha256": "e29fe31d447c85381f4bbd1fa6040ff62564301f0ebf4c67223c233f5e8615cf",
+      "bytes": 412,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/READY.md"
+    },
+    {
+      "path": "raw/compilation-manifest.json",
+      "sha256": "fb1b9793aae70a76f0a9b04a01e6265d3de97491608f92b864fde024b0fe3d87",
+      "bytes": 342537,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/compilation-manifest.json"
+    },
+    {
+      "path": "raw/drivers/build-owning.py",
+      "sha256": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888",
+      "bytes": 9776,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/drivers/build-owning.py"
+    },
+    {
+      "path": "raw/drivers/draft_contract.py",
+      "sha256": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1",
+      "bytes": 1752,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/drivers/draft_contract.py"
+    },
+    {
+      "path": "raw/drivers/observed_phase.py",
+      "sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867",
+      "bytes": 11471,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/drivers/observed_phase.py"
+    },
+    {
+      "path": "raw/drivers/run-owning-selected.py",
+      "sha256": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450",
+      "bytes": 10438,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/drivers/run-owning-selected.py"
+    },
+    {
+      "path": "raw/drivers/run-production-lib-cli-clippy.py",
+      "sha256": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077",
+      "bytes": 6214,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/drivers/run-production-lib-cli-clippy.py"
+    },
+    {
+      "path": "raw/drivers/semaprax_pressure_observation_v3.py",
+      "sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+      "bytes": 10269,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/drivers/semaprax_pressure_observation_v3.py"
+    },
+    {
+      "path": "raw/expected-counts.json",
+      "sha256": "fb1b9793aae70a76f0a9b04a01e6265d3de97491608f92b864fde024b0fe3d87",
+      "bytes": 342537,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/expected-counts.json"
+    },
+    {
+      "path": "raw/memory-samples.jsonl",
+      "sha256": "e11b45382aa330278bd888af66c8c884213ac6b93a421b162bfaf4c59b8bf17a",
+      "bytes": 137683,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-build-progress.json",
+      "sha256": "8a7fb9f8cfcaf5ed7d02d9c70ef55c33d9d13eb8bdc07720a40672893ee8f9c8",
+      "bytes": 9338,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/owning-build-progress.json"
+    },
+    {
+      "path": "raw/owning-build-result.json",
+      "sha256": "19d7c5ebdc3b69eaf855e8c2f036eee9a0f3d0c8dcde74e798fc68ebf1fc6ddd",
+      "bytes": 9653,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/owning-build-result.json"
+    },
+    {
+      "path": "raw/owning-build.jsonl",
+      "sha256": "aa762d120324f24c620179f13a400b0bb6cf6f429bf8e0713089fa363a5243aa",
+      "bytes": 289101,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/owning-build.jsonl"
+    },
+    {
+      "path": "raw/owning-build.log",
+      "sha256": "ba97b78d798b11d5513a3b0d0aef6450363a8744cb1674d86dda0dcd118575fd",
+      "bytes": 197,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/owning-build.log"
+    },
+    {
+      "path": "raw/preparation-receipt.json",
+      "sha256": "b236467934e383e4d4f2a7d75784adb37f6c2f7341c03649c9b27757c9214d0c",
+      "bytes": 4902,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/preparation-receipt.json"
+    },
+    {
+      "path": "raw/pressure-guardian-source.py",
+      "sha256": "115dfba227713331fe0b021d787e9c7ddff44e3cf5ad1524526da45bb322021a",
+      "bytes": 6400,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/pressure-guardian-source.py"
+    },
+    {
+      "path": "raw/pressure-guardian.jsonl",
+      "sha256": "4779c42f17b4c981769cfe1c0fbe12b0b2685058479d0ce82db21ae429b881ab",
+      "bytes": 22397,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/pressure-guardian.jsonl"
+    },
+    {
+      "path": "raw/registration.json",
+      "sha256": "dc32bf39f4cd9dd008005debc0265ed305fab2bf975d11f8462664fa48de0eb4",
+      "bytes": 96504,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/registration.json"
+    },
+    {
+      "path": "raw/supplemental-historical-outcomes.json",
+      "sha256": "e9a3c7891335e1ab8428780a6124cb207ff7dc1e5c40fe11d392de730b68f8d5",
+      "bytes": 46092,
+      "original": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/supplemental-historical-outcomes.json"
+    },
+    {
+      "path": "compiler-diagnostics.json",
+      "sha256": "7e0948d598e9be49dcf10467777c0cdf1c584e81cca533f125cd2e7e757f7049",
+      "bytes": 17321
+    },
+    {
+      "path": "parent-audit.json",
+      "sha256": "699d5079c10a0d66dc5441b39e02ac316d53f73357804456d420e4930435d5a8",
+      "bytes": 361
+    },
+    {
+      "path": "README.md",
+      "sha256": "b537b53cece3e79ff6cb4aaad15fe59338988377c84027dd956c214d1bf7debc",
+      "bytes": 1336
+    }
+  ]
+}

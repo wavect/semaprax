@@ -1,0 +1,9 @@
+[
+  {
+    "source": "src/hir/residual_type/before.rs",
+    "sha256": "ec971d9022e44d280dadce22ccabff5696b885f6a7ab2ca5db3bee7eefc85e34",
+    "lines": 812,
+    "cfg": "test",
+    "exact_main_source": "src/hir/expr_nodes.rs"
+  }
+]

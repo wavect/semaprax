@@ -5069,3 +5069,11 @@ with lexical callback expansion. Selected certificate storage owns the paid regi
 chain query stays original. Original path-state boundary checking,
 a deliberately error-swallowing boolean chain query, and type/schema children
 remain separate original Diagnostic boundaries.
+
+The compact HIR residual constructor uses the sanctioned lexical
+`hir::resolved_residual_type!` macro. Fixed receiving admission precedes its
+actual Box/Option/Self construction; old fallible Type producers retain their
+original order. Its public raw model field grants no checked authority:
+independent HIR validation/source/cleanup admission remains mandatory. Complete
+Main7c opaque models and constructor/cache controls stay test-only independent.
+[HIR residual construction v1](HIR-RESIDUAL-CONSTRUCTION-V1.md) owns that boundary.

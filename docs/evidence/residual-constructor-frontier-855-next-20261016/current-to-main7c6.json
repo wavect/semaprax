@@ -1,0 +1,150 @@
+[
+  {
+    "source": "CHANGELOG.md",
+    "current_sha256": "4edba7a729be631dedb9c9119e70f6e95fda43efefc28ae21001021b10d3521f",
+    "original_sha256": "bfd7e223bcac9f58e5099e13268ebc13733e77644ea0604586f25549a4e832d0",
+    "archive": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/CHANGELOG.md.txt",
+    "edits": [
+      {
+        "new": "- Source-only #827 Legacy successor: preserve complete old nominal validation,\n  then share explicitly unfunded immutable payloads with isolated iterative COW;\n  keep paid provenance and funded mutation guards separate. Qualification pending.\n\n- Correct the compact HIR residual receiving frontier (#855): replace owned\n  `try_new(Type)` forwarding with admission before lexical Box construction,\n  preserve original Type producer/error order and parser-independent fixtures,\n  and retain complete Main models/cache controls. Source-only; no new executable\n  qualification or measured saving is claimed.\n",
+        "old": "- Source-only #827 Legacy successor: preserve complete old nominal validation,\n  then share explicitly unfunded immutable payloads with isolated iterative COW;\n  keep paid provenance and funded mutation guards separate. Qualification pending.\n"
+      }
+    ]
+  },
+  {
+    "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/hir_traversal.rs",
+    "current_sha256": "ebf271928e6f3aa2e86b77c20851f56bf4bfe9025b7715bd48fa1ea44be0bc57",
+    "original_sha256": "d83fadb84d064ab5649a70edf68e2d91d9e957f3226e36b0b602ae88e122698a",
+    "archive": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/hir_traversal.rs.txt",
+    "edits": [
+      {
+        "new": "                    some_case: DeclarationId::new(\"prelude.option.some\".to_owned()),\n                    some_field: DeclarationId::new(\"prelude.option.some.value\".to_owned()),\n                    none_case: DeclarationId::new(\"prelude.option.none\".to_owned()),\n                    residual_type: crate::hir::resolved_residual_type!(ResolvedType::I64).unwrap(),\n                }\n            } else {\n                ResolvedExprKind::Try {\n",
+        "old": "                    some_case: DeclarationId::new(\"prelude.option.some\".to_owned()),\n                    some_field: DeclarationId::new(\"prelude.option.some.value\".to_owned()),\n                    none_case: DeclarationId::new(\"prelude.option.none\".to_owned()),\n                    residual_type: crate::hir::ResolvedResidualType::try_new(ResolvedType::I64)\n                        .unwrap(),\n                }\n            } else {\n                ResolvedExprKind::Try {\n"
+      },
+      {
+        "new": "                    ok_field: DeclarationId::new(\"prelude.result.ok.value\".to_owned()),\n                    err_case: DeclarationId::new(\"prelude.result.err\".to_owned()),\n                    err_field: DeclarationId::new(\"prelude.result.err.error\".to_owned()),\n                    residual_type: crate::hir::resolved_residual_type!(ResolvedType::I64).unwrap(),\n                }\n            },\n        };\n",
+        "old": "                    ok_field: DeclarationId::new(\"prelude.result.ok.value\".to_owned()),\n                    err_case: DeclarationId::new(\"prelude.result.err\".to_owned()),\n                    err_field: DeclarationId::new(\"prelude.result.err.error\".to_owned()),\n                    residual_type: crate::hir::ResolvedResidualType::try_new(ResolvedType::I64)\n                        .unwrap(),\n                }\n            },\n        };\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/ARCHITECTURE.md",
+    "current_sha256": "8c96f1aa42540f7eea00a4519550e8b4134c5e027437acc1b96c8626281b1863",
+    "original_sha256": "755982db2c907e969961822a7368990c0572e1d22d96453c6e9daa7adbf21e80",
+    "archive": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/docs/ARCHITECTURE.md.txt",
+    "edits": [
+      {
+        "new": "and commit authorities; `workspace_report` retains the selected primary owner\nwhen the original unlock diagnostic overrides its outward report. The original\nVec APIs remain independent compatibility receivers.\n\nThe compact HIR residual constructor uses the sanctioned lexical\n`hir::resolved_residual_type!` macro. Fixed receiving admission precedes its\nactual Box/Option/Self construction; old fallible Type producers retain their\noriginal order. Its public raw model field grants no checked authority:\nindependent HIR validation/source/cleanup admission remains mandatory. Complete\nMain7c opaque models and constructor/cache controls stay test-only independent.\n[HIR residual construction v1](HIR-RESIDUAL-CONSTRUCTION-V1.md) owns that boundary.\n",
+        "old": "and commit authorities; `workspace_report` retains the selected primary owner\nwhen the original unlock diagnostic overrides its outward report. The original\nVec APIs remain independent compatibility receivers.\n"
+      }
+    ]
+  },
+  {
+    "source": "src/hir.rs",
+    "current_sha256": "61945595a1a5ffd202c39ff4104fbc94b394c99866760eef2f7eaedcebed413a",
+    "original_sha256": "897bb10c195fcbc116cffaf86c3501d918770080a64c0112f86d147fadbb0faf",
+    "archive": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/src/hir.rs.txt",
+    "edits": [
+      {
+        "new": "pub(crate) mod funded;\npub(crate) use copy_discard::source as copy_discard_source;\nmod expr_nodes;\n#[cfg(test)]\n#[allow(dead_code)]\n#[path = \"hir/residual_type/before.rs\"]\nmod residual_constructor_before;\npub use crate::resolved_residual_type;\n\n#[cfg(test)]\n#[allow(dead_code)]\n#[path = \"../docs/evidence/receiver-source-custody-v1/src__hir__expr_nodes.rs.before.txt\"]\n",
+        "old": "pub(crate) mod funded;\npub(crate) use copy_discard::source as copy_discard_source;\nmod expr_nodes;\n#[cfg(test)]\n#[allow(dead_code)]\n#[path = \"../docs/evidence/receiver-source-custody-v1/src__hir__expr_nodes.rs.before.txt\"]\n"
+      }
+    ]
+  },
+  {
+    "source": "src/hir/cache_codec.rs",
+    "current_sha256": "5e49365a09911d59f144de036d64b8e570c7224a758f98e2344462fad419bbd8",
+    "original_sha256": "f526e7ce58a74d120008538ffac6b116cdccf92790cad20d9c9e703e750991f5",
+    "archive": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/src/hir/cache_codec.rs.txt",
+    "edits": [
+      {
+        "new": "// Transparent compatibility carrier: no new nested node or depth level.\n// Its actual backing is independently counted by decode and the live builder.\nimpl Codec for ResolvedResidualType {\n    fn encode(&self, encoder: &mut Encoder) -> crate::cache_codec::Result<()> {\n        (**self).encode(encoder)\n    }\n    fn decode(decoder: &mut Decoder<'_>) -> crate::cache_codec::Result<Self> {\n        decoder.allocate(std::mem::size_of::<ResolvedType>())?;\n        let ty = ResolvedType::decode(decoder)?;\n        crate::hir::resolved_residual_type!(ty).ok_or_else(|| {\n            crate::cache_codec::capacity(\"cache codec residual type backing was refused\")\n        })\n    }\n}\n\n// Complete Main codec for the independently compiled opaque predecessor. This\n// never participates in shipping cache decoding or current constructor measures.\n#[cfg(test)]\nimpl Codec for super::residual_constructor_before::ResolvedResidualType {\n    fn encode(&self, encoder: &mut Encoder) -> crate::cache_codec::Result<()> {\n        (**self).encode(encoder)\n    }\n",
+        "old": "// Transparent compatibility carrier: no new nested node or depth level.\n// Its actual backing is independently counted by decode and the live builder.\nimpl Codec for ResolvedResidualType {\n    fn encode(&self, encoder: &mut Encoder) -> crate::cache_codec::Result<()> {\n        (**self).encode(encoder)\n    }\n"
+      }
+    ]
+  },
+  {
+    "source": "src/hir/expr_nodes.rs",
+    "current_sha256": "d3c8167e94ef25a3ed24cf7fbe562f7392c569e1ecb490b01a60246e0bc6e074",
+    "original_sha256": "ec971d9022e44d280dadce22ccabff5696b885f6a7ab2ca5db3bee7eefc85e34",
+    "archive": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/src/hir/expr_nodes.rs.txt",
+    "edits": [
+      {
+        "new": "/// and node/depth accounting; the box owns no additional semantic authority.\n#[repr(transparent)]\n#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]\n// Like the other public HIR fields, this raw payload carries NO checked\n// authority. Independent hir::validate remains mandatory for forged inputs.\n// Compiler and repository construction uses resolved_residual_type! below.\npub struct ResolvedResidualType(#[doc(hidden)] pub Box<ResolvedType>);\n\nimpl ResolvedResidualType {\n    // Actual lexical constructor: full Type box backing; two Option<Self>\n    // initializer/receiving carriers; two Self carriers; Box return/field headers;\n    // Box::new's Type parameter; the reservation length; and the required-call\n    // and zero-owned-argument admission-return bool receivers. No Type is\n    // forwarded into a separate constructor function.\n    pub(crate) const CONSTRUCTION_BYTES: usize = std::mem::size_of::<ResolvedType>()\n        + 2 * std::mem::size_of::<Option<Self>>()\n        + 2 * std::mem::size_of::<Self>()\n        + 2 * std::mem::size_of::<Box<ResolvedType>>()\n        + std::mem::size_of::<ResolvedType>()\n        + std::mem::size_of::<usize>()\n        + 2 * std::mem::size_of::<bool>();\n\n    /// Fixed admission only: no owned value parameter and no allocation.\n    /// The ordinary initial reservation failure remains an unreceived caller\n    /// boundary; success prepays the lexical constructor before its arguments.\n    #[doc(hidden)]\n    pub fn construction_is_admitted() -> bool {\n        crate::bounded_output::reserve_active_required(Self::CONSTRUCTION_BYTES)\n    }\n}\n\n/// Construct a raw residual HIR carrier after its exact receiving admission.\n/// This macro grants no validation, source, cache, or backend authority. Fallible\n/// old Type producers must run before this macro, preserving their original order.\n#[macro_export]\nmacro_rules! resolved_residual_type {\n    ($value:expr) => {{\n        if $crate::hir::ResolvedResidualType::construction_is_admitted() {\n            ::core::option::Option::Some($crate::hir::ResolvedResidualType(::std::boxed::Box::new(\n                $value,\n            )))\n        } else {\n            ::core::option::Option::None\n        }\n    }};\n}\n\nimpl std::ops::Deref for ResolvedResidualType {\n    type Target = ResolvedType;\n    fn deref(&self) -> &Self::Target {\n",
+        "old": "/// and node/depth accounting; the box owns no additional semantic authority.\n#[repr(transparent)]\n#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]\npub struct ResolvedResidualType(Box<ResolvedType>);\n\nimpl ResolvedResidualType {\n    // Full box backing plus conservative receiving controls: two Option<Self>\n    // results, two Self carriers, Box pointer, incoming Type, debit and bool.\n    // All are acquired before allocation, including on retry. Nested Type\n    // backing was acquired by its existing producer and remains fully charged.\n    pub(crate) const CONSTRUCTION_BYTES: usize = std::mem::size_of::<ResolvedType>()\n        + 2 * std::mem::size_of::<Option<Self>>()\n        + 2 * std::mem::size_of::<Self>()\n        + std::mem::size_of::<Box<ResolvedType>>()\n        + std::mem::size_of::<ResolvedType>()\n        + std::mem::size_of::<usize>()\n        + std::mem::size_of::<bool>();\n\n    /// Refuses before allocation if the current builder cannot fund the box.\n    /// Without an active builder this has the ordinary owned HIR behavior.\n    pub fn try_new(value: ResolvedType) -> Option<Self> {\n        if !crate::bounded_output::reserve_active_required(Self::CONSTRUCTION_BYTES) {\n            return None;\n        }\n        Some(Self(Box::new(value)))\n    }\n}\nimpl std::ops::Deref for ResolvedResidualType {\n    type Target = ResolvedType;\n    fn deref(&self) -> &Self::Target {\n"
+      },
+      {
+        "new": "            let ((constructed, allocation), refused, used) =\n                output::with_limit_usage(limit, || {\n                    measure(|| {\n                        let value = crate::hir::resolved_residual_type!(ResolvedType::Bool);\n                        let constructed = value.is_some();\n                        if let Some(value) = value {\n                            assert_eq!(*value, ResolvedType::Bool);\n",
+        "old": "            let ((constructed, allocation), refused, used) =\n                output::with_limit_usage(limit, || {\n                    measure(|| {\n                        let value = ResolvedResidualType::try_new(ResolvedType::Bool);\n                        let constructed = value.is_some();\n                        if let Some(value) = value {\n                            assert_eq!(*value, ResolvedType::Bool);\n"
+      },
+      {
+        "new": "        }\n        let (_, refused, used, first, _) = output::with_limit_usage_refusal_site(0, || {\n            assert!(!output::reserve_active_required(debit + 17));\n            assert!(crate::hir::resolved_residual_type!(ResolvedType::Bool).is_none());\n        });\n        assert!(refused);\n        assert_eq!(used, 0);\n        assert_eq!(first.unwrap().requested, debit + 17);\n    }\n\n    #[test]\n    fn lexical_residual_receiving_keeps_old_producer_order_floor_and_restored_sticky_owner() {\n        use std::cell::Cell;\n        let old_produced = Cell::new(0);\n        let new_arguments = Cell::new(0);\n        let debit = ResolvedResidualType::CONSTRUCTION_BYTES;\n        let ((present, allocation), refused, used, first, _) =\n            output::with_limit_usage_refusal_site(debit, || {\n                assert!(output::set_active_floor(1));\n                // The old fallible producer's result exists at its original\n                // point. It is not skipped by new receiving admission.\n                old_produced.set(old_produced.get() + 1);\n                let ty = ResolvedType::Bool;\n                measure(|| {\n                    let value = crate::hir::resolved_residual_type!({\n                        new_arguments.set(new_arguments.get() + 1);\n                        ty\n                    });\n                    let present = value.is_some();\n                    drop(value);\n                    present\n                })\n            });\n        assert!(!present && refused);\n        assert_eq!(old_produced.get(), 1);\n        assert_eq!(new_arguments.get(), 0);\n        assert_eq!(used, 0);\n        assert_eq!(first.unwrap().requested, debit);\n        assert!(!allocation.invalid);\n        assert_eq!(allocation.allocated, 0);\n        assert_eq!(allocation.live, 0);\n\n        let (_, refused, used, first, _) = output::with_limit_usage_refusal_site(0, || {\n            assert!(!output::reserve_active_required(17));\n            // A constructor retains no ambient owner/permit: the current\n            // independently entered scope pays, then its Drop restores the\n            // already-sticky old account without replacing its first refusal.\n            let ((), inner_refused, inner_used) = output::with_limit_usage(debit, || {\n                let value = crate::hir::resolved_residual_type!(ResolvedType::I64).unwrap();\n                assert_eq!(*value, ResolvedType::I64);\n                drop(value);\n            });\n            assert!(!inner_refused);\n            assert_eq!(inner_used, debit);\n            assert!(crate::hir::resolved_residual_type!(ResolvedType::Bool).is_none());\n        });\n        assert!(refused);\n        assert_eq!(used, 0);\n        assert_eq!(first.unwrap().requested, 17);\n    }\n\n    fn leaf() -> ResolvedExpr {\n",
+        "old": "        }\n        let (_, refused, used, first, _) = output::with_limit_usage_refusal_site(0, || {\n            assert!(!output::reserve_active_required(debit + 17));\n            assert!(ResolvedResidualType::try_new(ResolvedType::Bool).is_none());\n        });\n        assert!(refused);\n        assert_eq!(used, 0);\n        assert_eq!(first.unwrap().requested, debit + 17);\n    }\n\n    fn leaf() -> ResolvedExpr {\n"
+      },
+      {
+        "new": "            ok_field: id(\"ok.value\"),\n            err_case: id(\"error\"),\n            err_field: id(\"error.value\"),\n            residual_type: {\n                let residual = ty.clone();\n                crate::hir::resolved_residual_type!(residual).unwrap()\n            },\n        };\n        assert_eq!(format!(\"{old:#?}\"), format!(\"{current:#?}\"));\n        let (_, old_allocation) = measure(|| {\n",
+        "old": "            ok_field: id(\"ok.value\"),\n            err_case: id(\"error\"),\n            err_field: id(\"error.value\"),\n            residual_type: ResolvedResidualType::try_new(ty.clone()).unwrap(),\n        };\n        assert_eq!(format!(\"{old:#?}\"), format!(\"{current:#?}\"));\n        let (_, old_allocation) = measure(|| {\n"
+      },
+      {
+        "new": "            some_case: id(\"some\"),\n            some_field: id(\"some.value\"),\n            none_case: id(\"none\"),\n            residual_type: crate::hir::resolved_residual_type!(ty).unwrap(),\n        };\n        assert_eq!(format!(\"{old:#?}\"), format!(\"{current:#?}\"));\n        let mut changed = current.clone();\n",
+        "old": "            some_case: id(\"some\"),\n            some_field: id(\"some.value\"),\n            none_case: id(\"none\"),\n            residual_type: ResolvedResidualType::try_new(ty).unwrap(),\n        };\n        assert_eq!(format!(\"{old:#?}\"), format!(\"{current:#?}\"));\n        let mut changed = current.clone();\n"
+      },
+      {
+        "new": "                    result: Box::new(ty),\n                };\n            }\n            let residual = ty.clone();\n            let wrapped = crate::hir::resolved_residual_type!(residual).unwrap();\n            let old = encode(&ty);\n            let current = encode(&wrapped);\n            assert_eq!(old, current, \"codec depth {depth}\");\n",
+        "old": "                    result: Box::new(ty),\n                };\n            }\n            let wrapped = ResolvedResidualType::try_new(ty.clone()).unwrap();\n            let old = encode(&ty);\n            let current = encode(&wrapped);\n            assert_eq!(old, current, \"codec depth {depth}\");\n"
+      }
+    ]
+  },
+  {
+    "source": "src/hir/monomorphize.rs",
+    "current_sha256": "f1632277c99f70ac6d89b02d5a70f0877815823192bf78fe619a6b1b0f4e0b88",
+    "original_sha256": "9e9b5d0015644d0bca2f0a8900e635a54f6b395a36b746b4f5e26065d1dc8b44",
+    "archive": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/src/hir/monomorphize.rs.txt",
+    "edits": [
+      {
+        "new": "            ok_field: ok_field.clone(),\n            err_case: err_case.clone(),\n            err_field: err_field.clone(),\n            residual_type: {\n                // Same original producer, after every earlier field in order.\n                // Its old result payload becomes this local; no clone or extra\n                // owned constructor parameter is introduced.\n                let residual = substitute_type(residual_type, &template.id, arguments)?;\n                crate::hir::resolved_residual_type!(residual)\n                    .ok_or_else(|| hir_error(\"resolved residual type backing was refused\"))?\n            },\n        },\n        // Resumable Effects v1 (issue #204): unreachable in practice --\n        // `hir::resolve_yield` refuses `yields` on any generic function\n",
+        "old": "            ok_field: ok_field.clone(),\n            err_case: err_case.clone(),\n            err_field: err_field.clone(),\n            residual_type: super::ResolvedResidualType::try_new(substitute_type(\n                residual_type,\n                &template.id,\n                arguments,\n            )?)\n            .ok_or_else(|| hir_error(\"resolved residual type backing was refused\"))?,\n        },\n        // Resumable Effects v1 (issue #204): unreachable in practice --\n        // `hir::resolve_yield` refuses `yields` on any generic function\n"
+      }
+    ]
+  },
+  {
+    "source": "src/hir/resolve_program.rs",
+    "current_sha256": "8539c5b063467ed6e9605899b777635287ed183e42f4cef90fe4edc942be3700",
+    "original_sha256": "619b7c58f9fb1289e5d6360f3183df068f9f4f933e5b6c62ecebae85d71a161e",
+    "archive": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/src/hir/resolve_program.rs.txt",
+    "edits": [
+      {
+        "new": "        let target = self.program.functions().iter().find(|candidate| matches!(function, FunctionExecutionId::Monomorphic(declaration) if candidate.stable_id == declaration.as_str()))\n            .ok_or_else(|| self.error(\"SPX-H006\", format!(\"resolved `?` has unknown enclosing function `{function}`\"), span))?;\n        let ty = self.resolve_function_type(target, &target.return_type, target.span)?;\n        crate::hir::resolved_residual_type!(ty).ok_or_else(|| {\n            self.error(\n                \"SPX-H006\",\n                \"resolved residual type backing was refused\",\n",
+        "old": "        let target = self.program.functions().iter().find(|candidate| matches!(function, FunctionExecutionId::Monomorphic(declaration) if candidate.stable_id == declaration.as_str()))\n            .ok_or_else(|| self.error(\"SPX-H006\", format!(\"resolved `?` has unknown enclosing function `{function}`\"), span))?;\n        let ty = self.resolve_function_type(target, &target.return_type, target.span)?;\n        super::ResolvedResidualType::try_new(ty).ok_or_else(|| {\n            self.error(\n                \"SPX-H006\",\n                \"resolved residual type backing was refused\",\n"
+      }
+    ]
+  },
+  {
+    "source": "src/loan_plan/children_tests.rs",
+    "current_sha256": "55144d3762403e6f30f8795dece6bdc127d49b0efb361e537ff0daf9d76a9007",
+    "original_sha256": "17a1160e11f3b5fed6e350df645194a3f91b139099915059e5ed84c25a98c6af",
+    "archive": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/src/loan_plan/children_tests.rs.txt",
+    "edits": [
+      {
+        "new": "            ok_field: DeclarationId::new(\"try.ok_field\"),\n            err_case: DeclarationId::new(\"try.err_case\"),\n            err_field: DeclarationId::new(\"try.err_field\"),\n            residual_type: crate::hir::resolved_residual_type!(ResolvedType::Bool).unwrap(),\n        },\n    );\n    let ResolvedExprKind::Try { operand, .. } = &attempt.kind else {\n",
+        "old": "            ok_field: DeclarationId::new(\"try.ok_field\"),\n            err_case: DeclarationId::new(\"try.err_case\"),\n            err_field: DeclarationId::new(\"try.err_field\"),\n            residual_type: crate::hir::ResolvedResidualType::try_new(ResolvedType::Bool).unwrap(),\n        },\n    );\n    let ResolvedExprKind::Try { operand, .. } = &attempt.kind else {\n"
+      },
+      {
+        "new": "            some_case: DeclarationId::new(\"try_option.some_case\"),\n            some_field: DeclarationId::new(\"try_option.some_field\"),\n            none_case: DeclarationId::new(\"try_option.none_case\"),\n            residual_type: crate::hir::resolved_residual_type!(ResolvedType::Bool).unwrap(),\n        },\n    );\n    let ResolvedExprKind::TryOption { operand, .. } = &option.kind else {\n",
+        "old": "            some_case: DeclarationId::new(\"try_option.some_case\"),\n            some_field: DeclarationId::new(\"try_option.some_field\"),\n            none_case: DeclarationId::new(\"try_option.none_case\"),\n            residual_type: crate::hir::ResolvedResidualType::try_new(ResolvedType::Bool).unwrap(),\n        },\n    );\n    let ResolvedExprKind::TryOption { operand, .. } = &option.kind else {\n"
+      }
+    ]
+  },
+  {
+    "source": "src/loan_plan/tests.rs",
+    "current_sha256": "271b14d52c6a60040f94f9789088e544ff099131251e907cedfa0b884c4986f0",
+    "original_sha256": "48aae16376097e85bd0f984ab07ed5e400e33c239d45c80abca2ec0146ac1960",
+    "archive": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/src/loan_plan/tests.rs.txt",
+    "edits": [
+      {
+        "new": "            some_case: crate::hir::DeclarationId::new(\"prelude.option.some\"),\n            some_field: crate::hir::DeclarationId::new(\"prelude.option.some.value\"),\n            none_case: crate::hir::DeclarationId::new(\"prelude.option.none\"),\n            residual_type: crate::hir::resolved_residual_type!(ResolvedType::Bool).unwrap(),\n        };\n        operand_id\n    };\n",
+        "old": "            some_case: crate::hir::DeclarationId::new(\"prelude.option.some\"),\n            some_field: crate::hir::DeclarationId::new(\"prelude.option.some.value\"),\n            none_case: crate::hir::DeclarationId::new(\"prelude.option.none\"),\n            residual_type: crate::hir::ResolvedResidualType::try_new(ResolvedType::Bool).unwrap(),\n        };\n        operand_id\n    };\n"
+      }
+    ]
+  }
+]

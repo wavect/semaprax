@@ -394,7 +394,7 @@ fn single_child_and_binary_arms_report_their_operands() {
             ok_field: DeclarationId::new("try.ok_field"),
             err_case: DeclarationId::new("try.err_case"),
             err_field: DeclarationId::new("try.err_field"),
-            residual_type: crate::hir::ResolvedResidualType::try_new(ResolvedType::Bool).unwrap(),
+            residual_type: crate::hir::resolved_residual_type!(ResolvedType::Bool).unwrap(),
         },
     );
     let ResolvedExprKind::Try { operand, .. } = &attempt.kind else {
@@ -410,7 +410,7 @@ fn single_child_and_binary_arms_report_their_operands() {
             some_case: DeclarationId::new("try_option.some_case"),
             some_field: DeclarationId::new("try_option.some_field"),
             none_case: DeclarationId::new("try_option.none_case"),
-            residual_type: crate::hir::ResolvedResidualType::try_new(ResolvedType::Bool).unwrap(),
+            residual_type: crate::hir::resolved_residual_type!(ResolvedType::Bool).unwrap(),
         },
     );
     let ResolvedExprKind::TryOption { operand, .. } = &option.kind else {

@@ -106,6 +106,12 @@ pub(crate) use copy_discard::source as copy_discard_source;
 mod expr_nodes;
 #[cfg(test)]
 #[allow(dead_code)]
+#[path = "hir/residual_type/before.rs"]
+mod residual_constructor_before;
+pub use crate::resolved_residual_type;
+
+#[cfg(test)]
+#[allow(dead_code)]
 #[path = "../docs/evidence/receiver-source-custody-v1/src__hir__expr_nodes.rs.before.txt"]
 mod residual_payload_before;
 pub(crate) use copy_discard::{

@@ -12,6 +12,22 @@ impl Codec for ResolvedResidualType {
     fn decode(decoder: &mut Decoder<'_>) -> crate::cache_codec::Result<Self> {
         decoder.allocate(std::mem::size_of::<ResolvedType>())?;
         let ty = ResolvedType::decode(decoder)?;
+        crate::hir::resolved_residual_type!(ty).ok_or_else(|| {
+            crate::cache_codec::capacity("cache codec residual type backing was refused")
+        })
+    }
+}
+
+// Complete Main codec for the independently compiled opaque predecessor. This
+// never participates in shipping cache decoding or current constructor measures.
+#[cfg(test)]
+impl Codec for super::residual_constructor_before::ResolvedResidualType {
+    fn encode(&self, encoder: &mut Encoder) -> crate::cache_codec::Result<()> {
+        (**self).encode(encoder)
+    }
+    fn decode(decoder: &mut Decoder<'_>) -> crate::cache_codec::Result<Self> {
+        decoder.allocate(std::mem::size_of::<ResolvedType>())?;
+        let ty = ResolvedType::decode(decoder)?;
         Self::try_new(ty).ok_or_else(|| {
             crate::cache_codec::capacity("cache codec residual type backing was refused")
         })

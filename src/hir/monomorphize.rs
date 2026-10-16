@@ -1023,12 +1023,14 @@ pub(super) fn materialize_template_expr(
             ok_field: ok_field.clone(),
             err_case: err_case.clone(),
             err_field: err_field.clone(),
-            residual_type: super::ResolvedResidualType::try_new(substitute_type(
-                residual_type,
-                &template.id,
-                arguments,
-            )?)
-            .ok_or_else(|| hir_error("resolved residual type backing was refused"))?,
+            residual_type: {
+                // Same original producer, after every earlier field in order.
+                // Its old result payload becomes this local; no clone or extra
+                // owned constructor parameter is introduced.
+                let residual = substitute_type(residual_type, &template.id, arguments)?;
+                crate::hir::resolved_residual_type!(residual)
+                    .ok_or_else(|| hir_error("resolved residual type backing was refused"))?
+            },
         },
         // Resumable Effects v1 (issue #204): unreachable in practice --
         // `hir::resolve_yield` refuses `yields` on any generic function

@@ -1,0 +1,32 @@
+{
+  "base": "cde3e6afd2f6d2b07aff999da11513acc326a957",
+  "incoming": "3d5bef332272ee54c998a836045c99b62a9c859a",
+  "rows": [
+    {
+      "path": "src/cleanup_plan/replay/factored.rs",
+      "current_length": 44197,
+      "current_sha256": "343eda3712d0c3b224742d72c34838a327e0c69449c8a94fd7eb81dc5e0134a6",
+      "incoming_length": 40065,
+      "incoming_sha256": "0214a3a244d8e26e50d7413a3570eede88b10b013784c0efc130ad2a8ef2ad72",
+      "incoming_archive": "docs/evidence/moderate-factored-joined-custody-20261017/incoming-0.txt"
+    },
+    {
+      "path": "docs/evidence/receiver-source-custody-v1/inverse.json",
+      "current_length": 6660,
+      "current_sha256": "17758338cdb03f1a294fb75d923ccc515c814aa3d257521f41ef8593a7d9da1b",
+      "incoming_length": 172007,
+      "incoming_sha256": "b73fb7b3dc1b3d2dbcce17ac6beeebe9832a22519aabe009cd37cec9d43b5221",
+      "incoming_archive": "docs/evidence/moderate-factored-joined-custody-20261017/incoming-1.txt"
+    },
+    {
+      "path": "docs/evidence/compact-staged-observations-v1/inverse.json",
+      "current_length": 14904,
+      "current_sha256": "ef2d603d1d9190002b8e6b0c44fe6e1fb2bfb940e9497bf14db3026d3bf133ae",
+      "incoming_length": 145402,
+      "incoming_sha256": "3695c32c076255f2e61ccb088a02cf887ac4ece86717af8332e67539c364f4cf",
+      "incoming_archive": "docs/evidence/moderate-factored-joined-custody-20261017/incoming-2.txt"
+    }
+  ],
+  "data_length": 319918,
+  "data_sha256": "3c8e81fe794761cd061189a17ac6c003311920c299599c9b1cbb57b771fda258"
+}

@@ -89,7 +89,9 @@
       "src/source_verify/funding.rs": 1,
       "src/source_verify/funding/tests.rs": 1,
       "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs": 1,
-      "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs": 1
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs": 1,
+      "src/cleanup_plan/replay/factored/moderate_tests.rs": 1,
+      "src/cleanup_plan/replay/factored/moderate_tests/before.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -186,7 +188,9 @@
       "src/source_verify/funding.rs": 1,
       "src/source_verify/funding/tests.rs": 1,
       "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs": 1,
-      "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs": 1
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs": 1,
+      "src/cleanup_plan/replay/factored/moderate_tests.rs": 1,
+      "src/cleanup_plan/replay/factored/moderate_tests/before.rs": 1
     }
   },
   "tests/workspace/semantic_graph/source_inventory.rs": {
@@ -314,7 +318,9 @@
       "src/source_verify/funding.rs": 1,
       "src/source_verify/funding/tests.rs": 1,
       "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs": 1,
-      "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs": 1
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs": 1,
+      "src/cleanup_plan/replay/factored/moderate_tests.rs": 1,
+      "src/cleanup_plan/replay/factored/moderate_tests/before.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -440,7 +446,9 @@
       "src/source_verify/funding.rs": 1,
       "src/source_verify/funding/tests.rs": 1,
       "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs": 1,
-      "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs": 1
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs": 1,
+      "src/cleanup_plan/replay/factored/moderate_tests.rs": 1,
+      "src/cleanup_plan/replay/factored/moderate_tests/before.rs": 1
     }
   },
   "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
@@ -538,7 +546,9 @@
       "src/source_verify/funding.rs": 1,
       "src/source_verify/funding/tests.rs": 1,
       "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs": 1,
-      "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs": 1
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs": 1,
+      "src/cleanup_plan/replay/factored/moderate_tests.rs": 1,
+      "src/cleanup_plan/replay/factored/moderate_tests/before.rs": 1
     },
     "maximum": {
       "src/cleanup_plan/replay.rs": 1,
@@ -634,7 +644,9 @@
       "src/source_verify/funding.rs": 1,
       "src/source_verify/funding/tests.rs": 1,
       "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs": 1,
-      "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs": 1
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs": 1,
+      "src/cleanup_plan/replay/factored/moderate_tests.rs": 1,
+      "src/cleanup_plan/replay/factored/moderate_tests/before.rs": 1
     }
   }
 }

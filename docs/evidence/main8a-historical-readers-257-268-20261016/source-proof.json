@@ -58,7 +58,7 @@
     {
       "domain": "Compact7",
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "current_sha256": "f883f54b827e4f5a2d016f29aeb81e9886763903b8ac4959325c43b13491263e",
+      "current_sha256": "28d9dc920640d190d483a5d70f7d4d764d1893f549e96c9c2fa6858e68aae3a7",
       "historical_after_sha256": "27f8d194a798710c290af1cf47452527f5e53ccd6df670af293d9d15dc03a9cd",
       "archive_before_sha256": "401c904b0941c4dc7e4677936366d23375d7503944692061ee024f9278d40cb1",
       "reverse_operations": 10,
@@ -131,7 +131,7 @@
     {
       "domain": "Receivers12",
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "current_sha256": "f883f54b827e4f5a2d016f29aeb81e9886763903b8ac4959325c43b13491263e",
+      "current_sha256": "28d9dc920640d190d483a5d70f7d4d764d1893f549e96c9c2fa6858e68aae3a7",
       "historical_after_sha256": "27f8d194a798710c290af1cf47452527f5e53ccd6df670af293d9d15dc03a9cd",
       "archive_before_sha256": "ed939b86f3382619c6d610582c724b899dbfd332f10ee4ccec4933b37bc10a9a",
       "reverse_operations": 11,
@@ -197,7 +197,7 @@
     {
       "domain": "Receivers12",
       "path": "src/hir.rs",
-      "current_sha256": "61945595a1a5ffd202c39ff4104fbc94b394c99866760eef2f7eaedcebed413a",
+      "current_sha256": "ec7b9720f0546603ca02c56e26fbc68e7ce4ded927f662de4fb8e11cf3aead8c",
       "historical_after_sha256": "897bb10c195fcbc116cffaf86c3501d918770080a64c0112f86d147fadbb0faf",
       "archive_before_sha256": "432395d875a954de8aee03c3fcbd827ecbb5066e0c6fa9fd0cc0ec2c2a36db7f",
       "reverse_operations": 2,

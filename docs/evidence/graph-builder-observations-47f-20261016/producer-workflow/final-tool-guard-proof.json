@@ -1,0 +1,20 @@
+{
+  "status": "SOURCE_ONLY_TOOL_GUARDS_PASS",
+  "modified_tools": {
+    "check-ready.py": {
+      "original_guards_AST_equal_after_declared_inverse": true,
+      "sha256": "e86ef40d5a73c70f8e9c73870c78ffd8f7aaa76147a6cc7ea3bee9c63acc4730"
+    },
+    "capture-browser.py": {
+      "original_guards_AST_equal_after_declared_inverse": true,
+      "sha256": "8399765e11846ee4cb1792dd2d47fa9cdaf0b0061bd4987366be451e223dbaf0"
+    },
+    "archive-actual-and-build-patch.py": {
+      "original_guards_AST_equal_after_declared_inverse": true,
+      "sha256": "24f0c746063807dc5ec74c45b101e8b041a5b40744d37a1c513f0ef26e012de8"
+    }
+  },
+  "other_four_tools_byte_exact_original_derivative": true,
+  "all_trusted_tool_hashes_match": true,
+  "readiness_or_capture_executed": false
+}

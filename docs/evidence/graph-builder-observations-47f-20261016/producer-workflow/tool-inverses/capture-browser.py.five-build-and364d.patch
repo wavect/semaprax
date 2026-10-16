@@ -1,0 +1,25 @@
+--- final/capture-browser.py
++++ base-derived/capture-browser.py
+@@ -12,7 +12,7 @@
+ assert len(ARGS.expected_build_receipt_sha256)==64 and sha(receipt)==ARGS.expected_build_receipt_sha256
+ assert len(ARGS.expected_readiness_sha256)==64 and sha(ready_path)==ARGS.expected_readiness_sha256
+ ready=json.loads(ready_path.read_text());assert ready['source_subject']==HEAD and ready['actual_build_receipt_sha256']==ARGS.expected_build_receipt_sha256
+-assert build['ordered_commands']==record['required_ordered_build_commands'] and len(build['results'])==5 and all(r['exit_code']==0 for r in build['results'])
++assert build['ordered_commands']==record['required_ordered_build_commands'] and len(build['results'])==4 and all(r['exit_code']==0 for r in build['results'])
+ assert not OUT.exists() and not OUT.is_relative_to(REPO)
+ assert subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()==HEAD and not subprocess.check_output(['git','status','--porcelain','--untracked-files=all'],cwd=REPO).strip()
+ OUT.mkdir()
+@@ -79,13 +79,6 @@
+  observed2d_restore=raw.replace(actual_field,b'"used_builder_bytes":3558886',1).replace(mainfield,('"graph_digest":'+json.dumps(observed2d['graph_digest'])).encode(),1)
+  assert observed2d_restore==observed2d_wire,'OTHER FIELD OR BYTE DIFFERENCE FROM FULL ACTUAL2d4b: stop without pin edits'
+  result['new_independent_bridges'].update(observed2d4b_wire_sha256=sha(observed2d_path),observed2d4b_builder_bytes=3558886,complete_observed2d4b_restore=True)
+- observed364d_path=FLOW/'historical-observations/observed364d-browser'/f'calculator-{name}.json'
+- assert sha(observed364d_path)==record['browser_required_prior']['observed364d-'+name]['sha256']
+- observed364d_wire=observed364d_path.read_bytes().removesuffix(b'\n');observed364d=json.loads(observed364d_wire)
+- assert domain_digest(observed364d_wire)==observed364d['graph_digest'] and observed364d['budget']['used_builder_bytes']==3472870
+- observed364d_restore=raw.replace(actual_field,b'"used_builder_bytes":3472870',1).replace(mainfield,('"graph_digest":'+json.dumps(observed364d['graph_digest'])).encode(),1)
+- assert observed364d_restore==observed364d_wire,'OTHER FIELD OR BYTE DIFFERENCE FROM FULL ACTUAL364d: stop without pin edits'
+- result['new_independent_bridges'].update(observed364d_wire_sha256=sha(observed364d_path),observed364d_builder_bytes=3472870,complete_observed364d_restore=True)
+  priorpath=REPO/f'docs/evidence/browser-graph-pins-35cc-20261016/actual-capture/calculator-{name}.json';prior=priorpath.read_bytes().removesuffix(b'\n');p=json.loads(prior);assert domain_digest(prior)==p['graph_digest']
+  assert p['budget']['used_builder_bytes']==4032239
+  bill=d['budget']['used_builder_bytes'];field=f'"used_builder_bytes":{bill}'.encode();assert raw.count(field)==1

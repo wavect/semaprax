@@ -1,0 +1,30 @@
+--- final/check-ready.py
++++ base-derived/check-ready.py
+@@ -14,10 +14,10 @@
+ assert not subprocess.check_output(['git','status','--porcelain','--untracked-files=all'],cwd=root).strip()
+ assert m['source_subject']==b['source_subject']==head and m['source_tree']==b['source_tree']==record['frozen_source_tree']
+ assert b['exit_code']==0 and not b.get('artifact_refusals') and b['results'] and all(v['exit_code']==0 for v in b['results'])
+-assert all(v.get('executed') and not v.get('resource_refusal') and not v.get('observation_errors') and v.get('source_binding_status')=='unchanged' and v.get('group_settlement',{}).get('confirmed_empty') for v in b['results']), 'all five actual command groups must settle cleanly'
++assert all(v.get('executed') and not v.get('resource_refusal') and not v.get('observation_errors') and v.get('source_binding_status')=='unchanged' and v.get('group_settlement',{}).get('confirmed_empty') for v in b['results']), 'all four actual command groups must settle cleanly'
+ 
+-assert len(record['required_ordered_build_commands'])==5
+-assert b['ordered_commands']==record['required_ordered_build_commands'], 'all FIVE exact source-bound build commands must complete in order'
++assert len(record['required_ordered_build_commands'])==4
++assert b['ordered_commands']==record['required_ordered_build_commands'], 'all FOUR exact source-bound build commands must complete in order'
+ assert len(b['ordered_commands'])==len(b['results']) and [v['command'] for v in b['results']]==b['ordered_commands']
+ assert not b.get('resource_refusal') and b.get('source_binding_status','unchanged')=='unchanged'
+ assert b['manifest_sha256']==sha(r/'expected-counts.json') and b['owning_build_metadata_sha256']==sha(r/'owning-build.jsonl')
+@@ -40,13 +40,6 @@
+   if role or binrole:
+    assert exe.is_relative_to((root/m['environment']['private_target']).resolve()) and exe.is_file();h=sha(exe)
+    row={'package':package,'target':v['target'],'profile_test':istest,'executable':str(exe),'executable_sha256':h,'source_head':head,'raw_Cargo_log_sha256':b['owning_build_metadata_sha256'],'completed_build_receipt_sha256':a.expected_build_receipt_sha256}
+-   # Identical repeated Cargo providers are allowed only with full bindings equal.
+-   manifest_path=Path(v['manifest_path']).resolve();source_path=Path(v['target']['src_path']).resolve()
+-   assert manifest_path==root/('Cargo.toml'if package=='semaprax'else'crates/semaprax-toolchain/Cargo.toml')
+-   expected_source={'semaprax': 'src/lib.rs'if role else'src/main.rs','workspace':'tests/workspace.rs','semaprax-full':'crates/semaprax-toolchain/src/main.rs'}[key if False else(role or binrole)]
+-   assert source_path==root/expected_source
+-   assert source_path.read_bytes()==subprocess.check_output(['git','show',head+':'+expected_source],cwd=root)
+-   row.update(profile=v['profile'],manifest_path=str(manifest_path),source_path=str(source_path),source_sha256=sha(source_path))
+    dest=found if role else cli;key=role or binrole
+    if role:assert built[str(exe)]==h
+    if key in dest:assert dest[key]==row

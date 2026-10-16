@@ -1,0 +1,17 @@
+{
+  "check-ready.py": {
+    "base_derived_sha256": "47292eb49267905cfb394ace2f90e3197ce1722d8cb618e11b2a86905b8017ba",
+    "after_sha256": "e86ef40d5a73c70f8e9c73870c78ffd8f7aaa76147a6cc7ea3bee9c63acc4730",
+    "all_original_AST_exact_after_declared_literal_inverse_and_removing_only_additive_guard": true
+  },
+  "capture-browser.py": {
+    "base_derived_sha256": "f8b05162d86f7fb2fce83ec2bd58e70033aa4ecf19222456e78fde6e6a3b6e72",
+    "after_sha256": "8399765e11846ee4cb1792dd2d47fa9cdaf0b0061bd4987366be451e223dbaf0",
+    "all_original_AST_exact_after_declared_literal_inverse_and_removing_only_additive_guard": true
+  },
+  "archive-actual-and-build-patch.py": {
+    "base_derived_sha256": "e976ff0c2218e870ba740e9eaa8379fa497476469919479f56d893c6cc7f4908",
+    "after_sha256": "24f0c746063807dc5ec74c45b101e8b041a5b40744d37a1c513f0ef26e012de8",
+    "all_original_AST_exact_after_declared_literal_inverse_and_removing_only_additive_guard": true
+  }
+}

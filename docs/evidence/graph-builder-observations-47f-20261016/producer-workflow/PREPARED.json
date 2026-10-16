@@ -1,0 +1,77 @@
+{
+  "status": "SOURCE_ONLY_DERIVED_NO_CAPTURE_OR_APPLY",
+  "head": "47f80b0f7a06fde9b2388439a9c0bfe998a05af1",
+  "round": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016",
+  "manifest_sha256": "4790a86bd1130495985deaf14d216756b272f6b1615b6ea86e3d152db95430dc",
+  "all_original107_inverse_edits": true,
+  "role_fixed_producer_byteexact": true,
+  "all_five_successful_actual_builds_required": true,
+  "same_raw_core_and_full_CLI_artifacts_required": true,
+  "AST_guard_comparison": {
+    "strict-828f-capture-only.py": {
+      "before_sha256": "5b52bd6f903bc0a3930201717591643e18d481c4410ea27b4abdc13d09e772ce",
+      "after_sha256": "1085bba47d74871682fc759627c0c4ecc09fb60863fd26d1b45f6ff8728d6c6c",
+      "original_AST_equal_after_exact_literal_inverse_and_removing_only_declared_bridge": true,
+      "new_guard": false
+    },
+    "prepare-after-actual-capture.py": {
+      "before_sha256": "7431c3debf3aab49a402e7517bb71727ab0ab557a3398c958311f200fc610d5a",
+      "after_sha256": "68404cdb1d290a1e012722a5bda5b1d2221bfb0453f82233d719f69a1a5aad63",
+      "original_AST_equal_after_exact_literal_inverse_and_removing_only_declared_bridge": true,
+      "new_guard": false
+    },
+    "archive-actual-and-build-patch.py": {
+      "before_sha256": "e976ff0c2218e870ba740e9eaa8379fa497476469919479f56d893c6cc7f4908",
+      "after_sha256": "e976ff0c2218e870ba740e9eaa8379fa497476469919479f56d893c6cc7f4908",
+      "original_AST_equal_after_exact_literal_inverse_and_removing_only_declared_bridge": true,
+      "new_guard": false
+    },
+    "source_inverse_composition.py": {
+      "before_sha256": "7219e0924d6dc42222796c96414a11a7aa90c222073e3ee188bb1a0197308946",
+      "after_sha256": "7219e0924d6dc42222796c96414a11a7aa90c222073e3ee188bb1a0197308946",
+      "original_AST_equal_after_exact_literal_inverse_and_removing_only_declared_bridge": true,
+      "new_guard": false
+    },
+    "check-ready.py": {
+      "before_sha256": "9fe7a7742ff547d332799a7c25df94cbe9e7a58295b5681eaa0c18d313266e32",
+      "after_sha256": "47292eb49267905cfb394ace2f90e3197ce1722d8cb618e11b2a86905b8017ba",
+      "original_AST_equal_after_exact_literal_inverse_and_removing_only_declared_bridge": true,
+      "new_guard": false
+    },
+    "capture-browser.py": {
+      "before_sha256": "2b7a5b43d934758fc1482ec07a2724a29c6e18f7a0c793b8c28f4e1e3e7127ee",
+      "after_sha256": "f8b05162d86f7fb2fce83ec2bd58e70033aa4ecf19222456e78fde6e6a3b6e72",
+      "original_AST_equal_after_exact_literal_inverse_and_removing_only_declared_bridge": true,
+      "new_guard": true
+    },
+    "capture-managed.py": {
+      "before_sha256": "5bbb8df7427e4dc53d34ddd52d262ae994f644cc69aaf988419c966aa1edaeca",
+      "after_sha256": "5bbb8df7427e4dc53d34ddd52d262ae994f644cc69aaf988419c966aa1edaeca",
+      "original_AST_equal_after_exact_literal_inverse_and_removing_only_declared_bridge": true,
+      "new_guard": false
+    }
+  },
+  "archived_historical_files": 184,
+  "future_pin_values": null,
+  "generator_sha256": "d82cad6908f399c83f9855d8a9305e52b93b5a130c5c289d10dede108c532cc9",
+  "original_generator_sha256": "87b5cae2afb376bbef6e468a775ed60f845acdf815402a272ba4175d5c764d9d",
+  "additional_guard_AST_proof": {
+    "check-ready.py": {
+      "base_derived_sha256": "47292eb49267905cfb394ace2f90e3197ce1722d8cb618e11b2a86905b8017ba",
+      "after_sha256": "e86ef40d5a73c70f8e9c73870c78ffd8f7aaa76147a6cc7ea3bee9c63acc4730",
+      "all_original_AST_exact_after_declared_literal_inverse_and_removing_only_additive_guard": true
+    },
+    "capture-browser.py": {
+      "base_derived_sha256": "f8b05162d86f7fb2fce83ec2bd58e70033aa4ecf19222456e78fde6e6a3b6e72",
+      "after_sha256": "8399765e11846ee4cb1792dd2d47fa9cdaf0b0061bd4987366be451e223dbaf0",
+      "all_original_AST_exact_after_declared_literal_inverse_and_removing_only_additive_guard": true
+    },
+    "archive-actual-and-build-patch.py": {
+      "base_derived_sha256": "e976ff0c2218e870ba740e9eaa8379fa497476469919479f56d893c6cc7f4908",
+      "after_sha256": "24f0c746063807dc5ec74c45b101e8b041a5b40744d37a1c513f0ef26e012de8",
+      "all_original_AST_exact_after_declared_literal_inverse_and_removing_only_additive_guard": true
+    }
+  },
+  "observed364d_managed_before": 1103165,
+  "observed364d_browser_before": 3472870
+}

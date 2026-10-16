@@ -1,4 +1,263 @@
 {
+  "json_task": {
+    "capabilities": [
+      "process.args.read",
+      "process.stderr.write",
+      "process.stdin.read",
+      "process.stdout.write"
+    ],
+    "declarations": [
+      "std.data.json.at_in",
+      "std.data.json.at_is",
+      "std.data.json.code_unit",
+      "std.data.json.digits.i64_byte",
+      "std.data.json.digits.i64_len",
+      "std.data.json.digits.literal_byte",
+      "std.data.json.digits.literal_len",
+      "std.data.json.digits.literal_word",
+      "std.data.json.doc.advance",
+      "std.data.json.doc.at_in",
+      "std.data.json.doc.byte_same",
+      "std.data.json.doc.digits_end",
+      "std.data.json.doc.document_end",
+      "std.data.json.doc.is_document",
+      "std.data.json.doc.is_unique",
+      "std.data.json.doc.key_before",
+      "std.data.json.doc.literal_end",
+      "std.data.json.doc.next_key",
+      "std.data.json.doc.next_state",
+      "std.data.json.doc.number_end",
+      "std.data.json.doc.object_keys",
+      "std.data.json.doc.skip_space",
+      "std.data.json.doc.span_same",
+      "std.data.json.doc.step_action",
+      "std.data.json.doc.string_end",
+      "std.data.json.doc.unique_end",
+      "std.data.json.doc.whole_end",
+      "std.data.json.escape_end",
+      "std.data.json.escape_kind",
+      "std.data.json.failure",
+      "std.data.json.failure_offset",
+      "std.data.json.hex_at",
+      "std.data.json.is_failure",
+      "std.data.json.is_string",
+      "std.data.json.query.byte_code",
+      "std.data.json.query.decoded_len",
+      "std.data.json.query.decoded_token_eq",
+      "std.data.json.query.emit_at",
+      "std.data.json.query.emit_len",
+      "std.data.json.query.is_string",
+      "std.data.json.query.scalar_at",
+      "std.data.json.query.scan_string",
+      "std.data.json.query.token_end",
+      "std.data.json.query.utf8_at",
+      "std.data.json.query.utf8_len",
+      "std.data.json.scan.decimal_end",
+      "std.data.json.scan.failure",
+      "std.data.json.scan.first_element",
+      "std.data.json.scan.first_member",
+      "std.data.json.scan.is_document",
+      "std.data.json.scan.is_unique",
+      "std.data.json.scan.key_before",
+      "std.data.json.scan.key_eq",
+      "std.data.json.scan.kind",
+      "std.data.json.scan.member_value",
+      "std.data.json.scan.next_element",
+      "std.data.json.scan.next_member",
+      "std.data.json.scan.object_unique",
+      "std.data.json.scan.root",
+      "std.data.json.scan.strict_end",
+      "std.data.json.scan.utf8_text_valid",
+      "std.data.json.scan.value_end",
+      "std.data.json.skip_whitespace",
+      "std.data.json.string_end",
+      "std.data.json.token.at_is",
+      "std.data.json.token.digit_at",
+      "std.data.json.token.digits_end",
+      "std.data.json.token.exponent_end",
+      "std.data.json.token.fraction_end",
+      "std.data.json.token.i64_or",
+      "std.data.json.token.integer_end",
+      "std.data.json.token.is_literal",
+      "std.data.json.token.is_number",
+      "std.data.json.token.literal_end",
+      "std.data.json.token.literal_kind",
+      "std.data.json.token.number_end",
+      "std.data.json.token.word_is",
+      "std.data.json.utf8.at_in",
+      "std.data.json.utf8.at_is",
+      "std.data.json.utf8.bounded_valid",
+      "std.data.json.utf8.continuation_at",
+      "std.data.json.utf8.is_shortest",
+      "std.data.json.utf8.is_surrogate",
+      "std.data.json.utf8.is_utf8",
+      "std.data.json.utf8.offset_at",
+      "std.data.json.utf8.quoted_len",
+      "std.data.json.utf8.scalar_at",
+      "std.data.json.utf8.sequence_end",
+      "std.data.json.utf8.sequence_kind",
+      "std.data.json.utf8.utf8_end",
+      "std.data.json.write.byte_code",
+      "std.data.json.write.code_byte",
+      "std.data.json.write.count-into",
+      "std.data.json.write.digit_code",
+      "std.data.json.write.encoded_at",
+      "std.data.json.write.escape_byte",
+      "std.data.json.write.escape_len",
+      "std.data.json.write.hex_digit",
+      "std.data.json.write.quoted-into",
+      "std.data.json.write.quoted-range-len",
+      "std.data.json.write.quoted-remaining-len",
+      "std.data.json.write.quoted_byte",
+      "std.data.json.write.quoted_len",
+      "std.data.json.write.usize_byte",
+      "std.data.json.write.usize_len",
+      "std.data.json.write.width_at",
+      "std.io.reader",
+      "std.io.reader.advance",
+      "std.io.reader.cursor",
+      "std.io.reader.finish",
+      "std.io.reader.from-bytes",
+      "std.io.reader.peek",
+      "std.io.reader.remaining",
+      "std.io.writer",
+      "std.io.writer.cursor",
+      "std.io.writer.finish",
+      "std.io.writer.from-bytes",
+      "std.io.writer.remaining",
+      "std.io.writer.write-u8"
+    ],
+    "dependencies": {
+      "std.data.json.digits": "=0.1.0",
+      "std.data.json.query": "=0.1.0",
+      "std.data.json.scan": "=0.1.0",
+      "std.data.json.token": "=0.1.0",
+      "std.data.json.write": "=0.1.0"
+    },
+    "dependency_closure": [
+      "std.data.json",
+      "std.data.json.digits",
+      "std.data.json.doc",
+      "std.data.json.query",
+      "std.data.json.scan",
+      "std.data.json.token",
+      "std.data.json.utf8",
+      "std.data.json.write",
+      "std.io"
+    ],
+    "dependency_versions": {
+      "std.data.json": "0.1.0",
+      "std.data.json.digits": "0.1.0",
+      "std.data.json.doc": "0.1.0",
+      "std.data.json.query": "0.1.0",
+      "std.data.json.scan": "0.1.0",
+      "std.data.json.token": "0.1.0",
+      "std.data.json.utf8": "0.1.0",
+      "std.data.json.write": "0.1.0",
+      "std.io": "0.1.0"
+    },
+    "files": [
+      {
+        "path": "codec-plan.json",
+        "sha256": "69f2e7e4e30d7a9ec3d59cf3bb3612abf4acd7ff503f765a215ebd723510f45d"
+      },
+      {
+        "path": "fixtures/request.json",
+        "sha256": "76dd14044dc3aecabfef30f993d654335410b702ff9a16ce0676ae07d97d13a9"
+      },
+      {
+        "path": "semaprax.toml",
+        "sha256": "93d427d4e525d5a70386cd80ef7dc7459b6a78f1595111bcffc7a1474eb99e30"
+      },
+      {
+        "path": "src/app.command.spx",
+        "sha256": "61f3901f41d5913f876b7e0b6ca6f0251b2232a64617bbc9024a553d15dbf31d"
+      },
+      {
+        "path": "src/app.spx",
+        "sha256": "ffb1b6fb354aee83a21146f1b752ab05c0ccfeb23e235694b97667cab4335753"
+      },
+      {
+        "path": "src/model.spx",
+        "sha256": "00d043435eca3cc89ee3671af004899701452df9487e9970d7333e6d72602feb"
+      },
+      {
+        "path": "src/order.spx",
+        "sha256": "0a30f5c7a4fe44f87f8ebc0d3ff893b34e749b0e8d44c988593f2c87b6150654"
+      },
+      {
+        "path": "src/request.spx",
+        "sha256": "b2788eee7b5aac909a903aea8aec5bb7ea332fd18176e592b15a0b4a1a2c83fc"
+      },
+      {
+        "path": "src/response.spx",
+        "sha256": "f67af57ed8cbc3bede3b2b8c94fd055aae8d651b4931918a3652dacf07b16bc1"
+      },
+      {
+        "path": "src/schedule.spx",
+        "sha256": "7f6d7e4315c3a72922697ce065ce629d24b469ff9fce96b35b62fcb60984d567"
+      },
+      {
+        "path": "src/tests.spx",
+        "sha256": "aa62d9b7d5d640a4e1a1c491cc68fdccb13b255d43cea1360867031b001e8425"
+      }
+    ],
+    "input": "argv-utf8+stdin-stream.v1",
+    "pipeline": [
+      {
+        "head": [
+          "fn receive() -> Decode",
+          "    uses { process.stdin.read }"
+        ],
+        "id": "shiftsim.receive",
+        "source": "src/app.command.spx"
+      },
+      {
+        "head": [
+          "fn run(request: own Request) -> ScheduleResult"
+        ],
+        "id": "shiftsim.schedule.run",
+        "source": "src/schedule.spx"
+      },
+      {
+        "head": [
+          "fn command() -> i64",
+          "    uses { process.stdin.read, process.stdout.write, process.stderr.write }"
+        ],
+        "id": "shiftsim.command",
+        "source": "src/app.command.spx"
+      }
+    ],
+    "plan": {
+      "entries": [
+        {
+          "profile": "stream-owned-request.v1",
+          "record": "shiftsim.request",
+          "source": "src/request.spx"
+        },
+        {
+          "max_string_bytes": 16,
+          "profile": "bounded-collection-response.v1",
+          "record": "shiftsim.report",
+          "source": "src/response.spx"
+        }
+      ],
+      "schema": "semaprax.json-codec-plan.v1"
+    },
+    "project_profile": "language-command-io.collection-record.v1",
+    "sources": [
+      "src/app.spx",
+      "src/model.spx",
+      "src/order.spx",
+      "src/request.spx",
+      "src/response.spx",
+      "src/schedule.spx",
+      "src/tests.spx"
+    ],
+    "specimen": "examples/shiftsim-typed-record-successor",
+    "target": "native64",
+    "task": "stdin-json"
+  },
   "layout": "tables",
   "scaffold_name": "task-demo",
   "schema": "semaprax.authoring-tasks.v6",

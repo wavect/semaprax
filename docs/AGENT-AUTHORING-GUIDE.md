@@ -29,6 +29,8 @@ Use
 Syntax: `semaprax help language <topic>`; topics: `semaprax help language topics`. Reference: `semaprax help language all`.
 
 Application routes: `semaprax help language author:routes`.
+Exact JSON request/decision/response prerequisites (native v31 specimen; qualification pending):
+`semaprax help language author:task:stdin-json:language-command-io.collection-record.v1:native64:0`.
 Language operations: `semaprax help language author:find:<word>:0`.
 Library declarations: `semaprax help language find:<word>:0`;
 Pages include continuations.

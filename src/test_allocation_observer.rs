@@ -107,6 +107,7 @@ impl State {
         }
     }
     fn allocated(&mut self, pointer: usize, bytes: usize) {
+        free_order::record_acquire(pointer);
         if let Some(registry) = &mut self.extended {
             if let Err(reason) = registry.insert(pointer, bytes) {
                 INVALID.with(|invalid| invalid.set(true));

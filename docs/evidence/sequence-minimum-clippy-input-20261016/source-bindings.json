@@ -6,7 +6,7 @@
       "source": "src/source_reflows_merge/current344.rs",
       "before_file": "src__source_reflows_merge__current344.rs.before.txt",
       "before_sha256": "8214903cc8333c8afc8cda6f3bc64887ee57244813d3705808b37b5a4a8c06f9",
-      "after_sha256": "7b6d7a4aadfd49bd2c88ca1871188669256ecfc446b1ec29159ab070010a801e"
+      "after_sha256": "5594bf0b57cd8994490fd977236bb51c30a76eaca4908cb3defdf8779a308cd7"
     },
     {
       "source": "src/cleanup_plan/replay/path_array/sequence_minimum/tests.rs",
@@ -17,5 +17,6 @@
   ],
   "entire_original_sequence_owner_assertion_replayed": true,
   "old_before_file_unchanged": true,
-  "finite_full_block_inverses": 3
+  "finite_full_block_inverses": 3,
+  "additional_live_gate": "The complete original push-order predicate also reads actual current skeleton source, independently of the historical Main44 fixture."
 }

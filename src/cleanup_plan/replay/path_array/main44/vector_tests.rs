@@ -307,7 +307,7 @@ fn complete_predecessor_and_original_push_operations_stay_source_bound() {
         1,
     );
     assert_eq!(root.matches(&expected).count(), 1);
-    let work = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work.rs"));
+    let work = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main44-independent-custody-20261016/raw/src/cleanup_plan/replay/skeleton_work.rs.txt"));
     let original_push = "        self.charge(1, phase)?;\n        note_skeleton_materialization();\n        self.budget.reserve_vec(self.function, paths, 1, phase)?;\n        paths.push(path);";
     assert_eq!(work.matches(original_push).count(), 2);
     let live = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main44-independent-custody-20261016/raw/src/cleanup_plan/replay/sequence_vector.rs.txt"));

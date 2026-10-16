@@ -1134,6 +1134,7 @@ Audience: all documentation readers.
 - [Lazy fixed pattern scratch](evidence/pattern-hygiene-scratch-v1/README.md)
 - [Receiver source custody](evidence/receiver-source-custody-v1/README.md)
 - [Live source-audit custody](evidence/live-source-audit-custody-v1/README.md)
+- [Ordinary clone cursor custody](evidence/replay-clone-cursor-v1/README.md)
 - [One explicit-record census per immutable phase](evidence/record-presence-phase-v1/README.md)
 - [Owning provider row arguments are source refusals](evidence/row-loan-source-refusal-v1/README.md)
 - [Reuse a sole incoming ownership-state tree](evidence/single-state-groups-v1/README.md)

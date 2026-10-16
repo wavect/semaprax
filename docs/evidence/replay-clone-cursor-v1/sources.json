@@ -1,0 +1,87 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/physical_clone.rs",
+    "archive": "physical_clone.rs.before.txt",
+    "sha256": "7562958a30b1c75afadc4d2110b42b06a209e3f54b3a8e5111ecdd08d6488bb6",
+    "edits": [
+      {
+        "old": "pub(crate) trait ClonePayload {\n    fn clone_payload_bytes(&self) -> Option<usize>;\n",
+        "new": "pub(crate) trait ClonePayload {\n    /// Conservative for future implementations: only audited payloads opt out.\n    const NEEDS_TYPE_CURSOR: bool = true;\n    fn clone_payload_bytes(&self) -> Option<usize>;\n"
+      },
+      {
+        "old": "impl ClonePayload for DeclarationId {\n    fn clone_payload_bytes(&self) -> Option<usize> {\n",
+        "new": "impl ClonePayload for DeclarationId {\n    const NEEDS_TYPE_CURSOR: bool = false;\n    fn clone_payload_bytes(&self) -> Option<usize> {\n"
+      },
+      {
+        "old": "impl ClonePayload for FunctionInstanceId {\n    fn clone_payload_bytes(&self) -> Option<usize> {\n",
+        "new": "impl ClonePayload for FunctionInstanceId {\n    const NEEDS_TYPE_CURSOR: bool = false;\n    fn clone_payload_bytes(&self) -> Option<usize> {\n"
+      },
+      {
+        "old": "    ($($ty:ty),* $(,)?) => { $(impl ClonePayload for $ty {\n        fn clone_payload_bytes(&self) -> Option<usize> { Some(0) }\n",
+        "new": "    ($($ty:ty),* $(,)?) => { $(impl ClonePayload for $ty {\n        const NEEDS_TYPE_CURSOR: bool = false;\n        fn clone_payload_bytes(&self) -> Option<usize> { Some(0) }\n"
+      },
+      {
+        "old": "impl<T> ClonePayload for std::rc::Rc<T> {\n    fn clone_payload_bytes(&self) -> Option<usize> {\n",
+        "new": "impl<T> ClonePayload for std::rc::Rc<T> {\n    const NEEDS_TYPE_CURSOR: bool = false;\n    fn clone_payload_bytes(&self) -> Option<usize> {\n"
+      },
+      {
+        "old": "impl<T: ClonePayload> ClonePayload for Option<T> {\n    fn clone_payload_bytes(&self) -> Option<usize> {\n",
+        "new": "impl<T: ClonePayload> ClonePayload for Option<T> {\n    const NEEDS_TYPE_CURSOR: bool = T::NEEDS_TYPE_CURSOR;\n    fn clone_payload_bytes(&self) -> Option<usize> {\n"
+      },
+      {
+        "old": "impl<A: ClonePayload, B: ClonePayload> ClonePayload for (A, B) {\n    fn clone_payload_bytes(&self) -> Option<usize> {\n",
+        "new": "impl<A: ClonePayload, B: ClonePayload> ClonePayload for (A, B) {\n    const NEEDS_TYPE_CURSOR: bool = A::NEEDS_TYPE_CURSOR || B::NEEDS_TYPE_CURSOR;\n    fn clone_payload_bytes(&self) -> Option<usize> {\n"
+      },
+      {
+        "old": "impl<T: ClonePayload> ClonePayload for Vec<T> {\n    fn clone_payload_bytes(&self) -> Option<usize> {\n",
+        "new": "impl<T: ClonePayload> ClonePayload for Vec<T> {\n    const NEEDS_TYPE_CURSOR: bool = T::NEEDS_TYPE_CURSOR;\n    fn clone_payload_bytes(&self) -> Option<usize> {\n"
+      },
+      {
+        "old": "impl ClonePayload for CleanupPlace {\n    fn clone_payload_bytes(&self) -> Option<usize> {\n",
+        "new": "impl ClonePayload for CleanupPlace {\n    const NEEDS_TYPE_CURSOR: bool = <Vec<DeclarationId>>::NEEDS_TYPE_CURSOR;\n    fn clone_payload_bytes(&self) -> Option<usize> {\n"
+      },
+      {
+        "old": "impl ClonePayload for crate::hir::FunctionExecutionId {\n    fn clone_payload_bytes(&self) -> Option<usize> {\n",
+        "new": "impl ClonePayload for crate::hir::FunctionExecutionId {\n    const NEEDS_TYPE_CURSOR: bool =\n        FunctionInstanceId::NEEDS_TYPE_CURSOR || DeclarationId::NEEDS_TYPE_CURSOR;\n    fn clone_payload_bytes(&self) -> Option<usize> {\n"
+      },
+      {
+        "old": "impl ClonePayload for crate::hir::ControlTarget {\n    fn clone_payload_bytes(&self) -> Option<usize> {\n",
+        "new": "impl ClonePayload for crate::hir::ControlTarget {\n    const NEEDS_TYPE_CURSOR: bool = crate::hir::FunctionExecutionId::NEEDS_TYPE_CURSOR;\n    fn clone_payload_bytes(&self) -> Option<usize> {\n"
+      },
+      {
+        "old": "impl ClonePayload for Observations {\n    fn clone_payload_bytes(&self) -> Option<usize> {\n",
+        "new": "impl ClonePayload for Observations {\n    const NEEDS_TYPE_CURSOR: bool = false;\n    fn clone_payload_bytes(&self) -> Option<usize> {\n"
+      },
+      {
+        "old": "impl ClonePayload for ExprSkeletonPath {\n    fn clone_payload_bytes(&self) -> Option<usize> {\n",
+        "new": "impl ClonePayload for ExprSkeletonPath {\n    const NEEDS_TYPE_CURSOR: bool = Observations::NEEDS_TYPE_CURSOR\n        || <Option<CleanupPlace>>::NEEDS_TYPE_CURSOR\n        || lexical_skeleton::Continuation::NEEDS_TYPE_CURSOR;\n    fn clone_payload_bytes(&self) -> Option<usize> {\n"
+      },
+      {
+        "old": "impl ClonePayload for SkeletonPath {\n    fn clone_payload_bytes(&self) -> Option<usize> {\n",
+        "new": "impl ClonePayload for SkeletonPath {\n    const NEEDS_TYPE_CURSOR: bool = Observations::NEEDS_TYPE_CURSOR;\n    fn clone_payload_bytes(&self) -> Option<usize> {\n"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/physical_budget.rs",
+    "archive": "physical_budget.rs.before.txt",
+    "sha256": "31f1ec5525f566268384254fcd09dd695ddd9d4d45df8fd1069f9846bff0c410",
+    "edits": [
+      {
+        "old": "        }\n        self.prepare_clone_cursor(function)?;\n        #[cfg(test)]\n",
+        "new": "        }\n        if self.payer == AllocationPayer::ActiveBuilder && !self.selected() && !T::NEEDS_TYPE_CURSOR\n        {\n            // These preflights construct no recursive type cursor. Authenticate\n            // and fund refusal text first, but leave the cursor unpaid so a\n            // later recursive clone must still acquire its complete backing.\n            self.prepare_builder(function)?;\n        } else {\n            self.prepare_clone_cursor(function)?;\n        }\n        #[cfg(test)]\n"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/lexical_skeleton.rs",
+    "archive": "lexical_skeleton.rs.before.txt",
+    "sha256": "316fb7e4ffac72d9ad9817e2d64effea32710f2956612d9f40e75c7ff606d353",
+    "edits": [
+      {
+        "old": "impl ClonePayload for Continuation {\n    fn clone_payload_bytes(&self) -> Option<usize> {\n",
+        "new": "impl ClonePayload for Continuation {\n    const NEEDS_TYPE_CURSOR: bool = false;\n    fn clone_payload_bytes(&self) -> Option<usize> {\n"
+      }
+    ]
+  }
+]

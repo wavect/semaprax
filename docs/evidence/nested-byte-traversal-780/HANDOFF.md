@@ -15,3 +15,23 @@ The authored physical owner includes the actual lazy receiver AND a separate lat
 Source-only evidence: existing36 full inverse proofs PASS; final own41 source rows restore exact basis/originals; 19 affected packets bind211 rows, preserving original archives and independently binding new-only children. `final-source-inverses-v1.json`, `later-source-proof.json`, `pending-selectors.json` are the active packet. Earlier checkpoint files are historical snapshots, not current-source bindings. All new children are joined into their owning HIR/native/workspace inventories and the full old boundary/constructor hooks remain composed.
 
 No Cargo, Rust tests, runtime, fit or performance checks ran here. #780 remains open. Compiler/API mistakes and actual runtime failures must be retained and corrected from the combined qualification. The root has later corrections; compose their named hooks additively. `compose_later_sources.py --basis <actual pre-feature integration head>` regenerates metadata from that explicit immutable basis only after the feature source is assembled; never invoke it with an older basis on later ROOT metadata.
+
+## CI scope correction after first execution
+
+The original whole `nested/tests.rs` at main `412858023` is retained in
+`ci-scope-tests.before.txt`, with SHA-256 and exact inverse edits in
+`ci-scope-original.json`. The complete original ancestor mutation tail stays
+on its original borrowed-parameter fixture. The complete original same-root
+loan/endpoint assertion block moves verbatim to the admitted local-Bytes-owner
+fixture; the original fixture additionally asserts its inherited v1 empty plan.
+V2 retains v1's rule that borrow-only and Copy roots have no local owner loan.
+
+The foreign/restored observation retains the complete original window, including
+test budget creation and complete Drop. An independent empty nested-budget
+control measures that scope's actual single Rc allocation. The full metrics
+must equal this baseline, and snapshots immediately around production operations
+must remain unchanged. The test does not report the budget Rc as production
+census allocation or discard its measured bytes. The added storage control
+exercises actual captured-ledger refusal, restoration and disposal separately
+from the HIR fixture. These controls do not qualify the full compiler or prove
+application fit; the owning HIR/graph/runtime gates remain required.

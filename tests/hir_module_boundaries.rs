@@ -5,7 +5,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
     let validation_raw = audit_source_join!(
         audit_source_join!(
             audit_source_join!(
-include_str!("../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"),
+include_str!("../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"), include_str!("../src/hir/validation/byte_traversal/nested/tests/source_composition.rs"), include_str!("../src/cleanup_plan/replay/allocation/tests/clone_cursor.rs"), include_str!("../src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs"),
 include_str!("../src/cleanup_plan/replay.rs"),
 include_str!("../src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs"),
 include_str!("../src/cleanup_plan/replay/factored.rs"),

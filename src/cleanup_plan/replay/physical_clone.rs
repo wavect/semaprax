@@ -5,6 +5,8 @@ use super::*;
 use std::mem::size_of;
 
 pub(crate) trait ClonePayload {
+    /// Conservative for future implementations: only audited payloads opt out.
+    const NEEDS_TYPE_CURSOR: bool = true;
     fn clone_payload_bytes(&self) -> Option<usize>;
     #[cfg(test)]
     fn clone_payload_bytes_with_work(
@@ -15,6 +17,7 @@ pub(crate) trait ClonePayload {
     }
 }
 impl ClonePayload for DeclarationId {
+    const NEEDS_TYPE_CURSOR: bool = false;
     fn clone_payload_bytes(&self) -> Option<usize> {
         Some(0)
     }
@@ -24,6 +27,7 @@ impl ClonePayload for DeclarationId {
     }
 }
 impl ClonePayload for FunctionInstanceId {
+    const NEEDS_TYPE_CURSOR: bool = false;
     fn clone_payload_bytes(&self) -> Option<usize> {
         Some(self.as_str().len())
     }
@@ -38,6 +42,7 @@ impl ClonePayload for FunctionInstanceId {
 }
 macro_rules! shared_or_copy {
     ($($ty:ty),* $(,)?) => { $(impl ClonePayload for $ty {
+        const NEEDS_TYPE_CURSOR: bool = false;
         fn clone_payload_bytes(&self) -> Option<usize> { Some(0) }
     #[cfg(test)]
     fn clone_payload_bytes_with_work(&self, work: &mut impl FnMut(usize) -> bool) -> Option<usize> {
@@ -59,6 +64,7 @@ shared_or_copy!(
     EdgeId
 );
 impl<T> ClonePayload for std::rc::Rc<T> {
+    const NEEDS_TYPE_CURSOR: bool = false;
     fn clone_payload_bytes(&self) -> Option<usize> {
         Some(0)
     }
@@ -68,6 +74,7 @@ impl<T> ClonePayload for std::rc::Rc<T> {
     }
 }
 impl<T: ClonePayload> ClonePayload for Option<T> {
+    const NEEDS_TYPE_CURSOR: bool = T::NEEDS_TYPE_CURSOR;
     fn clone_payload_bytes(&self) -> Option<usize> {
         self.as_ref()
             .map_or(Some(0), ClonePayload::clone_payload_bytes)
@@ -84,6 +91,7 @@ impl<T: ClonePayload> ClonePayload for Option<T> {
     }
 }
 impl<A: ClonePayload, B: ClonePayload> ClonePayload for (A, B) {
+    const NEEDS_TYPE_CURSOR: bool = A::NEEDS_TYPE_CURSOR || B::NEEDS_TYPE_CURSOR;
     fn clone_payload_bytes(&self) -> Option<usize> {
         self.0
             .clone_payload_bytes()?
@@ -99,6 +107,7 @@ impl<A: ClonePayload, B: ClonePayload> ClonePayload for (A, B) {
     }
 }
 impl<T: ClonePayload> ClonePayload for Vec<T> {
+    const NEEDS_TYPE_CURSOR: bool = T::NEEDS_TYPE_CURSOR;
     fn clone_payload_bytes(&self) -> Option<usize> {
         self.iter()
             .try_fold(self.len().checked_mul(size_of::<T>())?, |total, value| {
@@ -118,6 +127,7 @@ impl<T: ClonePayload> ClonePayload for Vec<T> {
     }
 }
 impl ClonePayload for CleanupPlace {
+    const NEEDS_TYPE_CURSOR: bool = <Vec<DeclarationId>>::NEEDS_TYPE_CURSOR;
     fn clone_payload_bytes(&self) -> Option<usize> {
         self.projections.clone_payload_bytes()
     }
@@ -130,6 +140,8 @@ impl ClonePayload for CleanupPlace {
     }
 }
 impl ClonePayload for crate::hir::FunctionExecutionId {
+    const NEEDS_TYPE_CURSOR: bool =
+        FunctionInstanceId::NEEDS_TYPE_CURSOR || DeclarationId::NEEDS_TYPE_CURSOR;
     fn clone_payload_bytes(&self) -> Option<usize> {
         match self {
             Self::Monomorphic(id) => id.clone_payload_bytes(),
@@ -148,6 +160,7 @@ impl ClonePayload for crate::hir::FunctionExecutionId {
     }
 }
 impl ClonePayload for crate::hir::ControlTarget {
+    const NEEDS_TYPE_CURSOR: bool = crate::hir::FunctionExecutionId::NEEDS_TYPE_CURSOR;
     fn clone_payload_bytes(&self) -> Option<usize> {
         match self {
             Self::Function(owner) | Self::Loop { owner, .. } => owner.clone_payload_bytes(),
@@ -396,6 +409,7 @@ impl ClonePayload for StagedCopyResultSource {
     }
 }
 impl ClonePayload for Observations {
+    const NEEDS_TYPE_CURSOR: bool = false;
     fn clone_payload_bytes(&self) -> Option<usize> {
         self.parts()
             .1
@@ -420,6 +434,9 @@ impl ClonePayload for Observations {
     }
 }
 impl ClonePayload for ExprSkeletonPath {
+    const NEEDS_TYPE_CURSOR: bool = Observations::NEEDS_TYPE_CURSOR
+        || <Option<CleanupPlace>>::NEEDS_TYPE_CURSOR
+        || lexical_skeleton::Continuation::NEEDS_TYPE_CURSOR;
     fn clone_payload_bytes(&self) -> Option<usize> {
         self.observations
             .clone_payload_bytes()?
@@ -436,6 +453,7 @@ impl ClonePayload for ExprSkeletonPath {
     }
 }
 impl ClonePayload for SkeletonPath {
+    const NEEDS_TYPE_CURSOR: bool = Observations::NEEDS_TYPE_CURSOR;
     fn clone_payload_bytes(&self) -> Option<usize> {
         self.observations.clone_payload_bytes()
     }

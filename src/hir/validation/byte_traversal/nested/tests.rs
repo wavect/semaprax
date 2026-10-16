@@ -1,9 +1,5 @@
 //! Authored controls: no compilation/runtime evidence is claimed by this file.
-use super::{Census, Diagnostic, ResolvedExpr, ResolvedFunction, Slot, shape};
-use super::super::{
-    ControlTarget, ExpressionId, FunctionExecutionId, ResolvedExprKind, ResolvedProgram,
-    ResolvedStatement,
-};
+use super::*;
 use crate::bounded_output::{reserve_active_required, with_limit_usage_refusal};
 use crate::test_allocation_observer::{current_metrics, measure};
 use std::cell::{Cell, RefCell};
@@ -217,6 +213,54 @@ fn nested_byte_ancestor_freezes_cover_every_inner_subtree_and_same_root_after_in
             .unwrap();
         assert!(after_outer.live_before.contains(&outer_loan.id));
     }
+    // Parameter views have no local owning storage (v1's inherited rule).
+    assert_eq!(
+        sum.loan_plan,
+        crate::loan_plan::LoanPlan {
+            schema: crate::loan_plan::LOAN_PLAN_SCHEMA_V1,
+            loans: Vec::new(),
+            endpoints: Vec::new(),
+            edges: Vec::new(),
+        }
+    );
+    assert!(outer.start < inner.start);
+    // Keep the complete loan assertions on an actual local Bytes owner. The
+    // whole/subrange views share its root and the inner loop ends first.
+    let rooted = resolved(ROOTED);
+    let owned = function(&rooted, "main");
+    let ResolvedExprKind::Block { statements, .. } = &owned.body.kind else {
+        panic!("rooted function body")
+    };
+    let storage = statements
+        .iter()
+        .find_map(|statement| match statement {
+            ResolvedStatement::Let { binding, .. } if binding.name == "owned" => Some(binding),
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(storage.ty, crate::hir::ResolvedType::Bytes);
+    assert_eq!(storage.ownership, crate::hir::OwnershipMode::Own);
+    assert!(owned
+        .loan_plan
+        .loans
+        .iter()
+        .filter(|loan| loan.cause == crate::loan_plan::LoanCause::TraversalFreeze)
+        .all(|loan| loan.origin.root == storage.id));
+
+    let owned_census = Census::acquire(&rooted, owned).unwrap();
+    same_root_loan_endpoints(
+        owned,
+        owned_census
+            .rows
+            .iter()
+            .min_by_key(|row| row.start)
+            .unwrap(),
+        owned_census
+            .rows
+            .iter()
+            .max_by_key(|row| row.start)
+            .unwrap(),
+    );
     for id in outer.shape.frozen {
         let mut forged = program.clone();
         let sum = forged
@@ -255,8 +299,49 @@ fn nested_byte_ancestor_freezes_cover_every_inner_subtree_and_same_root_after_in
         assert!(crate::hir::validate(&forged).is_err());
     }
 }
+fn same_root_loan_endpoints(sum: &ResolvedFunction, outer: &Row<'_>, inner: &Row<'_>) {
+    let freezes = sum
+        .loan_plan
+        .loans
+        .iter()
+        .filter(|loan| loan.cause == crate::loan_plan::LoanCause::TraversalFreeze)
+        .collect::<Vec<_>>();
+    assert_eq!(freezes.len(), 2);
+    assert_eq!(freezes[0].origin.root, freezes[1].origin.root);
+    let outer_loan = freezes
+        .iter()
+        .find(|loan| loan.site == outer.shape.root.id)
+        .unwrap();
+    let inner_loan = freezes
+        .iter()
+        .find(|loan| loan.site == inner.shape.root.id)
+        .unwrap();
+    assert_ne!(outer_loan.id, inner_loan.id);
+    let after_inner = sum
+        .loan_plan
+        .endpoints
+        .iter()
+        .find(|endpoint| {
+            endpoint.point.expression == inner.shape.root.id
+                && endpoint.point.phase == crate::loan_plan::LoanPointPhase::After
+        })
+        .unwrap();
+    assert!(after_inner.live_after.contains(&outer_loan.id));
+    let after_outer = sum
+        .loan_plan
+        .endpoints
+        .iter()
+        .find(|endpoint| {
+            endpoint.point.expression == outer.shape.root.id
+                && endpoint.point.phase == crate::loan_plan::LoanPointPhase::After
+        })
+        .unwrap();
+    assert!(after_outer.live_before.contains(&outer_loan.id));
+}
+
 #[test]
 fn nested_byte_census_uses_exact_owner_and_first_refusal_on_foreign_then_restored_scope() {
+    let scope_metrics = ci_scope::empty_nested_budget_metrics();
     let program = resolved(SOURCE);
     let sum = function(&program, "sum");
     let fixture = Census::acquire(&program, sum).unwrap();
@@ -285,28 +370,36 @@ fn nested_byte_census_uses_exact_owner_and_first_refusal_on_foreign_then_restore
                 assert_eq!(setup.live, 0);
                 assert_eq!(setup.allocated, setup.freed);
                 assert!(!setup.invalid);
+                assert_eq!(setup, scope_metrics);
                 let observed = measure(|| {
-                        let (error, child_refused, child_used, child_first) =
-                            with_limit_usage_refusal(0, || {
-                                let before = current_metrics().allocated;
-                                let error = slot.region(&program, sum, root).err().unwrap();
-                                assert_eq!(current_metrics().allocated, before);
-                                error
-                            });
-                        assert!(!child_refused);
-                        assert_eq!(child_used, 0);
-                        assert_eq!(child_first, None);
-                        assert!(error.message.contains("detached"));
-                        drop(error);
-                        let before = current_metrics().allocated;
-                        let restored = slot.region(&program, sum, root).err().unwrap();
-                        assert!(restored.message.contains("detached"));
-                        drop(restored);
-                        drop(slot);
-                        assert_eq!(current_metrics().allocated, before);
-                    });
-                assert_eq!((observed.1.allocations, observed.1.allocated),
-                    (setup.allocations, setup.allocated));
+                    let (error, child_refused, child_used, child_first) =
+                        with_limit_usage_refusal(0, || {
+                            let before = current_metrics().allocated;
+                            let before_metrics = current_metrics();
+                            let error = slot.region(&program, sum, root).err().unwrap();
+                            assert_eq!(current_metrics().allocated, before);
+                            assert_eq!(current_metrics(), before_metrics);
+                            error
+                        });
+                    assert!(!child_refused);
+                    assert_eq!(child_used, 0);
+                    assert_eq!(child_first, None);
+                    assert!(error.message.contains("detached"));
+                    drop(error);
+                    let before = current_metrics().allocated;
+                    let before_metrics = current_metrics();
+                    let restored = slot.region(&program, sum, root).err().unwrap();
+                    assert!(restored.message.contains("detached"));
+                    drop(restored);
+                    drop(slot);
+                    assert_eq!(current_metrics().allocated, before);
+                    assert_eq!(current_metrics(), before_metrics);
+                });
+                assert_eq!(observed.1, setup);
+                assert_eq!(
+                    (observed.1.allocations, observed.1.allocated),
+                    (setup.allocations, setup.allocated)
+                );
                 assert_eq!(observed.1.allocated - setup.allocated, 0);
                 (observed, remaining, setup.allocated)
             });
@@ -322,6 +415,8 @@ fn nested_byte_census_uses_exact_owner_and_first_refusal_on_foreign_then_restore
         );
         assert_eq!(used, usize::MAX - remaining);
         assert!(!metrics.invalid);
+        assert_eq!(metrics, scope_metrics);
+        assert_eq!(metrics.allocated - scope_metrics.allocated, 0);
         assert_eq!(metrics.allocated - external_setup, 0);
     }
 }
@@ -548,3 +643,144 @@ fn nested_byte_same_root_release_does_not_allow_outer_move_or_renewal() {
         assert!(crate::hir::resolve(&ast).is_err());
     }
 }
+
+mod ci_scope {
+    //! Test-ledger construction is separate from the nested census receiver.
+    use crate::bounded_output::with_limit_usage_refusal;
+    use crate::test_allocation_observer::{measure, Metrics};
+
+    pub(super) fn empty_nested_budget_metrics() -> Metrics {
+        let ((result, metrics), refused, used, first) =
+            with_limit_usage_refusal(usize::MAX, || {
+                measure(|| with_limit_usage_refusal(0, || ()))
+            });
+        assert_eq!(result, ((), false, 0, None));
+        assert!(!refused && first.is_none());
+        assert_eq!(used, 0);
+        assert!(!metrics.invalid);
+        assert_eq!(metrics.allocations, 1);
+        assert_eq!(metrics.reallocations, 0);
+        assert!(metrics.allocated > 0);
+        assert_eq!(metrics.allocated, metrics.freed);
+        assert_eq!(metrics.highwater, metrics.allocated);
+        assert_eq!(metrics.live, 0);
+        metrics
+    }
+
+    #[test]
+    fn nested_empty_budget_scope_records_only_its_real_ledger_allocation() {
+        assert_eq!(empty_nested_budget_metrics(), empty_nested_budget_metrics());
+    }
+
+    #[test]
+    fn nested_scope_correction_retains_complete_original_hostile_and_loan_controls() {
+        use sha2::{Digest, Sha256};
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let evidence = root.join("docs/evidence/nested-byte-traversal-780");
+        let record: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string(evidence.join("ci-scope-original.json")).unwrap(),
+        )
+        .unwrap();
+        let original =
+            std::fs::read_to_string(evidence.join(record["archive"].as_str().unwrap())).unwrap();
+        assert_eq!(
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))
+            ),
+            record["sha256"].as_str().unwrap()
+        );
+        let raw_current =
+            std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
+        let current = super::source_composition::incoming_current(&raw_current)
+            .expect("complete actual joined source and both immutable parent inputs");
+        let restore = |source: &str| -> Option<String> {
+            let mut result = source.to_owned();
+            for edit in record["edits"].as_array().unwrap().iter().rev() {
+                let new = edit["new"].as_str().unwrap();
+                if result.matches(new).count() != 1 {
+                    return None;
+                }
+                result = result.replacen(new, edit["old"].as_str().unwrap(), 1);
+            }
+            Some(result)
+        };
+        assert_eq!(restore(&current).as_deref(), Some(original.as_str()));
+        assert_ne!(
+            restore(&(current.clone() + "\n")).as_deref(),
+            Some(original.as_str())
+        );
+        let start = original.find("    let freezes = sum\n").unwrap();
+        let end = start
+            + original[start..]
+                .find("    for id in outer.shape.frozen {")
+                .unwrap();
+        assert_eq!(current.matches(&original[start..end]).count(), 1);
+        let tail_end = end + original[end..].find("\n#[test]").unwrap();
+        assert_eq!(current.matches(&original[end..tail_end]).count(), 1);
+        let tampered = current.replacen(
+            "after_inner.live_after.contains",
+            "after_inner.live_before.contains",
+            1,
+        );
+        assert_ne!(restore(&tampered).as_deref(), Some(original.as_str()));
+        assert!(current.contains("let scope_metrics = ci_scope::empty_nested_budget_metrics();"));
+        assert!(current.contains("assert_eq!(metrics, scope_metrics);"));
+        assert!(current.contains("assert_eq!(metrics.allocated - scope_metrics.allocated, 0);"));
+    }
+
+    #[test]
+    fn nested_storage_foreign_restore_has_no_allocation_beyond_test_scope() {
+        use super::super::{storage::Storage, Failure};
+        use crate::test_allocation_observer::current_metrics;
+        let setup = empty_nested_budget_metrics();
+        for warm in [false, true] {
+            let ((((), metrics), remaining), refused, used, first) =
+                with_limit_usage_refusal(usize::MAX, || {
+                    let storage = Storage::acquire().unwrap();
+                    if warm {
+                        storage.reserve(0).unwrap();
+                    }
+                    let remaining = crate::bounded_output::active_remaining().unwrap();
+                    (
+                        measure(|| {
+                            let (error, refused, used, first) = with_limit_usage_refusal(0, || {
+                                let before = current_metrics();
+                                let error =
+                                    Failure::Storage(storage.reserve(0).unwrap_err()).diagnostic();
+                                assert_eq!(current_metrics(), before);
+                                error
+                            });
+                            assert!(!refused && first.is_none());
+                            assert_eq!(used, 0);
+                            assert!(error.message.contains("detached"));
+                            drop(error);
+                            let before = current_metrics();
+                            let restored =
+                                Failure::Storage(storage.reserve(0).unwrap_err()).diagnostic();
+                            assert!(restored.message.contains("detached"));
+                            drop((restored, storage));
+                            assert_eq!(current_metrics(), before);
+                        }),
+                        remaining,
+                    )
+                });
+            assert!(refused);
+            assert_eq!(
+                first,
+                Some(crate::bounded_output::ReservationRefusal {
+                    requested: 0,
+                    remaining,
+                    floor: 0,
+                    stage: None,
+                })
+            );
+            assert_eq!(used, usize::MAX - remaining);
+            assert_eq!(metrics, setup);
+            assert_eq!(metrics.allocated - setup.allocated, 0);
+        }
+    }
+}
+
+#[path = "tests/source_composition.rs"]
+mod source_composition;

@@ -75,6 +75,7 @@ impl Continuation {
 }
 
 impl ClonePayload for Continuation {
+    const NEEDS_TYPE_CURSOR: bool = false;
     fn clone_payload_bytes(&self) -> Option<usize> {
         // All marker identities belong to the already charged observation Rc.
         Some(0)

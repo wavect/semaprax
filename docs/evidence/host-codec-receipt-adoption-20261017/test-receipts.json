@@ -1,0 +1,70 @@
+{
+  "base": "37c771b08aa807365433d1beb23dcf138c216977",
+  "initial28": {
+    "tests": 28,
+    "status": "PASS",
+    "new_helper_sha256": "5c0d103f2dba47f40a3b4624621acb9fffb8d33dadf41dcb7d4293130bc5cf44",
+    "new_tests_sha256": "65c1d1905942610b6780459ccd780d38f02e07a2485874cdf7afc7912cc89be1",
+    "note": "before one additional authenticated unselected-source drift refusal",
+    "literal_selectors": [
+      "test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_broker_retains_raw_receipt_and_independent_inventories_after_candidate_removal_and_detects_report_drift",
+      "test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_closed_json_full_closure_and_forged_repeat_profile_output_and_truth_fields_refuse",
+      "test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_complete_compiler_report_inventories_remain_distinct_and_all_authorship_execution_nulls_stay_honest",
+      "test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_exact_invocation_binary_before_after_status_and_selected_source_binding_refuse_drift",
+      "test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_helper_is_pinned_optional_and_copied_only_by_matching_fresh_harness_plans",
+      "test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_malformed_receipt_preserves_attempt_status_and_never_labels_json_as_mixed_source",
+      "test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_null_tokenizer_and_bad_counts_or_broken_runtime_never_invent_measurement",
+      "test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_proxy_observes_configured_binary_and_preserves_the_exact_original_sandbox_invocation",
+      "test_retained_codec_inventory.RetainedCodecInventoryTests.test_foreign_duplicate_escaping_and_orphan_receipts_refuse",
+      "test_retained_codec_inventory.RetainedCodecInventoryTests.test_invalid_counts_and_broken_runtime_refuse_measurement",
+      "test_retained_codec_inventory.RetainedCodecInventoryTests.test_inventory_symlink_cannot_redirect_retained_bytes",
+      "test_retained_codec_inventory.RetainedCodecInventoryTests.test_missing_tokenizer_retains_authenticated_originals_with_null_counts",
+      "test_retained_codec_inventory.RetainedCodecInventoryTests.test_overwritten_schema_and_complete_mixed_output_stay_independent_without_subtraction",
+      "test_retained_codec_inventory.RetainedCodecInventoryTests.test_real_capture_context_accepts_both_plan_layouts_and_refuses_conflicting_tool_hashes",
+      "test_retained_codec_inventory.RetainedCodecInventoryTests.test_retained_byte_and_receipt_drift_refuse_without_candidate_fallback",
+      "test_live_campaign.LiveCampaignTests.test_nested_codec_capture_requires_both_canonical_profile_bounds",
+      "test_live_campaign.LiveCampaignTests.test_stream_nested_codec_capture_keeps_both_bounds_and_actual_selector",
+      "test_live_campaign.LiveCampaignTests.test_json_codec_capture_profile_bound_matches_closed_cli_grammar",
+      "test_live_campaign.LiveCampaignTests.test_authoring_proxy_retains_schema_and_mixed_output_without_authorship_subtraction",
+      "test_live_campaign.LiveCampaignTests.test_authoring_proxy_keeps_compiler_failure_and_capture_refusal_separate",
+      "test_live_campaign.LiveCampaignTests.test_authoring_proxy_delegates_noncodec_and_malformed_cli_without_guessing_inputs",
+      "test_live_campaign.LiveCampaignTests.test_authoring_proxy_preserves_compiler_kill_status_without_installing_a_kill_handler",
+      "test_live_campaign.LiveCampaignTests.test_capture_broker_refuses_replay_symlinks_oversize_and_aggregate_retention",
+      "test_live_campaign.LiveCampaignTests.test_authoring_capture_cleanup_on_interruption_and_typescript_has_no_proxy",
+      "test_live_campaign.LiveCampaignTests.test_capture_mailbox_directory_swap_cannot_redirect_publication_or_broker_reads",
+      "test_live_campaign.LiveCampaignTests.test_proxy_measurement_is_separate_bounded_overhead_and_not_execution_proof",
+      "test_live_campaign.LiveCampaignTests.test_capture_broker_refuses_candidate_ancestor_symlink_before_outside_reads",
+      "test_live_campaign.LiveCampaignTests.test_input_snapshot_authorized_handle_preserves_namespace_after_path_swap"
+    ]
+  },
+  "final8": {
+    "tests": 8,
+    "status": "PASS",
+    "new_helper_sha256": "6140d98b89cd1037054d26bef1108fa3a8331c638bc181be64e719de09ebd6d2",
+    "new_tests_sha256": "7391420c0bedb58349997eefbc475575a6aecbcca9ab7d6f01792294ff718241",
+    "literal_selectors": [
+      "test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_broker_retains_raw_receipt_and_independent_inventories_after_candidate_removal_and_detects_report_drift",
+      "test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_closed_json_full_closure_and_forged_repeat_profile_output_and_truth_fields_refuse",
+      "test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_complete_compiler_report_inventories_remain_distinct_and_all_authorship_execution_nulls_stay_honest",
+      "test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_exact_invocation_binary_before_after_status_and_selected_source_binding_refuse_drift",
+      "test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_helper_is_pinned_optional_and_copied_only_by_matching_fresh_harness_plans",
+      "test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_malformed_receipt_preserves_attempt_status_and_never_labels_json_as_mixed_source",
+      "test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_null_tokenizer_and_bad_counts_or_broken_runtime_never_invent_measurement",
+      "test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_proxy_observes_configured_binary_and_preserves_the_exact_original_sandbox_invocation"
+    ]
+  },
+  "logs": [
+    {
+      "label": "initial28",
+      "path": "tests/initial28.log",
+      "sha256": "c84c0975ae6ec861ef49db38ddc69eaddb4c8bcf464ca9e4196d5a915c103dca"
+    },
+    {
+      "label": "final8",
+      "path": "tests/final8.log",
+      "sha256": "ff9de42afb073f91ac8cc7a0b63471d9fa204dc78b535e83eae80c6e5b172a3d"
+    }
+  ],
+  "compiler_or_provider_execution": false,
+  "full_suite": false
+}

@@ -1,0 +1,197 @@
+test_broker_retains_raw_receipt_and_independent_inventories_after_candidate_removal_and_detects_report_drift (test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_broker_retains_raw_receipt_and_independent_inventories_after_candidate_removal_and_detects_report_drift) ... ok
+test_closed_json_full_closure_and_forged_repeat_profile_output_and_truth_fields_refuse (test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_closed_json_full_closure_and_forged_repeat_profile_output_and_truth_fields_refuse) ... ok
+test_complete_compiler_report_inventories_remain_distinct_and_all_authorship_execution_nulls_stay_honest (test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_complete_compiler_report_inventories_remain_distinct_and_all_authorship_execution_nulls_stay_honest) ... ERROR
+test_exact_invocation_binary_before_after_status_and_selected_source_binding_refuse_drift (test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_exact_invocation_binary_before_after_status_and_selected_source_binding_refuse_drift) ... ok
+test_helper_is_pinned_optional_and_copied_only_by_matching_fresh_harness_plans (test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_helper_is_pinned_optional_and_copied_only_by_matching_fresh_harness_plans) ... ok
+test_malformed_receipt_preserves_attempt_status_and_never_labels_json_as_mixed_source (test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_malformed_receipt_preserves_attempt_status_and_never_labels_json_as_mixed_source) ... ok
+test_null_tokenizer_and_bad_counts_or_broken_runtime_never_invent_measurement (test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_null_tokenizer_and_bad_counts_or_broken_runtime_never_invent_measurement) ... ERROR
+test_proxy_observes_configured_binary_and_preserves_the_exact_original_sandbox_invocation (test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_proxy_observes_configured_binary_and_preserves_the_exact_original_sandbox_invocation) ... ok
+test_foreign_duplicate_escaping_and_orphan_receipts_refuse (test_retained_codec_inventory.RetainedCodecInventoryTests.test_foreign_duplicate_escaping_and_orphan_receipts_refuse) ... ERROR
+test_invalid_counts_and_broken_runtime_refuse_measurement (test_retained_codec_inventory.RetainedCodecInventoryTests.test_invalid_counts_and_broken_runtime_refuse_measurement) ... ERROR
+test_inventory_symlink_cannot_redirect_retained_bytes (test_retained_codec_inventory.RetainedCodecInventoryTests.test_inventory_symlink_cannot_redirect_retained_bytes) ... ERROR
+test_missing_tokenizer_retains_authenticated_originals_with_null_counts (test_retained_codec_inventory.RetainedCodecInventoryTests.test_missing_tokenizer_retains_authenticated_originals_with_null_counts) ... ERROR
+test_overwritten_schema_and_complete_mixed_output_stay_independent_without_subtraction (test_retained_codec_inventory.RetainedCodecInventoryTests.test_overwritten_schema_and_complete_mixed_output_stay_independent_without_subtraction) ... ERROR
+test_real_capture_context_accepts_both_plan_layouts_and_refuses_conflicting_tool_hashes (test_retained_codec_inventory.RetainedCodecInventoryTests.test_real_capture_context_accepts_both_plan_layouts_and_refuses_conflicting_tool_hashes) ... ok
+test_retained_byte_and_receipt_drift_refuse_without_candidate_fallback (test_retained_codec_inventory.RetainedCodecInventoryTests.test_retained_byte_and_receipt_drift_refuse_without_candidate_fallback) ... 
+  test_retained_byte_and_receipt_drift_refuse_without_candidate_fallback (test_retained_codec_inventory.RetainedCodecInventoryTests.test_retained_byte_and_receipt_drift_refuse_without_candidate_fallback) (which='bytes') ... ERROR
+  test_retained_byte_and_receipt_drift_refuse_without_candidate_fallback (test_retained_codec_inventory.RetainedCodecInventoryTests.test_retained_byte_and_receipt_drift_refuse_without_candidate_fallback) (which='request-receipt') ... ERROR
+test_nested_codec_capture_requires_both_canonical_profile_bounds (test_live_campaign.LiveCampaignTests.test_nested_codec_capture_requires_both_canonical_profile_bounds) ... ok
+test_stream_nested_codec_capture_keeps_both_bounds_and_actual_selector (test_live_campaign.LiveCampaignTests.test_stream_nested_codec_capture_keeps_both_bounds_and_actual_selector) ... ok
+test_json_codec_capture_profile_bound_matches_closed_cli_grammar (test_live_campaign.LiveCampaignTests.test_json_codec_capture_profile_bound_matches_closed_cli_grammar) ... ok
+test_authoring_proxy_retains_schema_and_mixed_output_without_authorship_subtraction (test_live_campaign.LiveCampaignTests.test_authoring_proxy_retains_schema_and_mixed_output_without_authorship_subtraction) ... ok
+test_authoring_proxy_keeps_compiler_failure_and_capture_refusal_separate (test_live_campaign.LiveCampaignTests.test_authoring_proxy_keeps_compiler_failure_and_capture_refusal_separate) ... ok
+test_authoring_proxy_delegates_noncodec_and_malformed_cli_without_guessing_inputs (test_live_campaign.LiveCampaignTests.test_authoring_proxy_delegates_noncodec_and_malformed_cli_without_guessing_inputs) ... ok
+test_authoring_proxy_preserves_compiler_kill_status_without_installing_a_kill_handler (test_live_campaign.LiveCampaignTests.test_authoring_proxy_preserves_compiler_kill_status_without_installing_a_kill_handler) ... ok
+test_capture_broker_refuses_replay_symlinks_oversize_and_aggregate_retention (test_live_campaign.LiveCampaignTests.test_capture_broker_refuses_replay_symlinks_oversize_and_aggregate_retention) ... ok
+test_authoring_capture_cleanup_on_interruption_and_typescript_has_no_proxy (test_live_campaign.LiveCampaignTests.test_authoring_capture_cleanup_on_interruption_and_typescript_has_no_proxy) ... ok
+test_capture_mailbox_directory_swap_cannot_redirect_publication_or_broker_reads (test_live_campaign.LiveCampaignTests.test_capture_mailbox_directory_swap_cannot_redirect_publication_or_broker_reads) ... ok
+test_proxy_measurement_is_separate_bounded_overhead_and_not_execution_proof (test_live_campaign.LiveCampaignTests.test_proxy_measurement_is_separate_bounded_overhead_and_not_execution_proof) ... ok
+test_capture_broker_refuses_candidate_ancestor_symlink_before_outside_reads (test_live_campaign.LiveCampaignTests.test_capture_broker_refuses_candidate_ancestor_symlink_before_outside_reads) ... ok
+test_input_snapshot_authorized_handle_preserves_namespace_after_path_swap (test_live_campaign.LiveCampaignTests.test_input_snapshot_authorized_handle_preserves_namespace_after_path_swap) ... ok
+
+======================================================================
+ERROR: test_complete_compiler_report_inventories_remain_distinct_and_all_authorship_execution_nulls_stay_honest (test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_complete_compiler_report_inventories_remain_distinct_and_all_authorship_execution_nulls_stay_honest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/test_compiler_retained_receipt.py", line 49, in test_complete_compiler_report_inventories_remain_distinct_and_all_authorship_execution_nulls_stay_honest
+    with patch.object(common,'require_authored_source_tokenizer'),patch.object(common,'tokenize_texts',side_effect=lambda texts,metadata:[len(x['content'])**2 for x in texts]):
+         ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1510, in __enter__
+    original, local = self.get_original()
+                      ~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1480, in get_original
+    raise AttributeError(
+        "%s does not have the attribute %r" % (target, name)
+    )
+AttributeError: <module 'live_campaign_common' from '/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/live_campaign_common.py'> does not have the attribute 'require_authored_source_tokenizer'
+
+======================================================================
+ERROR: test_null_tokenizer_and_bad_counts_or_broken_runtime_never_invent_measurement (test_compiler_retained_receipt.CompilerRetainedReceiptTests.test_null_tokenizer_and_bad_counts_or_broken_runtime_never_invent_measurement)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/test_compiler_retained_receipt.py", line 60, in test_null_tokenizer_and_bad_counts_or_broken_runtime_never_invent_measurement
+    with patch.object(common,'require_authored_source_tokenizer'),patch.object(common,'tokenize_texts',return_value=counts):
+         ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1510, in __enter__
+    original, local = self.get_original()
+                      ~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1480, in get_original
+    raise AttributeError(
+        "%s does not have the attribute %r" % (target, name)
+    )
+AttributeError: <module 'live_campaign_common' from '/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/live_campaign_common.py'> does not have the attribute 'require_authored_source_tokenizer'
+
+======================================================================
+ERROR: test_foreign_duplicate_escaping_and_orphan_receipts_refuse (test_retained_codec_inventory.RetainedCodecInventoryTests.test_foreign_duplicate_escaping_and_orphan_receipts_refuse)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/test_retained_codec_inventory.py", line 70, in test_foreign_duplicate_escaping_and_orphan_receipts_refuse
+    with self.assertRaises(ValueError):self.measured(wrong)
+                                       ~~~~~~~~~~~~~^^^^^^^
+  File "/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/test_retained_codec_inventory.py", line 33, in measured
+    with patch.object(common, 'require_authored_source_tokenizer') as pinned, patch.object(common, 'tokenize_texts', side_effect=counts):
+         ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1510, in __enter__
+    original, local = self.get_original()
+                      ~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1480, in get_original
+    raise AttributeError(
+        "%s does not have the attribute %r" % (target, name)
+    )
+AttributeError: <module 'live_campaign_common' from '/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/live_campaign_common.py'> does not have the attribute 'require_authored_source_tokenizer'
+
+======================================================================
+ERROR: test_invalid_counts_and_broken_runtime_refuse_measurement (test_retained_codec_inventory.RetainedCodecInventoryTests.test_invalid_counts_and_broken_runtime_refuse_measurement)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/test_retained_codec_inventory.py", line 80, in test_invalid_counts_and_broken_runtime_refuse_measurement
+    with self.assertRaises(ValueError):self.measured(summary,lambda texts,metadata:bad)
+                                       ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/test_retained_codec_inventory.py", line 33, in measured
+    with patch.object(common, 'require_authored_source_tokenizer') as pinned, patch.object(common, 'tokenize_texts', side_effect=counts):
+         ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1510, in __enter__
+    original, local = self.get_original()
+                      ~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1480, in get_original
+    raise AttributeError(
+        "%s does not have the attribute %r" % (target, name)
+    )
+AttributeError: <module 'live_campaign_common' from '/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/live_campaign_common.py'> does not have the attribute 'require_authored_source_tokenizer'
+
+======================================================================
+ERROR: test_inventory_symlink_cannot_redirect_retained_bytes (test_retained_codec_inventory.RetainedCodecInventoryTests.test_inventory_symlink_cannot_redirect_retained_bytes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/test_retained_codec_inventory.py", line 89, in test_inventory_symlink_cannot_redirect_retained_bytes
+    with self.assertRaises(ValueError):self.measured(summary)
+                                       ~~~~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/test_retained_codec_inventory.py", line 33, in measured
+    with patch.object(common, 'require_authored_source_tokenizer') as pinned, patch.object(common, 'tokenize_texts', side_effect=counts):
+         ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1510, in __enter__
+    original, local = self.get_original()
+                      ~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1480, in get_original
+    raise AttributeError(
+        "%s does not have the attribute %r" % (target, name)
+    )
+AttributeError: <module 'live_campaign_common' from '/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/live_campaign_common.py'> does not have the attribute 'require_authored_source_tokenizer'
+
+======================================================================
+ERROR: test_missing_tokenizer_retains_authenticated_originals_with_null_counts (test_retained_codec_inventory.RetainedCodecInventoryTests.test_missing_tokenizer_retains_authenticated_originals_with_null_counts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/test_retained_codec_inventory.py", line 52, in test_missing_tokenizer_retains_authenticated_originals_with_null_counts
+    with patch.object(common,'require_authored_source_tokenizer') as pinned,patch.object(common,'tokenize_texts') as runtime:
+         ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1510, in __enter__
+    original, local = self.get_original()
+                      ~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1480, in get_original
+    raise AttributeError(
+        "%s does not have the attribute %r" % (target, name)
+    )
+AttributeError: <module 'live_campaign_common' from '/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/live_campaign_common.py'> does not have the attribute 'require_authored_source_tokenizer'
+
+======================================================================
+ERROR: test_overwritten_schema_and_complete_mixed_output_stay_independent_without_subtraction (test_retained_codec_inventory.RetainedCodecInventoryTests.test_overwritten_schema_and_complete_mixed_output_stay_independent_without_subtraction)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/test_retained_codec_inventory.py", line 38, in test_overwritten_schema_and_complete_mixed_output_stay_independent_without_subtraction
+    summary, original, mixed = self.fixture(Path(directory));result = self.measured(summary)
+                                                                      ~~~~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/test_retained_codec_inventory.py", line 33, in measured
+    with patch.object(common, 'require_authored_source_tokenizer') as pinned, patch.object(common, 'tokenize_texts', side_effect=counts):
+         ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1510, in __enter__
+    original, local = self.get_original()
+                      ~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1480, in get_original
+    raise AttributeError(
+        "%s does not have the attribute %r" % (target, name)
+    )
+AttributeError: <module 'live_campaign_common' from '/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/live_campaign_common.py'> does not have the attribute 'require_authored_source_tokenizer'
+
+======================================================================
+ERROR: test_retained_byte_and_receipt_drift_refuse_without_candidate_fallback (test_retained_codec_inventory.RetainedCodecInventoryTests.test_retained_byte_and_receipt_drift_refuse_without_candidate_fallback) (which='bytes')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/test_retained_codec_inventory.py", line 63, in test_retained_byte_and_receipt_drift_refuse_without_candidate_fallback
+    with self.assertRaises(ValueError):self.measured(summary)
+                                       ~~~~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/test_retained_codec_inventory.py", line 33, in measured
+    with patch.object(common, 'require_authored_source_tokenizer') as pinned, patch.object(common, 'tokenize_texts', side_effect=counts):
+         ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1510, in __enter__
+    original, local = self.get_original()
+                      ~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1480, in get_original
+    raise AttributeError(
+        "%s does not have the attribute %r" % (target, name)
+    )
+AttributeError: <module 'live_campaign_common' from '/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/live_campaign_common.py'> does not have the attribute 'require_authored_source_tokenizer'
+
+======================================================================
+ERROR: test_retained_byte_and_receipt_drift_refuse_without_candidate_fallback (test_retained_codec_inventory.RetainedCodecInventoryTests.test_retained_byte_and_receipt_drift_refuse_without_candidate_fallback) (which='request-receipt')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/test_retained_codec_inventory.py", line 63, in test_retained_byte_and_receipt_drift_refuse_without_candidate_fallback
+    with self.assertRaises(ValueError):self.measured(summary)
+                                       ~~~~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/test_retained_codec_inventory.py", line 33, in measured
+    with patch.object(common, 'require_authored_source_tokenizer') as pinned, patch.object(common, 'tokenize_texts', side_effect=counts):
+         ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1510, in __enter__
+    original, local = self.get_original()
+                      ~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1480, in get_original
+    raise AttributeError(
+        "%s does not have the attribute %r" % (target, name)
+    )
+AttributeError: <module 'live_campaign_common' from '/Volumes/Semaprax/worktrees/host-codec-receipt-adoption-20261017/AI-Lang/benchmarks/live_campaign_common.py'> does not have the attribute 'require_authored_source_tokenizer'
+
+----------------------------------------------------------------------
+Ran 28 tests in 0.323s
+
+FAILED (errors=9)

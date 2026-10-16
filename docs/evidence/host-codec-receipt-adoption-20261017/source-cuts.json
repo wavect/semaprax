@@ -1,0 +1,199 @@
+{
+  "base": "37c771b08aa807365433d1beb23dcf138c216977",
+  "rows": [
+    {
+      "path": "benchmarks/compiler_input_capture.py",
+      "archive": "before/benchmarks__compiler_input_capture.py",
+      "sha256": "903cc3559da25fe56353070a964e8c42b21f5e552505bcd5c30034ddef20b1a9",
+      "current_sha256": "9e44f53edb95e8cc6bdf03527102290156540d433cdb546d8c1cc9e74534f413",
+      "edits": [
+        {
+          "start": 166,
+          "end": 167,
+          "current": "                 workspace: Path | None = None, retained_receipts_enabled: bool = False):\n",
+          "original": "                 workspace: Path | None = None):\n"
+        },
+        {
+          "start": 171,
+          "end": 172,
+          "current": "        self.retained_receipts_enabled = retained_receipts_enabled\n",
+          "original": ""
+        },
+        {
+          "start": 233,
+          "end": 238,
+          "current": "                receipt_mode = False\n                if values is None and self.retained_receipts_enabled:\n                    import compiler_retained_receipt as retained\n                    values = retained.options(argv)\n                    receipt_mode = values is not None\n",
+          "original": ""
+        },
+        {
+          "start": 248,
+          "end": 250,
+          "current": "                self.starts[identifier] = {\"argv\": argv, \"cwd\": cwd, \"values\": values,\n                    \"receipt_mode\": receipt_mode, \"selected_inputs\": response[\"selected_inputs\"]}\n",
+          "original": "                self.starts[identifier] = {\"argv\": argv, \"cwd\": cwd, \"values\": values}\n"
+        },
+        {
+          "start": 260,
+          "end": 262,
+          "current": "                if invocation[\"receipt_mode\"]:\n                    response[\"compiler_retained_receipt_requested\"] = True\n",
+          "original": ""
+        },
+        {
+          "start": 266,
+          "end": 270,
+          "current": "                    if invocation[\"receipt_mode\"]:\n                        response[\"compiler_receipt_observation\"] = request.get(\"compiler_receipt_observation\")\n                        response[\"compiler_retained_receipt_adoption\"] = self._adopt_receipt(\n                            identifier, invocation, response, directory)\n",
+          "original": ""
+        },
+        {
+          "start": 297,
+          "end": 316,
+          "current": "\n    def _adopt_receipt(self, identifier: str, invocation: dict, response: dict, directory: Path) -> dict:\n        import compiler_retained_receipt as retained\n        snapshot = response[\"declared_output_bytes\"]\n        if len(snapshot[\"files\"]) != 1:\n            raise ValueError(\"compiler receipt must be one retained output artifact\")\n        file = snapshot[\"files\"][0]\n        fd = os.open(self.evidence, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)\n        try:\n            raw = provenance._snapshot_read(fd, identifier + \"/after/inputs/\" + file[\"path\"], MAX_SELECTION_BYTES)\n        finally:\n            os.close(fd)\n        if len(raw) != file[\"bytes\"] or hashlib.sha256(raw).hexdigest() != file[\"sha256\"]:\n            raise ValueError(\"retained compiler artifact differs from captured output\")\n        report = retained.validate(raw, invocation[\"argv\"], invocation[\"cwd\"], self.compiler,\n            response[\"compiler_receipt_observation\"], invocation[\"selected_inputs\"][\"files\"])\n        path = directory / \"compiler-receipt-adoption.json\"\n        _json(path, report, MAX_SELECTION_BYTES)\n        return {\"path\": identifier + \"/compiler-receipt-adoption.json\", \"sha256\": provenance.digest(path)}\n",
+          "original": ""
+        },
+        {
+          "start": 415,
+          "end": 417,
+          "current": "                if key == \"declared_output_bytes\" and receipt.get(\"compiler_retained_receipt_requested\") is True:\n                    kind = \"compiler_receipt_artifact\"\n",
+          "original": ""
+        },
+        {
+          "start": 443,
+          "end": 459,
+          "current": "                if kind == \"compiler_receipt_artifact\":\n                    import compiler_retained_receipt as retained\n                    adoption = receipt.get(\"compiler_retained_receipt_adoption\")\n                    if adoption is None:\n                        observed = {\"status\": \"adoption_failed\", \"error\": receipt.get(\"capture_error\", \"missing compiler receipt binding\"),\n                            \"input_closure_complete\": False, \"exact_compiler_input_binding\": False, \"ratio_eligible\": False}\n                    else:\n                        expected = request + \"/compiler-receipt-adoption.json\"\n                        if adoption.get(\"path\") != expected:\n                            raise ValueError(\"compiler adoption report escapes its request\")\n                        raw_report = provenance._snapshot_read(root_fd, expected, MAX_SELECTION_BYTES)\n                        if hashlib.sha256(raw_report).hexdigest() != adoption[\"sha256\"]:\n                            raise ValueError(\"compiler adoption report differs from runner binding\")\n                        observed = retained.measure(source, json.loads(raw_report), metadata)\n                        observed[\"adoption_report_sha256\"] = adoption[\"sha256\"]\n                    result.setdefault(\"compiler_receipts\", []).append(observed)\n",
+          "original": ""
+        },
+        {
+          "start": 487,
+          "end": 497,
+          "current": "    optional = \"compiler_retained_receipt.py\"\n    snapshot = settings.get(\"harness_source_snapshot\")\n    if snapshot is not None and not isinstance(snapshot, dict):\n        raise ValueError(\"compiler capture harness snapshot is malformed\")\n    inventories = [settings.get(\"harness_source_files_sha256\"),\n        snapshot.get(\"files_sha256\") if snapshot is not None else None]\n    supplied = [inventory for inventory in inventories if inventory is not None]\n    enabled = any(isinstance(inventory, dict) and \"benchmarks/\" + optional in inventory for inventory in supplied)\n    names = (\"compiler_input_capture.py\", \"compiler_output_provenance.py\") + ((optional,) if enabled else ())\n    for name in names:\n",
+          "original": "    for name in (\"compiler_input_capture.py\", \"compiler_output_provenance.py\"):\n"
+        },
+        {
+          "start": 519,
+          "end": 520,
+          "current": "        broker = Broker(candidate, mailbox, evidence, compiler, workspace, retained_receipts_enabled=enabled)\n",
+          "original": "        broker = Broker(candidate, mailbox, evidence, compiler, workspace)\n"
+        },
+        {
+          "start": 521,
+          "end": 522,
+          "current": "            \"evidence\": str(evidence.resolve()), \"compiler\": compiler, \"retained_receipts_enabled\": enabled})\n",
+          "original": "            \"evidence\": str(evidence.resolve()), \"compiler\": compiler})\n"
+        },
+        {
+          "start": 642,
+          "end": 644,
+          "current": "    binary_before = provenance.digest(binary)\n    if binary_before != compiler[\"binary_sha256\"]:\n",
+          "original": "    if provenance.digest(binary) != compiler[\"binary_sha256\"]:\n"
+        },
+        {
+          "start": 645,
+          "end": 650,
+          "current": "    receipt_mode = False\n    if config.get(\"retained_receipts_enabled\") is True:\n        import compiler_retained_receipt as retained\n        receipt_mode = retained.options(argv) is not None\n    if _options(argv) is None and not receipt_mode:\n",
+          "original": "    if _options(argv) is None:\n"
+        },
+        {
+          "start": 669,
+          "end": 675,
+          "current": "            finish = {\"operation\": \"finish\", \"start\": start, \"exit_code\": code}\n            if receipt_mode:\n                finish[\"compiler_receipt_observation\"] = {\"observer\": \"sandboxed_harness_proxy\",\n                    \"binary_sha256_before\": binary_before, \"binary_sha256_after\": provenance.digest(binary),\n                    \"invocation_sha256\": retained.invocation_sha256(str(binary), argv, os.getcwd()), \"exit_code\": code}\n            _request(config, finish)\n",
+          "original": "            _request(config, {\"operation\": \"finish\", \"start\": start, \"exit_code\": code})\n"
+        }
+      ]
+    },
+    {
+      "path": "benchmarks/cli-tokens-v1/codex_campaign.py",
+      "archive": "before/benchmarks__cli-tokens-v1__codex_campaign.py",
+      "sha256": "7f64ea081d6815ebea9c91bfb3e09c125466309c4d8601c31788b7a94a8f2ec7",
+      "current_sha256": "4c4131d209bfa0c826431d5feff9d3d1cc3ad2e0d8b9afcdd31e8754b8620ae6",
+      "edits": [
+        {
+          "start": 57,
+          "end": 58,
+          "current": "    \"benchmarks/compiler_retained_receipt.py\",\n",
+          "original": ""
+        }
+      ]
+    },
+    {
+      "path": "benchmarks/webapp-tokens-v2/codex_campaign.py",
+      "archive": "before/benchmarks__webapp-tokens-v2__codex_campaign.py",
+      "sha256": "006aa13077cdcb6916d40a20565d84dd12d95686d8f27646eea95a2eb1894ff3",
+      "current_sha256": "873ed3126a98cb7c8572c49679f09f0df7bf0119ef1149e243d76d1228833a14",
+      "edits": [
+        {
+          "start": 85,
+          "end": 86,
+          "current": "    \"benchmarks/compiler_retained_receipt.py\",\n",
+          "original": ""
+        }
+      ]
+    }
+  ],
+  "new_sources": [
+    {
+      "path": "benchmarks/compiler_retained_receipt.py",
+      "sha256": "6140d98b89cd1037054d26bef1108fa3a8331c638bc181be64e719de09ebd6d2"
+    },
+    {
+      "path": "benchmarks/test_compiler_retained_receipt.py",
+      "sha256": "7391420c0bedb58349997eefbc475575a6aecbcca9ab7d6f01792294ff718241"
+    }
+  ],
+  "unchanged": [
+    {
+      "path": "benchmarks/compiler_output_provenance.py",
+      "sha256": "40e4fa95039883caf2801e484f4a5d64e7f2d30779aa29a9c910111deb2fa862"
+    },
+    {
+      "path": "benchmarks/test_retained_codec_inventory.py",
+      "sha256": "3bca7c8ef31b5378a7580237972ad9adc90668c37be9de79f39ddae6a1bebf8a"
+    },
+    {
+      "path": "benchmarks/cli-tokens-v1/test_live_campaign.py",
+      "sha256": "8aa7273d895fd7bca8ea32c21c9c510bed959ed96accf7236aa2c9597a5e4bc4"
+    },
+    {
+      "path": "benchmarks/live_campaign_common.py",
+      "sha256": "74fd23a7b8a847f31a655b3e84a5170b610820be125971d0defc2621ed97f4fe"
+    },
+    {
+      "path": "benchmarks/cli-tokens-v1/codex_report.py",
+      "sha256": "de6476f10cfb70f00d7a7a0d9dcdd3499041d0f6605fdeb1c03cbfcf2c23ce7b"
+    },
+    {
+      "path": "benchmarks/event-sim-tokens-v1/codex_report.py",
+      "sha256": "9bfd2b9e1066d2cbe3ff37b9a68c94b53b5033c1813aa2acdea7aba2419bc3ab"
+    },
+    {
+      "path": "benchmarks/cli-tokens-v1/SPEC.md",
+      "sha256": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae"
+    },
+    {
+      "path": "benchmarks/event-sim-tokens-v1/SPEC.md",
+      "sha256": "5a8631fc59f55d145bfabb62c8edd3f86164114e3d27b69422031b664b529e00"
+    },
+    {
+      "path": "benchmarks/webapp-tokens-v1/SPEC.md",
+      "sha256": "156db75343382a5ddf57223ad08ad6272eeb13dede52f97e8aa34720e5d21238"
+    },
+    {
+      "path": "benchmarks/webapp-tokens-v2/SPEC.md",
+      "sha256": "7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc"
+    },
+    {
+      "path": "src/project/json_codec/retained_receipt.rs",
+      "sha256": "dfddf1506d91b05580a64fdbf7f2e93593a06d0d6714cab4f8224430722306f3"
+    },
+    {
+      "path": "src/project/json_codec/plan.rs",
+      "sha256": "0a85ce06e0010668bdc2fdce33365a3b45b6d93937f15e5e34ae171b33c4f4fc"
+    },
+    {
+      "path": "src/cli/json_codec/retained_receipt.rs",
+      "sha256": "c652e374e656d198a728d719b78cc9d07e2659aeb2df3f1455377011733729dd"
+    },
+    {
+      "path": "docs/JSON-CODEC-RETAINED-RECEIPT-V1.md",
+      "sha256": "e9713b4ab96e3dfdb8f5fab3d224c450b6157190a726235d25ca850424af5fa8"
+    }
+  ]
+}

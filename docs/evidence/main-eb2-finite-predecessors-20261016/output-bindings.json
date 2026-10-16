@@ -1,0 +1,14 @@
+[
+  {
+    "path": "docs/evidence/main8a-historical-readers-257-268-20261016/joined856-current-to-private.json",
+    "archive": "before/docs__evidence__main8a-historical-readers-257-268-20261016__joined856-current-to-private.json",
+    "before_sha256": "fa7c1a487218a5386a73f085692382d81770702598c21423fc7abe92a15f219c",
+    "current_sha256": "65f7de387ea7dd0f23680b943eabc41ba033604e4c14577b98a5d54a59d85605"
+  },
+  {
+    "path": "docs/evidence/main8a-historical-readers-257-268-20261016/joined856-source-proof.json",
+    "archive": "before/docs__evidence__main8a-historical-readers-257-268-20261016__joined856-source-proof.json",
+    "before_sha256": "cb790c2f38d6696534eb5b60b5cbfbead4fa0d1cf23258ba1f087a5bf54f0c3c",
+    "current_sha256": "eeda1d41ff8bd2d3064e62d40126354cc0663597bbc639bd75611f0c74fe451c"
+  }
+]

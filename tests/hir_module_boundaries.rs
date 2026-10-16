@@ -3,7 +3,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
     let validation_raw = concat!(
         concat!(
             concat!(
-                include_str!("../src/hir/validation.rs"),
+                include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs"), include_str!("../src/hir/validation.rs"),
                 include_str!("../src/hir/validation/held_profiles.rs"),
                 include_str!("../src/hir/validation/held_profiles/tests.rs"),
                 include_str!("../src/hir/validation/held_profiles/source_audit.rs"),
@@ -734,7 +734,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
     );
     let validation = production_source_inventory::production(
         validation_raw,
-        include_str!("../docs/evidence/next-bitmap-singleton-main2600-20261016/hir.json"),
+        include_str!("../docs/evidence/compile-fixture-successor-5aac-20261016/hir.json"),
     );
     for forbidden in [
         "struct Resolver",

@@ -2,7 +2,7 @@ use super::*;
 use crate::bounded_output::with_limit_usage_refusal;
 use crate::test_allocation_observer::measure;
 fn function() -> ResolvedFunction {
-    crate::cleanup_plan::replay::lexical_plan_tests::fixture(crate::cleanup_plan::replay::lexical_plan_tests::WHILE)
+    crate::cleanup_plan::replay::factored::lexical_plan_tests::fixture(crate::cleanup_plan::replay::factored::lexical_plan_tests::WHILE)
         .1
 }
 

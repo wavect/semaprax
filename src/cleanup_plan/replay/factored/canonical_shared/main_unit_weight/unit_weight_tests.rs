@@ -15,7 +15,7 @@ fn with_original<T>(original: bool, run: impl FnOnce() -> T) -> T {
     run()
 }
 fn function() -> ResolvedFunction {
-    crate::cleanup_plan::replay::lexical_plan_tests::fixture(crate::cleanup_plan::replay::lexical_plan_tests::WHILE).1
+    crate::cleanup_plan::replay::factored::lexical_plan_tests::fixture(crate::cleanup_plan::replay::factored::lexical_plan_tests::WHILE).1
 }
 
 #[test]

@@ -1,0 +1,13 @@
+{
+  "source": "5aacb8e5e652ce4d05bc8717d7277145695167a7",
+  "receipt": "/Volumes/Semaprax/lane-prompts/final-5aac-50-qualification-ready-20261016/owning-build-result.json",
+  "receipt_sha256": "19d7c5ebdc3b69eaf855e8c2f036eee9a0f3d0c8dcde74e798fc68ebf1fc6ddd",
+  "exit_code": 101,
+  "actual_build_results": 1,
+  "phase_wall_seconds": 114.4743298329995,
+  "peak_process_group_rss_bytes": 5726044160,
+  "resource_refusal": null,
+  "Rust_test_bodies": 0,
+  "remaining_three_commands": "NOT_EXECUTED",
+  "original_receipts_unchanged": true
+}

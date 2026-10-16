@@ -2,7 +2,7 @@
 use super::*;
 
 fn fixture() -> ResolvedFunction {
-    crate::cleanup_plan::replay::lexical_plan_tests::fixture(crate::cleanup_plan::replay::lexical_plan_tests::WHILE).1
+    crate::cleanup_plan::replay::factored::lexical_plan_tests::fixture(crate::cleanup_plan::replay::factored::lexical_plan_tests::WHILE).1
 }
 
 pub(super) fn automaton(function: &ResolvedFunction) -> (Automaton, usize, Vec<usize>) {

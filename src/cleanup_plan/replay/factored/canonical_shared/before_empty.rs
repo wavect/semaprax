@@ -7,7 +7,7 @@ use super::super::{
     ResolvedFunction, Weighted,
 };
 
-use super::{app_census, inline_weighted, successor_targets, tests};
+use super::{app_census, before_ordered, inline_weighted, successor_targets, tests};
 #[path = "before_empty/closure_receiving.rs"]
 mod closure_receiving;
 #[path = "before_empty/memo.rs"]
@@ -815,7 +815,6 @@ impl<'a> Canonicalizer<'a> {
         Ok(self.states.get(&root).copied())
     }
 }
-
 
 #[cfg(test)]
 #[path = "before_empty/cached_tests.rs"]

@@ -1,0 +1,176 @@
+{
+  "base": "3ef05f1c0c15f6f39019d3ed9794b1ee25941734",
+  "rows": [
+    {
+      "source": "CHANGELOG.md",
+      "before_sha256": "e5e2571d1c97373887f531a59376a20410cd987e2f3c39d66ac90e62aa7d9934",
+      "after_sha256": "b8d31d491254be9249b1164af02466f70f4b07510d74cf9fb8e46ae69e12e663",
+      "before_archive": "before/CHANGELOG.md",
+      "edits": [
+        {
+          "old_offset": 543569,
+          "new_offset": 543569,
+          "before": "",
+          "after": "\n- Source-only #781 selected type/drop closure: remove nested query/formatter\n  forwarding through lexical receiving in the existing certificate permit,\n  retain full prior algorithms and ordinary dynamic fallback, and add four\n  unexecuted whole-query/certificate controls. Remaining #781 families stay open.\n"
+        }
+      ]
+    },
+    {
+      "source": "docs/ARCHITECTURE.md",
+      "before_sha256": "57205cfff652e616c0fc0f0455b91abb690c2e749d92fa6fa393f73fee2c680b",
+      "after_sha256": "86928b029dcf5a9c85e02c36f3d3e899bbafddfce4d47f059670b5f261a28248",
+      "before_archive": "before/docs/ARCHITECTURE.md",
+      "edits": [
+        {
+          "old_offset": 366095,
+          "new_offset": 366095,
+          "before": "",
+          "after": "\n`cleanup_plan/replay/selected_type_drop.rs` owns lexical selected type/drop\nclassification in the existing paid certificate caller. It preserves the\ncomplete primitive/Option/Vec/current-flat query closure without new forwarding\nResults or budget parameters. Original classifiers, oracle authentication and\nordinary dynamic diagnostics remain independently owned boundaries.\n"
+        }
+      ]
+    },
+    {
+      "source": "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "before_sha256": "e70ec5d5a39afd1abc51c06ecc2d1dff1ecdc6675215bc89eb7ca7c217654ac0",
+      "after_sha256": "a60872f8cd055d6bf83338d52f79c59b454b44a72d2ab3e05b34dc106f34bf8b",
+      "before_archive": "before/docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "edits": [
+        {
+          "old_offset": 45937,
+          "new_offset": 45937,
+          "before": "",
+          "after": "\n## Lexical selected type/drop receiving (#781, source-only)\n\nThe certificate's existing live affine permit now encloses the complete selected\ntype/drop query: Never, Option<u8> authentication, exact current Vec declaration,\nbounded element and flat-record declaration/field scans, and primitive fallback.\nThe original public/inline classifiers stay independent. Their exact parameter\nreceiving references become lexical locals, and returned bool/borrowed Option\nvalues become block values; nested query Result/formatter forwarding disappears.\nNo new caller mutable-budget argument, receiving bank, allowance or fee credit\nis introduced. Every semantic failure consumes the already-paid permit only on\na returning error branch; success retains it for the remaining certificate.\n\nTwo raw cleanup labels use closed TypeDrop data; existing Profile labels retain\ntheir exact raw/prefixed renderer classification. Original cfg(test) oracle\nauthentication and its old account budget/error paths execute first, unchanged.\nThe full ordinary type-fact query and dynamic identity diagnostic remain the\noriginal owning fallback. No serialized type key is reinterpreted or trusted.\n\nFour unexecuted owners retain complete prior certificate/storage algorithms,\ncompare full Auth fields and hostile metadata, compare 34 actual/forged type\nforms and all six diagnostic fields, and observe whole paid Context/query/Drop\nwith actual bills/work and exact/short/zero controls. They make no universal\nallocation, saving or application-fit assertion. Schema/inventory callbacks,\npath-state boundaries, borrowed chain diagnostics and other descendants remain\nexplicit owned-Diagnostic residuals, so #781 remains OPEN.\n\nMacro receiving preserves the original explicit trait-object and type-reference\nparameter shapes. The flat-field block returns a borrowed slice via as_slice,\ncorresponding to the old implicit Vec-to-slice return coercion; it does not\nintroduce a thin &Vec view or new iterator forwarding.\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile.rs",
+      "before_sha256": "3296f6f3fd875082cbb1718b621648aea9ff366ed107254b9b4450968e99e59f",
+      "after_sha256": "fc2151b1867ce98e57f150496c483c335518444e6cf560a58feb891969ef6a74",
+      "before_archive": "before/src/cleanup_plan/renewal_profile.rs",
+      "edits": [
+        {
+          "old_offset": 12094,
+          "new_offset": 12094,
+          "before": "",
+          "after": "\npub(crate) mod type_drop_refusal;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "before_sha256": "2cea04a66d231c582de2a16383986cf9746748189c6d96194e0776f048395777",
+      "after_sha256": "41f05482cdafe038f5e9276fcba5465ba339a6c684ef213573416fc5e7be20b9",
+      "before_archive": "before/src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "edits": [
+        {
+          "old_offset": 635,
+          "new_offset": 635,
+          "before": "",
+          "after": "    TypeDrop(super::type_drop_refusal::TypeDropRefusal),\n"
+        },
+        {
+          "old_offset": 1227,
+          "new_offset": 1284,
+          "before": "",
+          "after": "            Self::TypeDrop(reason) => reason.detail(),\n"
+        },
+        {
+          "old_offset": 1902,
+          "new_offset": 2014,
+          "before": "",
+          "after": "            Self::TypeDrop(_) => false,\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay.rs",
+      "before_sha256": "e20762a8c39c22f697ad721d3ea7df4fffca681497fca5425b3e5448899f8425",
+      "after_sha256": "519f8a66d1023314c982d05c243f660e9c305ecbd4858598aadaab93f7264e23",
+      "before_archive": "before/src/cleanup_plan/replay.rs",
+      "edits": [
+        {
+          "old_offset": 311122,
+          "new_offset": 311122,
+          "before": "",
+          "after": "\nmod selected_type_drop;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records/tests.rs",
+      "before_sha256": "b80a96d7dd0a3414876f266a8da9d2f1919ea47c4ff37179e3502a533d3fce15",
+      "after_sha256": "08ef6c7236191a9660cc86fb7953a73f432fdc00e084e10be228e7f3890dfe1c",
+      "before_archive": "before/src/cleanup_plan/replay/flat_records/tests.rs",
+      "edits": [
+        {
+          "old_offset": 12430,
+          "new_offset": 12430,
+          "before": "",
+          "after": "\n#[path=\"tests/receiving_type_drop.rs\"]\nmod receiving_type_drop;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert.rs",
+      "before_sha256": "147da5a3182e717f3e9971d032511714da8154e724c24aba70c2e17ecff789a6",
+      "after_sha256": "e4f1f1bff92947e4e145de93482a96ea809a432fa5ade950094dce0347b5874f",
+      "before_archive": "before/src/cleanup_plan/replay/lexical_cert.rs",
+      "edits": [
+        {
+          "old_offset": 38423,
+          "new_offset": 38423,
+          "before": "",
+          "after": "\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) mod before_type_drop;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert/paid.rs",
+      "before_sha256": "b55bbdec2dbbc581711b5bf729fa378216067ba4d35f182c790a7ec93c25dc9d",
+      "after_sha256": "dec6007912be7fb97f9679ca5e6f78114d112c60f3ccbef06c848b8eb121dfa9",
+      "before_archive": "before/src/cleanup_plan/replay/lexical_cert/paid.rs",
+      "edits": [
+        {
+          "old_offset": 84,
+          "new_offset": 84,
+          "before": "    block_exists, lexical_hir, loop_index, type_needs_drop, BTreeMap, BTreeSet, BlockId,\n    CleanupPlace, CleanupResultSource, CleanupTerminator, ControlTarget, Domain, EdgeCondition,\n    Entry, ExitContinuation, ExitTargetId, FunctionExecutionId, LexicalAuth, LexicalExitKind,\n",
+          "after": "    block_exists, lexical_hir, loop_index, BTreeMap, BTreeSet, BlockId, CleanupPlace,\n    CleanupResultSource, CleanupTerminator, ControlTarget, Domain, EdgeCondition, Entry,\n    ExitContinuation, ExitTargetId, FunctionExecutionId, LexicalAuth, LexicalExitKind,\n"
+        },
+        {
+          "old_offset": 4743,
+          "new_offset": 4726,
+          "before": "    let owned_result = type_needs_drop(program, function, &function.return_type)?;\n",
+          "after": "    let owned_result = crate::cleanup_plan::replay::selected_type_drop::type_needs_drop!(\n        permit,\n        program,\n        function,\n        &function.return_type\n    );\n"
+        }
+      ]
+    }
+  ],
+  "new_sources": [
+    {
+      "source": "src/cleanup_plan/renewal_profile/type_drop_refusal.rs",
+      "sha256": "6c190254f533d9338659b532c83f6cfc63686185d1ee429d8f1123edc8d4c03a",
+      "lines": 16
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records/tests/receiving_type_drop.rs",
+      "sha256": "a05257ad87eb104a65d84e370d2684c8ebecd3cf7a3cd95eb5a1ae63c7d6af56",
+      "lines": 434
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert/before_type_drop.rs",
+      "sha256": "b55bbdec2dbbc581711b5bf729fa378216067ba4d35f182c790a7ec93c25dc9d",
+      "lines": 895
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert/before_type_drop/storage.rs",
+      "sha256": "d8d6e80d9bb335547a76fc45926315c72d814972c924a7715c918d8d453f3983",
+      "lines": 207
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_type_drop.rs",
+      "sha256": "ffd018d3f56982126473d7c417ad7ed05c7d0f5b2b45db2f9c5c2a70701adec0",
+      "lines": 278
+    }
+  ]
+}

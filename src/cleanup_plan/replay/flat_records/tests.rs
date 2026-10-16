@@ -340,3 +340,6 @@ mod receiving_certificate;
 
 #[path="tests/receiving_boundary.rs"]
 mod receiving_boundary;
+
+#[path="tests/receiving_type_drop.rs"]
+mod receiving_type_drop;

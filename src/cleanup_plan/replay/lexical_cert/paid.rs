@@ -1,8 +1,8 @@
 //! Complete certificate algorithm; legacy parent remains independent.
 use super::{
-    block_exists, lexical_hir, loop_index, type_needs_drop, BTreeMap, BTreeSet, BlockId,
-    CleanupPlace, CleanupResultSource, CleanupTerminator, ControlTarget, Domain, EdgeCondition,
-    Entry, ExitContinuation, ExitTargetId, FunctionExecutionId, LexicalAuth, LexicalExitKind,
+    block_exists, lexical_hir, loop_index, BTreeMap, BTreeSet, BlockId, CleanupPlace,
+    CleanupResultSource, CleanupTerminator, ControlTarget, Domain, EdgeCondition, Entry,
+    ExitContinuation, ExitTargetId, FunctionExecutionId, LexicalAuth, LexicalExitKind,
     LoopLatchKind, OwnershipMode, ReplayBudget, ResolvedFunction, StatusLane, StorageId,
     UNRESOLVED_NORMAL_END,
 };
@@ -115,7 +115,12 @@ pub(in crate::cleanup_plan::replay) fn authenticate(
                 .saturating_mul(control.execution_boundaries.len()),
         );
     budget.charge(function, units, "lexical certificate replay")?;
-    let owned_result = type_needs_drop(program, function, &function.return_type)?;
+    let owned_result = crate::cleanup_plan::replay::selected_type_drop::type_needs_drop!(
+        permit,
+        program,
+        function,
+        &function.return_type
+    );
 
     // Every identity a certificate names must exist before any traversal.
     for certificate in &control.exits {

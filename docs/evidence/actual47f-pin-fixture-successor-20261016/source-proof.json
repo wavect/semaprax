@@ -1,0 +1,14 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "whole_current_to47f_rows": 14,
+  "all_current_source_rows_restore_complete_frozen47f": true,
+  "production_source_and_every_original_predicate_unchanged": true,
+  "actual_managed_bill": 1106063,
+  "actual_browser_bill": 3477789,
+  "all_actual_browser_fullwire_restorations_pass": true,
+  "original_browser_receiver_functions_still_compiled_and_exact": true,
+  "old_JSON90_and_membership_immutable": true,
+  "precise_fixture_components_exact": true,
+  "no_Rust_Cargo_or_capture_execution": true,
+  "postpin_consumers": "PENDING_NEW21_RUN; old47f evidence is historical"
+}

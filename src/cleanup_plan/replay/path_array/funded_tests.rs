@@ -3,7 +3,24 @@ use crate::bounded_output::with_limit_usage_refusal;
 use crate::test_allocation_observer::measure;
 
 fn program() -> ResolvedProgram {
-    let checked = crate::check("module funded_arrays; @id(\"f\") fn f(a:bool,b:bool,c:bool,d:bool)->i64 {let x=if a {1}else{2};let y=if b {3}else{4};let z=if c {5}else{6};let w=if d {7}else{8};x+y+z+w}", "funded-arrays.spx").unwrap();
+    const ORIGINAL_SOURCE: &str = "module funded_arrays; @id(\"f\") fn f(a:bool,b:bool,c:bool,d:bool)->i64 {let x=if a {1}else{2};let y=if b {3}else{4};let z=if c {5}else{6};let w=if d {7}else{8};x+y+z+w}";
+    // The original standalone-library rejection remains a complete negative.
+    let rejected = crate::check(ORIGINAL_SOURCE, "funded-arrays.spx").unwrap_err();
+    assert_eq!(
+        rejected,
+        [Diagnostic {
+            code: "SPX-T105",
+            severity: crate::diagnostic::Severity::Error,
+            message: "executable module must define `fn main() -> i64`".into(),
+            path: Some("funded-arrays.spx".to_owned()),
+            span: Some(crate::ast::Span { start: 31, end: 167, line: 1, column: 32 }),
+            help: Some("a module without `fn main() -> i64` is a library module: check it through the project that owns it with `semaprax check <project-dir>`, or add `main` to run this file alone".to_owned()),
+        }]
+    );
+    // Preserve the complete original function and give it an executable caller.
+    let source =
+        format!("{ORIGINAL_SOURCE} @id(\"main\") fn main()->i64 {{f(true,false,true,false)}}");
+    let checked = crate::check(&source, "funded-arrays.spx").unwrap();
     let canonical = crate::format::canonical(&checked);
     let checked = crate::check(&canonical, "funded-arrays.spx").unwrap();
     assert_eq!(crate::format::canonical(&checked), canonical);
@@ -36,6 +53,20 @@ fn funded_capacity_preserves_complete_main_hir_work_and_drop() {
                         } else {
                             ReplayBudget::unobserved()
                         };
+                        // The owning HIR enumerator consumes the exact preflight
+                        // bank; a newly paid budget starts with no skeleton work.
+                        reserve_program_skeleton_work(
+                            &program,
+                            std::iter::once(function),
+                            &mut old,
+                        )
+                        .unwrap();
+                        reserve_program_skeleton_work(
+                            &program,
+                            std::iter::once(function),
+                            &mut current,
+                        )
+                        .unwrap();
                         let before = skeleton_materializations();
                         let expected =
                             super::main696::hir_skeleton_paths(&program, function, &mut old)

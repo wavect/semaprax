@@ -33,6 +33,8 @@ fn view(
 }
 
 pub(super) fn parent_for_ours(current: &str) -> String {
+    let original = pin_input("tests/wasm/scalar_browser_ci_contract.rs", current);
+    let current = original.as_str();
     view(
         current,
         "93e328799e7200273eadd54438c27d3e1872fe831aa299e27b6f160f4e8f98f3",
@@ -58,6 +60,8 @@ pub(super) fn parent_for_ours(current: &str) -> String {
 }
 
 pub(super) fn parent_for_main(current: &str) -> String {
+    let original = pin_input("tests/wasm/scalar_browser_ci_contract.rs", current);
+    let current = original.as_str();
     view(
         current,
         "93e328799e7200273eadd54438c27d3e1872fe831aa299e27b6f160f4e8f98f3",
@@ -83,6 +87,11 @@ pub(super) fn parent_for_main(current: &str) -> String {
 }
 
 pub(super) fn runner_for_ours(current: &str) -> String {
+    let original = pin_input(
+        "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+        current,
+    );
+    let current = original.as_str();
     view(
         current,
         "b84b2940d4f909f7240c3e698b3f920546b4f99e8ed141560c782e848708b935",
@@ -163,4 +172,52 @@ pub(super) fn before_2600(current: &str) -> String {
 "######,
         )],
     )
+}
+
+pub(super) fn pin_input(source: &str, current: &str) -> String {
+    pin_project(
+        include_str!(
+            "../../../docs/evidence/actual47f-pin-fixture-successor-20261016/current-to-47f.json"
+        ),
+        source,
+        current,
+    )
+}
+fn pin_project(rows: &str, source: &str, current: &str) -> String {
+    let rows: serde_json::Value = serde_json::from_str(rows).expect("fixed merge projections");
+    let matching: Vec<_> = rows
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|r| r["source"] == source)
+        .collect();
+    assert!(matching.len() <= 1, "unique merge source view");
+    let Some(row) = matching.first() else {
+        return current.to_owned();
+    };
+    assert_eq!(
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+        ),
+        row["current_sha256"]
+    );
+    let mut result = current.to_owned();
+    for edit in row["edits"].as_array().unwrap() {
+        let new = edit["new"].as_str().unwrap();
+        assert_eq!(
+            result.matches(new).count(),
+            1,
+            "complete unique merge inverse"
+        );
+        result = result.replacen(new, edit["old"].as_str().unwrap(), 1);
+    }
+    assert_eq!(
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(result.as_bytes()))
+        ),
+        row["original_sha256"]
+    );
+    result
 }

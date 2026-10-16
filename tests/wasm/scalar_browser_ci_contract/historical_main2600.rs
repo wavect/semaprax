@@ -65,6 +65,10 @@ fn hosted_wires_keep_current_pins_and_every_complete_previous_receiver() {
         "sha256:ccb0ec81a00f3890ec2fe87af8d0f801970a1a397eeb55fe115e83dab02188ba",
     ];
     let runner = include_str!("../../../platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs");
+    let runner = super::custody::pin_input(
+        "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+        runner,
+    );
     for (captured, expected) in CURRENT.into_iter().zip(original) {
         let graph = captured.strip_suffix('\n').unwrap();
         assert_eq!(digest(graph), expected);

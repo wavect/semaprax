@@ -1,0 +1,12 @@
+{
+  "source_only": true,
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core"
+    }
+  ],
+  "new_bodies": 0,
+  "Rust_executed": false
+}

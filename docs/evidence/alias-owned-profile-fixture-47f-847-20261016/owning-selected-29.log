@@ -1,0 +1,15 @@
+
+running 1 test
+test workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core ... 
+thread 'workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core' (13136335) panicked at src/workspace_graph/constructor_failure/../function_alias/before_core/tests.rs:152:76:
+called `Result::unwrap()` on an `Err` value: [Diagnostic { code: "SPX-W115", severity: Error, message: "Public Scalar Export Profile v1 does not admit generic function templates or instances", path: None, span: None, help: None }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9247 filtered out; finished in 1.05s
+

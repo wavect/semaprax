@@ -134,7 +134,14 @@ use function @id("alias.current.value") from alias.current as current;
     let build = || {
         let canonical =
             |text: &str, path: &str| crate::format::canonical(&crate::parse(text, path).unwrap());
-        let manifest = ProjectManifest::parse(MANIFEST).unwrap();
+        // The payload instantiates Vec<T>; select its existing owned-data
+        // Project admission rather than the intentionally scalar-only default.
+        let owned_manifest = MANIFEST.replacen(
+            "version = \"1.0.0\"\n",
+            "version = \"1.0.0\"\nprofile = \"owned-data-api.v1\"\n",
+            1,
+        );
+        let manifest = ProjectManifest::parse(&owned_manifest).unwrap();
         let sources = vec![
             SemanticWorkspaceSource::new(
                 "src/app.spx".to_owned(),
@@ -193,4 +200,35 @@ use function @id("alias.current.value") from alias.current as current;
     eprintln!("847 actual borrowed Project parity entries={current_borrowed} graph={} image={} graph_bytes={} image_bytes={}",
         current.semantic_graph_digest(), current_image.image_digest(), current.semantic_graph().len(), current_image.to_json().len());
     drop((old_image, current_image, old, current));
+
+    // Replay the complete original scalar fixture only AFTER both measured
+    // positive builds. This cannot warm their actual Project acquisition path.
+    let canonical =
+        |text: &str, path: &str| crate::format::canonical(&crate::parse(text, path).unwrap());
+    let scalar_manifest = ProjectManifest::parse(MANIFEST).unwrap();
+    let scalar_sources = vec![
+        SemanticWorkspaceSource::new("src/app.spx".to_owned(), canonical(APP, "src/app.spx")),
+        SemanticWorkspaceSource::new(
+            "src/provider.spx".to_owned(),
+            canonical(APP_PROVIDER, "src/provider.spx"),
+        ),
+        SemanticWorkspaceSource::new(
+            "src/tests.spx".to_owned(),
+            canonical(TESTS, "src/tests.spx"),
+        ),
+    ];
+    let errors = crate::project::rebuild_owned_revision(scalar_manifest, scalar_sources)
+        .err()
+        .expect("the original scalar profile must keep rejecting generic templates");
+    assert_eq!(errors.len(), 1);
+    let expected = crate::diagnostic::Diagnostic::io(
+        "SPX-W115",
+        "Public Scalar Export Profile v1 does not admit generic function templates or instances",
+    );
+    assert_eq!(errors[0].code, expected.code);
+    assert_eq!(errors[0].severity, expected.severity);
+    assert_eq!(errors[0].message, expected.message);
+    assert_eq!(errors[0].path, expected.path);
+    assert_eq!(errors[0].span, expected.span);
+    assert_eq!(errors[0].help, expected.help);
 }

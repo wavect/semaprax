@@ -1,0 +1,37 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "base": "47f80b0f7a06fde9b2388439a9c0bfe998a05af1",
+  "whole_current_to_git_inverse": 2,
+  "production_changes": 0,
+  "new_test_bodies": 0,
+  "existing_selectors": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::tests::complete_hir_enumeration_keeps_paths_work_materializations_and_legacy",
+      "new": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_preserves_complete_main_hir_work_and_drop",
+      "new": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_exact_short_zero_and_first_output_work_frontier",
+      "new": false
+    }
+  ],
+  "original_second_funded_owner_byte_exact": true,
+  "original_first_owner_assertions_byte_exact": true,
+  "actual_failed_logs_retained": [
+    2,
+    30,
+    31
+  ],
+  "rust_execution": false,
+  "qualification_claim": false,
+  "inherited_global_views": "PENDING_CANONICAL_COMPOSITION"
+}

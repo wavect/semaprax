@@ -1,0 +1,15 @@
+
+running 1 test
+test cleanup_plan::replay::path_array::tests::complete_hir_enumeration_keeps_paths_work_materializations_and_legacy ... 
+thread 'cleanup_plan::replay::path_array::tests::complete_hir_enumeration_keeps_paths_work_materializations_and_legacy' (13126560) panicked at src/cleanup_plan/replay/path_array/tests.rs:230:34:
+called `Result::unwrap()` on an `Err` value: Diagnostic { code: "SPX-H006", severity: Error, message: "cleanup plan for function `condition` failed independent replay: cleanup replay work budget exhausted during HIR root path", path: None, span: None, help: None }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::path_array::tests::complete_hir_enumeration_keeps_paths_work_materializations_and_legacy
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9247 filtered out; finished in 0.90s
+

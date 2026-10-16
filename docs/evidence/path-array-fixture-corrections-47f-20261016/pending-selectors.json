@@ -1,0 +1,20 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_array::tests::complete_hir_enumeration_keeps_paths_work_materializations_and_legacy",
+    "new": false
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_preserves_complete_main_hir_work_and_drop",
+    "new": false
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_exact_short_zero_and_first_output_work_frontier",
+    "new": false
+  }
+]

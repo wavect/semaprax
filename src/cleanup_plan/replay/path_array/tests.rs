@@ -224,6 +224,20 @@ fn complete_hir_enumeration_keeps_paths_work_materializations_and_legacy() {
                         } else {
                             ReplayBudget::unobserved()
                         };
+                        // The owning HIR enumerator consumes the exact preflight
+                        // bank; a newly paid budget starts with no skeleton work.
+                        reserve_program_skeleton_work(
+                            &program,
+                            std::iter::once(function),
+                            &mut old,
+                        )
+                        .unwrap();
+                        reserve_program_skeleton_work(
+                            &program,
+                            std::iter::once(function),
+                            &mut current,
+                        )
+                        .unwrap();
                         let before = skeleton_materializations();
                         let expected =
                             with_original(|| hir_skeleton_paths(&program, function, &mut old))

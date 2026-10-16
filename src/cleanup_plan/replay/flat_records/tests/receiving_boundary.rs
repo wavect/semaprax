@@ -187,7 +187,7 @@ fn boundary_actual_receiving_exact_short_work_and_whole_drop() {
 #[test]
 fn boundary_complete_paid_driver_keeps_source_and_first_refusal() {
     use crate::cleanup_plan::replay::{lexical_replay, scalar_replay, selected_context};
-    let scalar = "module family.scalar; @id(\"family.scalar.main\") fn main()->i64 {0}";
+    let scalar = super::PREPARED_SCALAR_SOURCE;
     for (source, id, lexical) in [
         (super::SOURCE, "flat.make", true),
         (scalar, "family.scalar.main", false),
@@ -201,6 +201,15 @@ fn boundary_complete_paid_driver_keeps_source_and_first_refusal() {
                 .iter()
                 .find(|f| f.id.as_str() == id)
                 .unwrap();
+            assert_eq!(crate::hir::lexical_exit::requires(f).unwrap(), lexical);
+            if !lexical {
+                let companion = source
+                    .functions()
+                    .iter()
+                    .find(|f| f.id.as_str() == "family.scalar.authority")
+                    .expect("prepared scalar fixture retains its genuine lexical companion");
+                assert!(crate::hir::lexical_exit::requires(companion).unwrap());
+            }
             for hostile in [false, true] {
                 let mut changed = f.clone();
                 if hostile {

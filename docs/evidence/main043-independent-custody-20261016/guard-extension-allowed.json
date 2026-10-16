@@ -56,7 +56,11 @@
       "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs": 1,
-      "src/source_reflows_merge/main_eb2_inputs.rs": 1
+      "src/source_reflows_merge/main_eb2_inputs.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -120,7 +124,11 @@
       "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs": 1,
-      "src/source_reflows_merge/main_eb2_inputs.rs": 1
+      "src/source_reflows_merge/main_eb2_inputs.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs": 1
     }
   },
   "tests/workspace/semantic_graph/source_inventory.rs": {
@@ -215,7 +223,11 @@
       "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs": 1,
-      "src/source_reflows_merge/main_eb2_inputs.rs": 1
+      "src/source_reflows_merge/main_eb2_inputs.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -308,7 +320,11 @@
       "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs": 1,
-      "src/source_reflows_merge/main_eb2_inputs.rs": 1
+      "src/source_reflows_merge/main_eb2_inputs.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs": 1
     }
   },
   "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
@@ -373,7 +389,11 @@
       "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs": 1,
-      "src/source_reflows_merge/main_eb2_inputs.rs": 1
+      "src/source_reflows_merge/main_eb2_inputs.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs": 1
     },
     "maximum": {
       "src/cleanup_plan/replay.rs": 1,
@@ -436,7 +456,11 @@
       "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs": 1,
-      "src/source_reflows_merge/main_eb2_inputs.rs": 1
+      "src/source_reflows_merge/main_eb2_inputs.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs": 1
     }
   }
 }

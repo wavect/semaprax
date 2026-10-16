@@ -1,0 +1,71 @@
+{
+  "base": "039b15f6a2a5e81110fefdc607dccf3478bf9263",
+  "preimages": [
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "archive": "before/src__cleanup_plan__replay__factored__canonical_shared.rs",
+      "sha256": "6568da26e2376af6e713fc396db3e9390907d8dedc7074c3dc314b76da348d6b"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
+      "archive": "before/src__cleanup_plan__replay__factored__canonical_shared__empty_memo.rs",
+      "sha256": "b58f3c3cd73329644664ea7002a5a7cbd6c0992d513183932dd7f6a73f150c6b"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs",
+      "archive": "before/src__cleanup_plan__replay__factored__canonical_shared__before_arena.rs",
+      "sha256": "aa7a37858f164eaf2b0559f3bcf9ac0eec196394c526e3a88e689914ebbaa399"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs",
+      "archive": "before/src__cleanup_plan__replay__factored__canonical_shared__before_empty_signature.rs",
+      "sha256": "a02878a7ceb064afc4b64271eb57653debc200d579f2d6acafb62ac43129587b"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored.rs",
+      "archive": "before/src__cleanup_plan__replay__factored.rs",
+      "sha256": "7afc44dd102565baa22046294541c357940a3efedadc793879df5c61daa620f3"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/strategy.rs",
+      "archive": "before/src__cleanup_plan__replay__factored__strategy.rs",
+      "sha256": "810631bbcde9cb1d48b366290aa520b3d15b2f23967af416cac374cd8ff60aa4"
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "archive": "before/tests__hir_module_boundaries.rs",
+      "sha256": "975d32ee3ce5380479890a5d1f2129babc1b706cc64006802ff4620ab5c58865"
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "archive": "before/tests__workspace__semantic_graph__source_inventory.rs",
+      "sha256": "cc97c47b89f1750c0c595184124fdc824d19e96c33a53d4c67f4481fc1255e64"
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "archive": "before/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs",
+      "sha256": "447611d7bcbdf6110f77dd13dab9dcb6bfcbd2002446d450c2c6e4b712a551be"
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json",
+      "archive": "before/docs__evidence__main043-independent-custody-20261016__guard-extension-allowed.json",
+      "sha256": "483096b4be993792d52cadde5be2f06de49a13f9ed67be9eafb89e32bfcb53ee"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "archive": "before/CHANGELOG.md",
+      "sha256": "aba6a0c37b2e4a63fcefe996fe6284ca65862e2447abcc2ee7362da61465f930"
+    }
+  ],
+  "raw_guards": [
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+  ],
+  "new_rust_sources": [
+    "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs"
+  ]
+}

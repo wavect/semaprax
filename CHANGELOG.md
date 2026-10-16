@@ -1,3 +1,4 @@
+- Source-only #831 cold terminal singleton receiving and deferred empty-memo payload promotion; complete old receivers and strict width0..4 gates retained, actual qualification pending.
 - Admit only the exact owned-clone setup work in compact residual floor controls,
   retaining the complete zero-funded refusal and all target checks; qualification pending.
 <!-- OPT831 source checkpoint: closure-specific duplicate refusal owner and inner id Result removed; unchanged strict qualification pending, no measured gain claimed. -->

@@ -6,13 +6,13 @@ use std::mem::size_of;
 const WIDTH: usize = 8;
 
 struct Chunk<T> {
-    values: [Option<T>; WIDTH],
+    values: Option<Box<[Option<T>; WIDTH]>>,
     empty: u8,
 }
 const _: () = assert!(WIDTH <= u8::BITS as usize);
 
 pub(super) struct Memo<T> {
-    chunks: Vec<Option<Box<Chunk<T>>>>,
+    chunks: Vec<Chunk<T>>,
     pub(super) binding: Option<Binding>,
     pub(super) failed: bool,
 }
@@ -115,6 +115,11 @@ impl<T> Memo<T> {
             false
         }
     }
+    pub(super) fn unpublished(&self) -> bool { self.chunks.is_empty() }
+    #[cfg(test)]
+    pub(super) fn payload_chunks(&self) -> usize {
+        self.chunks.iter().filter(|chunk| chunk.values.is_some()).count()
+    }
     pub(super) fn failed(&self) -> bool {
         self.failed
     }
@@ -132,9 +137,9 @@ impl<T> Memo<T> {
         if self.failed {
             return 0;
         }
-        match self.chunks.get(*key / WIDTH).and_then(Option::as_ref) {
+        match self.chunks.get(*key / WIDTH) {
             Some(chunk) => {
-                if chunk.values[*key % WIDTH].is_some() {
+                if chunk.values.as_ref().is_some_and(|values| values[*key % WIDTH].is_some()) {
                     2
                 } else if chunk.empty & (1_u8 << (*key % WIDTH)) != 0 {
                     1
@@ -151,8 +156,8 @@ impl<T> Memo<T> {
         }
         self.chunks
             .get(*key / WIDTH)?
-            .as_ref()?
             .values
+            .as_ref()?
             .get(*key % WIDTH)?
             .as_ref()
     }
@@ -189,28 +194,23 @@ impl<T> Memo<T> {
                 additional,
                 "factored closure memo directory",
             )?;
-            self.chunks.resize_with(required, || None);
+            // One actual inline slot initializer; receiving directory backing
+            // is separately retained by reserve_vec above.
+            budget.reserve_array::<Chunk<T>>(function, additional, "factored closure memo slot initializer")?;
+            self.chunks.resize_with(required, || Chunk { values: None, empty: 0 });
         }
-        if self.chunks[index].is_none() {
+        if self.chunks[index].values.is_none() {
             if budget.pays_allocations() {
-                // Inline Chunk initializer + boxed Chunk backing, the distinct
-                // from_fn array initializer, and named Box pointer. Directory
-                // Option<Box> receiving storage is paid by reserve_vec.
-                budget.reserve_bytes(
-                    function,
-                    2 * size_of::<Chunk<T>>()
-                        + size_of::<[Option<T>; WIDTH]>()
-                        + size_of::<Box<Chunk<T>>>(),
-                    "factored closure memo chunk",
-                )?;
+                // Full array initializer and heap array, Box local and Some
+                // initializer. No payload backing exists for empty-only slots.
+                budget.reserve_bytes(function,
+                    2 * size_of::<[Option<T>; WIDTH]>() + 2 * size_of::<Box<[Option<T>; WIDTH]>>(),
+                    "factored closure memo payload promotion")?;
             }
-            let chunk = Box::new(Chunk {
-                values: std::array::from_fn(|_| None),
-                empty: 0,
-            });
-            self.chunks[index] = Some(chunk);
+            let values = Box::new(std::array::from_fn(|_| None));
+            self.chunks[index].values = Some(values);
         }
-        self.chunks[index].as_mut().expect("paid chunk").values[key % WIDTH] = Some(make());
+        self.chunks[index].values.as_mut().expect("paid payload")[key % WIDTH] = Some(make());
         Ok(())
     }
     pub(super) fn insert_empty_bound(
@@ -230,30 +230,14 @@ impl<T> Memo<T> {
                 additional,
                 "factored closure memo directory",
             )?;
-            self.chunks.resize_with(required, || None);
+            // One actual inline slot initializer; receiving directory backing
+            // is separately retained by reserve_vec above.
+            budget.reserve_array::<Chunk<T>>(function, additional, "factored closure memo slot initializer")?;
+            self.chunks.resize_with(required, || Chunk { values: None, empty: 0 });
         }
-        if self.chunks[index].is_none() {
-            if budget.pays_allocations() {
-                // Inline Chunk initializer + boxed Chunk backing, the distinct
-                // from_fn array initializer, and named Box pointer. Directory
-                // Option<Box> receiving storage is paid by reserve_vec.
-                budget.reserve_bytes(
-                    function,
-                    2 * size_of::<Chunk<T>>()
-                        + size_of::<[Option<T>; WIDTH]>()
-                        + size_of::<Box<Chunk<T>>>(),
-                    "factored closure memo chunk",
-                )?;
-            }
-            let chunk = Box::new(Chunk {
-                values: std::array::from_fn(|_| None),
-                empty: 0,
-            });
-            self.chunks[index] = Some(chunk);
-        }
-        // Only !contains_key nodes reach publication in the postorder producer;
-        // no value is overwritten and no extra assertion lookup is constructed.
-        self.chunks[index].as_mut().expect("paid chunk").empty |= 1_u8 << (key % WIDTH);
+        // The original empty bits survive later paid payload promotion.
+        // Only unpublished keys reach this producer, exactly as before.
+        self.chunks[index].empty |= 1_u8 << (key % WIDTH);
         Ok(())
     }
 }

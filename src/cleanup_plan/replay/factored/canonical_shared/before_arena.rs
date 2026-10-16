@@ -8,7 +8,7 @@ use super::{
     ResolvedFunction, Weighted,
 };
 
-use super::{closure_receiving, empty_closure, empty_memo, inline_weighted,
+use super::{closure_receiving, empty_closure, before_terminal_leaf_empty_memo as empty_memo, inline_weighted,
     ordered_alias, ordered_weights, successor_targets};
 use inline_weighted::SmallWeighted;
 

@@ -1,0 +1,314 @@
+{
+  "base": "039b15f6a2a5e81110fefdc607dccf3478bf9263",
+  "status": "SOURCE_ONLY_NOT_EXECUTED",
+  "rows": [
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "archive": "before/src__cleanup_plan__replay__factored__canonical_shared.rs",
+      "sha256": "6568da26e2376af6e713fc396db3e9390907d8dedc7074c3dc314b76da348d6b",
+      "current_sha256": "b71323aed5dda3f03ca6215b17c2e192a5782dabbeccca40ce5bf280f168f482",
+      "edits": [
+        {
+          "current_start": 271,
+          "current_end": 280,
+          "current": "        }\n        if budget.pays_allocations() {\n            budget.reserve_bytes(function, Self::COLD_ROOT_CONTROLS, \"factored cold terminal root predicate\")?;\n        }\n        if root.len() == 1 && root[0].1 == 1 && self.cold_dead_node(root[0].0) {\n            if budget.pays_allocations() {\n                budget.reserve_bytes(function, Self::COLD_RESULT_CONTROLS, \"factored cold terminal result receiving\")?;\n            }\n            return self.cold_dead_id(function, root, budget);\n",
+          "original": ""
+        },
+        {
+          "current_start": 1444,
+          "current_end": 1452,
+          "current": "\nmod terminal_leaf;\n#[cfg(test)]\nmod terminal_leaf_tests;\n#[cfg(test)]\nmod before_terminal_leaf;\n#[cfg(test)]\nmod before_terminal_leaf_empty_memo;\n",
+          "original": ""
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
+      "archive": "before/src__cleanup_plan__replay__factored__canonical_shared__empty_memo.rs",
+      "sha256": "b58f3c3cd73329644664ea7002a5a7cbd6c0992d513183932dd7f6a73f150c6b",
+      "current_sha256": "e6fe00f0a39f8c1ee59fa25e72dfa4fe8d1b5a81315602244ea6dff75965e0c0",
+      "edits": [
+        {
+          "current_start": 8,
+          "current_end": 9,
+          "current": "    values: Option<Box<[Option<T>; WIDTH]>>,\n",
+          "original": "    values: [Option<T>; WIDTH],\n"
+        },
+        {
+          "current_start": 14,
+          "current_end": 15,
+          "current": "    chunks: Vec<Chunk<T>>,\n",
+          "original": "    chunks: Vec<Option<Box<Chunk<T>>>>,\n"
+        },
+        {
+          "current_start": 117,
+          "current_end": 122,
+          "current": "    pub(super) fn unpublished(&self) -> bool { self.chunks.is_empty() }\n    #[cfg(test)]\n    pub(super) fn payload_chunks(&self) -> usize {\n        self.chunks.iter().filter(|chunk| chunk.values.is_some()).count()\n    }\n",
+          "original": ""
+        },
+        {
+          "current_start": 139,
+          "current_end": 140,
+          "current": "        match self.chunks.get(*key / WIDTH) {\n",
+          "original": "        match self.chunks.get(*key / WIDTH).and_then(Option::as_ref) {\n"
+        },
+        {
+          "current_start": 141,
+          "current_end": 142,
+          "current": "                if chunk.values.as_ref().is_some_and(|values| values[*key % WIDTH].is_some()) {\n",
+          "original": "                if chunk.values[*key % WIDTH].is_some() {\n"
+        },
+        {
+          "current_start": 158,
+          "current_end": 159,
+          "current": "            .values\n",
+          "original": ""
+        },
+        {
+          "current_start": 160,
+          "current_end": 160,
+          "current": "",
+          "original": "            .values\n"
+        },
+        {
+          "current_start": 196,
+          "current_end": 200,
+          "current": "            // One actual inline slot initializer; receiving directory backing\n            // is separately retained by reserve_vec above.\n            budget.reserve_array::<Chunk<T>>(function, additional, \"factored closure memo slot initializer\")?;\n            self.chunks.resize_with(required, || Chunk { values: None, empty: 0 });\n",
+          "original": "            self.chunks.resize_with(required, || None);\n"
+        },
+        {
+          "current_start": 201,
+          "current_end": 202,
+          "current": "        if self.chunks[index].values.is_none() {\n",
+          "original": "        if self.chunks[index].is_none() {\n"
+        },
+        {
+          "current_start": 203,
+          "current_end": 208,
+          "current": "                // Full array initializer and heap array, Box local and Some\n                // initializer. No payload backing exists for empty-only slots.\n                budget.reserve_bytes(function,\n                    2 * size_of::<[Option<T>; WIDTH]>() + 2 * size_of::<Box<[Option<T>; WIDTH]>>(),\n                    \"factored closure memo payload promotion\")?;\n",
+          "original": "                // Inline Chunk initializer + boxed Chunk backing, the distinct\n                // from_fn array initializer, and named Box pointer. Directory\n                // Option<Box> receiving storage is paid by reserve_vec.\n                budget.reserve_bytes(\n                    function,\n                    2 * size_of::<Chunk<T>>()\n                        + size_of::<[Option<T>; WIDTH]>()\n                        + size_of::<Box<Chunk<T>>>(),\n                    \"factored closure memo chunk\",\n                )?;\n"
+        },
+        {
+          "current_start": 209,
+          "current_end": 211,
+          "current": "            let values = Box::new(std::array::from_fn(|_| None));\n            self.chunks[index].values = Some(values);\n",
+          "original": "            let chunk = Box::new(Chunk {\n                values: std::array::from_fn(|_| None),\n                empty: 0,\n            });\n            self.chunks[index] = Some(chunk);\n"
+        },
+        {
+          "current_start": 212,
+          "current_end": 213,
+          "current": "        self.chunks[index].values.as_mut().expect(\"paid payload\")[key % WIDTH] = Some(make());\n",
+          "original": "        self.chunks[index].as_mut().expect(\"paid chunk\").values[key % WIDTH] = Some(make());\n"
+        },
+        {
+          "current_start": 232,
+          "current_end": 236,
+          "current": "            // One actual inline slot initializer; receiving directory backing\n            // is separately retained by reserve_vec above.\n            budget.reserve_array::<Chunk<T>>(function, additional, \"factored closure memo slot initializer\")?;\n            self.chunks.resize_with(required, || Chunk { values: None, empty: 0 });\n",
+          "original": "            self.chunks.resize_with(required, || None);\n"
+        },
+        {
+          "current_start": 237,
+          "current_end": 240,
+          "current": "        // The original empty bits survive later paid payload promotion.\n        // Only unpublished keys reach this producer, exactly as before.\n        self.chunks[index].empty |= 1_u8 << (key % WIDTH);\n",
+          "original": "        if self.chunks[index].is_none() {\n            if budget.pays_allocations() {\n                // Inline Chunk initializer + boxed Chunk backing, the distinct\n                // from_fn array initializer, and named Box pointer. Directory\n                // Option<Box> receiving storage is paid by reserve_vec.\n                budget.reserve_bytes(\n                    function,\n                    2 * size_of::<Chunk<T>>()\n                        + size_of::<[Option<T>; WIDTH]>()\n                        + size_of::<Box<Chunk<T>>>(),\n                    \"factored closure memo chunk\",\n                )?;\n            }\n            let chunk = Box::new(Chunk {\n                values: std::array::from_fn(|_| None),\n                empty: 0,\n            });\n            self.chunks[index] = Some(chunk);\n        }\n        // Only !contains_key nodes reach publication in the postorder producer;\n        // no value is overwritten and no extra assertion lookup is constructed.\n        self.chunks[index].as_mut().expect(\"paid chunk\").empty |= 1_u8 << (key % WIDTH);\n"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs",
+      "archive": "before/src__cleanup_plan__replay__factored__canonical_shared__before_arena.rs",
+      "sha256": "aa7a37858f164eaf2b0559f3bcf9ac0eec196394c526e3a88e689914ebbaa399",
+      "current_sha256": "5cbc8e4a92a6b2698a903374119445e14da1993cba33a368313217b4f82285f0",
+      "edits": [
+        {
+          "current_start": 10,
+          "current_end": 11,
+          "current": "use super::{closure_receiving, empty_closure, before_terminal_leaf_empty_memo as empty_memo, inline_weighted,\n",
+          "original": "use super::{closure_receiving, empty_closure, empty_memo, inline_weighted,\n"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs",
+      "archive": "before/src__cleanup_plan__replay__factored__canonical_shared__before_empty_signature.rs",
+      "sha256": "a02878a7ceb064afc4b64271eb57653debc200d579f2d6acafb62ac43129587b",
+      "current_sha256": "26aeee1fb821b879760d6bb4029eac651113f91a5bc0f4ce5e92c1bc95960693",
+      "edits": [
+        {
+          "current_start": 3,
+          "current_end": 4,
+          "current": "    empty_closure, before_terminal_leaf_empty_memo as empty_memo, ordered_alias, ordered_weights, successor_targets,\n",
+          "original": "    empty_closure, empty_memo, ordered_alias, ordered_weights, successor_targets,\n"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored.rs",
+      "archive": "before/src__cleanup_plan__replay__factored.rs",
+      "sha256": "7afc44dd102565baa22046294541c357940a3efedadc793879df5c61daa620f3",
+      "current_sha256": "9341bf91df1a247e4f381daac02ad7b0feec94b1c5c4a5a94157a698bc592ffe",
+      "edits": [
+        {
+          "current_start": 218,
+          "current_end": 229,
+          "current": "    if budget.pays_allocations() {\n        budget.reserve_bytes(function, canonical_shared::Canonicalizer::COLD_NODE_CONTROLS,\n            \"factored cold terminal node predicate\")?;\n    }\n    if canonical.cold_dead_node(hir_root) {\n        budget.reserve_array::<(usize, u64)>(function, 1, \"factored HIR weighted root\")?;\n        let Some(hir) = canonical.id_for_comparison(function, vec![(hir_root, 1)], budget)? else { return Ok(None); };\n        budget.reserve_array::<(usize, u64)>(function, 1, \"factored plan weighted root\")?;\n        let Some(plan) = canonical.id_for_comparison(function, vec![(plan_root, 1)], budget)? else { return Ok(None); };\n        return Ok(Some(hir == plan));\n    }\n",
+          "original": ""
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/strategy.rs",
+      "archive": "before/src__cleanup_plan__replay__factored__strategy.rs",
+      "sha256": "810631bbcde9cb1d48b366290aa520b3d15b2f23967af416cac374cd8ff60aa4",
+      "current_sha256": "8df7ec56344f5e028ccc78078b15f8d582a3477fe00a371f8251ae31613a0a27",
+      "edits": [
+        {
+          "current_start": 349,
+          "current_end": 369,
+          "current": "        budget.reserve_bytes(function, canonical_shared::Canonicalizer::COLD_NODE_CONTROLS,\n            \"factored cold terminal node predicate\")?;\n    }\n    if canonical.cold_dead_node(*hir_root) {\n        budget.reserve_array::<(usize, u64)>(function, 1, \"lexical HIR weighted root\")?;\n        let hir = canonical.id_for_comparison(function, vec![(*hir_root, 1)], budget);\n        #[cfg(test)]\n        instrumentation::phase(function, budget, \"HIR canonicalization\", None);\n        let hir = hir?;\n        budget.reserve_array::<(usize, u64)>(function, 1, \"lexical plan weighted root\")?;\n        let plan = canonical.id_for_comparison(function, vec![(*plan_root, 1)], budget);\n        #[cfg(test)]\n        instrumentation::phase(function, budget, \"plan canonicalization\", None);\n        return match (hir, plan?) {\n            (Some(hir), Some(plan)) if hir == plan => Ok(()),\n            (Some(_), Some(_)) => Err(skeleton_mismatch(function)),\n            _ => Err(replay_error(function, \"cleanup replay factored trace multiplicity overflowed\")),\n        };\n    }\n    if budget.pays_allocations() {\n",
+          "original": ""
+        }
+      ]
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "archive": "before/tests__hir_module_boundaries.rs",
+      "sha256": "975d32ee3ce5380479890a5d1f2129babc1b706cc64006802ff4620ab5c58865",
+      "current_sha256": "f551556ae32ac5359ee5987f636f21efd19949edc76836469f8ab1817a977faf",
+      "edits": [
+        {
+          "current_start": 468,
+          "current_end": 469,
+          "current": "        include_str!(\"../src/cleanup_plan/replay/branch_clone.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs\"), include_str!(\"../tests/wasm/scalar_browser_ci_contract/historical_main2600.rs\"), include_str!(\"../tests/wasm/scalar_browser_ci_contract/browser_custody.rs\"), include_str!(\"../tests/wasm/scalar_browser_ci_contract/before_2600.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/before.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/funded_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/before_singleton.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/singleton_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_unit.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_unit/empty_memo.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_unit/empty_memo/retained.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_unit/closure_receiving.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/unit_receiving_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/arena_source.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/empty_closure.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/empty_closure_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/empty_memo/retained.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/closure_receiving.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/memo.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_alias.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/cached_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/memo/retained.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_alias.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_index.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_unit.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/epsilon_alias.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/memo.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/source.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight.rs\"), include_str!(\"../src/bounded_output/format_acceptance.rs\"), include_str!(\"../src/bounded_output/format_acceptance/tests.rs\"), include_str!(\"../src/workspace_graph/diagnostics/initial.rs\"), include_str!(\"../src/workspace_graph/diagnostics/initial/context.rs\"), include_str!(\"../src/workspace_graph/diagnostics/initial/tests.rs\"), include_str!(\"../src/workspace_graph/initial_report.rs\"), include_str!(\"../src/workspace_graph/initial_report/before.rs\"), include_str!(\"../src/workspace_graph/initial_report/before_mappers.rs\"), include_str!(\"../src/workspace_graph/initial_report/build.rs\"), include_str!(\"../src/workspace_graph/initial_report/tests.rs\"), include_str!(\"../src/workspace_report/initial.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/storage.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/strategy.rs\"), include_str!(\"../src/ast/program_source/decl_slices/alias_tests.rs\"), include_str!(\"../src/ast/program_source/decl_slices/before_alias.rs\"), include_str!(\"../src/ast/program_source/function_alias.rs\"), include_str!(\"../src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs\"), include_str!(\"../src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs\"), include_str!(\"../src/workspace_graph/expected_projection/borrowed_imports/typed/before_alias.rs\"), include_str!(\"../src/workspace_graph/function_alias/before_core.rs\"), include_str!(\"../src/workspace_graph/function_alias/before_core/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/tests.rs\"),\n",
+          "original": "        include_str!(\"../src/cleanup_plan/replay/branch_clone.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs\"), include_str!(\"../tests/wasm/scalar_browser_ci_contract/historical_main2600.rs\"), include_str!(\"../tests/wasm/scalar_browser_ci_contract/browser_custody.rs\"), include_str!(\"../tests/wasm/scalar_browser_ci_contract/before_2600.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/before.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/funded_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/before_singleton.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/singleton_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_unit.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_unit/empty_memo.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_unit/empty_memo/retained.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_unit/closure_receiving.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/unit_receiving_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/arena_source.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/empty_closure.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/empty_closure_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/empty_memo/retained.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/closure_receiving.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/memo.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_alias.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/cached_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/memo/retained.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_alias.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_index.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_unit.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/epsilon_alias.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/memo.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/source.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight.rs\"), include_str!(\"../src/bounded_output/format_acceptance.rs\"), include_str!(\"../src/bounded_output/format_acceptance/tests.rs\"), include_str!(\"../src/workspace_graph/diagnostics/initial.rs\"), include_str!(\"../src/workspace_graph/diagnostics/initial/context.rs\"), include_str!(\"../src/workspace_graph/diagnostics/initial/tests.rs\"), include_str!(\"../src/workspace_graph/initial_report.rs\"), include_str!(\"../src/workspace_graph/initial_report/before.rs\"), include_str!(\"../src/workspace_graph/initial_report/before_mappers.rs\"), include_str!(\"../src/workspace_graph/initial_report/build.rs\"), include_str!(\"../src/workspace_graph/initial_report/tests.rs\"), include_str!(\"../src/workspace_report/initial.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/storage.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/strategy.rs\"), include_str!(\"../src/ast/program_source/decl_slices/alias_tests.rs\"), include_str!(\"../src/ast/program_source/decl_slices/before_alias.rs\"), include_str!(\"../src/ast/program_source/function_alias.rs\"), include_str!(\"../src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs\"), include_str!(\"../src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs\"), include_str!(\"../src/workspace_graph/expected_projection/borrowed_imports/typed/before_alias.rs\"), include_str!(\"../src/workspace_graph/function_alias/before_core.rs\"), include_str!(\"../src/workspace_graph/function_alias/before_core/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/tests.rs\"),\n"
+        }
+      ]
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "archive": "before/tests__workspace__semantic_graph__source_inventory.rs",
+      "sha256": "cc97c47b89f1750c0c595184124fdc824d19e96c33a53d4c67f4481fc1255e64",
+      "current_sha256": "e6e8aeb3beb22719215bf789af1db6d82582281018922d00e56f44baa36bb2e5",
+      "edits": [
+        {
+          "current_start": 127,
+          "current_end": 128,
+          "current": "        include_str!(\"../../src/cleanup_plan/replay/branch_clone.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs\"), include_str!(\"../../tests/wasm/scalar_browser_ci_contract/historical_main2600.rs\"), include_str!(\"../../tests/wasm/scalar_browser_ci_contract/browser_custody.rs\"), include_str!(\"../../tests/wasm/scalar_browser_ci_contract/before_2600.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/funded_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/before_singleton.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/singleton_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_unit.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_unit/empty_memo.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_unit/empty_memo/retained.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_unit/closure_receiving.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/unit_receiving_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/arena_source.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/empty_closure.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/empty_closure_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/empty_memo/retained.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/closure_receiving.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/memo.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_alias.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/cached_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/memo/retained.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_alias.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_index.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_unit.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/epsilon_alias.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/memo.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/source.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight.rs\"), include_str!(\"../../src/bounded_output/format_acceptance.rs\"), include_str!(\"../../src/bounded_output/format_acceptance/tests.rs\"), include_str!(\"../../src/workspace_graph/diagnostics/initial.rs\"), include_str!(\"../../src/workspace_graph/diagnostics/initial/context.rs\"), include_str!(\"../../src/workspace_graph/diagnostics/initial/tests.rs\"), include_str!(\"../../src/workspace_graph/initial_report.rs\"), include_str!(\"../../src/workspace_graph/initial_report/before.rs\"), include_str!(\"../../src/workspace_graph/initial_report/before_mappers.rs\"), include_str!(\"../../src/workspace_graph/initial_report/build.rs\"), include_str!(\"../../src/workspace_graph/initial_report/tests.rs\"), include_str!(\"../../src/workspace_report/initial.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/storage.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/strategy.rs\"), include_str!(\"../../src/ast/program_source/decl_slices/alias_tests.rs\"), include_str!(\"../../src/ast/program_source/decl_slices/before_alias.rs\"), include_str!(\"../../src/ast/program_source/function_alias.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/borrowed_imports/typed/before_alias.rs\"), include_str!(\"../../src/workspace_graph/function_alias/before_core.rs\"), include_str!(\"../../src/workspace_graph/function_alias/before_core/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/tests.rs\"),\n",
+          "original": "        include_str!(\"../../src/cleanup_plan/replay/branch_clone.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs\"), include_str!(\"../../tests/wasm/scalar_browser_ci_contract/historical_main2600.rs\"), include_str!(\"../../tests/wasm/scalar_browser_ci_contract/browser_custody.rs\"), include_str!(\"../../tests/wasm/scalar_browser_ci_contract/before_2600.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/funded_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/before_singleton.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/singleton_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_unit.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_unit/empty_memo.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_unit/empty_memo/retained.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_unit/closure_receiving.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/unit_receiving_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/arena_source.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/empty_closure.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/empty_closure_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/empty_memo/retained.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/closure_receiving.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/memo.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_alias.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/cached_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/memo/retained.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_alias.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_index.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_unit.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/epsilon_alias.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/memo.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/source.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight.rs\"), include_str!(\"../../src/bounded_output/format_acceptance.rs\"), include_str!(\"../../src/bounded_output/format_acceptance/tests.rs\"), include_str!(\"../../src/workspace_graph/diagnostics/initial.rs\"), include_str!(\"../../src/workspace_graph/diagnostics/initial/context.rs\"), include_str!(\"../../src/workspace_graph/diagnostics/initial/tests.rs\"), include_str!(\"../../src/workspace_graph/initial_report.rs\"), include_str!(\"../../src/workspace_graph/initial_report/before.rs\"), include_str!(\"../../src/workspace_graph/initial_report/before_mappers.rs\"), include_str!(\"../../src/workspace_graph/initial_report/build.rs\"), include_str!(\"../../src/workspace_graph/initial_report/tests.rs\"), include_str!(\"../../src/workspace_report/initial.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/storage.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/strategy.rs\"), include_str!(\"../../src/ast/program_source/decl_slices/alias_tests.rs\"), include_str!(\"../../src/ast/program_source/decl_slices/before_alias.rs\"), include_str!(\"../../src/ast/program_source/function_alias.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/borrowed_imports/typed/before_alias.rs\"), include_str!(\"../../src/workspace_graph/function_alias/before_core.rs\"), include_str!(\"../../src/workspace_graph/function_alias/before_core/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/tests.rs\"),\n"
+        }
+      ]
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "archive": "before/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs",
+      "sha256": "447611d7bcbdf6110f77dd13dab9dcb6bfcbd2002446d450c2c6e4b712a551be",
+      "current_sha256": "fc7e29ee8ad79bbd06cc82cdc79579cabba6c3308acf4f1e83aaa6a31ea05a2e",
+      "edits": [
+        {
+          "current_start": 214,
+          "current_end": 215,
+          "current": "        include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs\"), include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/historical_main2600.rs\"), include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/browser_custody.rs\"), include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/before_2600.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/funded_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/before_singleton.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/singleton_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_unit.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_unit/empty_memo.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_unit/empty_memo/retained.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_unit/closure_receiving.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/unit_receiving_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/arena_source.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/empty_closure.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/empty_closure_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/empty_memo/retained.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/closure_receiving.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/memo.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_alias.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/cached_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/memo/retained.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_alias.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_index.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_unit.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/epsilon_alias.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/memo.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/source.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight.rs\"), include_str!(\"../../../../../src/bounded_output/format_acceptance.rs\"), include_str!(\"../../../../../src/bounded_output/format_acceptance/tests.rs\"), include_str!(\"../../../../../src/workspace_graph/diagnostics/initial.rs\"), include_str!(\"../../../../../src/workspace_graph/diagnostics/initial/context.rs\"), include_str!(\"../../../../../src/workspace_graph/diagnostics/initial/tests.rs\"), include_str!(\"../../../../../src/workspace_graph/initial_report.rs\"), include_str!(\"../../../../../src/workspace_graph/initial_report/before.rs\"), include_str!(\"../../../../../src/workspace_graph/initial_report/before_mappers.rs\"), include_str!(\"../../../../../src/workspace_graph/initial_report/build.rs\"), include_str!(\"../../../../../src/workspace_graph/initial_report/tests.rs\"), include_str!(\"../../../../../src/workspace_report/initial.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/storage.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/strategy.rs\"), include_str!(\"../../../../../src/ast/program_source/decl_slices/alias_tests.rs\"), include_str!(\"../../../../../src/ast/program_source/decl_slices/before_alias.rs\"), include_str!(\"../../../../../src/ast/program_source/function_alias.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/borrowed_imports/typed/before_alias.rs\"), include_str!(\"../../../../../src/workspace_graph/function_alias/before_core.rs\"), include_str!(\"../../../../../src/workspace_graph/function_alias/before_core/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/tests.rs\"),\n",
+          "original": "        include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs\"), include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/historical_main2600.rs\"), include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/browser_custody.rs\"), include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/before_2600.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/funded_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/before_singleton.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/singleton_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_unit.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_unit/empty_memo.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_unit/empty_memo/retained.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_unit/closure_receiving.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/unit_receiving_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/arena_source.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/empty_closure.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/empty_closure_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/empty_memo/retained.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/closure_receiving.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/memo.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_alias.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/cached_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/memo/retained.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_alias.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_index.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_unit.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/epsilon_alias.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/memo.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/source.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight.rs\"), include_str!(\"../../../../../src/bounded_output/format_acceptance.rs\"), include_str!(\"../../../../../src/bounded_output/format_acceptance/tests.rs\"), include_str!(\"../../../../../src/workspace_graph/diagnostics/initial.rs\"), include_str!(\"../../../../../src/workspace_graph/diagnostics/initial/context.rs\"), include_str!(\"../../../../../src/workspace_graph/diagnostics/initial/tests.rs\"), include_str!(\"../../../../../src/workspace_graph/initial_report.rs\"), include_str!(\"../../../../../src/workspace_graph/initial_report/before.rs\"), include_str!(\"../../../../../src/workspace_graph/initial_report/before_mappers.rs\"), include_str!(\"../../../../../src/workspace_graph/initial_report/build.rs\"), include_str!(\"../../../../../src/workspace_graph/initial_report/tests.rs\"), include_str!(\"../../../../../src/workspace_report/initial.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/storage.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/strategy.rs\"), include_str!(\"../../../../../src/ast/program_source/decl_slices/alias_tests.rs\"), include_str!(\"../../../../../src/ast/program_source/decl_slices/before_alias.rs\"), include_str!(\"../../../../../src/ast/program_source/function_alias.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/borrowed_imports/typed/before_alias.rs\"), include_str!(\"../../../../../src/workspace_graph/function_alias/before_core.rs\"), include_str!(\"../../../../../src/workspace_graph/function_alias/before_core/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/tests.rs\"),\n"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json",
+      "archive": "before/docs__evidence__main043-independent-custody-20261016__guard-extension-allowed.json",
+      "sha256": "483096b4be993792d52cadde5be2f06de49a13f9ed67be9eafb89e32bfcb53ee",
+      "current_sha256": "6c7ed7c81cc1ff0d8e4dd2558f828512422647bab2c27e786a7c16866d1c6755",
+      "edits": [
+        {
+          "current_start": 58,
+          "current_end": 63,
+          "current": "      \"src/source_reflows_merge/main_eb2_inputs.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\": 1\n",
+          "original": "      \"src/source_reflows_merge/main_eb2_inputs.rs\": 1\n"
+        },
+        {
+          "current_start": 126,
+          "current_end": 131,
+          "current": "      \"src/source_reflows_merge/main_eb2_inputs.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\": 1\n",
+          "original": "      \"src/source_reflows_merge/main_eb2_inputs.rs\": 1\n"
+        },
+        {
+          "current_start": 225,
+          "current_end": 230,
+          "current": "      \"src/source_reflows_merge/main_eb2_inputs.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\": 1\n",
+          "original": "      \"src/source_reflows_merge/main_eb2_inputs.rs\": 1\n"
+        },
+        {
+          "current_start": 322,
+          "current_end": 327,
+          "current": "      \"src/source_reflows_merge/main_eb2_inputs.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\": 1\n",
+          "original": "      \"src/source_reflows_merge/main_eb2_inputs.rs\": 1\n"
+        },
+        {
+          "current_start": 391,
+          "current_end": 396,
+          "current": "      \"src/source_reflows_merge/main_eb2_inputs.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\": 1\n",
+          "original": "      \"src/source_reflows_merge/main_eb2_inputs.rs\": 1\n"
+        },
+        {
+          "current_start": 458,
+          "current_end": 463,
+          "current": "      \"src/source_reflows_merge/main_eb2_inputs.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\": 1\n",
+          "original": "      \"src/source_reflows_merge/main_eb2_inputs.rs\": 1\n"
+        }
+      ]
+    },
+    {
+      "path": "CHANGELOG.md",
+      "archive": "before/CHANGELOG.md",
+      "sha256": "aba6a0c37b2e4a63fcefe996fe6284ca65862e2447abcc2ee7362da61465f930",
+      "current_sha256": "706bcb76ee2d7308ce012535c37702327a6b215804a6852f61a4616fb796bf48",
+      "edits": [
+        {
+          "current_start": 0,
+          "current_end": 1,
+          "current": "- Source-only #831 cold terminal singleton receiving and deferred empty-memo payload promotion; complete old receivers and strict width0..4 gates retained, actual qualification pending.\n",
+          "original": ""
+        }
+      ]
+    }
+  ],
+  "new_sources": [
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs",
+      "sha256": "102960d3ec7d589141b46b6fbcc6f94fb789abcfb1b33d37a5de73492e793275"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs",
+      "sha256": "c58833b1f5eb96900f8263a9b519e35ecef6f38ff92eb26f755fdd362d933d06"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf.rs",
+      "sha256": "d671c9c7bc8208b841ec7e71bf4d2e53ba5f5efe77ddae7c23da6fcb6de5464d"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs",
+      "sha256": "b58f3c3cd73329644664ea7002a5a7cbd6c0992d513183932dd7f6a73f150c6b"
+    }
+  ],
+  "unchanged_owners": [
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "sha256": "969a66f6a53585c67165c9b7eba481cc8528bf93e7e8e9a797b47c99352199a7",
+      "assertions": 30
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs",
+      "sha256": "a25ce9f229ff208bcd02915e3495f15b0139087dfc9ce584a348b9092678b5dc",
+      "assertions": 0
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+      "sha256": "a373837be7e035dad61897d2f9e5156e29c0c3f37e258b0706ca3ea207cc74f7",
+      "assertions": 61
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "sha256": "891edcee186f1c7b3fb59bf7d2adf2443c9d230343569865d941b90410b04dd8",
+      "assertions": 60
+    }
+  ]
+}

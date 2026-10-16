@@ -347,6 +347,26 @@ pub(in crate::cleanup_plan::replay) fn validate_authenticated(
     } = &candidate.built;
     let mut canonical = canonical_shared::Canonicalizer::new(automaton, *sink);
     if budget.pays_allocations() {
+        budget.reserve_bytes(function, canonical_shared::Canonicalizer::COLD_NODE_CONTROLS,
+            "factored cold terminal node predicate")?;
+    }
+    if canonical.cold_dead_node(*hir_root) {
+        budget.reserve_array::<(usize, u64)>(function, 1, "lexical HIR weighted root")?;
+        let hir = canonical.id_for_comparison(function, vec![(*hir_root, 1)], budget);
+        #[cfg(test)]
+        instrumentation::phase(function, budget, "HIR canonicalization", None);
+        let hir = hir?;
+        budget.reserve_array::<(usize, u64)>(function, 1, "lexical plan weighted root")?;
+        let plan = canonical.id_for_comparison(function, vec![(*plan_root, 1)], budget);
+        #[cfg(test)]
+        instrumentation::phase(function, budget, "plan canonicalization", None);
+        return match (hir, plan?) {
+            (Some(hir), Some(plan)) if hir == plan => Ok(()),
+            (Some(_), Some(_)) => Err(skeleton_mismatch(function)),
+            _ => Err(replay_error(function, "cleanup replay factored trace multiplicity overflowed")),
+        };
+    }
+    if budget.pays_allocations() {
         budget.reserve_bytes(
             function,
             canonical_shared::closure_receiving::ClosureReceiving::DIRECT_CONTROLS,

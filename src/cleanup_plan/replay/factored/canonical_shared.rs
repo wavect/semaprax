@@ -271,6 +271,15 @@ impl<'a> Canonicalizer<'a> {
             });
         }
         if budget.pays_allocations() {
+            budget.reserve_bytes(function, Self::COLD_ROOT_CONTROLS, "factored cold terminal root predicate")?;
+        }
+        if root.len() == 1 && root[0].1 == 1 && self.cold_dead_node(root[0].0) {
+            if budget.pays_allocations() {
+                budget.reserve_bytes(function, Self::COLD_RESULT_CONTROLS, "factored cold terminal result receiving")?;
+            }
+            return self.cold_dead_id(function, root, budget);
+        }
+        if budget.pays_allocations() {
             budget.reserve_bytes(
                 function,
                 closure_receiving::ClosureReceiving::DIRECT_CONTROLS,
@@ -1433,3 +1442,11 @@ mod empty_signature;
 mod before_empty_signature;
 #[cfg(test)]
 mod empty_signature_tests;
+
+mod terminal_leaf;
+#[cfg(test)]
+mod terminal_leaf_tests;
+#[cfg(test)]
+mod before_terminal_leaf;
+#[cfg(test)]
+mod before_terminal_leaf_empty_memo;

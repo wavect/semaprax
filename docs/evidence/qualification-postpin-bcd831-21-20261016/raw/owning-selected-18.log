@@ -1,0 +1,16 @@
+
+running 1 test
+test cleanup_plan::replay::path_array::funded_tests::funded_capacity_exact_short_zero_and_first_output_work_frontier ... funded capacity count=0 old_paid=513 current_paid=735 old_allocated=2817 current_allocated=2817
+
+thread 'cleanup_plan::replay::path_array::funded_tests::funded_capacity_exact_short_zero_and_first_output_work_frontier' (13540274) panicked at src/cleanup_plan/replay/path_array/funded_tests.rs:165:13:
+assertion failed: allocation.allocated <= reserved
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::path_array::funded_tests::funded_capacity_exact_short_zero_and_first_output_work_frontier
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9247 filtered out; finished in 0.88s
+

@@ -1,0 +1,944 @@
+{
+  "source": "bcd83107ccda58800e9f2b848950cece03979de6",
+  "actual21": {
+    "PASS": 19,
+    "FAIL": 2
+  },
+  "assets": [
+    {
+      "path": "raw/READY.md",
+      "sha256": "357012d5b45034851cba58e810c390ad57b3a520f51892c31e0fa1f3118cf16f",
+      "bytes": 697,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/READY.md"
+    },
+    {
+      "path": "raw/compilation-manifest.json",
+      "sha256": "b4abf19acb977350b5608fe496e87732479be06864c0591b5cd23e24e6e0603a",
+      "bytes": 309109,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/compilation-manifest.json"
+    },
+    {
+      "path": "raw/drivers/build-owning.py",
+      "sha256": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888",
+      "bytes": 9776,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/drivers/build-owning.py"
+    },
+    {
+      "path": "raw/drivers/draft_contract.py",
+      "sha256": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1",
+      "bytes": 1752,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/drivers/draft_contract.py"
+    },
+    {
+      "path": "raw/drivers/observed_phase.py",
+      "sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867",
+      "bytes": 11471,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/drivers/observed_phase.py"
+    },
+    {
+      "path": "raw/drivers/run-owning-selected.py",
+      "sha256": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450",
+      "bytes": 10438,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/drivers/run-owning-selected.py"
+    },
+    {
+      "path": "raw/drivers/run-production-lib-cli-clippy.py",
+      "sha256": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077",
+      "bytes": 6214,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/drivers/run-production-lib-cli-clippy.py"
+    },
+    {
+      "path": "raw/drivers/semaprax_pressure_observation_v3.py",
+      "sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+      "bytes": 10269,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/drivers/semaprax_pressure_observation_v3.py"
+    },
+    {
+      "path": "raw/expected-counts.json",
+      "sha256": "b4abf19acb977350b5608fe496e87732479be06864c0591b5cd23e24e6e0603a",
+      "bytes": 309109,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/expected-counts.json"
+    },
+    {
+      "path": "raw/historical/47f72-clippy-production-result.json",
+      "sha256": "7c3364d177dd6303f456155e89c5da2596b5a8207c6bc667836926bfaef1928e",
+      "bytes": 7208,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/47f72-clippy-production-result.json"
+    },
+    {
+      "path": "raw/historical/47f72-clippy-production-toolchain-full-cli-result.json",
+      "sha256": "867c68b8a62453d44dd64b59960d068ac26dda4e0406c9f740e397e261414986",
+      "bytes": 7374,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/47f72-clippy-production-toolchain-full-cli-result.json"
+    },
+    {
+      "path": "raw/historical/47f72-expected-counts.json",
+      "sha256": "4790a86bd1130495985deaf14d216756b272f6b1615b6ea86e3d152db95430dc",
+      "bytes": 571859,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/47f72-expected-counts.json"
+    },
+    {
+      "path": "raw/historical/47f72-owning-build-result.json",
+      "sha256": "e5c270a96c43780d9dba1beb2aca405d2dbe3d1427cde18a92eda2fd7f57f7ad",
+      "bytes": 50278,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/47f72-owning-build-result.json"
+    },
+    {
+      "path": "raw/historical/47f72-owning-selected-results.json",
+      "sha256": "56d57615ed3bf8b3bbdaf40eefab6a00ac46cef2d1795d3520f51c8b2ec26fd5",
+      "bytes": 610580,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/47f72-owning-selected-results.json"
+    },
+    {
+      "path": "raw/historical/47f72-preparation-receipt.json",
+      "sha256": "da7ec2938c14ed1ec7e5d96bf2520712b09443d2c269f90f44a1667fd2dae9fe",
+      "bytes": 17524,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/47f72-preparation-receipt.json"
+    },
+    {
+      "path": "raw/historical/47f72-supplemental-historical-outcomes.json",
+      "sha256": "72ec05348da46bc0dd88f35642e8aa1ece0a20ce1e7e268dea4724fcc89f12f2",
+      "bytes": 44983,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/47f72-supplemental-historical-outcomes.json"
+    },
+    {
+      "path": "raw/historical/failed-b3a53/compilation-manifest.json",
+      "sha256": "99a014d51e548e517552622613d6f1fa75995c0a836fd42a4b069efcb6e41ec9",
+      "bytes": 465831,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/failed-b3a53/compilation-manifest.json"
+    },
+    {
+      "path": "raw/historical/failed-b3a53/expected-counts.json",
+      "sha256": "99a014d51e548e517552622613d6f1fa75995c0a836fd42a4b069efcb6e41ec9",
+      "bytes": 465831,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/failed-b3a53/expected-counts.json"
+    },
+    {
+      "path": "raw/historical/failed-b3a53/launch-binding.json",
+      "sha256": "bc9f2ad5051dffe1362bc97834c865bd6496042ca21e18380a2ac6a95b95984b",
+      "bytes": 641,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/failed-b3a53/launch-binding.json"
+    },
+    {
+      "path": "raw/historical/failed-b3a53/memory-samples.jsonl",
+      "sha256": "bafb170da5a5ebaac824bd94b9fa784e8c5f143c9146023cd9d8749ff1795410",
+      "bytes": 105238,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/failed-b3a53/memory-samples.jsonl"
+    },
+    {
+      "path": "raw/historical/failed-b3a53/owning-build-progress.json",
+      "sha256": "e9c10ab5036f255210659965e4306a5330c3118ed8630ffe8824b6ddf431cdb8",
+      "bytes": 9243,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/failed-b3a53/owning-build-progress.json"
+    },
+    {
+      "path": "raw/historical/failed-b3a53/owning-build-result.json",
+      "sha256": "45180f30151b5cef611df28d94576d9cc73ccfaf1d8d787876f3554dc7a296ea",
+      "bytes": 9557,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/failed-b3a53/owning-build-result.json"
+    },
+    {
+      "path": "raw/historical/failed-b3a53/owning-build.jsonl",
+      "sha256": "e628e746366413a68e0612c4fdb725bcbf5dc72e9af090fa9ca79530e41c4a17",
+      "bytes": 255913,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/failed-b3a53/owning-build.jsonl"
+    },
+    {
+      "path": "raw/historical/failed-b3a53/owning-build.log",
+      "sha256": "dcce80f7be30da2fa5e94a3c18742b714284ca7de9e8212ac344f5a397a73aa1",
+      "bytes": 195,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/failed-b3a53/owning-build.log"
+    },
+    {
+      "path": "raw/historical/failed-b3a53/preparation-receipt.json",
+      "sha256": "766ae53b7644976d3e48ffb8050b8b0edc943e92e49bc4b85fbf084b9b3eb67f",
+      "bytes": 12672,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/failed-b3a53/preparation-receipt.json"
+    },
+    {
+      "path": "raw/historical/failed-b3a53/pressure-guardian-source.py",
+      "sha256": "115dfba227713331fe0b021d787e9c7ddff44e3cf5ad1524526da45bb322021a",
+      "bytes": 6400,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/failed-b3a53/pressure-guardian-source.py"
+    },
+    {
+      "path": "raw/historical/failed-b3a53/pressure-guardian.jsonl",
+      "sha256": "c6b716a1153bfdb56d45bbf6fc631ac033fbe94d4761aef9106941f6d2a21067",
+      "bytes": 17295,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/failed-b3a53/pressure-guardian.jsonl"
+    },
+    {
+      "path": "raw/historical/failed-b3a53/registration.json",
+      "sha256": "303723a787d1214a3ff7627e950f30eb93ea12fafa563328fc4d6a2b2786dedd",
+      "bytes": 102754,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/failed-b3a53/registration.json"
+    },
+    {
+      "path": "raw/historical/failed-b3a53/supplemental-historical-outcomes.json",
+      "sha256": "83a26e90b1fe4b92d2f183733454a2c40825c836cbb535d0200ac2ad7f66273f",
+      "bytes": 40517,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/failed-b3a53/supplemental-historical-outcomes.json"
+    },
+    {
+      "path": "raw/historical/inherited/364d60-clippy-production-result.json",
+      "sha256": "c86cae8dd29d974e6c1e9e6d8fb46dde2c0168587a43c6d7d5ab10eaac5b7920",
+      "bytes": 7219,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/364d60-clippy-production-result.json"
+    },
+    {
+      "path": "raw/historical/inherited/364d60-clippy-production-toolchain-full-cli-result.json",
+      "sha256": "4597041e4cd342981848d1f6ed3e62abcdc42965ebc41486daa5cd54af6bccd5",
+      "bytes": 7489,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/364d60-clippy-production-toolchain-full-cli-result.json"
+    },
+    {
+      "path": "raw/historical/inherited/364d60-expected-counts.json",
+      "sha256": "2aaf11803b37d0df0b9ba5d8d423b092a9eed32ac6787aabf6b90410606ba7d1",
+      "bytes": 514128,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/364d60-expected-counts.json"
+    },
+    {
+      "path": "raw/historical/inherited/364d60-owning-build-result.json",
+      "sha256": "6b519dfefdb8d3239626b622b4c11d94fbe360b04d7f7e4f3c639212167744b8",
+      "bytes": 41225,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/364d60-owning-build-result.json"
+    },
+    {
+      "path": "raw/historical/inherited/364d60-owning-selected-results.json",
+      "sha256": "b8d64b2ab56903eca8bccff962aa357c144d99e81f58ef77ca0cac4a8b9eab9c",
+      "bytes": 510515,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/364d60-owning-selected-results.json"
+    },
+    {
+      "path": "raw/historical/inherited/364d60-preparation-receipt.json",
+      "sha256": "5f8d43c8061bcead30a307f44a09ae3409174f9571d563969feca293acf70937",
+      "bytes": 9850,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/364d60-preparation-receipt.json"
+    },
+    {
+      "path": "raw/historical/inherited/364d60-supplemental-historical-outcomes.json",
+      "sha256": "0e27ffa67b5898a071527332d1b8342222c5a7dbeef2b862c4f258e67be19af0",
+      "bytes": 32481,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/364d60-supplemental-historical-outcomes.json"
+    },
+    {
+      "path": "raw/historical/inherited/failed-b3a53/compilation-manifest.json",
+      "sha256": "99a014d51e548e517552622613d6f1fa75995c0a836fd42a4b069efcb6e41ec9",
+      "bytes": 465831,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/failed-b3a53/compilation-manifest.json"
+    },
+    {
+      "path": "raw/historical/inherited/failed-b3a53/expected-counts.json",
+      "sha256": "99a014d51e548e517552622613d6f1fa75995c0a836fd42a4b069efcb6e41ec9",
+      "bytes": 465831,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/failed-b3a53/expected-counts.json"
+    },
+    {
+      "path": "raw/historical/inherited/failed-b3a53/launch-binding.json",
+      "sha256": "bc9f2ad5051dffe1362bc97834c865bd6496042ca21e18380a2ac6a95b95984b",
+      "bytes": 641,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/failed-b3a53/launch-binding.json"
+    },
+    {
+      "path": "raw/historical/inherited/failed-b3a53/memory-samples.jsonl",
+      "sha256": "bafb170da5a5ebaac824bd94b9fa784e8c5f143c9146023cd9d8749ff1795410",
+      "bytes": 105238,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/failed-b3a53/memory-samples.jsonl"
+    },
+    {
+      "path": "raw/historical/inherited/failed-b3a53/owning-build-progress.json",
+      "sha256": "e9c10ab5036f255210659965e4306a5330c3118ed8630ffe8824b6ddf431cdb8",
+      "bytes": 9243,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/failed-b3a53/owning-build-progress.json"
+    },
+    {
+      "path": "raw/historical/inherited/failed-b3a53/owning-build-result.json",
+      "sha256": "45180f30151b5cef611df28d94576d9cc73ccfaf1d8d787876f3554dc7a296ea",
+      "bytes": 9557,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/failed-b3a53/owning-build-result.json"
+    },
+    {
+      "path": "raw/historical/inherited/failed-b3a53/owning-build.jsonl",
+      "sha256": "e628e746366413a68e0612c4fdb725bcbf5dc72e9af090fa9ca79530e41c4a17",
+      "bytes": 255913,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/failed-b3a53/owning-build.jsonl"
+    },
+    {
+      "path": "raw/historical/inherited/failed-b3a53/owning-build.log",
+      "sha256": "dcce80f7be30da2fa5e94a3c18742b714284ca7de9e8212ac344f5a397a73aa1",
+      "bytes": 195,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/failed-b3a53/owning-build.log"
+    },
+    {
+      "path": "raw/historical/inherited/failed-b3a53/preparation-receipt.json",
+      "sha256": "766ae53b7644976d3e48ffb8050b8b0edc943e92e49bc4b85fbf084b9b3eb67f",
+      "bytes": 12672,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/failed-b3a53/preparation-receipt.json"
+    },
+    {
+      "path": "raw/historical/inherited/failed-b3a53/pressure-guardian-source.py",
+      "sha256": "115dfba227713331fe0b021d787e9c7ddff44e3cf5ad1524526da45bb322021a",
+      "bytes": 6400,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/failed-b3a53/pressure-guardian-source.py"
+    },
+    {
+      "path": "raw/historical/inherited/failed-b3a53/pressure-guardian.jsonl",
+      "sha256": "c6b716a1153bfdb56d45bbf6fc631ac033fbe94d4761aef9106941f6d2a21067",
+      "bytes": 17295,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/failed-b3a53/pressure-guardian.jsonl"
+    },
+    {
+      "path": "raw/historical/inherited/failed-b3a53/registration.json",
+      "sha256": "303723a787d1214a3ff7627e950f30eb93ea12fafa563328fc4d6a2b2786dedd",
+      "bytes": 102754,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/failed-b3a53/registration.json"
+    },
+    {
+      "path": "raw/historical/inherited/failed-b3a53/supplemental-historical-outcomes.json",
+      "sha256": "83a26e90b1fe4b92d2f183733454a2c40825c836cbb535d0200ac2ad7f66273f",
+      "bytes": 40517,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/failed-b3a53/supplemental-historical-outcomes.json"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/2d4b50-clippy-production-result.json",
+      "sha256": "3bfdd2a7453fa4a1bd692a0488d1cb9c9ec8a5f4a71f649db092e8524824fb38",
+      "bytes": 7217,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/2d4b50-clippy-production-result.json"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/2d4b50-clippy-production-toolchain-full-cli-result.json",
+      "sha256": "a8c42e7b269b26524794a8c422153b278ee62a9c9486aaec1932f438fc1e51c8",
+      "bytes": 7550,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/2d4b50-clippy-production-toolchain-full-cli-result.json"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/2d4b50-expected-counts.json",
+      "sha256": "db7076908874ab299285b9fe29dfd6e061acc1d800513af4a26bf288070a3968",
+      "bytes": 355569,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/2d4b50-expected-counts.json"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/2d4b50-owning-build-result.json",
+      "sha256": "7a509591c68c82f0badf1027ce70a1e3d738d49083f36782b1b5de0f41406053",
+      "bytes": 40833,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/2d4b50-owning-build-result.json"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/2d4b50-owning-selected-results.json",
+      "sha256": "4956be8f703f38f1d524cde6032245091d076cab9ce762482bbc2e4e219951d5",
+      "bytes": 425829,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/2d4b50-owning-selected-results.json"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/2d4b50-preparation-receipt.json",
+      "sha256": "4c4ff0cdd79c6634741f3c864d99b1d667fb72b8483fc1e9ff08ee3f43e379ee",
+      "bytes": 6984,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/2d4b50-preparation-receipt.json"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/2d4b50-supplemental-historical-outcomes.json",
+      "sha256": "7976110cabda263abc22c696231b0430cf2d7b0e78d6e732e04f8055f0004bfe",
+      "bytes": 48174,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/2d4b50-supplemental-historical-outcomes.json"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/inherited/8bb-original-resource-stop-owning-build-result.json",
+      "sha256": "12a6367d287dd6717428a38d39dfd6c79d70325a9871ad6e237d2a1ca3ff0fab",
+      "bytes": 22544,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/inherited/8bb-original-resource-stop-owning-build-result.json"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/inherited/8bb76-clippy-production-result.json",
+      "sha256": "cf2ef8901008ae87b774e14271dccd6bfc93115f28b0f5c17101588ec6e0e9d5",
+      "bytes": 7064,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/inherited/8bb76-clippy-production-result.json"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/inherited/8bb76-clippy-production-toolchain-full-cli-result.json",
+      "sha256": "296e59abfbd097c46ffe4518bedbb10ab9330f019e72c8bc016ab10671d9f66a",
+      "bytes": 6851,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/inherited/8bb76-clippy-production-toolchain-full-cli-result.json"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/inherited/8bb76-complete-earlier175-supplemental-historical-outcomes.json",
+      "sha256": "51b0afceed084fd443b21636158f37dd113138bc178e7d017d53298838be2221",
+      "bytes": 33336,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/inherited/8bb76-complete-earlier175-supplemental-historical-outcomes.json"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/inherited/8bb76-owning-build-result.json",
+      "sha256": "adaeeaa70d39722dfe0110b7e073f8300988d7fc337c33c80f500d92b945bc4f",
+      "bytes": 50169,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/inherited/8bb76-owning-build-result.json"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/inherited/8bb76-owning-selected-results.json",
+      "sha256": "cd95ec6a0b385cecba18aeca28554e6b142e1578fbb111b8f0b6f2aeb3eba5f1",
+      "bytes": 648856,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/inherited/8bb76-owning-selected-results.json"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/inherited/8bb9supplement-owning-selected-results.json",
+      "sha256": "abe0a45c5da123e244dde1c65fec3c2f58e6aed21985fe8320b9132cf8745e82",
+      "bytes": 77033,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/inherited/8bb9supplement-owning-selected-results.json"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/inherited/failed5aac-expected-counts.json",
+      "sha256": "fb1b9793aae70a76f0a9b04a01e6265d3de97491608f92b864fde024b0fe3d87",
+      "bytes": 342537,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/inherited/failed5aac-expected-counts.json"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/inherited/failed5aac-owning-build-result.json",
+      "sha256": "19d7c5ebdc3b69eaf855e8c2f036eee9a0f3d0c8dcde74e798fc68ebf1fc6ddd",
+      "bytes": 9653,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/inherited/failed5aac-owning-build-result.json"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/inherited/failed5aac-owning-build.jsonl",
+      "sha256": "aa762d120324f24c620179f13a400b0bb6cf6f429bf8e0713089fa363a5243aa",
+      "bytes": 289101,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/inherited/failed5aac-owning-build.jsonl"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/inherited/failed5aac-owning-build.log",
+      "sha256": "ba97b78d798b11d5513a3b0d0aef6450363a8744cb1674d86dda0dcd118575fd",
+      "bytes": 197,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/inherited/failed5aac-owning-build.log"
+    },
+    {
+      "path": "raw/historical/inherited/inherited/inherited/failed5aac-preparation-receipt.json",
+      "sha256": "b236467934e383e4d4f2a7d75784adb37f6c2f7341c03649c9b27757c9214d0c",
+      "bytes": 4902,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/historical/inherited/inherited/inherited/failed5aac-preparation-receipt.json"
+    },
+    {
+      "path": "raw/launch-binding.json",
+      "sha256": "6ffec0a0d28cd3e426eacbd7ebc7bcee7eaf48290265d3d01a1c8ef36bc1cefb",
+      "bytes": 653,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/launch-binding.json"
+    },
+    {
+      "path": "raw/memory-samples.jsonl",
+      "sha256": "2309a2721bd76467746d5dc14f7a54458f249aa24e80a26d72bb6de43d6bcc36",
+      "bytes": 837878,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-build-progress.json",
+      "sha256": "db357c477650721da1a7d8419a2cf38a98ec38021000adad9cb96d8ee5900cb7",
+      "bytes": 35005,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-build-progress.json"
+    },
+    {
+      "path": "raw/owning-build-result.json",
+      "sha256": "2942bfe2be530c4c5b65a7ccad5d540e318ce5f45ebeed62543b5c1ad4382353",
+      "bytes": 39194,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-build-result.json"
+    },
+    {
+      "path": "raw/owning-build.jsonl",
+      "sha256": "0daee4f8a2e2a0ad6fecd5546c52ea8e1f8bc0005bf83da74c5b42eb290db4ca",
+      "bytes": 927307,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-build.jsonl"
+    },
+    {
+      "path": "raw/owning-build.log",
+      "sha256": "864193f3f2e11706cedda07ed36e2465af46279587800e0bc745f036e573a39d",
+      "bytes": 1114,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-build.log"
+    },
+    {
+      "path": "raw/owning-selected-00-memory-samples.jsonl",
+      "sha256": "a4e15367f699aca34f538846972e692ac2973978a0745aee7f05ae490932718e",
+      "bytes": 3642,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-00-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-00.log",
+      "sha256": "30945ed2d94aab1c2de3335c3a8a485932154fc0a1d7028d10f1ee282b1537d8",
+      "bytes": 250,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-00.log"
+    },
+    {
+      "path": "raw/owning-selected-01-memory-samples.jsonl",
+      "sha256": "6d80a2cd7a6eb32a0b6b178822687d354a7593b551238fb4294497d3491ed420",
+      "bytes": 14452,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-01-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-01.log",
+      "sha256": "bd697ef5c8d8aec4d8150c8b783f7c378f8f1c4ab49d66196b45990492fd0479",
+      "bytes": 203,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-01.log"
+    },
+    {
+      "path": "raw/owning-selected-02-memory-samples.jsonl",
+      "sha256": "4f3e4b62dc3e61193631e9bf8ac4155425ba49b48d18c409d1c56e4bdb80623a",
+      "bytes": 3637,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-02-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-02.log",
+      "sha256": "db138941adea5b66d1214971dcdf7819c0ba06f564c04676ea987b8d1d42ad76",
+      "bytes": 203,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-02.log"
+    },
+    {
+      "path": "raw/owning-selected-03-memory-samples.jsonl",
+      "sha256": "a72a852a0604537ffe60150e719e8f46dad31121f27130fcead58c359509a890",
+      "bytes": 3515,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-03-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-03.log",
+      "sha256": "c7806bfd51bb59c375a4eecd9f9592e9bb146be99eef10b3313201045c2d96a6",
+      "bytes": 237,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-03.log"
+    },
+    {
+      "path": "raw/owning-selected-04-memory-samples.jsonl",
+      "sha256": "e44f6327e45f0dd2903fbb29862b43bb9b4becbb5bce68ff89be31f74eef3256",
+      "bytes": 3515,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-04-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-04.log",
+      "sha256": "e476bf97565e7a0435d30cfcab0dcbad23774eae2f15f2c3f56b8782e3300aa0",
+      "bytes": 260,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-04.log"
+    },
+    {
+      "path": "raw/owning-selected-05-memory-samples.jsonl",
+      "sha256": "7b23d0216baa14bcb5f71b1b8a62b2a010c9bb538d03312f5943d25cd30804f1",
+      "bytes": 3512,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-05-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-05.log",
+      "sha256": "000e6edbfe11e7bbf48bf8c3be1be74bf497cfc88787a630fdb071ae3ba83703",
+      "bytes": 135990,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-05.log"
+    },
+    {
+      "path": "raw/owning-selected-06-memory-samples.jsonl",
+      "sha256": "3fe941feca2bae775c61920aaad592c24d5765ba25fd0744002ac8ffddb256f9",
+      "bytes": 3513,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-06-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-06.log",
+      "sha256": "32350cd13f4da7cbcf17fcd97aa0bb4893bc64872cdfbd17060be525db9e8c50",
+      "bytes": 252,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-06.log"
+    },
+    {
+      "path": "raw/owning-selected-07-memory-samples.jsonl",
+      "sha256": "55977ab1638d8f979bbb7de05bee81b93a614338abb8a8486d6afae085bcca35",
+      "bytes": 3517,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-07-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-07.log",
+      "sha256": "b646c89259c0fab43afc0cd4fec8a7278f3abeac822a3d128bf9d48b886591ac",
+      "bytes": 260,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-07.log"
+    },
+    {
+      "path": "raw/owning-selected-08-memory-samples.jsonl",
+      "sha256": "67cd05aa5955df479f7990dbbd4be582d6e1b0d74055493365900b15deead7fd",
+      "bytes": 3510,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-08-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-08.log",
+      "sha256": "b3aa0e5495e34a6ecee85b22545b9109963ee66bf6e6ad1a33f7e75628b41aa9",
+      "bytes": 283,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-08.log"
+    },
+    {
+      "path": "raw/owning-selected-09-memory-samples.jsonl",
+      "sha256": "561bfac05f8e231e39c8911e31ece7e96c1d5949098336cf9a3c2f9922587130",
+      "bytes": 3520,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-09-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-09.log",
+      "sha256": "6dd779068f8d75a69c1331bd82a2fe1a4719b3e9854c6ee21045891298e2ade5",
+      "bytes": 45599,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-09.log"
+    },
+    {
+      "path": "raw/owning-selected-10-memory-samples.jsonl",
+      "sha256": "02838aea27b08b051f8347d7191e140592ff67eff50686a69c7c184a1df40835",
+      "bytes": 3520,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-10-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-10.log",
+      "sha256": "5109e354a540eb9d72f5513cbf8b2923cb80be3711a85f24a58ab05b3b7ab188",
+      "bytes": 275,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-10.log"
+    },
+    {
+      "path": "raw/owning-selected-11-memory-samples.jsonl",
+      "sha256": "cf94a875d543b1f139d4a7e0aee1a4cb1d408ef221078fefb55f478bd61ae852",
+      "bytes": 3517,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-11-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-11.log",
+      "sha256": "53f6632c0019dd4411fffeff1383e8dffcd96d92fa6342cf50ffa49f70532212",
+      "bytes": 251,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-11.log"
+    },
+    {
+      "path": "raw/owning-selected-12-memory-samples.jsonl",
+      "sha256": "efe5df63d7c8750586f87717502ea2eacc64e24441141eba4699b4deeec1e31e",
+      "bytes": 3520,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-12-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-12.log",
+      "sha256": "091ece1ddac0289094f4d392904ed994a57ff4250957ccb72fc2f1df481035f0",
+      "bytes": 45539,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-12.log"
+    },
+    {
+      "path": "raw/owning-selected-13-memory-samples.jsonl",
+      "sha256": "73c041b6bd782f5f55e7b8683c597f181097cb0b9b21cce122b944b68103c532",
+      "bytes": 3520,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-13-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-13.log",
+      "sha256": "2c6e437c2c42ee120d44a763a2c46ae70b717e7216b1135a70e0b1586f16452e",
+      "bytes": 248,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-13.log"
+    },
+    {
+      "path": "raw/owning-selected-14-memory-samples.jsonl",
+      "sha256": "594c529e5991ecb1eda74bd79e7c6d30de9690d77655ce3c907172429030980b",
+      "bytes": 3635,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-14-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-14.log",
+      "sha256": "7352ebef165587cb00d05f45bd2e301629dbf12472361da966ed6d0eff2f5e22",
+      "bytes": 222,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-14.log"
+    },
+    {
+      "path": "raw/owning-selected-15-memory-samples.jsonl",
+      "sha256": "570105171ccc2f76ac8e5e1dd2c8515949d2756d074a3ef4082072b6832f3192",
+      "bytes": 3639,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-15-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-15.log",
+      "sha256": "d2c118846ccc0e26178b3b88506eef6e1f30f6fdd8f3e0c4cf5b666f97e669b3",
+      "bytes": 238,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-15.log"
+    },
+    {
+      "path": "raw/owning-selected-16-memory-samples.jsonl",
+      "sha256": "b2d47bdb8b675d48da5f731213e06d5812b24ad4a1c7672b813981ef8db4ca41",
+      "bytes": 3996,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-16-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-16.log",
+      "sha256": "1c0607263a3f0e0e836bfe6dba3dcb3c14274d84a2dacc52f40703f4a30405f5",
+      "bytes": 904,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-16.log"
+    },
+    {
+      "path": "raw/owning-selected-17-memory-samples.jsonl",
+      "sha256": "cad702e7316df2f15f286d3c31acb5b87a7fbbc8144e5bfd69e8350554c3831f",
+      "bytes": 3642,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-17-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-17.log",
+      "sha256": "bbe31e39706fc73c16c00563e38e20aab81ea16ff65143a41033aec7e4bafefd",
+      "bytes": 233,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-17.log"
+    },
+    {
+      "path": "raw/owning-selected-18-memory-samples.jsonl",
+      "sha256": "7c9be5faf069aab7867ba9f7103616c325309670b163d628f75c4ca21c09195a",
+      "bytes": 3638,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-18-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-18.log",
+      "sha256": "69143b194b0c06e7e0339b8c561a4b7e9356f6b86b7e3d387e25640176e1f055",
+      "bytes": 814,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-18.log"
+    },
+    {
+      "path": "raw/owning-selected-19-memory-samples.jsonl",
+      "sha256": "7e75da6bbc555ace4865da96fe2a947fbe0a86eafd0fbffac46c6df03d1250b8",
+      "bytes": 6180,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-19-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-19.log",
+      "sha256": "db671302ef43b043ce1af04209b4a68f1829295e3606331c6f23688b956085de",
+      "bytes": 194,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-19.log"
+    },
+    {
+      "path": "raw/owning-selected-20-memory-samples.jsonl",
+      "sha256": "27ab8a4a67c58fed95eade9be1e013e091b99c81692317a7c5d562d6facbbf57",
+      "bytes": 24684,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-20-memory-samples.jsonl"
+    },
+    {
+      "path": "raw/owning-selected-20.log",
+      "sha256": "591998b18b4635e06e11f4b96da737d7036a8991d54e73069ba0c12cd09dd84b",
+      "bytes": 189,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-20.log"
+    },
+    {
+      "path": "raw/owning-selected-results.json",
+      "sha256": "39842d60ea6a9b4fa7e0285697a144e2741eb2148debdc3b1393a7c2151af397",
+      "bytes": 179417,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/owning-selected-results.json"
+    },
+    {
+      "path": "raw/preparation-receipt.json",
+      "sha256": "69251dd13e8e814d96820db1f5a77ae370fee96235199408a1a3a16573a5a912",
+      "bytes": 25722,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/preparation-receipt.json"
+    },
+    {
+      "path": "raw/pressure-guardian-source.py",
+      "sha256": "115dfba227713331fe0b021d787e9c7ddff44e3cf5ad1524526da45bb322021a",
+      "bytes": 6400,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/pressure-guardian-source.py"
+    },
+    {
+      "path": "raw/pressure-guardian.jsonl",
+      "sha256": "f23aa13c9f6d5800b1ed0f72f0dbb9587028abc197a6da4f5604e33b3584afcb",
+      "bytes": 127252,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/pressure-guardian.jsonl"
+    },
+    {
+      "path": "raw/registration.json",
+      "sha256": "3280e863572a648659efd4fe127cd24073fc9b8505121dfaed98bfaa5ad81cbf",
+      "bytes": 33477,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/registration.json"
+    },
+    {
+      "path": "raw/supplemental-historical-outcomes.json",
+      "sha256": "74936b38b36b9bd374c67e85d250d42b5092d54701242bb2fd3a7e261893001d",
+      "bytes": 63346,
+      "original": "/Volumes/Semaprax/lane-prompts/postpin-bcd831-21-retry1-qualification-20261016/supplemental-historical-outcomes.json"
+    },
+    {
+      "path": "parent-audits/postpin21-parent-terminal-audit-20261016.json",
+      "sha256": "28f5fdc96c1a04b42f21aba4b14fb1de5fe2d16ed68954d4aabf85470c695820",
+      "bytes": 275607,
+      "original": "/Volumes/Semaprax/provenance/postpin21-parent-terminal-audit-20261016.json"
+    },
+    {
+      "path": "parent-audits/audit-postpin21-terminal-20261016.py",
+      "sha256": "2b83566219bf936d8a7193948ee2baf29ec9d9ff5ac386993aad99349d45c6c5",
+      "bytes": 10844,
+      "original": "/Volumes/Semaprax/provenance/audit-postpin21-terminal-20261016.py"
+    },
+    {
+      "path": "parent-audits/audit-47f72-terminal-20261016.py",
+      "sha256": "383dc5ed4d876d5ec366fbf0cc8939015331be3cddb88bc3cc41f23fb1cff559",
+      "bytes": 9143,
+      "original": "/Volumes/Semaprax/provenance/audit-47f72-terminal-20261016.py"
+    },
+    {
+      "path": "parent-audits/postpin-bcd831-21-retry1-preparation.stdout.log",
+      "sha256": "075a8e67a5a362927b919dcaac3bd5277f61b3fc0ed757e1bf300f8d2293aa37",
+      "bytes": 173297,
+      "original": "/Volumes/Semaprax/provenance/postpin-bcd831-21-retry1-preparation.stdout.log"
+    },
+    {
+      "path": "parent-audits/postpin-bcd831-21-retry1-build-wrapper.stdout.log",
+      "sha256": "3b9509b90e20d95c08f276135b49253c19c0fdc6a068145ec7e31d101afd6db8",
+      "bytes": 322,
+      "original": "/Volumes/Semaprax/provenance/postpin-bcd831-21-retry1-build-wrapper.stdout.log"
+    },
+    {
+      "path": "parent-audits/postpin-bcd831-21-retry1-runtime.stdout.log",
+      "sha256": "ac1d66fecb93c9f656448e8a13a4100ad08a41e4d00a798be7b15d89b21b8ba8",
+      "bytes": 3499,
+      "original": "/Volumes/Semaprax/provenance/postpin-bcd831-21-retry1-runtime.stdout.log"
+    },
+    {
+      "path": "parent-audits/parent-pin-fixture14-source-audit-20261016.json",
+      "sha256": "1b7edd005d9c831827d06617daed34e753d89a3d9df7e52368d5ed65394c4d77",
+      "bytes": 4458,
+      "original": "/Volumes/Semaprax/provenance/parent-pin-fixture14-source-audit-20261016.json"
+    },
+    {
+      "path": "interrupted-first-attempt/README.md",
+      "sha256": "1c5341cb830e134ad367c87c0e62f3c01cecaa216d0fc7a575d7e427fb99afc6",
+      "bytes": 1112,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/README.md"
+    },
+    {
+      "path": "interrupted-first-attempt/asset-manifest.json",
+      "sha256": "ed56cb27fc7cc2282e1ee1904cb13e7628bddf939cfdbb6c5e92c3eec1569329",
+      "bytes": 5225,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/asset-manifest.json"
+    },
+    {
+      "path": "interrupted-first-attempt/compilation-manifest.json",
+      "sha256": "27f4ab3e97eca9c9136f53d90e61e24db7f85b121d2224739b12cd8f305fa01b",
+      "bytes": 308696,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/compilation-manifest.json"
+    },
+    {
+      "path": "interrupted-first-attempt/drivers/build-owning.py",
+      "sha256": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888",
+      "bytes": 9776,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/drivers/build-owning.py"
+    },
+    {
+      "path": "interrupted-first-attempt/drivers/draft_contract.py",
+      "sha256": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1",
+      "bytes": 1752,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/drivers/draft_contract.py"
+    },
+    {
+      "path": "interrupted-first-attempt/drivers/observed_phase.py",
+      "sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867",
+      "bytes": 11471,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/drivers/observed_phase.py"
+    },
+    {
+      "path": "interrupted-first-attempt/drivers/run-owning-selected.py",
+      "sha256": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450",
+      "bytes": 10438,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/drivers/run-owning-selected.py"
+    },
+    {
+      "path": "interrupted-first-attempt/drivers/run-production-lib-cli-clippy.py",
+      "sha256": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077",
+      "bytes": 6214,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/drivers/run-production-lib-cli-clippy.py"
+    },
+    {
+      "path": "interrupted-first-attempt/drivers/semaprax_pressure_observation_v3.py",
+      "sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+      "bytes": 10269,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/drivers/semaprax_pressure_observation_v3.py"
+    },
+    {
+      "path": "interrupted-first-attempt/expected-counts.json",
+      "sha256": "27f4ab3e97eca9c9136f53d90e61e24db7f85b121d2224739b12cd8f305fa01b",
+      "bytes": 308696,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/expected-counts.json"
+    },
+    {
+      "path": "interrupted-first-attempt/late-separate-group-observation.json",
+      "sha256": "4c906ebe531f5c9bdd8c8313dde7ed65737997698e4252d11a204c7d56a2e722",
+      "bytes": 244,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/late-separate-group-observation.json"
+    },
+    {
+      "path": "interrupted-first-attempt/memory-samples.jsonl",
+      "sha256": "637cd3c820662093c20abef2d45e4b6c47ed208dd4d34b7a127a1cd9450a9297",
+      "bytes": 14675,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/memory-samples.jsonl"
+    },
+    {
+      "path": "interrupted-first-attempt/owning-build-result.json",
+      "sha256": "1c35e20a16950b934775dcfbf3d105191fdc8cce9af1f73a993986dcf3f046fd",
+      "bytes": 7776,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/owning-build-result.json"
+    },
+    {
+      "path": "interrupted-first-attempt/owning-build.jsonl",
+      "sha256": "40b4aba064dfeba1bc74ab73df0f523963fce4d9bccc3bef0db2fc014075f0a4",
+      "bytes": 236326,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/owning-build.jsonl"
+    },
+    {
+      "path": "interrupted-first-attempt/owning-build.log",
+      "sha256": "7c718e24287f3d59d597c6f922c84e2e4cae0de9da73df1865bac255b53d09d2",
+      "bytes": 105,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/owning-build.log"
+    },
+    {
+      "path": "interrupted-first-attempt/preparation-receipt.json",
+      "sha256": "d5c8f98490a4b32e120d5f829ceabfa5f17e2bb9fda5c1ec3c78afd95b752763",
+      "bytes": 25309,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/preparation-receipt.json"
+    },
+    {
+      "path": "interrupted-first-attempt/pressure-guardian-source.py",
+      "sha256": "115dfba227713331fe0b021d787e9c7ddff44e3cf5ad1524526da45bb322021a",
+      "bytes": 6400,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/pressure-guardian-source.py"
+    },
+    {
+      "path": "interrupted-first-attempt/pressure-guardian.jsonl",
+      "sha256": "1aa5b75ea987173d5fcdac79f093e74372ff58d3eee6879a2ad78294b2aa1a92",
+      "bytes": 5968,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/pressure-guardian.jsonl"
+    },
+    {
+      "path": "interrupted-first-attempt/registration.json",
+      "sha256": "3280e863572a648659efd4fe127cd24073fc9b8505121dfaed98bfaa5ad81cbf",
+      "bytes": 33477,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/registration.json"
+    },
+    {
+      "path": "interrupted-first-attempt/wrapper.stdout.log",
+      "sha256": "12c135d52bfec42b2868913419d6192e39300937bbc88363df047eb0c6352c47",
+      "bytes": 316,
+      "original": "/Volumes/Semaprax/provenance/failed-postpin-bcd831-first-unit-20261016/wrapper.stdout.log"
+    },
+    {
+      "path": "historical47f-clippy/clippy-production-result.json",
+      "sha256": "7c3364d177dd6303f456155e89c5da2596b5a8207c6bc667836926bfaef1928e",
+      "bytes": 7208,
+      "original": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/clippy-production-result.json"
+    },
+    {
+      "path": "historical47f-clippy/clippy-production.log",
+      "sha256": "a57c4552f9e916829374c5a124611febb77cb918b281547d3d814634fd88a9ff",
+      "bytes": 166,
+      "original": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/clippy-production.log"
+    },
+    {
+      "path": "historical47f-clippy/clippy-production-memory-samples.jsonl",
+      "sha256": "a320b1103c94132c4763ed63280ba745fc0d266387356528951f9f35eaa87c26",
+      "bytes": 81104,
+      "original": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/clippy-production-memory-samples.jsonl"
+    },
+    {
+      "path": "historical47f-clippy/clippy-production-toolchain-full-cli-result.json",
+      "sha256": "867c68b8a62453d44dd64b59960d068ac26dda4e0406c9f740e397e261414986",
+      "bytes": 7374,
+      "original": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/clippy-production-toolchain-full-cli-result.json"
+    },
+    {
+      "path": "historical47f-clippy/clippy-production-toolchain-full-cli.log",
+      "sha256": "37be71b8176a6d12d98875b4c0f103c32ed269b5e7611c821276f27e876cc902",
+      "bytes": 613,
+      "original": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/clippy-production-toolchain-full-cli.log"
+    },
+    {
+      "path": "historical47f-clippy/clippy-production-toolchain-full-cli-memory-samples.jsonl",
+      "sha256": "610a49f4d0288733b37c6f98cbf63a50459bec7130adf0ad6c42cc5ae170ee5f",
+      "bytes": 92528,
+      "original": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/clippy-production-toolchain-full-cli-memory-samples.jsonl"
+    },
+    {
+      "path": "README.md",
+      "sha256": "75eb38a0c4470a3629f7ea6059e9fff3d3bb5a819af5d409d2e11f1f5c71f477",
+      "bytes": 2489
+    }
+  ]
+}

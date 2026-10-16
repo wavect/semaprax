@@ -1,0 +1,9 @@
+{
+  "utc": "2026-10-16T03:18:28.725837+00:00",
+  "owned_pgid": 3027,
+  "owned_records": [],
+  "later_snapshot_empty": true,
+  "prior_failed_settlement_preserved": true,
+  "kernel_pressure": "1",
+  "not_a_rewrite_of_original_settlement": true
+}

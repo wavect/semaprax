@@ -32,9 +32,31 @@ impl Ord for SmallWeighted {
     fn cmp(&self, other: &Self) -> Ordering { self.as_slice().cmp(other.as_slice()) }
 }
 
+// Test-only borrowed comparison surface. Historical receivers retain their
+// complete BTreeMap; the current arena is walked directly, without collecting
+// or converting either owner's stored state keys.
+#[cfg(test)]
+pub(super) trait StateEntries {
+    fn len(&self) -> usize;
+    fn iter(&self) -> impl Iterator<Item = (&super::SharedWeighted, &usize)>;
+}
+#[cfg(test)]
+impl StateEntries for super::BTreeMap<super::SharedWeighted, usize> {
+    fn len(&self) -> usize { super::BTreeMap::len(self) }
+    fn iter(&self) -> impl Iterator<Item = (&super::SharedWeighted, &usize)> {
+        super::BTreeMap::iter(self)
+    }
+}
+#[cfg(test)]
+impl StateEntries for super::intern_arena::Arena<super::SharedWeighted> {
+    fn len(&self) -> usize { super::intern_arena::Arena::len(self) }
+    fn iter(&self) -> impl Iterator<Item = (&super::SharedWeighted, &usize)> {
+        super::intern_arena::Arena::iter(self)
+    }
+}
 #[cfg(test)]
 pub(super) fn assert_states(
-    current: &super::BTreeMap<super::SharedWeighted, usize>,
+    current: &impl StateEntries,
     old: &super::BTreeMap<super::Rc<Weighted>, usize>,
 ) {
     assert_eq!(current.len(), old.len());

@@ -315,3 +315,5 @@ fn insert_leaf(
 
 #[cfg(test)]
 mod tests;
+
+pub(super) mod paid_leaves;

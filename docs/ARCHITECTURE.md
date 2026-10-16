@@ -2275,6 +2275,16 @@ Semantic Graph: `semaprax.workspace-semantic-graph.v2`, selected only for a
 workspace with at least one declaring module, with one fact per declaration
 bound to its owning module, path, `@id`, span, and checked `via` functions
 (see `docs/SESSION-PROTOCOL-TYPES-V1.md`).
+The sibling `structural_maps/paid` owns selected slot/region/leaf traversal with
+closed structural receipts. `flat_records/paid_leaves` and `leaf_index/receiving`
+own the attached-leaf and storage-index constructors; each real clone, node or
+vector wrapper acquires its exact same-ledger receiving bank before arguments.
+The shared lexical bank expansion lives in `selected_context/child/receiving`;
+only genuine ReplayBudget primitives can create its sealed budget-failure arm.
+Complete old constructors and paid drivers remain independent test receivers.
+Inventory construction and other unconverted Session families still return
+owned Diagnostics; these finite routes do not certify transitive #781 funding.
+
 
 Only the live workspace invocation may publish. Evidence capsules never carry
 reusable authority.
@@ -4471,6 +4481,23 @@ original projection logic, stage order, JSON bytes, and source assertions remain
 intact; the three source audits include every new child. Test binaries require
 the repository fixtures at runtime. This source-only transport change has no
 measured RAM benefit yet.
+The bulk-fixture matched experiment keeps both fixed transport modules as common
+source, with one `#[path]` selector choosing runtime files or embedded bytes.
+Only the selected module is compiled. Both return an authenticated owned string
+through the same bounded byte reader before the unchanged projection. The
+original all-fixture runtime-loader and hostile-I/O owner remains compiled in
+both arms and additionally compares the selected transport for every fixture.
+An exact complete-source arm adapter restores the common selector before older
+source views; actual authority manifests are regenerated per arm, without
+relaxing their current-file checks. This preparation adds no measured memory
+claim and does not make embedded-arm file availability optional for that owner.
+A separate fixed metadata inventory moves the remaining 36 immutable source-view
+JSON documents behind the same bounded file reader and exact compiled
+source-key membership. Both bulk90 experiment arms use this same runtime
+context. Its all-file owner authenticates every complete file and key
+multiplicity; it does not embed a second copy of those JSON payloads. Live Rust
+source snapshots remain compile-time inputs. No measured RAM benefit follows
+from the static byte inventory alone.
 
 
 The bounded generic inference helpers in `source_verify/generic_inference` and
@@ -5016,3 +5043,29 @@ report retained capacities, removed buffers and complete Drop. No shared-history
 representation or universal cost improvement follows from this transfer.
 These NEXT changes are source-ready and await their focused executable gates;
 no application-cap or universal physical-cost improvement is certified here.
+
+Selected status reconstruction has an independent `status_construction/paid`
+owner for complete requires/body/ensures traversal. Static refusals remain closed
+labels; unknown-callee receipts retain their shared identity and acquire their
+actual Atom controls only on that error path. `scalar_replay/records/paid` owns
+borrowed-record shape checks, and `scalar_replay/paid_nodes` owns the complete
+selected scalar cursor. Original record, status and scalar-body algorithms stay
+available to ordinary replay and independent test drivers. Pure type-key math
+is lexical in the paid record receiver, with no extra forwarding Result or
+serialized-key authority. These owners do not cover inventory construction,
+lexical certificates, schema adapters or path/factored child diagnostics.
+
+The private #854 canonical interning component keeps same-comparison weighted states and signatures in prepaid ordered AVL arenas. Its borrowed query resolves every child identity before lookup, and only a missing signature receives an owning label/ID vector. Separate immediate-parent BTree receivers and complete source views remain test-only; scratch capacity, new owner controls and growth overlap are admitted on the original budget before acquisition. Qualification and application effects remain pending.
+
+The selected lexical certificate receiving twin in
+`cleanup_plan/replay/lexical_cert/paid.rs` and its `paid/storage.rs` child owns
+closed certificate refusals and same-ledger primitive receiving. The original
+certificate stays independent; borrowed chain/type/drop/boundary Diagnostics
+remain explicit residual boundaries. Read-only scalar children use the
+existing acquire bank where no Deferred exists in that call's own scope.
+
+`cleanup_plan/replay/lexical_boundary/paid.rs` owns selected boundary admission
+with lexical callback expansion. Selected certificate storage owns the paid region-chain array; its borrowed
+chain query stays original. Original path-state boundary checking,
+a deliberately error-swallowing boolean chain query, and type/schema children
+remain separate original Diagnostic boundaries.

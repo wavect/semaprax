@@ -7,7 +7,7 @@ pub(super) mod row_loan;
 pub(super) mod string_transfer;
 use crate::cleanup_plan::replay::ReplayBudget;
 use crate::hir::{LoopLatchKind, ResolvedExpr, ResolvedFunction};
-pub(in crate::cleanup_plan::replay) use collections::{call_facts, field};
+pub(in crate::cleanup_plan::replay) use collections::{call_facts, field, prepay};
 pub(in crate::cleanup_plan::replay) use string_transfer::operand;
 pub(super) fn literal(
     function: &ResolvedFunction,

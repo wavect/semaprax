@@ -1,0 +1,17 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::selected_context::child::tests::source::finite_child_cut_sources_and_complete_old_receivers_stay_exact"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::selected_context::child::tests::source::compressed_fixture::runtime_fixture_reads_complete_bytes_and_rejects_missing_bounds_tamper_and_stream_drift"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "source_reflows_merge::runtime_json::tests::fixed_projection_json_transport_refuses_hostile_io_before_parsing"
+  }
+]

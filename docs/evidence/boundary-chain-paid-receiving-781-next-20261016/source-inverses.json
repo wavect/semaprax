@@ -1,0 +1,227 @@
+{
+  "base": "428bc7802576ba3c6548608857594d0ce8d7391a",
+  "rows": [
+    {
+      "source": "CHANGELOG.md",
+      "before_sha256": "6eb271283ba6e56b542a68fc170b7a1f21a209f421eecd9d8016b02d302dc334",
+      "after_sha256": "e5e2571d1c97373887f531a59376a20410cd987e2f3c39d66ac90e62aa7d9934",
+      "before_archive": "before/CHANGELOG.md",
+      "edits": [
+        {
+          "old_offset": 543342,
+          "new_offset": 543342,
+          "before": "",
+          "after": "\n- Source-only #781 boundary admission and selected chain receiving: preserve\n  complete prior algorithms, lexical callback/order semantics, and explicit\n  unmigrated Diagnostic children. Four runtime owners remain unexecuted.\n"
+        }
+      ]
+    },
+    {
+      "source": "docs/ARCHITECTURE.md",
+      "before_sha256": "001a22d7e33a4e21add428212b82c7bc33dcb24eec4624340872769070639048",
+      "after_sha256": "57205cfff652e616c0fc0f0455b91abb690c2e749d92fa6fa393f73fee2c680b",
+      "before_archive": "before/docs/ARCHITECTURE.md",
+      "edits": [
+        {
+          "old_offset": 365712,
+          "new_offset": 365712,
+          "before": "",
+          "after": "\n`cleanup_plan/replay/lexical_boundary/paid.rs` owns selected boundary admission\nwith lexical callback expansion. Selected certificate storage owns the paid region-chain array; its borrowed\nchain query stays original. Original path-state boundary checking,\na deliberately error-swallowing boolean chain query, and type/schema children\nremain separate original Diagnostic boundaries.\n"
+        }
+      ]
+    },
+    {
+      "source": "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "before_sha256": "90cb305f766b114e4ae72592b7c7b942fbf80867e42d4db017cb895df5f64406",
+      "after_sha256": "e70ec5d5a39afd1abc51c06ecc2d1dff1ecdc6675215bc89eb7ca7c217654ac0",
+      "before_archive": "before/docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "edits": [
+        {
+          "old_offset": 44522,
+          "new_offset": 44522,
+          "before": "",
+          "after": "\n## Boundary admission and selected region chains (#781, source-only)\n\nThe selected certificate calls a complete boundary-admission twin. Its original\nFnMut admission callback is expanded lexically at the same ordered call sites,\nso no new forwarding Result or closure captures a successful affine permit.\nTen boundary/chain failures carry exact closed text; real dictionary nodes and\nregion-chain arrays use the existing per-call same-ledger primitive receiving.\nThe original borrowed chain query stays an explicit owned-error residual;\nits boolean parameter is not replaced by a new mutable-budget forwarding ABI. Admission payments precede new\nreceivers and may refuse earlier than old semantic/backing failures.\n\nOne original chain query is intentionally consumed by a boolean any predicate\nwith unwrap_or(false). It remains on the complete original query; routing a new\npaid refusal into that swallow would be unsound. Type/drop, scalar schema, raw\ninventory, path-state boundary checking and other unmigrated children remain\nowned-Diagnostic residuals. No complete #781 funding/closure is claimed. Four\nunexecuted owners compare complete Auth fields and hostile order, physical\nexact/short/work/Drop, full prior/current paid drivers, and chain order/cycle/\nunknown diagnostics. Immediate-prior certificate/storage/driver receivers are\nindependent, with complete source custody. No savings or fit is measured.\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile.rs",
+      "before_sha256": "7156a1086ea275c0b0152748c3a2e560a621d573fca079ae9f307fdf9ddd02cc",
+      "after_sha256": "3296f6f3fd875082cbb1718b621648aea9ff366ed107254b9b4450968e99e59f",
+      "before_archive": "before/src/cleanup_plan/renewal_profile.rs",
+      "edits": [
+        {
+          "old_offset": 12060,
+          "new_offset": 12060,
+          "before": "",
+          "after": "\npub(crate) mod boundary_refusal;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "before_sha256": "a546c97cd7a497810a6375ac7c0cf64e8ad185c86045b2b4747df958ab128fa6",
+      "after_sha256": "2cea04a66d231c582de2a16383986cf9746748189c6d96194e0776f048395777",
+      "before_archive": "before/src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "edits": [
+        {
+          "old_offset": 579,
+          "new_offset": 579,
+          "before": "",
+          "after": "    Boundary(super::boundary_refusal::BoundaryRefusal),\n"
+        },
+        {
+          "old_offset": 1116,
+          "new_offset": 1172,
+          "before": "",
+          "after": "            Self::Boundary(reason) => reason.detail(),\n"
+        },
+        {
+          "old_offset": 1791,
+          "new_offset": 1902,
+          "before": "            Self::ReferenceCoverage(_) | Self::Structural(_) | Self::Status(_) | Self::Scalar(_) | Self::Certificate(_) => true,\n",
+          "after": "            Self::ReferenceCoverage(_) | Self::Structural(_) | Self::Status(_) | Self::Scalar(_) | Self::Certificate(_) | Self::Boundary(_) => true,\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records/tests.rs",
+      "before_sha256": "60e43a8eb59fa1085c07302901f603ff38a4dfa87045395cd601b7010b645226",
+      "after_sha256": "b80a96d7dd0a3414876f266a8da9d2f1919ea47c4ff37179e3502a533d3fce15",
+      "before_archive": "before/src/cleanup_plan/replay/flat_records/tests.rs",
+      "edits": [
+        {
+          "old_offset": 12367,
+          "new_offset": 12367,
+          "before": "",
+          "after": "\n#[path=\"tests/receiving_boundary.rs\"]\nmod receiving_boundary;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_boundary.rs",
+      "before_sha256": "bf2899c8981268c59d079630c084eaa3f788b8f7c41044c2c67a88c5e74aaf9a",
+      "after_sha256": "a2c30f8d2dee8e2c895f47bcda02a4cf5fca3012b7de85deeaea3c6f182b3d03",
+      "before_archive": "before/src/cleanup_plan/replay/lexical_boundary.rs",
+      "edits": [
+        {
+          "old_offset": 11481,
+          "new_offset": 11481,
+          "before": "",
+          "after": "\npub(in crate::cleanup_plan::replay) mod paid;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert.rs",
+      "before_sha256": "2e9c3437b953e3a9e19e744bc730ed2bf2a940a9d1b12edf98f4ceec8d55cbdf",
+      "after_sha256": "147da5a3182e717f3e9971d032511714da8154e724c24aba70c2e17ecff789a6",
+      "before_archive": "before/src/cleanup_plan/replay/lexical_cert.rs",
+      "edits": [
+        {
+          "old_offset": 38352,
+          "new_offset": 38352,
+          "before": "",
+          "after": "\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) mod before_boundary;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert/paid.rs",
+      "before_sha256": "ce0da5c1fc00927f6f4ace6267f6746cc856c74a30eb239df67d39ca12841743",
+      "after_sha256": "b55bbdec2dbbc581711b5bf729fa378216067ba4d35f182c790a7ec93c25dc9d",
+      "before_archive": "before/src/cleanup_plan/replay/lexical_cert/paid.rs",
+      "edits": [
+        {
+          "old_offset": 878,
+          "new_offset": 878,
+          "before": "mod storage;\n",
+          "after": "pub(in crate::cleanup_plan::replay) mod storage;\n"
+        },
+        {
+          "old_offset": 31231,
+          "new_offset": 31267,
+          "before": "    let boundaries = crate::cleanup_plan::replay::lexical_boundary::authenticate(\n",
+          "after": "    let boundaries = crate::cleanup_plan::replay::lexical_boundary::paid::authenticate(\n"
+        },
+        {
+          "old_offset": 34485,
+          "new_offset": 34527,
+          "before": "                        && storage::chain_contains(\n",
+          "after": "                        && crate::cleanup_plan::replay::lexical_cert::storage::chain_contains(\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert/paid/storage.rs",
+      "before_sha256": "7dd3b733d080cad28cb7403ea39b868d5320707032400ed49d2662f0888fc30f",
+      "after_sha256": "d8d6e80d9bb335547a76fc45926315c72d814972c924a7715c918d8d453f3983",
+      "before_archive": "before/src/cleanup_plan/replay/lexical_cert/paid/storage.rs",
+      "edits": [
+        {
+          "old_offset": 481,
+          "new_offset": 481,
+          "before": "// This original borrowed chain query still owns its original Diagnostic on\n// malformed region trees; it is an explicit remaining child, never relabelled.\n",
+          "after": "use crate::cleanup_plan::renewal_profile::{\n    boundary_refusal::BoundaryRefusal, child_refusal::Refusal,\n};\nuse crate::cleanup_plan::CleanupRegionId;\nmacro_rules! required {\n    ($permit:ident,$value:expr,$reason:ident) => {\n        match $value {\n            Some(value) => value,\n            None => return Err($permit.refuse(Refusal::Boundary(BoundaryRefusal::$reason))),\n        }\n    };\n}\n// Original selected borrowed query remains an explicit semantic-error residual.\n"
+        },
+        {
+          "old_offset": 692,
+          "new_offset": 1013,
+          "before": "pub(super) fn insert<K: Ord, V>(\n",
+          "after": "pub(in crate::cleanup_plan::replay) fn insert<K: Ord, V>(\n"
+        },
+        {
+          "old_offset": 5159,
+          "new_offset": 5505,
+          "before": "",
+          "after": "\npub(in crate::cleanup_plan::replay) fn region_chain(\n    function: &ResolvedFunction,\n    start: CleanupRegionId,\n    budget: &mut ReplayBudget,\n) -> Result<Vec<CleanupRegionId>, Error> {\n    let permit = Permit::profile::<Vec<CleanupRegionId>>(function, budget)?;\n    if !budget.pays_allocations() {\n        return crate::cleanup_plan::replay::region_chain_to_root(function, start)\n            .map_err(Error::Owned);\n    }\n    let mut current = Some(start);\n    let mut count = 0usize;\n    let mut remaining = function.cleanup_plan.regions.len();\n    while let Some(id) = current {\n        remaining = required!(\n            permit,\n            remaining.checked_sub(1),\n            CleanupRegionTreeContainsACycle\n        );\n        let item = required!(\n            permit,\n            function.cleanup_plan.regions.get(id.0 as usize),\n            CleanupRegionChainReferencesAnUnknownRegion\n        );\n        count += 1;\n        current = item.parent;\n    }\n    receive!(\n        function,\n        budget,\n        permit,\n        ArrayReceiving<'_>,\n        9,\n        budget.child_reserve_array::<CleanupRegionId>(function, count, \"certificate region chain\")\n    );\n    let mut chain = Vec::with_capacity(count);\n    let mut current = Some(start);\n    while let Some(id) = current {\n        chain.push(id);\n        current = function.cleanup_plan.regions[id.0 as usize].parent;\n    }\n    Ok(chain)\n}\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_replay.rs",
+      "before_sha256": "ec85c83a11d2ac0fe19cfd1c60f1cb8711276cc04086ab30f31180c374729c69",
+      "after_sha256": "f304f463d47fbc3e04782ef539d49ddb91c8d5010bf2df8beed0406aa8b3f470",
+      "before_archive": "before/src/cleanup_plan/replay/lexical_replay.rs",
+      "edits": [
+        {
+          "old_offset": 13221,
+          "new_offset": 13221,
+          "before": "",
+          "after": "\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) mod before_boundary;\n"
+        }
+      ]
+    }
+  ],
+  "new_sources": [
+    {
+      "source": "src/cleanup_plan/renewal_profile/boundary_refusal.rs",
+      "sha256": "a408f952a7b133cbcfa331400fb866eb6e85b6009b1a8eca12e1c7d1221862b1",
+      "lines": 48
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records/tests/receiving_boundary.rs",
+      "sha256": "4608b7b926adbc833e993a9acbbc079bb78994ebf5e11090bff2379c4388d14f",
+      "lines": 287
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_boundary/paid.rs",
+      "sha256": "03a8a084b6fde205d7a970bcc8ef1312d1f638f45561fe6db7b21328d4e1ff5c",
+      "lines": 151
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert/before_boundary.rs",
+      "sha256": "ce0da5c1fc00927f6f4ace6267f6746cc856c74a30eb239df67d39ca12841743",
+      "lines": 895
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert/before_boundary/storage.rs",
+      "sha256": "7dd3b733d080cad28cb7403ea39b868d5320707032400ed49d2662f0888fc30f",
+      "lines": 152
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_replay/before_boundary.rs",
+      "sha256": "a850295bc5b131e0d19fd4addb96fddc2c5cf38e3daf66bd5108c4ba431907f5",
+      "lines": 147
+    }
+  ]
+}

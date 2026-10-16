@@ -27,12 +27,13 @@ pub(super) fn validate_paid(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<(), expression_facts::errors::EngineError> {
-    if !records::signature(program, function, budget)? {
-        return Err(replay_error(
-            function,
-            "selected helper signature is outside Copy scalars",
-        )
-        .into());
+    let permit = selected_context::child::Permit::acquire::<()>(function, budget)?;
+    if !records::paid::signature(program, function, budget)? {
+        return Err(permit.refuse(
+            crate::cleanup_plan::renewal_profile::child_refusal::Refusal::Scalar(
+                crate::cleanup_plan::renewal_profile::scalar_refusal::ScalarRefusal::Signature,
+            ),
+        ));
     }
     #[cfg(test)]
     let borrowed = program.borrowed_helper_lease(function);
@@ -41,7 +42,7 @@ pub(super) fn validate_paid(
     #[cfg(not(test))]
     let has_borrowed = false;
     if !has_borrowed {
-        scalar_nodes(program, function, budget)?;
+        paid_nodes::validate(program, function, budget)?;
     }
     selected_profile::paid::validate(program, function, budget)?;
     selected_owner::paid::owner(program, function, budget)?;
@@ -51,11 +52,11 @@ pub(super) fn validate_paid(
             || !function.loan_plan.endpoints.is_empty()
             || !function.loan_plan.edges.is_empty())
     {
-        return Err(replay_error(
-            function,
-            "pure scalar helper carries an unexpected loan proof",
-        )
-        .into());
+        return Err(permit.refuse(
+            crate::cleanup_plan::renewal_profile::child_refusal::Refusal::Scalar(
+                crate::cleanup_plan::renewal_profile::scalar_refusal::ScalarRefusal::Loan,
+            ),
+        ));
     }
     #[cfg(test)]
     let selected_schema = match &borrowed {
@@ -66,11 +67,11 @@ pub(super) fn validate_paid(
     let selected_schema = schema::selected_schema_with_index(program, function, None)?;
     let plan = &function.cleanup_plan;
     if !budget.selected() || plan.lexical_control.is_some() || plan.schema != selected_schema {
-        return Err(replay_error(
-            function,
-            "selected scalar helper requires its exact nonlexical schema",
-        )
-        .into());
+        return Err(permit.refuse(
+            crate::cleanup_plan::renewal_profile::child_refusal::Refusal::Scalar(
+                crate::cleanup_plan::renewal_profile::scalar_refusal::ScalarRefusal::Schema,
+            ),
+        ));
     }
     budget.charge(
         function,
@@ -95,19 +96,24 @@ pub(super) fn validate_paid(
         facts = &ordinary_facts;
     }
     inventory_coverage::validate_inventory_coverage(program, function, budget)?;
-    status_construction::validate_required_status_sources(program, function, budget)?;
-    let storage = structural_maps::validate_slots_core::<expression_facts::errors::EngineError>(
-        function, budget,
-    )?;
-    let leaves = structural_maps::collect_leaves(function, budget)?;
+    status_construction::paid::validate_required_status_sources(program, function, budget)?;
+    let storage = structural_maps::paid::slots(function, budget)?;
+    let leaves = structural_maps::paid::leaves(function, budget)?;
     status_validation::validate_core::<expression_facts::errors::EngineError>(
         function, facts, budget,
     )?;
-    structural_maps::validate_regions(function, &storage, budget)?;
+    structural_maps::paid::regions(function, &storage, budget)?;
     structural_control::validate_entry(function, &storage, &leaves, budget)?;
-    let renewals = program
-        .primitive_renewals(function)
-        .ok_or_else(|| replay_error(function, "selected scalar helper lacks its function lease"))?;
+    let renewals = match program.primitive_renewals(function) {
+        Some(value) => value,
+        None => {
+            return Err(permit.refuse(
+                crate::cleanup_plan::renewal_profile::child_refusal::Refusal::Scalar(
+                    crate::cleanup_plan::renewal_profile::scalar_refusal::ScalarRefusal::Lease,
+                ),
+            ))
+        }
+    };
     structural_control::validate_blocks_and_edges_paid::<expression_facts::errors::EngineError>(
         program, function, facts, &storage, &leaves, renewals, budget,
     )?;
@@ -126,16 +132,16 @@ pub(super) fn validate_paid(
     )?;
     match factored::compare_with_index(program, function, budget, None)? {
         Some(true) => Ok(()),
-        Some(false) => Err(replay_error(
-            function,
-            "selected scalar helper control trace disagrees with typed HIR",
-        )
-        .into()),
-        None => Err(replay_error(
-            function,
-            "selected scalar helper trace multiplicity overflowed",
-        )
-        .into()),
+        Some(false) => Err(permit.refuse(
+            crate::cleanup_plan::renewal_profile::child_refusal::Refusal::Scalar(
+                crate::cleanup_plan::renewal_profile::scalar_refusal::ScalarRefusal::Trace,
+            ),
+        )),
+        None => Err(permit.refuse(
+            crate::cleanup_plan::renewal_profile::child_refusal::Refusal::Scalar(
+                crate::cleanup_plan::renewal_profile::scalar_refusal::ScalarRefusal::Multiplicity,
+            ),
+        )),
     }
 }
 
@@ -331,3 +337,14 @@ fn scalar_nodes(
     }
     Ok(())
 }
+
+#[cfg(test)]
+pub(in crate::cleanup_plan::replay) mod before_owned_families;
+
+mod paid_nodes;
+
+#[cfg(test)]
+pub(in crate::cleanup_plan::replay) mod before_status_scalar;
+
+#[cfg(test)]
+pub(in crate::cleanup_plan::replay) mod before_certificate;

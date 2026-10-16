@@ -211,6 +211,10 @@ fn compare_with_index_storage<'hir>(
         return Ok(Some(hir == plan));
     }
 
+    budget.reserve_bytes(
+        function, canonical_shared::Canonicalizer::CONSTRUCTOR_CONTROLS,
+        "canonical ordered dictionary owner receiving",
+    )?;
     let mut canonical = canonical_shared::Canonicalizer::new(&automaton, sink);
     if budget.pays_allocations() {
         budget.reserve_bytes(

@@ -1,0 +1,86 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "current_sha256": "157b0171b076d37305e776575579993abe691522c9f6f3dea3c15545e478c1f8",
+    "original_sha256": "a23aa455ec70bee8489c68acd22bf2c00a28989964f568901f345a025018c54d",
+    "original_archive": "docs/evidence/canonical-intern-arena-854-receiving-20261016/before/src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "edits": [
+      {
+        "new": "    // The old test constructor boundary remains explicit and unreceived.\n    pub(super) const CONSTRUCTOR_CONTROLS: usize = 2 * std::mem::size_of::<Self>()\n        + 2 * std::mem::size_of::<intern_arena::Arena<SharedWeighted>>()\n        + 2 * std::mem::size_of::<intern_arena::Arena<intern_arena::Signature>>()\n        + 2 * std::mem::size_of::<Vec<intern_arena::Node<SharedWeighted>>>()\n        + 2 * std::mem::size_of::<Vec<intern_arena::Node<intern_arena::Signature>>>()\n        + 2 * std::mem::size_of::<Vec<usize>>()\n        + std::mem::size_of::<Result<(), Diagnostic>>();\n\n    pub(super) fn new(automaton: &'a Automaton, sink: usize) -> Self {\n",
+        "old": "    // The old test constructor boundary remains explicit and unreceived.\n    pub(super) const CONSTRUCTOR_CONTROLS: usize = 2 * std::mem::size_of::<Self>()\n        + 2 * std::mem::size_of::<intern_arena::Arena<SharedWeighted>>()\n        + 2 * std::mem::size_of::<intern_arena::Arena<intern_arena::Signature>>()\n        + 2 * std::mem::size_of::<Vec<usize>>()\n        + std::mem::size_of::<Result<(), Diagnostic>>();\n\n    pub(super) fn new(automaton: &'a Automaton, sink: usize) -> Self {\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs",
+    "current_sha256": "1df215e4fef46da4c74db7ca349c8067e64cc2dd9e655ae832f595f32cf3dae6",
+    "original_sha256": "e281aef0de1072556e62e540526aea611c316aab812b0fc9fb0d5199d65999a7",
+    "original_archive": "docs/evidence/canonical-intern-arena-854-receiving-20261016/before/src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs",
+    "edits": [
+      {
+        "new": "    pub(super) children: &'a [usize],\n}\nimpl SignatureQuery<'_> {\n    pub(super) const CONTROLS: usize = 2 * size_of::<Self>()\n        + 2 * size_of::<&Vec<(Label, SharedWeighted)>>()\n        + 2 * size_of::<&Vec<usize>>()\n        + size_of::<&[(Label, SharedWeighted)]>()\n        + size_of::<&[usize]>();\n    // Additional per-exit producers: this positive admission, retained scratch\n    // growth, and child scalar admission. The original signature reserve_array\n    // still exists on misses; no old Result is credited as a reused grant.\n    pub(super) const EXIT_CONTROLS: usize = Self::CONTROLS\n        + 3 * size_of::<Result<(), super::Diagnostic>>()\n        + 2 * size_of::<std::slice::Iter<'static, (Label, SharedWeighted)>>()\n        + 2 * size_of::<&Vec<(Label, SharedWeighted)>>()\n        + size_of::<&[(Label, SharedWeighted)]>();\n}\nimpl Query<Signature> for SignatureQuery<'_> {\n    fn compare(&self, stored: &Signature) -> Ordering {\n",
+        "old": "    pub(super) children: &'a [usize],\n}\nimpl SignatureQuery<'_> {\n    pub(super) const CONTROLS: usize = 2 * size_of::<Self>()\n        + size_of::<&Vec<(Label, SharedWeighted)>>()\n        + size_of::<&Vec<usize>>()\n        + size_of::<&[(Label, SharedWeighted)]>()\n        + size_of::<&[usize]>();\n    // Additional per-exit producers: this positive admission, retained scratch\n    // growth, and child tuple admission. The original signature reserve_array\n    // still exists on misses; no old Result is credited as a reused grant.\n    pub(super) const EXIT_CONTROLS: usize = Self::CONTROLS\n        + 3 * size_of::<Result<(), super::Diagnostic>>()\n        + 2 * size_of::<std::slice::Iter<'static, (Label, SharedWeighted)>>()\n        + size_of::<&Vec<(Label, SharedWeighted)>>()\n        + size_of::<&[(Label, SharedWeighted)]>();\n}\nimpl Query<Signature> for SignatureQuery<'_> {\n    fn compare(&self, stored: &Signature) -> Ordering {\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_source.rs",
+    "current_sha256": "c4f150023418e3b38c1e9ed38c00cd18ea49c1710c8a5b35968fb33c8c5c5e1b",
+    "original_sha256": "a0aa20c6ff791bd9e01afacf1a4c0c8fd0a9eed20a70c714d007d40c0a687fb7",
+    "original_archive": "docs/evidence/canonical-intern-arena-854-receiving-20261016/before/src/cleanup_plan/replay/factored/canonical_shared/arena_source.rs",
+    "edits": [
+      {
+        "new": "        include_str!(\"arena_source.rs\"),\n    ];\n    assert_eq!(owners.as_array().unwrap().len(), bodies.len());\n    for (row, body) in owners.as_array().unwrap().iter().zip(bodies) {\n        let authenticated =\n            crate::source_reflows_merge::arena854_input(row[\"source\"].as_str().unwrap(), body);\n        let body = authenticated.as_str();\n        assert_eq!(\n            format!(\n                \"{:x}\",\n                crate::digest_hex::LowerHex(Sha256::digest(body.as_bytes()))\n",
+        "old": "        include_str!(\"arena_source.rs\"),\n    ];\n    assert_eq!(owners.as_array().unwrap().len(), bodies.len());\n    for (row, body) in owners.as_array().unwrap().iter().zip(bodies) {\n        assert_eq!(\n            format!(\n                \"{:x}\",\n                crate::digest_hex::LowerHex(Sha256::digest(body.as_bytes()))\n"
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "current_sha256": "5a86aa5b2e81a33c0a84fd9b419c9d36443b343e74d5cb295a64fde6e52a79e7",
+    "original_sha256": "4477a7601b7e3cb8659c907856a6888b0c23540ebcf37d06a1b26b81fe89af72",
+    "original_archive": "docs/evidence/canonical-intern-arena-854-receiving-20261016/before/src/source_reflows_merge.rs",
+    "edits": [
+      {
+        "new": "}\n\n// New owner and inherited domains remain independent; all old tables stay exact.\npub(crate) fn arena854_input(source: &str, current: &str) -> String {\n    let receiving = project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/canonical-intern-arena-854-receiving-20261016/current-to-9db.json\")), source, current);\n    let current = receiving.as_str();\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/canonical-intern-arena-854-joined-20261016/current-to-ab13.json\")), source, current)\n}\npub(crate) fn arena854_previous(source: &str, current: &str) -> String {\n    let component = arena854_input(source, current);\n",
+        "old": "}\n\n// New owner and inherited domains remain independent; all old tables stay exact.\npub(crate) fn arena854_input(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/canonical-intern-arena-854-joined-20261016/current-to-ab13.json\")), source, current)\n}\npub(crate) fn arena854_previous(source: &str, current: &str) -> String {\n    let component = arena854_input(source, current);\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "current_sha256": "22f2567c97053bdb80f10dad92c97ffb324285f441dfb2258836900626163e36",
+    "original_sha256": "302e47151ccee6c4562e681fda24ea1b381f3c82eaf1c0249b7101ebbabb867d",
+    "original_archive": "docs/evidence/canonical-intern-arena-854-receiving-20261016/before/tests/hir_module_boundaries.rs",
+    "edits": [
+      {
+        "new": "        include_str!(\"../src/hir/validation/iterator_loops/field_scope/refusal_tests.rs\"),\n    );\n    let validation = production_source_inventory::production(\n        validation_raw,\n        include_str!(\"../docs/evidence/canonical-intern-arena-854-receiving-20261016/hir.json\"),\n    );\n    for forbidden in [\n        \"struct Resolver\",\n        \"impl Resolver\",\n",
+        "old": "        include_str!(\"../src/hir/validation/iterator_loops/field_scope/refusal_tests.rs\"),\n    );\n    let validation = production_source_inventory::production(\n        validation_raw,\n        include_str!(\"../docs/evidence/canonical-intern-arena-854-joined-20261016/hir.json\"),\n    );\n    for forbidden in [\n        \"struct Resolver\",\n        \"impl Resolver\",\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph.rs",
+    "current_sha256": "63df950f53b949b89e806df5ad41a01f559ecea2735354283abce1ce4f563b96",
+    "original_sha256": "4c92e2bb79e4e2bd96af617120bd3f495a680e7cfccfcb7928992e50c3b3cded",
+    "original_archive": "docs/evidence/canonical-intern-arena-854-receiving-20261016/before/tests/workspace/semantic_graph.rs",
+    "edits": [
+      {
+        "new": "    );\n    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\n            \"../../docs/evidence/canonical-intern-arena-854-receiving-20261016/projection.json\"\n        ),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n    assert!(!production_projection.contains(\"use super::*;\"));\n",
+        "old": "    );\n    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\n            \"../../docs/evidence/canonical-intern-arena-854-joined-20261016/projection.json\"\n        ),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n    assert!(!production_projection.contains(\"use super::*;\"));\n"
+      }
+    ]
+  },
+  {
+    "source": "CHANGELOG.md",
+    "current_sha256": "de061de3674877d7663e090422ab0bbf9e4aae75fdba1d330dc4d4db968dff6a",
+    "original_sha256": "4c86b969ba9170282024794c9a67fc30d113d1efaf4546a7f712fcba61127b19",
+    "original_archive": "docs/evidence/canonical-intern-arena-854-receiving-20261016/before/CHANGELOG.md",
+    "edits": [
+      {
+        "new": "\n- Reuse the complete immutable closure for one unit-weight canonical input, preserving every work debit and full successor check while paying receiving metadata and retaining the entire previous producer.\n\n- Source-only #854 adds prepaid canonical state/signature arenas and borrowed signature hits, with complete independent immediate-parent receivers and explicit unfavorable tiny/unique-wide cases. Runtime qualification and application effects remain pending.\n\n- The private #854 receiving successor explicitly admits both inner arena Vec header constructions and query/traversal borrow receiver pairs; generic search/mutation roles carry no numeric removed-layout credit. Earlier source checkpoints and all original physical assertions remain preserved.\n",
+        "old": "\n- Reuse the complete immutable closure for one unit-weight canonical input, preserving every work debit and full successor check while paying receiving metadata and retaining the entire previous producer.\n\n- Source-only #854 adds prepaid canonical state/signature arenas and borrowed signature hits, with complete independent immediate-parent receivers and explicit unfavorable tiny/unique-wide cases. Runtime qualification and application effects remain pending.\n"
+      }
+    ]
+  }
+]

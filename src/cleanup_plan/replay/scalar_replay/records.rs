@@ -213,3 +213,14 @@ pub(in crate::cleanup_plan::replay) fn expression_for_test(
 ) -> Result<Option<bool>, Diagnostic> {
     self::expression(program, function, expression, budget)
 }
+
+pub(in crate::cleanup_plan::replay) mod paid;
+
+#[cfg(test)]
+pub(in crate::cleanup_plan::replay) fn signature_for_test(
+    program: &dyn ReplayContext,
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<bool, Diagnostic> {
+    signature(program, function, budget)
+}

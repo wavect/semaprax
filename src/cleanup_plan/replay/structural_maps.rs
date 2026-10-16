@@ -229,3 +229,5 @@ fn insert_status<'plan>(
 mod tests;
 
 pub(super) mod paid_reference;
+
+pub(super) mod paid;

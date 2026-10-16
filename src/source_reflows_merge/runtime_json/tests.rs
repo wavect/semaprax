@@ -28,6 +28,29 @@ fn authenticate_keys(fixture: Fixture, rows: &serde_json::Value) {
 }
 #[test]
 fn fixed_projection_json_transport_refuses_hostile_io_before_parsing() {
+    // Both exact selector arms normalize to the identical common source before
+    // any historical source inverse. No arbitrary edited source is accepted.
+    let arm_view = super::super::metadata_json::previous(
+        "src/source_reflows_merge/runtime_json.rs",
+        include_str!("../runtime_json.rs"),
+    );
+    let arm = arm_view.as_str();
+    let common = pair_custody::normalize("src/source_reflows_merge/runtime_json.rs", arm);
+    let embedded = common.replace(
+        "runtime_json/transport_runtime.rs",
+        "runtime_json/transport_embedded.rs",
+    );
+    assert_eq!(
+        pair_custody::normalize("src/source_reflows_merge/runtime_json.rs", &embedded),
+        common
+    );
+    assert!(std::panic::catch_unwind(|| {
+        pair_custody::normalize(
+            "src/source_reflows_merge/runtime_json.rs",
+            &(common.clone() + " "),
+        )
+    })
+    .is_err());
     let path = std::env::temp_dir().join(format!(
         "semaprax-projection-json-{}-{}",
         std::process::id(),
@@ -54,11 +77,13 @@ fn fixed_projection_json_transport_refuses_hostile_io_before_parsing() {
     // Check every original allowlisted repository fixture without retaining a
     // cache or multiple payloads. A missing/drifted fixture must fail this owner.
     let custody = load(Fixture::Custody);
+    assert_eq!(selected_transport::load(Fixture::Custody), custody);
     let custody: serde_json::Value = serde_json::from_str(&custody).unwrap();
     assert_eq!(custody.as_array().unwrap().len(), 6);
     authenticate_keys(Fixture::Custody, &custody);
     for fixture in inventory::ORIGINAL_FIXTURES {
         let payload = load(fixture);
+        assert_eq!(selected_transport::load(fixture), payload);
         let rows: serde_json::Value = serde_json::from_str(&payload).unwrap();
         authenticate_keys(fixture, &rows);
     }

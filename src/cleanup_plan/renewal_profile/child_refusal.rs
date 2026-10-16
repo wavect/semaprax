@@ -5,6 +5,11 @@ use crate::diagnostic::Diagnostic;
 pub(crate) enum Refusal {
     Profile(super::profile_refusal::ProfileRefusal),
     ReferenceCoverage(ReferenceCoverage),
+    Structural(super::structural_refusal::StructuralRefusal),
+    Status(super::status_refusal::StatusRefusal),
+    Scalar(super::scalar_refusal::ScalarRefusal),
+    Certificate(super::certificate_refusal::CertificateRefusal),
+    Boundary(super::boundary_refusal::BoundaryRefusal),
     LexicalDepth,
     RenewalCensus,
     HelperCensus,
@@ -17,6 +22,11 @@ impl Refusal {
         match self {
             Self::Profile(reason) => reason.detail(),
             Self::ReferenceCoverage(reason) => reason.detail(),
+            Self::Structural(reason) => reason.detail(),
+            Self::Status(reason) => reason.detail(),
+            Self::Scalar(reason) => reason.detail(),
+            Self::Certificate(reason) => reason.detail(),
+            Self::Boundary(reason) => reason.detail(),
             Self::LexicalDepth => "lexical control scan exceeds admitted expression depth",
             Self::RenewalCensus => "selected primitive renewal census refused",
             Self::HelperCensus => {
@@ -30,7 +40,7 @@ impl Refusal {
     pub(crate) fn prefixed(self) -> bool {
         match self {
             Self::Profile(reason) => reason.prefixed(),
-            Self::ReferenceCoverage(_) => true,
+            Self::ReferenceCoverage(_) | Self::Structural(_) | Self::Status(_) | Self::Scalar(_) | Self::Certificate(_) | Self::Boundary(_) => true,
             _ => matches!(self, Self::RenewalWork | Self::LostPhysical),
         }
     }

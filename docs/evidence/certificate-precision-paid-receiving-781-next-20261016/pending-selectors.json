@@ -1,0 +1,26 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::flat_records::tests::receiving_certificate::complete_certificate_receivers_keep_all_fields_order_and_hostile_failures",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::flat_records::tests::receiving_certificate::certificate_actual_receiving_exact_short_work_and_whole_drop",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::flat_records::tests::receiving_certificate::certificate_precision_complete_paid_drivers_keep_source_and_first_refusal",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::flat_records::tests::receiving_certificate::readonly_scalar_receiving_removes_exactly_its_dead_deferred_slots",
+    "status": "PENDING_NOT_EXECUTED"
+  }
+]

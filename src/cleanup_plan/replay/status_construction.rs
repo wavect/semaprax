@@ -430,3 +430,16 @@ mod tests {
             .contains("exactly cover typed HIR failure producers"));
     }
 }
+
+pub(in crate::cleanup_plan::replay) mod paid;
+
+#[cfg(test)]
+pub(in crate::cleanup_plan::replay) fn collect_for_test(
+    program: &dyn crate::cleanup::ReplayContext,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+    statuses: &mut Vec<StatusSource>,
+    budget: &mut ReplayBudget,
+) -> Result<(), Diagnostic> {
+    collect_expression_statuses(program, function, expression, statuses, budget)
+}

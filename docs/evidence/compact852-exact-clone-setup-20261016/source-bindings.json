@@ -1,0 +1,102 @@
+{
+  "base": "e9dd415b563412b160fd4737102b9cb5437b1008",
+  "status": "SOURCE_ONLY_PENDING_EXECUTION",
+  "changed": [
+    {
+      "path": "src/cleanup_plan/replay/factored/oracle_order/tests.rs",
+      "archive": "oracle_order.tests.rs.before.txt",
+      "before_sha256": "ec36940cc34413a5f4876cacaaff0c35f3e27fdc7b7ff2aaf6a735ea54bf8cf0",
+      "after_sha256": "d76b0f8f5bf01ffebde35d2f370abfe686a6061f251efc0fc146d0ee307dbe4c",
+      "additions": [
+        {
+          "line": 264,
+          "insert": "    // Preserve the original zero-funded setup as its own exact refusal case.\n    // The floor attacks below admit only their actual one or two clone events.\n    let (((), allocation), refused, _, first, site) =\n        with_limit_usage_refusal_site(1 << 20, || {\n            measure(|| {\n                let mut budget = ReplayBudget::new();\n                budget.prepare_builder(function).unwrap();\n                let materializations = skeleton_materializations();\n                let error = skeleton_clone(&mut budget, function, source, \"floor source\")\n                    .unwrap_err();\n                assert_eq!(\n                    error,\n                    replay_error(\n                        function,\n                        format_args!(\"cleanup replay work budget exhausted during floor source\"),\n                    ),\n                    \"all six original zero-funded setup Diagnostic fields\"\n                );\n                assert_eq!(budget.skeleton_remaining, 0);\n                assert_eq!(budget.skeleton_spent, 0);\n                assert_eq!(budget.remaining, 0);\n                assert_eq!(skeleton_materializations(), materializations);\n                assert_eq!(\n                    budget.reserve_bytes(function, 0, \"zero setup retry\"),\n                    Err(Diagnostic::io(\"SPX-H006\", String::new()))\n                );\n                drop((error, budget));\n            })\n        });\n    assert!(\n        !refused && first.is_none() && site.is_none(),\n        \"zero clone work cannot fabricate a physical floor refusal\"\n    );\n    assert!(!allocation.invalid && allocation.live == 0);\n    assert_eq!(allocation.allocated, allocation.freed);\n\n"
+        },
+        {
+          "line": 285,
+          "insert": "                    // Admit exactly the setup clones; target comparison work\n                    // remains in the original global allowance and cap.\n                    let setup_clones = if attack == 2 { 2 } else { 1 };\n                    budget.reserve_skeleton(function, setup_clones).unwrap();\n"
+        },
+        {
+          "line": 301,
+          "insert": "                        assert_eq!(budget.skeleton_spent, setup_clones);\n                        assert_eq!(budget.skeleton_remaining, 0);\n"
+        },
+        {
+          "line": 325,
+          "insert": "                    assert_eq!(budget.skeleton_spent, setup_clones);\n                    assert_eq!(budget.skeleton_remaining, 0);\n"
+        },
+        {
+          "line": 364,
+          "insert": "                current.reserve_skeleton(function, 1).unwrap();\n"
+        },
+        {
+          "line": 367,
+          "insert": "                assert_eq!(current.skeleton_spent, 1);\n                assert_eq!(current.skeleton_remaining, 0);\n"
+        }
+      ]
+    },
+    {
+      "path": "CHANGELOG.md",
+      "archive": "CHANGELOG.md.before.txt",
+      "before_sha256": "cf62309d9ec4f7a15b455597fb13d1b1408a5431154a855a8f77316839273181",
+      "after_sha256": "845471eb07d0fc94c1782d3385142a0f9ab039418f0e6e806d51b5dcfa94255b",
+      "additions": [
+        {
+          "line": 0,
+          "insert": "- Admit only the exact owned-clone setup work in compact residual floor controls,\n  retaining the complete zero-funded refusal and all target checks; qualification pending.\n"
+        }
+      ]
+    }
+  ],
+  "unchanged": [
+    {
+      "path": "src/cleanup_plan/replay.rs",
+      "sha256": "a684cd8cf14545809a38789ae587ec827c2945395565fab810da756427bcb213"
+    },
+    {
+      "path": "src/cleanup_plan/replay/allocation.rs",
+      "sha256": "0ad98be164b6f5f2340e57f769f5dc6b2bdc33eee75df00d77abe5352eed98da"
+    },
+    {
+      "path": "src/cleanup_plan/replay/physical_budget.rs",
+      "sha256": "95c57d360e5a501cb73d400f8991d6f51e139fc1adeb5b4fb8c62e831b4f7dda"
+    },
+    {
+      "path": "src/cleanup_plan/replay/compact_stage.rs",
+      "sha256": "9a41c6a7dc6f70483600bb58996aeba947cfca55e404839d80f6527a8919aa1b"
+    },
+    {
+      "path": "src/cleanup_plan/replay/compact_stage/tests.rs",
+      "sha256": "6c9860cf8b34c9c420811a3efab07b72a06a99613fe562a15fa06e80769232d6"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/oracle_order.rs",
+      "sha256": "a5b274eb811d25ba6b1aa0b78ef108859c7f37bef32fb9236a51b816011f4011"
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "sha256": "e73cf92af85c0f254c3eba32b26ff1aeb1056d942a039a2f104cdcdc44111cf9"
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "sha256": "00ef4152cc4e9636ae2903f94c8b9a34cd60b23d60bf826c117681ce2bcdced9"
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "sha256": "9aa2c7cee02dbfc4f8971a00c3af56f4aca8821e84cf8696f4a1e9589882e349"
+    },
+    {
+      "path": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "sha256": "ec21af9b66a145abb591a0a1b6bd2b52530be0d048f30a271e0d861aa8c68780"
+    }
+  ],
+  "historical_failure": {
+    "path": "/Volumes/Semaprax/lane-prompts/final-joined344-a82e00cc8-20261016/owning-selected-247.log",
+    "sha256": "06f2d74caf06a02ca25aa2eab871ddb5fb6943d35978466752ad48be9493d241",
+    "archived": "actual247-before.log"
+  },
+  "target_selector": {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::factored::oracle_order::tests::compact_staged_receiving_keeps_floor_and_foreign_owner_first_refusal"
+  }
+}

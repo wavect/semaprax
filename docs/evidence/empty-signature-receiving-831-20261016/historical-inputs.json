@@ -1,0 +1,14 @@
+[
+  {
+    "archive": "historical-a82-owner17.log",
+    "source": "/Volumes/Semaprax/lane-prompts/final-joined344-a82e00cc8-20261016/owning-selected-17.log",
+    "sha256": "54bd6f6e3aecbd84e0d5553c250f515bee6da123cff8f50b1ecef286b5cd2582",
+    "status": "HISTORICAL_INPUT_NOT_CURRENT_EXECUTION_AUTHORITY"
+  },
+  {
+    "archive": "issue831-read-contract.json",
+    "source": "/Volumes/Semaprax/provenance/closure-readiness-912a-20261015/issue-831.json",
+    "sha256": "f91a5be5156389610e42e9d5f6ff4abb0b8847129050bed65575d01f00169d7d",
+    "status": "HISTORICAL_INPUT_NOT_CURRENT_EXECUTION_AUTHORITY"
+  }
+]

@@ -1,0 +1,24 @@
+{
+  "status": "scoped_required_checks_pending",
+  "rust_execution": "NOT RUN",
+  "shipping_owners": [
+    "cleanup_plan::replay::path_array::sequence_minimum::optimized_tests::staged_header_preserves_complete_fields_work_growth_and_drop",
+    "cleanup_plan::replay::path_array::sequence_minimum::optimized_tests::staged_probe_reports_every_paid_and_heap_delta_with_exact_sticky_accounts",
+    "cleanup_plan::replay::path_array::sequence_minimum::optimized_tests::total_capacity_covers_both_frames_and_preserves_overflow_fallbacks",
+    "cleanup_plan::replay::path_array::sequence_minimum::optimized_tests::original_first_work_still_wins_before_paid_header_at_real_floor",
+    "cleanup_plan::replay::path_array::sequence_minimum::optimized_tests::selected_unpaid_and_warm_receivers_keep_complete_drop_and_real_fee_deltas",
+    "cleanup_plan::replay::path_array::sequence_minimum::optimized_tests::expired_and_foreign_account_keep_the_original_failure_before_probe"
+  ],
+  "source_join_owners": [
+    "source_reflows_merge::opt858_sequence_input::tests::full_sequence_join_refuses_empty_foreign_duplicate_and_old_input",
+    "source_reflows_merge::current344::sequence_minimum_input_tests::exact_complete_sequence_input_refuses_drift_and_historical_bytes"
+  ],
+  "retained_old_owners": [
+    "cleanup_plan::replay::path_array::sequence_minimum::tests::complete_fields_work_growth_and_drop_keep_all_input_domains",
+    "cleanup_plan::replay::path_array::sequence_minimum::tests::paid_probe_reports_no_saving_case_and_exact_finite_sticky_accounts",
+    "cleanup_plan::replay::path_array::sequence_minimum::tests::pure_capacity_requires_full_removed_backing_and_checks_overflow",
+    "cleanup_plan::replay::path_array::sequence_minimum::tests::original_push_work_wins_before_optional_probe_at_real_floor",
+    "cleanup_plan::replay::path_array::sequence_minimum::tests::complete_predecessor_is_bound_to_the_single_reviewed_macro_replacement"
+  ],
+  "independent_main44": "Retain the complete existing Main44 namespace and raw-source owning selection; no executable method references or ignored pin producers added."
+}

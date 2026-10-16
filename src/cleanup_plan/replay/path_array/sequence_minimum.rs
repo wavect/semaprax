@@ -21,6 +21,7 @@ pub(in crate::cleanup_plan::replay) const RECEIVING: usize = size_of::<Result<()
 // The original loop emits at least one output for every prefix. At its first
 // active multi-suffix output, the still-held original iterator proves S - 1
 // further outputs. No prefix scan, Candidate borrow, owner or Diagnostic exists.
+#[cfg(test)]
 pub(in crate::cleanup_plan::replay) fn capacity(
     prefixes: usize,
     remaining_suffixes: usize,
@@ -48,6 +49,7 @@ pub(in crate::cleanup_plan::replay) fn capacity(
     }
 }
 
+#[cfg(test)]
 macro_rules! push {
     ($work:ident, $first:ident, $minimum:ident, $pending:ident, $target:expr, $path:expr, $phase:expr $(,)?) => {{
         if $first {
@@ -100,9 +102,16 @@ macro_rules! push {
         }
     }};
 }
+#[cfg(test)]
 pub(in crate::cleanup_plan::replay) use push;
 
 #[cfg(test)]
 mod before;
 #[cfg(test)]
 pub(in crate::cleanup_plan::replay) mod tests;
+
+pub(in crate::cleanup_plan::replay) mod optimized;
+#[cfg(test)]
+mod immediate;
+#[cfg(test)]
+pub(in crate::cleanup_plan::replay) mod optimized_tests;

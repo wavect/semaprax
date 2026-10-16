@@ -1,0 +1,34 @@
+{
+  "status": "PASS_SOURCE_ONLY_FINITE_JOINED_COMPOSITION",
+  "base": "e9dd415b563412b160fd4737102b9cb5437b1008",
+  "component_views": [
+    {
+      "component": "831",
+      "original_script": "PASS_SOURCE_ONLY",
+      "full_inputs": 41,
+      "finite_differences": 5
+    },
+    {
+      "component": "858",
+      "original_script": "PASS_SOURCE_ONLY",
+      "full_inputs": 72,
+      "finite_differences": 7
+    },
+    {
+      "component": "852",
+      "original_script": "PASS_SOURCE_ONLY",
+      "full_inputs": 20,
+      "finite_differences": 5
+    }
+  ],
+  "complete_inputs": 133,
+  "immutable_capsule_files": 44,
+  "whole_input_rejection_controls": 51,
+  "raw_joined_subjects": 7,
+  "raw_join_count": 3,
+  "native_inventory_lines": 1500,
+  "original_scripts_changed": false,
+  "explicit_workspace_helper_and_digest_registration": true,
+  "overall_authority_or_qualification_refreshed": false,
+  "Rust_execution": "NOT RUN"
+}

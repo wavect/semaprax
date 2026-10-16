@@ -3084,7 +3084,7 @@ fn sequence_skeleton_paths(
             &first_suffix.owned_source,
             "sequenced skeleton owned-source clone",
         )?;
-        path_array::sequence_minimum::push!(
+        path_array::sequence_minimum::optimized::push!(
             work,
             first,
             minimum,

@@ -18,6 +18,9 @@
 //! `mod` in a test crate root resolves against `tests/`, so each module names
 //! its file explicitly.
 
+// Shared exact source adapter also compiles in this integration crate.
+use semaprax::digest_hex;
+
 #[path = "workspace/agent_definitions_association.rs"]
 mod agent_definitions_association;
 #[path = "workspace/agent_execution.rs"]

@@ -1,3 +1,5 @@
+- Admit only the exact owned-clone setup work in compact residual floor controls,
+  retaining the complete zero-funded refusal and all target checks; qualification pending.
 <!-- OPT831 source checkpoint: closure-specific duplicate refusal owner and inner id Result removed; unchanged strict qualification pending, no measured gain claimed. -->
 
 - Source-only #781 followup gives paid Session reference coverage closed semantic
@@ -1491,6 +1493,8 @@ format: `Unreleased` then release buckets, grouped by impact.
 > [docs/CHANGELOG-ARCHIVE.md](docs/CHANGELOG-ARCHIVE.md).
 
 ## Unreleased
+
+- Add a smaller paid no-growth sequencing header while preserving the first work frontier and complete predecessor controls (#858). Private source-only candidate; paid/heap gains and unfavorable cases await scoped qualification.
 
 - Share complete cleanup inventory validation with the ordinary schema summary receiver, avoiding discarded inventory storage while retaining the original materializer as an executable control. Source-only candidate; scoped runtime qualification remains pending.
 - Bind dependent invalid owned-record pattern recovery to the original declaration diagnostic, preserving independent body/mode/declaration errors. Source-only #859 candidate; focused qualification pending.
@@ -7509,3 +7513,7 @@ are authored. Qualification is pending; Catalog corpus and limits are unchanged.
   guards through consumer use, and preserve independent full old receivers.
   Zero/exact/short/floor/sticky/foreign/Drop/parity controls await qualification;
   no measured savings or application admission is claimed.
+
+- Source-only OPT831 follow-up: empty canonical signatures omit actual borrowed
+  child-query and Zip receivers, retaining the full immediate d962 receiver,
+  unchanged strict paid gate and all wider-case controls. Qualification pending.

@@ -262,6 +262,42 @@ fn compact_staged_receiving_keeps_floor_and_foreign_owner_first_refusal() {
             _ => None,
         })
         .expect("real Result residual source");
+    // Preserve the original zero-funded setup as its own exact refusal case.
+    // The floor attacks below admit only their actual one or two clone events.
+    let (((), allocation), refused, _, first, site) =
+        with_limit_usage_refusal_site(1 << 20, || {
+            measure(|| {
+                let mut budget = ReplayBudget::new();
+                budget.prepare_builder(function).unwrap();
+                let materializations = skeleton_materializations();
+                let error = skeleton_clone(&mut budget, function, source, "floor source")
+                    .unwrap_err();
+                assert_eq!(
+                    error,
+                    replay_error(
+                        function,
+                        format_args!("cleanup replay work budget exhausted during floor source"),
+                    ),
+                    "all six original zero-funded setup Diagnostic fields"
+                );
+                assert_eq!(budget.skeleton_remaining, 0);
+                assert_eq!(budget.skeleton_spent, 0);
+                assert_eq!(budget.remaining, 0);
+                assert_eq!(skeleton_materializations(), materializations);
+                assert_eq!(
+                    budget.reserve_bytes(function, 0, "zero setup retry"),
+                    Err(Diagnostic::io("SPX-H006", String::new()))
+                );
+                drop((error, budget));
+            })
+        });
+    assert!(
+        !refused && first.is_none() && site.is_none(),
+        "zero clone work cannot fabricate a physical floor refusal"
+    );
+    assert!(!allocation.invalid && allocation.live == 0);
+    assert_eq!(allocation.allocated, allocation.freed);
+
     let foreign_program = program.clone();
     let foreign_function = foreign_program
         .functions
@@ -283,6 +319,10 @@ fn compact_staged_receiving_keeps_floor_and_foreign_owner_first_refusal() {
                 measure(|| {
                     let mut budget = ReplayBudget::new();
                     budget.prepare_builder(function).unwrap();
+                    // Admit exactly the setup clones; target comparison work
+                    // remains in the original global allowance and cap.
+                    let setup_clones = if attack == 2 { 2 } else { 1 };
+                    budget.reserve_skeleton(function, setup_clones).unwrap();
                     let owned =
                         skeleton_clone(&mut budget, function, source, "floor source").unwrap();
                     if attack != 0 {
@@ -299,6 +339,8 @@ fn compact_staged_receiving_keeps_floor_and_foreign_owner_first_refusal() {
                     } else {
                         // Keep the owned parameter alive until the actual selected
                         // constructor branch below, with its complete clone paid.
+                        assert_eq!(budget.skeleton_spent, setup_clones);
+                        assert_eq!(budget.skeleton_remaining, 0);
                         let remaining = active_remaining().unwrap();
                         assert!(remaining > 0 && set_active_floor(remaining));
                         let error = if attack == 0 {
@@ -323,6 +365,8 @@ fn compact_staged_receiving_keeps_floor_and_foreign_owner_first_refusal() {
                         drop(budget);
                         return remaining;
                     };
+                    assert_eq!(budget.skeleton_spent, setup_clones);
+                    assert_eq!(budget.skeleton_remaining, 0);
                     let remaining = active_remaining().unwrap();
                     assert!(remaining > 0 && set_active_floor(remaining));
                     let work = budget.remaining;
@@ -362,9 +406,12 @@ fn compact_staged_receiving_keeps_floor_and_foreign_owner_first_refusal() {
                 let mut current = ReplayBudget::new();
                 old.prepare_builder(function).unwrap();
                 current.prepare_builder(function).unwrap();
+                current.reserve_skeleton(function, 1).unwrap();
                 let owned = skeleton_clone(&mut current, function, source, "work source").unwrap();
                 compact_stage::prepare!(function, &mut current, &owned, unwrap);
                 let compact = CopySource::new(function, &mut current, owned).unwrap();
+                assert_eq!(current.skeleton_spent, 1);
+                assert_eq!(current.skeleton_remaining, 0);
                 old.remaining = 0;
                 current.remaining = 0;
                 assert!(set_active_floor(active_remaining().unwrap()));

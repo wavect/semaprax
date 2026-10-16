@@ -63,3 +63,27 @@ reserved/allocated/highwater/whole Drop tuples, and every byte cut through One,
 promotion and finish. The shared Memo's original foreign/restored/sticky owners
 remain selected. No measured improvement or application fit is established
 until those controls execute with unchanged application owners.
+
+## Empty canonical signature receiving (source only)
+
+A canonical Exit with no successors retains its original signature-work debit,
+preflight, held payer authentication and insertion ordering. After explicit
+admission of its actual branch and key constructors, it builds the real empty
+signature directly. The original zero-length signature-vector authentication
+still precedes dictionary lookup; signature insertion precedes state insertion.
+It constructs no child-ID query, scratch-growth Result, child iterator or Zip.
+No corresponding absent constructor is charged, and no old charge becomes a
+credit. Nonempty signatures execute the complete existing borrowed-query path;
+they also pay the actual new branch receivers, so unfavorable wide/unique cases
+must remain visible. No weighted-state layout, graph identity, work ceiling,
+physical cap or refusal authority changes.
+
+The complete immediate d962 receiver remains independently compiled in
+`before_empty_signature.rs`, with all its ordinary/general branches intact.
+The a82 log17 paid regression is historical: d962 already includes newer arena
+changes, and its actual current gate outcome is pending. New tests compare
+complete IDs/states/six diagnostic fields/work frontiers, exact/short/zero paid
+limits, sticky foreign/restored owner denial, actual heap/paid/peak and full
+Drop against that immediate receiver. The original strict paid gate and wide/
+unique controls remain unchanged. No executable gain or application recovery is
+claimed before a fresh combined qualification.

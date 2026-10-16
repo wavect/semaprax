@@ -48,7 +48,14 @@
       "src/cleanup_plan/replay/schema/original_materializer.rs": 1,
       "src/cleanup_plan/replay/schema/ordinary_tests.rs": 1,
       "src/source_verify/declaration/record_shape.rs": 1,
-      "src/source_verify/declaration/record_shape_before.rs": 1
+      "src/source_verify/declaration/record_shape_before.rs": 1,
+      "src/cleanup_plan/replay/path_array/sequence_minimum/optimized.rs": 1,
+      "src/cleanup_plan/replay/path_array/sequence_minimum/immediate.rs": 1,
+      "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs": 1,
+      "src/source_reflows_merge/opt858_sequence_input.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -104,7 +111,14 @@
       "src/cleanup_plan/replay/schema/original_materializer.rs": 1,
       "src/cleanup_plan/replay/schema/ordinary_tests.rs": 1,
       "src/source_verify/declaration/record_shape.rs": 1,
-      "src/source_verify/declaration/record_shape_before.rs": 1
+      "src/source_verify/declaration/record_shape_before.rs": 1,
+      "src/cleanup_plan/replay/path_array/sequence_minimum/optimized.rs": 1,
+      "src/cleanup_plan/replay/path_array/sequence_minimum/immediate.rs": 1,
+      "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs": 1,
+      "src/source_reflows_merge/opt858_sequence_input.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs": 1
     }
   },
   "tests/workspace/semantic_graph/source_inventory.rs": {
@@ -191,7 +205,14 @@
       "src/cleanup/schema_summary/support.rs": 1,
       "src/cleanup/schema_summary/tests.rs": 1,
       "src/source_verify/declaration/record_shape.rs": 1,
-      "src/source_verify/declaration/record_shape_before.rs": 1
+      "src/source_verify/declaration/record_shape_before.rs": 1,
+      "src/cleanup_plan/replay/path_array/sequence_minimum/optimized.rs": 1,
+      "src/cleanup_plan/replay/path_array/sequence_minimum/immediate.rs": 1,
+      "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs": 1,
+      "src/source_reflows_merge/opt858_sequence_input.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -276,7 +297,14 @@
       "src/cleanup/schema_summary/support.rs": 1,
       "src/cleanup/schema_summary/tests.rs": 1,
       "src/source_verify/declaration/record_shape.rs": 1,
-      "src/source_verify/declaration/record_shape_before.rs": 1
+      "src/source_verify/declaration/record_shape_before.rs": 1,
+      "src/cleanup_plan/replay/path_array/sequence_minimum/optimized.rs": 1,
+      "src/cleanup_plan/replay/path_array/sequence_minimum/immediate.rs": 1,
+      "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs": 1,
+      "src/source_reflows_merge/opt858_sequence_input.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs": 1
     }
   },
   "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
@@ -333,7 +361,14 @@
       "src/cleanup_plan/replay/schema/original_materializer.rs": 1,
       "src/cleanup_plan/replay/schema/ordinary_tests.rs": 1,
       "src/source_verify/declaration/record_shape.rs": 1,
-      "src/source_verify/declaration/record_shape_before.rs": 1
+      "src/source_verify/declaration/record_shape_before.rs": 1,
+      "src/cleanup_plan/replay/path_array/sequence_minimum/optimized.rs": 1,
+      "src/cleanup_plan/replay/path_array/sequence_minimum/immediate.rs": 1,
+      "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs": 1,
+      "src/source_reflows_merge/opt858_sequence_input.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs": 1
     },
     "maximum": {
       "src/cleanup_plan/replay.rs": 1,
@@ -388,7 +423,14 @@
       "src/cleanup_plan/replay/schema/original_materializer.rs": 1,
       "src/cleanup_plan/replay/schema/ordinary_tests.rs": 1,
       "src/source_verify/declaration/record_shape.rs": 1,
-      "src/source_verify/declaration/record_shape_before.rs": 1
+      "src/source_verify/declaration/record_shape_before.rs": 1,
+      "src/cleanup_plan/replay/path_array/sequence_minimum/optimized.rs": 1,
+      "src/cleanup_plan/replay/path_array/sequence_minimum/immediate.rs": 1,
+      "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs": 1,
+      "src/source_reflows_merge/opt858_sequence_input.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs": 1
     }
   }
 }

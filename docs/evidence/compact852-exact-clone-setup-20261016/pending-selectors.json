@@ -1,0 +1,11 @@
+{
+  "status": "PENDING_FRESH_SCOPED_EXECUTION",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::oracle_order::tests::compact_staged_receiving_keeps_floor_and_foreign_owner_first_refusal"
+    }
+  ],
+  "execution": "NOT RUN"
+}

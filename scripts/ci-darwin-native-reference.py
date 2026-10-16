@@ -2,8 +2,9 @@
 """Expose native tool failures without changing the held builder's diagnostics.
 
 This is an ordinary CI reference process, not a substitute for held executable,
-directory, process-settlement, or SDK publication admission. Children receive
-the empty environment used by the builder's Darwin tools.
+directory, process-settlement, or SDK publication admission. Held-style children
+receive the builder's empty environment. The ordinary header reference receives
+only its two explicitly configured developer/SDK roots.
 """
 
 import os
@@ -13,12 +14,12 @@ import sys
 import tempfile
 
 
-def run(arguments, directory):
+def run(arguments, directory, environment=None):
     print("native reference:", " ".join(map(str, arguments)), flush=True)
     result = subprocess.run(
         arguments,
         cwd=directory,
-        env={},
+        env={} if environment is None else environment,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         check=False,
@@ -49,6 +50,16 @@ def main():
         if len(hosts) != 1 or hosts[0] not in ("aarch64-apple-darwin", "x86_64-apple-darwin"):
             raise SystemExit("native reference requires exactly one admitted Darwin host")
         target = hosts[0]
+        sdk = "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
+        native_environment = {
+            "SDKROOT": os.environ["SDKROOT"],
+            "DEVELOPER_DIR": os.environ["DEVELOPER_DIR"],
+        }
+        if native_environment != {
+            "SDKROOT": sdk,
+            "DEVELOPER_DIR": "/Library/Developer/CommandLineTools",
+        }:
+            raise SystemExit("ordinary native builds require the paired CLT developer and SDK roots")
         (directory / "bridge.rs").write_text(
             '#[no_mangle]\npub extern "C" fn spx_native_reference() -> i32 {\n'
             '    std::panic::catch_unwind(|| std::hint::black_box(42)).unwrap_or(-1)\n}\n'
@@ -57,7 +68,16 @@ def main():
             "extern int spx_native_reference(void);\n"
             "int main(void) { return spx_native_reference() == 42 ? 0 : 1; }\n"
         )
-        (directory / "module.c").write_text("int spx_native_reference_module(void) { return 0; }\n")
+        (directory / "module.c").write_text(
+            "#include <stdio.h>\n#include <stdint.h>\n#include <TargetConditionals.h>\n"
+            "int spx_native_reference_module(void) { return TARGET_OS_OSX ? 0 : 1; }\n"
+        )
+        # Cargo's ordinary C dependency builds use configured SDK/developer
+        # roots. Check their header discovery without inheriting other values.
+        run([
+            clang, "-target", target, "-std=c11", "-Wall", "-Wextra", "-Werror",
+            "-fsyntax-only", "module.c",
+        ], directory, native_environment)
         # Match the prepared Rust staticlib invocation, including its warning
         # policy and unwind runtime. No inherited PATH, SDKROOT or DYLD values.
         run([
@@ -67,14 +87,14 @@ def main():
         for source in ("main", "module"):
             run([
                 clang, "-target", target, "-std=c11", "-Wall", "-Wextra", "-Werror",
-                "-c", source + ".c", "-o", source + ".o",
+                "-c", source + ".c", "-o", source + ".o", "-isysroot", sdk,
             ], directory)
         # Keep the current prepared link spelling and SDK explicit so a missing
         # SDK, unsupported flag or unresolved native symbol is visible in CI.
         run([
             clang, "-target", target, "-Wl,-no_warn_duplicate_libraries",
             "main.o", "module.o", "libbridge.a", "-o", "reference",
-            "-isysroot", "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+            "-isysroot", sdk,
         ], directory)
         run([directory / "reference"], directory)
         print("PASS ordinary Darwin Rust/C tool link and execution reference", flush=True)

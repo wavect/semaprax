@@ -1,0 +1,61 @@
+{
+  "status": "SOURCE_ONLY_PENDING_NOT_REGISTERED",
+  "new_Main_owners": 5,
+  "changed_existing_owners": 2,
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::tests::whole_replay_preserves_success_work_and_the_older_independent_receiver",
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs",
+      "line": 40,
+      "reason": "New independently compiled literal Main group control; no prior execution at this namespace"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::tests::the_complete_group_receiver_keeps_hostile_transition_diagnostics_and_work",
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs",
+      "line": 71,
+      "reason": "New independently compiled literal Main group control; no prior execution at this namespace"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::tests::full_replay_removes_backing_with_zero_exact_short_limits_and_complete_drop",
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs",
+      "line": 111,
+      "reason": "New independently compiled literal Main group control; no prior execution at this namespace"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::source_custody::whole_previous_producer_and_both_complete_key_constructors_stay_bound",
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs",
+      "line": 35,
+      "reason": "New independently compiled literal Main group control; no prior execution at this namespace"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::source_custody::the_entire_older_receiver_test_only_adds_the_certified_source_inverse",
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs",
+      "line": 68,
+      "reason": "New independently compiled literal Main group control; no prior execution at this namespace"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project_product_acceptance_ci_contract",
+      "selector": "macos_native_jobs_pair_the_driver_with_the_explicit_builder_sdk",
+      "reason": "Existing owner strengthened by MainSDK flags; source-only CI string contract, no actual SDK job"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::complete_immediate_old_and_unchanged_multistate_body_stay_source_bound",
+      "reason": "Existing current direct root sourceguard gained exact whole-input adapter; all original assertions retained"
+    }
+  ],
+  "all_prior_outcomes_retained": true,
+  "no_extra_Cargo_roles_needed_if_reusing_current_lib_and_project_CI_roles": true
+}

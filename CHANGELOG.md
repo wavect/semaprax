@@ -2,6 +2,10 @@
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
 
+- Reuse a sole incoming ownership-state tree as its identity control partition, retaining complete key construction, work charges, all join/replay checks and the original grouped producer while prepaying new receiving layouts.
+
+- Configure ordinary macOS Cargo native builds with the paired CLT developer and SDK roots, and check standard-header discovery independently of the held tools' empty-environment route.
+
 - Pair macOS CI Clang, its companion linker and C++ driver with the Command Line Tools installation used by the builder's explicit SDK, preserving held-tool admission and the unchanged SDK profile.
 
 - Refresh browser graph pins from complete hosted 2600e49eb records after measured builder-bill reductions; retain the entire previous compiled bridge and every historical graph and cursor control.

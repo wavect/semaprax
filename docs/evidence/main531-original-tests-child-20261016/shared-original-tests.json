@@ -1,0 +1,9 @@
+{
+  "source": "src/cleanup_plan/replay/path_join/tests.rs",
+  "sha256": "6a00500ce95449c9d08ebba90cdaef85c7ce0d4e5a69769bedcdde62502725eb",
+  "bytes": 5167,
+  "Main": "531bde1ac6b835b3b4e44e0d0b15f3a9fc5e6d07",
+  "actual_namespace": "cleanup_plan::replay::path_join::main_single_groups::tests",
+  "full_body_identical": true,
+  "new_test_body_authored": false
+}

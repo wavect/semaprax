@@ -1,0 +1,20 @@
+[
+  {
+    "source": "main531::path_join",
+    "current_source": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+    "checkpoint_revision": "531bde1ac6b835b3b4e44e0d0b15f3a9fc5e6d07",
+    "archive": "docs/evidence/main531-independent-groups-20261016/main-path-join.rs.txt",
+    "current_sha256": "ffadfffcc3c0aeed2d85bf7fc86d69079fddd51a061a6d647a643068e88c85ff",
+    "original_sha256": "c24216b6844a6221259b9282d14ce56ee761a21e060866d5e4d0e2371bc608ce",
+    "edits": [
+      {
+        "new": "#[allow(dead_code, reason = \"complete original path-state replay receiver\")]\nmod before;\nmod boxed_states;\nuse super::branch_join;\nmod grouping;\n#[cfg(test)]\nmod receiver_tests;\nuse super::storage;\n\n#[allow(clippy::too_many_arguments)] // Keep the independently held phase index explicit.\npub(super) fn validate_path_states<E: semantic_refusal::Error>(\n",
+        "old": "#[allow(dead_code, reason = \"complete original path-state replay receiver\")]\nmod before;\nmod boxed_states;\nmod branch_join;\nmod grouping;\n#[cfg(test)]\nmod receiver_tests;\npub(super) mod storage;\n\n#[allow(clippy::too_many_arguments)] // Keep the independently held phase index explicit.\npub(super) fn validate_path_states<E: semantic_refusal::Error>(\n"
+      },
+      {
+        "new": "    }\n    Ok(joined)\n}\n\n// The Main positional inverse receives its complete independent root input.\npub(super) fn main_root_input() -> String {\n    crate::source_reflows_merge::main531_input(\"main531::path_join\", include_str!(\"mod.rs\"))\n}\n",
+        "old": "    }\n    Ok(joined)\n}\n"
+      }
+    ]
+  }
+]

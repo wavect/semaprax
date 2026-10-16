@@ -1,0 +1,14 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "before": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+  "main": "531bde1ac6b835b3b4e44e0d0b15f3a9fc5e6d07",
+  "whole_prior_inputs": 13,
+  "compact_input_bytes": 42339,
+  "new_Main_root_input_bytes": 1610,
+  "new_Rust_owners": 8,
+  "Main_group_test_bodies": 5,
+  "Main_other_old_controls_retained": true,
+  "modern_production_exact": true,
+  "fixed90_exact": true,
+  "Rust_executed": false
+}

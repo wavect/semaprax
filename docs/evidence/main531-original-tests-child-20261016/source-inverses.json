@@ -1,0 +1,84 @@
+[
+  {
+    "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "checkpoint_revision": "7e9fae0af7dff14fbdc31e48af056a380989b06c",
+    "archive": "docs/evidence/main531-original-tests-child-20261016/before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs.txt",
+    "current_sha256": "155e35fda7599a768a2ece98b508c39a9eb86f769371a3c65b569ce725a5debe",
+    "original_sha256": "0947eebd5968a7ef9b7997588326626b36da471a8d55b559620547e0dc15be79",
+    "edits": [
+      {
+        "new": "macro_rules! held_call_profile_source_inventory {\n    () => {\n        concat!(\n            include_str!(\"../../../../../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../../../../src/hir/validation/held_profiles.rs\"),\n            include_str!(\"../../../../../src/hir/validation/held_profiles/tests.rs\"),\n            include_str!(\"../../../../../src/hir/validation/held_profiles/source_audit.rs\"),\n            include_str!(\"../../../../../src/hir/validation/executable_profiles/held.rs\"),\n",
+        "old": "macro_rules! held_call_profile_source_inventory {\n    () => {\n        concat!(\n            include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../../../../src/hir/validation/held_profiles.rs\"),\n            include_str!(\"../../../../../src/hir/validation/held_profiles/tests.rs\"),\n            include_str!(\"../../../../../src/hir/validation/held_profiles/source_audit.rs\"),\n            include_str!(\"../../../../../src/hir/validation/executable_profiles/held.rs\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+    "checkpoint_revision": "7e9fae0af7dff14fbdc31e48af056a380989b06c",
+    "archive": "docs/evidence/main531-original-tests-child-20261016/before/src/cleanup_plan/replay/path_join/main_single_groups/mod.rs.txt",
+    "current_sha256": "0ad4af44fc6692822ffcfd3729afee2fd373ec60507ad79bb3cb79a66d3a3d89",
+    "original_sha256": "ffadfffcc3c0aeed2d85bf7fc86d69079fddd51a061a6d647a643068e88c85ff",
+    "edits": [
+      {
+        "new": "}\n\n#[cfg(test)]\n#[path = \"../tests.rs\"]\nmod tests;\n\nfn joined_ownership_state<K: Ord + Borrow<PathState>>(\n",
+        "old": "}\n\n#[cfg(test)]\nmod tests;\n\nfn joined_ownership_state<K: Ord + Borrow<PathState>>(\n"
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "checkpoint_revision": "7e9fae0af7dff14fbdc31e48af056a380989b06c",
+    "archive": "docs/evidence/main531-original-tests-child-20261016/before/src/source_reflows_merge.rs.txt",
+    "current_sha256": "a778c577e22e58feae0d9049d3f0b3e8011069238470ed7b75d8dfda1eafa4f2",
+    "original_sha256": "c816f3d06e3ea48b3d6294ddb012e3577995eaa4913769a8136d5f54207953a3",
+    "edits": [
+      {
+        "new": "    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/compile-fixture-successor-5aac-20261016/current-to-5aac.json\")), source, current)\n}\npub(crate) fn main531_previous(source: &str, current: &str) -> String {\n    let fixed = main531_child_input(source, current);\n    let current = fixed.as_str();\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main531-independent-groups-20261016/current-to-2d4b.json\")), source, current)\n}\npub(crate) fn main531_input(source: &str, current: &str) -> String {\n    let fixed = main531_child_input(\"src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\", current);\n    let current = fixed.as_str();\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main531-independent-groups-20261016/runtime-main-root.json\")), source, current)\n}\nfn main531_child_input(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main531-original-tests-child-20261016/current-to-7e9f.json\")), source, current)\n}\nfn project(rows: &str, source: &str, current: &str) -> String {\n    let rows: serde_json::Value = serde_json::from_str(rows).expect(\"fixed merge projections\");\n",
+        "old": "    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/compile-fixture-successor-5aac-20261016/current-to-5aac.json\")), source, current)\n}\npub(crate) fn main531_previous(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main531-independent-groups-20261016/current-to-2d4b.json\")), source, current)\n}\npub(crate) fn main531_input(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main531-independent-groups-20261016/runtime-main-root.json\")), source, current)\n}\nfn project(rows: &str, source: &str, current: &str) -> String {\n    let rows: serde_json::Value = serde_json::from_str(rows).expect(\"fixed merge projections\");\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "checkpoint_revision": "7e9fae0af7dff14fbdc31e48af056a380989b06c",
+    "archive": "docs/evidence/main531-original-tests-child-20261016/before/tests/hir_module_boundaries.rs.txt",
+    "current_sha256": "4081e41fa91d3faea3981d394eebcc11d8a4119f91f5b58056a433c3922aeac7",
+    "original_sha256": "8197dfe03e0cf48db2fd5983229da50fb205d46a0311e792e1ce8469702e00ce",
+    "edits": [
+      {
+        "new": "    let validation_raw = concat!(\n        concat!(\n            concat!(\n                include_str!(\"../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../src/hir/validation.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles/tests.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles/source_audit.rs\"),\n",
+        "old": "    let validation_raw = concat!(\n        concat!(\n            concat!(\n                include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../src/hir/validation.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles/tests.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles/source_audit.rs\"),\n"
+      },
+      {
+        "new": "    );\n    let validation = production_source_inventory::production(\n        validation_raw,\n        include_str!(\"../docs/evidence/main531-original-tests-child-20261016/hir.json\"),\n    );\n    for forbidden in [\n        \"struct Resolver\",\n",
+        "old": "    );\n    let validation = production_source_inventory::production(\n        validation_raw,\n        include_str!(\"../docs/evidence/main531-independent-groups-20261016/hir.json\"),\n    );\n    for forbidden in [\n        \"struct Resolver\",\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph.rs",
+    "checkpoint_revision": "7e9fae0af7dff14fbdc31e48af056a380989b06c",
+    "archive": "docs/evidence/main531-original-tests-child-20261016/before/tests/workspace/semantic_graph.rs.txt",
+    "current_sha256": "71ee68e96997bc5e553d5b745d01831a19bf30a1ede1e288fe5b3b3dac5f2f90",
+    "original_sha256": "f0c4dcb8c185e08453e9f7cb3866fa3879e588d8bf78c295378471ec00e4b5cd",
+    "edits": [
+      {
+        "new": "    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\n            \"../../docs/evidence/main531-original-tests-child-20261016/projection.json\"\n        ),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n",
+        "old": "    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\n            \"../../docs/evidence/main531-independent-groups-20261016/projection.json\"\n        ),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph/source_inventory.rs",
+    "checkpoint_revision": "7e9fae0af7dff14fbdc31e48af056a380989b06c",
+    "archive": "docs/evidence/main531-original-tests-child-20261016/before/tests/workspace/semantic_graph/source_inventory.rs.txt",
+    "current_sha256": "52fe477ad42eb2c0934813876755157c5aa1b11ae5e233296f6e8a2a0e9239e2",
+    "original_sha256": "bf0c556fcd81d180f355b5049d021ecdc77a0d5504d50ccc1390fdad6185198c",
+    "edits": [
+      {
+        "new": "macro_rules! semantic_graph_private_layout_owned_source_inventory {\n    () => { concat!(semantic_graph_private_layout_owned_source_inventory!(capacity), semantic_graph_private_layout_owned_source_inventory!(core)) };\n    (capacity) => { concat!(\n        include_str!(\"../../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_before.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests/owner_controls.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs\"),\n",
+        "old": "macro_rules! semantic_graph_private_layout_owned_source_inventory {\n    () => { concat!(semantic_graph_private_layout_owned_source_inventory!(capacity), semantic_graph_private_layout_owned_source_inventory!(core)) };\n    (capacity) => { concat!(\n        include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_before.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests/owner_controls.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs\"),\n"
+      }
+    ]
+  }
+]

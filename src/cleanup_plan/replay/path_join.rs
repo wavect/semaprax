@@ -953,3 +953,7 @@ fn join_conditional_variants(
 mod before_singleton;
 #[cfg(test)]
 mod singleton_tests;
+
+#[cfg(test)]
+#[path = "path_join/main_single_groups/mod.rs"]
+mod main_single_groups;

@@ -171,7 +171,8 @@ fn complete_immediate_old_and_unchanged_multistate_body_stay_source_bound() {
     )))
     .unwrap();
     let row = &manifest["sources"][0];
-    let raw = include_str!("../path_join.rs");
+    let prior = crate::source_reflows_merge::main531_previous("src/cleanup_plan/replay/path_join.rs", include_str!("../path_join.rs"));
+    let raw = prior.as_str();
     assert_eq!(raw, row["current"].as_str().unwrap());
     assert_eq!(
         format!(

@@ -1,0 +1,17 @@
+[
+  [
+    234,
+    "mod branch_join;\nmod grouping;\n",
+    "mod branch_join;\n"
+  ],
+  [
+    6962,
+    "        let groups = grouping::partition(function, states, budget)?;\n",
+    "        let mut groups = BTreeMap::<ControlKey, BTreeSet<Box<PathState>>>::new();\n        for state in states {\n            let key = if storage::atomic_controls::selected(&state, budget) {\n                let payload = storage::atomic_controls::reserve(function, &state, budget)?;\n                storage::atomic_controls::copy(payload)\n            } else {\n                storage::reserve_control_clone(function, &state, budget)?;\n                (\n                    state.pending_failure.clone(),\n                    state.selected_failure.clone(),\n                    state.staged_copy_result.clone(),\n                    state.published,\n                    state.returned.clone(),\n                )\n            };\n            if !groups.contains_key(&key) {\n                storage::reserve_btree_node::<ControlKey, BTreeSet<Box<PathState>>>(\n                    function,\n                    budget,\n                    \"ownership control groups\",\n                )?;\n            }\n            let group = groups.entry(key).or_default();\n            boxed_states::insert_held(group, state, &mut |bytes, phase| {\n                budget.reserve_bytes(function, bytes, phase)\n            })?;\n        }\n"
+  ],
+  [
+    7086,
+    "        for states in groups {",
+    "        for states in groups.into_values() {"
+  ]
+]

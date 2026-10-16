@@ -1,5 +1,9 @@
 # Paid boxed ownership path states
 
+Status: private implementation evidence; current-head qualification follows CI.
+
+Audience: compiler maintainers and reviewers.
+
 The production STD-08 job
 [116660444540](https://github.com/wavect/semaprax/actions/runs/38803872053/job/116660444540)
 refused a 4,520-byte incoming ownership-state tree-node reservation during final

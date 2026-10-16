@@ -1,5 +1,9 @@
 # Storage-backed test comparison refusal
 
+Status: private implementation evidence; current-head qualification follows CI.
+
+Audience: compiler maintainers and reviewers.
+
 Hosted f4a448da6 unit job 116636394120 reached the complete enumerating and
 factored comparison pair. At three underfunded builder boundaries, enumeration
 succeeded but the factored receiver's next physical reservation failed. Its

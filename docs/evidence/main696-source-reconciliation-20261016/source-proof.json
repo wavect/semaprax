@@ -1,0 +1,19 @@
+{
+  "364d": {
+    "whole_input_rows": 27,
+    "compact_bytes": 50009
+  },
+  "main696": {
+    "whole_input_rows": 3,
+    "compact_bytes": 86527
+  },
+  "status": "SOURCE_CUSTODY_ONLY_PASS",
+  "Main_semantic_inputs": 4,
+  "complete_formatting_after_semantic": true,
+  "Main_receiver_bodies": 4,
+  "original_90_runtime_fixtures_exact": true,
+  "old_json_unchanged": true,
+  "shipping_831_and_inline_owners_exact_cutoff": true,
+  "Rust_executed": false,
+  "production_funding_review": "Separate pending review; this source proof grants no production qualification."
+}

@@ -1,5 +1,9 @@
 # Branch clone capacity
 
+Status: private implementation evidence; current-head qualification follows CI.
+
+Audience: compiler maintainers and reviewers.
+
 Hosted [STD-08 job 116714584223](https://github.com/wavect/semaprax/actions/runs/38819916075/job/116714584223)
 retains the testing consumer passes but refuses five JSON consumers at the
 unchanged 64 MiB builder limit. Two refusals occur at the observation push

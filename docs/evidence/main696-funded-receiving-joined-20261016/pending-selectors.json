@@ -1,0 +1,100 @@
+{
+  "status": "UNREGISTERED_DRAFT_NOT_EXECUTED",
+  "minimum_external_selection": "/Volumes/Semaprax/provenance/main696-pin-minimum-draft-20261016/selection-draft.json",
+  "minimum_external_selection_sha256": "141bcd4bf6774aa1dec49403582ea200c87646b2d150f0f602fb0f3b890f21eb",
+  "counts": {
+    "union": 50,
+    "before_pins": 35,
+    "post_actual_pins": 15,
+    "roles": 7
+  },
+  "roles": [
+    {
+      "package": "semaprax",
+      "kind": "lib"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:hir_module_boundaries"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:module_size"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace"
+    },
+    {
+      "package": "semaprax-toolchain",
+      "kind": "test:cli_new_project_v1"
+    }
+  ],
+  "new_authored_bodies": 2,
+  "Main_original_7": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::tests::four_complete_original_receivers_keep_all_path_fields_order_and_work"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::tests::append_pays_complete_backing_and_drop_with_exact_short_and_zero_controls"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::tests::complete_hir_enumeration_keeps_paths_work_materializations_and_legacy"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::tests::complete_old_functions_are_compiled_and_only_capacity_hooks_change"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::semantic_receivers::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::semantic_receivers::receiver_mutation_and_forged_predecessor_fail_closed"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors"
+    }
+  ],
+  "funded_new_2": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_preserves_complete_main_hir_work_and_drop",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_exact_short_zero_and_first_output_work_frontier",
+      "status": "PENDING_NOT_EXECUTED"
+    }
+  ],
+  "831_retained_4": [
+    "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+    "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_keeps_complete_immediate_ids_work_and_all_six_failure_fields",
+    "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_reports_whole_immediate_costs_and_exact_short_zero_drop",
+    "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_keeps_full_immediate_sources_and_old_receiver_bodies_bound"
+  ],
+  "847_changed_existing_owner": "workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core"
+}

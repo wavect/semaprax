@@ -1,0 +1,10 @@
+[
+  {
+    "status": "INFRASTRUCTURE_USAGE_REFUSAL",
+    "detail": "Original831 verifier first invoked without required --repo; no Rust/body ran."
+  },
+  {
+    "status": "HISTORICAL_NAMESPACE_REFUSAL",
+    "detail": "Original831 verifier with --repo refused unrelated joined changes as designed. Originalscript unchanged; final verifier authenticates its two complete rows in their proper source domain."
+  }
+]

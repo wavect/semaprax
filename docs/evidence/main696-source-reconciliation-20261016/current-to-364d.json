@@ -1,0 +1,389 @@
+[
+  {
+    "source": "CHANGELOG.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/CHANGELOG.md.txt",
+    "current_sha256": "78e691cb86384bfbd4c7ae2c4f6170518d005951b78cdd3729621ed83f289d51",
+    "original_sha256": "cd198737640dfe03101aed225180793bb47f8e7061825dad65d24cb9d27a1f28",
+    "edits": [
+      {
+        "new": "# Changelog\n\n- Execute the paid cleanup branch clone/push producer inline in its existing enumerator, removing actual Vec Result and forwarding receivers while retaining every nested charge and complete old controls; focused execution and application savings remain pending.\n\n- Acquire known minimum ownership-path array capacity once, retaining complete path traversal, work charges, future growth, and independently compiled old receivers under the unchanged builder limit.\n\n- Reuse a sole incoming ownership-state tree as its identity control partition, retaining complete key construction, work charges, all join/replay checks and the original grouped producer while prepaying new receiving layouts.\n\n",
+        "old": "# Changelog\n\n- Execute the paid cleanup branch clone/push producer inline in its existing enumerator, removing actual Vec Result and forwarding receivers while retaining every nested charge and complete old controls; focused execution and application savings remain pending.\n\n- Reuse a sole incoming ownership-state tree as its identity control partition, retaining complete key construction, work charges, all join/replay checks and the original grouped producer while prepaying new receiving layouts.\n\n"
+      }
+    ]
+  },
+  {
+    "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs.txt",
+    "current_sha256": "07ca3c7bd5393a8fdf2ac9c4430cb39308abe967e749e210e61ad42c05fbf57a",
+    "original_sha256": "9a822feb42162605da19a392b0c9719f7b2c32e4c3678544009a050998c030df",
+    "edits": [
+      {
+        "new": "macro_rules! held_call_profile_source_inventory {\n    () => {\n        concat!(\n            include_str!(\"../../../../../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../../../../../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../../../../src/hir/validation/held_profiles.rs\"),\n            include_str!(\"../../../../../src/hir/validation/held_profiles/tests.rs\"),\n            include_str!(\"../../../../../src/hir/validation/held_profiles/source_audit.rs\"),\n            include_str!(\"../../../../../src/hir/validation/executable_profiles/held.rs\"),\n",
+        "old": "macro_rules! held_call_profile_source_inventory {\n    () => {\n        concat!(\n            include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../../../../src/hir/validation/held_profiles.rs\"),\n            include_str!(\"../../../../../src/hir/validation/held_profiles/tests.rs\"),\n            include_str!(\"../../../../../src/hir/validation/held_profiles/source_audit.rs\"),\n            include_str!(\"../../../../../src/hir/validation/executable_profiles/held.rs\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/SUMMARY.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/SUMMARY.md.txt",
+    "current_sha256": "94581d81543a66b4ddc5311176eb1b3302e50af39e6dae598b15d90a34240b1a",
+    "original_sha256": "46880b00a4c4c58936023462604e887846b4481176a195a24792b5fca4c4f8ea",
+    "edits": [
+      {
+        "new": "- [OPT826 exact small weighted successor backing](evidence/weighted-exact-successor-capacity-826/HANDOFF.md)\n- [OPT826 detached work refusal control correction](evidence/weighted-work-refusal-826/HANDOFF.md)\n- [review (independent-review)](evidence/weighted-work-refusal-826/independent-review/review.md)\n\n## Recent private implementation evidence\n\n- [Minimum ownership path array capacity](evidence/minimum-path-array-v1/README.md)\n- [Paid boxed ownership path states](evidence/boxed-path-states-v1/README.md)\n- [Branch clone capacity](evidence/branch-clone-capacity-v1/README.md)\n- [Hosted graph bill after paid-scratch changes](evidence/browser-graph-pins-17104e20c/README.md)\n- [Hosted graph bill after replay allocation changes](evidence/browser-graph-pins-2600e49eb/README.md)\n- [Hosted paid-cursor graph bills](evidence/browser-graph-pins-268cb0523/README.md)\n- [Hosted browser graph pins](evidence/browser-graph-pins-841efe3e2/README.md)\n- [Darwin native tool reference](evidence/darwin-native-link-reference-v1/README.md)\n- [Paid expression-fact Arena cursor](evidence/expression-fact-arena-cursor-v1/README.md)\n- [Canonical hygiene scratch](evidence/format-hygiene-scratch-v1/README.md)\n- [Optional scalar-helper source work](evidence/optional-helper-source-work-v1/README.md)\n- [Lazy fixed pattern scratch](evidence/pattern-hygiene-scratch-v1/README.md)\n- [Receiver source custody](evidence/receiver-source-custody-v1/README.md)\n- [One explicit-record census per immutable phase](evidence/record-presence-phase-v1/README.md)\n- [Owning provider row arguments are source refusals](evidence/row-loan-source-refusal-v1/README.md)\n- [Reuse a sole incoming ownership-state tree](evidence/single-state-groups-v1/README.md)\n- [Storage-backed test comparison refusal](evidence/storage-oracle-refusal-v1/README.md)\n- [Structural call cursor storage](evidence/structural-call-cursor-v1/README.md)\n- [Supplemental receiving cursor growth](evidence/supplemental-cursor-growth-v1/README.md)\n- [Reuse the complete unit-weight closure](evidence/unit-weight-closure-v1/README.md)\n",
+        "old": "- [OPT826 exact small weighted successor backing](evidence/weighted-exact-successor-capacity-826/HANDOFF.md)\n- [OPT826 detached work refusal control correction](evidence/weighted-work-refusal-826/HANDOFF.md)\n- [review (independent-review)](evidence/weighted-work-refusal-826/independent-review/review.md)\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/boxed-path-states-v1/README.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/evidence/boxed-path-states-v1/README.md.txt",
+    "current_sha256": "e51afeff950819155da5a20277255c11c12e5fe5bce1cc1f0453abd0a61ece04",
+    "original_sha256": "075ca7ff80753578d5fb3acc73a5dda2fd1600dedab9f2d0a822737642e6a3fc",
+    "edits": [
+      {
+        "new": "# Paid boxed ownership path states\n\nStatus: private implementation evidence; current-head qualification follows CI.\n\nAudience: compiler maintainers and reviewers.\n\nThe production STD-08 job\n[116660444540](https://github.com/wavect/semaprax/actions/runs/38803872053/job/116660444540)\n",
+        "old": "# Paid boxed ownership path states\n\nThe production STD-08 job\n[116660444540](https://github.com/wavect/semaprax/actions/runs/38803872053/job/116660444540)\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/branch-clone-capacity-v1/README.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/evidence/branch-clone-capacity-v1/README.md.txt",
+    "current_sha256": "38939e3147eb3583ad618703da4723d5fc008d7d006a7af51f0e71e1987af886",
+    "original_sha256": "dcc3c64a7f515f20b135376b7a35226f75f5f2159b60c94c7ff269871cdb74a4",
+    "edits": [
+      {
+        "new": "# Branch clone capacity\n\nStatus: private implementation evidence; current-head qualification follows CI.\n\nAudience: compiler maintainers and reviewers.\n\nHosted [STD-08 job 116714584223](https://github.com/wavect/semaprax/actions/runs/38819916075/job/116714584223)\nretains the testing consumer passes but refuses five JSON consumers at the\n",
+        "old": "# Branch clone capacity\n\nHosted [STD-08 job 116714584223](https://github.com/wavect/semaprax/actions/runs/38819916075/job/116714584223)\nretains the testing consumer passes but refuses five JSON consumers at the\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/browser-graph-pins-17104e20c/README.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/evidence/browser-graph-pins-17104e20c/README.md.txt",
+    "current_sha256": "0c21af63a0b34846e90998da05af320157d09b6736aafe7993b78335c4f1c6bc",
+    "original_sha256": "ad9537e189b32a6d89ddc89951b90895b4def5ea78f4d80a73315bceac1db193",
+    "edits": [
+      {
+        "new": "# Hosted graph bill after paid-scratch changes\n\nStatus: private implementation evidence; current-head qualification follows CI.\n\nAudience: compiler maintainers and reviewers.\n\nCI run 38793590554, job 116624982882, built\n`17104e20c16db1d4ac6845266b78908f390b9896` using Rust 1.88 on Linux x86-64.\n",
+        "old": "# Hosted graph bill after paid-scratch changes\n\nCI run 38793590554, job 116624982882, built\n`17104e20c16db1d4ac6845266b78908f390b9896` using Rust 1.88 on Linux x86-64.\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/browser-graph-pins-2600e49eb/README.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/evidence/browser-graph-pins-2600e49eb/README.md.txt",
+    "current_sha256": "cbdf074bd2926b08bd97f3a54486cc9e086895aaaec79f1e995f9bbe834e3f26",
+    "original_sha256": "1247e5397f0ffe523919d466ede7743d0c27466e467c5c115977aafb10a683ac",
+    "edits": [
+      {
+        "new": "# Hosted graph bill after replay allocation changes\n\nStatus: private implementation evidence; current-head qualification follows CI.\n\nAudience: compiler maintainers and reviewers.\n\n[CI run 38824367721, job 116728654352](https://github.com/wavect/semaprax/actions/runs/38824367721/job/116728654352)\nbuilt `2600e49eb6d5853197fa53c972179f71df002bc0` using Rust 1.88 on Linux\n",
+        "old": "# Hosted graph bill after replay allocation changes\n\n[CI run 38824367721, job 116728654352](https://github.com/wavect/semaprax/actions/runs/38824367721/job/116728654352)\nbuilt `2600e49eb6d5853197fa53c972179f71df002bc0` using Rust 1.88 on Linux\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/browser-graph-pins-268cb0523/README.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/evidence/browser-graph-pins-268cb0523/README.md.txt",
+    "current_sha256": "69bae377c7c61e375fa5bffef438c93486269493af30b74e127294dda8316c15",
+    "original_sha256": "6c4f83327cf7c2fb09bd3d924711f8051794e480f350c79ad6100e2c0a4e8c61",
+    "edits": [
+      {
+        "new": "# Hosted paid-cursor graph bills\n\nStatus: private implementation evidence; current-head qualification follows CI.\n\nAudience: compiler maintainers and reviewers.\n\nCI run 38778002471, job 116571426249, built\n`268cb05237d3cc0806e67f66696989cf9469bcdf` with Rust 1.88 on Linux x86-64.\n",
+        "old": "# Hosted paid-cursor graph bills\n\nCI run 38778002471, job 116571426249, built\n`268cb05237d3cc0806e67f66696989cf9469bcdf` with Rust 1.88 on Linux x86-64.\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/browser-graph-pins-841efe3e2/README.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/evidence/browser-graph-pins-841efe3e2/README.md.txt",
+    "current_sha256": "926aa41a76ca4d768682e32931534ae5a52a231b10df93da6abc0006e75558b1",
+    "original_sha256": "98bf74e1419ef0f4af85eff7fdd5442410cf559ba6d4924ef0fd0968e8086457",
+    "edits": [
+      {
+        "new": "# Hosted browser graph pins\n\nStatus: private implementation evidence; current-head qualification follows CI.\n\nAudience: compiler maintainers and reviewers.\n\nThe complete current graphs came from CI run 38770620786, job 116546107383,\ncompiled at `841efe3e27ab510049891440d3033a0d82f96bb1` with Rust 1.88 on\n",
+        "old": "# Hosted browser graph pins\n\nThe complete current graphs came from CI run 38770620786, job 116546107383,\ncompiled at `841efe3e27ab510049891440d3033a0d82f96bb1` with Rust 1.88 on\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/darwin-native-link-reference-v1/README.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/evidence/darwin-native-link-reference-v1/README.md.txt",
+    "current_sha256": "8fa1a28abe053e922fa6f821b1a452a44def96b80f16786a306463bc1c80856d",
+    "original_sha256": "6f6d0c19f29e3703929bda72c7ef361dc01685e60b519dd40b50b872d1af565e",
+    "edits": [
+      {
+        "new": "# Darwin native tool reference\n\nStatus: private implementation evidence; current-head qualification follows CI.\n\nAudience: compiler maintainers and reviewers.\n\n[Public SDK job 116714584363](https://github.com/wavect/semaprax/actions/runs/38819916075/job/116714584363)\nfailed two calculator consumers with I231. The builder deliberately keeps that\n",
+        "old": "# Darwin native tool reference\n\n[Public SDK job 116714584363](https://github.com/wavect/semaprax/actions/runs/38819916075/job/116714584363)\nfailed two calculator consumers with I231. The builder deliberately keeps that\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/expression-fact-arena-cursor-v1/README.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/evidence/expression-fact-arena-cursor-v1/README.md.txt",
+    "current_sha256": "be2dd3e46bc447756d85c431dea7a786b4bfd4069276c5b93c1347486eebc44e",
+    "original_sha256": "65fa292d80b385166af86e2c32bab7ce0c49b1e347bcae86ad7ca9a9983df5f6",
+    "edits": [
+      {
+        "new": "# Paid expression-fact Arena cursor\n\nStatus: private implementation evidence; current-head qualification follows CI.\n\nAudience: compiler maintainers and reviewers.\n\nCurrent-head CI run 38770620786, job 116546107241, located the actual std/test-bytes\nbuilder refusal at `expression_facts/capacity.rs:32`: its original factory\n",
+        "old": "# Paid expression-fact Arena cursor\n\nCurrent-head CI run 38770620786, job 116546107241, located the actual std/test-bytes\nbuilder refusal at `expression_facts/capacity.rs:32`: its original factory\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/format-hygiene-scratch-v1/README.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/evidence/format-hygiene-scratch-v1/README.md.txt",
+    "current_sha256": "193a3e922a3f15fb8182b50db458624afa7b94ae1a0437384d5f939c1a45cb4f",
+    "original_sha256": "d88bc764f1ead22f440d8aa2fba310d4ccc7351fdd54883f6335b26be7469d45",
+    "edits": [
+      {
+        "new": "# Canonical hygiene scratch\n\nStatus: private implementation evidence; current-head qualification follows CI.\n\nAudience: compiler maintainers and reviewers.\n\nThe evidence below describes the first expression-cursor change. The later\n[pattern scratch follow-up](../pattern-hygiene-scratch-v1/README.md) retains\nthese original controls and records its separate pending qualification.\n\nThe source formatter still performs the complete expression-statement hygiene\ncensus, including all roots, caller bindings, nested names and match patterns.\n",
+        "old": "The evidence below describes the first expression-cursor change. The later\n[pattern scratch follow-up](../pattern-hygiene-scratch-v1/README.md) retains\nthese original controls and records its separate pending qualification.\n\n# Canonical hygiene scratch\n\nThe source formatter still performs the complete expression-statement hygiene\ncensus, including all roots, caller bindings, nested names and match patterns.\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/optional-helper-source-work-v1/README.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/evidence/optional-helper-source-work-v1/README.md.txt",
+    "current_sha256": "4080d785cea2a4b79477947203c279845163824b17ef7d02ec14945314c443c0",
+    "original_sha256": "1420dca54f30b31c3be570297e4774cba58758991f497ba99bc9adff76839973",
+    "edits": [
+      {
+        "new": "# Optional scalar-helper source work\n\nStatus: private implementation evidence; current-head qualification follows CI.\n\nAudience: compiler maintainers and reviewers.\n\nThe existing Explorer source-inclusive 16 MiB snapshot regression reaches a\nG410 capture refusal first: scalar-helper capture charges the entire defining\n",
+        "old": "# Optional scalar-helper source work\n\nThe existing Explorer source-inclusive 16 MiB snapshot regression reaches a\nG410 capture refusal first: scalar-helper capture charges the entire defining\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/pattern-hygiene-scratch-v1/README.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/evidence/pattern-hygiene-scratch-v1/README.md.txt",
+    "current_sha256": "117d047651b3321b86f8ad8d7c866fddcbdff0747cb6bd2bbb213b8f5e39adf4",
+    "original_sha256": "644ff9aea8f29ba5e8be3a491644d0d255831a9d9164b2b95dcdcca3a19b200b",
+    "edits": [
+      {
+        "new": "# Lazy fixed pattern scratch\n\nStatus: private implementation evidence; current-head qualification follows CI.\n\nAudience: compiler maintainers and reviewers.\n\nThe hosted `1e3a14ce7` integration-5 log\n`116577327396` reports `SPX-P402` before resolver work exhaustion is reached.\n",
+        "old": "# Lazy fixed pattern scratch\n\nThe hosted `1e3a14ce7` integration-5 log\n`116577327396` reports `SPX-P402` before resolver work exhaustion is reached.\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/record-presence-phase-v1/README.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/evidence/record-presence-phase-v1/README.md.txt",
+    "current_sha256": "fca17722fd2c71369876339077ad75e7dae25952b80c39e2d16619a91923c328",
+    "original_sha256": "75f7b1b219d164d4e1f9f18a3acbd5ffc313425391f1ee189c907f78c8a0dff8",
+    "edits": [
+      {
+        "new": "# One explicit-record census per immutable phase\n\nStatus: private implementation evidence; current-head qualification follows CI.\n\nAudience: compiler maintainers and reviewers.\n\nThe original callable-boundary test failed with the helper-census H006 diagnostic\nin [unit-heavy job 116636394120](https://github.com/wavect/semaprax/actions/runs/38796808320/job/116636394120).\n",
+        "old": "# One explicit-record census per immutable phase\n\nThe original callable-boundary test failed with the helper-census H006 diagnostic\nin [unit-heavy job 116636394120](https://github.com/wavect/semaprax/actions/runs/38796808320/job/116636394120).\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/row-loan-source-refusal-v1/README.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/evidence/row-loan-source-refusal-v1/README.md.txt",
+    "current_sha256": "1d005b2aab86e5a8bc0da9ef7b76961226b2ee63a9e8797108f0372cd93d4d8e",
+    "original_sha256": "9ddad8bcc474543fef6f777dfdb48ade1f7419cdaf02af15e5ce05d5d7afe702",
+    "edits": [
+      {
+        "new": "# Owning provider row arguments are source refusals\n\nStatus: private implementation evidence; current-head qualification follows CI.\n\nAudience: compiler maintainers and reviewers.\n\nThe hosted Project semantic-cache regression on `9279411` fails only its\n`row: own LoanRow` mutation with `SPX-G173`; its cold/warm diagnostic equality\n",
+        "old": "# Owning provider row arguments are source refusals\n\nThe hosted Project semantic-cache regression on `9279411` fails only its\n`row: own LoanRow` mutation with `SPX-G173`; its cold/warm diagnostic equality\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/single-state-groups-v1/README.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/evidence/single-state-groups-v1/README.md.txt",
+    "current_sha256": "1a9a6ea883467526af96f733a7dd50767ea5ed310f6c78b663558e6aed64aaa4",
+    "original_sha256": "f043c68a8a6ef0dd4d2837d484221f40db695d0df3c57c6ec27934cad82bb626",
+    "edits": [
+      {
+        "new": "# Reuse a sole incoming ownership-state tree\n\nStatus: private implementation evidence; current-head qualification follows CI.\n\nAudience: compiler maintainers and reviewers.\n\n[STD-08 job 116728653928](https://github.com/wavect/semaprax/actions/runs/38824367721/job/116728653928)\nstill refused five JSON consumers at the unchanged 64 MiB builder limit. One\n",
+        "old": "# Reuse a sole incoming ownership-state tree\n\n[STD-08 job 116728653928](https://github.com/wavect/semaprax/actions/runs/38824367721/job/116728653928)\nstill refused five JSON consumers at the unchanged 64 MiB builder limit. One\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/storage-oracle-refusal-v1/README.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/evidence/storage-oracle-refusal-v1/README.md.txt",
+    "current_sha256": "d82e652a1c5274e313ee76a7fee9cbb769b4da5417d093a88b740aa1f5cc4853",
+    "original_sha256": "fd53b5502eb0f2a204e70770694be3332ed253e25b1dafeb911db5001286aefb",
+    "edits": [
+      {
+        "new": "# Storage-backed test comparison refusal\n\nStatus: private implementation evidence; current-head qualification follows CI.\n\nAudience: compiler maintainers and reviewers.\n\nHosted f4a448da6 unit job 116636394120 reached the complete enumerating and\nfactored comparison pair. At three underfunded builder boundaries, enumeration\n",
+        "old": "# Storage-backed test comparison refusal\n\nHosted f4a448da6 unit job 116636394120 reached the complete enumerating and\nfactored comparison pair. At three underfunded builder boundaries, enumeration\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/structural-call-cursor-v1/README.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/evidence/structural-call-cursor-v1/README.md.txt",
+    "current_sha256": "f6603412e55244e37f7cc71de2028006e42e85b8b2e6cc3b5fc3fab8ca88ea23",
+    "original_sha256": "e45f575a12e2ac3f1c5523a7a6a67713ffab603816551208601cfdc10b3caefc",
+    "edits": [
+      {
+        "new": "# Structural call cursor storage\n\nStatus: private implementation evidence; current-head qualification follows CI.\n\nAudience: compiler maintainers and reviewers.\n\nThe current hosted STD-08 job on `1e3a14ce7` refused a 24,672-byte request during\nHIR validation (`116577327478`). The original structural call cursor requests\n",
+        "old": "# Structural call cursor storage\n\nThe current hosted STD-08 job on `1e3a14ce7` refused a 24,672-byte request during\nHIR validation (`116577327478`). The original structural call cursor requests\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/supplemental-cursor-growth-v1/README.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/evidence/supplemental-cursor-growth-v1/README.md.txt",
+    "current_sha256": "7788ab562c4c0750bc4fc41d113ec037092c8bf76b408aa6bf6c4a699e03a972",
+    "original_sha256": "039298da402cfa68d5d510ee04caca8cd02f86e5ef05ba8e130aa30ba5e502c0",
+    "edits": [
+      {
+        "new": "# Supplemental receiving cursor growth\n\nStatus: private implementation evidence; current-head qualification follows CI.\n\nAudience: compiler maintainers and reviewers.\n\nThe hosted STD-08 job `116607589314` on `6dec6f011` still refuses 24,672 bytes\nwith 6,103 left in its unchanged 64 MiB builder ledger. Caller propagation\n",
+        "old": "# Supplemental receiving cursor growth\n\nThe hosted STD-08 job `116607589314` on `6dec6f011` still refuses 24,672 bytes\nwith 6,103 left in its unchanged 64 MiB builder ledger. Caller propagation\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/unit-weight-closure-v1/README.md",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/docs/evidence/unit-weight-closure-v1/README.md.txt",
+    "current_sha256": "efe6d4dd020cde6d11e6aaae7596b9bdd21625ca1650c004d8b2ce24a917a11c",
+    "original_sha256": "e1d7255d0d2f81b05cab6580126b9fc5a3aa0c87970c40410236dc160e8fe74d",
+    "edits": [
+      {
+        "new": "# Reuse the complete unit-weight closure\n\nStatus: private implementation evidence; current-head qualification follows CI.\n\nAudience: compiler maintainers and reviewers.\n\nHosted STD-08 job\n[116690924082](https://github.com/wavect/semaprax/actions/runs/38812864014/job/116690924082)\n",
+        "old": "# Reuse the complete unit-weight closure\n\nHosted STD-08 job\n[116690924082](https://github.com/wavect/semaprax/actions/runs/38812864014/job/116690924082)\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay.rs",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/src/cleanup_plan/replay.rs.txt",
+    "current_sha256": "ddd4a90363028bbd27570d904d18b33fb4017dd62d117e0b090107a4dbb68071",
+    "original_sha256": "682ca35fb81abb38ae065a704800c47ebada9160a3263c7d56b9cd5356a3f684",
+    "edits": [
+      {
+        "new": "#[cfg(test)]\nmod context_closure;\nmod continuation_storage;\nmod path_array;\nuse constructed_variant::materialize_constructed_variant;\npub(in crate::cleanup_plan) mod allocation_coverage;\nmod allocation_paths;\n",
+        "old": "#[cfg(test)]\nmod context_closure;\nmod continuation_storage;\nuse constructed_variant::materialize_constructed_variant;\npub(in crate::cleanup_plan) mod allocation_coverage;\nmod allocation_paths;\n"
+      },
+      {
+        "new": "    let suffixes = work.merged_suffixes(suffixes)?;\n    let share_prefix = work.shares_prefix_tail(&suffixes)?;\n    let mut combined = Vec::new();\n    if !suffixes.is_empty() {\n        path_array::minimum(\n            &mut combined,\n            prefixes.len(),\n            work,\n            \"sequenced path capacity\",\n        )?;\n    }\n    for mut prefix in prefixes {\n        if prefix.failed || prefix.residual {\n            work.push_expr_path(&mut combined, prefix, \"short-circuited skeleton path\")?;\n",
+        "old": "    let suffixes = work.merged_suffixes(suffixes)?;\n    let share_prefix = work.shares_prefix_tail(&suffixes)?;\n    let mut combined = Vec::new();\n    for mut prefix in prefixes {\n        if prefix.failed || prefix.residual {\n            work.push_expr_path(&mut combined, prefix, \"short-circuited skeleton path\")?;\n"
+      },
+      {
+        "new": "    work: &mut SkeletonWork<'_, '_>,\n    phase: &str,\n) -> Result<(), Diagnostic> {\n    path_array::minimum(target, paths.len(), work, phase)?;\n    for path in paths {\n        work.push_expr_path(target, path, phase)?;\n    }\n",
+        "old": "    work: &mut SkeletonWork<'_, '_>,\n    phase: &str,\n) -> Result<(), Diagnostic> {\n    for path in paths {\n        work.push_expr_path(target, path, phase)?;\n    }\n"
+      },
+      {
+        "new": "    work: &mut SkeletonWork<'_, '_>,\n) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {\n    let mut results = Vec::new();\n    path_array::minimum(&mut results, paths.len(), work, \"status path capacity\")?;\n    for mut path in paths {\n        if path.failed || path.residual {\n            work.push_expr_path(&mut results, path, \"short-circuited status path\")?;\n",
+        "old": "    work: &mut SkeletonWork<'_, '_>,\n) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {\n    let mut results = Vec::new();\n    for mut path in paths {\n        if path.failed || path.residual {\n            work.push_expr_path(&mut results, path, \"short-circuited status path\")?;\n"
+      },
+      {
+        "new": "    work: &mut SkeletonWork<'_, '_>,\n) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {\n    let mut results = Vec::new();\n    path_array::minimum(&mut results, paths.len(), work, \"contract path capacity\")?;\n    for mut path in paths {\n        if path.failed || path.residual {\n            work.push_expr_path(&mut results, path, \"short-circuited contract path\")?;\n",
+        "old": "    work: &mut SkeletonWork<'_, '_>,\n) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {\n    let mut results = Vec::new();\n    for mut path in paths {\n        if path.failed || path.residual {\n            work.push_expr_path(&mut results, path, \"short-circuited contract path\")?;\n"
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows.rs",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/src/source_reflows.rs.txt",
+    "current_sha256": "6fc1e3a0f008be1457e96e00e1da28dbba41f119f58bd2d9a55c7d12570ef6b5",
+    "original_sha256": "5afa8b8762edca88c9be96fd1aa681fe50827f4ff56f80353944322a3bc84d92",
+    "edits": [
+      {
+        "new": "type Cache = HashMap<(&'static str, &'static str), &'static str>;\nstatic CACHE: OnceLock<Mutex<Cache>> = OnceLock::new();\nstatic RECORDS: OnceLock<serde_json::Value> = OnceLock::new();\n\n// Semantic successors have their own named, whole-file custody proof. Keep\n// those edits separate from the original formatting/lint repair registry.\n#[path = \"source_reflows/semantic_receivers.rs\"]\nmod semantic_receivers;\n\nfn records() -> &'static [serde_json::Value] {\n    RECORDS\n",
+        "old": "type Cache = HashMap<(&'static str, &'static str), &'static str>;\nstatic CACHE: OnceLock<Mutex<Cache>> = OnceLock::new();\nstatic RECORDS: OnceLock<serde_json::Value> = OnceLock::new();\n\nfn records() -> &'static [serde_json::Value] {\n    RECORDS\n"
+      },
+      {
+        "new": "    let path = record[\"path\"].as_str().unwrap();\n    let merged = crate::source_reflows_merge::main(path, current);\n    let current = merged.as_str();\n    restore_formatting(record, current)\n}\n\n// A semantic custody predecessor is already authenticated at its named front.\nfn restore_formatting(record: &serde_json::Value, current: &str) -> String {\n    let path = record[\"path\"].as_str().unwrap();\n    assert_eq!(\n        format!(\n            \"{:x}\",\n",
+        "old": "    let path = record[\"path\"].as_str().unwrap();\n    let merged = crate::source_reflows_merge::main(path, current);\n    let current = merged.as_str();\n    assert_eq!(\n        format!(\n            \"{:x}\",\n"
+      },
+      {
+        "new": "    current: &'static str,\n) -> &'static str {\n    let path = logical_path(caller, included);\n    let record = records().iter().find(|record| record[\"path\"] == path);\n    if record.is_none() && !semantic_receivers::contains(&path) {\n        return current;\n    }\n    let mut cache = CACHE.get_or_init(Mutex::default).lock().unwrap();\n    cache.entry((caller, included)).or_insert_with(|| {\n        let predecessor = semantic_receivers::predecessor(&path, current);\n        let current = predecessor.as_deref().unwrap_or(current);\n        // One bounded fixture allocation per included file, retained only for\n        // this test process. This helper is absent from production builds.\n        let restored = match record {\n            Some(record) if predecessor.is_some() => restore_formatting(record, current),\n            Some(record) => restore(record, current),\n            None => predecessor.unwrap(),\n        };\n        Box::leak(restored.into_boxed_str())\n    })\n}\n\n",
+        "old": "    current: &'static str,\n) -> &'static str {\n    let path = logical_path(caller, included);\n    let Some(record) = records().iter().find(|record| record[\"path\"] == path) else {\n        return current;\n    };\n    let mut cache = CACHE.get_or_init(Mutex::default).lock().unwrap();\n    cache.entry((caller, included)).or_insert_with(|| {\n        // One bounded fixture allocation per included file, retained only for\n        // this test process. This helper is absent from production builds.\n        Box::leak(restore(record, current).into_boxed_str())\n    })\n}\n\n"
+      },
+      {
+        "new": "        let path = record[\"path\"].as_str().unwrap();\n        assert!(paths.insert(path));\n        let current = std::fs::read_to_string(root.join(path)).unwrap();\n        let predecessor = semantic_receivers::predecessor(path, &current);\n        let old = match predecessor {\n            Some(ref previous) => restore_formatting(record, previous),\n            None => restore(record, &current),\n        };\n        assert_ne!(current, old);\n    }\n    let mut main_paths = std::collections::BTreeSet::new();\n",
+        "old": "        let path = record[\"path\"].as_str().unwrap();\n        assert!(paths.insert(path));\n        let current = std::fs::read_to_string(root.join(path)).unwrap();\n        let old = restore(record, &current);\n        assert_ne!(current, old);\n    }\n    let mut main_paths = std::collections::BTreeSet::new();\n"
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/src/source_reflows_merge.rs.txt",
+    "current_sha256": "be277dbe1a85c2936bae51da15daac6dceda2b1a5dc3b74cd94105ceb901e2bf",
+    "original_sha256": "537240829640e8d240d571951ca86c71134877def21ee7ad256c100b34031322",
+    "edits": [
+      {
+        "new": "}\n// Direct current831 owner; inherited guards first receive the exact2d4b input.\npub(crate) fn unit831_input(source: &str, current: &str) -> String {\n    let latest = main696_previous(source, current);\n    let current = latest.as_str();\n    let joined = project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/next-unit-branch-receiving-joined-20261016/final-to-7c.json\")), source, current);\n    let current = joined.as_str();\n    let preflight = project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/closure-unit-receiving-831-next-20261016/preflight-binding-successor/current-to-fac.json\")), source, current);\n",
+        "old": "}\n// Direct current831 owner; inherited guards first receive the exact2d4b input.\npub(crate) fn unit831_input(source: &str, current: &str) -> String {\n    let joined = project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/next-unit-branch-receiving-joined-20261016/final-to-7c.json\")), source, current);\n    let current = joined.as_str();\n    let preflight = project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/closure-unit-receiving-831-next-20261016/preflight-binding-successor/current-to-fac.json\")), source, current);\n"
+      },
+      {
+        "new": "    let current = fixed.as_str();\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main531-original-tests-child-20261016/current-to-7e9f.json\")), source, current)\n}\npub(crate) fn main696_input(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main696-source-reconciliation-20261016/current-to-main696.json\")), source, current)\n}\nfn main696_previous(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main696-source-reconciliation-20261016/current-to-364d.json\")), source, current)\n}\nfn actual50_fixture_input(source: &str, current: &str) -> String {\n    let latest = main696_previous(source, current);\n    let current = latest.as_str();\n    let joined = project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/next-unit-branch-receiving-joined-20261016/final-to-bac.json\")), source, current);\n    let current = joined.as_str();\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/actual50-fixture-and-facade-corrections-20261016/current-to-183.json\")), source, current)\n",
+        "old": "    let current = fixed.as_str();\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main531-original-tests-child-20261016/current-to-7e9f.json\")), source, current)\n}\nfn actual50_fixture_input(source: &str, current: &str) -> String {\n    let joined = project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/next-unit-branch-receiving-joined-20261016/final-to-bac.json\")), source, current);\n    let current = joined.as_str();\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/actual50-fixture-and-facade-corrections-20261016/current-to-183.json\")), source, current)\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/tests/hir_module_boundaries.rs.txt",
+    "current_sha256": "77fb416eae73678b4348e974464ba1e377b2a3233def51d967a454f7f4edac59",
+    "original_sha256": "1951adbe509206df4b3e044b9faf9684da64f259629dcc0dc6f7416daf9b224e",
+    "edits": [
+      {
+        "new": "    let validation_raw = concat!(\n        concat!(\n            concat!(\n                include_str!(\"../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../src/hir/validation.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles/tests.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles/source_audit.rs\"),\n",
+        "old": "    let validation_raw = concat!(\n        concat!(\n            concat!(\n                include_str!(\"../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../src/hir/validation.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles/tests.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles/source_audit.rs\"),\n"
+      },
+      {
+        "new": "    );\n    let validation = production_source_inventory::production(\n        validation_raw,\n        include_str!(\"../docs/evidence/main696-source-reconciliation-20261016/hir.json\"),\n    );\n    for forbidden in [\n        \"struct Resolver\",\n",
+        "old": "    );\n    let validation = production_source_inventory::production(\n        validation_raw,\n        include_str!(\"../docs/evidence/next-unit-branch-receiving-joined-20261016/hir.json\"),\n    );\n    for forbidden in [\n        \"struct Resolver\",\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph.rs",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/tests/workspace/semantic_graph.rs.txt",
+    "current_sha256": "e13df9bf5f6758bc056605d60b85924e056f7236c55004f40a5d350ae72c88df",
+    "original_sha256": "9789231f7734dc523d9297279c6d47e241500b36389b8d67eb15e727a40cfd03",
+    "edits": [
+      {
+        "new": "    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\n            \"../../docs/evidence/main696-source-reconciliation-20261016/projection.json\"\n        ),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n",
+        "old": "    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\n            \"../../docs/evidence/next-unit-branch-receiving-joined-20261016/projection.json\"\n        ),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph/source_inventory.rs",
+    "checkpoint_revision": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+    "archive": "docs/evidence/main696-source-reconciliation-20261016/before/364d/tests/workspace/semantic_graph/source_inventory.rs.txt",
+    "current_sha256": "0eccc8b462938af98e1224359a0b057514229175a77a5052cbf67329b1a18761",
+    "original_sha256": "f89bc6599af57faedb6919663d241cbaee333536dd284d5bcd1385a9255f0463",
+    "edits": [
+      {
+        "new": "macro_rules! semantic_graph_private_layout_owned_source_inventory {\n    () => { concat!(semantic_graph_private_layout_owned_source_inventory!(capacity), semantic_graph_private_layout_owned_source_inventory!(core)) };\n    (capacity) => { concat!(\n        include_str!(\"../../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_before.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests/owner_controls.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs\"),\n",
+        "old": "macro_rules! semantic_graph_private_layout_owned_source_inventory {\n    () => { concat!(semantic_graph_private_layout_owned_source_inventory!(capacity), semantic_graph_private_layout_owned_source_inventory!(core)) };\n    (capacity) => { concat!(\n        include_str!(\"../../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_before.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests/owner_controls.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs\"),\n"
+      }
+    ]
+  }
+]

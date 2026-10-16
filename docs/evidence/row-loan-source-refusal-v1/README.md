@@ -1,5 +1,9 @@
 # Owning provider row arguments are source refusals
 
+Status: private implementation evidence; current-head qualification follows CI.
+
+Audience: compiler maintainers and reviewers.
+
 The hosted Project semantic-cache regression on `9279411` fails only its
 `row: own LoanRow` mutation with `SPX-G173`; its cold/warm diagnostic equality
 already passes. The owning Scoped Record Row Loan v1 contract requires

@@ -1,0 +1,7 @@
+{
+  "source": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+  "actual_log_sha256": "c6dd737c415a80745076f133a64a33ef9e753c344fffa96374e6eddffa5cf36c",
+  "actual_log": "/Volumes/Semaprax/lane-prompts/final-364d-60-qualification-20261016/owning-selected-25.log",
+  "failure": "SPX-G172: provider alias.current may not declare main during test-root rebuild",
+  "new_execution": false
+}

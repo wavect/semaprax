@@ -1,0 +1,14 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "base": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+  "whole_inverse_rows": 2,
+  "shipping_sources": {
+    "src/cleanup_plan/replay/factored/canonical_shared.rs": "f2f041a29fab395c239651b18265ce47eeee4d828cffa2be1ec40f2de0629df3",
+    "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs": "cc4759a2e10a9fc305f97c67de69fc12d8d1872fce7fa75cd7cec4a920ca0651"
+  },
+  "all_other_tracked_sources_and_tests_exact": true,
+  "new_test_bodies": 0,
+  "inherited_projection": "PENDING_CANONICAL_RAW_TO_364D_FRONT",
+  "rust_execution": false,
+  "numerical_gain_claim": false
+}

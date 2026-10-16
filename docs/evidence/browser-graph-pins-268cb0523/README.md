@@ -1,5 +1,9 @@
 # Hosted paid-cursor graph bills
 
+Status: private implementation evidence; current-head qualification follows CI.
+
+Audience: compiler maintainers and reviewers.
+
 CI run 38778002471, job 116571426249, built
 `268cb05237d3cc0806e67f66696989cf9469bcdf` with Rust 1.88 on Linux x86-64.
 Its complete graph/provenance log record was decoded with strict base64,

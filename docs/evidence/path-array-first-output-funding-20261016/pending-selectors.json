@@ -1,0 +1,14 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_preserves_complete_main_hir_work_and_drop",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_exact_short_zero_and_first_output_work_frontier",
+    "status": "PENDING_NOT_EXECUTED"
+  }
+]

@@ -1,5 +1,9 @@
 # Reuse the complete unit-weight closure
 
+Status: private implementation evidence; current-head qualification follows CI.
+
+Audience: compiler maintainers and reviewers.
+
 Hosted STD-08 job
 [116690924082](https://github.com/wavect/semaprax/actions/runs/38812864014/job/116690924082)
 advanced past both previously failing testing consumers, then hit the unchanged

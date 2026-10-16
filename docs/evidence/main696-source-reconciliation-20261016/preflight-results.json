@@ -1,0 +1,19 @@
+[
+  {
+    "kind": "SOURCE_ONLY",
+    "status": "PASS",
+    "check": "Thirty complete whole-input rows; four Main semantic inverses and old formatting inverses; original90 fixtures and old JSON unchanged."
+  },
+  {
+    "kind": "SOURCE_ONLY",
+    "status": "FAIL",
+    "check": "Current production authority predicate",
+    "detail": "projection forbidden use super::*; is present in new production path_array.rs; no assertion changed."
+  },
+  {
+    "kind": "REVIEW_ONLY",
+    "status": "BLOCKED",
+    "check": "Main696 receiving funding",
+    "detail": "Caller-before-payment and selected-out Result controls; selected checkedResult/reserve-array control inventory require bounded correction. No execution."
+  }
+]

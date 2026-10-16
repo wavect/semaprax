@@ -17,9 +17,9 @@ pub(super) struct Memo<T> {
     pub(super) failed: bool,
 }
 pub(super) struct Binding {
-    function: *const ResolvedFunction,
-    budget: *const ReplayBudget,
-    ledger: ClassifierLedger,
+    pub(super) function: *const ResolvedFunction,
+    pub(super) budget: *const ReplayBudget,
+    pub(super) ledger: ClassifierLedger,
 }
 impl<T> Memo<T> {
     pub(super) fn new() -> Self {

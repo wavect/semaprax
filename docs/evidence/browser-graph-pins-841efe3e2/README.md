@@ -1,5 +1,9 @@
 # Hosted browser graph pins
 
+Status: private implementation evidence; current-head qualification follows CI.
+
+Audience: compiler maintainers and reviewers.
+
 The complete current graphs came from CI run 38770620786, job 116546107383,
 compiled at `841efe3e27ab510049891440d3033a0d82f96bb1` with Rust 1.88 on
 Linux x86-64. The log's `SEMAPRAX_PROJECT_GRAPH_EVIDENCE_V1` record carries

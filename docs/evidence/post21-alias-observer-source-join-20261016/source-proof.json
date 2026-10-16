@@ -1,0 +1,40 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "whole_current_to36f_rows": 7,
+  "entire_committed36f_input_namespace_restored": true,
+  "reused_prior_static_proof_only_by_exact_namespace": {
+    "status": "PASS_SOURCE_ONLY",
+    "whole_independent_parent_namespaces": {
+      "bcd": 16,
+      "ff5": 22,
+      "81a": 23,
+      "851": 21
+    },
+    "shipping_transfers_exact_reviewed81a": true,
+    "main_declaration_Node_receivers_exact_ff5": true,
+    "hints_correction_exact851": true,
+    "original90_runtime_fixtures_and_pin_successor_controls_unchanged": true,
+    "original_project_body_exact": true,
+    "new_Rust_owners": 6,
+    "current_authority": "SEPARATE_REQUIRED_VERIFY_AUTHORITY",
+    "old_verifier_reuse": "complete restored input namespace, no new Rust execution",
+    "new_runtime_or_pin_PASS_claim": false
+  },
+  "two_exact_component_static_replays": [
+    {
+      "verifier": "docs/evidence/path-array-operation-observer-21-next-20261016/verify-source.py",
+      "sha256": "ea75ea21fb0d1567347278ec9fcae75f2dd62e1022582652a2ff30330e4cc950",
+      "stdout": "PASS complete_before_inverse old_assertions zero_output full_old_receivers actual_failure_log; SOURCE_ONLY"
+    },
+    {
+      "verifier": "docs/evidence/first-uncached-alias-route-847-20261016/verify.py",
+      "sha256": "997c49501528a363197d0b80de57145ce43271b44a39a4ecb2199264cd3157a3",
+      "stdout": "PASS: three complete before/inverse domains; one production predicate; original core/Project gate/classifiers/payments unchanged"
+    }
+  ],
+  "original90_and_all_prior_JSON_unchanged": true,
+  "source_authority": "SEPARATE_CURRENT_VERIFY_AUTHORITY_REQUIRED",
+  "actual_prior21": "19PASS/2FAIL; all15pinsPASS; history only, not current new-source PASS",
+  "next_scope": "49 affected plus original15 pin consumers,64unique; capture-first producer3 then final4commands",
+  "Rust_or_capture_execution": false
+}

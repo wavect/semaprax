@@ -22,7 +22,7 @@ fn digest(source: &str) -> String {
 
 fn invert(proof: &serde_json::Value, current: &str) -> String {
     let path = proof["path"].as_str().unwrap();
-    let joined = crate::source_reflows_merge::main696_input(path, current);
+    let joined = crate::source_reflows_merge::main8fb_input(path, current);
     let current = joined.as_str();
     assert_eq!(
         digest(current),
@@ -60,7 +60,7 @@ pub(super) fn contains(path: &str) -> bool {
 fn every_receiver_inverse_preserves_the_entire_reflow_input_and_archive() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let mut paths = std::collections::BTreeSet::new();
-    assert_eq!(proofs().len(), 4);
+    assert_eq!(proofs().len(), 5);
     for proof in proofs() {
         let path = proof["path"].as_str().unwrap();
         assert!(paths.insert(path));

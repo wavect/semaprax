@@ -1,0 +1,24 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_join::final_edge_tests::final_edge_move_keeps_complete_immediate_work_and_hostile_diagnostic",
+    "new": true
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_join::final_edge_tests::final_edge_move_reports_whole_immediate_costs_and_exact_short_zero_drop",
+    "new": true
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::final_output::tests::final_output_keeps_complete_hir_plan_multiplicity_work_and_failures"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::final_output::tests::final_output_whole_owners_report_capacities_exact_short_zero_and_drop"
+  }
+]

@@ -1,0 +1,43 @@
+Private latest-Main8fb reconciliation, source only
+
+Parents: frozen47f80b0f7a06fde9b2388439a9c0bfe998a05af1 and
+8fb7b025582bd96750b8ceeb9b246f4d795bce8c, common0ab1.
+Only merge conflict: CHANGELOG, resolved retaining both complete entries.
+Main declaration/hints production, all three new tests, Node cwd/relative-driver
+fixes, updated five-row receiver inverse, README and complete new before archive
+are byte-exact Main. No Cargo/Rust/Node/test/Clippy/capture was run.
+
+Ten full current→47f inputs preserve the complete older source namespace and
+original four-row source-custody data separately. No old table is edited except
+the exact Main-authorized receiver-source-custody-v1 inverse/README update; those
+physical files equal Main and their previous bytes remain Git-bound named47f.
+The new semantic reader keeps all Main bodies/assertions, with only its explicit
+whole-input gateway and prior authenticated formatting-only stage adapter.
+The old four receiver domains go through unchanged Main696 projections after
+new current→47f custody. The fifth declaration domain is independently SHA-bound
+to exact Main8fb before its original unique inverse. It is never falsely sent
+through a historical declaration input or normalized to an old expected hash.
+The finite verifier actually applies all five complete Main inverses/archives
+and all applicable complete formatting inverses, with unchanged original hashes.
+
+Both new authority manifests authenticate the actual current parent/registration
+bytes and complete raw unions. All original forbidden-production predicates and
+six classification negatives remain. No raw child, separator or multiplicity
+is removed; interop remains1500. Fixed90 runtime fixture identities and bytes
+are unchanged. The two new small projection tables are compiled; no large
+historical JSON is reembedded and no hash is embedded into its own parent.
+
+Seven pending focused existing bodies/two roles are in pending-selectors.json;
+none is claimed passed here. No universal app/cap/efficiency claim. The new Main
+capacity-witness helper's initial Option/control inventory is a separate narrow
+external OPT follow-up, not waived by exact merge custody or its allocation
+backing test. Parent reviews/files that external draft independently.
+
+Source checks:
+python3 docs/evidence/main8fb-source-reconciliation-20261016/verify-source.py
+python3 docs/evidence/main8fb-source-reconciliation-20261016/verify-authority.py
+New helper functions were formatted as an isolated excerpt. Whole old helper
+has pre-existing formatting differences and was not reformatted. An initial
+static proof invocation preceded authority generation; an expensive redundant
+all-archive reread was stopped and replaced by the exact complete Git change
+census plus all ten full inverses. Neither event executed a Rust/test body.

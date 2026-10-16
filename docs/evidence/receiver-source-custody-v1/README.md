@@ -23,3 +23,8 @@ hooks and registration, plus three entries in each source inventory. The second
 inventory has no formatting repair; its fourth named custody record directly
 preserves the complete input from `091c0d6de`. Every original formatting record
 and archive remains unchanged.
+
+A fifth record preserves the complete `0ab1bb6cc` source-verifier declaration
+receiver across its one presentation hook. The live receiver now supplements
+the causal capacity witness with its already selected authoring repair. The
+independent original public-signature verifier stays unchanged and compiled.

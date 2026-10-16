@@ -1,0 +1,12 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "whole_current_to_47f_rows": 10,
+  "independent_new_Main_declaration_rows": 1,
+  "all_five_Main_full_inverse_and_archive_domains_pass": true,
+  "original_formatting_after_semantic_pass": true,
+  "Main_production_Node_and_new_controls_exact": true,
+  "all_other_prior_evidence_bytes_exact": true,
+  "whole_47f_namespace_reconstructed": true,
+  "new_control_funding_followup_not_a_merge_waiver": true,
+  "Rust_executed": false
+}

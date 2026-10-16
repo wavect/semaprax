@@ -46,7 +46,9 @@ fn enumerate(
     if old {
         before_inline::plan_skeleton_paths(function, budget)
     } else {
-        super::super::plan_skeleton_paths(function, budget)
+        // Historical inline-fusion claim: the subsequent final-output transfer
+        // has its own complete shipping observer in final_output::tests.
+        super::super::final_output::before::plan_skeleton_paths(function, budget)
     }
 }
 

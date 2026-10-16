@@ -1,0 +1,12 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "base": "b3a53367d4def76240d14dca25ee414785bed9d6",
+  "whole_inverse_inputs": 4,
+  "complete_old_functions": 2,
+  "new_sources": 3,
+  "pending_bodies": 2,
+  "generic_fallbacks_exact": true,
+  "first_sibling_and_observation_match_exact": true,
+  "historical_inline_body_assertions_retained": true,
+  "no_runtime_or_gain_claim": true
+}

@@ -96,14 +96,21 @@ fn funded_capacity_preserves_complete_main_hir_work_and_drop() {
 fn funded_capacity_exact_short_zero_and_first_output_work_frontier() {
     let program = program();
     let function = &program.functions[0];
-    // Input production and all partial-owner Drop occur inside each account.
+    // Ordinary SkeletonWork inventories are immutable caller input here. Their
+    // legacy collectors have unpriced traversal scratch: construct AND drop
+    // them outside the array account/observer, keeping the borrow alive. This
+    // probe owns seeds, append, partial paths, Diagnostics and the paid budget;
+    // it does not claim funding for that independent ordinary setup.
     let observe = |old: bool, count: usize, output_work: usize, limit| {
-        with_limit_usage_refusal(limit, || {
+        let mut caller_budget = ReplayBudget::unobserved();
+        let mut work =
+            SkeletonWork::with_index(&program, function, &mut caller_budget, None).unwrap();
+        let observed = with_limit_usage_refusal(limit, || {
             measure(|| {
-                let mut budget = ReplayBudget::new();
+                // Bind the real array payer only after caller input exists.
+                *work.budget = ReplayBudget::new();
                 let result = (|| {
-                    budget.reserve_skeleton(function, count + output_work)?;
-                    let mut work = SkeletonWork::with_index(&program, function, &mut budget, None)?;
+                    work.budget.reserve_skeleton(function, count + output_work)?;
                     let mut input = Vec::new();
                     for _ in 0..count {
                         work.push_expr_path(&mut input, empty_expr_path(), "seed")?;
@@ -127,11 +134,11 @@ fn funded_capacity_exact_short_zero_and_first_output_work_frontier() {
                     drop(target);
                     Ok::<_, Diagnostic>(())
                 })();
-                let remaining = budget.skeleton_remaining;
-                let spent = budget.skeleton_spent;
+                let remaining = work.budget.skeleton_remaining;
+                let spent = work.budget.skeleton_spent;
                 // A second selected failure cannot replace or allocate the first.
                 let retry = if result.is_err() {
-                    Some(budget.reserve_bytes(function, 0, "retry"))
+                    Some(work.budget.reserve_bytes(function, 0, "retry"))
                 } else {
                     None
                 };
@@ -143,10 +150,17 @@ fn funded_capacity_exact_short_zero_and_first_output_work_frontier() {
                     assert!(retry.path.is_none() && retry.span.is_none() && retry.help.is_none());
                 }
                 let retry_failed = retry.as_ref().is_some_and(Result::is_err);
+                // All paid-budget backing and partial failure owners die in
+                // this same observer. The replacement is an unobserved empty
+                // placeholder for the still-borrowed ordinary caller context.
+                let budget = std::mem::replace(work.budget, ReplayBudget::unobserved());
                 drop((result, retry, budget));
                 (failed, retry_failed, remaining, spent)
             })
-        })
+        });
+        drop(work);
+        drop(caller_budget);
+        observed
     };
     for count in [0usize, 1, 7, 8, 9, 17] {
         let ((old, old_allocation), old_refused, old_paid, old_first) =

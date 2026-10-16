@@ -5,6 +5,7 @@ mod constructed_variant;
 #[cfg(test)]
 mod context_closure;
 mod continuation_storage;
+mod final_output;
 mod path_array;
 use constructed_variant::materialize_constructed_variant;
 pub(in crate::cleanup_plan) mod allocation_coverage;
@@ -2948,6 +2949,12 @@ fn sequence_skeleton_paths(
         "sequenced path capacity"
     );
     path_array::select!(first, minimum, &combined, work);
+    work.budget.reserve_bytes(
+        work.function,
+        final_output::HIR_SELECTION_CONTROLS,
+        "HIR single-suffix selection controls",
+    )?;
+    let single = suffixes.len() == 1;
     for mut prefix in prefixes {
         if prefix.failed || prefix.residual {
             path_array::push!(
@@ -2962,6 +2969,44 @@ fn sequence_skeleton_paths(
         }
         if share_prefix {
             work.share_prefix_tail(&mut prefix.observations)?;
+        }
+        if single {
+            work.budget.reserve_bytes(
+                work.function,
+                final_output::HIR_MOVE_CONTROLS,
+                "HIR single-suffix move controls",
+            )?;
+            let suffix = &suffixes[0];
+            work.charge(1, "skeleton prefix clone")?;
+            note_skeleton_materialization();
+            let observations = prefix.observations;
+            let observations = work.extend_owned_observations(
+                observations,
+                &suffix.observations,
+                "skeleton suffix clone",
+            )?;
+            let owned_source = work.clone_owned(
+                &suffix.owned_source,
+                "sequenced skeleton owned-source clone",
+            )?;
+            path_array::push!(
+                work,
+                first,
+                minimum,
+                &mut combined,
+                ExprSkeletonPath {
+                    observations,
+                    owned_source,
+                    failed: suffix.failed,
+                    residual: suffix.residual,
+                    continuation: lexical_skeleton::Continuation::sequenced(
+                        &prefix.continuation,
+                        &suffix.continuation,
+                    ),
+                },
+                "sequenced skeleton path",
+            );
+            continue;
         }
         for suffix in suffixes.iter() {
             let observations =
@@ -6666,6 +6711,119 @@ fn plan_skeleton_paths(
                 )?;
             }
             CleanupTerminator::Branch(edges) => {
+                budget.reserve_bytes(
+                    function,
+                    final_output::PLAN_SELECTION_CONTROLS,
+                    "plan final-output selection controls",
+                )?;
+                if edges.len() == 2 && observations.len() < observations.capacity() {
+                    let edge = &plan.edges[edges[0].0 as usize];
+                    let observation = final_output::observation!(edge, budget, function);
+                    budget.reserve_bytes(
+                        function,
+                        branch_clone::inline_controls::<std::rc::Rc<SkeletonObservation>>(),
+                        "branch clone receiving controls",
+                    )?;
+                    // The branch producer has no Result<Vec<_>, Diagnostic>
+                    // receiver or owned observation forwarding argument. Its
+                    // nested work/census/payment Results retain their charges.
+                    let mut branch;
+                    if !budget.pays_allocations() {
+                        branch = skeleton_clone(
+                            budget,
+                            function,
+                            &observations,
+                            "cleanup-plan skeleton branch clone",
+                        )?;
+                        skeleton_push(
+                            budget,
+                            function,
+                            &mut branch,
+                            observation,
+                            "plan branch observation push",
+                        )?;
+                    } else {
+                        budget.charge_skeleton(
+                            function,
+                            1,
+                            "cleanup-plan skeleton branch clone",
+                        )?;
+                        budget.reserve_clone(
+                            function,
+                            &observations,
+                            "cleanup-plan skeleton branch clone",
+                        )?;
+                        note_skeleton_materialization();
+                        // Original push work precedes every extra backing debit.
+                        budget.charge_skeleton(function, 1, "plan branch observation push")?;
+                        note_skeleton_materialization();
+                        let capacity = if observations.is_empty() {
+                            1
+                        } else {
+                            if observations.len() > usize::MAX / 2 {
+                                return Err(budget.budget_refusal(
+                                    function,
+                                    "cleanup replay branch capacity overflowed",
+                                    "",
+                                ));
+                            }
+                            observations.len() * 2
+                        };
+                        budget.reserve_array::<std::rc::Rc<SkeletonObservation>>(
+                            function,
+                            capacity - observations.len(),
+                            "plan branch observation push",
+                        )?;
+                        budget.reserve_bytes(
+                            function,
+                            physical_clone::conversion_bytes::<std::rc::Rc<SkeletonObservation>, _>(
+                                &observation,
+                            ),
+                            "plan branch observation push",
+                        )?;
+                        branch = Vec::with_capacity(capacity);
+                        branch.extend(observations.iter().cloned());
+                        branch.push(observation.into());
+                    }
+                    skeleton_queue_push(
+                        budget,
+                        function,
+                        &mut queue,
+                        (edge.to, branch),
+                        "plan branch state push",
+                    )?;
+                    let edge = &plan.edges[edges[1].0 as usize];
+                    let observation = final_output::observation!(edge, budget, function);
+                    budget.reserve_bytes(
+                        function,
+                        final_output::PLAN_MOVE_CONTROLS,
+                        "plan final-output move controls",
+                    )?;
+                    budget.charge_skeleton(function, 1, "cleanup-plan skeleton branch clone")?;
+                    note_skeleton_materialization();
+                    #[cfg(test)]
+                    final_output::record_move(observations.len(), observations.capacity());
+                    let mut branch = observations;
+                    budget.charge_skeleton(function, 1, "plan branch observation push")?;
+                    note_skeleton_materialization();
+                    budget.reserve_bytes(function, 0, "plan branch observation push")?;
+                    budget.reserve_bytes(
+                        function,
+                        physical_clone::conversion_bytes::<std::rc::Rc<SkeletonObservation>, _>(
+                            &observation,
+                        ),
+                        "plan branch observation push",
+                    )?;
+                    branch.push(observation.into());
+                    skeleton_queue_push(
+                        budget,
+                        function,
+                        &mut queue,
+                        (edge.to, branch),
+                        "plan branch state push",
+                    )?;
+                    continue;
+                }
                 for edge in edges {
                     let edge = &plan.edges[edge.0 as usize];
                     let observation = match &edge.condition {

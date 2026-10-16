@@ -1,0 +1,148 @@
+[
+  {
+    "source": "CHANGELOG.md",
+    "checkpoint_revision": "47f80b0f7a06fde9b2388439a9c0bfe998a05af1",
+    "archive": "docs/evidence/main8fb-source-reconciliation-20261016/before/47f/CHANGELOG.md.txt",
+    "current_sha256": "8021422573a1707d12acc5a025f853051cc9df9b5311fbd29945d1447a38dc09",
+    "original_sha256": "75c0556df5cb312c554e97511de391461e647c5e330dd32b76a079437d3669cc",
+    "edits": [
+      {
+        "new": "- Preserve both the causal publication witness and the bounded-output repair hint, with exact optional funding and sticky-refusal controls.\n\n- Launch fused-source Wasm package test drivers from their fixture directory using relative names so Node does not receive Windows verbatim paths as its main script.\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/receiver-source-custody-v1/README.md",
+    "checkpoint_revision": "47f80b0f7a06fde9b2388439a9c0bfe998a05af1",
+    "archive": "docs/evidence/main8fb-source-reconciliation-20261016/before/47f/docs/evidence/receiver-source-custody-v1/README.md.txt",
+    "current_sha256": "98f0ece5521ed52dcb792cd7b055939bb5d353c52dde025e5d01164db43d8611",
+    "original_sha256": "3a55537ed7b2d12dc7df7417a62e76b280855ba86d3a95cfa8608e2fc7dad01b",
+    "edits": [
+      {
+        "new": "\nA fifth record preserves the complete `0ab1bb6cc` source-verifier declaration\nreceiver across its one presentation hook. The live receiver now supplements\nthe causal capacity witness with its already selected authoring repair. The\nindependent original public-signature verifier stays unchanged and compiled.\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/receiver-source-custody-v1/inverse.json",
+    "checkpoint_revision": "47f80b0f7a06fde9b2388439a9c0bfe998a05af1",
+    "archive": "docs/evidence/main8fb-source-reconciliation-20261016/before/47f/docs/evidence/receiver-source-custody-v1/inverse.json.txt",
+    "current_sha256": "17758338cdb03f1a294fb75d923ccc515c814aa3d257521f41ef8593a7d9da1b",
+    "original_sha256": "12d49de142afde6a3606f6d629cd337bad5aa033fdb8a0069124610402c20418",
+    "edits": [
+      {
+        "new": "  },\n  {\n    \"path\": \"src/source_verify/declaration.rs\",\n    \"after_sha256\": \"61c807e1dc05a4f559830b4fa3d25eb79c73aac11a066aa7e3e775caaa655dec\",\n    \"before_sha256\": \"11b26f1bc56c129657268cf90436753cfaf037fa7c37ec49596284fd5d1bdcd8\",\n    \"archive\": \"src__source_verify__declaration.rs.before.txt\",\n    \"inverse\": [\n      {\n        \"after\": \"diagnostic = super::hints::with_capacity_witness(diagnostic, witness_help);\",\n        \"before\": \"diagnostic = diagnostic.with_help(witness_help);\"\n      }\n    ]\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows/semantic_receivers.rs",
+    "checkpoint_revision": "47f80b0f7a06fde9b2388439a9c0bfe998a05af1",
+    "archive": "docs/evidence/main8fb-source-reconciliation-20261016/before/47f/src/source_reflows/semantic_receivers.rs.txt",
+    "current_sha256": "651d174d04fad97da5c08ad215a869fd395a7d691d4a78dc901a99e814fc8252",
+    "original_sha256": "f8f18c9850e0595c2ffafbc8eb0215d0566501a07d28814d01e4f32f0a2e4273",
+    "edits": [
+      {
+        "new": "    let joined = crate::source_reflows_merge::main8fb_input(path, current);\n",
+        "old": "    let joined = crate::source_reflows_merge::main696_input(path, current);\n"
+      },
+      {
+        "new": "    assert_eq!(proofs().len(), 5);\n",
+        "old": "    assert_eq!(proofs().len(), 4);\n"
+      }
+    ]
+  },
+  {
+    "source": "src/source_verify/declaration.rs",
+    "checkpoint_revision": "47f80b0f7a06fde9b2388439a9c0bfe998a05af1",
+    "archive": "docs/evidence/main8fb-source-reconciliation-20261016/before/47f/src/source_verify/declaration.rs.txt",
+    "current_sha256": "61c807e1dc05a4f559830b4fa3d25eb79c73aac11a066aa7e3e775caaa655dec",
+    "original_sha256": "11b26f1bc56c129657268cf90436753cfaf037fa7c37ec49596284fd5d1bdcd8",
+    "edits": [
+      {
+        "new": "                diagnostic = super::hints::with_capacity_witness(diagnostic, witness_help);\n",
+        "old": "                diagnostic = diagnostic.with_help(witness_help);\n"
+      }
+    ]
+  },
+  {
+    "source": "src/source_verify/hints.rs",
+    "checkpoint_revision": "47f80b0f7a06fde9b2388439a9c0bfe998a05af1",
+    "archive": "docs/evidence/main8fb-source-reconciliation-20261016/before/47f/src/source_verify/hints.rs.txt",
+    "current_sha256": "f568a53d58fd347520654c3d5dde5e65a012f298fbe0890cc7d0bffb61504dcc",
+    "original_sha256": "7aa89a0421cadade946c78beb233926a4dd55d14acaff17a15077f96dcc71712",
+    "edits": [
+      {
+        "new": "fn capacity_witness_receiving_bytes() -> usize {\n    use std::mem::size_of;\n    size_of::<String>()\n        + 3 * size_of::<usize>()\n        + 2 * size_of::<&str>()\n        + size_of::<Option<usize>>()\n        + size_of::<Result<(), std::collections::TryReserveError>>()\n        + 2 * size_of::<bool>()\n}\n\n/// A causal witness supplements the exact authoring repair instead of replacing\n/// it. If optional composition cannot be funded, retain the complete witness\n/// and the original primary diagnostic, as the previous receiver did.\npub(super) fn with_capacity_witness(mut diagnostic: Diagnostic, witness: String) -> Diagnostic {\n    let repair = diagnostic.help.as_deref().filter(|help| {\n        diagnostic.code == \"SPX-T269\"\n            && Some(*help) == authoring_repair_help(diagnostic.code, &diagnostic.message)\n    });\n    let Some(repair) = repair else {\n        return diagnostic.with_help(witness);\n    };\n    let length = witness\n        .len()\n        .checked_add(2)\n        .and_then(|n| n.checked_add(repair.len()));\n    let payment = length.and_then(|n| n.checked_add(capacity_witness_receiving_bytes()));\n    let (Some(length), Some(payment)) = (length, payment) else {\n        return diagnostic.with_help(witness);\n    };\n    if !crate::bounded_output::reserve_active_preserving(payment, 0) {\n        return diagnostic.with_help(witness);\n    }\n    let mut composed = String::new();\n    if composed.try_reserve_exact(length).is_err() || composed.capacity() != length {\n        return diagnostic.with_help(witness);\n    }\n    composed.push_str(&witness);\n    composed.push_str(\"\\n\\n\");\n    composed.push_str(repair);\n    diagnostic.help = Some(composed);\n    diagnostic\n}\n\n",
+        "old": ""
+      },
+      {
+        "new": "\n    #[test]\n    fn publication_witness_keeps_exact_repair_and_primary_at_optional_limits() {\n        use crate::bounded_output::with_limit_usage_refusal;\n        let original = with_authoring_repair_help(Diagnostic::io_static(\n            \"SPX-T269\",\n            \"stdout_write path reaches 2 sites; limit is 1\",\n        ));\n        let witness = \"call path: app.main -> app.write; first and second stdout sites\";\n        let expected = format!(\"{witness}\\n\\n{}\", original.help.as_deref().unwrap());\n        let exact = expected.len() + capacity_witness_receiving_bytes();\n        for limit in [0, exact - 1, exact] {\n            let input = original.clone();\n            let proof = witness.to_owned();\n            let (actual, refused, used, first) =\n                with_limit_usage_refusal(limit, || with_capacity_witness(input, proof));\n            assert!(!refused && first.is_none());\n            if limit == exact {\n                assert_eq!(used, exact);\n                assert_eq!(actual, original.clone().with_help(&expected));\n                assert!(actual.help.as_deref().unwrap().starts_with(witness));\n            } else {\n                assert_eq!(used, 0);\n                assert_eq!(actual, original.clone().with_help(witness));\n            }\n        }\n    }\n\n    #[test]\n    fn publication_witness_never_replaces_a_sticky_refusal_or_invents_a_repair() {\n        use crate::bounded_output::{reserve_active_required, with_limit_usage_refusal};\n        let original = with_authoring_repair_help(Diagnostic::io_static(\n            \"SPX-T269\",\n            \"stderr_write path reaches 2 sites; limit is 1\",\n        ));\n        let expected = original.clone().with_help(\"original witness\");\n        let witness = \"original witness\".to_owned();\n        let (actual, refused, used, first) = with_limit_usage_refusal(0, || {\n            assert!(!reserve_active_required(1));\n            with_capacity_witness(original, witness)\n        });\n        assert!(refused);\n        assert_eq!(used, 0);\n        assert_eq!(first.unwrap().requested, 1);\n        assert_eq!(actual, expected);\n        let unrelated = Diagnostic::io_static(\"SPX-T269\", \"stdout_write expects Slice<u8>\")\n            .with_help(\"existing unrelated help\");\n        assert_eq!(\n            with_capacity_witness(unrelated.clone(), \"witness\".to_owned()),\n            unrelated.with_help(\"witness\")\n        );\n    }\n\n    #[test]\n    fn publication_composition_pays_all_backing_and_complete_drop() {\n        use crate::bounded_output::{reserve_active_required, with_limit_usage_refusal};\n        use crate::test_allocation_observer::measure;\n        let (((), allocation), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {\n            measure(|| {\n                let diagnostic = with_authoring_repair_help(Diagnostic::io_static(\n                    \"SPX-T269\",\n                    \"stdout_write path reaches 2 sites; limit is 1\",\n                ));\n                let witness = \"original causal witness\";\n                assert!(reserve_active_required(witness.len()));\n                let diagnostic = with_capacity_witness(diagnostic, witness.to_owned());\n                assert!(diagnostic.help.as_deref().unwrap().starts_with(witness));\n                assert!(diagnostic\n                    .help\n                    .as_deref()\n                    .unwrap()\n                    .contains(\"publish once per stream\"));\n                drop(diagnostic);\n            })\n        });\n        assert!(!refused && first.is_none());\n        assert!(!allocation.invalid && allocation.live == 0);\n        assert_eq!(allocation.allocated, allocation.freed);\n        assert!(allocation.allocated <= paid);\n    }\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "tests/quickstart_v1/fused_source.rs",
+    "checkpoint_revision": "47f80b0f7a06fde9b2388439a9c0bfe998a05af1",
+    "archive": "docs/evidence/main8fb-source-reconciliation-20261016/before/47f/tests/quickstart_v1/fused_source.rs.txt",
+    "current_sha256": "e34b72f66ec89117b87a03dcfd20fa77b101b9a2c9dfd40b957b79e2387c23da",
+    "original_sha256": "f5a1af52dbd2fe29c4db100a4b63cc4e2aa04d49bc0cadb521485bafa70d8770",
+    "edits": [
+      {
+        "new": "            .current_dir(&fixture.root)\n            .arg(driver.file_name().unwrap())\n            .arg(package.file_name().unwrap())\n",
+        "old": "            .arg(&driver)\n            .arg(&package)\n"
+      },
+      {
+        "new": "            .current_dir(&fixture.root)\n            .arg(source_driver.file_name().unwrap())\n            .arg(package.file_name().unwrap())\n",
+        "old": "            .arg(&source_driver)\n            .arg(package)\n"
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "checkpoint_revision": "47f80b0f7a06fde9b2388439a9c0bfe998a05af1",
+    "archive": "docs/evidence/main8fb-source-reconciliation-20261016/before/47f/src/source_reflows_merge.rs.txt",
+    "current_sha256": "cbee4ed475f7db9e73f43359127ed93a86c4da1f5fa137e69292cd0fbf3e7bad",
+    "original_sha256": "2ebd459e3723a6480ca591d66d560afa5f29d49a10ee0b67bdd2877cad3cb4eb",
+    "edits": [
+      {
+        "new": "    let previous = main8fb_previous(source, current);\n    let current = previous.as_str();\n",
+        "old": ""
+      },
+      {
+        "new": "}\n// The new Main receiver has one additional, independently authenticated input;\n// its older four owners still use their exact Main696 domains.\npub(crate) fn main8fb_input(source: &str, current: &str) -> String {\n    if source == \"src/source_verify/declaration.rs\" {\n        return project(\n            include_str!(concat!(\n                env!(\"CARGO_MANIFEST_DIR\"),\n                \"/docs/evidence/main8fb-source-reconciliation-20261016/current-to-main8fb.json\"\n            )),\n            source,\n            current,\n        );\n    }\n    main696_input(source, current)\n}\nfn main8fb_previous(source: &str, current: &str) -> String {\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/main8fb-source-reconciliation-20261016/current-to-47f.json\"\n        )),\n        source,\n        current,\n    )\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "checkpoint_revision": "47f80b0f7a06fde9b2388439a9c0bfe998a05af1",
+    "archive": "docs/evidence/main8fb-source-reconciliation-20261016/before/47f/tests/hir_module_boundaries.rs.txt",
+    "current_sha256": "e10e1364d0f03f8626689e3f04dc90e6888983ebad6609fb17e4b839aee8057a",
+    "original_sha256": "df0d8fd48aaa5f527e4dfe106e59bcc29ee16290bd59de5cf4cdb0059507e895",
+    "edits": [
+      {
+        "new": "        include_str!(\"../docs/evidence/main8fb-source-reconciliation-20261016/hir.json\"),\n",
+        "old": "        include_str!(\"../docs/evidence/task722-held-fitting759-join-20261016/hir.json\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph.rs",
+    "checkpoint_revision": "47f80b0f7a06fde9b2388439a9c0bfe998a05af1",
+    "archive": "docs/evidence/main8fb-source-reconciliation-20261016/before/47f/tests/workspace/semantic_graph.rs.txt",
+    "current_sha256": "2008ac91a4c22aaaf3e97bab0ef1049e3586a35683f2ba56e11354db727f04e1",
+    "original_sha256": "82deedb7e8fd411535340b32410798c92c376acb23b604f6a628088916d0db77",
+    "edits": [
+      {
+        "new": "            \"../../docs/evidence/main8fb-source-reconciliation-20261016/projection.json\"\n",
+        "old": "            \"../../docs/evidence/task722-held-fitting759-join-20261016/projection.json\"\n"
+      }
+    ]
+  }
+]

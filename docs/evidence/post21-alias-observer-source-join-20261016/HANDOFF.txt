@@ -1,0 +1,48 @@
+Final successor after actual21: source-only, no runtime PASS claim
+
+Merge the WHOLE branch. It contains original Main8fb ancestry, reviewed851,
+reviewed outgoing/final-output transfer components, and actual21 successors:
+16b7c8a1 path-array operation observer and d7815765 real first-uncached alias gate.
+Current actual21 evidence remains19PASS/2FAIL with all15pinconsumersPASS;
+actual47 and all earlier failure/resource/omission histories remain separate.
+
+Current entrypoints (do not run predecessor physical-source verifiers directly):
+python3 docs/evidence/post21-alias-observer-source-join-20261016/verify-source.py
+python3 docs/evidence/post21-alias-observer-source-join-20261016/verify-authority.py
+
+Seven complete current->36f rows (14038 bytes) run BEFORE BOTH inherited and
+independent Main8fb fronts. This restores the entire committed36f namespace
+before its original82parent rows; every prior table/receiver/project body and
+fixed90 runtime fixture remains exact. The earlier source-only proof is reused
+only under complete restored namespace equality, never as current runtime PASS.
+Actual16b7 andd781 finite source verifiers execute against their exact current
+component inputs. The current authority uses the unchanged module parser and
+all original forbidden checks, six negatives and raw include sequences. No
+new source child or test body was added by these two successors.
+
+16b7 changes only the existing funded test observer extent: legacy immutable
+SkeletonWork construction and Drop are outside ACTIVE/operation measurement;
+actual paid budget, seeds/append, partial output/Diagnostic and paid-budget Drop
+remain inside. Original assertions and full zero-output tail remain unchanged.
+It does not claim legacy context setup is funded or hide it as a paid allocation.
+D781 changes only the real existing first-uncached gate to frontend.is_none();
+compact and noncompact uncached roots use the same reviewed paid alias route.
+All original Project/complete-core gates/classifiers/payments stay byte-exact.
+Production limits or provider/profile rules are not weakened.
+
+Parent-authorized nextscope:49 affected owners plus exact original15 pin
+consumers=64 unique/8roles. The added original outer uncached whole-core owner
+is necessary because the noncompact caller changed; no other scope expansion.
+Producer-only three builds FIRST (unitlib,prodlib,workspace), guarded actual
+managed3/browser2 captures with strict107 and all full-wire bridges, then a
+reviewed test/evidence-only actual pin successor with production equivalence.
+ONE final64 qualification uses four original batched commands; no stale pin
+assertion run or repeated full suite. Both scoped production Clippy once.
+
+External producer3 tools (not executed):
+/Volumes/Semaprax/provenance/producer-only-three-build-draft-20261016/COMMANDS.md
+External final64 draft (not registered/prepared):
+/Volumes/Semaprax/provenance/future-main-output-851-focused-draft-20261016/
+
+No new captured bill, current runtime success, allocation saving or issue closure
+is inferred. Source-ready is not the executable completion gate.

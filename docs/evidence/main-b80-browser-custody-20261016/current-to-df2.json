@@ -1,0 +1,66 @@
+[
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "checkpoint_source": "tests/wasm/scalar_browser_ci_contract.rs",
+    "archive": "docs/evidence/main-b80-browser-custody-20261016/before/ours/tests/wasm/scalar_browser_ci_contract.rs.txt",
+    "current_sha256": "00b1c8f92850779236c14c05e0302d76e812682b7055bc3229b7584184036593",
+    "original_sha256": "83f6a1f2817eab215058ae7b3dfd21456137568d58ea5c85fbb5f1a70a421d12",
+    "edits": [
+      {
+        "new": "                    file.write_all(revision.semantic_graph().as_bytes())\n                        .expect(\"capture complete actual calculator graph\");\n                }\n                previous_digests.push(historical_builder::main_c451_digest(revision.semantic_graph()));\n                let actual = [\n                    revision.project_revision(),\n                    revision.workspace_revision(),\n",
+        "old": "                    file.write_all(revision.semantic_graph().as_bytes())\n                        .expect(\"capture complete actual calculator graph\");\n                }\n                previous_digests.push(historical_builder::final_digest(revision.semantic_graph()));\n                let actual = [\n                    revision.project_revision(),\n                    revision.workspace_revision(),\n"
+      }
+    ]
+  },
+  {
+    "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "checkpoint_source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "archive": "docs/evidence/main-b80-browser-custody-20261016/before/ours/platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs.txt",
+    "current_sha256": "e2dcb8f6a31a753891aeb04fa5269a28c555ec686a7945a8c5080bd54d7178a3",
+    "original_sha256": "90aa6a5570bccce154a69673112caf63f081d89b9b87127327f4d16f25e131ae",
+    "edits": [
+      {
+        "new": "  parameters,\n  result,\n}));\n// Exact hosted compiler records from c451086ce, including the complete current\n// builder bill. The Rust browser contract retains full historical wire and\n// cursor controls; docs/evidence/browser-graph-pins-c451086ce binds this capture.\nconst fixtureSpecs = [\n  { name: \"direct-source\", schema: \"semaprax.web.v4\" },\n  {\n",
+        "old": "  parameters,\n  result,\n}));\n// Exact hosted compiler records from 268cb0523, including the complete current\n// builder bill. The Rust browser contract retains full historical wire and\n// cursor controls; docs/evidence/browser-graph-pins-268cb0523 binds this capture.\nconst fixtureSpecs = [\n  { name: \"direct-source\", schema: \"semaprax.web.v4\" },\n  {\n"
+      },
+      {
+        "new": "    schema: \"semaprax.web-project.v1\",\n    project_revision: \"sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053\",\n    workspace_revision: \"sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6\",\n    project_graph_digest: \"sha256:331cbe450ce2405aaf18876e6e1d1d42c96703af271616dd374087b5ed9de86a\",\n  },\n  {\n    name: \"project-renamed\",\n    schema: \"semaprax.web-project.v1\",\n    project_revision: \"sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7\",\n    workspace_revision: \"sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71\",\n    project_graph_digest: \"sha256:d234e7fc89dd7211b1c1f15b03e04371922728096b9b95ab7e1bbe0119fd419e\",\n  },\n];\nconst expectedArtifacts = [\n",
+        "old": "    schema: \"semaprax.web-project.v1\",\n    project_revision: \"sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053\",\n    workspace_revision: \"sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6\",\n    project_graph_digest: \"sha256:331ca572cc5c91fedf9da602aa7368b484ec0e96c1963300aea40a93d6cd2fc3\",\n  },\n  {\n    name: \"project-renamed\",\n    schema: \"semaprax.web-project.v1\",\n    project_revision: \"sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7\",\n    workspace_revision: \"sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71\",\n    project_graph_digest: \"sha256:67946d03e31d346e84de206ce7836c859d62712db8aacdca45ae39c060c30017\",\n  },\n];\nconst expectedArtifacts = [\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "checkpoint_source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "archive": "docs/evidence/main-b80-browser-custody-20261016/before/ours/tests/wasm/scalar_browser_ci_contract/historical_builder.rs.txt",
+    "current_sha256": "b6497eb6b650743410f5e9f6cb3a13fc5dd35aa3964ffa1fa8946aabe839dafd",
+    "original_sha256": "b37018f6c23164f4e518660699ecd95b33276e52d21a253a3f18b32f29b51ca9",
+    "edits": [
+      {
+        "new": "    }\n    main_digest(&main.unwrap())\n}\n\n// Complete independent actual Main c451 receiver and all older Main controls.\n#[path = \"historical_main_c451.rs\"]\nmod main_c451;\npub(super) fn main_c451_digest(graph: &str) -> String {\n    main_c451::digest(graph)\n}\n",
+        "old": "    }\n    main_digest(&main.unwrap())\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+    "checkpoint_revision": "df2dfeee51ebb0e7c6ba930f604aa2eccf2c5fd2",
+    "checkpoint_source": "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+    "archive": "docs/evidence/main-b80-browser-custody-20261016/before/ours/tests/wasm/scalar_browser_ci_contract/browser_custody.rs.txt",
+    "current_sha256": "9bed9243d6ed3cbc89e0568e5a1b1c8bd845b3e0c07db173ff1349b3efbb80bc",
+    "original_sha256": "19e655e814ff93f01d5a4aefc502db07b1a8e0b8232a51edc3ade22f6fe9e467",
+    "edits": [
+      {
+        "new": "}\n\npub(super) fn pin_input(source: &str, current: &str) -> String {\n    let previous = browser_b80_previous(source, current);\n    let current = previous.as_str();\n    pin_project(\n        include_str!(\n            \"../../../docs/evidence/actual47f-pin-fixture-successor-20261016/current-to-47f.json\"\n",
+        "old": "}\n\npub(super) fn pin_input(source: &str, current: &str) -> String {\n    pin_project(\n        include_str!(\n            \"../../../docs/evidence/actual47f-pin-fixture-successor-20261016/current-to-47f.json\"\n"
+      },
+      {
+        "new": "    );\n    result\n}\n\nfn browser_b80_previous(source: &str, current: &str) -> String {\n    pin_project(include_str!(\"../../../docs/evidence/main-b80-browser-custody-20261016/current-to-df2.json\"), source, current)\n}\nfn browser_c451_input(source: &str, current: &str) -> String {\n    pin_project(include_str!(\"../../../docs/evidence/main-b80-browser-custody-20261016/current-to-main.json\"), source, current)\n}\npub(super) fn main_c451_parent(current: &str) -> String {\n    browser_c451_input(\"tests/wasm/scalar_browser_ci_contract.rs\", current)\n}\npub(super) fn main_c451_runner(current: &str) -> String {\n    browser_c451_input(\"platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs\", current)\n}\npub(super) fn main_c451_before(current: &str) -> String {\n    browser_c451_input(\"tests/wasm/scalar_browser_ci_contract/before_c451.rs\", current)\n}\npub(super) fn main_c451_before_2600(current: &str) -> String {\n    browser_c451_input(\"tests/wasm/scalar_browser_ci_contract/main_c451_before_2600.rs\", current)\n}\n",
+        "old": "    );\n    result\n}\n"
+      }
+    ]
+  }
+]

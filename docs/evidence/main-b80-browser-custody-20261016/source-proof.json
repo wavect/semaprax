@@ -1,0 +1,60 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "old_df2_full_inverse_rows": 4,
+  "independent_Main_full_inverse_rows": 4,
+  "complete_Main_current_helper_metadata_inverse": true,
+  "old_ours_root_functions_and_all_other_browser_files_unchanged": true,
+  "Main_three_plus_before_three_plus_old_four_assertions_registered": true,
+  "Main_runner_and_capture_archive_exact": true,
+  "actual_historical_fullwire_bridges": [
+    {
+      "fixture": "baseline",
+      "previous": "docs/evidence/browser-graph-pins-2600e49eb/current-hosted-calculator-baseline.json",
+      "complete_bytes": true,
+      "current_source": "actual published Mainc451",
+      "later_combined_pin": "UNKNOWN_NOT_CAPTURED"
+    },
+    {
+      "fixture": "baseline",
+      "previous": "docs/evidence/actual47f-pin-fixture-successor-20261016/actual-browser/calculator-baseline.json",
+      "complete_bytes": true,
+      "current_source": "actual published Mainc451",
+      "later_combined_pin": "UNKNOWN_NOT_CAPTURED"
+    },
+    {
+      "fixture": "renamed",
+      "previous": "docs/evidence/browser-graph-pins-2600e49eb/current-hosted-calculator-renamed.json",
+      "complete_bytes": true,
+      "current_source": "actual published Mainc451",
+      "later_combined_pin": "UNKNOWN_NOT_CAPTURED"
+    },
+    {
+      "fixture": "renamed",
+      "previous": "docs/evidence/actual47f-pin-fixture-successor-20261016/actual-browser/calculator-renamed.json",
+      "complete_bytes": true,
+      "current_source": "actual published Mainc451",
+      "later_combined_pin": "UNKNOWN_NOT_CAPTURED"
+    }
+  ],
+  "runtime_table_bytes": 12976,
+  "new_Rust_owners": [
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c451.rs",
+      "sha256": "cfc4bae611ebdb4693549b43f8c7b81f3b092c6127278f894a55f20cb25d7f73",
+      "lines": 129
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_c451.rs",
+      "sha256": "2db121ad5e55ff4893d6f394acbf76992d310cff305586e431173d87f2ce10a5",
+      "lines": 130
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/main_c451_before_2600.rs",
+      "sha256": "b7e6b422a7ed8be68fdc06d3447e5370cd53c618c80461f6be9bc631906c58c2",
+      "lines": 153
+    }
+  ],
+  "global_audits_authority_and_raw_front": "PENDING_JOIN_WITH_RUNTIME_COMPONENT",
+  "future_combined_bill": "UNKNOWN",
+  "Cargo_or_owning_test_or_new_capture": false
+}

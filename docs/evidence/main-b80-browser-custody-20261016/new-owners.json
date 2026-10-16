@@ -1,0 +1,17 @@
+[
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c451.rs",
+    "sha256": "cfc4bae611ebdb4693549b43f8c7b81f3b092c6127278f894a55f20cb25d7f73",
+    "lines": 129
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/before_c451.rs",
+    "sha256": "2db121ad5e55ff4893d6f394acbf76992d310cff305586e431173d87f2ce10a5",
+    "lines": 130
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/main_c451_before_2600.rs",
+    "sha256": "b7e6b422a7ed8be68fdc06d3447e5370cd53c618c80461f6be9bc631906c58c2",
+    "lines": 153
+  }
+]

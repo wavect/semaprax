@@ -1,0 +1,24 @@
+{
+  "base": "f094728a684f5312c3cb3e8a309b46bb9e17c387",
+  "status": "SOURCE_ONLY_UNEXECUTED",
+  "rows": [
+    {
+      "source": "src/cleanup_plan/replay/flat_records/tests/receiving_status_scalar.rs",
+      "before_file": "receiving_status_scalar.rs.before.txt",
+      "before_sha256": "eabed285d631b4180f1bcf50de92426796742735604f2fdd8b17461be8fcce1f",
+      "after_sha256": "6ef86f236dc5cec92e12d8e838e28827a75469ef24185a46c68c89a3df1b50ed",
+      "exact_replacements": 2,
+      "assertion_count_before": 29,
+      "assertion_count_after": 29
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records/tests/receiving_families.rs",
+      "before_file": "receiving_families.rs.before.txt",
+      "before_sha256": "090b958ad14f4948f32ddf0238d599b8bd839c82a12b1e15e0124afe52ea374e",
+      "after_sha256": "9cfc1aa897bee732497c6837f4416dfb16b58598a78390fe931ff51a30485198",
+      "exact_replacements": 1,
+      "assertion_count_before": 26,
+      "assertion_count_after": 26
+    }
+  ]
+}

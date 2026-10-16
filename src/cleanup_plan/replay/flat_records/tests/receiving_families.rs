@@ -165,7 +165,7 @@ fn complete_paid_drivers_keep_independent_source_authenticated_success_and_refus
         (scalar, "family.scalar.main", false),
     ] {
         let fixture = crate::workspace_graph::SourceRecordReplayFixture::new(source);
-        fixture.with_context(|source| {
+        fixture.with_prepared_context(|source| {
             let f = source
                 .functions()
                 .iter()

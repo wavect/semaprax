@@ -160,7 +160,7 @@ fn nodes(e: &ResolvedExpr) -> Vec<&ResolvedExpr> {
 #[test]
 fn scalar_record_receivers_keep_complete_shape_answers_and_real_limits() {
     let fixture = crate::workspace_graph::SourceRecordReplayFixture::new(super::SOURCE);
-    fixture.with_context(|context| {
+    fixture.with_prepared_context(|context| {
         for f in context.functions() {
             let old =
                 scalar_replay::records::signature_for_test(context, f, &mut ReplayBudget::new());
@@ -239,7 +239,7 @@ fn status_scalar_complete_paid_drivers_keep_source_and_first_refusal() {
         (scalar, "family.scalar.main", false),
     ] {
         let fixture = crate::workspace_graph::SourceRecordReplayFixture::new(source);
-        fixture.with_context(|source| {
+        fixture.with_prepared_context(|source| {
             let f = source
                 .functions()
                 .iter()

@@ -27,6 +27,14 @@
 - Reconcile Main8a finished-path capacity, arbitrary final-suffix transfer and borrowed nominal context with lexical paid receiving; preserve original work-before-optional-payment priority and complete Main controls. Qualification and net application cost remain pending.
 
 - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.
+- Refresh browser graph pins from complete hosted 524a80bc9 captures after a 36,720-byte builder-bill reduction, preserving all earlier whole-wire, source, and tamper controls.
+
+- Separate loan-plan presence, lexical validation and candidate construction into non-inlined stack phases, retaining the complete original planner and low-stack regression.
+
+- Restore later allocation-test and provider inventory inputs through explicit whole-source custody, retaining original formatting hashes, all fourteen receiver proofs and complete historical source assertions.
+
+- Fall back to complete fresh resolution before selecting an unaffordable checked-cache candidate, retaining original validation, residual charges and failed-attempt receipts.
+
 - Avoid constructing the recursive type census for ordinary scalar clones while retaining the original fee controls, full compound fallback and sticky allocation authentication.
 
 - Compact borrowed child traversal state without changing enumeration, work refusals or depth bounds, retaining the complete original cursor and low-stack constructor regression.

@@ -521,3 +521,163 @@ fn alias_projection_reconstruction_accounts_cumulative_growth_not_only_final_ext
         "SPX-H006"
     );
 }
+
+fn entry_stack_before(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+) -> Result<LoanPlan, Diagnostic> {
+    let lexical = crate::hir::lexical_exit::requires(function)?;
+    if lexical {
+        let owner = crate::hir::lexical_exit::owner(program, function)?;
+        crate::hir::lexical_exit::validate_function(program, function, &owner)?;
+    }
+    has_own_root_candidate(program, function)
+        .and_then(|candidate| {
+            if candidate {
+                build_cfg_plan(program, function)
+            } else {
+                let mut plan = LoanPlan::empty_v1();
+                if lexical {
+                    plan.schema = LOAN_PLAN_SCHEMA_V3;
+                }
+                Ok(plan)
+            }
+        })
+        .map_err(|diagnostic| guidance::work_limit(diagnostic, function))
+}
+
+#[test]
+fn entry_stack_isolation_keeps_whole_original_plans_diagnostics_and_debits() {
+    let (owned, _) = super::boundary_tests::fixture(1);
+    let scalar = crate::hir::resolve(
+        &crate::check(
+            "module entry.scalar; @id(\"entry.main\") fn main()->i64 {0}",
+            "loan-entry-scalar.spx",
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let lexical = crate::hir::resolve(
+        &crate::check(
+            r#"module cursor.mixed;
+@id("cursor.probe") fn probe(n:i64)->i64 {
+ let mut i=0;
+ while i<n {i=i+1;if i==2 {continue;}else{0} if i==3 {break;}else{0} 0}
+ if i>0 {return i+1;}else{0}
+ return 0;
+}
+@id("main") fn main()->i64 {probe(4)}
+"#,
+            "loan-entry-lexical.spx",
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    fn compare(program: &ResolvedProgram, function: &ResolvedFunction) {
+        let unlimited = crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {
+            entry_stack_before(program, function)
+        });
+        for limit in [usize::MAX, 0, unlimited.2.saturating_sub(1), unlimited.2] {
+            let expected = crate::bounded_output::with_limit_usage_refusal(limit, || {
+                entry_stack_before(program, function)
+            })
+            .0;
+            let observe = |before: bool| {
+                crate::bounded_output::with_limit_usage_refusal(limit, || {
+                    crate::test_allocation_observer::measure(|| {
+                        let actual = if before {
+                            entry_stack_before(program, function)
+                        } else {
+                            build_plan(program, function)
+                        };
+                        assert_eq!(actual, expected);
+                        drop(actual);
+                    })
+                })
+            };
+            let before = observe(true);
+            let current = observe(false);
+            assert!(!before.0 .1.invalid && !current.0 .1.invalid);
+            assert_eq!(before.0 .1.live, 0);
+            assert_eq!(current.0 .1.live, 0);
+            assert_eq!(current, before);
+        }
+    }
+    for program in [&scalar, &owned, &lexical] {
+        for function in &program.functions {
+            compare(program, function);
+        }
+    }
+    let function = lexical
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == "cursor.probe")
+        .unwrap()
+        .clone();
+    let mut missing_owner = lexical.clone();
+    missing_owner.functions.retain(|f| f.id != function.id);
+    let error = entry_stack_before(&missing_owner, &function).unwrap_err();
+    assert_eq!(error.code, "SPX-H006");
+    assert_eq!(
+        error.message,
+        "unregistered lexical function requires an explicit authenticated execution context"
+    );
+    compare(&missing_owner, &function);
+}
+
+#[test]
+fn entry_stack_isolation_restores_the_complete_original_producer_and_tests() {
+    use sha2::{Digest, Sha256};
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let evidence = root.join("docs/evidence/loan-plan-entry-stack-v1");
+    let records: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(evidence.join("sources.json")).unwrap())
+            .unwrap();
+    for record in records.as_array().unwrap() {
+        let original =
+            std::fs::read_to_string(evidence.join(record["archive"].as_str().unwrap())).unwrap();
+        assert_eq!(
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))
+            ),
+            record["sha256"].as_str().unwrap()
+        );
+        let current = std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
+        let restore = |source: &str| -> Option<String> {
+            let mut restored = source.to_owned();
+            for edit in record["edits"].as_array().unwrap().iter().rev() {
+                let new = edit["new"].as_str().unwrap();
+                if restored.matches(new).count() != 1 {
+                    return None;
+                }
+                restored = restored.replacen(new, edit["old"].as_str().unwrap(), 1);
+            }
+            Some(restored)
+        };
+        assert_eq!(restore(&current).as_deref(), Some(original.as_str()));
+        assert_ne!(
+            restore(&(current.clone() + "\n")).as_deref(),
+            Some(original.as_str())
+        );
+        assert_ne!(
+            restore(&current.replacen(&current[..1], "!", 1)).as_deref(),
+            Some(original.as_str())
+        );
+    }
+    let original = std::fs::read_to_string(evidence.join("loan_plan.rs.before.txt")).unwrap();
+    let body = original
+        .split("pub fn build_plan(\n")
+        .nth(1)
+        .unwrap()
+        .split("\n/// Exact retained heap capacity")
+        .next()
+        .unwrap();
+    let before = format!("fn entry_stack_before(\n{body}");
+    let tests = std::fs::read_to_string(root.join("src/loan_plan/tests.rs")).unwrap();
+    assert_eq!(
+        tests.matches(&before).count(),
+        1,
+        "the complete original producer stays compiled"
+    );
+}

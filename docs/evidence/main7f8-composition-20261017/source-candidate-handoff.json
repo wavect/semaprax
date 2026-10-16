@@ -1,0 +1,104 @@
+{
+  "base_ours": "ca6f99e4bcfa93a5a5b138a871071b908e94393d",
+  "incoming": "7f8e901da66015b09a25d3a1b96b2abebf21e92f",
+  "root_edited": false,
+  "root_staged": false,
+  "cargo_rustc_run": false,
+  "rustfmt_parse": [
+    "tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs",
+    "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "src/workspace_graph/identity_resolution.rs",
+    "src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs",
+    "src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs",
+    "src/workspace_graph/identity_resolution/base/cache_billing/main7f8_inputs.rs",
+    "src/workspace_graph/expected_projection/import_stub/core_proofs/main7f8_provider.rs",
+    "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs"
+  ],
+  "candidate_files": [
+    {
+      "path": "docs/evidence/main7f8-composition-20261017/historical-main7f8.before.rs.txt",
+      "length": 5217,
+      "sha256": "8651f7dd678016d5ce6d617e249a8cd566fffdb65652e2f1ddf9a9724dbcb747"
+    },
+    {
+      "path": "docs/evidence/main7f8-composition-20261017/provider-incoming-checkpoints.json",
+      "length": 443642,
+      "sha256": "abad5c4b7d98ffbca8468a18a8bd84346e9982a89be87b418e0e8e8616cafe07"
+    },
+    {
+      "path": "docs/evidence/main7f8-composition-20261017/provider-main7f8.json",
+      "length": 2151415,
+      "sha256": "b6e5daa21c4389650c11b52ed53ca46d361329e7e3e7d91f773a02abf9293ebc"
+    },
+    {
+      "path": "docs/evidence/main7f8-composition-20261017/provider-tests-main7f8.before.rs.txt",
+      "length": 30208,
+      "sha256": "b54a1e1ef7192aed60c821f228e40955b5fd60b8755d4428e2f87f72eb6c41b2"
+    },
+    {
+      "path": "docs/evidence/main7f8-composition-20261017/root-fit-input.json",
+      "length": 476272,
+      "sha256": "778213c317e8652ea8ab64083e2d0221b0f752a795bce54e3bf6ae619036a0af"
+    },
+    {
+      "path": "docs/evidence/main7f8-composition-20261017/runner-main7f8.mjs",
+      "length": 10291,
+      "sha256": "439aac5c76fc97e037bf2e30273c99d842357c64925babbffd7b2007edd486ec"
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/import_stub/core_proofs/main7f8_provider.rs",
+      "length": 8774,
+      "sha256": "a88ca804f2f7d0b00f5ed5267de06d02a73d1df49114786881de1494692ca737"
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs",
+      "length": 30242,
+      "sha256": "bf59d79e6bcd513cf071c52112ded222e4561c785389f2723684d072c15d0fc2",
+      "ours_sha256": "6b90dc7db53bc691aa253565c765ff28a7fdf13c7b5f5acf30ec9c5b4473d911",
+      "incoming_sha256": "b54a1e1ef7192aed60c821f228e40955b5fd60b8755d4428e2f87f72eb6c41b2"
+    },
+    {
+      "path": "src/workspace_graph/identity_resolution/base/cache_billing/main7f8_inputs.rs",
+      "length": 6161,
+      "sha256": "1166b7146b85087dc2a7812daba07c3830fd1c5008ff87cb3a1d38b763d1a9ea"
+    },
+    {
+      "path": "src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs",
+      "length": 6395,
+      "sha256": "5c1c7a222988623663003420306a4b28e6b363b634978975e624c4e04b9355ba"
+    },
+    {
+      "path": "src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs",
+      "length": 14990,
+      "sha256": "5da423f957f435ba1ca875e37fdb92aab84f8cfdeb35508df2224cac64f90a22",
+      "ours_sha256": "f17c32d168199359cc7275f7b7fe76789fa190fa2f1984923c525e303f8fe937",
+      "incoming_sha256": "500ddaff2c129846253b14d8108a3659199f864ef114221a97b2191b54154acb"
+    },
+    {
+      "path": "src/workspace_graph/identity_resolution.rs",
+      "length": 6729,
+      "sha256": "413a71132e9c87cd41f5f7d79b6ca41f679b553d0a086a0251cbd5ce8cf3b6e4",
+      "ours_sha256": "ac389a2b1bd2e61a31900a77e4e4294f750bd81f1693c8930e95dd874e39a6e1",
+      "incoming_sha256": "9668150574b0286f0eb965f3f96e47312135bd4484bf60a6b1fbe07387d2f93e"
+    },
+    {
+      "path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "length": 17748,
+      "sha256": "65d8772327ddc68dd2c2a4ca7677ad5953061d22724318ef9e437135ec9eeb0a",
+      "ours_sha256": "64d52fb6d6e8f59bb4f81244d991f8c603f792f5b7bca9fd14df94cc86f34dd8",
+      "incoming_sha256": "8651f7dd678016d5ce6d617e249a8cd566fffdb65652e2f1ddf9a9724dbcb747"
+    },
+    {
+      "path": "tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs",
+      "length": 6392,
+      "sha256": "7f1191f06f7d31e77883e5bac2d12ba7a2e85ba18e4d01063883e80959cf37bc"
+    }
+  ],
+  "requires_final_common_rebind": true,
+  "requires_fresh_final_browser_capture": true,
+  "candidate_only": true,
+  "version": "V2_READER_CONTROLS_SOURCE_ONLY_20261017",
+  "reader_controls_wired": true,
+  "reader_controls_runtime_executed": false,
+  "source_checks_sha256": "6a728709cd3569d7a9cd18eaf070224f6cb19f420426bf6e08971d08d734c8fd"
+}

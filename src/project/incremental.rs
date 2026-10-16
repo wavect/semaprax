@@ -435,6 +435,16 @@ impl SelectiveResolvedModule {
     }
 }
 impl FrontendPass {
+    /// Cached replay must pay at least its recorded resolver bill: validation
+    /// plus the original residual equals that bill. Loan-capacity residuals and
+    /// newly shared prelude work still use their original later reservations.
+    /// This read-only lower bound grants no storage or validation authority.
+    pub(crate) fn checked_reuse_fits_active_attempt(&self, path: &str) -> bool {
+        self.checked
+            .get(path)
+            .is_none_or(|entry| crate::bounded_output::active_required_fits(entry.resolver_bytes))
+    }
+
     pub(crate) fn retains_checked_hir(&self) -> bool {
         self.semantic
     }
@@ -1007,4 +1017,187 @@ fn decoded_current_owner(
     let metadata = SourceMetadata::new(input, &mut carrier)?;
     CurrentParsedSource::new(metadata, program, None, &mut carrier)
         .map_err(|_| invalid("current parsed source origin disagrees"))
+}
+
+#[cfg(test)]
+mod cache_attempt_fit_tests {
+
+    #[test]
+    fn complete_cache_fit_sources_and_original_lookup_remain_bound() {
+        use sha2::{Digest, Sha256};
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let evidence = root.join("docs/evidence/checked-cache-attempt-fit-v1");
+        let records: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(evidence.join("sources.json")).unwrap())
+                .unwrap();
+        for record in records.as_array().unwrap() {
+            let original =
+                std::fs::read_to_string(evidence.join(record["archive"].as_str().unwrap()))
+                    .unwrap();
+            assert_eq!(
+                format!(
+                    "{:x}",
+                    crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))
+                ),
+                record["sha256"].as_str().unwrap()
+            );
+            let current =
+                std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
+            let restore = |source: &str| -> Option<String> {
+                let mut restored = source.to_owned();
+                for edit in record["edits"].as_array().unwrap().iter().rev() {
+                    let new = edit["new"].as_str().unwrap();
+                    if restored.matches(new).count() != 1 {
+                        return None;
+                    }
+                    restored = restored.replacen(new, edit["old"].as_str().unwrap(), 1);
+                }
+                Some(restored)
+            };
+            assert_eq!(restore(&current).as_deref(), Some(original.as_str()));
+            assert_ne!(
+                restore(&(current.clone() + "\n")).as_deref(),
+                Some(original.as_str())
+            );
+            assert_ne!(
+                restore(&current.replacen(&current[..1], "!", 1)).as_deref(),
+                Some(original.as_str())
+            );
+        }
+        fn lookup(source: &str) -> &str {
+            source
+                .split("    pub(crate) fn checked_module_source(")
+                .nth(1)
+                .unwrap()
+                .split("    /// Only a genuinely first checked resolution")
+                .next()
+                .unwrap()
+        }
+        let original = std::fs::read_to_string(evidence.join("1.before.txt")).unwrap();
+        let current = std::fs::read_to_string(root.join("src/project/incremental.rs")).unwrap();
+        assert_eq!(
+            lookup(&current),
+            lookup(&original),
+            "source/Agent replay, telemetry and staging remain the complete original receiver"
+        );
+    }
+    use super::*;
+    use crate::bounded_output::{
+        reserve_active_required, set_active_floor, with_limit_usage_refusal,
+    };
+    use crate::test_allocation_observer::measure;
+
+    fn fixture(resolver_bytes: usize, retained_loan_bytes: usize) -> (FrontendPass, Program) {
+        let source = "module cache.fit; @id(\"cache.main\") fn main()->i64 {0}";
+        let synthetic = crate::parse(source, "fit.spx").unwrap();
+        let resolved = crate::hir::resolve(&synthetic).unwrap();
+        let pass = FrontendPass {
+            indexed_imports: Vec::new(),
+            entries: BTreeMap::from([(
+                "fit.spx".to_owned(),
+                fixture_current_owner(source.to_owned(), synthetic.clone()),
+            )])
+            .into(),
+            parsed: 0,
+            reused: 0,
+            canonicalizations: 0,
+            parsed_bytes: 0,
+            reused_bytes: 0,
+            resolved: 0,
+            retained_source_bytes: 0,
+            ast_budget: 0,
+            semantic: true,
+            checked: BTreeMap::from([(
+                "fit.spx".to_owned(),
+                Arc::new(CheckedModule {
+                    synthetic: CheckedSource::Owned(synthetic.clone()),
+                    resolved,
+                    resolver_bytes,
+                    retained_loan_bytes,
+                    function_costs: BTreeMap::new(),
+                }),
+            )]),
+            next_checked: BTreeMap::new(),
+            checked_reused: 0,
+            functions_resolved: 0,
+            functions_reused: 0,
+        };
+        (pass, synthetic)
+    }
+
+    #[test]
+    fn unfitting_entry_is_inert_and_exact_fitting_entry_keeps_real_checked_reuse() {
+        for (limit, floor, expected) in [
+            (0, 0, false),
+            (18, 0, false),
+            (19, 0, true),
+            (27, 9, false),
+            (28, 9, true),
+        ] {
+            // Controlled cost metadata tests eligibility, not a full graph bill.
+            let (mut pass, source) = fixture(19, 23);
+            let owners = Arc::strong_count(pass.checked.get("fit.spx").unwrap());
+            let ((), refused, used, receipt) = with_limit_usage_refusal(limit, || {
+                assert!(set_active_floor(floor));
+                let (allowed, observed) =
+                    measure(|| pass.checked_reuse_fits_active_attempt("fit.spx"));
+                assert_eq!(allowed, expected);
+                assert!(!observed.invalid);
+                assert_eq!(
+                    (
+                        observed.allocations,
+                        observed.reallocations,
+                        observed.allocated,
+                        observed.freed,
+                        observed.live
+                    ),
+                    (0, 0, 0, 0, 0)
+                );
+                assert_eq!(
+                    Arc::strong_count(pass.checked.get("fit.spx").unwrap()),
+                    owners
+                );
+                assert!(pass.next_checked.is_empty());
+                assert_eq!(
+                    (pass.checked_reused, pass.functions_reused, pass.resolved),
+                    (0, 0, 0)
+                );
+                assert!(pass.checkpoint_core_attempt().is_some());
+                if allowed {
+                    assert!(pass.checked_module_source("fit.spx", &source).is_some());
+                    assert_eq!((pass.checked_reused, pass.functions_reused), (1, 1));
+                    assert_eq!(pass.next_checked.len(), 1);
+                }
+            });
+            assert!(!refused && receipt.is_none());
+            assert_eq!(used, 0, "eligibility grants and debits nothing");
+        }
+    }
+
+    #[test]
+    fn maximum_cost_sticky_and_source_drift_cannot_publish_a_cached_candidate() {
+        let (pass, _) = fixture(usize::MAX, 1);
+        let ((), refused, used, receipt) = with_limit_usage_refusal(64, || {
+            assert!(!pass.checked_reuse_fits_active_attempt("fit.spx"));
+        });
+        assert!(!refused && used == 0 && receipt.is_none());
+        let (mut pass, mut changed) = fixture(0, 0);
+        let ((), refused, used, receipt) = with_limit_usage_refusal(0, || {
+            assert!(!reserve_active_required(1));
+            assert!(!pass.checked_reuse_fits_active_attempt("fit.spx"));
+            assert!(pass.next_checked.is_empty());
+            assert_eq!((pass.checked_reused, pass.functions_reused), (0, 0));
+        });
+        assert!(refused && used == 0);
+        assert_eq!(receipt.unwrap().requested, 1);
+        changed.functions[0].name.push_str("_changed");
+        assert!(pass.checked_reuse_fits_active_attempt("fit.spx"));
+        assert!(pass.checked_module_source("fit.spx", &changed).is_none());
+        assert!(pass.next_checked.is_empty());
+        assert_eq!((pass.checked_reused, pass.functions_reused), (0, 0));
+        assert!(
+            pass.checked_reuse_fits_active_attempt("absent.spx"),
+            "an absent entry follows the original cold route"
+        );
+    }
 }

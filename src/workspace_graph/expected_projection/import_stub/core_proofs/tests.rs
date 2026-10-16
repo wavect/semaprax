@@ -605,6 +605,7 @@ fn complete_original_receivers_and_all_literal_source_inverses_remain_byte_exact
             row["file"]
         );
     }
+    main7f8_provider::complete_incoming_receiver();
     let parent = ci_str!("../../import_stub.rs");
     assert!(
         parent.contains("#[path = \"import_stub/core_proofs.rs\"]\npub(super) mod core_proofs;")
@@ -612,3 +613,6 @@ fn complete_original_receivers_and_all_literal_source_inverses_remain_byte_exact
     let source = ci_str!("../../../../loop_calls/byte_writer.rs");
     assert!(source.contains("#[cfg(test)]\npub(crate) mod source_index_original;"));
 }
+
+#[path = "main7f8_provider.rs"]
+mod main7f8_provider;

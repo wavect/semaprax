@@ -1,0 +1,139 @@
+{
+  "status": "PASS_SOURCE_ONLY_NOT_RUNTIME",
+  "provider_rows": [
+    {
+      "path": "src/loop_calls/byte_writer/source_index.rs",
+      "same_original_sha256": "41e9508add8734601c97b7f0379cbd5c04ee19c27894b43fc0f67dc70c506cac",
+      "incoming_checkpoint": "96c5c2aea8bcb9926250f5d16589ec972cd2458b5eb601ec6b4ed76a496594b3",
+      "checkpoint_independently_reconstructed": false
+    },
+    {
+      "path": "src/loop_calls/byte_writer.rs",
+      "same_original_sha256": "c0f1121d1d72b5b33bb68f3d62830253136d5da17e71ad3e4137cf45a293446c",
+      "incoming_checkpoint": "d502d7866f094fd83942598b1949791160c4fad1218d7bc79ffb5e678880fb0b",
+      "checkpoint_independently_reconstructed": true
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/import_stub/byte_helper.rs",
+      "same_original_sha256": "c7a61f589cbb7da23a25516d1063fe04a3458189ea9071655fd1558181a2b2a9",
+      "incoming_checkpoint": "f99352d60b71ace1baf2ebb39559a6ac7a1be9033420c3983db5aeea37f4fd78",
+      "checkpoint_independently_reconstructed": true
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/import_stub.rs",
+      "same_original_sha256": "5c8e8a2c6662eb0017553a4d378a4877afd68986214102a3ce3d0a8cf3af190d",
+      "incoming_checkpoint": "047c449c4f14513e0288d0cefd71d101aa3fa72794ec3dcb5d9a4a9320737e55",
+      "checkpoint_independently_reconstructed": true
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/held_projection.rs",
+      "same_original_sha256": "64b694567f2881244476cfe66f7088d01061f7ee8b07f86a7f4756a831fc2f7d",
+      "incoming_checkpoint": "51c2e34bbc8906757ae0b781e3988b732177da0bba8c05b011c378792d54c356",
+      "checkpoint_independently_reconstructed": false
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/borrowed_imports.rs",
+      "same_original_sha256": "54599fda2371ac9e76b897812e8d717828d542db25dceffa2d1161b403a2bc38",
+      "incoming_checkpoint": "cbea3d04790517cf7584fe1163000314dbf514990b5cd5ed4429564e59f23675",
+      "checkpoint_independently_reconstructed": true
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/borrowed_leaf.rs",
+      "same_original_sha256": "84207cdd985a765401872579baf89bec60471e8c877cdcfb825952adb812fb9a",
+      "incoming_checkpoint": "ddcde091b09c67ba3cbdd12b14644ca0bdd53c90c435cd1b8bdac249d390aa5c",
+      "checkpoint_independently_reconstructed": true
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/uncached_peak.rs",
+      "same_original_sha256": "2156e41020aeb1cbf47b0fdaf29788ce90dbdb431109b63957f3b727d244bbf4",
+      "incoming_checkpoint": "32427c03af500f5778ce103666cc43481069497993baba20646c0944165d8440",
+      "checkpoint_independently_reconstructed": false
+    },
+    {
+      "path": "src/workspace_graph/expected_projection.rs",
+      "same_original_sha256": "61e43e67ae8308f04e745bda1db8cddcd90e1dba2f865f8f1cd9a24bf630fb71",
+      "incoming_checkpoint": "974468e7035d1a7baa48b13078ce7ec7b0711c2c7610d64db7feea561b192f0c",
+      "checkpoint_independently_reconstructed": false
+    },
+    {
+      "path": "src/workspace_graph.rs",
+      "same_original_sha256": "6c0497495c52ad6d7b6a8262a0e3ec788a54b46036ddf7cbcdc6c2bca3d4a835",
+      "incoming_checkpoint": "c82d3bb6176c847fd9ff171f02d9c5aedd113e72b1eb9b1739ffee062319c11b",
+      "checkpoint_independently_reconstructed": true
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "same_original_sha256": "57b7b38cd8b69c9f3f63655734fa504b8af2132f89490c5215235c11163c3122",
+      "incoming_checkpoint": "e55bd484d5c38c005501cbb3b48493907cd7fc370ab083b810cc71a4b3b0ce0b",
+      "checkpoint_independently_reconstructed": true
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "same_original_sha256": "950e3c2350a851473feb69cd3cc5c9ed0775de272bf75ed98670953879dffe5c",
+      "incoming_checkpoint": "0b631d5af34486587952189820a999997e83c2bc68e5cbc72dd76ab3918320d3",
+      "checkpoint_independently_reconstructed": true
+    },
+    {
+      "path": "src/loop_calls/byte_writer/source_index_original.rs",
+      "same_original_sha256": "41e9508add8734601c97b7f0379cbd5c04ee19c27894b43fc0f67dc70c506cac",
+      "incoming_checkpoint": "ada0bc8eb040891346371f0435aedd5a557670e25c366e342a02c49193fa347e",
+      "checkpoint_independently_reconstructed": false
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/import_stub/byte_helper_original.rs",
+      "same_original_sha256": "c7a61f589cbb7da23a25516d1063fe04a3458189ea9071655fd1558181a2b2a9",
+      "incoming_checkpoint": "13d5ab2918fa7fb97619e985d781d3e60fc06278a73e0d4a27791c4a4fe65206",
+      "checkpoint_independently_reconstructed": false
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/import_stub_original.rs",
+      "same_original_sha256": "5c8e8a2c6662eb0017553a4d378a4877afd68986214102a3ce3d0a8cf3af190d",
+      "incoming_checkpoint": "f620a3891ac4707e9b0c827a9b8c9e2ff480659bbc1a52f8bef88e5dc96cab71",
+      "checkpoint_independently_reconstructed": false
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/held_projection_original.rs",
+      "same_original_sha256": "64b694567f2881244476cfe66f7088d01061f7ee8b07f86a7f4756a831fc2f7d",
+      "incoming_checkpoint": "b976530c05c01bb64e685f1ed12b36d1305032cda8560778ce0f832bcc88e6f6",
+      "checkpoint_independently_reconstructed": false
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/borrowed_imports_original.rs",
+      "same_original_sha256": "54599fda2371ac9e76b897812e8d717828d542db25dceffa2d1161b403a2bc38",
+      "incoming_checkpoint": "0c4c18c12a4c617ed90103a3107e38a93e9590c27eb0514d9c6d81c21a92a9c7",
+      "checkpoint_independently_reconstructed": false
+    }
+  ],
+  "root_both_routes_complete_equal": true,
+  "inventory_both_routes_complete_equal": true,
+  "ours_provider_body_byte_exact": true,
+  "ours_browser_root_byte_exact_prefix": true,
+  "incoming_browser_exact_one_include_inverse": true,
+  "literal_dependency_paths": {
+    "count": 88,
+    "overlay_plus_root_exist": true
+  },
+  "version": "V2_READER_CONTROLS_SOURCE_ONLY_20261017",
+  "reader_controls": {
+    "wired_existing_owner": "complete_original_receivers_and_all_literal_source_inverses_remain_byte_exact -> complete_incoming_receiver -> main7f8_provider_manifest -> reader::controls",
+    "control_cases": [
+      "bounded Cursor success",
+      "bounded regular-file success",
+      "missing",
+      "nonregular before acquisition",
+      "hardcap before open and buffer",
+      "exact descriptor length before buffer,short and extra",
+      "truncated admitted Cursor",
+      "extra byte after exact read/EOF",
+      "read error",
+      "allocation refusal",
+      "same-length SHA tamper",
+      "authenticated invalid UTF8",
+      "SHA mismatch precedes UTF8"
+    ],
+    "regular_handle_metadata_and_read_same_handle": true,
+    "admission_and_verification_order_source_checked": true,
+    "runtime_executed": false,
+    "reason": "Parent exclusive heavy library no-run live; source-only instruction"
+  }
+}

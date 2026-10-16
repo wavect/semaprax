@@ -400,3 +400,10 @@ pub(super) fn current67b_drift_controls(graph: &str) {
 mod next_actual;
 pub(super) fn next_actual_digest(graph: &str) -> String { next_actual::digest(graph) }
 pub(super) fn next_actual_drift_controls(graph: &str) { next_actual::drift_controls(graph); }
+
+// Independent incoming hosted524 receiver and all its older full-wire controls.
+#[path = "historical_main_7f8.rs"]
+mod main_7f8;
+pub(super) fn main7f8_digest(graph: &str) -> String {
+    main_7f8::digest(graph)
+}

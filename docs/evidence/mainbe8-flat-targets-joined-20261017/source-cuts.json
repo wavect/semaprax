@@ -1,0 +1,196 @@
+{
+  "base": "51c1dfc49962e046566ad21ec31f20c6b3a9bdae",
+  "ours_before_merge": "49bd312986b0bd2dd7499e477cf5ada6e21ded20",
+  "incoming": "be8fb9326e069ab596a1c3ff16392460a32b9864",
+  "changed": [
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "before": "docs/evidence/mainbe8-flat-targets-joined-20261017/before/tests/hir_module_boundaries.rs",
+      "current_sha256": "36e8c8de576b0a5c857e2666aba6b68505925cc34ae73ead5b358eb26bb83256",
+      "before_sha256": "9b7f31a39f30165757f8511aebcbc6084d110b5f05bd5bd6d73d46a6ab12e2ef",
+      "edits": [
+        {
+          "start": 210,
+          "end": 531,
+          "current": "    assert_eq!(audit_source_join!(include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs\"),include_str!(\"../src/cleanup_plan/replay/factored/moderate_tests.rs\"),include_str!(\"../src/cleanup_plan/replay/factored/moderate_tests/before.rs\"),\"\", \"\u03b1\", \"\\0\", \"\\r\\n\", \"\u03b2\"), \"\u03b1\\0\\r\\n\u03b2\");\n",
+          "before": "    assert_eq!(audit_source_join!(include_str!(\"../src/cleanup_plan/replay/factored/moderate_tests.rs\"),include_str!(\"../src/cleanup_plan/replay/factored/moderate_tests/before.rs\"),\"\", \"\u03b1\", \"\\0\", \"\\r\\n\", \"\u03b2\"), \"\u03b1\\0\\r\\n\u03b2\");\n"
+        }
+      ]
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "before": "docs/evidence/mainbe8-flat-targets-joined-20261017/before/tests/workspace/semantic_graph/source_inventory.rs",
+      "current_sha256": "98f230cc9dbc484ce6164a25429c28ae1a46b5654bd67e2f0c6243c7bb182228",
+      "before_sha256": "1b3adbe57b28deb9439ba1d50983c026ef90543dce80eeb17459febb6115c056",
+      "edits": [
+        {
+          "start": 353,
+          "end": 763,
+          "current": "    () => { audit_source_join!(include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs\"),include_str!(\"../../src/cleanup_plan/replay/factored/moderate_tests.rs\"),include_str!(\"../../src/cleanup_plan/replay/factored/moderate_tests/before.rs\"),semantic_graph_private_layout_owned_source_inventory!(capacity), semantic_graph_private_layout_owned_source_inventory!(core)) };\n",
+          "before": "    () => { audit_source_join!(include_str!(\"../../src/cleanup_plan/replay/factored/moderate_tests.rs\"),include_str!(\"../../src/cleanup_plan/replay/factored/moderate_tests/before.rs\"),semantic_graph_private_layout_owned_source_inventory!(capacity), semantic_graph_private_layout_owned_source_inventory!(core)) };\n"
+        }
+      ]
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "before": "docs/evidence/mainbe8-flat-targets-joined-20261017/before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "current_sha256": "66c7eafaccbbef6a7a0003f5fd221a9b0f2a87e42bee4c891a46e6972130004e",
+      "before_sha256": "df342c792c9326c9c2c345e5d8166ce11bd8cb22b639192a81ae111d67ef0167",
+      "edits": [
+        {
+          "start": 267,
+          "end": 5209,
+          "current": "        audit_source_join!(include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/factored/moderate_tests.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/factored/moderate_tests/before.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main_eb2_inputs.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/sequence_minimum/optimized.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/sequence_minimum/immediate.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs\"), include_str!(\"../../../../../src/source_reflows_merge/opt858_sequence_input.rs\"), include_str!(\"../../../../../src/literal_format/funded.rs\"), include_str!(\"../../../../../src/source_verify/declaration/record_shape.rs\"), include_str!(\"../../../../../src/source_verify/declaration/record_shape_before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/schema/original_materializer.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/schema/ordinary_tests.rs\"), include_str!(\"../../../../../tests/support/production_source_inventory_original.rs\"), include_str!(\"../../../../../tests/support/new_boundary_module.rs\"), include_str!(\"../../../../../src/bounded_output/invocation_binding.rs\"), include_str!(\"../../../../../src/workspace_graph/before_private_roots.rs\"), include_str!(\"../../../../../src/workspace_graph/cache_key_original.rs\"), include_str!(\"../../../../../src/workspace_graph/constructor_failure/receiving/before.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs\"), include_str!(\"../../../../../src/workspace_graph/validation/before_roots.rs\"), include_str!(\"../../../../../src/hir/validation/byte_traversal/nested/tests/source_composition.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/allocation/tests/clone_cursor.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs\"), include_str!(\"../../../../../src/string_ops/concat_funded.rs\"), include_str!(\"../../../../../src/string_ops/conditions/funded.rs\"), include_str!(\"../../../../../src/string_ops/replacement/funded.rs\"), include_str!(\"../../../../../src/byte_ops/funded.rs\"), include_str!(\"../../../../../src/cleanup_plan/renewal_profile/funded.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/oracle_hook.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/a.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/b.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_context.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/paid.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/tests/structural_errors.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_owner.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_profile.rs\"), include_str!(\"../../../../../src/source_reflows/main043.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_0.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_1.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_2.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_3.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_4.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_5.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_6.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_7.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_8.rs\"), include_str!(\"../../../../../src/source_reflows/main043/semantic_receivers.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main043_custody.rs\"), include_str!(\"../../../../../tests/hir_module_boundaries.rs\"), include_str!(\"../../../../../tests/workspace/semantic_graph/source_inventory.rs\"), include_str!(\"../../../../../src/source_reflows_merge/current344.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main8a_historical.rs\"),\n",
+          "before": "        audit_source_join!(include_str!(\"../../../../../src/cleanup_plan/replay/factored/moderate_tests.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/factored/moderate_tests/before.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main_eb2_inputs.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/sequence_minimum/optimized.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/sequence_minimum/immediate.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs\"), include_str!(\"../../../../../src/source_reflows_merge/opt858_sequence_input.rs\"), include_str!(\"../../../../../src/literal_format/funded.rs\"), include_str!(\"../../../../../src/source_verify/declaration/record_shape.rs\"), include_str!(\"../../../../../src/source_verify/declaration/record_shape_before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/schema/original_materializer.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/schema/ordinary_tests.rs\"), include_str!(\"../../../../../tests/support/production_source_inventory_original.rs\"), include_str!(\"../../../../../tests/support/new_boundary_module.rs\"), include_str!(\"../../../../../src/bounded_output/invocation_binding.rs\"), include_str!(\"../../../../../src/workspace_graph/before_private_roots.rs\"), include_str!(\"../../../../../src/workspace_graph/cache_key_original.rs\"), include_str!(\"../../../../../src/workspace_graph/constructor_failure/receiving/before.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs\"), include_str!(\"../../../../../src/workspace_graph/validation/before_roots.rs\"), include_str!(\"../../../../../src/hir/validation/byte_traversal/nested/tests/source_composition.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/allocation/tests/clone_cursor.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs\"), include_str!(\"../../../../../src/string_ops/concat_funded.rs\"), include_str!(\"../../../../../src/string_ops/conditions/funded.rs\"), include_str!(\"../../../../../src/string_ops/replacement/funded.rs\"), include_str!(\"../../../../../src/byte_ops/funded.rs\"), include_str!(\"../../../../../src/cleanup_plan/renewal_profile/funded.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/oracle_hook.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/a.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/b.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_context.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/paid.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/tests/structural_errors.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_owner.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_profile.rs\"), include_str!(\"../../../../../src/source_reflows/main043.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_0.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_1.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_2.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_3.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_4.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_5.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_6.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_7.rs\"), include_str!(\"../../../../../src/source_reflows/main043/audit_8.rs\"), include_str!(\"../../../../../src/source_reflows/main043/semantic_receivers.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main043_custody.rs\"), include_str!(\"../../../../../tests/hir_module_boundaries.rs\"), include_str!(\"../../../../../tests/workspace/semantic_graph/source_inventory.rs\"), include_str!(\"../../../../../src/source_reflows_merge/current344.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main8a_historical.rs\"),\n"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json",
+      "before": "docs/evidence/mainbe8-flat-targets-joined-20261017/before/docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json",
+      "current_sha256": "8cf5f584e27b07f1aeab52f3a2d20623b523a436fd859e6e60e2f0b4061309cf",
+      "before_sha256": "63e601d45851fd5cae67973259c67e3db867937ed9909abdc73b47dd4404aa17",
+      "edits": [
+        {
+          "start": 6016,
+          "end": 6172,
+          "current": "      \"src/cleanup_plan/replay/factored/moderate_tests/before.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs\": 1\n",
+          "before": "      \"src/cleanup_plan/replay/factored/moderate_tests/before.rs\": 1\n"
+        },
+        {
+          "start": 12426,
+          "end": 12582,
+          "current": "      \"src/cleanup_plan/replay/factored/moderate_tests/before.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs\": 1\n",
+          "before": "      \"src/cleanup_plan/replay/factored/moderate_tests/before.rs\": 1\n"
+        },
+        {
+          "start": 20706,
+          "end": 20862,
+          "current": "      \"src/cleanup_plan/replay/factored/moderate_tests/before.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs\": 1\n",
+          "before": "      \"src/cleanup_plan/replay/factored/moderate_tests/before.rs\": 1\n"
+        },
+        {
+          "start": 28923,
+          "end": 29079,
+          "current": "      \"src/cleanup_plan/replay/factored/moderate_tests/before.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs\": 1\n",
+          "before": "      \"src/cleanup_plan/replay/factored/moderate_tests/before.rs\": 1\n"
+        },
+        {
+          "start": 35335,
+          "end": 35491,
+          "current": "      \"src/cleanup_plan/replay/factored/moderate_tests/before.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs\": 1\n",
+          "before": "      \"src/cleanup_plan/replay/factored/moderate_tests/before.rs\": 1\n"
+        },
+        {
+          "start": 41630,
+          "end": 41786,
+          "current": "      \"src/cleanup_plan/replay/factored/moderate_tests/before.rs\": 1,\n      \"src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs\": 1\n",
+          "before": "      \"src/cleanup_plan/replay/factored/moderate_tests/before.rs\": 1\n"
+        }
+      ]
+    }
+  ],
+  "unchanged": [
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "bytes": 63373,
+      "sha256": "459b9a2d0f454f608a3e1997b46e76cc09c1ddc098d976b7513f92b16263a839"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+      "bytes": 25028,
+      "sha256": "7f1f4ff20511927fe02a8d05b41806271929e1b5cecbf06bda460064b5a9b39a"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs",
+      "bytes": 5659,
+      "sha256": "4e2eb4e769f942d63dc045ba26d8bcf73493c8226133dcfefa2f6e898728b882"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs",
+      "bytes": 28752,
+      "sha256": "36cf9c13a46d7c2e1eccbd60bbf07f20fd3662bae7f9082d7a3451f512d3b50e"
+    },
+    {
+      "path": "docs/evidence/unit-weight-closure-v1/inverse.json",
+      "bytes": 3053,
+      "sha256": "2f2913fb4ff6edc977a5a35ded799c828ceaa92b84a2e71d90a7360697ec9b1f"
+    },
+    {
+      "path": "docs/evidence/factored-flat-targets-v1/sources.json",
+      "bytes": 123439,
+      "sha256": "8c616a334852f8a05c92e36a20ac7560b33e76f67180f09720747af7112763a6"
+    },
+    {
+      "path": "docs/evidence/mainbe8-flat-targets-joined-20261017/incoming-0.txt",
+      "bytes": 18832,
+      "sha256": "12c81f4f41e3def7945f24b1abf5720db26224e8c34d09d56f1e4259865614ad"
+    },
+    {
+      "path": "docs/evidence/mainbe8-flat-targets-joined-20261017/incoming-1.txt",
+      "bytes": 24557,
+      "sha256": "80eb0e59925451f8bb09c0dff8368c44479b674c3263f3a741e17f1533d58b81"
+    },
+    {
+      "path": "docs/evidence/mainbe8-flat-targets-joined-20261017/incoming-2.txt",
+      "bytes": 38956,
+      "sha256": "88e336db1e1613896276f47d827f8a4506dd42bd7a7a8ed0eba660282644d3d7"
+    },
+    {
+      "path": "docs/evidence/mainbe8-flat-targets-joined-20261017/joined-inputs.json",
+      "bytes": 116861,
+      "sha256": "10d30cbdc8f8f8b655ad1c02cf3eb615ef5e5ee3edc761ee25e633d520144abc"
+    }
+  ],
+  "complete_preimages": [
+    {
+      "path": "docs/evidence/mainbe8-flat-targets-joined-20261017/complete-preimages/base/docs/evidence/unit-weight-closure-v1/inverse.json",
+      "bytes": 3053,
+      "sha256": "2f2913fb4ff6edc977a5a35ded799c828ceaa92b84a2e71d90a7360697ec9b1f"
+    },
+    {
+      "path": "docs/evidence/mainbe8-flat-targets-joined-20261017/complete-preimages/base/src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+      "bytes": 17019,
+      "sha256": "f201102d6e0144b1f612ffb719fb626557948511c7456b96c9c7709e434b563f"
+    },
+    {
+      "path": "docs/evidence/mainbe8-flat-targets-joined-20261017/complete-preimages/base/src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "bytes": 16040,
+      "sha256": "c6c624d0d0dc1dd74238e5419fb3d683b879619d492cd94eded556ea71071960"
+    },
+    {
+      "path": "docs/evidence/mainbe8-flat-targets-joined-20261017/complete-preimages/incoming/docs/evidence/unit-weight-closure-v1/inverse.json",
+      "bytes": 38956,
+      "sha256": "88e336db1e1613896276f47d827f8a4506dd42bd7a7a8ed0eba660282644d3d7"
+    },
+    {
+      "path": "docs/evidence/mainbe8-flat-targets-joined-20261017/complete-preimages/incoming/src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+      "bytes": 24557,
+      "sha256": "80eb0e59925451f8bb09c0dff8368c44479b674c3263f3a741e17f1533d58b81"
+    },
+    {
+      "path": "docs/evidence/mainbe8-flat-targets-joined-20261017/complete-preimages/incoming/src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "bytes": 18832,
+      "sha256": "12c81f4f41e3def7945f24b1abf5720db26224e8c34d09d56f1e4259865614ad"
+    },
+    {
+      "path": "docs/evidence/mainbe8-flat-targets-joined-20261017/complete-preimages/ours/docs/evidence/unit-weight-closure-v1/inverse.json",
+      "bytes": 3053,
+      "sha256": "2f2913fb4ff6edc977a5a35ded799c828ceaa92b84a2e71d90a7360697ec9b1f"
+    },
+    {
+      "path": "docs/evidence/mainbe8-flat-targets-joined-20261017/complete-preimages/ours/src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+      "bytes": 17381,
+      "sha256": "1db768b7b77e8857bd76f1f2f0c8ba53e6225a11b09b8d1a796a67b980dee63f"
+    },
+    {
+      "path": "docs/evidence/mainbe8-flat-targets-joined-20261017/complete-preimages/ours/src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "bytes": 63214,
+      "sha256": "b71323aed5dda3f03ca6215b17c2e192a5782dabbeccca40ce5bf280f168f482"
+    }
+  ],
+  "new_module": "src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs",
+  "runtime": "PENDING",
+  "production_flat_many_adopted": false,
+  "followup": "https://github.com/wavect/semaprax/issues/870"
+}

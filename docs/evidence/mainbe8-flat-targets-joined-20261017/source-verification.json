@@ -1,0 +1,15 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "base": "51c1dfc49962e046566ad21ec31f20c6b3a9bdae",
+  "complete_merge_preimages": 9,
+  "current_preimages": 4,
+  "incoming_calls_assertions_unchanged": true,
+  "negative_controls": 29,
+  "new_pending_owners": 4,
+  "original_source_inverses": 3,
+  "production_body_unchanged": true,
+  "production_flat_many_adopted": false,
+  "raw_guards": 3,
+  "rust_executed": false,
+  "whole_stable_sources": 10
+}

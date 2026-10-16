@@ -14,6 +14,7 @@ use crate::cleanup_plan::{ExecutionBoundaryKind, ExitTargetId};
 
 /// An exact boundary and the independently authenticated return that owns its
 /// postcondition domain; no return state is admitted in any other phase.
+#[cfg_attr(test, derive(Eq, PartialEq))]
 pub(super) struct BoundaryAuth {
     index: usize,
     returned: Option<ExitTargetId>,
@@ -299,3 +300,5 @@ pub(super) fn check(
     }
     Ok(())
 }
+
+pub(in crate::cleanup_plan::replay) mod paid;

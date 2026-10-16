@@ -1,0 +1,288 @@
+{
+  "base": "836150d170dfdd6a9318459773066816ded5ff02",
+  "rows": [
+    {
+      "source": "CHANGELOG.md",
+      "before_sha256": "19c04b0c0b27c41bd2fbeaf5e6117d4a34b4e31e1e621a10fd8d86c7eecddc96",
+      "after_sha256": "6eb271283ba6e56b542a68fc170b7a1f21a209f421eecd9d8016b02d302dc334",
+      "before_archive": "before/CHANGELOG.md",
+      "edits": [
+        {
+          "old_offset": 543029,
+          "new_offset": 543029,
+          "before": "",
+          "after": "\n- Source-only #781 certificate receiving: preserve complete original receivers,\n  add closed static refusals and real same-ledger primitive banks, and remove\n  dead Deferred slots from seven read-only scalar entry scopes. Actual runtime\n  gates remain pending; transitive owned-Diagnostic residuals remain open.\n"
+        }
+      ]
+    },
+    {
+      "source": "docs/ARCHITECTURE.md",
+      "before_sha256": "3cba888c53b9844ba1d1f6fffe99986784765b4ebb7b53bee9c97a5dfb84734d",
+      "after_sha256": "001a22d7e33a4e21add428212b82c7bc33dcb24eec4624340872769070639048",
+      "before_archive": "before/docs/ARCHITECTURE.md",
+      "edits": [
+        {
+          "old_offset": 365281,
+          "new_offset": 365281,
+          "before": "",
+          "after": "\nThe selected lexical certificate receiving twin in\n`cleanup_plan/replay/lexical_cert/paid.rs` and its `paid/storage.rs` child owns\nclosed certificate refusals and same-ledger primitive receiving. The original\ncertificate stays independent; borrowed chain/type/drop/boundary Diagnostics\nremain explicit residual boundaries. Read-only scalar children use the\nexisting acquire bank where no Deferred exists in that call's own scope.\n"
+        }
+      ]
+    },
+    {
+      "source": "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "before_sha256": "b247808024f99ce10ead50eb16b0b3dca52a177c1930904e9e7bd0be892533f7",
+      "after_sha256": "90cb305f766b114e4ae72592b7c7b942fbf80867e42d4db017cb895df5f64406",
+      "before_archive": "before/docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "edits": [
+        {
+          "old_offset": 43086,
+          "new_offset": 43086,
+          "before": "",
+          "after": "\n## Certificate receiving and dead Deferred slots (#781, source-only)\n\nThe selected lexical certificate entry and its dictionary/DFS children acquire\nthe existing per-call same-ledger receiving banks before real array, clone,\nVec or conditional node arguments. Fifty-two static semantic failures carry\nclosed certificate data. Original traversal, branch order, normal-end checks,\nwork and error text remain; original certificate and complete immediate-prior\npaid drivers remain independently executable. Borrowed chain, type/drop and\nlexical-boundary children still forward their original owned Diagnostics and\nare explicit residuals. No arbitrary Diagnostic is certified after creation.\n\nFive scalar-record helpers, the scalar driver entry and the borrowed-scalar\nbool receiver use the existing acquire bank: their own scopes never construct\nor resolve Deferred, including genuine old budget-error forwarding. Real\nchild Deferred producers retain their own profile banks. This removes exactly\nthe dead four-slot profile tuple and its initializer work, without a refund or\nnew protocol. Initial receiving payments remain genuine earlier refusal\nfrontiers. Four unexecuted owners cover full certificate fields/hostile order,\nactual bill/work/exact-short-zero/Drop, complete old/current drivers and exact\nread-only slot removal. #781 remains OPEN for unmigrated descendants; there is\nno measured saving, application-fit or closure claim.\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile.rs",
+      "before_sha256": "853b6f818f275532cbbe72b0b7e227ffb31216c0cf1cc13e64aab76501a5c8a7",
+      "after_sha256": "7156a1086ea275c0b0152748c3a2e560a621d573fca079ae9f307fdf9ddd02cc",
+      "before_archive": "before/src/cleanup_plan/renewal_profile.rs",
+      "edits": [
+        {
+          "old_offset": 12023,
+          "new_offset": 12023,
+          "before": "",
+          "after": "\npub(crate) mod certificate_refusal;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "before_sha256": "fb411839333c77b5ff28571d8678573fb48c19b83740a49629d41d6d91b93ef7",
+      "after_sha256": "a546c97cd7a497810a6375ac7c0cf64e8ad185c86045b2b4747df958ab128fa6",
+      "before_archive": "before/src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "edits": [
+        {
+          "old_offset": 514,
+          "new_offset": 514,
+          "before": "",
+          "after": "    Certificate(super::certificate_refusal::CertificateRefusal),\n"
+        },
+        {
+          "old_offset": 993,
+          "new_offset": 1058,
+          "before": "",
+          "after": "            Self::Certificate(reason) => reason.detail(),\n"
+        },
+        {
+          "old_offset": 1668,
+          "new_offset": 1791,
+          "before": "            Self::ReferenceCoverage(_) | Self::Structural(_) | Self::Status(_) | Self::Scalar(_) => true,\n",
+          "after": "            Self::ReferenceCoverage(_) | Self::Structural(_) | Self::Status(_) | Self::Scalar(_) | Self::Certificate(_) => true,\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records/tests.rs",
+      "before_sha256": "2cc0d5e75f144afc8e070889fe758fc44227a25b1e544643d4206f09d69c6ca3",
+      "after_sha256": "60e43a8eb59fa1085c07302901f603ff38a4dfa87045395cd601b7010b645226",
+      "before_archive": "before/src/cleanup_plan/replay/flat_records/tests.rs",
+      "edits": [
+        {
+          "old_offset": 12296,
+          "new_offset": 12296,
+          "before": "",
+          "after": "\n#[path = \"tests/receiving_certificate.rs\"]\nmod receiving_certificate;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_boundary.rs",
+      "before_sha256": "5eee6a4cfaccc5cff4ab3ea39acaa772a472949ebfe16c8ab586ff346f6dc023",
+      "after_sha256": "bf2899c8981268c59d079630c084eaa3f788b8f7c41044c2c67a88c5e74aaf9a",
+      "before_archive": "before/src/cleanup_plan/replay/lexical_boundary.rs",
+      "edits": [
+        {
+          "old_offset": 918,
+          "new_offset": 918,
+          "before": "",
+          "after": "#[cfg_attr(test, derive(Eq, PartialEq))]\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert.rs",
+      "before_sha256": "09a4b64ce78b4dbc7ba77240152e84dd0960b0d1739a163bca1da12640d60d48",
+      "after_sha256": "2e9c3437b953e3a9e19e744bc730ed2bf2a940a9d1b12edf98f4ceec8d55cbdf",
+      "before_archive": "before/src/cleanup_plan/replay/lexical_cert.rs",
+      "edits": [
+        {
+          "old_offset": 845,
+          "new_offset": 845,
+          "before": "",
+          "after": "#[cfg_attr(test, derive(Eq, PartialEq))]\n"
+        },
+        {
+          "old_offset": 38264,
+          "new_offset": 38305,
+          "before": "",
+          "after": "\npub(in crate::cleanup_plan::replay) mod paid;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_replay.rs",
+      "before_sha256": "20f3ac7b93632ed62b84a296924888ab6b66c4f2829822545bb1304823fbfcb7",
+      "after_sha256": "ec85c83a11d2ac0fe19cfd1c60f1cb8711276cc04086ab30f31180c374729c69",
+      "before_archive": "before/src/cleanup_plan/replay/lexical_replay.rs",
+      "edits": [
+        {
+          "old_offset": 6068,
+          "new_offset": 6068,
+          "before": "    let auth = lexical_cert::authenticate(program, function, &owner, &facts, budget)?;\n",
+          "after": "    let auth = lexical_cert::paid::authenticate(program, function, &owner, &facts, budget)?;\n"
+        },
+        {
+          "old_offset": 13141,
+          "new_offset": 13147,
+          "before": "",
+          "after": "\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) mod before_certificate;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/scalar_replay.rs",
+      "before_sha256": "8f4f1121c1509109d9410b263fec31e7f6c001e786ef0aa4fff7a507093dbcde",
+      "after_sha256": "9cfd09c6ef5db2be115d362c29afac7e499be53eab994337c066d141856c8379",
+      "before_archive": "before/src/cleanup_plan/replay/scalar_replay.rs",
+      "edits": [
+        {
+          "old_offset": 1104,
+          "new_offset": 1104,
+          "before": "    let permit = selected_context::child::Permit::profile::<()>(function, budget)?;\n",
+          "after": "    let permit = selected_context::child::Permit::acquire::<()>(function, budget)?;\n"
+        },
+        {
+          "old_offset": 13253,
+          "new_offset": 13253,
+          "before": "",
+          "after": "\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) mod before_certificate;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/scalar_replay/paid_nodes.rs",
+      "before_sha256": "220e5d317b34d9ceea9aede0331a9a18fe14509650c4d37132bd9d50ec09a892",
+      "after_sha256": "9d4c8e1282d1307f3eb09b34c2f446ea324e24e6860d21b882f4a4ce754c2579",
+      "before_archive": "before/src/cleanup_plan/replay/scalar_replay/paid_nodes.rs",
+      "edits": [
+        {
+          "old_offset": 2335,
+          "new_offset": 2335,
+          "before": "                        let _borrowed_permit = Permit::profile::<bool>(function, budget)?;\n",
+          "after": "                        let _borrowed_permit = Permit::acquire::<bool>(function, budget)?;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/scalar_replay/records/paid.rs",
+      "before_sha256": "8479c7e314934230ea831695bd821e017f3b7a6182f38ddda039db29f81263c5",
+      "after_sha256": "f19b9d00195670cef31466c294221e4cf5953f7866fcc12c5f32f7ff5736b01c",
+      "before_archive": "before/src/cleanup_plan/replay/scalar_replay/records/paid.rs",
+      "edits": [
+        {
+          "old_offset": 2234,
+          "new_offset": 2234,
+          "before": "    let _permit = Permit::profile::<bool>(function, budget)?;\n",
+          "after": "    let _permit = Permit::acquire::<bool>(function, budget)?;\n"
+        },
+        {
+          "old_offset": 3055,
+          "new_offset": 3055,
+          "before": "    let permit = Permit::profile::<&'a [crate::hir::ResolvedFieldDeclaration]>(function, budget)?;\n",
+          "after": "    let permit = Permit::acquire::<&'a [crate::hir::ResolvedFieldDeclaration]>(function, budget)?;\n"
+        },
+        {
+          "old_offset": 3674,
+          "new_offset": 3674,
+          "before": "    let permit = Permit::profile::<bool>(function, budget)?;\n",
+          "after": "    let permit = Permit::acquire::<bool>(function, budget)?;\n"
+        },
+        {
+          "old_offset": 5532,
+          "new_offset": 5532,
+          "before": "    let permit = Permit::profile::<bool>(function, budget)?;\n",
+          "after": "    let permit = Permit::acquire::<bool>(function, budget)?;\n"
+        },
+        {
+          "old_offset": 7905,
+          "new_offset": 7905,
+          "before": "    let permit = Permit::profile::<Option<bool>>(function, budget)?;\n",
+          "after": "    let permit = Permit::acquire::<Option<bool>>(function, budget)?;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context/child.rs",
+      "before_sha256": "8af014bc1f52d1f8cfe526cff4c2da095509cc3d900e3d54f7dea0bef80dc033",
+      "after_sha256": "cc426939183121ebd6d23aff7c4752119c2f4bf2684f1e2e90a621df4e1843ac",
+      "before_archive": "before/src/cleanup_plan/replay/selected_context/child.rs",
+      "edits": [
+        {
+          "old_offset": 489,
+          "new_offset": 489,
+          "before": "    pub(super) fn acquire<T>(\n",
+          "after": "    pub(in super::super) fn acquire<T>(\n"
+        }
+      ]
+    }
+  ],
+  "new_sources": [
+    {
+      "source": "src/cleanup_plan/renewal_profile/certificate_refusal.rs",
+      "sha256": "00c64bd9afffef14e0f7a98f33d2e3b19728cd2e3d763aea4d65762ea8949b61",
+      "lines": 198
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records/tests/receiving_certificate.rs",
+      "sha256": "7ad045e2dd1554164563a0dcd9549de04cf753f7e39ed2b73f9b4afcfc2ff983",
+      "lines": 286
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert/paid.rs",
+      "sha256": "ce0da5c1fc00927f6f4ace6267f6746cc856c74a30eb239df67d39ca12841743",
+      "lines": 895
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert/paid/storage.rs",
+      "sha256": "7dd3b733d080cad28cb7403ea39b868d5320707032400ed49d2662f0888fc30f",
+      "lines": 152
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_replay/before_certificate.rs",
+      "sha256": "5eaa0523222c658d4ddf16ba60c43bc2e55bbc7cdeb867347c0eeab6bd7e1601",
+      "lines": 147
+    },
+    {
+      "source": "src/cleanup_plan/replay/scalar_replay/before_certificate.rs",
+      "sha256": "08bfa3ca8df18a42a33f69425da174312d6d9d272e917e3cc7b3743563a452f1",
+      "lines": 126
+    },
+    {
+      "source": "src/cleanup_plan/replay/scalar_replay/before_certificate/paid_nodes.rs",
+      "sha256": "220e5d317b34d9ceea9aede0331a9a18fe14509650c4d37132bd9d50ec09a892",
+      "lines": 94
+    },
+    {
+      "source": "src/cleanup_plan/replay/scalar_replay/before_certificate/records.rs",
+      "sha256": "5d93967130143774355a422f57d99a8cbeef358711994af407dbc84d55479d19",
+      "lines": 2
+    },
+    {
+      "source": "src/cleanup_plan/replay/scalar_replay/before_certificate/records/paid.rs",
+      "sha256": "8479c7e314934230ea831695bd821e017f3b7a6182f38ddda039db29f81263c5",
+      "lines": 254
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs",
+    "sha256": "e281aef0de1072556e62e540526aea611c316aab812b0fc9fb0d5199d65999a7",
+    "lines": 308
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs",
+    "sha256": "8f6f00810d82706e91960d92cb2168339c143219b7b641fed4d72e544b9f7807",
+    "lines": 1282
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+    "sha256": "3a3a2efd0622a5ab86f88cc2010006275fc4c453f375c0cad853645f37906ebd",
+    "lines": 171
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_source.rs",
+    "sha256": "a0aa20c6ff791bd9e01afacf1a4c0c8fd0a9eed20a70c714d007d40c0a687fb7",
+    "lines": 46
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::flat_records::tests::receiving_status_scalar::complete_status_receiver_keeps_contract_arithmetic_call_order_and_all_fields",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::flat_records::tests::receiving_status_scalar::status_actual_receiving_exact_short_work_and_whole_drop",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::flat_records::tests::receiving_status_scalar::scalar_record_receivers_keep_complete_shape_answers_and_real_limits",
+    "status": "PENDING_NOT_EXECUTED"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::flat_records::tests::receiving_status_scalar::status_scalar_complete_paid_drivers_keep_source_and_first_refusal",
+    "status": "PENDING_NOT_EXECUTED"
+  }
+]

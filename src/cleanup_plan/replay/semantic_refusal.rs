@@ -6,6 +6,7 @@ use super::*;
 pub(super) enum Atom {
     SelectedCall(structural_control::call_receiving::Kind),
     UnknownCallCallee(DeclarationId),
+    StatusUnknownCallee(DeclarationId),
     SelectedSession(&'static str),
     SelectedChild(crate::cleanup_plan::renewal_profile::child_refusal::Refusal),
     RepeatedStatus(ExpressionId),
@@ -58,6 +59,10 @@ impl Receipt {
         // Branch-local calls: no `fmt::Arguments` escapes its own statement.
         match self.atom {
             Atom::SelectedCall(kind) => replay_error(function, kind.detail()),
+            Atom::StatusUnknownCallee(callee) => replay_error(
+                function,
+                format_args!("status source call has unknown callee `{callee}`"),
+            ),
             Atom::UnknownCallCallee(callee) => replay_error(
                 function,
                 format_args!("call commit has unknown callee `{callee}`"),

@@ -1,0 +1,23 @@
+{
+  "status": "PASS_PRIVATE_JOIN_SOURCE_ONLY",
+  "component": "ab13bc4855ab9559e2e18725c4ce1147a5071bd0",
+  "immediate_parent": "3c3886620dff92f0d5ae8f9e5a7b097e3c3c73ad",
+  "successor_whole_rows": 8,
+  "protected_component_whole_rows": 3,
+  "all_component_artifacts_byte_exact": 9,
+  "old_receiver_complete": true,
+  "owners_joined_all_three": 4,
+  "original_controls_exact": [
+    "memo.rs",
+    "memo/retained.rs",
+    "empty_memo.rs",
+    "empty_memo/retained.rs",
+    "closure_receiving.rs",
+    "ordered_weights.rs",
+    "receiving_layer_tests.rs",
+    "unit_receiving_tests.rs",
+    "tests.rs"
+  ],
+  "rust_executed": false,
+  "gain_claim": false
+}

@@ -1,0 +1,17 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::ordered_interning_preserves_complete_ids_signatures_work_overflow_and_cycle"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::whole_arena_owner_reports_duplicate_unique_wide_costs_growth_refusal_and_complete_drop"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::factored::canonical_shared::arena_source::complete_old_receiver_and_full_source_views_remain_bound"
+  }
+]

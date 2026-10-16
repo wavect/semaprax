@@ -1,0 +1,23 @@
+{
+  "base": "e204ec37dd0102c77da46139d106086e279e6c3e",
+  "common_source_sha256": "6dd36b53aae6e2656db2e4328385a1157920a0c49f50a62166f987a76afb999c",
+  "embedded_source_sha256": "78de223749ed735fbc933962f86e4aa3a482d64ebad423b669b22078c555797b",
+  "selector_source": "src/source_reflows_merge/runtime_json.rs",
+  "runtime_literal": "runtime_json/transport_runtime.rs",
+  "embedded_literal": "runtime_json/transport_embedded.rs",
+  "changed_preexisting": [
+    "CHANGELOG.md",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "docs/ARCHITECTURE.md",
+    "src/source_reflows_merge.rs",
+    "src/source_reflows_merge/runtime_json.rs",
+    "src/source_reflows_merge/runtime_json/tests.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "fixed_fixture_count": 90,
+  "fixed_fixture_bytes": 93641932,
+  "selected_child_pilot": "runtime unchanged in both arms",
+  "execution": "NONE"
+}

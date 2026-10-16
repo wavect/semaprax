@@ -3,38 +3,28 @@
 use sha2::{Digest, Sha256};
 #[path = "source_reflows_merge/runtime_json.rs"]
 mod runtime_json;
+#[path = "source_reflows_merge/metadata_json.rs"]
+mod metadata_json;
 // The final compositor authenticates its raw view at this independent owner front.
 pub(crate) fn boxed849_input(source: &str, current: &str) -> String {
     let compile_fixed = compile_fixture_input(source, current);
     let current = compile_fixed.as_str();
-    let qualified = project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/next-bitmap-singleton-main2600-20261016/current-to-4fba.json")), source, current);
+    let qualified = metadata_json::project(metadata_json::Fixture::M00, source, current);
     let current = qualified.as_str();
-    let next = project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/next-main-beb0-847-joined-20261016/current-to-8bb.json")), source, current);
+    let next = metadata_json::project(metadata_json::Fixture::M01, source, current);
     let current = next.as_str();
-    let joined = project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/private-175-actual-fixes-20261015/current-to-82fea.json"
-        )),
+    let joined = metadata_json::project(metadata_json::Fixture::M02,
         source,
         current,
     );
     let current = joined.as_str();
-    project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/boxed-state-local-owner-849-20261016/current-to-35c.json"
-        )),
+    metadata_json::project(metadata_json::Fixture::M03,
         source,
         current,
     )
 }
 pub(crate) fn boxed849_previous(source: &str, current: &str) -> String {
-    project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/boxed-state-receiving-849-20261016/current-to-main019d.json"
-        )),
+    metadata_json::project(metadata_json::Fixture::M04,
         source,
         &boxed849_input(source, current),
     )
@@ -43,73 +33,73 @@ pub(crate) fn boxed849_previous(source: &str, current: &str) -> String {
 pub(crate) fn unit831_input(source: &str, current: &str) -> String {
     let latest = main696_previous(source, current);
     let current = latest.as_str();
-    let joined = project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/next-unit-branch-receiving-joined-20261016/final-to-7c.json")), source, current);
+    let joined = metadata_json::project(metadata_json::Fixture::M05, source, current);
     let current = joined.as_str();
-    let preflight = project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/closure-unit-receiving-831-next-20261016/preflight-binding-successor/current-to-fac.json")), source, current);
+    let preflight = metadata_json::project(metadata_json::Fixture::M06, source, current);
     let current = preflight.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/closure-unit-receiving-831-next-20261016/current-to-2d4b.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M07, source, current)
 }
 pub(crate) fn compile_fixture_input(source: &str, current: &str) -> String {
     let previous = main531_previous(source, current);
     let current = previous.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/compile-fixture-successor-5aac-20261016/current-to-5aac.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M08, source, current)
 }
 pub(crate) fn main531_previous(source: &str, current: &str) -> String {
     let fixed = main531_child_input(source, current);
     let current = fixed.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main531-independent-groups-20261016/current-to-2d4b.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M09, source, current)
 }
 pub(crate) fn main531_input(source: &str, current: &str) -> String {
     let fixed = main531_child_input("src/cleanup_plan/replay/path_join/main_single_groups/mod.rs", current);
     let current = fixed.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main531-independent-groups-20261016/runtime-main-root.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M10, source, current)
 }
 fn main531_child_input(source: &str, current: &str) -> String {
     let fixed = actual50_fixture_input(source, current);
     let current = fixed.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main531-original-tests-child-20261016/current-to-7e9f.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M11, source, current)
 }
 fn b3a_compile_fixture_input(source: &str, current: &str) -> String {
     let joined = fitting759_input(source, current);
     let current = joined.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/b3a-compile-fixture-task722-join-20261016/current-to-b3a.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M12, source, current)
 }
 fn post_main0ab1_input(source: &str, current: &str) -> String {
     let compiled = b3a_compile_fixture_input(source, current);
     let current = compiled.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/post-main0ab1-singleton-join-20261016/current-to-3177.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M13, source, current)
 }
 fn main696_corrected_input(source: &str, current: &str) -> String {
     let next = post_main0ab1_input(source, current);
     let current = next.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main696-funded-receiving-joined-20261016/current-to-ff7e.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M14, source, current)
 }
 pub(crate) fn main696_input(source: &str, current: &str) -> String {
     let corrected = main696_corrected_input(source, current);
     let current = corrected.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main696-source-reconciliation-20261016/current-to-main696.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M15, source, current)
 }
 fn main696_previous(source: &str, current: &str) -> String {
     let corrected = main696_corrected_input(source, current);
     let current = corrected.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main696-source-reconciliation-20261016/current-to-364d.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M16, source, current)
 }
 fn actual50_fixture_input(source: &str, current: &str) -> String {
     let latest = main696_previous(source, current);
     let current = latest.as_str();
-    let joined = project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/next-unit-branch-receiving-joined-20261016/final-to-bac.json")), source, current);
+    let joined = metadata_json::project(metadata_json::Fixture::M17, source, current);
     let current = joined.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/actual50-fixture-and-facade-corrections-20261016/current-to-183.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M18, source, current)
 }
 fn fitting759_input(source: &str, current: &str) -> String {
     let pinned = pin47_input(source, current);
     let current = pinned.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/task722-held-fitting759-join-20261016/current-to-0e7b.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M19, source, current)
 }
 fn pin47_input(source: &str, current: &str) -> String {
     let joined = future_bcd_input(source, current);
     let current = joined.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/actual47f-pin-fixture-successor-20261016/current-to-47f.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M20, source, current)
 }
 // The new Main receiver has one additional, independently authenticated input;
 // its older four owners still use their exact Main696 domains.
@@ -117,11 +107,7 @@ pub(crate) fn main8fb_input(source: &str, current: &str) -> String {
     if source == "src/source_verify/declaration.rs" {
         let joined = future_main8fb_input(source, current);
         let current = joined.as_str();
-        return project(
-            include_str!(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/docs/evidence/main8fb-source-reconciliation-20261016/current-to-main8fb.json"
-            )),
+        return metadata_json::project(metadata_json::Fixture::M21,
             source,
             current,
         );
@@ -131,17 +117,17 @@ pub(crate) fn main8fb_input(source: &str, current: &str) -> String {
 pub(crate) fn future_bcd_input(source: &str, current: &str) -> String {
     let joined = post21_input(source, current);
     let current = joined.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/future-main-output-851-joined-20261016/current-to-bcd.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M22, source, current)
 }
 pub(crate) fn future_main8fb_input(source: &str, current: &str) -> String {
     let joined = post21_input(source, current);
     let current = joined.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/future-main-output-851-joined-20261016/current-to-ff5.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M23, source, current)
 }
 fn post21_input(source: &str, current: &str) -> String {
     let joined = main_b80_prior_input(source, current);
     let current = joined.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/post21-alias-observer-source-join-20261016/current-to-36f.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M24, source, current)
 }
 fn project(rows: &str, source: &str, current: &str) -> String {
     let rows: serde_json::Value = serde_json::from_str(rows).expect("fixed merge projections");
@@ -679,11 +665,7 @@ pub(crate) fn main83_retry_fixture_input(source: &str, current: &str) -> String 
 fn main83_physical_input(source: &str, current: &str) -> String {
     let joined = before_storage_oracle_join(source, current);
     let current = joined.as_str();
-    project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/main83-source-join-20261015/current-to-4f5b.json"
-        )),
+    metadata_json::project(metadata_json::Fixture::M25,
         source,
         current,
     )
@@ -693,33 +675,21 @@ fn main83_physical_input(source: &str, current: &str) -> String {
 fn before_storage_oracle_join(source: &str, current: &str) -> String {
     let compile_fixed = compile_fixture_input(source, current);
     let current = compile_fixed.as_str();
-    let qualified = project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/next-bitmap-singleton-main2600-20261016/current-to-4fba.json")), source, current);
+    let qualified = metadata_json::project(metadata_json::Fixture::M00, source, current);
     let current = qualified.as_str();
-    let next = project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/next-main-beb0-847-joined-20261016/current-to-8bb.json")), source, current);
+    let next = metadata_json::project(metadata_json::Fixture::M01, source, current);
     let current = next.as_str();
-    let integrated = project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/private-175-actual-fixes-20261015/current-to-c159.json"
-        )),
+    let integrated = metadata_json::project(metadata_json::Fixture::M26,
         source,
         current,
     );
     let current = integrated.as_str();
-    let previous = project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/ordered-amortized-root-domain-20261015/current-to-35cc.json"
-        )),
+    let previous = metadata_json::project(metadata_json::Fixture::M27,
         source,
         current,
     );
     let current = previous.as_str();
-    project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/storage-oracle-compiler-fix-join-20261015/current-to-d719.json"
-        )),
+    metadata_json::project(metadata_json::Fixture::M28,
         source,
         current,
     )
@@ -730,18 +700,18 @@ pub(crate) fn main_b80_input(source: &str, current: &str) -> String {
     let merged = main_dd0_previous(source, current);
     let current = merged.as_str();
     if matches!(source, "src/cleanup_plan/replay/compact_stage/before.rs" | "src/cleanup_plan/replay/compact_stage/lexical_before.rs") {
-        return project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main-dd0-compiled-custody-join-20261016/compiled-before-to-main.json")), source, current);
+        return metadata_json::project(metadata_json::Fixture::M29, source, current);
     }
     let latest = session_reference_input(source, current);
     let current = latest.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main-b80-complete-source-join-20261016/current-to-main.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M30, source, current)
 }
 pub(crate) fn main_b80_prior_input(source: &str, current: &str) -> String {
     let merged = main_dd0_previous(source, current);
     let current = merged.as_str();
     let latest = session_reference_input(source, current);
     let current = latest.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main-b80-complete-source-join-20261016/current-to-df2.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M31, source, current)
 }
 
 // Independent whole-driver input for the immutable first781 receiving owners.
@@ -750,18 +720,38 @@ pub(crate) fn reference781_input(source: &str, current: &str) -> String {
     let current = merged.as_str();
     let latest = reference_family_input(source, current);
     let current = latest.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reference-coverage-paid-receiving-781-next-20261016/current-drivers-to-9a3.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M32, source, current)
 }
 
 // Independent physical predecessor domains, before all immutable older stages.
 fn session_reference_input(source: &str, current: &str) -> String {
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/session-reference-instance-joined-20261016/current-to-17b.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M33, source, current)
 }
 fn reference_family_input(source: &str, current: &str) -> String {
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/session-reference-instance-joined-20261016/current-to-reference.json")), source, current)
+    metadata_json::project(metadata_json::Fixture::M34, source, current)
+}
+
+// A later compositor uses this normalization-only front BEFORE its raw table.
+pub(crate) fn bulk848_arm_input(source: &str, current: &str) -> String {
+    metadata_json::normalize(source, current)
 }
 
 // Main's compiled test corpus keeps every original source-domain check.
 fn main_dd0_previous(source: &str, current: &str) -> String {
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main-dd0-compiled-custody-join-20261016/current-to-83ca.json")), source, current)
+    let metadata = metadata_json::previous(source, current);
+    let current = metadata.as_str();
+    let pair = runtime_json::pair_previous(source, current);
+    let current = pair.as_str();
+    metadata_json::project(metadata_json::Fixture::M35, source, current)
+}
+
+// New owner and inherited domains remain independent; all old tables stay exact.
+pub(crate) fn arena854_input(source: &str, current: &str) -> String {
+    let receiving = project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/canonical-intern-arena-854-receiving-20261016/current-to-9db.json")), source, current);
+    let current = receiving.as_str();
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/canonical-intern-arena-854-joined-20261016/current-to-ab13.json")), source, current)
+}
+pub(crate) fn arena854_previous(source: &str, current: &str) -> String {
+    let component = arena854_input(source, current);
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/canonical-intern-arena-854-next-20261016/current-to-3c388.json")), source, &component)
 }

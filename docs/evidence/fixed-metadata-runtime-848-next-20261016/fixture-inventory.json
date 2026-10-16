@@ -1,0 +1,716 @@
+[
+  {
+    "variant": "M00",
+    "path": "/docs/evidence/next-bitmap-singleton-main2600-20261016/current-to-4fba.json",
+    "length": 157100,
+    "sha256": "79d510959eae14b2092d3695751912c45ebab65641c0b5147df21b5988fac66f",
+    "keys": [
+      ".github/workflows/ci.yml",
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "docs/ARCHITECTURE.md",
+      "docs/QUALITY-GATES.md",
+      "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+      "scripts/ci-msrv.py",
+      "src/cleanup_plan/renewal_profile/ordinary/consuming/tests.rs",
+      "src/cleanup_plan/replay.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs",
+      "src/cleanup_plan/replay/path_join.rs",
+      "src/cleanup_plan/replay/path_join/boxed_states.rs",
+      "src/source_reflows_merge.rs",
+      "src/workspace_graph/source_schema/static_text/primitive/helpers/tests.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/project_product_acceptance_ci_contract.rs",
+      "tests/wasm/scalar_browser_ci_contract.rs",
+      "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M01",
+    "path": "/docs/evidence/next-main-beb0-847-joined-20261016/current-to-8bb.json",
+    "length": 38850,
+    "sha256": "e4a52eae4f48b1e5594e49c52e2cd4d41dd3a4676a0fa50e80f5d5fa37073c6a",
+    "keys": [
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "docs/ARCHITECTURE.md",
+      "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "src/source_reflows_merge.rs",
+      "src/workspace_graph.rs",
+      "src/workspace_graph/constructor_failure/typed.rs",
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs",
+      "src/workspace_graph/function_alias/before_core.rs",
+      "src/workspace_graph/function_alias/before_core/tests.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M02",
+    "path": "/docs/evidence/private-175-actual-fixes-20261015/current-to-82fea.json",
+    "length": 62014,
+    "sha256": "4dcc9bdb43d72659729c25aa9c858cfafbac55ef55d45aecca38eb4a187376bd",
+    "keys": [
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "src/source_reflows_merge.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M03",
+    "path": "/docs/evidence/boxed-state-local-owner-849-20261016/current-to-35c.json",
+    "length": 2533,
+    "sha256": "56bcc23258f9c6f8b6d6c38d978397b64e13c28722acf9b878dd514d72208a3f",
+    "keys": [
+      "src/cleanup_plan/replay/path_join/boxed_states.rs",
+      "src/source_reflows_merge.rs"
+    ]
+  },
+  {
+    "variant": "M04",
+    "path": "/docs/evidence/boxed-state-receiving-849-20261016/current-to-main019d.json",
+    "length": 70247,
+    "sha256": "28603d69dab2f81de837dc5aa5f7528e4265dc0532bc203a869e34f6c6be08e8",
+    "keys": [
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "src/bounded_output/classifier_string.rs",
+      "src/cleanup_plan/replay/path_join.rs",
+      "src/cleanup_plan/replay/path_join/boxed_states.rs",
+      "src/cleanup_plan/replay/path_join/receiver_tests.rs",
+      "src/source_reflows_merge.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M05",
+    "path": "/docs/evidence/next-unit-branch-receiving-joined-20261016/final-to-7c.json",
+    "length": 61775,
+    "sha256": "f23d5c1031de84945c79cdb8779dba993227c452acd39b6a290dfca116d1846c",
+    "keys": [
+      ".github/workflows/ci.yml",
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "docs/ARCHITECTURE.md",
+      "docs/evidence/darwin-native-link-reference-v1/README.md",
+      "scripts/ci-darwin-native-reference.py",
+      "src/cleanup_plan/replay.rs",
+      "src/cleanup_plan/replay/branch_clone.rs",
+      "src/cleanup_plan/replay/branch_clone/tests.rs",
+      "src/cleanup_plan/replay/path_join.rs",
+      "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+      "src/source_reflows_merge.rs",
+      "src/workspace_graph/function_alias/before_core/tests.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/project_product_acceptance_ci_contract.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M06",
+    "path": "/docs/evidence/closure-unit-receiving-831-next-20261016/preflight-binding-successor/current-to-fac.json",
+    "length": 17919,
+    "sha256": "8fcf75cc706b5e64edcede1b08402dcbad212a9e8b5ab134365a5f0abbfdb713",
+    "keys": [
+      "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
+      "src/source_reflows_merge.rs"
+    ]
+  },
+  {
+    "variant": "M07",
+    "path": "/docs/evidence/closure-unit-receiving-831-next-20261016/current-to-2d4b.json",
+    "length": 134751,
+    "sha256": "1a7295414109a169f561770448668d401bdf7f39fe78d074255358f43c25b0a9",
+    "keys": [
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "docs/ARCHITECTURE.md",
+      "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
+      "src/source_reflows_merge.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M08",
+    "path": "/docs/evidence/compile-fixture-successor-5aac-20261016/current-to-5aac.json",
+    "length": 21844,
+    "sha256": "3e7815bdc6303fc78d89b040fb4a82a4f4dac56f3ef8d7c0b209abb38d344a4d",
+    "keys": [
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "src/cleanup_plan/replay.rs",
+      "src/cleanup_plan/replay/branch_clone/before.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/before_empty.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/before_empty/memo/retained.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/tests.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight/tests.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs",
+      "src/source_reflows_merge.rs",
+      "src/workspace_graph/identity_resolution.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M09",
+    "path": "/docs/evidence/main531-independent-groups-20261016/current-to-2d4b.json",
+    "length": 42339,
+    "sha256": "d9f4a93eea7f60fd002a285e7880dad42b9fc1d0ad3c9adf18c09f390bc755bc",
+    "keys": [
+      ".github/workflows/ci.yml",
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "docs/ARCHITECTURE.md",
+      "docs/evidence/darwin-native-link-reference-v1/README.md",
+      "scripts/ci-darwin-native-reference.py",
+      "src/cleanup_plan/replay/path_join.rs",
+      "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+      "src/source_reflows_merge.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/project_product_acceptance_ci_contract.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M10",
+    "path": "/docs/evidence/main531-independent-groups-20261016/runtime-main-root.json",
+    "length": 1610,
+    "sha256": "5e09f16570cf64f3d516bb208348c097754f9328db0ef240e6e3e746f9fe4113",
+    "keys": [
+      "main531::path_join"
+    ]
+  },
+  {
+    "variant": "M11",
+    "path": "/docs/evidence/main531-original-tests-child-20261016/current-to-7e9f.json",
+    "length": 15245,
+    "sha256": "a42454fcc2b255b0123d63bc2aeef386f6be42e2f700220086a059ad7971a381",
+    "keys": [
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+      "src/source_reflows_merge.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M12",
+    "path": "/docs/evidence/b3a-compile-fixture-task722-join-20261016/current-to-b3a.json",
+    "length": 38491,
+    "sha256": "4e08edce4c2a22cc7a9e7b29812f7b022cace6a9e8790c00fd9259d97456266c",
+    "keys": [
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "crates/semaprax-toolchain/tests/cli_help_surface_v1.rs",
+      "docs/ARCHITECTURE.md",
+      "docs/SUMMARY.md",
+      "src/cleanup_plan/replay/path_array/before.rs",
+      "src/cleanup_plan/replay/path_array/funded_tests.rs",
+      "src/cli/help/authoring.rs",
+      "src/source_reflows_merge.rs",
+      "tests/cli_help_surface_v1.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/project/standard_library.rs",
+      "tests/project/standard_library/catalog.rs",
+      "tests/support/production_source_inventory.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M13",
+    "path": "/docs/evidence/post-main0ab1-singleton-join-20261016/current-to-3177.json",
+    "length": 32995,
+    "sha256": "8866d8c36375e5a25c06797eef89cb62f3b3bdcbef305fc1a5bb0297270e7814",
+    "keys": [
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "docs/PUBLIC-CXX-OWNED-DATA-PACKAGE-V1.md",
+      "src/cleanup_plan/replay/path_join.rs",
+      "src/project/cxx_owned_data.rs",
+      "src/source_reflows_merge.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/project/command_argument_borrow.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M14",
+    "path": "/docs/evidence/main696-funded-receiving-joined-20261016/current-to-ff7e.json",
+    "length": 55120,
+    "sha256": "12bedd22cc6814648aa25ef903776273f2aa64642155fc6158fa665112251001",
+    "keys": [
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "docs/ARCHITECTURE.md",
+      "src/cleanup_plan/replay.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
+      "src/cleanup_plan/replay/path_array.rs",
+      "src/cleanup_plan/replay/path_array/before.rs",
+      "src/cleanup_plan/replay/path_array/tests.rs",
+      "src/source_reflows_merge.rs",
+      "src/workspace_graph/function_alias/before_core/tests.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M15",
+    "path": "/docs/evidence/main696-source-reconciliation-20261016/current-to-main696.json",
+    "length": 86527,
+    "sha256": "375bdc4b4956e36acc4abdc87b1c5b253f81b2c1bc0262e0b4cfb59a0b439eb2",
+    "keys": [
+      "src/cleanup_plan/replay.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M16",
+    "path": "/docs/evidence/main696-source-reconciliation-20261016/current-to-364d.json",
+    "length": 50009,
+    "sha256": "ebcdde21a90d50e3afb4b0b778d4db3f18ca95941f80ab3971041722fba00e6d",
+    "keys": [
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "docs/SUMMARY.md",
+      "docs/evidence/boxed-path-states-v1/README.md",
+      "docs/evidence/branch-clone-capacity-v1/README.md",
+      "docs/evidence/browser-graph-pins-17104e20c/README.md",
+      "docs/evidence/browser-graph-pins-2600e49eb/README.md",
+      "docs/evidence/browser-graph-pins-268cb0523/README.md",
+      "docs/evidence/browser-graph-pins-841efe3e2/README.md",
+      "docs/evidence/darwin-native-link-reference-v1/README.md",
+      "docs/evidence/expression-fact-arena-cursor-v1/README.md",
+      "docs/evidence/format-hygiene-scratch-v1/README.md",
+      "docs/evidence/optional-helper-source-work-v1/README.md",
+      "docs/evidence/pattern-hygiene-scratch-v1/README.md",
+      "docs/evidence/record-presence-phase-v1/README.md",
+      "docs/evidence/row-loan-source-refusal-v1/README.md",
+      "docs/evidence/single-state-groups-v1/README.md",
+      "docs/evidence/storage-oracle-refusal-v1/README.md",
+      "docs/evidence/structural-call-cursor-v1/README.md",
+      "docs/evidence/supplemental-cursor-growth-v1/README.md",
+      "docs/evidence/unit-weight-closure-v1/README.md",
+      "src/cleanup_plan/replay.rs",
+      "src/source_reflows.rs",
+      "src/source_reflows_merge.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M17",
+    "path": "/docs/evidence/next-unit-branch-receiving-joined-20261016/final-to-bac.json",
+    "length": 97630,
+    "sha256": "913b263e80c986b511d4f189deafb6e39cf84465ccf7314fe30adce8ebf1e5e0",
+    "keys": [
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "docs/ARCHITECTURE.md",
+      "src/cleanup_plan/replay.rs",
+      "src/cleanup_plan/replay/branch_clone.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
+      "src/source_reflows_merge.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M18",
+    "path": "/docs/evidence/actual50-fixture-and-facade-corrections-20261016/current-to-183.json",
+    "length": 11661,
+    "sha256": "e26236e85dbf0e5e43603a7f1c9e382723aee67929bcac54946b87ef2a9682ce",
+    "keys": [
+      "src/cleanup_plan/replay/branch_clone/tests.rs",
+      "src/source_reflows_merge.rs",
+      "src/workspace_graph/function_alias/before_core/tests.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/workspace/semantic_graph.rs"
+    ]
+  },
+  {
+    "variant": "M19",
+    "path": "/docs/evidence/task722-held-fitting759-join-20261016/current-to-0e7b.json",
+    "length": 37874,
+    "sha256": "530358d6356523b74b7be683772c8faf5a1b2359fc297bf2af102477e8210121",
+    "keys": [
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "docs/ARCHITECTURE.md",
+      "docs/LEXICAL-STRUCTURED-EXITS-V1.md",
+      "docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md",
+      "src/cleanup_plan/replay/factored/strategy.rs",
+      "src/source_reflows_merge.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M20",
+    "path": "/docs/evidence/actual47f-pin-fixture-successor-20261016/current-to-47f.json",
+    "length": 48010,
+    "sha256": "6b1c6cecac881020069bd445b1085b6ecf4e87b2f54d7cdcdff89779d9141605",
+    "keys": [
+      "crates/semaprax-toolchain/tests/cli_help_surface_v1.rs",
+      "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+      "src/cleanup_plan/replay/path_array/funded_tests.rs",
+      "src/cleanup_plan/replay/path_array/tests.rs",
+      "src/source_reflows_merge.rs",
+      "src/workspace_graph/function_alias/before_core/tests.rs",
+      "src/workspace_graph/type_proof_tests.rs",
+      "tests/cli_help_surface_v1.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/wasm/scalar_browser_ci_contract.rs",
+      "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+      "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "tests/wasm/scalar_browser_ci_contract/historical_main2600.rs",
+      "tests/workspace/semantic_graph.rs"
+    ]
+  },
+  {
+    "variant": "M21",
+    "path": "/docs/evidence/main8fb-source-reconciliation-20261016/current-to-main8fb.json",
+    "length": 453,
+    "sha256": "b97eb27ca716ede3e7f41843e06d2174e4571873ba7f2645eed011d33ee2c8d9",
+    "keys": [
+      "src/source_verify/declaration.rs"
+    ]
+  },
+  {
+    "variant": "M22",
+    "path": "/docs/evidence/future-main-output-851-joined-20261016/current-to-bcd.json",
+    "length": 152825,
+    "sha256": "4f15d2e57341fb1efb569a0dfbe15b1341fb6dba24fd61332d226c8a1ffd15dc",
+    "keys": [
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "docs/ARCHITECTURE.md",
+      "docs/evidence/receiver-source-custody-v1/README.md",
+      "docs/evidence/receiver-source-custody-v1/inverse.json",
+      "src/cleanup_plan/replay.rs",
+      "src/cleanup_plan/replay/branch_clone/inline_tests.rs",
+      "src/cleanup_plan/replay/path_join.rs",
+      "src/source_reflows/semantic_receivers.rs",
+      "src/source_reflows_merge.rs",
+      "src/source_verify/declaration.rs",
+      "src/source_verify/hints.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/quickstart_v1/fused_source.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M23",
+    "path": "/docs/evidence/future-main-output-851-joined-20261016/current-to-ff5.json",
+    "length": 190037,
+    "sha256": "91b422df15225f5583e6a1a0e0c8dec43a79274b15acfb45c4f8028be0f7262a",
+    "keys": [
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "crates/semaprax-toolchain/tests/cli_help_surface_v1.rs",
+      "docs/ARCHITECTURE.md",
+      "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+      "src/cleanup_plan/replay.rs",
+      "src/cleanup_plan/replay/branch_clone/inline_tests.rs",
+      "src/cleanup_plan/replay/path_array/funded_tests.rs",
+      "src/cleanup_plan/replay/path_array/tests.rs",
+      "src/cleanup_plan/replay/path_join.rs",
+      "src/source_reflows_merge.rs",
+      "src/source_verify/hints.rs",
+      "src/workspace_graph/function_alias/before_core/tests.rs",
+      "src/workspace_graph/type_proof_tests.rs",
+      "tests/cli_help_surface_v1.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/wasm/scalar_browser_ci_contract.rs",
+      "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+      "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "tests/wasm/scalar_browser_ci_contract/historical_main2600.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M24",
+    "path": "/docs/evidence/post21-alias-observer-source-join-20261016/current-to-36f.json",
+    "length": 14038,
+    "sha256": "6dd1f17f953e0095a60fa877957934f500f150f74c6b0681012c0d01d07bea7f",
+    "keys": [
+      "CHANGELOG.md",
+      "docs/ARCHITECTURE.md",
+      "src/cleanup_plan/replay/path_array/funded_tests.rs",
+      "src/source_reflows_merge.rs",
+      "src/workspace_graph.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/workspace/semantic_graph.rs"
+    ]
+  },
+  {
+    "variant": "M25",
+    "path": "/docs/evidence/main83-source-join-20261015/current-to-4f5b.json",
+    "length": 22353,
+    "sha256": "e6c58e09615c965bc699608d82061b5fc3d0fa6a5a5acfa5bede0ff27d9c7ab9",
+    "keys": [
+      "CHANGELOG.md",
+      "docs/evidence/canonical-preparation-stage-829/retry-precharge-fixture/HANDOFF.md",
+      "docs/evidence/canonical-preparation-stage-829/retry-precharge-fixture/exact-inverse.json",
+      "src/source_reflows_merge.rs",
+      "src/workspace_graph/tests/builder_limits.rs",
+      "src/workspace_graph/tests/record_traversal.rs",
+      "tests/project_candidate/string_builtin_calls.rs"
+    ]
+  },
+  {
+    "variant": "M26",
+    "path": "/docs/evidence/private-175-actual-fixes-20261015/current-to-c159.json",
+    "length": 183580,
+    "sha256": "0a969c621c6534ce66a92783e677242dbb66cc126b847b9b70d94b4ebe209f06",
+    "keys": [
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "docs/AGENT-SKILL-BUNDLE-V1.json",
+      "docs/ARCHITECTURE.md",
+      "examples/shiftsim-typed-record-successor/src/model.spx",
+      "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+      "src/bounded_output/classifier_string.rs",
+      "src/bounded_output/stage_debits.rs",
+      "src/bounded_output/stage_debits/tests.rs",
+      "src/cleanup_plan/renewal_profile/ordinary/consuming.rs",
+      "src/cleanup_plan/renewal_profile/ordinary/consuming/tests.rs",
+      "src/cleanup_plan/renewal_profile/ordinary/mod.rs",
+      "src/cleanup_plan/replay.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/source.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "src/cleanup_plan/replay/factored/compact_nodes.rs",
+      "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+      "src/cleanup_plan/replay/path_join.rs",
+      "src/cleanup_plan/replay/path_join/tests.rs",
+      "src/loop_calls/byte_writer/module_index/ordinary.rs",
+      "src/source_reflows_merge.rs",
+      "src/source_reflows_merge/runtime_json.rs",
+      "src/source_reflows_merge/runtime_json/tests.rs",
+      "src/workspace_graph/function_alias/before_core/tests.rs",
+      "src/workspace_graph/source_schema/static_text/primitive/helpers/tests.rs",
+      "src/workspace_graph/type_proof_tests.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
+      "tests/project/command_argument_borrow.rs",
+      "tests/support/record_copy_field_update.rs",
+      "tests/wasm/scalar_browser_ci_contract.rs",
+      "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "tests/workspace/semantic_change/reporting.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs",
+      "tests/workspace/semantic_structural_change/reporting.rs"
+    ]
+  },
+  {
+    "variant": "M27",
+    "path": "/docs/evidence/ordered-amortized-root-domain-20261015/current-to-35cc.json",
+    "length": 2809,
+    "sha256": "948b8ab682707319c9330c17cab8dc56e9b46c5d9ed913df9502fe2ad3ce38d3",
+    "keys": [
+      "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs",
+      "src/source_reflows_merge.rs"
+    ]
+  },
+  {
+    "variant": "M28",
+    "path": "/docs/evidence/storage-oracle-compiler-fix-join-20261015/current-to-d719.json",
+    "length": 21891,
+    "sha256": "a6465a679c9f993e4e14f99cc2986ed195420b40a6aaee101be4a6975a1f173b",
+    "keys": [
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "src/cleanup_plan/replay/factored/continuation_receiver.rs",
+      "src/cleanup_plan/replay/factored/continuation_receiver/tests.rs",
+      "src/cleanup_plan/replay/factored/oracle_hook.rs",
+      "src/source_reflows_merge.rs",
+      "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs",
+      "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+      "src/workspace_graph/tests/builder_limits.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M29",
+    "path": "/docs/evidence/main-dd0-compiled-custody-join-20261016/compiled-before-to-main.json",
+    "length": 1872,
+    "sha256": "0086900fbc05a07bdb2c58922f552fa0bb42261a84ac32da866e0527ef9ebef5",
+    "keys": [
+      "src/cleanup_plan/replay/compact_stage/before.rs",
+      "src/cleanup_plan/replay/compact_stage/lexical_before.rs"
+    ]
+  },
+  {
+    "variant": "M30",
+    "path": "/docs/evidence/main-b80-complete-source-join-20261016/current-to-main.json",
+    "length": 701524,
+    "sha256": "2bf68e02042856efa43ca895a7007ffc35129b4f4c8f29e3e10863aa6561ca0e",
+    "keys": [
+      "src/cleanup_plan/replay.rs",
+      "src/cleanup_plan/replay/branch_clone/tests.rs",
+      "src/cleanup_plan/replay/factored.rs",
+      "src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M31",
+    "path": "/docs/evidence/main-b80-complete-source-join-20261016/current-to-df2.json",
+    "length": 61962,
+    "sha256": "4012063836f89eb09a23f97b703874bd7f982468e045ae88ebdd02aef7b17f90",
+    "keys": [
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "docs/ARCHITECTURE.md",
+      "docs/SUMMARY.md",
+      "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+      "src/cleanup_plan/replay.rs",
+      "src/cleanup_plan/replay/branch_clone/before.rs",
+      "src/cleanup_plan/replay/branch_clone/before_inline.rs",
+      "src/cleanup_plan/replay/branch_clone/inline_tests.rs",
+      "src/cleanup_plan/replay/factored.rs",
+      "src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs",
+      "src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs",
+      "src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs",
+      "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+      "src/cleanup_plan/replay/factored/oracle_order.rs",
+      "src/cleanup_plan/replay/factored/oracle_order/tests.rs",
+      "src/cleanup_plan/replay/final_output.rs",
+      "src/cleanup_plan/replay/final_output/before.rs",
+      "src/cleanup_plan/replay/final_output/tests.rs",
+      "src/cleanup_plan/replay/path_array/main696.rs",
+      "src/cleanup_plan/replay/structural_maps.rs",
+      "src/cleanup_plan/replay/structural_maps/tests.rs",
+      "src/source_reflows.rs",
+      "src/source_reflows_merge.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/wasm/scalar_browser_ci_contract.rs",
+      "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+      "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M32",
+    "path": "/docs/evidence/reference-coverage-paid-receiving-781-next-20261016/current-drivers-to-9a3.json",
+    "length": 1337,
+    "sha256": "5d4427750068bbdc980624cb72fa8ca1988c02f8e9d143b89e1b3a92161f6831",
+    "keys": [
+      "src/cleanup_plan/replay/lexical_replay.rs",
+      "src/cleanup_plan/replay/scalar_replay.rs"
+    ]
+  },
+  {
+    "variant": "M33",
+    "path": "/docs/evidence/session-reference-instance-joined-20261016/current-to-17b.json",
+    "length": 78812,
+    "sha256": "b90a7d1b840f93cd5c22cda0d72d7ebc62ef1df52c7fbbb9baebff004a0ef8a9",
+    "keys": [
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "docs/ARCHITECTURE.md",
+      "docs/DECLARATION-IDENTITY-BACKING-V1.md",
+      "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "src/bounded_output.rs",
+      "src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "src/cleanup_plan/replay/branch_clone.rs",
+      "src/cleanup_plan/replay/compact_stage.rs",
+      "src/cleanup_plan/replay/lexical_replay.rs",
+      "src/cleanup_plan/replay/scalar_replay.rs",
+      "src/cleanup_plan/replay/selected_context/child.rs",
+      "src/cleanup_plan/replay/selected_entry.rs",
+      "src/cleanup_plan/replay/selected_entry/tests.rs",
+      "src/cleanup_plan/replay/structural_maps.rs",
+      "src/cleanup_plan/replay/structural_maps/tests.rs",
+      "src/hir/ids.rs",
+      "src/hir/nodes.rs",
+      "src/hir/validation.rs",
+      "src/hir/validation/generic_template.rs",
+      "src/source_reflows_merge.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M34",
+    "path": "/docs/evidence/session-reference-instance-joined-20261016/current-to-reference.json",
+    "length": 42357,
+    "sha256": "d1e49698df2c4b745874f2f34cfc7218fbc26414077b548ff38c5e7b30e8fb29",
+    "keys": [
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "docs/ARCHITECTURE.md",
+      "docs/DECLARATION-IDENTITY-BACKING-V1.md",
+      "src/bounded_output.rs",
+      "src/cleanup_plan/replay/branch_clone.rs",
+      "src/cleanup_plan/replay/compact_stage.rs",
+      "src/hir/ids.rs",
+      "src/hir/nodes.rs",
+      "src/hir/validation.rs",
+      "src/hir/validation/generic_template.rs",
+      "src/source_reflows_merge.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  },
+  {
+    "variant": "M35",
+    "path": "/docs/evidence/main-dd0-compiled-custody-join-20261016/current-to-83ca.json",
+    "length": 52015,
+    "sha256": "4cb40e6f0a6e22bdb3743cc13a9485676fb66f12dd8ceb9ffd036fd7de0f5f2c",
+    "keys": [
+      "CHANGELOG.md",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+      "src/cleanup_plan/replay/compact_stage/source_custody.rs",
+      "src/source_reflows_merge.rs",
+      "src/workspace_graph/type_proof_tests.rs",
+      "tests/hir_module_boundaries.rs",
+      "tests/native/string_settlement/bulk_utf8.rs",
+      "tests/native/string_settlement/codec_allocation.rs",
+      "tests/native/string_settlement/codec_allocation/string_vectors.rs",
+      "tests/native_string_settlement_v1/contents.rs",
+      "tests/owned_data/bulk_utf8.rs",
+      "tests/owned_data/owned_nested_outcome.rs",
+      "tests/owned_data/projected_string_views.rs",
+      "tests/root_unsafe_quarantine.rs",
+      "tests/wasm/scalar_browser_ci_contract.rs",
+      "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+      "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "tests/workspace/semantic_graph.rs",
+      "tests/workspace/semantic_graph/source_inventory.rs"
+    ]
+  }
+]

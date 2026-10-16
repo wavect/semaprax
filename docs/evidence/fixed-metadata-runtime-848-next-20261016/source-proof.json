@@ -1,0 +1,12 @@
+{
+  "mode": "SOURCE_ONLY_NO_RUST_NO_RAM_CLAIM",
+  "full_e204_inverse_rows": 9,
+  "fixed_metadata_files": 36,
+  "fixed_unique_bytes": 2612409,
+  "replaced_literal_occurrences": 38,
+  "old90_packet_and_inventory_exact": true,
+  "old90_all_file_loop_and_hostile_tail_exact": true,
+  "new_owners": 1,
+  "pure_project_and_full_reader_tail_exact": true,
+  "both_virtual_arms_share_same36_context": true
+}

@@ -1,0 +1,263 @@
+{
+  "base": "83ca0e105e5f4eb6336ed04ff80df6ad0366e99f",
+  "rows": [
+    {
+      "source": "CHANGELOG.md",
+      "before_sha256": "073b766f55de946e82c3d4967fafcb7ee5b3938c3f3e443f41914173ae1b3d12",
+      "after_sha256": "4f61d15bfa02047c1aaa191cf73ba0df3af0ee82a6c3e5634dabe937b35c4d2a",
+      "before_archive": "before/CHANGELOG.md",
+      "edits": [
+        {
+          "old_offset": 627,
+          "new_offset": 627,
+          "before": "",
+          "after": "\n- Source-only #781 extends closed selected receipts to slot/region/leaf and flat-leaf/storage-index construction, with per-actual-call clone/vector/node receiving on the same ledger and complete independent old drivers. Earlier receiving frontiers and remaining inventory/status/certificate/path diagnostics are explicit; focused execution and transitive closure remain pending.\n"
+        }
+      ]
+    },
+    {
+      "source": "docs/ARCHITECTURE.md",
+      "before_sha256": "2ef1138ebfee78ff7dcc323912e41b5c8e628ed983ae5a7c630bbe0ce2204ffb",
+      "after_sha256": "b6a41cafc61ac81b707f8f90223b47f1884d612e25b4834357eb5a3a9ad747a4",
+      "before_archive": "before/docs/ARCHITECTURE.md",
+      "edits": [
+        {
+          "old_offset": 156287,
+          "new_offset": 156287,
+          "before": "",
+          "after": "The sibling `structural_maps/paid` owns selected slot/region/leaf traversal with\nclosed structural receipts. `flat_records/paid_leaves` and `leaf_index/receiving`\nown the attached-leaf and storage-index constructors; each real clone, node or\nvector wrapper acquires its exact same-ledger receiving bank before arguments.\nThe shared lexical bank expansion lives in `selected_context/child/receiving`;\nonly genuine ReplayBudget primitives can create its sealed budget-failure arm.\nComplete old constructors and paid drivers remain independent test receivers.\nInventory construction and other unconverted Session families still return\nowned Diagnostics; these finite routes do not certify transitive #781 funding.\n\n"
+        }
+      ]
+    },
+    {
+      "source": "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "before_sha256": "d386e08dbebaaaa329834c9eb663627feab7e6b16b02e88a8dae23ea8604005f",
+      "after_sha256": "f7e176a54db51061c13f2a46258ab6afa95b11c178f63cc959ac0d3989151544",
+      "before_archive": "before/docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "edits": [
+        {
+          "old_offset": 39197,
+          "new_offset": 39197,
+          "before": "",
+          "after": "\n## Structural leaf-family receiving cut (#781, source-only)\n\nPaid lexical and scalar drivers use complete slot, region and leaf algorithms\nwith closed static labels and the existing shared-identity dynamic atoms. The\nattached flat-record leaf collector and storage-index constructor preserve all\nmembership, insertion, field, flag and error ordering. Every actual clone and\nvector forwarding call acquires its nine/ten-slot receiving layout on the SAME\nbudget before arguments; conditional nodes retain their eight-slot bank only\nwhen the original membership test admits insertion. The lexical expansion adds\nno extra forwarding function or Result. Original nested budget Results remain.\nEach helper acquires its existing profile permit for its actual return type;\nslot dynamic Atom initialization/receiving has a separate two-Atom bank.\n\nThese payments and initializer work are genuine earlier refusal frontiers, not\nold-fee credit or a refund. Genuine budget errors alone use sealed\nBudgetDiagnostic; static and shared-identity semantic failures remain closed\nreceipts for the already-funded report. Compatibility Diagnostic renderers and\nfull immediate-old drivers remain independent. The initial receiving boundary\nretains the existing report/ledger contract; no arbitrary child Diagnostic is\ncertified after construction. The inventory builder still returns an owned\nDiagnostic through its raw physical callback; status, certificate, path and\nother unmigrated families remain residual, so #781 stays OPEN. No runtime,\nallocation reduction, application-fit or end-to-end funding claim follows.\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile.rs",
+      "before_sha256": "46f3c87a7d1bd762ea86895c8dada6d980331f1e6cf13e63820a49c254219008",
+      "after_sha256": "d7b42294cacc18d201d925b7166701c99c9fe2f191eeaf7f0b25155b683b2003",
+      "before_archive": "before/src/cleanup_plan/renewal_profile.rs",
+      "edits": [
+        {
+          "old_offset": 11923,
+          "new_offset": 11923,
+          "before": "",
+          "after": "\npub(crate) mod structural_refusal;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "before_sha256": "9929e58521c52246bd8467c0ad7da5844ba9ef2bcaabf9d0b7fc09bda4a7066f",
+      "after_sha256": "1309ba57a9865e10b9154b335ffa66ae02d39806e35e43276f71f921d827ac77",
+      "before_archive": "before/src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "edits": [
+        {
+          "old_offset": 352,
+          "new_offset": 352,
+          "before": "",
+          "after": "    Structural(super::structural_refusal::StructuralRefusal),\n"
+        },
+        {
+          "old_offset": 668,
+          "new_offset": 730,
+          "before": "",
+          "after": "            Self::Structural(reason) => reason.detail(),\n"
+        },
+        {
+          "old_offset": 1343,
+          "new_offset": 1462,
+          "before": "            Self::ReferenceCoverage(_) => true,\n",
+          "after": "            Self::ReferenceCoverage(_) | Self::Structural(_) => true,\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records.rs",
+      "before_sha256": "fa3b9c6fe087b845d64d9ad8ca518b67f92a33827b4615f4c826d9518abbf660",
+      "after_sha256": "a4ad00f44f52324c96e008c4180c40497b59b1e062bd5aeb9f6f90451ed5666c",
+      "before_archive": "before/src/cleanup_plan/replay/flat_records.rs",
+      "edits": [
+        {
+          "old_offset": 11617,
+          "new_offset": 11617,
+          "before": "",
+          "after": "\npub(super) mod paid_leaves;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records/tests.rs",
+      "before_sha256": "fc953c5e95a5d1e285369610da6b0e1443235460f8d1f050f3e7c7bbbf60bf30",
+      "after_sha256": "d3e46c317a224b70ea81c29f07e2924bbb298a221ccfcc7b51e80c31b7f37c18",
+      "before_archive": "before/src/cleanup_plan/replay/flat_records/tests.rs",
+      "edits": [
+        {
+          "old_offset": 12156,
+          "new_offset": 12156,
+          "before": "",
+          "after": "\n#[path = \"tests/receiving_families.rs\"]\nmod receiving_families;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/leaf_index.rs",
+      "before_sha256": "17a6913340db634eb8fde149d23738ce68cf2ba1ec5ea10150084bc7defe2335",
+      "after_sha256": "32b4f457c051b81aa486219e37a3d5601f67c00e09bdecab7cc1ea2c59d088ab",
+      "before_archive": "before/src/cleanup_plan/replay/leaf_index.rs",
+      "edits": [
+        {
+          "old_offset": 2699,
+          "new_offset": 2699,
+          "before": "",
+          "after": "\nmod receiving;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_replay.rs",
+      "before_sha256": "658f2ab6f189d4b084077b7948863566aaf31b8a319921764b35c9cf408d32f4",
+      "after_sha256": "7d62adc0802cc598f1fcfdbb5b5681d40d884fd9f49e55bfb1913ff51dfdaed9",
+      "before_archive": "before/src/cleanup_plan/replay/lexical_replay.rs",
+      "edits": [
+        {
+          "old_offset": 2797,
+          "new_offset": 2797,
+          "before": "        let storage = structural_maps::validate_slots_core::<expression_facts::errors::EngineError>(\n",
+          "after": "        let storage = structural_maps::paid::slots(\n"
+        },
+        {
+          "old_offset": 2940,
+          "new_offset": 2891,
+          "before": "        let leaves = structural_maps::collect_leaves(function, budget)?;\n",
+          "after": "        let leaves = structural_maps::paid::leaves(function, budget)?;\n"
+        },
+        {
+          "old_offset": 3181,
+          "new_offset": 3130,
+          "before": "        structural_maps::validate_regions(function, &storage, budget)?;\n",
+          "after": "        structural_maps::paid::regions(function, &storage, budget)?;\n"
+        },
+        {
+          "old_offset": 13059,
+          "new_offset": 13005,
+          "before": "",
+          "after": "\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) mod before_owned_families;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/scalar_replay.rs",
+      "before_sha256": "1c5b9043a557876df42b2734dfac7cfcc20076b210f341779c6a579e7fb85083",
+      "after_sha256": "3addad9475b7effecf096d833429ae2334c25e3c2eece227b8a519de0e547a27",
+      "before_archive": "before/src/cleanup_plan/replay/scalar_replay.rs",
+      "edits": [
+        {
+          "old_offset": 3580,
+          "new_offset": 3580,
+          "before": "    let storage = structural_maps::validate_slots_core::<expression_facts::errors::EngineError>(\n",
+          "after": "    let storage = structural_maps::paid::slots(\n"
+        },
+        {
+          "old_offset": 3711,
+          "new_offset": 3662,
+          "before": "    let leaves = structural_maps::collect_leaves(function, budget)?;\n",
+          "after": "    let leaves = structural_maps::paid::leaves(function, budget)?;\n"
+        },
+        {
+          "old_offset": 3900,
+          "new_offset": 3849,
+          "before": "    structural_maps::validate_regions(function, &storage, budget)?;\n",
+          "after": "    structural_maps::paid::regions(function, &storage, budget)?;\n"
+        },
+        {
+          "old_offset": 12411,
+          "new_offset": 12357,
+          "before": "",
+          "after": "\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) mod before_owned_families;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context/child.rs",
+      "before_sha256": "8bb723f948595f9788bd1507b52c4b1c1e21f2b7519fd8d0ccefe69cf7b785ec",
+      "after_sha256": "8af014bc1f52d1f8cfe526cff4c2da095509cc3d900e3d54f7dea0bef80dc033",
+      "before_archive": "before/src/cleanup_plan/replay/selected_context/child.rs",
+      "edits": [
+        {
+          "old_offset": 6233,
+          "new_offset": 6233,
+          "before": "",
+          "after": "\n// Additional actual same-ledger primitive calls for the complete structural\n// family. No caller may manufacture BudgetDiagnostic from a child Diagnostic.\npub(in super::super) type CloneReceiving<'a, T> = (\n    &'a mut ReplayBudget,\n    &'a ResolvedFunction,\n    &'a T,\n    &'a str,\n    Result<(), crate::diagnostic::Diagnostic>,\n    crate::diagnostic::Diagnostic,\n    BudgetDiagnostic,\n    Deferred,\n    Result<(), Deferred>,\n);\npub(in super::super) type VecReceiving<'a, T> = (\n    &'a mut ReplayBudget,\n    &'a ResolvedFunction,\n    &'a mut Vec<T>,\n    usize,\n    &'a str,\n    Result<(), crate::diagnostic::Diagnostic>,\n    crate::diagnostic::Diagnostic,\n    BudgetDiagnostic,\n    Deferred,\n    Result<(), Deferred>,\n);\nimpl ReplayBudget {\n    #[track_caller]\n    pub(in super::super) fn child_reserve_clone<T: super::super::ClonePayload>(\n        &mut self,\n        function: &ResolvedFunction,\n        value: &T,\n        phase: &str,\n    ) -> Result<(), Deferred> {\n        self.reserve_clone(function, value, phase)\n            .map_err(|error| Deferred::Budget(BudgetDiagnostic(error)))\n    }\n    #[track_caller]\n    pub(in super::super) fn child_reserve_vec<T>(\n        &mut self,\n        function: &ResolvedFunction,\n        values: &mut Vec<T>,\n        additional: usize,\n        phase: &str,\n    ) -> Result<(), Deferred> {\n        self.reserve_vec(function, values, additional, phase)\n            .map_err(|error| Deferred::Budget(BudgetDiagnostic(error)))\n    }\n}\npub(in super::super) mod receiving;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/structural_maps.rs",
+      "before_sha256": "f8c2b1f1de241caafbd30692fe172fb4e2afb58189252d4334878071d95b87a8",
+      "after_sha256": "1da9c7201905f113ea60321fbf75cbf0da93c947d708c974dfed8f642e1198b9",
+      "before_archive": "before/src/cleanup_plan/replay/structural_maps.rs",
+      "edits": [
+        {
+          "old_offset": 8483,
+          "new_offset": 8483,
+          "before": "",
+          "after": "\npub(super) mod paid;\n"
+        }
+      ]
+    }
+  ],
+  "new_sources": [
+    {
+      "source": "src/cleanup_plan/renewal_profile/structural_refusal.rs",
+      "sha256": "17395a37ddd2d8ea6267a12b1df4f2a2e1aacded5b06b7be7cb5a29147f47e10",
+      "lines": 48
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records/paid_leaves.rs",
+      "sha256": "ff5688be42817ac84c79a94455281455d045b740b59092e8a3beda78fb93e37d",
+      "lines": 156
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records/tests/receiving_families.rs",
+      "sha256": "090b958ad14f4948f32ddf0238d599b8bd839c82a12b1e15e0124afe52ea374e",
+      "lines": 226
+    },
+    {
+      "source": "src/cleanup_plan/replay/leaf_index/receiving.rs",
+      "sha256": "bbac52b659b35a31136bfced9f53671945ecc131c4afcdba6a0ebd78bab56aa1",
+      "lines": 57
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_replay/before_owned_families.rs",
+      "sha256": "fd16b69e67b20493639eedf1583bb38fd93c45de3c5f83694e8c04c67377224b",
+      "lines": 150
+    },
+    {
+      "source": "src/cleanup_plan/replay/scalar_replay/before_owned_families.rs",
+      "sha256": "571f20ca5291cab59077c6a996b90a9575b89b420cfeca6753d5b7cd981e2052",
+      "lines": 119
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context/child/receiving.rs",
+      "sha256": "3e75ec7c53b22c2138e2b9c7b8dad53071f08f73cfe4f1205d27b5cf6ebe053f",
+      "lines": 31
+    },
+    {
+      "source": "src/cleanup_plan/replay/structural_maps/paid.rs",
+      "sha256": "2c9a3b5436fe519929c30ca2fdd840ab566b4d7b12583e33c779c1555f32f575",
+      "lines": 177
+    }
+  ]
+}

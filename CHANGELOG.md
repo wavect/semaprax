@@ -8,6 +8,14 @@
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
 
+- Source-only #781 adds complete paid status and selected scalar record/body receivers with closed semantic data, actual per-call same-ledger banks and independent prior drivers. Error-only dynamic controls are acquired only on that path. New frontiers and remaining inventory/certificate/schema/path diagnostics are explicit; executable qualification and end-to-end closure remain pending.
+
+- Source-only #781 extends closed selected receipts to slot/region/leaf and flat-leaf/storage-index construction, with per-actual-call clone/vector/node receiving on the same ledger and complete independent old drivers. Earlier receiving frontiers and remaining inventory/status/certificate/path diagnostics are explicit; focused execution and transitive closure remain pending.
+
+- Move 36 additional immutable test-only source-view JSON documents (2,612,409 unique bytes) behind a separate fixed authenticated runtime inventory; preserve live Rust snapshots, the original90 inventory and every predecessor assertion. Static transport reduction is not a measured memory claim.
+
+- Prepare the source-only #848 bulk90 embedded/runtime comparison: fixed common transport modules, one active module selector, unchanged file-loader/hostile controls, exact arm source custody, and per-arm truthful authority metadata. No matched build or memory benefit is claimed.
+
 - Source-only #781 followup routes the duplicated paid lexical/scalar driver
   profile and member guards through their existing prepaid receipt twins.
   Complete old drivers and report/ledger/Drop controls remain; transitive dynamic
@@ -7360,3 +7368,16 @@ are authored. Qualification is pending; Catalog corpus and limits are unchanged.
   no cap changes or application recovery claim.
 
 - Reuse the complete immutable closure for one unit-weight canonical input, preserving every work debit and full successor check while paying receiving metadata and retaining the entire previous producer.
+
+- Source-only #854 adds prepaid canonical state/signature arenas and borrowed signature hits, with complete independent immediate-parent receivers and explicit unfavorable tiny/unique-wide cases. Runtime qualification and application effects remain pending.
+
+- The private #854 receiving successor explicitly admits both inner arena Vec header constructions and query/traversal borrow receiver pairs; generic search/mutation roles carry no numeric removed-layout credit. Earlier source checkpoints and all original physical assertions remain preserved.
+
+- Source-only #781 certificate receiving: preserve complete original receivers,
+  add closed static refusals and real same-ledger primitive banks, and remove
+  dead Deferred slots from seven read-only scalar entry scopes. Actual runtime
+  gates remain pending; transitive owned-Diagnostic residuals remain open.
+
+- Source-only #781 boundary admission and selected chain receiving: preserve
+  complete prior algorithms, lexical callback/order semantics, and explicit
+  unmigrated Diagnostic children. Four runtime owners remain unexecuted.

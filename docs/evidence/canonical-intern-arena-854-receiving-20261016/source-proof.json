@@ -1,0 +1,11 @@
+{
+  "status": "PASS_RECEIVING_SUCCESSOR_SOURCE_ONLY",
+  "new_whole_rows": 7,
+  "protected_join_rows": 8,
+  "protected_component_rows": 3,
+  "protected_packets_byte_exact": true,
+  "complete_old_receiver_and_physical_controls_exact": true,
+  "new_test_bodies": 0,
+  "rust_execution": false,
+  "gain_claim": false
+}

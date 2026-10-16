@@ -9,6 +9,17 @@ mod inventory;
 pub(super) use inventory::Fixture;
 #[path = "runtime_json/membership.rs"]
 mod membership;
+// The sole measured-arm source switch; both transport sources are common.
+#[path = "runtime_json/pair_custody.rs"]
+mod pair_custody;
+#[path = "runtime_json/transport_runtime.rs"]
+mod selected_transport;
+pub(super) fn pair_normalize(source: &str, current: &str) -> String {
+    pair_custody::normalize(source, current)
+}
+pub(super) fn pair_previous(source: &str, current: &str) -> String {
+    pair_custody::previous(source, current)
+}
 
 // Largest exact original fixture; never grow a buffer from untrusted metadata.
 const OUTPUT_CAP: usize = 5_081_115;
@@ -30,6 +41,12 @@ enum Failure {
 fn digest(bytes: &[u8]) -> [u8; 32] {
     Sha256::digest(bytes).into()
 }
+// Sealed sibling inventory only; no arbitrary path or live-source API.
+pub(super) fn metadata(fixture: super::metadata_json::Fixture) -> String {
+    let spec = fixture.spec();
+    read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
+        .expect("complete authenticated immutable source metadata")
+}
 pub(super) fn load(fixture: Fixture) -> String {
     let spec = fixture.spec();
     read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
@@ -42,7 +59,7 @@ pub(super) fn project(fixture: Fixture, source: &str, current: &str) -> String {
     if membership::keys(fixture).binary_search(&source).is_err() {
         return current.to_owned();
     }
-    super::project(&load(fixture), source, current)
+    super::project(&selected_transport::load(fixture), source, current)
 }
 fn read_fixture(
     path: &std::path::Path,

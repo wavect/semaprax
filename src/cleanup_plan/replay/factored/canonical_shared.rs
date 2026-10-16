@@ -49,6 +49,9 @@ mod unit_receiving_tests;
 #[cfg(test)]
 mod before_inline_weighted;
 mod inline_weighted;
+mod intern_arena;
+#[cfg(test)]
+mod before_arena;
 use inline_weighted::SmallWeighted;
 
 // Invoked only after preflight proved an unbound, nonfailed Memo. This is the
@@ -204,8 +207,9 @@ pub(super) struct Canonicalizer<'a> {
     automaton: &'a Automaton,
     sink: usize,
     closures: empty_memo::Memo<Rc<ordered_weights::OrderedWeights>>,
-    states: BTreeMap<SharedWeighted, usize>,
-    ids: BTreeMap<(u64, Vec<(Label, usize)>), usize>,
+    states: intern_arena::Arena<SharedWeighted>,
+    ids: intern_arena::Arena<intern_arena::Signature>,
+    child_ids: Vec<usize>,
     cursor: Vec<(usize, bool)>,
     frames: Vec<CanonicalFrame>,
     open: Vec<SharedWeighted>,
@@ -213,13 +217,25 @@ pub(super) struct Canonicalizer<'a> {
 }
 
 impl<'a> Canonicalizer<'a> {
+    // Shipping caller admits the complete new owner and both arena header
+    // initializer/receiving pairs before entering this infallible constructor.
+    // The old test constructor boundary remains explicit and unreceived.
+    pub(super) const CONSTRUCTOR_CONTROLS: usize = 2 * std::mem::size_of::<Self>()
+        + 2 * std::mem::size_of::<intern_arena::Arena<SharedWeighted>>()
+        + 2 * std::mem::size_of::<intern_arena::Arena<intern_arena::Signature>>()
+        + 2 * std::mem::size_of::<Vec<intern_arena::Node<SharedWeighted>>>()
+        + 2 * std::mem::size_of::<Vec<intern_arena::Node<intern_arena::Signature>>>()
+        + 2 * std::mem::size_of::<Vec<usize>>()
+        + std::mem::size_of::<Result<(), Diagnostic>>();
+
     pub(super) fn new(automaton: &'a Automaton, sink: usize) -> Self {
         Self {
             automaton,
             sink,
             closures: empty_memo::Memo::new(),
-            states: BTreeMap::new(),
-            ids: BTreeMap::new(),
+            states: intern_arena::Arena::new(),
+            ids: intern_arena::Arena::new(),
+            child_ids: Vec::new(),
             cursor: Vec::new(),
             frames: Vec::new(),
             open: Vec::new(),
@@ -1148,6 +1164,7 @@ impl<'a> Canonicalizer<'a> {
         // Retain capacity, never owned references, across either root and all
         // success, arithmetic, work, physical and semantic failure exits.
         self.cursor.clear();
+        self.child_ids.clear();
         self.frames.clear();
         self.open.clear();
         receiving.ready = false;
@@ -1267,42 +1284,67 @@ impl<'a> Canonicalizer<'a> {
                         successors.len(),
                         "factored canonical signature construction",
                     ));
-                    attempt!(budget.reserve_array::<(Label, usize)>(
-                        function,
-                        successors.len(),
-                        "factored canonical signature vector",
+                    attempt!(budget.reserve_bytes(
+                        function, intern_arena::SignatureQuery::EXIT_CONTROLS,
+                        "canonical borrowed signature receiving",
                     ));
-                    let mut key = Vec::with_capacity(successors.len());
-                    for (label, child) in successors {
-                        let Some(id) = self.states.get(&child) else {
-                            receiving.refusal =
-                                Some(replay_error(function, "cleanup CFG contains a cycle"));
+                    // Retained scalar scratch contains only the child IDs for
+                    // this frame; the epsilon cursor keeps its original shape.
+                    self.child_ids.clear();
+                    attempt!(budget.reserve_vec(
+                        function, &mut self.child_ids, successors.len(),
+                        "canonical ordered child identity scratch",
+                    ));
+                    attempt!(budget.reserve_array::<[usize; 2]>(
+                        function, successors.len(), "canonical child identity receiving",
+                    ));
+                    // Resolve every ID before signature comparison can stop at
+                    // its first mismatch. This preserves the original failure order.
+                    for (_, child) in &successors {
+                        let Some(id) = self.states.get(child) else {
+                            receiving.refusal = Some(replay_error(function, "cleanup CFG contains a cycle"));
                             receiving.ready = true;
                             return;
                         };
-                        key.push((label, *id));
+                        self.child_ids.push(*id);
                     }
-                    let key = (accepted, key);
-                    let id = match self.ids.get(&key) {
+                    let query = intern_arena::SignatureQuery {
+                        accepted, successors: &successors, children: &self.child_ids,
+                    };
+                    let id = match self.ids.get(&query) {
                         Some(id) => *id,
                         None => {
-                            attempt!(budget
-                                .reserve_btree_node::<(u64, Vec<(Label, usize)>), usize>(
-                                    function,
-                                    "factored canonical signature node",
-                                ));
+                            attempt!(budget.reserve_array::<(Label, usize)>(
+                                function, successors.len(), "factored canonical signature vector",
+                            ));
+                            // New index initializer/local and the actual index /
+                            // increment operands precede the owning miss producer.
+                            attempt!(budget.reserve_bytes(
+                                function, 2 * std::mem::size_of::<usize>()
+                                    + 2 * std::mem::size_of::<Result<(), Diagnostic>>(),
+                                "canonical signature miss cursor",
+                            ));
+                            attempt!(budget.reserve_array::<[usize; 3]>(
+                                function, successors.len(), "canonical signature miss indexing",
+                            ));
+                            let mut key = Vec::with_capacity(successors.len());
+                            let mut index = 0;
+                            for (label, _child) in successors {
+                                key.push((label, self.child_ids[index]));
+                                index += 1;
+                            }
+                            let key = (accepted, key);
+                            intern_arena::prepare_insert!(self.ids, intern_arena::Signature, function, budget);
                             let id = self.ids.len();
-                            self.ids.insert(key, id);
+                            self.ids.insert_prepaid(key, id);
                             id
                         }
                     };
+                    self.child_ids.clear();
                     if !self.states.contains_key(&state) {
-                        attempt!(budget.reserve_btree_node::<SharedWeighted, usize>(
-                            function,
-                            "factored canonical state memo node",
-                        ));
+                        intern_arena::prepare_insert!(self.states, SharedWeighted, function, budget);
                     }
-                    self.states.insert(state, id);
+                    self.states.insert_prepaid(state, id);
                 }
             }
         }
@@ -1331,3 +1373,9 @@ pub(in crate::cleanup_plan::replay::factored) mod before_nodes;
 
 #[cfg(test)]
 mod main_unit_weight;
+
+#[cfg(test)]
+mod arena_tests;
+
+#[cfg(test)]
+mod arena_source;

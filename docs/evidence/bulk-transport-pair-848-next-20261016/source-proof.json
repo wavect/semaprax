@@ -1,0 +1,10 @@
+{
+  "mode": "SOURCE_ONLY_NO_RUST_NO_PAIR_EXECUTION",
+  "full_predecessor_rows": 9,
+  "fixed_files": 90,
+  "fixed_bytes": 93641932,
+  "new_owners": 3,
+  "virtual_arm_hashes_exact": true,
+  "project_body_and_full_loader_tail_exact": true,
+  "original_authority_checker_unchanged": true
+}

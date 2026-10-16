@@ -1,0 +1,192 @@
+[
+  {
+    "path": "/docs/evidence/next-bitmap-singleton-main2600-20261016/current-to-4fba.json",
+    "variant": "M00",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/next-bitmap-singleton-main2600-20261016/current-to-4fba.json\"))"
+  },
+  {
+    "path": "/docs/evidence/next-main-beb0-847-joined-20261016/current-to-8bb.json",
+    "variant": "M01",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/next-main-beb0-847-joined-20261016/current-to-8bb.json\"))"
+  },
+  {
+    "path": "/docs/evidence/private-175-actual-fixes-20261015/current-to-82fea.json",
+    "variant": "M02",
+    "literal": "project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/private-175-actual-fixes-20261015/current-to-82fea.json\"\n        ))"
+  },
+  {
+    "path": "/docs/evidence/boxed-state-local-owner-849-20261016/current-to-35c.json",
+    "variant": "M03",
+    "literal": "project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/boxed-state-local-owner-849-20261016/current-to-35c.json\"\n        ))"
+  },
+  {
+    "path": "/docs/evidence/boxed-state-receiving-849-20261016/current-to-main019d.json",
+    "variant": "M04",
+    "literal": "project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/boxed-state-receiving-849-20261016/current-to-main019d.json\"\n        ))"
+  },
+  {
+    "path": "/docs/evidence/next-unit-branch-receiving-joined-20261016/final-to-7c.json",
+    "variant": "M05",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/next-unit-branch-receiving-joined-20261016/final-to-7c.json\"))"
+  },
+  {
+    "path": "/docs/evidence/closure-unit-receiving-831-next-20261016/preflight-binding-successor/current-to-fac.json",
+    "variant": "M06",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/closure-unit-receiving-831-next-20261016/preflight-binding-successor/current-to-fac.json\"))"
+  },
+  {
+    "path": "/docs/evidence/closure-unit-receiving-831-next-20261016/current-to-2d4b.json",
+    "variant": "M07",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/closure-unit-receiving-831-next-20261016/current-to-2d4b.json\"))"
+  },
+  {
+    "path": "/docs/evidence/compile-fixture-successor-5aac-20261016/current-to-5aac.json",
+    "variant": "M08",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/compile-fixture-successor-5aac-20261016/current-to-5aac.json\"))"
+  },
+  {
+    "path": "/docs/evidence/main531-independent-groups-20261016/current-to-2d4b.json",
+    "variant": "M09",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main531-independent-groups-20261016/current-to-2d4b.json\"))"
+  },
+  {
+    "path": "/docs/evidence/main531-independent-groups-20261016/runtime-main-root.json",
+    "variant": "M10",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main531-independent-groups-20261016/runtime-main-root.json\"))"
+  },
+  {
+    "path": "/docs/evidence/main531-original-tests-child-20261016/current-to-7e9f.json",
+    "variant": "M11",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main531-original-tests-child-20261016/current-to-7e9f.json\"))"
+  },
+  {
+    "path": "/docs/evidence/b3a-compile-fixture-task722-join-20261016/current-to-b3a.json",
+    "variant": "M12",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/b3a-compile-fixture-task722-join-20261016/current-to-b3a.json\"))"
+  },
+  {
+    "path": "/docs/evidence/post-main0ab1-singleton-join-20261016/current-to-3177.json",
+    "variant": "M13",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/post-main0ab1-singleton-join-20261016/current-to-3177.json\"))"
+  },
+  {
+    "path": "/docs/evidence/main696-funded-receiving-joined-20261016/current-to-ff7e.json",
+    "variant": "M14",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main696-funded-receiving-joined-20261016/current-to-ff7e.json\"))"
+  },
+  {
+    "path": "/docs/evidence/main696-source-reconciliation-20261016/current-to-main696.json",
+    "variant": "M15",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main696-source-reconciliation-20261016/current-to-main696.json\"))"
+  },
+  {
+    "path": "/docs/evidence/main696-source-reconciliation-20261016/current-to-364d.json",
+    "variant": "M16",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main696-source-reconciliation-20261016/current-to-364d.json\"))"
+  },
+  {
+    "path": "/docs/evidence/next-unit-branch-receiving-joined-20261016/final-to-bac.json",
+    "variant": "M17",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/next-unit-branch-receiving-joined-20261016/final-to-bac.json\"))"
+  },
+  {
+    "path": "/docs/evidence/actual50-fixture-and-facade-corrections-20261016/current-to-183.json",
+    "variant": "M18",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/actual50-fixture-and-facade-corrections-20261016/current-to-183.json\"))"
+  },
+  {
+    "path": "/docs/evidence/task722-held-fitting759-join-20261016/current-to-0e7b.json",
+    "variant": "M19",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/task722-held-fitting759-join-20261016/current-to-0e7b.json\"))"
+  },
+  {
+    "path": "/docs/evidence/actual47f-pin-fixture-successor-20261016/current-to-47f.json",
+    "variant": "M20",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/actual47f-pin-fixture-successor-20261016/current-to-47f.json\"))"
+  },
+  {
+    "path": "/docs/evidence/main8fb-source-reconciliation-20261016/current-to-main8fb.json",
+    "variant": "M21",
+    "literal": "project(\n            include_str!(concat!(\n                env!(\"CARGO_MANIFEST_DIR\"),\n                \"/docs/evidence/main8fb-source-reconciliation-20261016/current-to-main8fb.json\"\n            ))"
+  },
+  {
+    "path": "/docs/evidence/future-main-output-851-joined-20261016/current-to-bcd.json",
+    "variant": "M22",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future-main-output-851-joined-20261016/current-to-bcd.json\"))"
+  },
+  {
+    "path": "/docs/evidence/future-main-output-851-joined-20261016/current-to-ff5.json",
+    "variant": "M23",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future-main-output-851-joined-20261016/current-to-ff5.json\"))"
+  },
+  {
+    "path": "/docs/evidence/post21-alias-observer-source-join-20261016/current-to-36f.json",
+    "variant": "M24",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/post21-alias-observer-source-join-20261016/current-to-36f.json\"))"
+  },
+  {
+    "path": "/docs/evidence/main83-source-join-20261015/current-to-4f5b.json",
+    "variant": "M25",
+    "literal": "project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/main83-source-join-20261015/current-to-4f5b.json\"\n        ))"
+  },
+  {
+    "path": "/docs/evidence/next-bitmap-singleton-main2600-20261016/current-to-4fba.json",
+    "variant": "M00",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/next-bitmap-singleton-main2600-20261016/current-to-4fba.json\"))"
+  },
+  {
+    "path": "/docs/evidence/next-main-beb0-847-joined-20261016/current-to-8bb.json",
+    "variant": "M01",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/next-main-beb0-847-joined-20261016/current-to-8bb.json\"))"
+  },
+  {
+    "path": "/docs/evidence/private-175-actual-fixes-20261015/current-to-c159.json",
+    "variant": "M26",
+    "literal": "project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/private-175-actual-fixes-20261015/current-to-c159.json\"\n        ))"
+  },
+  {
+    "path": "/docs/evidence/ordered-amortized-root-domain-20261015/current-to-35cc.json",
+    "variant": "M27",
+    "literal": "project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/ordered-amortized-root-domain-20261015/current-to-35cc.json\"\n        ))"
+  },
+  {
+    "path": "/docs/evidence/storage-oracle-compiler-fix-join-20261015/current-to-d719.json",
+    "variant": "M28",
+    "literal": "project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/storage-oracle-compiler-fix-join-20261015/current-to-d719.json\"\n        ))"
+  },
+  {
+    "path": "/docs/evidence/main-dd0-compiled-custody-join-20261016/compiled-before-to-main.json",
+    "variant": "M29",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main-dd0-compiled-custody-join-20261016/compiled-before-to-main.json\"))"
+  },
+  {
+    "path": "/docs/evidence/main-b80-complete-source-join-20261016/current-to-main.json",
+    "variant": "M30",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main-b80-complete-source-join-20261016/current-to-main.json\"))"
+  },
+  {
+    "path": "/docs/evidence/main-b80-complete-source-join-20261016/current-to-df2.json",
+    "variant": "M31",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main-b80-complete-source-join-20261016/current-to-df2.json\"))"
+  },
+  {
+    "path": "/docs/evidence/reference-coverage-paid-receiving-781-next-20261016/current-drivers-to-9a3.json",
+    "variant": "M32",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/reference-coverage-paid-receiving-781-next-20261016/current-drivers-to-9a3.json\"))"
+  },
+  {
+    "path": "/docs/evidence/session-reference-instance-joined-20261016/current-to-17b.json",
+    "variant": "M33",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/session-reference-instance-joined-20261016/current-to-17b.json\"))"
+  },
+  {
+    "path": "/docs/evidence/session-reference-instance-joined-20261016/current-to-reference.json",
+    "variant": "M34",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/session-reference-instance-joined-20261016/current-to-reference.json\"))"
+  },
+  {
+    "path": "/docs/evidence/main-dd0-compiled-custody-join-20261016/current-to-83ca.json",
+    "variant": "M35",
+    "literal": "project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main-dd0-compiled-custody-join-20261016/current-to-83ca.json\"))"
+  }
+]

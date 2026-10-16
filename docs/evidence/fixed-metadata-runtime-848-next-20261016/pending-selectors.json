@@ -1,0 +1,12 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "source_reflows_merge::metadata_json::fixed_metadata_bytes_and_exact_source_membership_remain_complete"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "source_reflows_merge::runtime_json::tests::fixed_projection_json_transport_refuses_hostile_io_before_parsing"
+  }
+]

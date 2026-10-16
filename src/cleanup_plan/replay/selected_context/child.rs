@@ -7,7 +7,7 @@ pub(in super::super) struct Permit<'a> {
     subject: &'a ResolvedFunction,
 }
 impl<'a> Permit<'a> {
-    pub(super) fn acquire<T>(
+    pub(in super::super) fn acquire<T>(
         subject: &'a ResolvedFunction,
         budget: &mut ReplayBudget,
     ) -> Result<Self, Error> {
@@ -180,3 +180,53 @@ impl ReplayBudget {
             .map_err(|error| Deferred::Budget(BudgetDiagnostic(error)))
     }
 }
+
+// Additional actual same-ledger primitive calls for the complete structural
+// family. No caller may manufacture BudgetDiagnostic from a child Diagnostic.
+pub(in super::super) type CloneReceiving<'a, T> = (
+    &'a mut ReplayBudget,
+    &'a ResolvedFunction,
+    &'a T,
+    &'a str,
+    Result<(), crate::diagnostic::Diagnostic>,
+    crate::diagnostic::Diagnostic,
+    BudgetDiagnostic,
+    Deferred,
+    Result<(), Deferred>,
+);
+pub(in super::super) type VecReceiving<'a, T> = (
+    &'a mut ReplayBudget,
+    &'a ResolvedFunction,
+    &'a mut Vec<T>,
+    usize,
+    &'a str,
+    Result<(), crate::diagnostic::Diagnostic>,
+    crate::diagnostic::Diagnostic,
+    BudgetDiagnostic,
+    Deferred,
+    Result<(), Deferred>,
+);
+impl ReplayBudget {
+    #[track_caller]
+    pub(in super::super) fn child_reserve_clone<T: super::super::ClonePayload>(
+        &mut self,
+        function: &ResolvedFunction,
+        value: &T,
+        phase: &str,
+    ) -> Result<(), Deferred> {
+        self.reserve_clone(function, value, phase)
+            .map_err(|error| Deferred::Budget(BudgetDiagnostic(error)))
+    }
+    #[track_caller]
+    pub(in super::super) fn child_reserve_vec<T>(
+        &mut self,
+        function: &ResolvedFunction,
+        values: &mut Vec<T>,
+        additional: usize,
+        phase: &str,
+    ) -> Result<(), Deferred> {
+        self.reserve_vec(function, values, additional, phase)
+            .map_err(|error| Deferred::Budget(BudgetDiagnostic(error)))
+    }
+}
+pub(in super::super) mod receiving;

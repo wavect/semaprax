@@ -1,0 +1,281 @@
+{
+  "base": "c7c02a4f86b1ca35b5de7e68f8a7cf9265c23829",
+  "rows": [
+    {
+      "source": "CHANGELOG.md",
+      "before_sha256": "4f61d15bfa02047c1aaa191cf73ba0df3af0ee82a6c3e5634dabe937b35c4d2a",
+      "after_sha256": "19c04b0c0b27c41bd2fbeaf5e6117d4a34b4e31e1e621a10fd8d86c7eecddc96",
+      "before_archive": "before/CHANGELOG.md",
+      "edits": [
+        {
+          "old_offset": 627,
+          "new_offset": 627,
+          "before": "",
+          "after": "\n- Source-only #781 adds complete paid status and selected scalar record/body receivers with closed semantic data, actual per-call same-ledger banks and independent prior drivers. Error-only dynamic controls are acquired only on that path. New frontiers and remaining inventory/certificate/schema/path diagnostics are explicit; executable qualification and end-to-end closure remain pending.\n"
+        }
+      ]
+    },
+    {
+      "source": "docs/ARCHITECTURE.md",
+      "before_sha256": "b6a41cafc61ac81b707f8f90223b47f1884d612e25b4834357eb5a3a9ad747a4",
+      "after_sha256": "3cba888c53b9844ba1d1f6fffe99986784765b4ebb7b53bee9c97a5dfb84734d",
+      "before_archive": "before/docs/ARCHITECTURE.md",
+      "edits": [
+        {
+          "old_offset": 364500,
+          "new_offset": 364500,
+          "before": "",
+          "after": "\nSelected status reconstruction has an independent `status_construction/paid`\nowner for complete requires/body/ensures traversal. Static refusals remain closed\nlabels; unknown-callee receipts retain their shared identity and acquire their\nactual Atom controls only on that error path. `scalar_replay/records/paid` owns\nborrowed-record shape checks, and `scalar_replay/paid_nodes` owns the complete\nselected scalar cursor. Original record, status and scalar-body algorithms stay\navailable to ordinary replay and independent test drivers. Pure type-key math\nis lexical in the paid record receiver, with no extra forwarding Result or\nserialized-key authority. These owners do not cover inventory construction,\nlexical certificates, schema adapters or path/factored child diagnostics.\n"
+        }
+      ]
+    },
+    {
+      "source": "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "before_sha256": "f7e176a54db51061c13f2a46258ab6afa95b11c178f63cc959ac0d3989151544",
+      "after_sha256": "b247808024f99ce10ead50eb16b0b3dca52a177c1930904e9e7bd0be892533f7",
+      "before_archive": "before/docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "edits": [
+        {
+          "old_offset": 40796,
+          "new_offset": 40796,
+          "before": "",
+          "after": "\n## Status and scalar-local receiving cut (#781, source-only)\n\nPaid lexical/scalar drivers use complete status reconstruction with seven closed\nlabels and one shared-identity unknown-callee atom. Requires, body, ensures,\nordinal conversion, case normalization and all vector/clone ordering remain.\nEach actual twelve-site array/Vec/clone call acquires the existing exact\nsame-ledger receiving layout before arguments. The dynamic Atom initializer and\nreceiving pair is paid only when the unchanged callee lookup actually fails,\nbefore its identity clone or receipt construction. Successful collectors do\nnot acquire that error-only bank. The original complete producer is unchanged.\n\nSelected scalar record/body checks retain the full signature, rooted parameter,\nprojected field, mode/type and cursor algorithms. The original pure type-key\nmath is lexical, removing extra helper Results rather than introducing nested\nmutable-budget forwarding. Error Option conversions are lexical returning\nbranches so the affine permit survives successful iterations. Each actual\nnew helper Result/receipt bank is acquired for its return type before entry.\nThe generic borrowed-scalar helper remains unchanged and has only its original\nreal ReplayBudget charge callback; its new outer Error mapping is prepaid and\ncannot convert an arbitrary semantic Diagnostic. Existing typed inline record\nclassification and its exact original refusal labels remain source-bound.\n\nComplete immediate-prior paid drivers, original scalar traversal and record\nhelpers remain independently executable. Four owning controls cover complete\nstatus/static/dynamic diagnostics, actual exact/short/work/Drop, full record\nshape answers, and source-authenticated whole old/current drivers. They are\nunexecuted source gates. New entry/control payments may refuse before an old\nsemantic or backing frontier; old fees, forecasts and caps are unchanged.\n\nThis cut does not establish transitive #781 funding. Inventory-builder raw\ncallbacks, lexical certificates, scalar schema/borrowed-test adapters, CFG,\npath and factored descendants still include original owned Diagnostics.\nThose genuine boundaries require separate typed cuts; no late relabeling or\nwhole-Session closure is claimed. Ordinary and legacy paths remain allocating.\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile.rs",
+      "before_sha256": "d7b42294cacc18d201d925b7166701c99c9fe2f191eeaf7f0b25155b683b2003",
+      "after_sha256": "853b6f818f275532cbbe72b0b7e227ffb31216c0cf1cc13e64aab76501a5c8a7",
+      "before_archive": "before/src/cleanup_plan/renewal_profile.rs",
+      "edits": [
+        {
+          "old_offset": 11959,
+          "new_offset": 11959,
+          "before": "",
+          "after": "\npub(crate) mod status_refusal;\n\npub(crate) mod scalar_refusal;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "before_sha256": "1309ba57a9865e10b9154b335ffa66ae02d39806e35e43276f71f921d827ac77",
+      "after_sha256": "fb411839333c77b5ff28571d8678573fb48c19b83740a49629d41d6d91b93ef7",
+      "before_archive": "before/src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "edits": [
+        {
+          "old_offset": 414,
+          "new_offset": 414,
+          "before": "",
+          "after": "    Status(super::status_refusal::StatusRefusal),\n    Scalar(super::scalar_refusal::ScalarRefusal),\n"
+        },
+        {
+          "old_offset": 787,
+          "new_offset": 887,
+          "before": "",
+          "after": "            Self::Status(reason) => reason.detail(),\n            Self::Scalar(reason) => reason.detail(),\n"
+        },
+        {
+          "old_offset": 1462,
+          "new_offset": 1668,
+          "before": "            Self::ReferenceCoverage(_) | Self::Structural(_) => true,\n",
+          "after": "            Self::ReferenceCoverage(_) | Self::Structural(_) | Self::Status(_) | Self::Scalar(_) => true,\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records/tests.rs",
+      "before_sha256": "d3e46c317a224b70ea81c29f07e2924bbb298a221ccfcc7b51e80c31b7f37c18",
+      "after_sha256": "2cc0d5e75f144afc8e070889fe758fc44227a25b1e544643d4206f09d69c6ca3",
+      "before_archive": "before/src/cleanup_plan/replay/flat_records/tests.rs",
+      "edits": [
+        {
+          "old_offset": 12221,
+          "new_offset": 12221,
+          "before": "",
+          "after": "\n#[path = \"tests/receiving_status_scalar.rs\"]\nmod receiving_status_scalar;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_replay.rs",
+      "before_sha256": "7d62adc0802cc598f1fcfdbb5b5681d40d884fd9f49e55bfb1913ff51dfdaed9",
+      "after_sha256": "20f3ac7b93632ed62b84a296924888ab6b66c4f2829822545bb1304823fbfcb7",
+      "before_archive": "before/src/cleanup_plan/replay/lexical_replay.rs",
+      "edits": [
+        {
+          "old_offset": 2706,
+          "new_offset": 2706,
+          "before": "        status_construction::validate_required_status_sources(program, function, budget)?;\n        let storage = structural_maps::paid::slots(\n            function, budget,\n        )?;\n",
+          "after": "        status_construction::paid::validate_required_status_sources(program, function, budget)?;\n        let storage = structural_maps::paid::slots(function, budget)?;\n"
+        },
+        {
+          "old_offset": 13082,
+          "new_offset": 13065,
+          "before": "",
+          "after": "\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) mod before_status_scalar;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/scalar_replay.rs",
+      "before_sha256": "3addad9475b7effecf096d833429ae2334c25e3c2eece227b8a519de0e547a27",
+      "after_sha256": "8f4f1121c1509109d9410b263fec31e7f6c001e786ef0aa4fff7a507093dbcde",
+      "before_archive": "before/src/cleanup_plan/replay/scalar_replay.rs",
+      "edits": [
+        {
+          "old_offset": 1104,
+          "new_offset": 1104,
+          "before": "    if !records::signature(program, function, budget)? {\n        return Err(replay_error(\n            function,\n            \"selected helper signature is outside Copy scalars\",\n        )\n        .into());\n",
+          "after": "    let permit = selected_context::child::Permit::profile::<()>(function, budget)?;\n    if !records::paid::signature(program, function, budget)? {\n        return Err(permit.refuse(\n            crate::cleanup_plan::renewal_profile::child_refusal::Refusal::Scalar(\n                crate::cleanup_plan::renewal_profile::scalar_refusal::ScalarRefusal::Signature,\n            ),\n        ));\n"
+        },
+        {
+          "old_offset": 1527,
+          "new_offset": 1708,
+          "before": "        scalar_nodes(program, function, budget)?;\n",
+          "after": "        paid_nodes::validate(program, function, budget)?;\n"
+        },
+        {
+          "old_offset": 1977,
+          "new_offset": 2166,
+          "before": "        return Err(replay_error(\n            function,\n            \"pure scalar helper carries an unexpected loan proof\",\n        )\n        .into());\n",
+          "after": "        return Err(permit.refuse(\n            crate::cleanup_plan::renewal_profile::child_refusal::Refusal::Scalar(\n                crate::cleanup_plan::renewal_profile::scalar_refusal::ScalarRefusal::Loan,\n            ),\n        ));\n"
+        },
+        {
+          "old_offset": 2589,
+          "new_offset": 2862,
+          "before": "        return Err(replay_error(\n            function,\n            \"selected scalar helper requires its exact nonlexical schema\",\n        )\n        .into());\n",
+          "after": "        return Err(permit.refuse(\n            crate::cleanup_plan::renewal_profile::child_refusal::Refusal::Scalar(\n                crate::cleanup_plan::renewal_profile::scalar_refusal::ScalarRefusal::Schema,\n            ),\n        ));\n"
+        },
+        {
+          "old_offset": 3493,
+          "new_offset": 3844,
+          "before": "    status_construction::validate_required_status_sources(program, function, budget)?;\n    let storage = structural_maps::paid::slots(\n        function, budget,\n    )?;\n",
+          "after": "    status_construction::paid::validate_required_status_sources(program, function, budget)?;\n    let storage = structural_maps::paid::slots(function, budget)?;\n"
+        },
+        {
+          "old_offset": 3992,
+          "new_offset": 4334,
+          "before": "    let renewals = program\n        .primitive_renewals(function)\n        .ok_or_else(|| replay_error(function, \"selected scalar helper lacks its function lease\"))?;\n",
+          "after": "    let renewals = match program.primitive_renewals(function) {\n        Some(value) => value,\n        None => {\n            return Err(permit.refuse(\n                crate::cleanup_plan::renewal_profile::child_refusal::Refusal::Scalar(\n                    crate::cleanup_plan::renewal_profile::scalar_refusal::ScalarRefusal::Lease,\n                ),\n            ))\n        }\n    };\n"
+        },
+        {
+          "old_offset": 4880,
+          "new_offset": 5440,
+          "before": "        Some(false) => Err(replay_error(\n            function,\n            \"selected scalar helper control trace disagrees with typed HIR\",\n        )\n        .into()),\n        None => Err(replay_error(\n            function,\n            \"selected scalar helper trace multiplicity overflowed\",\n        )\n        .into()),\n",
+          "after": "        Some(false) => Err(permit.refuse(\n            crate::cleanup_plan::renewal_profile::child_refusal::Refusal::Scalar(\n                crate::cleanup_plan::renewal_profile::scalar_refusal::ScalarRefusal::Trace,\n            ),\n        )),\n        None => Err(permit.refuse(\n            crate::cleanup_plan::renewal_profile::child_refusal::Refusal::Scalar(\n                crate::cleanup_plan::renewal_profile::scalar_refusal::ScalarRefusal::Multiplicity,\n            ),\n        )),\n"
+        },
+        {
+          "old_offset": 12434,
+          "new_offset": 13160,
+          "before": "",
+          "after": "\nmod paid_nodes;\n\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) mod before_status_scalar;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/scalar_replay/records.rs",
+      "before_sha256": "d0a7ecff13b07ac0c5197fb5d590de2a734c45c4ebd02ab66eb8bcb1479ad09b",
+      "after_sha256": "95e46d357eab6243ecfa6e779a6acb3179ac05bc32d6c672deb2267842155191",
+      "before_archive": "before/src/cleanup_plan/replay/scalar_replay/records.rs",
+      "edits": [
+        {
+          "old_offset": 7709,
+          "new_offset": 7709,
+          "before": "",
+          "after": "\npub(in crate::cleanup_plan::replay) mod paid;\n\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) fn signature_for_test(\n    program: &dyn ReplayContext,\n    function: &ResolvedFunction,\n    budget: &mut ReplayBudget,\n) -> Result<bool, Diagnostic> {\n    signature(program, function, budget)\n}\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_profile/paid_children.rs",
+      "before_sha256": "9b959ccb9a045733478f24d14927c41f79af6a50a3d2c1c6382ef4753e223216",
+      "after_sha256": "e392c1dd100983a4cacc9160148a775de37416a26e9630c30316ca6b30c2d62f",
+      "before_archive": "before/src/cleanup_plan/replay/selected_profile/paid_children.rs",
+      "edits": [
+        {
+          "old_offset": 453,
+          "new_offset": 453,
+          "before": "pub(in crate::cleanup_plan::replay) use collections::{call_facts, field};\n",
+          "after": "pub(in crate::cleanup_plan::replay) use collections::{call_facts, field, prepay};\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/semantic_refusal.rs",
+      "before_sha256": "fc1a6f41a225e0936ede78ff9923eb0eea1e93ce5c8e37fbde9709e6ee78c823",
+      "after_sha256": "354c0def650509387ebfb5c2bf1598152172fdc7930f73aa7725b2bd8e04ee26",
+      "before_archive": "before/src/cleanup_plan/replay/semantic_refusal.rs",
+      "edits": [
+        {
+          "old_offset": 389,
+          "new_offset": 389,
+          "before": "",
+          "after": "    StatusUnknownCallee(DeclarationId),\n"
+        },
+        {
+          "old_offset": 2178,
+          "new_offset": 2218,
+          "before": "",
+          "after": "            Atom::StatusUnknownCallee(callee) => replay_error(\n                function,\n                format_args!(\"status source call has unknown callee `{callee}`\"),\n            ),\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/status_construction.rs",
+      "before_sha256": "d72a80e34d5165cb87e307d9c0b0f3c4ec951656bb2a7515719635a43265c036",
+      "after_sha256": "0fcbba12d1d3cc310471012869467424c81639b68f43df5f4f068b6448dcfded",
+      "before_archive": "before/src/cleanup_plan/replay/status_construction.rs",
+      "edits": [
+        {
+          "old_offset": 18398,
+          "new_offset": 18398,
+          "before": "",
+          "after": "\npub(in crate::cleanup_plan::replay) mod paid;\n\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) fn collect_for_test(\n    program: &dyn crate::cleanup::ReplayContext,\n    function: &ResolvedFunction,\n    expression: &ResolvedExpr,\n    statuses: &mut Vec<StatusSource>,\n    budget: &mut ReplayBudget,\n) -> Result<(), Diagnostic> {\n    collect_expression_statuses(program, function, expression, statuses, budget)\n}\n"
+        }
+      ]
+    }
+  ],
+  "new_sources": [
+    {
+      "source": "src/cleanup_plan/renewal_profile/scalar_refusal.rs",
+      "sha256": "9eb57884b4ea2a059739e38a54ee91648cdb8c127caeca9623d3f1f01ce4b7bc",
+      "lines": 39
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/status_refusal.rs",
+      "sha256": "a24bbcbda166bc39377271275f9954070f2884f4da190ca544256bb0825a0f3e",
+      "lines": 30
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records/tests/receiving_status_scalar.rs",
+      "sha256": "eabed285d631b4180f1bcf50de92426796742735604f2fdd8b17461be8fcce1f",
+      "lines": 300
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_replay/before_status_scalar.rs",
+      "sha256": "0b705a556211611b350e4116acd666e28a0c5e278d96ec3e5c7da40c852b3d57",
+      "lines": 149
+    },
+    {
+      "source": "src/cleanup_plan/replay/scalar_replay/before_status_scalar.rs",
+      "sha256": "c935525a97c140248d8affefdb40f6ce75246c75845388d23b37dd51c33ee8c8",
+      "lines": 118
+    },
+    {
+      "source": "src/cleanup_plan/replay/scalar_replay/paid_nodes.rs",
+      "sha256": "220e5d317b34d9ceea9aede0331a9a18fe14509650c4d37132bd9d50ec09a892",
+      "lines": 94
+    },
+    {
+      "source": "src/cleanup_plan/replay/scalar_replay/records/paid.rs",
+      "sha256": "8479c7e314934230ea831695bd821e017f3b7a6182f38ddda039db29f81263c5",
+      "lines": 254
+    },
+    {
+      "source": "src/cleanup_plan/replay/status_construction/paid.rs",
+      "sha256": "b2904b4336c188b76a5124df7d43d3a7d974223304bd9d7c5b22f2e4ac11a4c6",
+      "lines": 447
+    }
+  ]
+}

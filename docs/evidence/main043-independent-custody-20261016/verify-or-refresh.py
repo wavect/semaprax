@@ -18,7 +18,10 @@ for i,o in enumerate(owners):
  assert read(o['table'])==git(A,o['table']),('original root table changed',o['table'])
  assert read(f'{D}/incoming/table-{i}.json')==git(M,o['table'])
  assert read(f'{D}/incoming/owners/owner-{i}.rs.txt')==git(M,o['owner'])
-assert read('src/source_reflows/semantic_receivers.rs')==git(A,'src/source_reflows/semantic_receivers.rs')
+# The raw receiver has legitimate followups; only this equality uses a closed historical view.
+assert sha(read(D+'/semantic-receiver-view.py'))=='add8ccc32ef06ee92ffe70dfea9210646b7bc7385a303f9dcc4f57e47ccd0d80','historical receiver view source drift'
+receiver_view=runpy.run_path(str(R/D/'semantic-receiver-view.py'))
+assert receiver_view['historical'](R,read('src/source_reflows/semantic_receivers.rs'))==git(A,'src/source_reflows/semantic_receivers.rs')
 for path in ['.github/workflows/ci.yml','scripts/ci-low-stack-trace.py','scripts/tests/test_ci_low_stack_trace.py']:
  assert read(path)==git('b4523cc7c46de19287a1675a3482416d860d4976',path),('reviewed latest-main CI bytes',path)
 for path in (R/D/'incoming/archives').rglob('*'):

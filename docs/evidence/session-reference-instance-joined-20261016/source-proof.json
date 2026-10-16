@@ -1,0 +1,18 @@
+{
+  "status": "SOURCE_ONLY_PASS_NO_RUST_EXECUTION",
+  "whole_namespace_inverse_rows": {
+    "17b": 24,
+    "reference": 15,
+    "853": 18
+  },
+  "component_whole_namespace_proof_reuse": {
+    "reference-coverage-paid-receiving-781-next-20261016": 13,
+    "streaming-instance-comparison-853-next-20261016": 8
+  },
+  "old_JSON_and_90runtime_fixtures_unchanged": true,
+  "project_body_exact": true,
+  "new_source_owners": 7,
+  "current_report_setup_and_receipt_authorities_byteexact": true,
+  "whole781": "OPEN_remaining_dynamic_producers",
+  "execution": "NOT_EXECUTED"
+}

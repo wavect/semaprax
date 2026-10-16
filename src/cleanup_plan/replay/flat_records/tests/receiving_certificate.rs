@@ -168,7 +168,9 @@ fn certificate_precision_complete_paid_drivers_keep_source_and_first_refusal() {
         (scalar, "family.scalar.main", false),
     ] {
         let fixture = crate::workspace_graph::SourceRecordReplayFixture::new(source);
-        fixture.with_context(|source| {
+        // Keep the original subject and hostile mutations, but authenticate the
+        // complete current directory before either independent driver runs.
+        fixture.with_prepared_context(|source| {
             let f = source
                 .functions()
                 .iter()

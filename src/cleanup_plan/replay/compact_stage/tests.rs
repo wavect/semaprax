@@ -1,5 +1,6 @@
 use super::*;
 use crate::bounded_output::with_limit_usage_refusal;
+use crate::cleanup_plan::replay::MAX_REPLAY_WORK_UNITS;
 use crate::test_allocation_observer::measure;
 // These direct receivers start after skeleton preflight. Supply its explicit
 // work allowance; new() intentionally leaves that allowance unset. Allocation

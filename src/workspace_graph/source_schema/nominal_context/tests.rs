@@ -163,7 +163,7 @@ fn lexical_nominal_context_receiving_keeps_exact_short_floor_and_local_view() {
             (bytes, value.len())
         })
     }
-    let observe = |construct, limit, floor| {
+    let observe = |construct: bool, limit, floor| {
         with_limit_usage_refusal(limit, || {
             measure(|| {
                 if floor {

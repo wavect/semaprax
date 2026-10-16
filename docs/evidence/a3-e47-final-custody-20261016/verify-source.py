@@ -17,6 +17,13 @@ for original,copy in [('docs/evidence/loan-endpoint-ordered-union-827/exact-sour
 for r in json.loads((D/'new-owners.json').read_text()):
  b=(R/r['source']).read_bytes();assert h(b)==r['sha256'];assert len(b.splitlines())==r['lines']<=1500
  for f in ['tests/hir_module_boundaries.rs','tests/workspace/semantic_graph/source_inventory.rs','crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs']:assert(R/f).read_text().count(r['source'])>=1,(f,r['source'])
+# Exact actual3220 correction predecessor, independently of older endpoint domains.
+correction=json.loads((R/'docs/evidence/compile-corrections-3220-20261016/source-corrections.json').read_text())
+assert len(correction['rows'])==4
+for row in correction['rows']:
+ raw=(R/row['source']).read_bytes();assert h(raw)==row['current_sha256'];text=raw.decode()
+ for edit in row['edits']:assert text.count(edit['new'])==1;text=text.replace(edit['new'],edit['old'],1)
+ before=text.encode();assert h(before)==row['before_sha256'];assert before==(R/row['archive']).read_bytes()==g('show',correction['base']+':'+row['source'])
 C=json.loads((D/'arm-contract.json').read_text());raw=(R/C['selector_source']).read_bytes();assert h(raw)==C['common_source_sha256'];assert raw.count(C['runtime_literal'].encode())==1;embedded=raw.replace(C['runtime_literal'].encode(),C['embedded_literal'].encode(),1);assert h(embedded)==C['embedded_source_sha256'];assert h((R/C['final_normalizer']).read_bytes())==C['final_normalizer_sha256']
 O=R/'docs/evidence/main8a-independent-custody-20261016'
 for path in g('ls-tree','-r','--name-only',B,'--',str(O.relative_to(R))).decode().splitlines():assert(R/path).read_bytes()==g('show',B+':'+path)

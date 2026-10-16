@@ -1,7 +1,7 @@
 {
   "hir": {
-    "raw_sha256": "d35302564b3dc8c401a71e9c104ad0c0e0a05376aca0cc5632f6479b5fcbe736",
-    "production_sha256": "f5cf82a158922230a7e50eb351f2935155729808323735207da436579961c939",
+    "raw_sha256": "3315ab61338cf31dc1c0054aaa07db19bbf445b87e0b5e9683312b1f94c66183",
+    "production_sha256": "1bcd001cee3a2d109f18ddabf942263ca473c1895281be0775491d3e1a5e0da5",
     "unique_production_files": 378,
     "unique_test_only_files": 644,
     "chunks_including_multiplicity_and_separators": 962,
@@ -22,7 +22,7 @@
     "three_static_negatives_refused": true
   },
   "projection": {
-    "raw_sha256": "c624e57b4a9fb071314b54e16e7bcfbeb68418aae881a8277f2533b69278c3d5",
+    "raw_sha256": "9240fe206245a339743e2f39c903a7fa6176aa80e7f176a8d086203ecaaf8bf4",
     "production_sha256": "10afbf2627aeda3d688fce1f4c22b36cd31825f8c60b2fe447a0ef065f6979f2",
     "unique_production_files": 68,
     "unique_test_only_files": 107,

@@ -4,7 +4,7 @@ macro_rules! audit_source_join { ($($piece:expr),* $(,)?) => {{ let pieces: &[&s
 macro_rules! semantic_graph_private_layout_owned_source_inventory {
     () => { audit_source_join!(semantic_graph_private_layout_owned_source_inventory!(capacity), semantic_graph_private_layout_owned_source_inventory!(core)) };
     (capacity) => { audit_source_join!(
-include_str!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"), include_str!("../../src/hir/validation/byte_traversal/nested/tests/source_composition.rs"), include_str!("../../src/cleanup_plan/replay/allocation/tests/clone_cursor.rs"), include_str!("../../src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs"),
+include_str!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"), include_str!("../support/production_source_inventory_original.rs"), include_str!("../support/new_boundary_module.rs"), include_str!("../../src/hir/validation/byte_traversal/nested/tests/source_composition.rs"), include_str!("../../src/cleanup_plan/replay/allocation/tests/clone_cursor.rs"), include_str!("../../src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs"),
 include_str!("../../src/cleanup_plan/replay.rs"),
 include_str!("../../src/cleanup_plan/replay/expression_facts/arena.rs"),
 include_str!("../../src/cleanup_plan/replay/expression_facts/errors.rs"),

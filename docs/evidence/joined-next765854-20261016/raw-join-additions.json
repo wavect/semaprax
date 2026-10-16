@@ -1,0 +1,51 @@
+{
+  "mode": "SOURCE_ONLY_NO_RUST",
+  "rows": [
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "before_ref": "9129769ec",
+      "current_ref": "12e7f8a4d",
+      "before_sha256": "81fc026c6ec7b4b88bf396c78fff4eca1e1d6c8212d63338e01e8425cac64b8b",
+      "current_sha256": "ead8c205ffcd4ef53485a5104429ec429fce93ac63d11fe8b4e922bb57f8403f",
+      "exact_added_include_multiplicity": {
+        "src/bounded_output/invocation_binding.rs": 1,
+        "src/workspace_graph/before_private_roots.rs": 1,
+        "src/workspace_graph/cache_key_original.rs": 1,
+        "src/workspace_graph/constructor_failure/receiving/before.rs": 1,
+        "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs": 1,
+        "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs": 1,
+        "src/workspace_graph/validation/before_roots.rs": 1
+      }
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "before_ref": "9129769ec",
+      "current_ref": "12e7f8a4d",
+      "before_sha256": "cab4dd8d2d548c7ecf1e29e2096098037dd30db1e30f908f2f3f7dc109a2a7f1",
+      "current_sha256": "1ef5b5c450255f741f9dcee64665a4bf0e6c2fac91c02c25c7a4ace157b98f8c",
+      "exact_added_include_multiplicity": {
+        "src/bounded_output/invocation_binding.rs": 1,
+        "src/workspace_graph/before_private_roots.rs": 1,
+        "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs": 1,
+        "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs": 1,
+        "src/workspace_graph/validation/before_roots.rs": 1
+      }
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "before_ref": "9129769ec",
+      "current_ref": "12e7f8a4d",
+      "before_sha256": "180ef54fe458ce3dd3190c3f9f677facee587df27503b7c09d83e1f05a0c3312",
+      "current_sha256": "429529456a9697f1e228a7c553d4b1dfe6c8d493f151678a2f5d6aa09927f78b",
+      "exact_added_include_multiplicity": {
+        "src/bounded_output/invocation_binding.rs": 1,
+        "src/workspace_graph/before_private_roots.rs": 1,
+        "src/workspace_graph/cache_key_original.rs": 1,
+        "src/workspace_graph/constructor_failure/receiving/before.rs": 1,
+        "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs": 1,
+        "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs": 1,
+        "src/workspace_graph/validation/before_roots.rs": 1
+      }
+    }
+  ]
+}

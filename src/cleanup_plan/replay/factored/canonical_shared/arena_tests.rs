@@ -372,3 +372,50 @@ fn failures_keep_exact_owner_and_first_receipt(old: bool) {
         assert_eq!(allocation.allocated, allocation.freed);
     }
 }
+
+#[test]
+fn vec_borrowed_queries_and_zipped_misses_keep_full_old_key_order() {
+    use super::intern_arena::{Query, SignatureQuery};
+    use std::mem::size_of;
+    struct PreviousQuery<'a> {
+        accepted: u64,
+        successors: &'a [(Label, super::SharedWeighted)],
+        children: &'a [usize],
+    }
+    let previous_controls = 2 * size_of::<PreviousQuery<'_>>()
+        + 2 * size_of::<&Vec<(Label, super::SharedWeighted)>>()
+        + 2 * size_of::<&Vec<usize>>()
+        + size_of::<&[(Label, super::SharedWeighted)]>()
+        + size_of::<&[usize]>();
+    assert!(SignatureQuery::CONTROLS < previous_controls);
+    let function = fixture();
+    for shape in 0..3 {
+        let (graph, sink, roots) = corpus(&function, shape);
+        let mut owner = Canonicalizer::new(&graph, sink);
+        let mut budget = ReplayBudget::unobserved();
+        for root in roots {
+            owner.id(&function, vec![(root, 1)], &mut budget).unwrap();
+        }
+        for (key, _) in owner.ids.iter() {
+            let successors: Vec<_> = key.1.iter().map(|(label, _)| {
+                (label.clone(), super::Rc::new(super::SmallWeighted::One([(sink, 1)])))
+            }).collect();
+            let children: Vec<_> = key.1.iter().map(|(_, id)| *id).collect();
+            let previous = PreviousQuery {
+                accepted: key.0, successors: &successors, children: &children,
+            };
+            assert_eq!(previous.accepted, key.0);
+            assert_eq!(previous.successors.len(), previous.children.len());
+            let query = SignatureQuery { accepted: key.0, successors: &successors, children: &children };
+            for (stored, _) in owner.ids.iter() {
+                assert_eq!(query.compare(stored), key.cmp(stored));
+            }
+            let expected: Vec<_> = successors.iter().enumerate()
+                .map(|(index, (label, _))| (label.clone(), children[index])).collect();
+            let actual: Vec<_> = successors.into_iter().zip(&children)
+                .map(|((label, _), id)| (label, *id)).collect();
+            assert_eq!(actual, expected);
+            assert_eq!(actual, key.1);
+        }
+    }
+}

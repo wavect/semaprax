@@ -1,0 +1,13 @@
+{
+  "status": "PASS_SOURCE_ONLY_ARENA854_SUCCESSOR",
+  "complete_inputs": 4,
+  "wrong_input_sha_preimages": 12,
+  "complete_old_receiver_unchanged": true,
+  "all_original54_owner_assertions_retained": true,
+  "query_comparison_and_AVL_bodies_unchanged": true,
+  "warm_sticky_before_any_payer_call": true,
+  "three_complete_raw_joins": true,
+  "strict_paid_gate_unchanged": true,
+  "paid_reduction": "PENDING_RUNTIME",
+  "rust_executed": false
+}

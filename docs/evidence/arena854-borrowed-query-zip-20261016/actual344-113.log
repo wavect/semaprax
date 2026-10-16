@@ -1,0 +1,17 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::arena_tests::ordered_interning_preserves_complete_ids_signatures_work_overflow_and_cycle ... 
+thread 'cleanup_plan::replay::factored::canonical_shared::arena_tests::ordered_interning_preserves_complete_ids_signatures_work_overflow_and_cycle' (18958344) panicked at src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs:353:25:
+assertion `left == right` failed
+  left: Err(Diagnostic { code: "SPX-H006", severity: Error, message: "cleanup plan for function `probe` failed independent replay: ordinary builder already failed", path: None, span: None, help: None })
+ right: Err(Diagnostic { code: "SPX-H006", severity: Error, message: "", path: None, span: None, help: None })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::factored::canonical_shared::arena_tests::ordered_interning_preserves_complete_ids_signatures_work_overflow_and_cycle
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9448 filtered out; finished in 0.10s
+

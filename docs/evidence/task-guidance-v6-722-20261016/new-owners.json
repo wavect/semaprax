@@ -1,0 +1,26 @@
+[
+  {
+    "path": "docs/CLI-HELP-V6.md",
+    "sha256": "dfa2cb18dcff2d2bfdbeaacfca3af59b6bfff18668bd3de3dccd5066db68ea68"
+  },
+  {
+    "path": "src/cli/help/authoring/tasks.rs",
+    "sha256": "f9dec8b728e426f8b913faf92717b3cbaa60621d46fe0b89a3b060b8e85c5705"
+  },
+  {
+    "path": "src/cli/help/authoring/tasks/catalog.json",
+    "sha256": "65b9bdad54e3ca3701b06976acb03feca53f0b902d2328de85474600aae7655a"
+  },
+  {
+    "path": "src/cli/help/authoring/tasks/tests.rs",
+    "sha256": "5a79a3998339c2d6d9bb387851eb817e3927b62798a6ad636a00541633f57d99"
+  },
+  {
+    "path": "src/cli/help/authoring/tasks/derive.rs",
+    "sha256": "6cfefc96957d86777b0c40597c8e8f8a1ac367b70c95a3d4ff37d19ae42c1a56"
+  },
+  {
+    "path": "tests/cli_help_surface_v1/task_pages.rs",
+    "sha256": "1dafd39e445a83fe897938093dca2add45be1a8db0f942d948e772d90e9662f1"
+  }
+]

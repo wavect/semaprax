@@ -1,0 +1,15 @@
+{
+  "source_subject": "b3a53367d4def76240d14dca25ee414785bed9d6",
+  "receipt": "/Volumes/Semaprax/lane-prompts/final-b3a-53-qualification-20261016/owning-build-result.json",
+  "receipt_sha256": "45180f30151b5cef611df28d94576d9cc73ccfaf1d8d787876f3554dc7a296ea",
+  "exit_code": 101,
+  "executed_test_bodies": 0,
+  "not_executed_commands": [
+    1,
+    2,
+    3
+  ],
+  "published_archive": "docs/evidence/failed-b3a53-first-unit-20261016",
+  "published_asset_manifest_sha256": "9e65bdc33049eee66acbca5c6694b651d9138599cb5573f1c1bf9b6cdc9ac3e4",
+  "current_execution": "NOT_RUN"
+}

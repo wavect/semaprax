@@ -636,3 +636,6 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     std::fs::remove_dir(malformed_dir).unwrap();
     std::fs::remove_dir(global_dir).unwrap();
 }
+
+#[path = "../../../tests/cli_help_surface_v1/task_pages.rs"]
+mod task_pages;

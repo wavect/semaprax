@@ -69,7 +69,12 @@ fn main531_child_input(source: &str, current: &str) -> String {
     let current = fixed.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main531-original-tests-child-20261016/current-to-7e9f.json")), source, current)
 }
+fn b3a_compile_fixture_input(source: &str, current: &str) -> String {
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/b3a-compile-fixture-task722-join-20261016/current-to-b3a.json")), source, current)
+}
 fn post_main0ab1_input(source: &str, current: &str) -> String {
+    let compiled = b3a_compile_fixture_input(source, current);
+    let current = compiled.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/post-main0ab1-singleton-join-20261016/current-to-3177.json")), source, current)
 }
 fn main696_corrected_input(source: &str, current: &str) -> String {

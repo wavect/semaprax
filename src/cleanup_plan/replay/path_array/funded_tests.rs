@@ -168,7 +168,8 @@ fn funded_capacity_exact_short_zero_and_first_output_work_frontier() {
                 assert_eq!(work.budget.skeleton_remaining, 0);
                 let retry = work.budget.reserve_bytes(function, 0, "retry").unwrap_err();
                 errors.push((error, retry));
-                drop((target, work, budget));
+                drop((target, work));
+                drop(budget);
             }
             same_error(&errors[0].0, &errors[1].0);
             same_error(&errors[0].1, &errors[1].1);

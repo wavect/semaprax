@@ -1,0 +1,54 @@
+[
+  {
+    "source": "CHANGELOG.md",
+    "checkpoint_revision": "1fea2e23c8f5d7a61d75d49a54e5e27f82cf02f2",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-1fea/CHANGELOG.md.txt",
+    "current_sha256": "ae66127a475232c9735f8bea77ab61542a76f8ca2a15fb3204f463f5c712b2aa",
+    "original_sha256": "f5555e8d498aa5b82f4c5e9cd097b9eb921f9aaa598224e7e47613c8c1e540d5",
+    "edits": [
+      {
+        "new": "\n- Add bounded V6 checked task/profile pages with repeated complete prerequisites, exact imported declaration rows and deterministic continuation; preserve V5 cards and scaffold capsules, explicitly refuse unverified stdin JSON composition, and leave executable qualification and agent-cost improvement unclaimed.\n\n- Move the validated singleton ownership state and its conditional variants through unchanged normalization, removing absent clones while preserving join validation, work, scheduling and the complete old receiver; focused numerical qualification remains pending.\n\n- Report the first native-provider builder reservation and caller in outward C++ package diagnostic help, preserving primary diagnostics, all limits, and complete verification.\n\n- Fund known-minimum ownership-path controls before staging and select backing at the original first-output work boundary; retain complete Main696 controls and remove real closure-scratch forwarding Results without changing nested reservation fees. Source-only qualification and actual pin regeneration remain pending.\n\n- Execute the paid cleanup branch clone/push producer inline in its existing enumerator, removing actual Vec Result and forwarding receivers while retaining every nested charge and complete old controls; focused execution and application savings remain pending.\n\n- Acquire known minimum ownership-path array capacity once, retaining complete path traversal, work charges, future growth, and independently compiled old receivers under the unchanged builder limit.\n\n- Reuse a sole incoming ownership-state tree as its identity control partition, retaining complete key construction, work charges, all join/replay checks and the original grouped producer while prepaying new receiving layouts.\n\n",
+        "old": "\n- Add bounded V6 checked task/profile pages with repeated complete prerequisites, exact imported declaration rows and deterministic continuation; preserve V5 cards and scaffold capsules, explicitly refuse unverified stdin JSON composition, and leave executable qualification and agent-cost improvement unclaimed.\n\n- Execute the paid cleanup branch clone/push producer inline in its existing enumerator, removing actual Vec Result and forwarding receivers while retaining every nested charge and complete old controls; focused execution and application savings remain pending.\n\n- Reuse a sole incoming ownership-state tree as its identity control partition, retaining complete key construction, work charges, all join/replay checks and the original grouped producer while prepaying new receiving layouts.\n\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/ARCHITECTURE.md",
+    "checkpoint_revision": "1fea2e23c8f5d7a61d75d49a54e5e27f82cf02f2",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-1fea/docs/ARCHITECTURE.md.txt",
+    "current_sha256": "98691a98e2afbd2d708476ea4975a023a3f9270596eee344be4b417cbf7a7043",
+    "original_sha256": "c714a7b2d94cc464f0341c9d593cfa4f07e965ded6dd53759fa1104b222d2130",
+    "edits": [
+      {
+        "new": "Main531 grouping producer, key constructors, prior boxed receiver and original\ncontrols independently. Production keeps its direct singleton route; historical\nMain measurements grant no production-cost or application-fit claim.\nThe `path_array` module owns known-minimum capacity selection at the first\nactual output; its complete Main696 helper and four receivers remain independent\ntest-only controls.\nThe branch clone/push producer is owned inline by the existing cleanup plan\nenumerator in `replay.rs`; its nested work/census/backing Results remain paid,\nwhile the prior standalone helper and complete enumerator stay test-only controls.\n",
+        "old": "Main531 grouping producer, key constructors, prior boxed receiver and original\ncontrols independently. Production keeps its direct singleton route; historical\nMain measurements grant no production-cost or application-fit claim.\nThe branch clone/push producer is owned inline by the existing cleanup plan\nenumerator in `replay.rs`; its nested work/census/backing Results remain paid,\nwhile the prior standalone helper and complete enumerator stay test-only controls.\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/SUMMARY.md",
+    "checkpoint_revision": "1fea2e23c8f5d7a61d75d49a54e5e27f82cf02f2",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-1fea/docs/SUMMARY.md.txt",
+    "current_sha256": "f9971299f5c4966459d5a943fb00ca202b96ffb0ecd5f2f89c7b1bf1d48f8d1c",
+    "original_sha256": "47b26a7d71cb164de79e23091c5052a0228544fdc23d35fa1979b1f20ccf88a5",
+    "edits": [
+      {
+        "new": "- [OPT826 exact small weighted successor backing](evidence/weighted-exact-successor-capacity-826/HANDOFF.md)\n- [OPT826 detached work refusal control correction](evidence/weighted-work-refusal-826/HANDOFF.md)\n- [review (independent-review)](evidence/weighted-work-refusal-826/independent-review/review.md)\n\n## Recent private implementation evidence\n\n- [Minimum ownership path array capacity](evidence/minimum-path-array-v1/README.md)\n- [Paid boxed ownership path states](evidence/boxed-path-states-v1/README.md)\n- [Branch clone capacity](evidence/branch-clone-capacity-v1/README.md)\n- [Hosted graph bill after paid-scratch changes](evidence/browser-graph-pins-17104e20c/README.md)\n- [Hosted graph bill after replay allocation changes](evidence/browser-graph-pins-2600e49eb/README.md)\n- [Hosted paid-cursor graph bills](evidence/browser-graph-pins-268cb0523/README.md)\n- [Hosted browser graph pins](evidence/browser-graph-pins-841efe3e2/README.md)\n- [Darwin native tool reference](evidence/darwin-native-link-reference-v1/README.md)\n- [Paid expression-fact Arena cursor](evidence/expression-fact-arena-cursor-v1/README.md)\n- [Canonical hygiene scratch](evidence/format-hygiene-scratch-v1/README.md)\n- [Optional scalar-helper source work](evidence/optional-helper-source-work-v1/README.md)\n- [Lazy fixed pattern scratch](evidence/pattern-hygiene-scratch-v1/README.md)\n- [Receiver source custody](evidence/receiver-source-custody-v1/README.md)\n- [One explicit-record census per immutable phase](evidence/record-presence-phase-v1/README.md)\n- [Owning provider row arguments are source refusals](evidence/row-loan-source-refusal-v1/README.md)\n- [Reuse a sole incoming ownership-state tree](evidence/single-state-groups-v1/README.md)\n- [Storage-backed test comparison refusal](evidence/storage-oracle-refusal-v1/README.md)\n- [Structural call cursor storage](evidence/structural-call-cursor-v1/README.md)\n- [Supplemental receiving cursor growth](evidence/supplemental-cursor-growth-v1/README.md)\n- [Reuse the complete unit-weight closure](evidence/unit-weight-closure-v1/README.md)\n",
+        "old": "- [OPT826 exact small weighted successor backing](evidence/weighted-exact-successor-capacity-826/HANDOFF.md)\n- [OPT826 detached work refusal control correction](evidence/weighted-work-refusal-826/HANDOFF.md)\n- [review (independent-review)](evidence/weighted-work-refusal-826/independent-review/review.md)\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cli/help/authoring/tasks.rs",
+    "checkpoint_revision": "1fea2e23c8f5d7a61d75d49a54e5e27f82cf02f2",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-1fea/src/cli/help/authoring/tasks.rs.txt",
+    "current_sha256": "fa97c89c05abaa6f3372427cf141b488f41e51a599324826fa494715bb354ed5",
+    "original_sha256": "f9dec8b728e426f8b913faf92717b3cbaa60621d46fe0b89a3b060b8e85c5705",
+    "edits": [
+      {
+        "new": "        .join(\", \")\n}\nfn capsule(route: &Value) -> String {\n    let mut out = format!(\"Task v6: {}\\nChecked starter subset; not whole-profile/library admission.\\nnew app --template {}\\nProject profile {}; target {}; input {}\\nManifest semaprax.toml (tables); sources {}\\nCapabilities (declare AND grant): {}\\n\",\n        text(route,\"task\"), text(route,\"template\"), text(route,\"project_profile\"), text(route,\"target\"),text(route,\"input\"),list(&route[\"sources\"]),list(&route[\"capabilities\"]));\n    for (name, version) in route[\"dependencies\"].as_object().expect(\"dependencies\") {\n        writeln!(\n",
+        "old": "        .join(\", \")\n}\nfn capsule(route: &Value) -> String {\n    let mut out = format!(\"Task v6: {}\\nChecked starter subset; not whole-profile/library admission. Qualification: existing starter definitions; help asserts no new executable result.\\nnew app --template {}\\nProject profile {}; target {}; input {}\\nManifest semaprax.toml (tables); sources {}\\nCapabilities (declare AND grant): {}\\n\",\n        text(route,\"task\"), text(route,\"template\"), text(route,\"project_profile\"), text(route,\"target\"),text(route,\"input\"),list(&route[\"sources\"]),list(&route[\"capabilities\"]));\n    for (name, version) in route[\"dependencies\"].as_object().expect(\"dependencies\") {\n        writeln!(\n"
+      }
+    ]
+  }
+]

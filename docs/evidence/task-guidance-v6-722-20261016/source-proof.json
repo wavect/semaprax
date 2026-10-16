@@ -1,0 +1,10 @@
+{
+  "source_only": true,
+  "base": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+  "status": "PASS",
+  "checks": "PASS: 8 complete before/inverse inputs; old V5/scaffold/catalog exact; generated descriptor source facts; 2040-byte routes; new owners/caps. Rust/help/executable qualification NOT RUN.",
+  "Rust_or_help_executed": false,
+  "actual_gain_claim": false,
+  "old_issue_receipt": "/Volumes/Semaprax/provenance/722-residual-364d-source-audit-20261016/issue-722-live.json",
+  "prior_issue_sha256": "01ba72fdf1b3e253ca979a37f1aa416e5b63f5be7336493b55fb577bbd165cc9"
+}

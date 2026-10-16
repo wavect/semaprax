@@ -1,0 +1,222 @@
+[
+  {
+    "source": "CHANGELOG.md",
+    "checkpoint_revision": "b3a53367d4def76240d14dca25ee414785bed9d6",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-b3a/CHANGELOG.md.txt",
+    "current_sha256": "ae66127a475232c9735f8bea77ab61542a76f8ca2a15fb3204f463f5c712b2aa",
+    "original_sha256": "a7d8db88c36fed257ea150d11a4a0b7332aab3a14e2cbca28fd985226b2e66af",
+    "edits": [
+      {
+        "new": "<!-- Source-only #833: invocation-owned identifier census scratch reuse across\n     distinct cold callers; full old receiver retained; qualification pending. -->\n# Changelog\n\n- Add bounded V6 checked task/profile pages with repeated complete prerequisites, exact imported declaration rows and deterministic continuation; preserve V5 cards and scaffold capsules, explicitly refuse unverified stdin JSON composition, and leave executable qualification and agent-cost improvement unclaimed.\n\n- Move the validated singleton ownership state and its conditional variants through unchanged normalization, removing absent clones while preserving join validation, work, scheduling and the complete old receiver; focused numerical qualification remains pending.\n\n",
+        "old": "<!-- Source-only #833: invocation-owned identifier census scratch reuse across\n     distinct cold callers; full old receiver retained; qualification pending. -->\n# Changelog\n\n- Move the validated singleton ownership state and its conditional variants through unchanged normalization, removing absent clones while preserving join validation, work, scheduling and the complete old receiver; focused numerical qualification remains pending.\n\n"
+      }
+    ]
+  },
+  {
+    "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "checkpoint_revision": "b3a53367d4def76240d14dca25ee414785bed9d6",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-b3a/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs.txt",
+    "current_sha256": "0918dfcc88a14a0d3431fd145e37c119e5b468f7951fa45e3d87967396f1923a",
+    "original_sha256": "fd677320c792a5802ac240e8339fc311ba2f45542d0c4c1aaa88fb634245c42c",
+    "edits": [
+      {
+        "new": "macro_rules! held_call_profile_source_inventory {\n    () => {\n        concat!(\n            include_str!(\"../../../../../src/cli/help/authoring/tasks.rs\"), include_str!(\"../../../../../src/cli/help/authoring/tasks/tests.rs\"), include_str!(\"../../../../../src/cli/help/authoring/tasks/derive.rs\"), include_str!(\"../../../../../tests/cli_help_surface_v1/task_pages.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/before_state_move.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/state_move_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/main696.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/funded_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../../../../../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../../../../src/hir/validation/held_profiles.rs\"),\n            include_str!(\"../../../../../src/hir/validation/held_profiles/tests.rs\"),\n            include_str!(\"../../../../../src/hir/validation/held_profiles/source_audit.rs\"),\n            include_str!(\"../../../../../src/hir/validation/executable_profiles/held.rs\"),\n",
+        "old": "macro_rules! held_call_profile_source_inventory {\n    () => {\n        concat!(\n            include_str!(\"../../../../../src/cleanup_plan/replay/path_join/before_state_move.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/state_move_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/main696.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/funded_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../../../../../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../../../../src/hir/validation/held_profiles.rs\"),\n            include_str!(\"../../../../../src/hir/validation/held_profiles/tests.rs\"),\n            include_str!(\"../../../../../src/hir/validation/held_profiles/source_audit.rs\"),\n            include_str!(\"../../../../../src/hir/validation/executable_profiles/held.rs\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "crates/semaprax-toolchain/tests/cli_help_surface_v1.rs",
+    "checkpoint_revision": "b3a53367d4def76240d14dca25ee414785bed9d6",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-b3a/crates/semaprax-toolchain/tests/cli_help_surface_v1.rs.txt",
+    "current_sha256": "8537d3df379a938b0bb0afb3b061350734852dd2ad7458e7071baa1b73c219b5",
+    "original_sha256": "a18657e70c3724b67f7ef3d407d246d0f201b0cf2d39431dd9ab0eac72f1b58e",
+    "edits": [
+      {
+        "new": "    std::fs::remove_dir(malformed_dir).unwrap();\n    std::fs::remove_dir(global_dir).unwrap();\n}\n\n#[path = \"../../../tests/cli_help_surface_v1/task_pages.rs\"]\nmod task_pages;\n",
+        "old": "    std::fs::remove_dir(malformed_dir).unwrap();\n    std::fs::remove_dir(global_dir).unwrap();\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/ARCHITECTURE.md",
+    "checkpoint_revision": "b3a53367d4def76240d14dca25ee414785bed9d6",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-b3a/docs/ARCHITECTURE.md.txt",
+    "current_sha256": "98691a98e2afbd2d708476ea4975a023a3f9270596eee344be4b417cbf7a7043",
+    "original_sha256": "502fb32c50359b8e8abd71a75b6306ccb4a4c6efc70fb5f1de9eec625d26ecb6",
+    "edits": [
+      {
+        "new": "`source_execution.rs` owns single-file build, run, and diagnostics.\n`diagnostic/writer.rs` borrows caller output for shared JSON/human rendering; the CLI report path owns its stream lock. Active bounded JSON retains the complete legacy renderer and its logical quote order. Neither writer nor stream lock certifies prepaid report/output storage.\n`help_dispatch.rs` prints the global and scoped `cli::help` surfaces.\n`cli/help/authoring/tasks.rs` owns V6 fixed task/profile pages over an embedded scaffold-derived descriptor and the existing library catalog. Its test child rederives complete manifest/source/import bindings; help itself performs no host I/O or source compilation. The old V5 cards and v2-v8 scaffold capsules retain their owners and bytes.\nThe `source_execution.rs` module\u2019s `fused_profile` child dispatches the explicit source-only profile before\nordinary checking. Public `fused_source` parses once and lends a private full\nselected owner to each target; it accepts no caller HIR or grant.\n",
+        "old": "`source_execution.rs` owns single-file build, run, and diagnostics.\n`diagnostic/writer.rs` borrows caller output for shared JSON/human rendering; the CLI report path owns its stream lock. Active bounded JSON retains the complete legacy renderer and its logical quote order. Neither writer nor stream lock certifies prepaid report/output storage.\n`help_dispatch.rs` prints the global and scoped `cli::help` surfaces.\nThe `source_execution.rs` module\u2019s `fused_profile` child dispatches the explicit source-only profile before\nordinary checking. Public `fused_source` parses once and lends a private full\nselected owner to each target; it accepts no caller HIR or grant.\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/SUMMARY.md",
+    "checkpoint_revision": "b3a53367d4def76240d14dca25ee414785bed9d6",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-b3a/docs/SUMMARY.md.txt",
+    "current_sha256": "f9971299f5c4966459d5a943fb00ca202b96ffb0ecd5f2f89c7b1bf1d48f8d1c",
+    "original_sha256": "94581d81543a66b4ddc5311176eb1b3302e50af39e6dae598b15d90a34240b1a",
+    "edits": [
+      {
+        "new": "- [Capability-aware CLI recovery](CLI-HELP-V3.md)\n- [Guided CLI help](CLI-HELP-V4.md)\n- [Bounded authoring help](CLI-HELP-V5.md)\n- [Checked task/profile help](CLI-HELP-V6.md)\n- [Documentation projection](DOC-PROJECTION-V1.md)\n- [Unified CLI: review, verify, agent, query, package, add, fetch](UNIFIED-CLI-V1.md)\n- [Human diagnostic locations](HUMAN-DIAGNOSTICS-V1.md)\n",
+        "old": "- [Capability-aware CLI recovery](CLI-HELP-V3.md)\n- [Guided CLI help](CLI-HELP-V4.md)\n- [Bounded authoring help](CLI-HELP-V5.md)\n- [Documentation projection](DOC-PROJECTION-V1.md)\n- [Unified CLI: review, verify, agent, query, package, add, fetch](UNIFIED-CLI-V1.md)\n- [Human diagnostic locations](HUMAN-DIAGNOSTICS-V1.md)\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_array/before.rs",
+    "checkpoint_revision": "b3a53367d4def76240d14dca25ee414785bed9d6",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-b3a/src/cleanup_plan/replay/path_array/before.rs.txt",
+    "current_sha256": "1e6f9b2f9d6252d0c24a70584d7ba67d203ff01d611ff381810c3fb8415dc7fb",
+    "original_sha256": "bd2dd7b18bb7c33dfde13d879b8c567b9301ed69cee1da16a6cae8b31e95be48",
+    "edits": [
+      {
+        "new": "//! Complete independently compiled original path receivers.\nuse super::super::*;\n\npub(super) fn sequence_skeleton_paths(\n",
+        "old": "//! Complete independently compiled original path receivers.\nuse super::*;\nuse super::super::*;\n\npub(super) fn sequence_skeleton_paths(\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_array/funded_tests.rs",
+    "checkpoint_revision": "b3a53367d4def76240d14dca25ee414785bed9d6",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-b3a/src/cleanup_plan/replay/path_array/funded_tests.rs.txt",
+    "current_sha256": "f64d25b2b47cdbf84c0efd9c62ce2e3a5147032fa08b824c1fe26d6b266c0ab0",
+    "original_sha256": "b088eeb90f8f03b3666c69a2c699986deff415237a637a250dd642dec050c7b1",
+    "edits": [
+      {
+        "new": "                assert_eq!(work.budget.skeleton_remaining, 0);\n                let retry = work.budget.reserve_bytes(function, 0, \"retry\").unwrap_err();\n                errors.push((error, retry));\n                drop((target, work));\n                drop(budget);\n            }\n            same_error(&errors[0].0, &errors[1].0);\n            same_error(&errors[0].1, &errors[1].1);\n",
+        "old": "                assert_eq!(work.budget.skeleton_remaining, 0);\n                let retry = work.budget.reserve_bytes(function, 0, \"retry\").unwrap_err();\n                errors.push((error, retry));\n                drop((target, work, budget));\n            }\n            same_error(&errors[0].0, &errors[1].0);\n            same_error(&errors[0].1, &errors[1].1);\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cli/help/authoring.rs",
+    "checkpoint_revision": "b3a53367d4def76240d14dca25ee414785bed9d6",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-b3a/src/cli/help/authoring.rs.txt",
+    "current_sha256": "b71e914399e1f316e573bfa4022d699ce20ce982aabf01cb053ad62c67f49b72",
+    "original_sha256": "797522b061dcdbe56d92ea444d6d7f4d9392fd3f72e5e62c9c6b8157a6d3cf6c",
+    "edits": [
+      {
+        "new": "use std::fmt::Write as _;\n\nmod discovery;\nmod tasks;\n\nconst MAX_BYTES: usize = 2_048;\nconst ROUTES: &str = \"Authoring routes (complete):\\n  author:vec-constructor typed Vec construction\\n  author:lexical-exits break/continue/return\\n  author:stdin-json v27 bounded native stream command\\n  author:stream-data-v2           v29 private record/Vec stream command\\n  author:owned-data v30 private owned-leaf collections\\n  author:collection-records v31 nested records containing Vec\\n  author:nested-outcomes v32 typed nested success/error carriers\\n  author:file-text native UTF-8 file command\\n  author:selected-file native file\\n  author:selected-file-resource v34\\n  author:source-web single-source web build\\n  author:literal-format literal String rendering\\n  author:string-take named String owner transfer\\n  author:static-utf8              borrowed UTF-8\\n  author:string-from-utf8         strict bytes-to-String\\n  author:copy-record-vec Copy-record Vec\\n  author:update-field scalar slot update\\n  author:record-sort-keys stable field sort\\n  author:unique-by field duplicate check\\n  author:record-field-views record/Vec field reads\\n  author:record-traversal scoped borrowed rows and optional indices\\n  author:byte-traversal named immutable byte-slice traversal\\n  author:json-codec checked source JSON codec derivation\\n  author:json-identifier-views one identifier as a token view\\n  author:json-request-views bounded identifier and record arrays\\n  author:json-stream-request-views bounded native stream request view\\n  author:json-owned-request bounded owning request collections\\n  author:json-utf8-owned-request bounded UTF-8 string values\\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\\n  author:json-collection-response nested collection encoder\\n  author:json-nested-request finite nested request decoder\\n  author:json-stream-nested-request finite nested stdin decoder\\n  author:json-nested-response finite nested borrowed encoder\\n  author:json-request-response typed request/response composition boundaries\\n  author:tasks checked task pages\\nCard search: help language author:find:<word>:0\\nLibrary-only search: help language find:<word>:0\\n\";\n\n#[cfg(test)]\npub(super) fn assert_guide_contract() {\n",
+        "old": "use std::fmt::Write as _;\n\nmod discovery;\n\nconst MAX_BYTES: usize = 2_048;\nconst ROUTES: &str = \"Authoring routes (complete):\\n  author:vec-constructor typed Vec construction\\n  author:lexical-exits break/continue/return\\n  author:stdin-json v27 bounded native stream command\\n  author:stream-data-v2           v29 private record/Vec stream command\\n  author:owned-data v30 private owned-leaf collections\\n  author:collection-records v31 nested records containing Vec\\n  author:nested-outcomes v32 typed nested success/error carriers\\n  author:file-text native UTF-8 file command\\n  author:selected-file native file\\n  author:selected-file-resource v34\\n  author:source-web single-source web build\\n  author:literal-format literal String rendering\\n  author:string-take named String owner transfer\\n  author:static-utf8              borrowed UTF-8\\n  author:string-from-utf8         strict bytes-to-String\\n  author:copy-record-vec Copy-record Vec\\n  author:update-field scalar slot update\\n  author:record-sort-keys stable field sort\\n  author:unique-by field duplicate check\\n  author:record-field-views record/Vec field reads\\n  author:record-traversal scoped borrowed rows and optional indices\\n  author:byte-traversal named immutable byte-slice traversal\\n  author:json-codec checked source JSON codec derivation\\n  author:json-identifier-views one identifier as a token view\\n  author:json-request-views bounded identifier and record arrays\\n  author:json-stream-request-views bounded native stream request view\\n  author:json-owned-request bounded owning request collections\\n  author:json-utf8-owned-request bounded UTF-8 string values\\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\\n  author:json-collection-response nested collection encoder\\n  author:json-nested-request finite nested request decoder\\n  author:json-stream-nested-request finite nested stdin decoder\\n  author:json-nested-response finite nested borrowed encoder\\n  author:json-request-response typed request/response composition boundaries\\nCard search: help language author:find:<word>:0\\nLibrary-only search: help language find:<word>:0\\n\";\n\n#[cfg(test)]\npub(super) fn assert_guide_contract() {\n"
+      },
+      {
+        "new": "pub(super) fn lookup(query: &str) -> Result<String, String> {\n    if query.starts_with(\"author:find:\") {\n        return discovery::search(query, MAX_BYTES);\n    }\n    if query == \"author:tasks\" || query.starts_with(\"author:task:\") {\n        return tasks::lookup(query, MAX_BYTES);\n    }\n    match query {\n        \"author:routes\" => Ok(ROUTES.to_owned()),\n",
+        "old": "pub(super) fn lookup(query: &str) -> Result<String, String> {\n    if query.starts_with(\"author:find:\") {\n        return discovery::search(query, MAX_BYTES);\n    }\n    match query {\n        \"author:routes\" => Ok(ROUTES.to_owned()),\n"
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "checkpoint_revision": "b3a53367d4def76240d14dca25ee414785bed9d6",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-b3a/src/source_reflows_merge.rs.txt",
+    "current_sha256": "6dc1faf4e35b77883f29a2b2c469946983ddf29863c10466ce56c47b0bb5ac81",
+    "original_sha256": "6d66cbf8db818d6ce3a24ff4a3924c7e6e85b4ff0e5a820dc15eae0aafb76a2a",
+    "edits": [
+      {
+        "new": "    let current = fixed.as_str();\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main531-original-tests-child-20261016/current-to-7e9f.json\")), source, current)\n}\nfn b3a_compile_fixture_input(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/b3a-compile-fixture-task722-join-20261016/current-to-b3a.json\")), source, current)\n}\nfn post_main0ab1_input(source: &str, current: &str) -> String {\n    let compiled = b3a_compile_fixture_input(source, current);\n    let current = compiled.as_str();\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/post-main0ab1-singleton-join-20261016/current-to-3177.json\")), source, current)\n}\nfn main696_corrected_input(source: &str, current: &str) -> String {\n",
+        "old": "    let current = fixed.as_str();\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main531-original-tests-child-20261016/current-to-7e9f.json\")), source, current)\n}\nfn post_main0ab1_input(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/post-main0ab1-singleton-join-20261016/current-to-3177.json\")), source, current)\n}\nfn main696_corrected_input(source: &str, current: &str) -> String {\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/cli_help_surface_v1.rs",
+    "checkpoint_revision": "b3a53367d4def76240d14dca25ee414785bed9d6",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-b3a/tests/cli_help_surface_v1.rs.txt",
+    "current_sha256": "badcfdde9b0084ca2a2a302d0c2958de2a4bead41ce07dc64494ebc11760c486",
+    "original_sha256": "a2d41c4978b49604e431fc2a69450124178a21a832f28336e9dda89a35209b7a",
+    "edits": [
+      {
+        "new": "        std::fs::remove_dir(directory).unwrap();\n    }\n}\n\n#[path = \"cli_help_surface_v1/task_pages.rs\"]\nmod task_pages;\n",
+        "old": "        std::fs::remove_dir(directory).unwrap();\n    }\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "checkpoint_revision": "b3a53367d4def76240d14dca25ee414785bed9d6",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-b3a/tests/hir_module_boundaries.rs.txt",
+    "current_sha256": "e91fdefebd0eadf3c0f6ad640870a8930cb1378c95792608e80aec9a1a6e6a7c",
+    "original_sha256": "ef6f81bd7e974de1b4c000d0931cb7c7ffbba28d8224c2221f3b1253d1be6b5f",
+    "edits": [
+      {
+        "new": "    let validation_raw = concat!(\n        concat!(\n            concat!(\n                include_str!(\"../src/cli/help/authoring/tasks.rs\"), include_str!(\"../src/cli/help/authoring/tasks/tests.rs\"), include_str!(\"../src/cli/help/authoring/tasks/derive.rs\"), include_str!(\"../tests/cli_help_surface_v1/task_pages.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/before_state_move.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/state_move_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/main696.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/funded_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../src/hir/validation.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles/tests.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles/source_audit.rs\"),\n",
+        "old": "    let validation_raw = concat!(\n        concat!(\n            concat!(\n                include_str!(\"../src/cleanup_plan/replay/path_join/before_state_move.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/state_move_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/main696.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/funded_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../src/hir/validation.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles/tests.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles/source_audit.rs\"),\n"
+      },
+      {
+        "new": "    );\n    let validation = production_source_inventory::production(\n        validation_raw,\n        include_str!(\"../docs/evidence/b3a-compile-fixture-task722-join-20261016/hir.json\"),\n    );\n    for forbidden in [\n        \"struct Resolver\",\n",
+        "old": "    );\n    let validation = production_source_inventory::production(\n        validation_raw,\n        include_str!(\"../docs/evidence/post-main0ab1-singleton-join-20261016/hir.json\"),\n    );\n    for forbidden in [\n        \"struct Resolver\",\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/project/standard_library.rs",
+    "checkpoint_revision": "b3a53367d4def76240d14dca25ee414785bed9d6",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-b3a/tests/project/standard_library.rs.txt",
+    "current_sha256": "0e5d02afba9d12ce61316b7d85cac2aa118b5e27ac0a17e9b92f4acc5e4343fe",
+    "original_sha256": "2d5ac3f1a98ba4d4acd5aee38961c2bdbb0ab935553436887933197339dbcece",
+    "edits": [
+      {
+        "new": "\n#[test]\nfn committed_catalogs_match_the_sources() {\n    catalog::assert_task_descriptor();\n    let (human, agent) = render_catalogs();\n    let regenerate = \"regenerate with `cargo test --locked -p semaprax --test project -- --ignored standard_library::regenerate_catalogs`\";\n    assert_eq!(\n",
+        "old": "\n#[test]\nfn committed_catalogs_match_the_sources() {\n    let (human, agent) = render_catalogs();\n    let regenerate = \"regenerate with `cargo test --locked -p semaprax --test project -- --ignored standard_library::regenerate_catalogs`\";\n    assert_eq!(\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/project/standard_library/catalog.rs",
+    "checkpoint_revision": "b3a53367d4def76240d14dca25ee414785bed9d6",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-b3a/tests/project/standard_library/catalog.rs.txt",
+    "current_sha256": "392a9061d7802960f8beab8332e5d8fe5199b12a73011f372697a44ab09111f8",
+    "original_sha256": "bac427882cb57dc275dd3dc607fb8b77d2b60ed1acdf1ea5169434b6ec4f742b",
+    "edits": [
+      {
+        "new": "}\n\npub(super) fn write_catalogs_if_changed(human: &str, agent: &str) {\n    let path = root().join(\"src/cli/help/authoring/tasks/catalog.json\");\n    let descriptor = format!(\n        \"{}\\n\",\n        serde_json::to_string_pretty(&task_descriptor::descriptors()).unwrap()\n    );\n    if std::fs::read(&path).ok().as_deref() != Some(descriptor.as_bytes()) {\n        std::fs::write(path, descriptor).unwrap();\n    }\n\n    for (name, contents) in [(HUMAN_CATALOG, human), (AGENT_CATALOG, agent)] {\n        let path = root().join(name);\n        if std::fs::read(&path).ok().as_deref() != Some(contents.as_bytes()) {\n",
+        "old": "}\n\npub(super) fn write_catalogs_if_changed(human: &str, agent: &str) {\n    for (name, contents) in [(HUMAN_CATALOG, human), (AGENT_CATALOG, agent)] {\n        let path = root().join(name);\n        if std::fs::read(&path).ok().as_deref() != Some(contents.as_bytes()) {\n"
+      },
+      {
+        "new": "        }\n    }\n}\n\n#[path = \"../../../src/cli/help/authoring/tasks/derive.rs\"]\nmod task_descriptor;\n\npub(super) fn assert_task_descriptor() {\n    let current = include_str!(\"../../../src/cli/help/authoring/tasks/catalog.json\");\n    assert_eq!(\n        current,\n        format!(\n            \"{}\\n\",\n            serde_json::to_string_pretty(&task_descriptor::descriptors()).unwrap()\n        ),\n        \"task descriptor is stale; regenerate through standard_library::regenerate_catalogs\"\n    );\n}\n",
+        "old": "        }\n    }\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/support/production_source_inventory.rs",
+    "checkpoint_revision": "b3a53367d4def76240d14dca25ee414785bed9d6",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-b3a/tests/support/production_source_inventory.rs.txt",
+    "current_sha256": "d51a124525e3d41469c1db223a0b4526faa3faff1c757b9526ca0b2233358e8c",
+    "original_sha256": "96e71af064967c2ea93cd4703f1a034f94c641d0e86b08fa4c077dfd73825112",
+    "edits": [
+      {
+        "new": "            assert_eq!(root, \"src/lib.rs\");\n            false\n        }\n        \"bin\" => {\n            assert_eq!(root, \"src/main.rs\");\n            assert_eq!(chain[\"package\"].as_str().unwrap(), \"semaprax\");\n            false\n        }\n        \"test\" => {\n            // An ordinary Cargo test harness is compiled with cfg(test).\n            assert!((root.starts_with(\"tests/\") && root.ends_with(\".rs\"))\n                || (root == \"crates/semaprax-toolchain/tests/cli_help_surface_v1.rs\"\n                    && chain[\"package\"].as_str().unwrap() == \"semaprax-toolchain\"));\n            assert!(sources.contains_key(\"Cargo.toml\"));\n            true\n        }\n",
+        "old": "            assert_eq!(root, \"src/lib.rs\");\n            false\n        }\n        \"test\" => {\n            // An ordinary Cargo test harness is compiled with cfg(test).\n            assert!(root.starts_with(\"tests/\") && root.ends_with(\".rs\"));\n            assert!(sources.contains_key(\"Cargo.toml\"));\n            true\n        }\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph.rs",
+    "checkpoint_revision": "b3a53367d4def76240d14dca25ee414785bed9d6",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-b3a/tests/workspace/semantic_graph.rs.txt",
+    "current_sha256": "e9accba24bea31a763b25385603763d0616dbb2eb15d8cf8e89e3b874f960a5f",
+    "original_sha256": "b9c26dcc48648d34a2f2a8c756f70c94a69497228ca65d01a4deab0450735621",
+    "edits": [
+      {
+        "new": "    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\n            \"../../docs/evidence/b3a-compile-fixture-task722-join-20261016/projection.json\"\n        ),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n",
+        "old": "    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\n            \"../../docs/evidence/post-main0ab1-singleton-join-20261016/projection.json\"\n        ),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph/source_inventory.rs",
+    "checkpoint_revision": "b3a53367d4def76240d14dca25ee414785bed9d6",
+    "archive": "docs/evidence/b3a-compile-fixture-task722-join-20261016/before/current-to-b3a/tests/workspace/semantic_graph/source_inventory.rs.txt",
+    "current_sha256": "425924f3063af27aa615e87d87194f82e1215cbd739a88a4deb921d4ae349dd8",
+    "original_sha256": "b287c848898a68681c5c5beecfa0903a2718f90a993c33acd5733575f44678a9",
+    "edits": [
+      {
+        "new": "macro_rules! semantic_graph_private_layout_owned_source_inventory {\n    () => { concat!(semantic_graph_private_layout_owned_source_inventory!(capacity), semantic_graph_private_layout_owned_source_inventory!(core)) };\n    (capacity) => { concat!(\n        include_str!(\"../../src/cli/help/authoring/tasks.rs\"), include_str!(\"../../src/cli/help/authoring/tasks/tests.rs\"), include_str!(\"../../src/cli/help/authoring/tasks/derive.rs\"), include_str!(\"../../tests/cli_help_surface_v1/task_pages.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/before_state_move.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/state_move_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/main696.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/funded_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_before.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests/owner_controls.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs\"),\n",
+        "old": "macro_rules! semantic_graph_private_layout_owned_source_inventory {\n    () => { concat!(semantic_graph_private_layout_owned_source_inventory!(capacity), semantic_graph_private_layout_owned_source_inventory!(core)) };\n    (capacity) => { concat!(\n        include_str!(\"../../src/cleanup_plan/replay/path_join/before_state_move.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/state_move_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/main696.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/funded_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_before.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests/owner_controls.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs\"),\n"
+      }
+    ]
+  }
+]

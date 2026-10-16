@@ -496,7 +496,7 @@ fn positive_work_probe_header_and_full_query_floor_keep_original_six_fields() {
                     let result = (|| {
                         // P9/S2 declines after HEADER; P8/S2 reaches the full
                         // query. Both begin at the actual paid empty target.
-                        let prefixes = if full_query { 8 } else { 9 };
+                        let prefixes: usize = if full_query { 8 } else { 9 };
                         let minimum = path_array::count!(
                             work, true, prefixes, "floor sequencing count"
                         );

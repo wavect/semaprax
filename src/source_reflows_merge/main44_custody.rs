@@ -8,7 +8,7 @@ Self::Receivers12 => Spec { path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evi
 }}}
 pub(super) fn input_spec() -> Spec {
     // MAIN44_INPUT_SPEC
-    Spec { path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main44-independent-custody-20261016/current-to-main44.json"), length: 2402591, sha256: [89, 15, 24, 195, 114, 49, 40, 163, 164, 254, 130, 64, 27, 95, 60, 207, 150, 197, 116, 116, 168, 254, 169, 55, 48, 239, 209, 133, 143, 95, 39, 169] }
+    Spec { path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main44-independent-custody-20261016/current-to-main44.json"), length: 2402381, sha256: [129, 173, 232, 38, 111, 165, 79, 242, 193, 89, 223, 107, 71, 238, 232, 80, 116, 193, 243, 97, 36, 112, 45, 95, 221, 34, 127, 5, 45, 238, 237, 166] }
 }
 pub(super) fn input(source: &str, current: &str) -> String {
     const KEYS: &[&str] = &[

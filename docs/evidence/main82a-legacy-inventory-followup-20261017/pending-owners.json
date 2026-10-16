@@ -1,0 +1,61 @@
+{
+  "status": "SOURCE_ONLY_NO_EXECUTABLE_PASS",
+  "incoming": "82a96f070e07cd90e926a7caad31eb2dae81e1ab",
+  "parent_registration_prerequisite": "new-main9-file merge9e84 already has mod legacy; retain unchanged incoming receiving.rs/tests.rs. This followup adds leaf unchanged, not a replacement registration or production receiver.",
+  "source_contracts": [
+    {
+      "path": "src/cleanup_plan/replay/supplemental/receiving.rs",
+      "incoming_current_sha256": "6450e222d84b7596f1989582ff767163a84dc7cf1a40d85308a43efe1d37d047",
+      "original_sha256": "b10bab9c98eca0da61d2cfe60fac0b2adb1b68f3ea0419cb480440c17672fd6e",
+      "full_inversion": "PASS_OFFLINE",
+      "live_walk_body_equality": true,
+      "final_route": "Final raw -> exact82a incoming checkpoint only if whole file later differs; keep actual entire receiving walk assertion live, not on a historical normalization."
+    },
+    {
+      "path": "src/cleanup_plan/replay/supplemental/receiving/tests.rs",
+      "incoming_current_sha256": "f3270b6540b41cf2adcf3b33cdd12bda31c2423f80ed4ef63096c3880417accd",
+      "original_sha256": "befc0ea03003c4ef4bfcb9265f1026247c59876b3e2bcfc4cb7432651af552be",
+      "full_inversion": "PASS_OFFLINE",
+      "live_walk_body_equality": false,
+      "final_route": "Final raw -> exact82a incoming checkpoint only if whole file later differs; keep actual entire receiving walk assertion live, not on a historical normalization."
+    }
+  ],
+  "selectors": [
+    {
+      "selector": "cleanup_plan::replay::supplemental::receiving::tests::legacy::unobserved_cursor_keeps_the_original_fixed_allocation_and_zero_relocation_work",
+      "source": "src/cleanup_plan/replay/supplemental/receiving/tests/legacy.rs",
+      "incoming_sha256": "549a77bcfa7687c3763a6cc687f3770c7be38df88c81935cd6fb4914436f1cc3",
+      "role": "test-only owning library test",
+      "purpose": "new actual System allocation/Drop and exhausted legacy work"
+    },
+    {
+      "selector": "cleanup_plan::replay::supplemental::receiving::tests::legacy::legacy_cursor_complete_sources_preserve_original_walk_and_paid_growth",
+      "source": "src/cleanup_plan/replay/supplemental/receiving/tests/legacy.rs",
+      "incoming_sha256": "549a77bcfa7687c3763a6cc687f3770c7be38df88c81935cd6fb4914436f1cc3",
+      "role": "test-only owning library test",
+      "purpose": "new complete2-row metadata+SHA+inverse+newline+firstbyte and entire live receiving walk"
+    },
+    {
+      "selector": "cleanup_plan::replay::supplemental::receiving::tests::complete_original_and_growing_walks_receive_the_same_owned_argument_slots",
+      "source": "src/cleanup_plan/replay/supplemental/receiving/tests.rs",
+      "incoming_sha256": "f3270b6540b41cf2adcf3b33cdd12bda31c2423f80ed4ef63096c3880417accd",
+      "role": "test-only owning library test",
+      "purpose": "real HIR output/flags plus all3 work-counter parity on repeated requires/body/ensures"
+    },
+    {
+      "selector": "cleanup_plan::replay::supplemental::receiving::tests::every_replacement_is_paid_while_old_live_frames_survive_and_then_release",
+      "source": "src/cleanup_plan/replay/supplemental/receiving/tests.rs",
+      "incoming_sha256": "f3270b6540b41cf2adcf3b33cdd12bda31c2423f80ed4ef63096c3880417accd",
+      "role": "test-only owning library test",
+      "purpose": "unchanged funded11 growth frontiers/exact-short-sticky/relocationwork/overlap/Drop"
+    },
+    {
+      "selector": "cleanup_plan::replay::supplemental::receiving::tests::complete_original_receiving_walk_is_preserved_by_only_storage_substitutions",
+      "source": "src/cleanup_plan/replay/supplemental/receiving/tests.rs",
+      "incoming_sha256": "f3270b6540b41cf2adcf3b33cdd12bda31c2423f80ed4ef63096c3880417accd",
+      "role": "test-only owning library test",
+      "purpose": "unchanged old whole receiving walk before storage helper"
+    }
+  ],
+  "component_probe_history": "Incoming README only claims component probes; actual owning HIR/app/current-main gates remain pending."
+}

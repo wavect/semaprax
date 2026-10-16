@@ -1,0 +1,1765 @@
+{
+  "mode": "SOURCE_ONLY_NOT_RUST_DISCOVERY",
+  "parser_sha256": "87a903ce0f9927d3d90063fdd686b50b5302e2ac10cfea324918f7c030b28599",
+  "loaded_sources": [
+    "src/cleanup_plan/replay/path_join.rs",
+    "src/cleanup_plan/replay/path_join/before.rs",
+    "src/cleanup_plan/replay/path_join/before_receiving.rs",
+    "src/cleanup_plan/replay/path_join/before_singleton.rs",
+    "src/cleanup_plan/replay/path_join/before_state_move.rs",
+    "src/cleanup_plan/replay/path_join/boxed_states.rs",
+    "src/cleanup_plan/replay/path_join/boxed_states/before.rs",
+    "src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs",
+    "src/cleanup_plan/replay/path_join/boxed_states/tests.rs",
+    "src/cleanup_plan/replay/path_join/branch_join.rs",
+    "src/cleanup_plan/replay/path_join/branch_join/tests.rs",
+    "src/cleanup_plan/replay/path_join/main_single_groups/before.rs",
+    "src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs",
+    "src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs",
+    "src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs",
+    "src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs",
+    "src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs",
+    "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+    "src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs",
+    "src/cleanup_plan/replay/path_join/receiver_tests.rs",
+    "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+    "src/cleanup_plan/replay/path_join/state_move_tests.rs",
+    "src/cleanup_plan/replay/path_join/storage.rs",
+    "src/cleanup_plan/replay/path_join/storage/atomic_controls.rs",
+    "src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs",
+    "src/cleanup_plan/replay/path_join/storage/empty_renewals.rs",
+    "src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs",
+    "src/cleanup_plan/replay/path_join/tests.rs",
+    "src/project/cxx_owned_data.rs",
+    "src/project/cxx_owned_data/render.rs",
+    "tests/project/command_argument_borrow.rs"
+  ],
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::actual_diagnostic_owner_zero_exact_and_each_short_frontier_keep_full_drop",
+      "source_path": "src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs",
+      "line": 38,
+      "name": "actual_diagnostic_owner_zero_exact_and_each_short_frontier_keep_full_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 12,
+          "module": "boxed_states",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+          "line": 189,
+          "module": "receiving_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"boxed_states/receiving_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "8a4b4e790189d0980e3025051db5fe531adf61a72866b7ace874ef245fdca148",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::actual_owned_held_and_duplicate_entries_pay_each_bank_and_preserve_box_identity",
+      "source_path": "src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs",
+      "line": 94,
+      "name": "actual_owned_held_and_duplicate_entries_pay_each_bank_and_preserve_box_identity",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 12,
+          "module": "boxed_states",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+          "line": 189,
+          "module": "receiving_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"boxed_states/receiving_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "8a4b4e790189d0980e3025051db5fe531adf61a72866b7ace874ef245fdca148",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::duplicate_zero_auth_keeps_complete_main_diagnostic_and_first_receipt_at_sticky_floor",
+      "source_path": "src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs",
+      "line": 148,
+      "name": "duplicate_zero_auth_keeps_complete_main_diagnostic_and_first_receipt_at_sticky_floor",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 12,
+          "module": "boxed_states",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+          "line": 189,
+          "module": "receiving_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"boxed_states/receiving_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "8a4b4e790189d0980e3025051db5fe531adf61a72866b7ace874ef245fdca148",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::foreign_function_budget_and_scope_poison_only_original_owner_and_never_restore_entry",
+      "source_path": "src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs",
+      "line": 197,
+      "name": "foreign_function_budget_and_scope_poison_only_original_owner_and_never_restore_entry",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 12,
+          "module": "boxed_states",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+          "line": 189,
+          "module": "receiving_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"boxed_states/receiving_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "8a4b4e790189d0980e3025051db5fe531adf61a72866b7ace874ef245fdca148",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::actual_entry_and_box_layout_inventory_and_complete_main_receiver_sources_are_exact",
+      "source_path": "src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs",
+      "line": 267,
+      "name": "actual_entry_and_box_layout_inventory_and_complete_main_receiver_sources_are_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 12,
+          "module": "boxed_states",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+          "line": 189,
+          "module": "receiving_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"boxed_states/receiving_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "8a4b4e790189d0980e3025051db5fe531adf61a72866b7ace874ef245fdca148",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::complete_main_callback_and_current_receiving_replay_keep_full_success_error_work_and_costs",
+      "source_path": "src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs",
+      "line": 353,
+      "name": "complete_main_callback_and_current_receiving_replay_keep_full_success_error_work_and_costs",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 12,
+          "module": "boxed_states",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+          "line": 189,
+          "module": "receiving_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"boxed_states/receiving_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "8a4b4e790189d0980e3025051db5fe531adf61a72866b7ace874ef245fdca148",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::tests::exact_box_and_node_are_paid_before_either_allocation_and_refusal_is_sticky",
+      "source_path": "src/cleanup_plan/replay/path_join/boxed_states/tests.rs",
+      "line": 20,
+      "name": "exact_box_and_node_are_paid_before_either_allocation_and_refusal_is_sticky",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 12,
+          "module": "boxed_states",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+          "line": 191,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "41a89e70de2d76f2811a98bf85608ac69901296140b83297c722b8341eba5b01",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::tests::held_state_moves_preserve_pointers_and_duplicates_without_cloning_or_refunds",
+      "source_path": "src/cleanup_plan/replay/path_join/boxed_states/tests.rs",
+      "line": 60,
+      "name": "held_state_moves_preserve_pointers_and_duplicates_without_cloning_or_refunds",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 12,
+          "module": "boxed_states",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+          "line": 191,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "41a89e70de2d76f2811a98bf85608ac69901296140b83297c722b8341eba5b01",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::tests::boxed_order_matches_inline_values_through_tree_splits_and_every_prefix",
+      "source_path": "src/cleanup_plan/replay/path_join/boxed_states/tests.rs",
+      "line": 141,
+      "name": "boxed_order_matches_inline_values_through_tree_splits_and_every_prefix",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 12,
+          "module": "boxed_states",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+          "line": 191,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "41a89e70de2d76f2811a98bf85608ac69901296140b83297c722b8341eba5b01",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::identical_branch_arms_replay_the_producer_join_and_refuse_either_repaired_order",
+      "source_path": "src/cleanup_plan/replay/path_join/branch_join/tests.rs",
+      "line": 60,
+      "name": "identical_branch_arms_replay_the_producer_join_and_refuse_either_repaired_order",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 13,
+          "module": "branch_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/branch_join.rs",
+          "line": 281,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f546579f561b5a9e23c081dbd8c1b0a9d9f6583983bbbd9b0a9beb14369fe740",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::classifier_debits_initialization_every_edge_visit_and_every_later_probe",
+      "source_path": "src/cleanup_plan/replay/path_join/branch_join/tests.rs",
+      "line": 169,
+      "name": "classifier_debits_initialization_every_edge_visit_and_every_later_probe",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 13,
+          "module": "branch_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/branch_join.rs",
+          "line": 281,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f546579f561b5a9e23c081dbd8c1b0a9d9f6583983bbbd9b0a9beb14369fe740",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::classifier_shape_backing_is_exact_and_a_short_ledger_stays_refused",
+      "source_path": "src/cleanup_plan/replay/path_join/branch_join/tests.rs",
+      "line": 215,
+      "name": "classifier_shape_backing_is_exact_and_a_short_ledger_stays_refused",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 13,
+          "module": "branch_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/branch_join.rs",
+          "line": 281,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f546579f561b5a9e23c081dbd8c1b0a9d9f6583983bbbd9b0a9beb14369fe740",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::mixed_and_single_edge_inputs_are_not_branch_joins",
+      "source_path": "src/cleanup_plan/replay/path_join/branch_join/tests.rs",
+      "line": 243,
+      "name": "mixed_and_single_edge_inputs_are_not_branch_joins",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 13,
+          "module": "branch_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/branch_join.rs",
+          "line": 281,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f546579f561b5a9e23c081dbd8c1b0a9d9f6583983bbbd9b0a9beb14369fe740",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::actual_lexical_exact_rejoin_is_never_rekeyed_or_charged",
+      "source_path": "src/cleanup_plan/replay/path_join/branch_join/tests.rs",
+      "line": 286,
+      "name": "actual_lexical_exact_rejoin_is_never_rekeyed_or_charged",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 13,
+          "module": "branch_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/branch_join.rs",
+          "line": 281,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f546579f561b5a9e23c081dbd8c1b0a9d9f6583983bbbd9b0a9beb14369fe740",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::normalization_debits_root_comparisons_and_the_self_join_before_rekeying",
+      "source_path": "src/cleanup_plan/replay/path_join/branch_join/tests.rs",
+      "line": 347,
+      "name": "normalization_debits_root_comparisons_and_the_self_join_before_rekeying",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 13,
+          "module": "branch_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/branch_join.rs",
+          "line": 281,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f546579f561b5a9e23c081dbd8c1b0a9d9f6583983bbbd9b0a9beb14369fe740",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::estimator_visits_use_the_actual_paid_sticky_ledger",
+      "source_path": "src/cleanup_plan/replay/path_join/branch_join/tests.rs",
+      "line": 451,
+      "name": "estimator_visits_use_the_actual_paid_sticky_ledger",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 13,
+          "module": "branch_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/branch_join.rs",
+          "line": 281,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f546579f561b5a9e23c081dbd8c1b0a9d9f6583983bbbd9b0a9beb14369fe740",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::receiver_tests::whole_original_and_boxed_replay_keep_success_work_and_hostile_diagnostic",
+      "source_path": "src/cleanup_plan/replay/path_join/receiver_tests.rs",
+      "line": 40,
+      "name": "whole_original_and_boxed_replay_keep_success_work_and_hostile_diagnostic",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 15,
+          "module": "receiver_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "b988e44e6a1b1c4fb5a8353ae1377717b4613bc1982ac1e5a056099439008dda",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::receiver_tests::complete_current_replay_has_exact_and_one_short_physical_limits_with_last_drop",
+      "source_path": "src/cleanup_plan/replay/path_join/receiver_tests.rs",
+      "line": 85,
+      "name": "complete_current_replay_has_exact_and_one_short_physical_limits_with_last_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 15,
+          "module": "receiver_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "b988e44e6a1b1c4fb5a8353ae1377717b4613bc1982ac1e5a056099439008dda",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::receiver_tests::complete_original_receiver_and_exact_current_source_inverse_stay_bound",
+      "source_path": "src/cleanup_plan/replay/path_join/receiver_tests.rs",
+      "line": 133,
+      "name": "complete_original_receiver_and_exact_current_source_inverse_stay_bound",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 15,
+          "module": "receiver_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "b988e44e6a1b1c4fb5a8353ae1377717b4613bc1982ac1e5a056099439008dda",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::atomic_body_control_clone_preserves_complete_key_and_work_in_both_measurement_orders",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs",
+      "line": 123,
+      "name": "atomic_body_control_clone_preserves_complete_key_and_work_in_both_measurement_orders",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 16,
+          "module": "storage",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage.rs",
+          "line": 5,
+          "module": "atomic_controls",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls.rs",
+          "line": 76,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "2b2688fb72b38c1467127fd0dd907e755d1895a3f00a1ab8ed37b0a97e08748f",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::atomic_control_exact_short_zero_and_every_request_frontier_remain_sticky",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs",
+      "line": 169,
+      "name": "atomic_control_exact_short_zero_and_every_request_frontier_remain_sticky",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 16,
+          "module": "storage",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage.rs",
+          "line": 5,
+          "module": "atomic_controls",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls.rs",
+          "line": 76,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "2b2688fb72b38c1467127fd0dd907e755d1895a3f00a1ab8ed37b0a97e08748f",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::absent_compound_and_residual_results_and_other_payers_keep_the_original_route",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs",
+      "line": 201,
+      "name": "absent_compound_and_residual_results_and_other_payers_keep_the_original_route",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 16,
+          "module": "storage",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage.rs",
+          "line": 5,
+          "module": "atomic_controls",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls.rs",
+          "line": 76,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "2b2688fb72b38c1467127fd0dd907e755d1895a3f00a1ab8ed37b0a97e08748f",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::absent_statuses_and_scalar_or_absent_return_keep_exact_false_publication",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs",
+      "line": 275,
+      "name": "absent_statuses_and_scalar_or_absent_return_keep_exact_false_publication",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 16,
+          "module": "storage",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage.rs",
+          "line": 5,
+          "module": "atomic_controls",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls.rs",
+          "line": 76,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "2b2688fb72b38c1467127fd0dd907e755d1895a3f00a1ab8ed37b0a97e08748f",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::atomic_controls::tests::selected_admission_with_an_active_builder_still_cannot_select_the_ordinary_constructor",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs",
+      "line": 310,
+      "name": "selected_admission_with_an_active_builder_still_cannot_select_the_ordinary_constructor",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 16,
+          "module": "storage",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage.rs",
+          "line": 5,
+          "module": "atomic_controls",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage/atomic_controls.rs",
+          "line": 76,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "2b2688fb72b38c1467127fd0dd907e755d1895a3f00a1ab8ed37b0a97e08748f",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::empty_renewals::tests::empty_renewal_branch_clone_preserves_every_field_work_and_complete_drop",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs",
+      "line": 133,
+      "name": "empty_renewal_branch_clone_preserves_every_field_work_and_complete_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 16,
+          "module": "storage",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage.rs",
+          "line": 6,
+          "module": "empty_renewals",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage/empty_renewals.rs",
+          "line": 154,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "0642e437f6e107f81bf1c5ef3425d93075683417d7303754ce7494915b5d1dc0",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::empty_renewals::tests::empty_renewal_clone_exact_short_zero_and_each_request_frontier_remain_sticky",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs",
+      "line": 180,
+      "name": "empty_renewal_clone_exact_short_zero_and_each_request_frontier_remain_sticky",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 16,
+          "module": "storage",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage.rs",
+          "line": 6,
+          "module": "empty_renewals",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage/empty_renewals.rs",
+          "line": 154,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "0642e437f6e107f81bf1c5ef3425d93075683417d7303754ce7494915b5d1dc0",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::empty_renewals::tests::atomic_type_clone_omits_only_the_absent_census_cursor_and_preserves_all_tags",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs",
+      "line": 214,
+      "name": "atomic_type_clone_omits_only_the_absent_census_cursor_and_preserves_all_tags",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 16,
+          "module": "storage",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage.rs",
+          "line": 6,
+          "module": "empty_renewals",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage/empty_renewals.rs",
+          "line": 154,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "0642e437f6e107f81bf1c5ef3425d93075683417d7303754ce7494915b5d1dc0",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::empty_renewals::tests::nonempty_and_selected_or_unobserved_renewal_routes_keep_the_original_receiver",
+      "source_path": "src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs",
+      "line": 272,
+      "name": "nonempty_and_selected_or_unobserved_renewal_routes_keep_the_original_receiver",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 16,
+          "module": "storage",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage.rs",
+          "line": 6,
+          "module": "empty_renewals",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage/empty_renewals.rs",
+          "line": 154,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "0642e437f6e107f81bf1c5ef3425d93075683417d7303754ce7494915b5d1dc0",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::tests::cloned_state_payload_counts_owned_buffers_but_not_shared_identity_handles",
+      "source_path": "src/cleanup_plan/replay/path_join/storage.rs",
+      "line": 325,
+      "name": "cloned_state_payload_counts_owned_buffers_but_not_shared_identity_handles",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 16,
+          "module": "storage",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage.rs",
+          "line": 322,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "671900b2a5b62cba38ad34777f69d8f7fa2169bacac174a4237e1a24fbaf07c5",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::tests::conditional_clone_literal_backing_keeps_projection_cases_and_flags",
+      "source_path": "src/cleanup_plan/replay/path_join/storage.rs",
+      "line": 363,
+      "name": "conditional_clone_literal_backing_keeps_projection_cases_and_flags",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 16,
+          "module": "storage",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage.rs",
+          "line": 322,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "671900b2a5b62cba38ad34777f69d8f7fa2169bacac174a4237e1a24fbaf07c5",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::storage::tests::exact_clone_charge_and_one_short_refusal_precede_clone_and_remain_sticky",
+      "source_path": "src/cleanup_plan/replay/path_join/storage.rs",
+      "line": 397,
+      "name": "exact_clone_charge_and_one_short_refusal_precede_clone_and_remain_sticky",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 16,
+          "module": "storage",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/storage.rs",
+          "line": 322,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "671900b2a5b62cba38ad34777f69d8f7fa2169bacac174a4237e1a24fbaf07c5",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::tests::borrowed_prefix_preserves_joint_history_cycle_and_every_sorted_prefix_diagnostic",
+      "source_path": "src/cleanup_plan/replay/path_join/tests.rs",
+      "line": 50,
+      "name": "borrowed_prefix_preserves_joint_history_cycle_and_every_sorted_prefix_diagnostic",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 718,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "6a00500ce95449c9d08ebba90cdaef85c7ce0d4e5a69769bedcdde62502725eb",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::tests::duplicate_states_and_incompatible_control_keep_exact_results_and_input_payloads",
+      "source_path": "src/cleanup_plan/replay/path_join/tests.rs",
+      "line": 82,
+      "name": "duplicate_states_and_incompatible_control_keep_exact_results_and_input_payloads",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 718,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "6a00500ce95449c9d08ebba90cdaef85c7ce0d4e5a69769bedcdde62502725eb",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::tests::boxed_prefix_keeps_every_history_union_and_control_disagreement",
+      "source_path": "src/cleanup_plan/replay/path_join/tests.rs",
+      "line": 105,
+      "name": "boxed_prefix_keeps_every_history_union_and_control_disagreement",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 718,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "6a00500ce95449c9d08ebba90cdaef85c7ce0d4e5a69769bedcdde62502725eb",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::singleton_direct_group_keeps_complete_old_success_work_and_hostile_diagnostic",
+      "source_path": "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+      "line": 41,
+      "name": "singleton_direct_group_keeps_complete_old_success_work_and_hostile_diagnostic",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 954,
+          "module": "singleton_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "79810d95fa864955dc08d7883b8c4b83f205837499fb07385bec9b80b6e954a6",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::singleton_whole_replay_reports_real_costs_and_exact_short_zero_drop",
+      "source_path": "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+      "line": 109,
+      "name": "singleton_whole_replay_reports_real_costs_and_exact_short_zero_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 954,
+          "module": "singleton_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "79810d95fa864955dc08d7883b8c4b83f205837499fb07385bec9b80b6e954a6",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::complete_immediate_old_and_unchanged_multistate_body_stay_source_bound",
+      "source_path": "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+      "line": 166,
+      "name": "complete_immediate_old_and_unchanged_multistate_body_stay_source_bound",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 954,
+          "module": "singleton_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "79810d95fa864955dc08d7883b8c4b83f205837499fb07385bec9b80b6e954a6",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::boxed_states::tests::exact_box_and_node_are_paid_before_either_allocation_and_refusal_is_sticky",
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs",
+      "line": 20,
+      "name": "exact_box_and_node_are_paid_before_either_allocation_and_refusal_is_sticky",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 958,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 8,
+          "module": "boxed_states",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs",
+          "line": 47,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "41a89e70de2d76f2811a98bf85608ac69901296140b83297c722b8341eba5b01",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::boxed_states::tests::held_state_moves_preserve_pointers_and_duplicates_without_cloning_or_refunds",
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs",
+      "line": 60,
+      "name": "held_state_moves_preserve_pointers_and_duplicates_without_cloning_or_refunds",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 958,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 8,
+          "module": "boxed_states",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs",
+          "line": 47,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "41a89e70de2d76f2811a98bf85608ac69901296140b83297c722b8341eba5b01",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::boxed_states::tests::boxed_order_matches_inline_values_through_tree_splits_and_every_prefix",
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs",
+      "line": 141,
+      "name": "boxed_order_matches_inline_values_through_tree_splits_and_every_prefix",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 958,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 8,
+          "module": "boxed_states",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs",
+          "line": 47,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "41a89e70de2d76f2811a98bf85608ac69901296140b83297c722b8341eba5b01",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::source_custody::whole_previous_producer_and_both_complete_key_constructors_stay_bound",
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs",
+      "line": 36,
+      "name": "whole_previous_producer_and_both_complete_key_constructors_stay_bound",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 958,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 10,
+          "module": "grouping",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs",
+          "line": 105,
+          "module": "source_custody",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "05a6c4b858a441edd8693d5cc46d12b7262f78705ddc822df7c3020413501b42",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::source_custody::the_entire_older_receiver_test_only_adds_the_certified_source_inverse",
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs",
+      "line": 69,
+      "name": "the_entire_older_receiver_test_only_adds_the_certified_source_inverse",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 958,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 10,
+          "module": "grouping",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs",
+          "line": 105,
+          "module": "source_custody",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "05a6c4b858a441edd8693d5cc46d12b7262f78705ddc822df7c3020413501b42",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::tests::whole_replay_preserves_success_work_and_the_older_independent_receiver",
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs",
+      "line": 41,
+      "name": "whole_replay_preserves_success_work_and_the_older_independent_receiver",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 958,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 10,
+          "module": "grouping",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs",
+          "line": 107,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f3bc4ad754d4c33ca7508aac28412c6409469ebafe425392454ab43676e72dbb",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::tests::the_complete_group_receiver_keeps_hostile_transition_diagnostics_and_work",
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs",
+      "line": 72,
+      "name": "the_complete_group_receiver_keeps_hostile_transition_diagnostics_and_work",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 958,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 10,
+          "module": "grouping",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs",
+          "line": 107,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f3bc4ad754d4c33ca7508aac28412c6409469ebafe425392454ab43676e72dbb",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::tests::full_replay_removes_backing_with_zero_exact_short_limits_and_complete_drop",
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs",
+      "line": 112,
+      "name": "full_replay_removes_backing_with_zero_exact_short_limits_and_complete_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 958,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 10,
+          "module": "grouping",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs",
+          "line": 107,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f3bc4ad754d4c33ca7508aac28412c6409469ebafe425392454ab43676e72dbb",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::receiver_tests::whole_original_and_boxed_replay_keep_success_work_and_hostile_diagnostic",
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs",
+      "line": 40,
+      "name": "whole_original_and_boxed_replay_keep_success_work_and_hostile_diagnostic",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 958,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 12,
+          "module": "receiver_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "c8fb85cd100993b405851fdcfbbc5605e3641da56438d5924f253957ece45d0a",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::receiver_tests::complete_current_replay_has_exact_and_one_short_physical_limits_with_last_drop",
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs",
+      "line": 85,
+      "name": "complete_current_replay_has_exact_and_one_short_physical_limits_with_last_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 958,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 12,
+          "module": "receiver_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "c8fb85cd100993b405851fdcfbbc5605e3641da56438d5924f253957ece45d0a",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::receiver_tests::complete_original_receiver_and_exact_current_source_inverse_stay_bound",
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs",
+      "line": 133,
+      "name": "complete_original_receiver_and_exact_current_source_inverse_stay_bound",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 958,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 12,
+          "module": "receiver_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "c8fb85cd100993b405851fdcfbbc5605e3641da56438d5924f253957ece45d0a",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::tests::borrowed_prefix_preserves_joint_history_cycle_and_every_sorted_prefix_diagnostic",
+      "source_path": "src/cleanup_plan/replay/path_join/tests.rs",
+      "line": 50,
+      "name": "borrowed_prefix_preserves_joint_history_cycle_and_every_sorted_prefix_diagnostic",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 958,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 448,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"../tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "6a00500ce95449c9d08ebba90cdaef85c7ce0d4e5a69769bedcdde62502725eb",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::tests::duplicate_states_and_incompatible_control_keep_exact_results_and_input_payloads",
+      "source_path": "src/cleanup_plan/replay/path_join/tests.rs",
+      "line": 82,
+      "name": "duplicate_states_and_incompatible_control_keep_exact_results_and_input_payloads",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 958,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 448,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"../tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "6a00500ce95449c9d08ebba90cdaef85c7ce0d4e5a69769bedcdde62502725eb",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::tests::boxed_prefix_keeps_every_history_union_and_control_disagreement",
+      "source_path": "src/cleanup_plan/replay/path_join/tests.rs",
+      "line": 105,
+      "name": "boxed_prefix_keeps_every_history_union_and_control_disagreement",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 958,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 448,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"../tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "6a00500ce95449c9d08ebba90cdaef85c7ce0d4e5a69769bedcdde62502725eb",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::state_move_tests::singleton_move_keeps_complete_immediate_work_and_hostile_diagnostic",
+      "source_path": "src/cleanup_plan/replay/path_join/state_move_tests.rs",
+      "line": 41,
+      "name": "singleton_move_keeps_complete_immediate_work_and_hostile_diagnostic",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 963,
+          "module": "state_move_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "7c81b56268cdc2c7f899d9691b8f6083cecedd1375c26b65472bcddd3ca79059",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::state_move_tests::singleton_move_reports_whole_immediate_costs_and_exact_short_zero_drop",
+      "source_path": "src/cleanup_plan/replay/path_join/state_move_tests.rs",
+      "line": 109,
+      "name": "singleton_move_reports_whole_immediate_costs_and_exact_short_zero_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 963,
+          "module": "state_move_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "7c81b56268cdc2c7f899d9691b8f6083cecedd1375c26b65472bcddd3ca79059",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "project::cxx_owned_data::provider_refusal_tests::outward_help_uses_the_first_actual_reservation_and_caller",
+      "source_path": "src/project/cxx_owned_data.rs",
+      "line": 312,
+      "name": "outward_help_uses_the_first_actual_reservation_and_caller",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/project/cxx_owned_data.rs",
+          "line": 305,
+          "module": "provider_refusal_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "2b1ece7ee4695354c56bab9830861f4aad7d997e0517d97ec8b787e012a5e22f",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "project::cxx_owned_data::provider_refusal_tests::missing_evidence_and_a_surrounding_budget_keep_the_original_error",
+      "source_path": "src/project/cxx_owned_data.rs",
+      "line": 333,
+      "name": "missing_evidence_and_a_surrounding_budget_keep_the_original_error",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/project/cxx_owned_data.rs",
+          "line": 305,
+          "module": "provider_refusal_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "2b1ece7ee4695354c56bab9830861f4aad7d997e0517d97ec8b787e012a5e22f",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "command_argument_borrow::every_committed_spxgrep_manifest_admits_through_the_project_check_route",
+      "source_path": "tests/project/command_argument_borrow.rs",
+      "line": 70,
+      "name": "every_committed_spxgrep_manifest_admits_through_the_project_check_route",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [],
+      "sha256": "a7d6ae02f27283b6ade54364c62b69c832af9cf0da78f1442b6aa3b7734cabea",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "command_argument_borrow::command_argument_projects_still_execute_their_declared_tests",
+      "source_path": "tests/project/command_argument_borrow.rs",
+      "line": 81,
+      "name": "command_argument_projects_still_execute_their_declared_tests",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [],
+      "sha256": "a7d6ae02f27283b6ade54364c62b69c832af9cf0da78f1442b6aa3b7734cabea",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "command_argument_borrow::a_mutable_command_argument_local_still_fails_closed_on_the_project_route",
+      "source_path": "tests/project/command_argument_borrow.rs",
+      "line": 97,
+      "name": "a_mutable_command_argument_local_still_fails_closed_on_the_project_route",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [],
+      "sha256": "a7d6ae02f27283b6ade54364c62b69c832af9cf0da78f1442b6aa3b7734cabea",
+      "ignored": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "command_argument_borrow::retained_hir_still_rejects_a_mutable_command_argument_alias_independently",
+      "source_path": "tests/project/command_argument_borrow.rs",
+      "line": 121,
+      "name": "retained_hir_still_rejects_a_mutable_command_argument_alias_independently",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [],
+      "sha256": "a7d6ae02f27283b6ade54364c62b69c832af9cf0da78f1442b6aa3b7734cabea",
+      "ignored": false
+    }
+  ]
+}

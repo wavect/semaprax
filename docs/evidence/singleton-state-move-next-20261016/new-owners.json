@@ -1,0 +1,12 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/path_join/before_state_move.rs",
+    "sha256": "a10ef5dea30565641b1810485a00acb402bfb3d91e0ad7a31d787ad3079bee12",
+    "lines": 938
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/state_move_tests.rs",
+    "sha256": "7c81b56268cdc2c7f899d9691b8f6083cecedd1375c26b65472bcddd3ca79059",
+    "lines": 163
+  }
+]

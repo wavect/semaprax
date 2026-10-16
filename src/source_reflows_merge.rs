@@ -69,7 +69,12 @@ fn main531_child_input(source: &str, current: &str) -> String {
     let current = fixed.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main531-original-tests-child-20261016/current-to-7e9f.json")), source, current)
 }
+fn post_main0ab1_input(source: &str, current: &str) -> String {
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/post-main0ab1-singleton-join-20261016/current-to-3177.json")), source, current)
+}
 fn main696_corrected_input(source: &str, current: &str) -> String {
+    let next = post_main0ab1_input(source, current);
+    let current = next.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main696-funded-receiving-joined-20261016/current-to-ff7e.json")), source, current)
 }
 pub(crate) fn main696_input(source: &str, current: &str) -> String {

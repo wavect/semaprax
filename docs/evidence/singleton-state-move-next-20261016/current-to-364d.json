@@ -1,0 +1,18 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/path_join.rs",
+    "current_sha256": "251842e274adf65ec269615dda1b9ddfe9fbf93fe8390972b5631d41436147f9",
+    "original_sha256": "35bf81f5aefc552a5eda2b6d383bda9a753313a5d363a7d4e572d4f169fa0a99",
+    "edits": [
+      {
+        "new": "                .into());\n            }\n            validate_control_group_with_budget(function, &states, block_id, budget)?;\n            // The validated singleton already owns the complete joined fields.\n            // Consume it once; neither original vector nor any nested identity\n            // is cloned, replaced from a clone, or temporarily reinitialized.\n            let mut state = *states\n                .into_iter()\n                .next()\n                .expect(\"replay control group is non-empty\");\n            // Identical branch arms still require their original normalization.\n            // Move the original vector into that same producer and receive its\n            // result back into the same field. Partial failure drops the moved\n            // input and every remaining state field through their original owners.\n            state.conditional_variants = branch_joins.normalize(\n                program,\n                function,\n                block_id,\n                exact_join,\n                state.conditional_variants,\n                budget,\n            )?;\n            if let Some(auth) = lexical {\n                lexical_boundary::check(\n                    function,\n",
+        "old": "                .into());\n            }\n            validate_control_group_with_budget(function, &states, block_id, budget)?;\n            let (live_order, mut conditional_variants) =\n                joined_ownership_state(program, function, &states, budget)?;\n            // Identical branch arms deduplicate to one state; the producer\n            // still joined them. An exact break rejoin is never re-keyed.\n            if states.len() == 1 {\n                conditional_variants = branch_joins.normalize(\n                    program,\n                    function,\n                    block_id,\n                    exact_join,\n                    conditional_variants,\n                    budget,\n                )?;\n            }\n            let mut state = *states\n                .into_iter()\n                .next()\n                .expect(\"replay control group is non-empty\");\n            state.live_order = live_order;\n            state.conditional_variants = conditional_variants;\n            if let Some(auth) = lexical {\n                lexical_boundary::check(\n                    function,\n"
+      },
+      {
+        "new": "#[cfg(test)]\n#[path = \"path_join/main_single_groups/mod.rs\"]\nmod main_single_groups;\n\n#[cfg(test)]\nmod before_state_move;\n#[cfg(test)]\nmod state_move_tests;\n",
+        "old": "#[cfg(test)]\n#[path = \"path_join/main_single_groups/mod.rs\"]\nmod main_single_groups;\n"
+      }
+    ],
+    "original_archive": "docs/evidence/singleton-state-move-next-20261016/path_join.rs.before.txt"
+  }
+]

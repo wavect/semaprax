@@ -81,27 +81,28 @@ impl ProjectSnapshot {
         };
         let descriptor_bytes = descriptor.canonical_bytes();
         let descriptor_digest = descriptor.digest();
-        let (provider, overflowed) =
-            crate::bounded_output::with_limit(MAX_CXX_OWNED_DATA_PACKAGE_BYTES, || {
-                if !crate::bounded_output::set_active_floor(MAX_CXX_PROVIDER_WRAPPER_BYTES) {
-                    return Err(package_error(
-                        "native provider wrapper reserve is unavailable",
-                    ));
-                }
-                let provider = crate::codegen::emit_project_v8_native_owned_data_provider(
-                    self.public_api_program(),
-                    selected,
-                    subject,
-                    &descriptor_bytes,
-                    &descriptor_digest,
-                );
-                crate::bounded_output::clear_active_floor();
-                provider
-            });
+        let (provider, overflowed, _, refusal, site) =
+            crate::bounded_output::with_limit_usage_refusal_site(
+                MAX_CXX_OWNED_DATA_PACKAGE_BYTES,
+                || {
+                    if !crate::bounded_output::set_active_floor(MAX_CXX_PROVIDER_WRAPPER_BYTES) {
+                        return Err(package_error(
+                            "native provider wrapper reserve is unavailable",
+                        ));
+                    }
+                    let provider = crate::codegen::emit_project_v8_native_owned_data_provider(
+                        self.public_api_program(),
+                        selected,
+                        subject,
+                        &descriptor_bytes,
+                        &descriptor_digest,
+                    );
+                    crate::bounded_output::clear_active_floor();
+                    provider
+                },
+            );
         if overflowed {
-            return Err(vec![package_error(
-                "native provider exceeded its builder bound",
-            )]);
+            return Err(vec![provider_builder_error(refusal, site)]);
         }
         let provider = provider.map_err(|error| vec![error])?;
         if provider.source().len() > MAX_CXX_OWNED_DATA_PACKAGE_BYTES {
@@ -247,6 +248,38 @@ fn package_error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-J141", message)
 }
 
+fn provider_builder_error(
+    refusal: Option<crate::bounded_output::ReservationRefusal>,
+    site: Option<crate::bounded_output::ReservationSite>,
+) -> Diagnostic {
+    let mut error = package_error("native provider exceeded its builder bound");
+    // Render outward evidence after leaving the refusing account. Under a
+    // surrounding budget, keep the original error without new help backing.
+    if crate::bounded_output::active_limit().is_some() {
+        return error;
+    }
+    let Some(refusal) = refusal else {
+        return error;
+    };
+    let mut help = format!(
+                "First sticky native-provider reservation: requested {} bytes with {} remaining and {} reserved floor. This is a cumulative builder debit, not process RSS.",
+                refusal.requested, refusal.remaining, refusal.floor,
+    );
+    if let Some(site) = site {
+        use std::fmt::Write as _;
+        write!(
+            &mut help,
+            " Reservation caller: {}:{}:{}.",
+            site.file(),
+            site.line(),
+            site.column()
+        )
+        .unwrap();
+    }
+    error.help = Some(help);
+    error
+}
+
 fn push_json(output: &mut CappedString, value: &str) {
     output.push('"');
     for character in value.chars() {
@@ -266,4 +299,47 @@ fn push_json(output: &mut CappedString, value: &str) {
         }
     }
     output.push('"');
+}
+
+#[cfg(test)]
+mod provider_refusal_tests {
+    use super::*;
+    use crate::bounded_output::{
+        reserve_active_required, set_active_floor, with_limit_usage_refusal_site,
+    };
+
+    #[test]
+    fn outward_help_uses_the_first_actual_reservation_and_caller() {
+        let (line, refused, used, refusal, site) = with_limit_usage_refusal_site(3, || {
+            assert!(set_active_floor(2));
+            let line = line!() + 1;
+            assert!(!reserve_active_required(2));
+            assert!(!reserve_active_required(99));
+            line
+        });
+        assert!(refused);
+        assert_eq!(used, 0);
+        let error = provider_builder_error(refusal, site);
+        let original = package_error("native provider exceeded its builder bound");
+        assert_eq!(error.code, original.code);
+        assert_eq!(error.message, original.message);
+        let help = error.help.unwrap();
+        assert!(help.contains("requested 2 bytes with 3 remaining and 2 reserved floor"));
+        assert!(!help.contains("requested 99"));
+        assert!(help.contains(&format!("Reservation caller: {}:{}:", file!(), line)));
+    }
+
+    #[test]
+    fn missing_evidence_and_a_surrounding_budget_keep_the_original_error() {
+        assert!(provider_builder_error(None, None).help.is_none());
+        let (_, _, _, refusal, site) = with_limit_usage_refusal_site(0, || {
+            assert!(!reserve_active_required(1));
+        });
+        let (error, refused, used, _, _) =
+            with_limit_usage_refusal_site(0, || provider_builder_error(refusal, site));
+        assert!(!refused);
+        assert_eq!(used, 0);
+        assert!(error.help.is_none());
+        assert_eq!(error.message, "native provider exceeded its builder bound");
+    }
 }

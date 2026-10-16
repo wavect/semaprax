@@ -205,26 +205,25 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                 .into());
             }
             validate_control_group_with_budget(function, &states, block_id, budget)?;
-            let (live_order, mut conditional_variants) =
-                joined_ownership_state(program, function, &states, budget)?;
-            // Identical branch arms deduplicate to one state; the producer
-            // still joined them. An exact break rejoin is never re-keyed.
-            if states.len() == 1 {
-                conditional_variants = branch_joins.normalize(
-                    program,
-                    function,
-                    block_id,
-                    exact_join,
-                    conditional_variants,
-                    budget,
-                )?;
-            }
+            // The validated singleton already owns the complete joined fields.
+            // Consume it once; neither original vector nor any nested identity
+            // is cloned, replaced from a clone, or temporarily reinitialized.
             let mut state = *states
                 .into_iter()
                 .next()
                 .expect("replay control group is non-empty");
-            state.live_order = live_order;
-            state.conditional_variants = conditional_variants;
+            // Identical branch arms still require their original normalization.
+            // Move the original vector into that same producer and receive its
+            // result back into the same field. Partial failure drops the moved
+            // input and every remaining state field through their original owners.
+            state.conditional_variants = branch_joins.normalize(
+                program,
+                function,
+                block_id,
+                exact_join,
+                state.conditional_variants,
+                budget,
+            )?;
             if let Some(auth) = lexical {
                 lexical_boundary::check(
                     function,
@@ -957,3 +956,8 @@ mod singleton_tests;
 #[cfg(test)]
 #[path = "path_join/main_single_groups/mod.rs"]
 mod main_single_groups;
+
+#[cfg(test)]
+mod before_state_move;
+#[cfg(test)]
+mod state_move_tests;

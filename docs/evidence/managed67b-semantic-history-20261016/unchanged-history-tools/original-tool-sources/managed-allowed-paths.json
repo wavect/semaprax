@@ -1,0 +1,62 @@
+{
+  "capability-context.json": [
+    "/workspace_graph_digest",
+    "/artifact_digest",
+    "/budget/workspace/used_builder_bytes"
+  ],
+  "capability-review.json": [
+    "/workspace_graph_digest",
+    "/artifact_digest",
+    "/context/workspace_graph_digest",
+    "/context/artifact_digest",
+    "/context/budget/workspace/used_builder_bytes",
+    "/impact/workspace_graph_digest",
+    "/impact/artifact_digest",
+    "/impact/budget/workspace/used_builder_bytes",
+    "/budget/workspace/used_builder_bytes"
+  ],
+  "context.json": [
+    "/workspace_graph_digest",
+    "/artifact_digest",
+    "/budget/workspace/used_builder_bytes"
+  ],
+  "custom-impact.json": [
+    "/workspace_graph_digest",
+    "/artifact_digest",
+    "/budget/workspace/used_builder_bytes"
+  ],
+  "forward.json": [
+    "/workspace_graph_digest",
+    "/artifact_digest",
+    "/budget/workspace/used_builder_bytes"
+  ],
+  "impact.json": [
+    "/workspace_graph_digest",
+    "/artifact_digest",
+    "/budget/workspace/used_builder_bytes"
+  ],
+  "projection-wire.json": [
+    "/graph_digest",
+    "/budget/used_builder_bytes"
+  ],
+  "public-graph.json": [
+    "/graph_digest",
+    "/budget/used_builder_bytes"
+  ],
+  "review.json": [
+    "/workspace_graph_digest",
+    "/artifact_digest",
+    "/context/workspace_graph_digest",
+    "/context/artifact_digest",
+    "/context/budget/workspace/used_builder_bytes",
+    "/impact/workspace_graph_digest",
+    "/impact/artifact_digest",
+    "/impact/budget/workspace/used_builder_bytes",
+    "/budget/workspace/used_builder_bytes"
+  ],
+  "type-context.json": [
+    "/workspace_graph_digest",
+    "/artifact_digest",
+    "/budget/workspace/used_builder_bytes"
+  ]
+}

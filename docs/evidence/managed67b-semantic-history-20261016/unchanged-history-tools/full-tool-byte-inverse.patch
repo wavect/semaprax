@@ -1,0 +1,42 @@
+--- derived/managed_history.py
++++ original/managed_history.py
+@@ -43,13 +43,4 @@
+   self_digest(raw,Path(file).stem);self_digest(before,Path(file).stem);changes=restore_exact(raw,before,allow[file]);out.append({'wire':file,'new_sha256':sha(raw),'prior83ca_sha256':h,'changed_paths':changes,'full_raw_restored':True})
+   # The complete47 domain stays separate and is never replaced by83ca.
+   old=(Path('/Volumes/Semaprax/provenance/managed-capture-47f-20261016/wires')/file).read_bytes();assert sha(old)==binding['actual47_managed_all10_wire_sha256'][file];self_digest(old,Path(file).stem);restore_exact(raw,old,allow[file])
+- # Independent actual55e domain; original47/83ca checks above remain unchanged.
+- history=json.loads((HERE/'actual55e-history-binding.json').read_text())
+- capture=Path(history['capture']);assert sha((capture/'candidates.json').read_bytes())==history['candidates_sha256']
+- assert (capture/'source-head.txt').read_text().strip()==history['source_head']
+- assert set(history['all10_wire_sha256'])==set(binding['actual83ca_managed_all10_wire_sha256'])
+- for file,expected in history['all10_wire_sha256'].items():
+-  before=(capture/'wires'/file).read_bytes();raw=(wires/file).read_bytes();assert sha(before)==expected
+-  self_digest(before,Path(file).stem);changed=restore_exact(raw,before,allow[file])
+-  out.append({'wire':file,'new_sha256':sha(raw),'prior55e_sha256':expected,'changed_paths':changed,'full_raw_restored':True})
+  return out
+--- derived/archive-actual-and-build-patch.py
++++ original/archive-actual-and-build-patch.py
+@@ -83,23 +83,6 @@
+ assert len(actual83ca_inverses)==10
+ (OUT/'independent-actual83ca-whole-wire-inverses.json').write_text(json.dumps(actual83ca_inverses,indent=2)+'\n')
+ (OUT/'independent-managed-history-validation.json').write_text(json.dumps(actual83ca_validation,indent=2)+'\n')
+-# Preserve actual55e all10 raw wires and exact byte inverses independently.
+-H55=json.loads((Path(__file__).resolve().parent/'actual55e-history-binding.json').read_text())
+-CAP55=Path(H55['capture']);assert sha((CAP55/'candidates.json').read_bytes())==H55['candidates_sha256']
+-shutil.copytree(CAP55,OUT/'independent-actual55e-capture')
+-actual55_inverses=[]
+-for filename,expected in sorted(H55['all10_wire_sha256'].items()):
+- prior=(CAP55/'wires'/filename).read_bytes();assert sha(prior)==expected
+- actual=(NEW/'wires'/filename).read_bytes();inverse=[]
+- for op,a,b,c,d in difflib.SequenceMatcher(None,prior,actual,autojunk=True).get_opcodes():
+-  if op!='equal':inverse.append(dict(before_start=a,before_end=b,after_start=c,after_end=d,before_hex=prior[a:b].hex(),after_hex=actual[c:d].hex()))
+- restored=actual
+- for e in reversed(inverse):
+-  assert restored[e['after_start']:e['after_end']]==bytes.fromhex(e['after_hex']);restored=restored[:e['after_start']]+bytes.fromhex(e['before_hex'])+restored[e['after_end']:]
+- assert restored==prior
+- actual55_inverses.append(dict(wire=filename,before_sha256=sha(prior),after_sha256=sha(actual),json_changes=changes(json.loads(prior),json.loads(actual)),exact_byte_inverse=inverse))
+-assert len(actual55_inverses)==10
+-(OUT/'independent-actual55e-whole-wire-inverses.json').write_text(json.dumps(actual55_inverses,indent=2)+'\n')
+ before={p:(OUT/'source-before'/p).read_bytes() for p in set(e['path'] for e in plan['edits'])|{'docs/evidence/prelude-forecast-286/pin-capture/exact-source-inverses.json'}};after=before.copy()
+ for e in plan['edits']:
+  a=e['before'].encode();b=e['after'].encode();assert after[e['path']].count(a)==1;after[e['path']]=after[e['path']].replace(a,b,1)

@@ -1,0 +1,12 @@
+{
+  "status": "STATIC_ONLY_PASS_NO_CARGO_BUILD_TEST_OR_CAPTURE",
+  "source_scripts_parse": true,
+  "whole_original_frontier_prefix_exact_except_fixed_head_literal_to_explicit_operand": true,
+  "unchanged_history_toolset_byte_equal_to_preserved_predecessor": true,
+  "all10_wires_restore_all47_83ca_55e_domains": true,
+  "derived_never_used_as_actual_producer_authority": true,
+  "validator_sha256": "47ef12a03372f5b642a8849bf38a3d667ce44715ea27230636ee73bcdd257a8f",
+  "frontier_sha256": "94c718c5e64d52ef180166c334951d6b5681133561db87b469000eb0dcfc0e2b",
+  "binding_sha256": "9dad4670060347e50751307680c897dc9af9e2072623d35cab8bcf4924ec4373",
+  "proof_sha256": "e45fd223868e76f8e37f9cb21ccd6c081e4333e2e02edc19d425ca12a9037faa"
+}

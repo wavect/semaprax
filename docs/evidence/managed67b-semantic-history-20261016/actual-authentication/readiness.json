@@ -1,0 +1,164 @@
+{
+  "status": "ACTUAL_PRODUCER_ONLY_THREE_BUILD_ARTIFACTS_VALIDATED_NO_CAPTURE",
+  "source_subject": "67b1b02141f19040fdd1b45bc9bea16dcff5d74e",
+  "actual_build_receipt_sha256": "a836c6aa42dc5f6ceee7dc431bb991bde382ee5d331a803c2a52bfa67f8af57b",
+  "manifest_sha256": "368deb50071dd0b01e8e9acedd73064887504a385ea504a0bf505339d2e889fc",
+  "raw_Cargo_log_sha256": "30f562e337d3428ed818fb04e40a370953a453d93bd1eb107255f8a2ef70b51a",
+  "producer_harnesses": {
+    "semaprax": {
+      "package": "semaprax",
+      "target": {
+        "kind": [
+          "lib"
+        ],
+        "crate_types": [
+          "lib"
+        ],
+        "name": "semaprax",
+        "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/src/lib.rs",
+        "edition": "2021",
+        "doc": true,
+        "doctest": true,
+        "test": true
+      },
+      "profile_test": true,
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04",
+      "executable_sha256": "6687b48b7988a248c5a716b3efb6bfd2706909472db81dd781d866ce6c845dd0",
+      "source_head": "67b1b02141f19040fdd1b45bc9bea16dcff5d74e",
+      "raw_Cargo_log_sha256": "30f562e337d3428ed818fb04e40a370953a453d93bd1eb107255f8a2ef70b51a",
+      "completed_build_receipt_sha256": "a836c6aa42dc5f6ceee7dc431bb991bde382ee5d331a803c2a52bfa67f8af57b",
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "manifest_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/Cargo.toml",
+      "source_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/src/lib.rs",
+      "source_sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de"
+    },
+    "workspace": {
+      "package": "semaprax",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "workspace",
+        "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/tests/workspace.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "profile_test": true,
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/workspace-1d89468226fe8696",
+      "executable_sha256": "9ee9c1207cbaa729bf49cd28751d359ff2c5b118055a1a50ad47e61ca1403f5a",
+      "source_head": "67b1b02141f19040fdd1b45bc9bea16dcff5d74e",
+      "raw_Cargo_log_sha256": "30f562e337d3428ed818fb04e40a370953a453d93bd1eb107255f8a2ef70b51a",
+      "completed_build_receipt_sha256": "a836c6aa42dc5f6ceee7dc431bb991bde382ee5d331a803c2a52bfa67f8af57b",
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "manifest_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/Cargo.toml",
+      "source_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/tests/workspace.rs",
+      "source_sha256": "2722662e4c54895e22dbffa8fb72f1ace5b93b99c4d58335f3948f6d73d5505f"
+    }
+  },
+  "production_CLI_artifacts_from_same_completed_build": {
+    "semaprax": {
+      "package": "semaprax",
+      "target": {
+        "kind": [
+          "bin"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "semaprax",
+        "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/src/main.rs",
+        "edition": "2021",
+        "doc": true,
+        "doctest": false,
+        "test": true
+      },
+      "profile_test": false,
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/semaprax",
+      "executable_sha256": "e66355f61dd07c73e13189ab2472d2c99e4e84519290c84c00a47c19ddec9911",
+      "source_head": "67b1b02141f19040fdd1b45bc9bea16dcff5d74e",
+      "raw_Cargo_log_sha256": "30f562e337d3428ed818fb04e40a370953a453d93bd1eb107255f8a2ef70b51a",
+      "completed_build_receipt_sha256": "a836c6aa42dc5f6ceee7dc431bb991bde382ee5d331a803c2a52bfa67f8af57b",
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": false
+      },
+      "manifest_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/Cargo.toml",
+      "source_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/src/main.rs",
+      "source_sha256": "4b5e16e975f61a69bff8b3ad4d249640e43fced7fe567c518dee6399cc980e89"
+    }
+  },
+  "capture_performed": false,
+  "ordered_build_commands": [
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "build",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--test",
+      "workspace",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ]
+  ],
+  "source_tree": "7896884ed715bdb0bfd51c7e273e4b1304fba5d8",
+  "producer_build_contract_sha256": "e418b7909fa119bb67bec3ed31805ee0c8b14c273d5c9f951b9abe92351aaae2",
+  "full_five_readiness_not_waived": true
+}

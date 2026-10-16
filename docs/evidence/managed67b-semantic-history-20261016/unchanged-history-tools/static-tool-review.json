@@ -1,0 +1,12 @@
+{
+  "plan-after-capture.py": "BYTE_EXACT",
+  "prepare-after-actual-capture.py": "BYTE_EXACT",
+  "strict-828f-capture-only.py": "BYTE_EXACT",
+  "source_inverse_composition.py": "BYTE_EXACT",
+  "status": "SOURCE_ONLY_PREPARATION_PASS",
+  "original_algorithms_and_predicates_retained": true,
+  "additive_history_unique_wholebyte_inverses": true,
+  "entrypoint_sha256": "543f21de65bf4f02d62ba7f0918180d28a2fdfe8e63fbd8c46e68b16efc5df42",
+  "capture_or_plan_executed": false,
+  "future_bill": null
+}

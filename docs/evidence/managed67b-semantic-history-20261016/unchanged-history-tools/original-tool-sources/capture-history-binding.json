@@ -1,0 +1,67 @@
+{
+  "original_skeleton_sha256": "77e74ab21dab7227bfc1fc4f98ec233ba83523884a2d28396d4ab7af663cead9",
+  "original_role_fixed_producer": {
+    "path": "/Volumes/Semaprax/provenance/paid-route-pin-workflow-47f-72-20261016/original-tool-sources/run-current-prelude-pin-producers-role-fixed-20261015.py",
+    "sha256": "2dc92fddf4b28ca725d540c0f449227d6c5087af7f6a78287067de912a801e76",
+    "unchanged": true
+  },
+  "actual47_browser_wire_sha256": {
+    "baseline": "b62235a5e0232f70c6d6131e18a85188dc3f835205f07491e85aa0a0b464eb37",
+    "renamed": "d6775977730ad82f4da116d347a81235498a1e034a03a8e141206224ef60d24a"
+  },
+  "actual47_browser_results_sha256": "65bbfcd6bf4d5601f9a1bcdfd485c7c9cbf14608d5adf14c26f4a689e7398b86",
+  "actual47_browser_binding_sha256": "ba28f7428993e5ad3aa8d94d2d87ac8fe7caca2cb2ceb3f6194840f96ea99be6",
+  "actual47_managed_all10_wire_sha256": {
+    "capability-context.json": "5680ebfc875ef38ef93a4a3601c3ec8dd0d467f9a4b57cdeb8c3066aadcb4e3d",
+    "capability-review.json": "bea367247f53da5459ca37d547c2b6f9523563ff24c7a80df69e388d06f3cfec",
+    "context.json": "adba061c93f5da96b7d62a187ee5497d51a16b4fd182c6526dd23a3a0caa5e7e",
+    "custom-impact.json": "6ac05ea760adccabc7bcc32d52d9c5cf115f7a0aebdc6815b8d9d7a722f75e4e",
+    "forward.json": "16c7858a2cc358e72744ffc40d49a1ae77c1d6f3ec33da8136ea3281da820b06",
+    "impact.json": "f2d1a42ef6181d6e9cfe2e17c1db3a8cedb8250eb71c469f9d74e259da9e0b02",
+    "projection-wire.json": "22d1a59dcf685a59de93b32397874159260325c04afbae9e2b416f770a561be7",
+    "public-graph.json": "7293df46d33db8b9a6b49b2ead7713daa101c7912a25e0c2d889f5b0074753a7",
+    "review.json": "fac59456ea043dd1a3572a5fdffeaf3691334141cbcc5e385f762803c8f7766d",
+    "type-context.json": "9d5ac7d2add4f91887a8d5605eac152f06ef550a7715cbcc10cdd98f0d6fef64"
+  },
+  "actual47_managed_baseline_bill": 1106063,
+  "actual47_browser_bill": 3477789,
+  "original_full_five_workflow_immutable": true,
+  "Main_c451_browser_wire_sha256": {
+    "baseline": "9854e2341a3a4c131253fde37e957b5808483c653d7cac6b2fb5b03dd11fafe3",
+    "renamed": "063c86edadd6f8f17686d002daabda66dd9b1956b8b2a06bb8102595c2bcf358"
+  },
+  "Main_c451_metadata_sha256": {
+    "current-hosted-provenance.json": "df6854996b73b09f30c314dfbb04f3a941cc7bd8d785677944637b7a7061b81c",
+    "receipt.json": "3c8e05067fd80b57bcbc60121986217c42329a48ecac9821ac4e79301da6b15f"
+  },
+  "Main_c451_source": "c451086ce",
+  "Main_c451_builder_bill": 2971194,
+  "actual83ca_managed_all10_wire_sha256": {
+    "capability-review.json": "50bcee1a9faf8470dc076592d1b0d7625ea9949c7db363ae560c69701c500706",
+    "projection-wire.json": "3565738272251ee1c948c19895dde83d1aa2783fa7809ce5f805127409dbbfa9",
+    "forward.json": "bd9f88f8d1b821d14ff92d0e3697ecd4a91868bb4c87bc93d0085665d470a61f",
+    "context.json": "ab1dd558d5cc2033dcf94540c4f648efba1e48c4f8a10cf5b0a89d49bad6908f",
+    "type-context.json": "45961d6e8efaeb42948626d238ca39eb966d8c15023c04356d7e27c3051762e0",
+    "impact.json": "a1b8abdea4abd3e4e93bfac7a80456d5a2097c8599b68fa9d5bbc5d210cb017a",
+    "public-graph.json": "5513044062c9743084dd6cb340ae2edb65a4753047ab03ad43225f3b98c63424",
+    "capability-context.json": "a7a13a15a56550eaa35ea6609f3fd169fe33066c054ba6ba23212b9836d848b3",
+    "review.json": "004de4419f867bfc5b2abd840779901908f0fbbb1f52193e6eea28a987d47574",
+    "custom-impact.json": "239e02032ae054db62e3c3033518acb2a7ad9fa96a35c304c1e90a03a3b02b0b"
+  },
+  "actual83ca_browser_wire_sha256": {
+    "baseline": "d9b9b7e83c3b25445d9437683c6003dc588ce64119b45386b058e9f5d3aca297",
+    "renamed": "82df0d17c277c97e1b7b824014da77815e5a3e4d45ab9f7358c22e673f1f79aa"
+  },
+  "Main65_c11_browser_wire_sha256": {
+    "baseline": "bf4fb515fc7d71365d42fa69a8acde71404ce525ff56d6ffdbd05ed4c63f837b",
+    "renamed": "4cd98129ae824f38943285ba96f7da0048e845842394ae488315607ab2d9692d"
+  },
+  "Main65_c11_metadata_sha256": {
+    "current-hosted-provenance.json": "0345db2d53e4656171a5d58a7455dfd91b06f8ddc9a457645ef41c6507d09873",
+    "receipt.json": "329f4b2e7da43dc88539a39612f5840967575a2ccc9476cf4820e6a2938ae3d0"
+  },
+  "actual83ca_metadata_sha256": {
+    "APPLIED.json": "be34cafd6f161060b61f3d2816a9d457769199a357ebfd0acca566a1219b6a73",
+    "actual-producer-readiness.json": "f6a37566f682a0fe9437371b20ab54118fbb85b3b3b447a9c307248392bb2d4a"
+  }
+}

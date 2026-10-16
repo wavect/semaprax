@@ -1,0 +1,8 @@
+{
+  "original_tool_sha256": "bbfe076312b10f5463f306e7efb465b679ce43758a7775737cdf74f4d9790be3",
+  "preserved_prefix_from": "capture = args.capture.resolve()",
+  "preserved_prefix_until": "from managed_history import verify_managed_history",
+  "only_prefix_change": "one fixed55e literal replaced by same explicit expected_capture_head operand",
+  "derived_frontier_sha256": "94c718c5e64d52ef180166c334951d6b5681133561db87b469000eb0dcfc0e2b",
+  "producer_checks_consume_only_actual_capture": true
+}

@@ -20,7 +20,7 @@ pub(super) fn receiving_bytes() -> usize {
 }
 
 #[track_caller]
-pub(super) fn minimum(
+pub(in crate::cleanup_plan::replay) fn minimum(
     paths: &mut Vec<ExprSkeletonPath>,
     count: usize,
     work: &mut SkeletonWork<'_, '_>,

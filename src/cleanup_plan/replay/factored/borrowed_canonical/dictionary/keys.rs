@@ -1,5 +1,6 @@
 //! Exact derived key order, with debit at each evaluated field or byte.
 use super::*;
+use crate::cleanup_plan::replay::compact_stage::CopySource;
 macro_rules! numeric {
     ($($ty:ty),+) => {$(impl Key for $ty {
         fn compare(&self, other: &Self, function: &ResolvedFunction, budget: &mut ReplayBudget) -> Result<Ordering, Diagnostic> {
@@ -203,11 +204,11 @@ impl Key for Label {
                 boolean(*av, *bv, function, budget)
             }
             (
-                SkeletonObservation::StageCopyResult(StagedCopyResultSource::Body {
+                SkeletonObservation::StageCopyResult(CopySource::Body {
                     expression: a,
                     instance: at,
                 }),
-                SkeletonObservation::StageCopyResult(StagedCopyResultSource::Body {
+                SkeletonObservation::StageCopyResult(CopySource::Body {
                     expression: b,
                     instance: bt,
                 }),

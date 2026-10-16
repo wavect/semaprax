@@ -103,3 +103,123 @@ fn structural_forgery_stays_closed_under_physical_construction() {
     forged.cleanup_plan.slots[0].id.0 += 1;
     assert_eq!(run(&forged, usize::MAX).unwrap_err().code, "SPX-H006");
 }
+
+fn insert_owned_status_before(
+    function: &ResolvedFunction,
+    statuses: &mut BTreeSet<StatusSourceId>,
+    source: &StatusSourceId,
+    budget: &mut ReplayBudget,
+) -> Result<(), Diagnostic> {
+    if !statuses.contains(source) {
+        budget.reserve_btree_node::<StatusSourceId, ()>(function, "status reference set")?;
+        budget.reserve_clone(function, source, "status reference identity")?;
+        statuses.insert(source.clone());
+    }
+    Ok(())
+}
+
+#[test]
+fn borrowed_status_coverage_still_rejects_missing_and_changed_declarations() {
+    let program = program();
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "structural.main")
+        .unwrap();
+    assert!(!function.cleanup_plan.status_sources.is_empty());
+    validate_reference_coverage(function, &mut ReplayBudget::new()).unwrap();
+    let mut missing = function.clone();
+    missing.cleanup_plan.status_sources.pop().unwrap();
+    let mut changed = function.clone();
+    let id = &mut changed.cleanup_plan.status_sources[0].id;
+    id.expression = ExpressionId::from_owned(format!("{}:forged", id.expression.as_str()));
+    for forged in [&missing, &changed] {
+        let error = validate_reference_coverage(forged, &mut ReplayBudget::new()).unwrap_err();
+        assert_eq!(error.code, "SPX-H006");
+        assert!(error
+            .message
+            .contains("declared and referenced cleanup status sources differ"));
+    }
+}
+
+#[test]
+fn borrowed_status_sets_keep_full_identity_order_and_pay_backing_through_drop() {
+    use crate::bounded_output::with_limit_usage_refusal;
+    use crate::test_allocation_observer::measure;
+    let program = program();
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "structural.main")
+        .unwrap();
+    let mut sources = Vec::new();
+    for text in ["", "a", "a\0", "a\0b", "é", "z", "long-status-expression"] {
+        for lane in [
+            StatusLane::OwnerAdmission,
+            StatusLane::OperationFailure,
+            StatusLane::AllocationFailure,
+            StatusLane::ContractFalse,
+        ] {
+            sources.push(StatusSourceId {
+                expression: ExpressionId::from_owned(text.into()),
+                lane,
+            });
+        }
+    }
+    // The original owned-key set is an independent full-field/order oracle.
+    let expected: BTreeSet<_> = sources.iter().cloned().collect();
+    assert_eq!(expected.len(), sources.len());
+    let observe = |limit| {
+        with_limit_usage_refusal(limit, || {
+            measure(|| {
+                let mut budget = ReplayBudget::new();
+                let mut statuses = BTreeSet::new();
+                let result = (|| {
+                    for source in sources.iter().rev().chain(&sources) {
+                        insert_status(function, &mut statuses, source, &mut budget)?;
+                    }
+                    assert_eq!(statuses.len(), expected.len());
+                    assert!(statuses.iter().copied().eq(expected.iter()));
+                    let remaining = crate::bounded_output::active_remaining();
+                    for source in &sources {
+                        insert_status(function, &mut statuses, source, &mut budget)?;
+                    }
+                    assert_eq!(crate::bounded_output::active_remaining(), remaining);
+                    Ok::<_, Diagnostic>(())
+                })();
+                let accepted = result.is_ok();
+                drop(result);
+                drop(statuses);
+                drop(budget);
+                accepted
+            })
+        })
+    };
+    let ((accepted, allocation), refused, exact, first) = observe(usize::MAX);
+    assert!(accepted && !refused && first.is_none());
+    assert!(!allocation.invalid && allocation.live == 0);
+    assert_eq!(allocation.allocated, allocation.freed);
+    assert!(allocation.allocated <= exact && exact > 0);
+    let ((), refused, original, first) = with_limit_usage_refusal(usize::MAX, || {
+        let mut budget = ReplayBudget::new();
+        let mut statuses = BTreeSet::new();
+        for source in sources.iter().rev().chain(&sources) {
+            insert_owned_status_before(function, &mut statuses, source, &mut budget).unwrap();
+        }
+        assert_eq!(statuses, expected);
+    });
+    assert!(!refused && first.is_none());
+    assert!(exact < original);
+    for limit in [0, exact - 1, exact] {
+        let ((accepted, allocation), refused, paid, first) = observe(limit);
+        assert_eq!(accepted, limit == exact);
+        assert_eq!(refused, limit != exact);
+        assert_eq!(first.is_some(), limit != exact);
+        assert!(!allocation.invalid && allocation.live == 0);
+        assert_eq!(allocation.allocated, allocation.freed);
+        assert!(allocation.allocated <= paid);
+        if limit == 0 {
+            assert_eq!(allocation.allocated, 0);
+        }
+    }
+}

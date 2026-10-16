@@ -147,6 +147,13 @@ held enumeration units are not refunded or lent. The complete immediate-old
 entry stays independently compiled in `strategy/before_fitting.rs`, and explicit
 test forcing retains the old enumerator and its real over-limit refusals.
 
+`cleanup_plan/replay/compact_stage.rs` owns the private staged-result observation
+representation: body fields stay inline and residuals retain the complete
+canonical source behind prepaid backing. Canonical CleanupPlan data remains
+the admission and replay input. Its test children retain the full original flat
+plan producer, observation shape, header traits, and lexical marker producer;
+the live producer and borrowed-key comparator retain all semantic work.
+
 `factored/canonical_shared.rs` owns ordinary immutable weighted payload sharing
 for both ordinary and selected lexical canonicalization. Moved vectors retain
 full backing reservations; Rc headers, frame slots and map nodes acquire their

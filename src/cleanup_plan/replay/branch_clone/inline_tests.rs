@@ -1,4 +1,5 @@
 use super::*;
+use super::super::compact_stage::before::SkeletonPath;
 use crate::bounded_output::with_limit_usage_refusal;
 use crate::test_allocation_observer::measure;
 
@@ -165,7 +166,9 @@ fn assert_complete_old_sources() {
         ),
         "89282c1f26c14e65ced0f50b7dbfada34175fd4ca6aed96d57a43147a8e818e0"
     );
-    let compiled = include_str!("before_inline.rs");
+    let compiled = crate::source_reflows_merge::main_b80_prior_input(
+        "src/cleanup_plan/replay/branch_clone/before_inline.rs", include_str!("before_inline.rs"),
+    );
     let prefix = "//! Complete immediate old enumerator, using its unchanged fused helper.\nuse super::super::*;\nuse super::super::branch_clone;\n\n";
     assert_eq!(
         compiled,

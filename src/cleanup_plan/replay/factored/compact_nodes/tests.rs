@@ -127,6 +127,32 @@ fn complete_builder_and_comparison_receivers_keep_work_and_later_semantic_diagno
         current::lexical_plan_tests::GENERATED,
     ] {
         let (program, function) = current::lexical_plan_tests::fixture(source);
+        // Direct historical control is outside physical owner windows. Keep
+        // the full original transition producer on the old 232-byte enum and
+        // compare every field of every original corpus transition losslessly.
+        for block in &function.cleanup_plan.blocks {
+            for transition in &block.transitions {
+                let mut historical = ReplayBudget::unobserved();
+                let mut common = ReplayBudget::unobserved();
+                let expected = transition_observation_historical(
+                    &function, &mut historical, transition,
+                );
+                let actual = transition_observation(&function, &mut common, transition);
+                match (&actual, &expected) {
+                    (Ok(None), Ok(None)) => {}
+                    (Ok(Some(actual)), Ok(Some(expected))) => assert!(
+                        crate::cleanup_plan::replay::compact_stage::observations_match(
+                            actual, expected,
+                        )
+                    ),
+                    (Err(actual), Err(expected)) => assert_eq!(actual, expected),
+                    _ => panic!("complete historical transition mismatch: {actual:?} {expected:?}"),
+                }
+                assert_eq!(common.remaining, historical.remaining);
+                assert_eq!(common.skeleton_spent, historical.skeleton_spent);
+                drop((actual, expected, common, historical));
+            }
+        }
         let mut a = ReplayBudget::unobserved();
         let mut b = ReplayBudget::unobserved();
         let old = build_comparison(&program, &function, &mut a, None, None).unwrap();
@@ -517,7 +543,7 @@ fn complete_build_comparison_and_canonical_receivers_report_physical_costs_throu
         assert_eq!(ma.allocated, ma.freed);
         assert_eq!(mb.allocated, mb.freed);
         eprintln!(
-            "844 whole comparison {} old_reserved={ca} new_reserved={cb} old={ma:?} new={mb:?}",
+            "844 immediate-parent common-observation comparison {} old_reserved={ca} new_reserved={cb} old={ma:?} new={mb:?}",
             function.id
         );
         // No universal cost inequality: branching promotion can cost more.

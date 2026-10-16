@@ -36,7 +36,7 @@ fn ordinary_order_and_full_duplicate_multisets_match_with_one_budget_through_dro
             success: true,
         })),
         Label::Observation(Rc::new(SkeletonObservation::StageCopyResult(
-            StagedCopyResultSource::Body {
+            CopySource::Body {
                 expression: function.body.id.clone(),
                 instance: ResolvedType::I64,
             },
@@ -56,7 +56,7 @@ fn ordinary_order_and_full_duplicate_multisets_match_with_one_budget_through_dro
             selected: true,
         })),
         Label::Observation(Rc::new(SkeletonObservation::StageCopyResult(
-            StagedCopyResultSource::Body {
+            CopySource::Body {
                 expression: function.body.id.clone(),
                 instance: ResolvedType::Bool,
             },

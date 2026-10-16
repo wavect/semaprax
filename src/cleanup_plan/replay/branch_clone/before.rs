@@ -1,10 +1,11 @@
 //! A known next push can acquire its existing growth capacity at clone time.
 //! This removes the intermediate clone backing; future capacity stays the same.
 use super::super::*;
+use super::super::compact_stage::before::{SkeletonObservation, SkeletonPath, lexical_skeleton};
 use super::before as branch_clone;
 
 #[track_caller]
-pub(in crate::cleanup_plan::replay::branch_clone) fn for_push<T: Clone + ClonePayload>(
+pub(in crate::cleanup_plan::replay) fn for_push<T: Clone + ClonePayload>(
     budget: &mut ReplayBudget,
     function: &ResolvedFunction,
     values: &Vec<T>,

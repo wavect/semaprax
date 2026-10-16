@@ -1,5 +1,6 @@
 //! Complete immediate-old independent HIR and plan receivers.
 use super::super::*;
+use super::super::compact_stage::before::SkeletonPath;
 
 pub(in crate::cleanup_plan::replay) fn sequence_skeleton_paths(
     prefixes: Vec<ExprSkeletonPath>,
@@ -78,6 +79,7 @@ pub(in crate::cleanup_plan::replay) fn plan_skeleton_paths(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Vec<SkeletonPath>, Diagnostic> {
+    use super::super::compact_stage::before::{SkeletonObservation, lexical_skeleton};
     let plan = &function.cleanup_plan;
     let mut queue = VecDeque::new();
     skeleton_queue_push(

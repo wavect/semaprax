@@ -1,6 +1,7 @@
 //! Independent structural validation of attached cleanup plans without invoking the builder.
 // Private prerequisite only: no selected replay admission hook.
 mod branch_clone;
+mod compact_stage;
 mod constructed_variant;
 #[cfg(test)]
 mod context_closure;
@@ -109,6 +110,7 @@ mod path_summary;
 mod skeleton_bound;
 mod skeleton_work;
 mod typed_storage;
+use compact_stage::CopySource;
 use path_summary::{
     cleanup_inert_large_decisions_can_be_summarized, cleanup_inert_path_product_can_be_summarized,
     or_arm_path_counts, plan_structure_units, status_only_paths_can_be_summarized,
@@ -419,7 +421,7 @@ enum SkeletonObservation {
         source: StatusSourceId,
         success: bool,
     },
-    StageCopyResult(StagedCopyResultSource),
+    StageCopyResult(CopySource),
     /// A lexical `return`, `break` or `continue` that left its contour.
     LexicalExit {
         site: ExpressionId,
@@ -2851,7 +2853,7 @@ fn hir_skeleton_paths_with_index_storage<'hir>(
                 let instance = work.clone_owned(&function.return_type, "body result type clone")?;
                 work.push_observation(
                     path,
-                    SkeletonObservation::StageCopyResult(StagedCopyResultSource::Body {
+                    SkeletonObservation::StageCopyResult(CopySource::Body {
                         expression,
                         instance,
                     }),
@@ -6055,6 +6057,7 @@ fn finish_try_paths(
         )?;
         if let Some(source) = &source {
             let staged_source = work.clone_owned(source, "try staged-result source clone")?;
+            let staged_source = CopySource::new(work.function, work.budget, staged_source)?;
             work.push_observation(
                 &mut residual,
                 SkeletonObservation::StageCopyResult(staged_source),
@@ -6663,6 +6666,7 @@ fn plan_skeleton_paths(
                         source,
                         "plan staged-result source clone",
                     )?;
+                    let source = CopySource::new(function, budget, source)?;
                     skeleton_push(
                         budget,
                         function,

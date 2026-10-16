@@ -143,3 +143,14 @@ pub(super) fn record_move(len: usize, capacity: usize) {
 fn take_moves() -> (usize, usize, usize) {
     MOVES.with(|slot| slot.replace((0, 0, 0)))
 }
+
+#[cfg(test)]
+#[path = "final_output/before_compaction.rs"]
+mod before_compaction;
+
+#[cfg(test)]
+#[path = "final_output/before_transfer_current.rs"]
+mod before_transfer_current;
+#[cfg(test)]
+#[path = "final_output/current_observation_tests.rs"]
+mod current_observation_tests;

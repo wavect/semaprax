@@ -156,3 +156,10 @@ mod base;
 pub(super) use base::resolve_module_with_core;
 
 pub(super) use base::cache_billing::{local_resolution_bytes, replay_cached_prelude};
+
+// Independent incoming Main source readers retain their original contracts.
+#[cfg(test)]
+pub(super) use base::cache_billing::source_reference::{
+    historical_provider_inventory, historical_root, main7f8_provider_checkpoint,
+    main7f8_provider_inventory_input, main7f8_provider_manifest,
+};

@@ -330,6 +330,17 @@ pub(crate) fn reserve_active(length: usize) -> bool {
     reserve_optional(budget.as_deref(), length)
 }
 
+/// Read-only eligibility for a prospective required reservation. This grants
+/// no storage, spends no bytes and leaves the original refusal frontier intact.
+pub(crate) fn active_required_fits(length: usize) -> bool {
+    active().is_none_or(|budget| {
+        !budget.overflowed.get()
+            && length
+                .checked_add(budget.floor.get())
+                .is_some_and(|required| required <= budget.remaining.get())
+    })
+}
+
 /// Required work cannot turn a reserved-floor refusal into successful output.
 /// Preserve the ordinary reservation debit while making every refusal sticky.
 #[track_caller]
@@ -1341,3 +1352,88 @@ mod checked_string;
 pub(crate) use checked_string::CheckedCappedString;
 
 pub(crate) mod invocation_binding;
+#[cfg(test)]
+mod cache_eligibility_tests {
+    use super::*;
+    use crate::test_allocation_observer::measure;
+
+    #[test]
+    fn read_only_fit_matches_every_actual_required_frontier_without_allocating() {
+        assert!(active_remaining().is_none());
+        for length in [0, 1, usize::MAX] {
+            assert!(active_required_fits(length));
+        }
+        for limit in [0, 1, 16, 64, 129] {
+            for floor in [0, 1, 7, 16, 64, 129] {
+                if floor > limit {
+                    continue;
+                }
+                for length in [0, 1, 7, 16, 63, 64, 65, 128, 129, 130, usize::MAX] {
+                    let ((admitted, observed), refused, used, receipt) =
+                        with_limit_usage_refusal(limit, || {
+                            assert!(set_active_floor(floor));
+                            let before = active_remaining();
+                            let (fits, observed) = measure(|| active_required_fits(length));
+                            assert_eq!(active_remaining(), before);
+                            assert!(!active_refused(), "a prediction cannot select a refusal");
+                            let admitted = reserve_active_required(length);
+                            assert_eq!(fits, admitted);
+                            (admitted, observed)
+                        });
+                    assert!(!observed.invalid);
+                    assert_eq!(
+                        (
+                            observed.allocations,
+                            observed.reallocations,
+                            observed.allocated,
+                            observed.freed,
+                            observed.live
+                        ),
+                        (0, 0, 0, 0, 0)
+                    );
+                    assert_eq!(refused, !admitted);
+                    assert_eq!(used, if admitted { length } else { 0 });
+                    assert_eq!(receipt.is_some(), !admitted);
+                    if let Some(receipt) = receipt {
+                        assert_eq!(
+                            (receipt.requested, receipt.remaining, receipt.floor),
+                            (length, limit, floor)
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn fit_uses_the_current_nested_ledger_and_cannot_clear_sticky_refusal() {
+        let ((), refused, used, receipt) = with_limit_usage_refusal(64, || {
+            assert!(set_active_floor(8));
+            assert!(reserve_active_required(16));
+            let ((), child_refused, child_used, child_receipt) =
+                with_limit_usage_refusal(128, || {
+                    assert!(active_required_fits(48));
+                    assert!(set_active_floor(4));
+                    assert!(active_required_fits(44));
+                    assert!(!active_required_fits(45));
+                    assert!(reserve_active_required(12));
+                });
+            assert!(!child_refused && child_receipt.is_none());
+            assert_eq!(child_used, 12);
+            assert_eq!(active_remaining(), Some(36));
+            assert!(active_required_fits(28));
+            assert!(!active_required_fits(29));
+            assert!(!reserve_active_required(37));
+            for length in [0, 1, usize::MAX] {
+                assert!(!active_required_fits(length));
+            }
+        });
+        assert!(refused);
+        assert_eq!(used, 28);
+        let receipt = receipt.unwrap();
+        assert_eq!(
+            (receipt.requested, receipt.remaining, receipt.floor),
+            (37, 36, 8)
+        );
+    }
+}

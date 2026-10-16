@@ -236,6 +236,7 @@ pub(super) const PRESENCE_DEPTH: usize = 513;
 
 /// Finite depth-first scan: no frontier allocation, identity clones or recursion.
 /// Callers charge this one source-defined function walk in their existing work census.
+#[inline(never)]
 pub(crate) fn requires(function: &ResolvedFunction) -> Result<bool, Diagnostic> {
     scan(function, false)
 }

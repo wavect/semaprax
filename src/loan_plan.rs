@@ -181,15 +181,34 @@ impl LoanPlan {
     }
 }
 
+#[inline(never)]
 pub fn build_plan(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
 ) -> Result<LoanPlan, Diagnostic> {
     let lexical = crate::hir::lexical_exit::requires(function)?;
     if lexical {
-        let owner = crate::hir::lexical_exit::owner(program, function)?;
-        crate::hir::lexical_exit::validate_function(program, function, &owner)?;
+        validate_lexical_entry(program, function)?;
     }
+    build_plan_after_lexical(program, function, lexical)
+}
+
+// Keep the presence scan outside every later planner/validator stack frame.
+#[inline(never)]
+fn validate_lexical_entry(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+) -> Result<(), Diagnostic> {
+    let owner = crate::hir::lexical_exit::owner(program, function)?;
+    crate::hir::lexical_exit::validate_function(program, function, &owner)
+}
+
+#[inline(never)]
+fn build_plan_after_lexical(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    lexical: bool,
+) -> Result<LoanPlan, Diagnostic> {
     has_own_root_candidate(program, function)
         .and_then(|candidate| {
             if candidate {

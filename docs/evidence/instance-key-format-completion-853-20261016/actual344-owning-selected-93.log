@@ -1,0 +1,17 @@
+
+running 1 test
+test hir::ids::instance_match::tests::streamed_instance_exact_short_zero_sticky_floor_keep_all_key_producers_and_drop ... 
+thread 'hir::ids::instance_match::tests::streamed_instance_exact_short_zero_sticky_floor_keep_all_key_producers_and_drop' (18945353) panicked at src/hir/ids/instance_match/tests.rs:215:5:
+assertion `left == right` failed
+  left: 484
+ right: 8208
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    hir::ids::instance_match::tests::streamed_instance_exact_short_zero_sticky_floor_keep_all_key_producers_and_drop
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9448 filtered out; finished in 0.05s
+

@@ -1,0 +1,8 @@
+{
+  "source": "/Volumes/Semaprax/lane-prompts/final-joined344-a82e00cc8-20261016/owning-selected-93.log",
+  "bytes": 712,
+  "sha256": "bd928942b6c26c585c12544178a1bd1b639b88f190e4a9d03cfc3233844ae8b0",
+  "observed_requested": 484,
+  "expected_child_bytes": 8208,
+  "current_repair_rust_executed": false
+}

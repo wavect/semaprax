@@ -1,0 +1,136 @@
+[
+  {
+    "source": "CHANGELOG.md",
+    "checkpoint_revision": "dd0bae547240ee7bd34d92ac91f24e8806be648b",
+    "archive": "docs/evidence/main-dd0-compiled-custody-join-20261016/before/dd0/CHANGELOG.md",
+    "current_sha256": "c67ab31ce7168a296d776c052bd9ec48f6e99cf927b83160e89b7ab1d6ce3cac",
+    "original_sha256": "3c14e7cd38bfe8a41a5b6352305c209ef9c20d24094b1b716c7afd6a6f921a14",
+    "edits": [
+      {
+        "new": "<!-- OPT831 source checkpoint: closure-specific duplicate refusal owner and inner id Result removed; unchanged strict qualification pending, no measured gain claimed. -->\n\n- Source-only #781 followup gives paid Session reference coverage closed semantic\n  receipts and per-actual-call reference-coverage receiving on its existing\n  ledger. Complete old producers remain; runtime qualification and the remaining\n  dynamic validator families are pending.\n<!-- Source-only #833: invocation-owned identifier census scratch reuse across\n     distinct cold callers; full old receiver retained; qualification pending. -->\n",
+        "old": ""
+      },
+      {
+        "new": "- Source-only #781 followup routes the duplicated paid lexical/scalar driver\n  profile and member guards through their existing prepaid receipt twins.\n  Complete old drivers and report/ledger/Drop controls remain; transitive dynamic\n  Session diagnostics remain open and qualification is pending.\n\n- Source-only #853 compares retained generic instance identities against the exact canonical stream at five validation predicates, removing the encoded-tail and final temporary-ID buffers while retaining the complete argument-key traversal, duplicate/error order and allocating encoder. A one-use checked writer refuses silently truncated compound keys without changing ordinary sinks. New control frontiers remain required and sticky; qualification and application-fit claims are pending.\n\n- Select the existing paid borrowed-alias producer on the first ordinary uncached core attempt, preserving cache/invariant fallbacks and the complete old/current Project source, graph and Image parity gate. The previous compact-only gate left successful small Projects on the owning fallback; qualification is pending.\n\n- Source-only #851 admits exact capacity-witness control layouts before eligibility/length receivers and reserves optional String backing separately; preserve the complete Main receiver and all three original controls independently, with truthful paid-control spend on later backing refusal. Output, primary fields, sticky/floor behavior and limits remain; focused qualification is pending.\n\n- Add bounded V6 checked task/profile pages with repeated complete prerequisites, exact imported declaration rows and deterministic continuation; preserve V5 cards and scaffold capsules, explicitly refuse unverified stdin JSON composition, and leave executable qualification and agent-cost improvement unclaimed.\n- Reuse the already-built exact HIR/plan comparison for fitting ordinary lexical proof after unchanged enumeration admission/reservation; retain complete forced old enumeration and all weighted receiver payments, with no allowance refund or measured application/agent improvement claim.\n\n- Move the validated singleton ownership state and its conditional variants through unchanged normalization, removing absent clones while preserving join validation, work, scheduling and the complete old receiver; focused numerical qualification remains pending.\n",
+        "old": ""
+      },
+      {
+        "new": "- Fund known-minimum ownership-path controls before staging and select backing at the original first-output work boundary; retain complete Main696 controls and remove real closure-scratch forwarding Results without changing nested reservation fees. Source-only qualification and actual pin regeneration remain pending.\n\n- Execute the paid cleanup branch clone/push producer inline in its existing enumerator, removing actual Vec Result and forwarding receivers while retaining every nested charge and complete old controls; focused execution and application savings remain pending.\n\n",
+        "old": ""
+      },
+      {
+        "new": "- Publish the scoped #844/#845/#846 acceptance: original 8bb round 56 PASS/20 FAIL and a separate nine-owner supplement 9 PASS, retaining every failure and both scoped Clippy exits 101 for the unrelated #849 arithmetic spelling. Close only those three owning scopes; no whole-batch, application-fit, token or Clippy-PASS claim.\n\n- Author NEXT empty-closure bitmap storage and a singleton incoming-state path that avoids actual ControlKey/group-map/set/insertion constructors, preserving validators, work and order. Retain complete independent old receivers; the six bitmap and three singleton owners remain pending runtime qualification, with no application-fit claim.\n\n",
+        "old": ""
+      },
+      {
+        "new": "- Author fixed authenticated runtime transport for the test-only source-view helper (#848): preserve all 89 original JSON files (93,590,460 bytes), projection logic, stage order, and source guards, with a separate custody fixture. Join every new loader child into the three audits. Repository fixtures are required at test runtime; executable qualification and measured RAM benefit remain pending.\n\n- Author the sealed initial builder-report policy and actual typed CLI propagation (#845), provider-bound borrowed function aliases on the closed uncached route (#847), and a separate cached-prelude report acquisition observer (#796). Preserve original compatibility receivers, source assertions and unfunded output boundaries. The #845 owning acceptance is published at 8bb; alias and observer qualification remain separate.\n",
+        "old": ""
+      },
+      {
+        "new": "- Author shared borrowed diagnostic rendering for the actual CLI and existing typed human report consumer (#846), preserving the full bounded compatibility route, selected status and independent old renderer. Its eleven owning acceptance controls passed at 8bb; output funding and allocating compatibility remain separate residuals.\n- Correct #836 while-body admission to count the literal field selector only in source, preserving three runtime operands and all existing shape/ownership limits. Restore the backend oracles through authenticated whole-input views; executable qualification remains pending.\n",
+        "old": ""
+      },
+      {
+        "new": "- Remove real held-slot and initial weighted-root Result carriers from the direct factored replay path (#831), retaining the complete original constructor fees and strict old receiver independently. Source review and inverse proofs passed; executable qualification and measured gains remain pending.\n\n- Resolve explicitly selected starter plan and command-source paths once from\n  the full host's working directory, retaining all held no-follow reads and\n  prepublication rechecks. Add relative/absolute exact-byte and symlink-refusal\n  controls; source-only until focused qualification.\n- Complete the #841 raw/gzip fixture experiment and restore the exact tested raw-arm default after gzip showed higher observed group RSS (5,930,647,552 versus 5,249,531,904 bytes). Preserve both actual arms, all decoder/source controls and the small artifact-size benefit; order/cache limitations prevent a causal speed claim, and no RAM or token saving is claimed. The integrated raw-default successor remains source-only until focused qualification.\n\n- Bind fresh application plan/activation reads (#837) to the existing no-follow bounded held regular-file owner, closing inspection/open symlink and FIFO replacement races. Add deterministic pre-open swap controls and small independent typed native-test selector owners. Source-only correction; execution remains pending.\n\n- Author fresh application assembly (#837) from existing replayed codec plans and explicit command profiles through the original held-parent scaffold publisher. Bind canonical source/generation receipts and exact native routes; add an explicit pure typed v31 native-test successor while preserving old profile refusals. Full ShiftSim15/selected-file CLI49 and hostile-publication scenarios are authored; all executable qualification and the source-capacity dependency remain pending.\n\n- Author the ordinary lexical return-operand inventory (#832) on fallible paid AVL backing with borrowed identities, exact caller/facts/budget/ledger binding and certificate-boundary authentication. Preserve complete old callers and original verification charges; new directory work is additional. Rust qualification remains pending.\n\n- Author selected call-local refusal custody (#781): nineteen fixed reasons and the exact unknown-callee handle reach the paid engine through selected block replay; retain complete old receivers and prepaid success/failure controls. Source-only checkpoint; Rust qualification and whole-issue closure remain pending.\n- Author allocation-free final canonical-comment comparison for cold workspace\n  admission (#835), retaining the complete old String formatter and preflight\n  receiver. Placement scratch and reservations remain unchanged; focused\n  executable qualification and physical measurements are pending.\n\n- Qualify the closed named String-transfer v1 scope with all 15 exact a417 owning controls and the five 27ae regenerated-pin/source controls; retain unrelated application-budget failures and frozen public profiles.\n",
+        "old": ""
+      },
+      {
+        "new": "\n- Source-only #808 moves an owned prefix into the sole HIR suffix or final\n  two-edge plan sibling when its existing buffer has spare capacity. Original\n  logical work, multiplicities and failure selection remain; complete old\n  receivers and the earlier inline-fusion footprint claim stay independent.\n  New whole-owner/capacity/removed-buffer and refusal/Drop controls are pending\n  execution. Full-capacity plan growth remains unchanged; no application-fit,\n  allocation-total or peak-memory improvement is claimed.\n\n- Source-only #836 adds consuming `vec_update_field<Row>(rows,index,value,\"field\")`\n  for exact Copy scalar slots of invariant-free flat owned-leaf records, with\n  independent source/HIR/graph/cache checks, ordinary sticky preflight cleanup,\n  interpreter/native/Wasm paths, typed ShiftSim Worker adoption and an unrelated\n  inventory example. Owning gates remain pending; no efficiency result is claimed.\n\n- Source correction for #780: ordinary and retained loan candidate discovery use the paid contextual byte slot before plan selection; preserve complete strict v1 candidate controls, typed child-ledger refusal, external setup observations and unreachable-fixture diagnostics. Executable qualification remains pending.\n",
+        "old": ""
+      },
+      {
+        "new": "\n- Source-only #816 successor: reuse complete independent status-source case\n  proof in ordinary arithmetic receiving, preserving full direct receivers,\n  exact held invocation membership and pending whole-Drop/refusal controls.\n\n- Source-only #827 Legacy final-link successor retains exact checked case-field\n  coordinates without promoting unfunded storage; complete immediate prior\n  finalizer, mutation, Owned baseline and iterative Drop controls await the\n  next combined qualification.\n\n- Source-only #831 keeps singleton weighted successor targets inline, promoting\n  only on a distinct second child after full payment. Complete prior receiver\n  and new algebra/physical/work/authority controls await combined execution;\n  no cap changes or application recovery claim.\n\n- Reuse the complete immutable closure for one unit-weight canonical input, preserving every work debit and full successor check while paying receiving metadata and retaining the entire previous producer.\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/compact_stage/source_custody.rs",
+    "checkpoint_revision": "dd0bae547240ee7bd34d92ac91f24e8806be648b",
+    "archive": "docs/evidence/main-dd0-compiled-custody-join-20261016/before/dd0/src/cleanup_plan/replay/compact_stage/source_custody.rs",
+    "current_sha256": "8b0cb2c2c16f3fcba177489b1718b52da6666b21dd6d5828823edbc1474943d8",
+    "original_sha256": "1fd5b5a9535c846718331af0cd1c60eba5cf0f4a9379e29dad5794ad280e6e2b",
+    "edits": [
+      {
+        "new": "    let joined = crate::source_reflows_merge::main_b80_input(\"src/cleanup_plan/replay.rs\", current);\n    let current = joined.as_str();\n",
+        "old": ""
+      },
+      {
+        "new": "        assert_eq!(record[\"archive\"], archive_path);\n        let current = crate::source_reflows_merge::main_b80_input(path, current);\n        let current = current.as_str();\n",
+        "old": "        assert_eq!(record[\"archive\"], archive_path);\n"
+      },
+      {
+        "new": "        let path = piece[\"compiled_path\"].as_str().unwrap();\n        let current = match path {\n",
+        "old": "        let current = match piece[\"compiled_path\"].as_str().unwrap() {\n"
+      },
+      {
+        "new": "        };\n        let current = crate::source_reflows_merge::main_b80_input(path, current);\n        let current = current.as_str();\n",
+        "old": "        };\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/native/string_settlement/bulk_utf8.rs",
+    "checkpoint_revision": "dd0bae547240ee7bd34d92ac91f24e8806be648b",
+    "archive": "docs/evidence/main-dd0-compiled-custody-join-20261016/before/dd0/tests/native/string_settlement/bulk_utf8.rs",
+    "current_sha256": "c0f3bcadaf1be8a91ce5997d87990ed7a51acabfeaadb15402e32eb156e2d245",
+    "original_sha256": "c0f3bcadaf1be8a91ce5997d87990ed7a51acabfeaadb15402e32eb156e2d245",
+    "edits": []
+  },
+  {
+    "source": "tests/native/string_settlement/codec_allocation.rs",
+    "checkpoint_revision": "dd0bae547240ee7bd34d92ac91f24e8806be648b",
+    "archive": "docs/evidence/main-dd0-compiled-custody-join-20261016/before/dd0/tests/native/string_settlement/codec_allocation.rs",
+    "current_sha256": "82b7368428178f592d1de52dd17b175b75b5dfd7ca1543dca9bacbdcb5dc7200",
+    "original_sha256": "82b7368428178f592d1de52dd17b175b75b5dfd7ca1543dca9bacbdcb5dc7200",
+    "edits": []
+  },
+  {
+    "source": "tests/native/string_settlement/codec_allocation/string_vectors.rs",
+    "checkpoint_revision": "dd0bae547240ee7bd34d92ac91f24e8806be648b",
+    "archive": "docs/evidence/main-dd0-compiled-custody-join-20261016/before/dd0/tests/native/string_settlement/codec_allocation/string_vectors.rs",
+    "current_sha256": "8fc18b5920eb5f4a5c5d43c886f327b32e6f0ead6570d1640e43db0e5f0cfddb",
+    "original_sha256": "8fc18b5920eb5f4a5c5d43c886f327b32e6f0ead6570d1640e43db0e5f0cfddb",
+    "edits": []
+  },
+  {
+    "source": "tests/native_string_settlement_v1/contents.rs",
+    "checkpoint_revision": "dd0bae547240ee7bd34d92ac91f24e8806be648b",
+    "archive": "docs/evidence/main-dd0-compiled-custody-join-20261016/before/dd0/tests/native_string_settlement_v1/contents.rs",
+    "current_sha256": "50932c018d529892b2c2df287c338323a01c7e68c29f8c4c464a3dbee9d074c6",
+    "original_sha256": "50932c018d529892b2c2df287c338323a01c7e68c29f8c4c464a3dbee9d074c6",
+    "edits": []
+  },
+  {
+    "source": "tests/owned_data/bulk_utf8.rs",
+    "checkpoint_revision": "dd0bae547240ee7bd34d92ac91f24e8806be648b",
+    "archive": "docs/evidence/main-dd0-compiled-custody-join-20261016/before/dd0/tests/owned_data/bulk_utf8.rs",
+    "current_sha256": "ed7830b68c47a425f00b54f17cad1ca8df27c2ca5f23c9c1aa1529f8a6e74b21",
+    "original_sha256": "ed7830b68c47a425f00b54f17cad1ca8df27c2ca5f23c9c1aa1529f8a6e74b21",
+    "edits": []
+  },
+  {
+    "source": "tests/owned_data/owned_nested_outcome.rs",
+    "checkpoint_revision": "dd0bae547240ee7bd34d92ac91f24e8806be648b",
+    "archive": "docs/evidence/main-dd0-compiled-custody-join-20261016/before/dd0/tests/owned_data/owned_nested_outcome.rs",
+    "current_sha256": "85d809c29cc75bc66aa385a64be298c42f2d55b5246de1850242bf04347acade",
+    "original_sha256": "85d809c29cc75bc66aa385a64be298c42f2d55b5246de1850242bf04347acade",
+    "edits": []
+  },
+  {
+    "source": "tests/owned_data/projected_string_views.rs",
+    "checkpoint_revision": "dd0bae547240ee7bd34d92ac91f24e8806be648b",
+    "archive": "docs/evidence/main-dd0-compiled-custody-join-20261016/before/dd0/tests/owned_data/projected_string_views.rs",
+    "current_sha256": "c3c916152199a682f8089213aa0adc124f0179bb73907a36a1c638ddaa9853b5",
+    "original_sha256": "c3c916152199a682f8089213aa0adc124f0179bb73907a36a1c638ddaa9853b5",
+    "edits": []
+  },
+  {
+    "source": "tests/root_unsafe_quarantine.rs",
+    "checkpoint_revision": "dd0bae547240ee7bd34d92ac91f24e8806be648b",
+    "archive": "docs/evidence/main-dd0-compiled-custody-join-20261016/before/dd0/tests/root_unsafe_quarantine.rs",
+    "current_sha256": "e28e4d9adda0d92fcb70641af2705ad20e053d80f12327604ce418f22e3d1d28",
+    "original_sha256": "e28e4d9adda0d92fcb70641af2705ad20e053d80f12327604ce418f22e3d1d28",
+    "edits": []
+  }
+]

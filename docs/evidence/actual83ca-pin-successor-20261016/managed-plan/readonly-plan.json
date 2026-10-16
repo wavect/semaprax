@@ -1,0 +1,83 @@
+{
+  "schema": "semaprax.prelude-forecast-reviewed-pin-plan.v1",
+  "capture_head": "83ca0e105e5f4eb6336ed04ff80df6ad0366e99f",
+  "status": "actual-candidate-plan-requires-wire-review",
+  "edits": [
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "assert_eq!(graph.budget().used_builder_bytes(), 1_106_063);",
+      "after": "assert_eq!(graph.budget().used_builder_bytes(), 1_111_428);",
+      "actual_wire": "public-graph"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:7293df46d33db8b9a6b49b2ead7713daa101c7912a25e0c2d889f5b0074753a7",
+      "after": "sha256:5513044062c9743084dd6cb340ae2edb65a4753047ab03ad43225f3b98c63424",
+      "actual_wire": "public-graph"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:adba061c93f5da96b7d62a187ee5497d51a16b4fd182c6526dd23a3a0caa5e7e",
+      "after": "sha256:ab1dd558d5cc2033dcf94540c4f648efba1e48c4f8a10cf5b0a89d49bad6908f",
+      "actual_wire": "context"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:16c7858a2cc358e72744ffc40d49a1ae77c1d6f3ec33da8136ea3281da820b06",
+      "after": "sha256:bd9f88f8d1b821d14ff92d0e3697ecd4a91868bb4c87bc93d0085665d470a61f",
+      "actual_wire": "forward"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:5680ebfc875ef38ef93a4a3601c3ec8dd0d467f9a4b57cdeb8c3066aadcb4e3d",
+      "after": "sha256:a7a13a15a56550eaa35ea6609f3fd169fe33066c054ba6ba23212b9836d848b3",
+      "actual_wire": "capability-context"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:9d5ac7d2add4f91887a8d5605eac152f06ef550a7715cbcc10cdd98f0d6fef64",
+      "after": "sha256:45961d6e8efaeb42948626d238ca39eb966d8c15023c04356d7e27c3051762e0",
+      "actual_wire": "type-context"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:f2d1a42ef6181d6e9cfe2e17c1db3a8cedb8250eb71c469f9d74e259da9e0b02",
+      "after": "sha256:a1b8abdea4abd3e4e93bfac7a80456d5a2097c8599b68fa9d5bbc5d210cb017a",
+      "actual_wire": "impact"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:6ac05ea760adccabc7bcc32d52d9c5cf115f7a0aebdc6815b8d9d7a722f75e4e",
+      "after": "sha256:239e02032ae054db62e3c3033518acb2a7ad9fa96a35c304c1e90a03a3b02b0b",
+      "actual_wire": "custom-impact"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:fac59456ea043dd1a3572a5fdffeaf3691334141cbcc5e385f762803c8f7766d",
+      "after": "sha256:004de4419f867bfc5b2abd840779901908f0fbbb1f52193e6eea28a987d47574",
+      "actual_wire": "review"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:bea367247f53da5459ca37d547c2b6f9523563ff24c7a80df69e388d06f3cfec",
+      "after": "sha256:50bcee1a9faf8470dc076592d1b0d7625ea9949c7db363ae560c69701c500706",
+      "actual_wire": "capability-review"
+    },
+    {
+      "path": "src/workspace_graph/type_proof_tests.rs",
+      "before": "sha256:22d1a59dcf685a59de93b32397874159260325c04afbae9e2b416f770a561be7",
+      "after": "sha256:3565738272251ee1c948c19895dde83d1aa2783fa7809ce5f805127409dbbfa9",
+      "actual_wire": "projection-wire"
+    }
+  ],
+  "source_sha256": {
+    "src/workspace_graph/type_proof_tests.rs": "sha256:fc7995a691693f71686e264b60ef5803a8a724553ea948f5dfd34ce0b6e80eab",
+    "tests/workspace/semantic_graph.rs": "sha256:a8978ec0e36c75fef2d57b62362a83a304d09e214eb52f6df687c09fbda70707"
+  },
+  "after_sha256": {
+    "src/workspace_graph/type_proof_tests.rs": "sha256:9d228fa1055bb3a5d5ec36f0dec4350714a38cf9c62e740521d8c9b5ae7e952a",
+    "tests/workspace/semantic_graph.rs": "sha256:9a79dd27cf5ebeb8bd3bc76024dd1f6c6272ad78fdaaa097c114591a50406367"
+  },
+  "trusted_build_receipt_sha256": "sha256:4f1ffd224c0eae76e992a544c1d6be5f357f3f41acbdfc29e1c9a784fa4f8adb",
+  "trusted_producer_receipt_sha256": "sha256:42f9e70a0b0839233f7b700e7a6a33c915ba3fde29f9546d8ac0447c8fed0fbf"
+}

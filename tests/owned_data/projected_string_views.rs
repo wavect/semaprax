@@ -25,12 +25,12 @@ fn strict_wasm(ast: &semaprax::ast::Program, root: &std::path::Path, status: &st
         host, original,
         "clone guard must join its exact host allocation seam"
     );
+    // Keep the unchanged clone guard and complete host in a fixture file.
+    std::fs::write(root.join("strict-host.cjs"), host).unwrap();
     let output = Command::new("node")
-        .arg("-e")
-        .arg(host)
-        // The shared file-mode host reads the Wasm path at argv[2].
-        .arg("semaprax-owned-host")
-        .arg(module)
+        .current_dir(root)
+        .arg("strict-host.cjs")
+        .arg(module.file_name().unwrap())
         .args([status, expected, "projected-view"])
         .output()
         .unwrap();

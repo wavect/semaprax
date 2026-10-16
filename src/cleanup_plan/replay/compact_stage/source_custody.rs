@@ -20,6 +20,57 @@ const ORIGINAL_PIECES: [&str; 7] = [
     "450f9163ddb216c72ebb0f193eea2732869762b45eb9466867241f041a015674",
 ];
 
+// Every input is fixed at compile time; the check needs no runtime authority.
+macro_rules! source {
+    ($path:literal) => {
+        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/", $path))
+    };
+}
+const FILES: [(&str, &str, &str, &str); 7] = [
+    (
+        "src/cleanup_plan/replay.rs",
+        source!("src/cleanup_plan/replay.rs"),
+        "src__cleanup_plan__replay.rs.before.txt",
+        source!("docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay.rs.before.txt"),
+    ),
+    (
+        "src/cleanup_plan/replay/branch_clone/tests.rs",
+        source!("src/cleanup_plan/replay/branch_clone/tests.rs"),
+        "src__cleanup_plan__replay__branch_clone__tests.rs.before.txt",
+        source!("docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__branch_clone__tests.rs.before.txt"),
+    ),
+    (
+        "src/cleanup_plan/replay/factored.rs",
+        source!("src/cleanup_plan/replay/factored.rs"),
+        "src__cleanup_plan__replay__factored.rs.before.txt",
+        source!("docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__factored.rs.before.txt"),
+    ),
+    (
+        "src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs",
+        source!("src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs"),
+        "src__cleanup_plan__replay__factored__borrowed_canonical__dictionary__keys.rs.before.txt",
+        source!("docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__factored__borrowed_canonical__dictionary__keys.rs.before.txt"),
+    ),
+    (
+        "src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs",
+        source!("src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs"),
+        "src__cleanup_plan__replay__factored__borrowed_canonical__tests.rs.before.txt",
+        source!("docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__factored__borrowed_canonical__tests.rs.before.txt"),
+    ),
+    (
+        "tests/hir_module_boundaries.rs",
+        source!("tests/hir_module_boundaries.rs"),
+        "tests__hir_module_boundaries.rs.before.txt",
+        source!("docs/evidence/compact-staged-observations-v1/tests__hir_module_boundaries.rs.before.txt"),
+    ),
+    (
+        "tests/workspace/semantic_graph/source_inventory.rs",
+        source!("tests/workspace/semantic_graph/source_inventory.rs"),
+        "tests__workspace__semantic_graph__source_inventory.rs.before.txt",
+        source!("docs/evidence/compact-staged-observations-v1/tests__workspace__semantic_graph__source_inventory.rs.before.txt"),
+    ),
+];
+
 const PACKET: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/docs/evidence/compact-staged-observations-v1/inverse.json"
@@ -68,25 +119,22 @@ pub(in crate::cleanup_plan::replay) fn before_root(current: &str) -> String {
 #[test]
 fn all_seven_live_receivers_reconstruct_every_predecessor_byte() {
     let records: serde_json::Value = serde_json::from_str(PACKET).unwrap();
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(records.as_array().unwrap().len(), 7);
     for (index, record) in records.as_array().unwrap().iter().enumerate() {
         assert_eq!(record["before_sha256"], ORIGINAL_FILES[index]);
-        let current = std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
-        let current = crate::source_reflows_merge::main_b80_input(
-            record["path"].as_str().unwrap(), &current,
-        );
-        let restored = invert(record, &current);
-        let archive = root
-            .join("docs/evidence/compact-staged-observations-v1")
-            .join(record["archive"].as_str().unwrap());
-        assert_eq!(restored, std::fs::read_to_string(archive).unwrap());
-        let mut changed = current.clone();
+        let (path, current, archive_path, archive) = FILES[index];
+        assert_eq!(record["path"], path);
+        assert_eq!(record["archive"], archive_path);
+        let current = crate::source_reflows_merge::main_b80_input(path, current);
+        let current = current.as_str();
+        let restored = invert(record, current);
+        assert_eq!(restored, archive);
+        let mut changed = current.to_owned();
         changed.push(' ');
         assert!(std::panic::catch_unwind(|| invert(record, &changed)).is_err());
         let mut forged = record.clone();
         forged["before_sha256"] = serde_json::Value::String("0".repeat(64));
-        assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());
+        assert!(std::panic::catch_unwind(|| invert(&forged, current)).is_err());
     }
 }
 
@@ -97,17 +145,21 @@ fn original_enumerator_enum_header_traits_and_lexical_helper_stay_complete() {
         "/docs/evidence/compact-staged-observations-v1/original-pieces.json"
     )))
     .unwrap();
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(pieces.as_array().unwrap().len(), 7);
     for (index, piece) in pieces.as_array().unwrap().iter().enumerate() {
         assert_eq!(piece["before_sha256"], ORIGINAL_PIECES[index]);
         let old = piece["body"].as_str().unwrap();
         assert_eq!(digest(old), piece["before_sha256"]);
-        let current =
-            std::fs::read_to_string(root.join(piece["compiled_path"].as_str().unwrap())).unwrap();
-        let current = crate::source_reflows_merge::main_b80_input(
-            piece["compiled_path"].as_str().unwrap(), &current,
-        );
+        let path = piece["compiled_path"].as_str().unwrap();
+        let current = match path {
+            "src/cleanup_plan/replay/compact_stage/before.rs" => include_str!("before.rs"),
+            "src/cleanup_plan/replay/compact_stage/lexical_before.rs" => {
+                include_str!("lexical_before.rs")
+            }
+            _ => panic!("unregistered original producer input"),
+        };
+        let current = crate::source_reflows_merge::main_b80_input(path, current);
+        let current = current.as_str();
         let compiled = piece["compiled_body"].as_str().unwrap();
         assert_eq!(current.matches(compiled).count(), 1, "{}", piece["name"]);
         let mut restored = compiled.to_owned();

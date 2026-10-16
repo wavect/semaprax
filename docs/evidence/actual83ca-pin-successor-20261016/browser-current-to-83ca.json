@@ -1,0 +1,82 @@
+[
+  {
+    "source": "src/workspace_graph/type_proof_tests.rs",
+    "current_sha256": "9d228fa1055bb3a5d5ec36f0dec4350714a38cf9c62e740521d8c9b5ae7e952a",
+    "original_sha256": "fc7995a691693f71686e264b60ef5803a8a724553ea948f5dfd34ce0b6e80eab",
+    "archive": "docs/evidence/actual83ca-pin-successor-20261016/before-83ca/src/workspace_graph/type_proof_tests.rs",
+    "edits": [
+      {
+        "new": "        // digest over it move.\n        assert_eq!(\n            document_sha,\n            \"sha256:3565738272251ee1c948c19895dde83d1aa2783fa7809ce5f805127409dbbfa9\"\n        );\n        assert!(json.starts_with(\n                \"{\\\"schema\\\":\\\"semaprax.workspace-semantic-graph.v1\\\",\\\"workspace_manifest_schema\\\":\\\"semaprax.workspace-semantic-manifest.v1\\\",\\\"workspace_revision\\\":\\\"sha256:workspace\\\",\\\"graph_digest\\\":\\\"sha256:\"\n",
+        "old": "        // digest over it move.\n        assert_eq!(\n            document_sha,\n            \"sha256:22d1a59dcf685a59de93b32397874159260325c04afbae9e2b416f770a561be7\"\n        );\n        assert!(json.starts_with(\n                \"{\\\"schema\\\":\\\"semaprax.workspace-semantic-graph.v1\\\",\\\"workspace_manifest_schema\\\":\\\"semaprax.workspace-semantic-manifest.v1\\\",\\\"workspace_revision\\\":\\\"sha256:workspace\\\",\\\"graph_digest\\\":\\\"sha256:\"\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph.rs",
+    "current_sha256": "2e682e40aa451425c60e152e2ab98dd3a46372923297560e38f54f6fb2dca5f1",
+    "original_sha256": "a8978ec0e36c75fef2d57b62362a83a304d09e214eb52f6df687c09fbda70707",
+    "archive": "docs/evidence/actual83ca-pin-successor-20261016/before-83ca/tests/workspace/semantic_graph.rs",
+    "edits": [
+      {
+        "new": "            document_digest(capability_review.as_bytes()),\n        ],\n        [\n            \"sha256:ab1dd558d5cc2033dcf94540c4f648efba1e48c4f8a10cf5b0a89d49bad6908f\",\n            \"sha256:bd9f88f8d1b821d14ff92d0e3697ecd4a91868bb4c87bc93d0085665d470a61f\",\n            \"sha256:a7a13a15a56550eaa35ea6609f3fd169fe33066c054ba6ba23212b9836d848b3\",\n            \"sha256:45961d6e8efaeb42948626d238ca39eb966d8c15023c04356d7e27c3051762e0\",\n            \"sha256:a1b8abdea4abd3e4e93bfac7a80456d5a2097c8599b68fa9d5bbc5d210cb017a\",\n            \"sha256:239e02032ae054db62e3c3033518acb2a7ad9fa96a35c304c1e90a03a3b02b0b\",\n            \"sha256:004de4419f867bfc5b2abd840779901908f0fbbb1f52193e6eea28a987d47574\",\n            \"sha256:50bcee1a9faf8470dc076592d1b0d7625ea9949c7db363ae560c69701c500706\",\n        ]\n    );\n\n",
+        "old": "            document_digest(capability_review.as_bytes()),\n        ],\n        [\n            \"sha256:adba061c93f5da96b7d62a187ee5497d51a16b4fd182c6526dd23a3a0caa5e7e\",\n            \"sha256:16c7858a2cc358e72744ffc40d49a1ae77c1d6f3ec33da8136ea3281da820b06\",\n            \"sha256:5680ebfc875ef38ef93a4a3601c3ec8dd0d467f9a4b57cdeb8c3066aadcb4e3d\",\n            \"sha256:9d5ac7d2add4f91887a8d5605eac152f06ef550a7715cbcc10cdd98f0d6fef64\",\n            \"sha256:f2d1a42ef6181d6e9cfe2e17c1db3a8cedb8250eb71c469f9d74e259da9e0b02\",\n            \"sha256:6ac05ea760adccabc7bcc32d52d9c5cf115f7a0aebdc6815b8d9d7a722f75e4e\",\n            \"sha256:fac59456ea043dd1a3572a5fdffeaf3691334141cbcc5e385f762803c8f7766d\",\n            \"sha256:bea367247f53da5459ca37d547c2b6f9523563ff24c7a80df69e388d06f3cfec\",\n        ]\n    );\n\n"
+      },
+      {
+        "new": "    );\n    // Restoring the prior 336449-byte debit and authenticated digest chain\n    // independently reproduces all nine original whole-document KATs.\n    assert_eq!(graph.budget().used_builder_bytes(), 1_111_428);\n    assert_eq!(\n        document_digest(graph.to_json().as_bytes()),\n        \"sha256:5513044062c9743084dd6cb340ae2edb65a4753047ab03ad43225f3b98c63424\"\n    );\n\n    let output = Command::new(env!(\"CARGO_BIN_EXE_semaprax\"))\n",
+        "old": "    );\n    // Restoring the prior 336449-byte debit and authenticated digest chain\n    // independently reproduces all nine original whole-document KATs.\n    assert_eq!(graph.budget().used_builder_bytes(), 1_106_063);\n    assert_eq!(\n        document_digest(graph.to_json().as_bytes()),\n        \"sha256:7293df46d33db8b9a6b49b2ead7713daa101c7912a25e0c2d889f5b0074753a7\"\n    );\n\n    let output = Command::new(env!(\"CARGO_BIN_EXE_semaprax\"))\n"
+      },
+      {
+        "new": "    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\n            \"../../docs/evidence/main-dd0-compiled-custody-join-20261016/projection.json\"\n        ),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n",
+        "old": "    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\n            \"../../docs/evidence/session-reference-instance-joined-20261016/projection.json\"\n        ),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract.rs",
+    "current_sha256": "0566bc0f16072083d485cdfe86385d6e1c9613ba426a28278d0aa03708f0dccc",
+    "original_sha256": "00b1c8f92850779236c14c05e0302d76e812682b7055bc3229b7584184036593",
+    "archive": "docs/evidence/actual83ca-pin-successor-20261016/before-83ca/tests/wasm/scalar_browser_ci_contract.rs",
+    "edits": [
+      {
+        "new": "                    file.write_all(revision.semantic_graph().as_bytes())\n                        .expect(\"capture complete actual calculator graph\");\n                }\n                previous_digests.push(historical_builder::current83ca_digest(revision.semantic_graph()));\n                historical_builder::current83ca_drift_controls(revision.semantic_graph());\n                let actual = [\n                    revision.project_revision(),\n                    revision.workspace_revision(),\n",
+        "old": "                    file.write_all(revision.semantic_graph().as_bytes())\n                        .expect(\"capture complete actual calculator graph\");\n                }\n                previous_digests.push(historical_builder::main_c451_digest(revision.semantic_graph()));\n                let actual = [\n                    revision.project_revision(),\n                    revision.workspace_revision(),\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "current_sha256": "1b3033a860933b4c3f4ab2c438bd1830bbcc9bed56d7f5f59f2af9488da11c05",
+    "original_sha256": "b6497eb6b650743410f5e9f6cb3a13fc5dd35aa3964ffa1fa8946aabe839dafd",
+    "archive": "docs/evidence/actual83ca-pin-successor-20261016/before-83ca/tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "edits": [
+      {
+        "new": "pub(super) fn main_c451_digest(graph: &str) -> String {\n    main_c451::digest(graph)\n}\n\n// Fresh actual83ca wires; both complete independently retained receivers run.\n#[path = \"actual_83ca.rs\"]\nmod actual_83ca;\npub(super) fn current83ca_digest(graph: &str) -> String {\n    actual_83ca::digest(graph)\n}\npub(super) fn current83ca_drift_controls(graph: &str) {\n    actual_83ca::drift_controls(graph);\n}\n",
+        "old": "pub(super) fn main_c451_digest(graph: &str) -> String {\n    main_c451::digest(graph)\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+    "current_sha256": "ddd8568e993b72cd23a02e070fac6d0657061b6e3afe5b005445bdc6fe9058dc",
+    "original_sha256": "9bed9243d6ed3cbc89e0568e5a1b1c8bd845b3e0c07db173ff1349b3efbb80bc",
+    "archive": "docs/evidence/actual83ca-pin-successor-20261016/before-83ca/tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+    "edits": [
+      {
+        "new": "}\n\nfn browser_b80_previous(source: &str, current: &str) -> String {\n    let pinned = actual83ca_input(source, current);\n    let current = pinned.as_str();\n    pin_project(\n        include_str!(\n            \"../../../docs/evidence/main-b80-browser-custody-20261016/current-to-df2.json\"\n        ),\n        source,\n        current,\n    )\n}\nfn browser_c451_input(source: &str, current: &str) -> String {\n    let pinned = actual83ca_input(source, current);\n    let current = pinned.as_str();\n    pin_project(\n        include_str!(\n            \"../../../docs/evidence/main-b80-browser-custody-20261016/current-to-main.json\"\n        ),\n        source,\n        current,\n    )\n}\npub(super) fn main_c451_parent(current: &str) -> String {\n    browser_c451_input(\"tests/wasm/scalar_browser_ci_contract.rs\", current)\n}\npub(super) fn main_c451_runner(current: &str) -> String {\n    browser_c451_input(\n        \"platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs\",\n        current,\n    )\n}\npub(super) fn main_c451_before(current: &str) -> String {\n    browser_c451_input(\n        \"tests/wasm/scalar_browser_ci_contract/before_c451.rs\",\n        current,\n    )\n}\npub(super) fn main_c451_before_2600(current: &str) -> String {\n    browser_c451_input(\n        \"tests/wasm/scalar_browser_ci_contract/main_c451_before_2600.rs\",\n        current,\n    )\n}\n\nfn actual83ca_input(source: &str, current: &str) -> String {\n    pin_project(\n        include_str!(\n            \"../../../docs/evidence/actual83ca-pin-successor-20261016/browser-current-to-83ca.json\"\n        ),\n        source,\n        current,\n    )\n}\n",
+        "old": "}\n\nfn browser_b80_previous(source: &str, current: &str) -> String {\n    pin_project(include_str!(\"../../../docs/evidence/main-b80-browser-custody-20261016/current-to-df2.json\"), source, current)\n}\nfn browser_c451_input(source: &str, current: &str) -> String {\n    pin_project(include_str!(\"../../../docs/evidence/main-b80-browser-custody-20261016/current-to-main.json\"), source, current)\n}\npub(super) fn main_c451_parent(current: &str) -> String {\n    browser_c451_input(\"tests/wasm/scalar_browser_ci_contract.rs\", current)\n}\npub(super) fn main_c451_runner(current: &str) -> String {\n    browser_c451_input(\"platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs\", current)\n}\npub(super) fn main_c451_before(current: &str) -> String {\n    browser_c451_input(\"tests/wasm/scalar_browser_ci_contract/before_c451.rs\", current)\n}\npub(super) fn main_c451_before_2600(current: &str) -> String {\n    browser_c451_input(\"tests/wasm/scalar_browser_ci_contract/main_c451_before_2600.rs\", current)\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "current_sha256": "c7b8f291ae9ee4c10e31755f36d9e7bc35af4122fab8d4db16bd2c8961ba9b69",
+    "original_sha256": "e2dcb8f6a31a753891aeb04fa5269a28c555ec686a7945a8c5080bd54d7178a3",
+    "archive": "docs/evidence/actual83ca-pin-successor-20261016/before-83ca/platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "edits": [
+      {
+        "new": "    schema: \"semaprax.web-project.v1\",\n    project_revision: \"sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053\",\n    workspace_revision: \"sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6\",\n    project_graph_digest: \"sha256:24ab606f08d33728febdfc43e1eac554ad19a5ad9e0b9e40da62b9a3f8b2edce\",\n  },\n  {\n    name: \"project-renamed\",\n    schema: \"semaprax.web-project.v1\",\n    project_revision: \"sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7\",\n    workspace_revision: \"sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71\",\n    project_graph_digest: \"sha256:d663c471fbcdeb25f572ac20a9074c63a888bb60f3b248345f4b28abe9dadc4c\",\n  },\n];\nconst expectedArtifacts = [\n",
+        "old": "    schema: \"semaprax.web-project.v1\",\n    project_revision: \"sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053\",\n    workspace_revision: \"sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6\",\n    project_graph_digest: \"sha256:331cbe450ce2405aaf18876e6e1d1d42c96703af271616dd374087b5ed9de86a\",\n  },\n  {\n    name: \"project-renamed\",\n    schema: \"semaprax.web-project.v1\",\n    project_revision: \"sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7\",\n    workspace_revision: \"sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71\",\n    project_graph_digest: \"sha256:d234e7fc89dd7211b1c1f15b03e04371922728096b9b95ab7e1bbe0119fd419e\",\n  },\n];\nconst expectedArtifacts = [\n"
+      }
+    ]
+  }
+]

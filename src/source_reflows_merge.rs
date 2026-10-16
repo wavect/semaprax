@@ -727,11 +727,18 @@ fn before_storage_oracle_join(source: &str, current: &str) -> String {
 
 // Independent complete Main and pre-Main source domains.
 pub(crate) fn main_b80_input(source: &str, current: &str) -> String {
+    let merged = main_dd0_previous(source, current);
+    let current = merged.as_str();
+    if matches!(source, "src/cleanup_plan/replay/compact_stage/before.rs" | "src/cleanup_plan/replay/compact_stage/lexical_before.rs") {
+        return project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main-dd0-compiled-custody-join-20261016/compiled-before-to-main.json")), source, current);
+    }
     let latest = session_reference_input(source, current);
     let current = latest.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main-b80-complete-source-join-20261016/current-to-main.json")), source, current)
 }
 pub(crate) fn main_b80_prior_input(source: &str, current: &str) -> String {
+    let merged = main_dd0_previous(source, current);
+    let current = merged.as_str();
     let latest = session_reference_input(source, current);
     let current = latest.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main-b80-complete-source-join-20261016/current-to-df2.json")), source, current)
@@ -739,6 +746,8 @@ pub(crate) fn main_b80_prior_input(source: &str, current: &str) -> String {
 
 // Independent whole-driver input for the immutable first781 receiving owners.
 pub(crate) fn reference781_input(source: &str, current: &str) -> String {
+    let merged = main_dd0_previous(source, current);
+    let current = merged.as_str();
     let latest = reference_family_input(source, current);
     let current = latest.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reference-coverage-paid-receiving-781-next-20261016/current-drivers-to-9a3.json")), source, current)
@@ -750,4 +759,9 @@ fn session_reference_input(source: &str, current: &str) -> String {
 }
 fn reference_family_input(source: &str, current: &str) -> String {
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/session-reference-instance-joined-20261016/current-to-reference.json")), source, current)
+}
+
+// Main's compiled test corpus keeps every original source-domain check.
+fn main_dd0_previous(source: &str, current: &str) -> String {
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main-dd0-compiled-custody-join-20261016/current-to-83ca.json")), source, current)
 }

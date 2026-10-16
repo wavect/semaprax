@@ -1,0 +1,20 @@
+{
+  "status": "ACTUAL_LITERAL_OVERLAY_APPLIED_SOURCE_ONLY_UNQUALIFIED",
+  "producer_source": "83ca0e105e5f4eb6336ed04ff80df6ad0366e99f",
+  "managed_literal_updates": 11,
+  "browser_digest_updates": 2,
+  "all_managed_after_literals_unique": true,
+  "actual47_receiver_complete_byte_prefix_preserved": true,
+  "Mainc451_and_both_older_Main_receivers_byteexact": true,
+  "new_browser_receiver": "tests/wasm/scalar_browser_ci_contract/actual_83ca.rs",
+  "browser_controls": "existing selected browser_known_answers owner now also rejects rehashed callsite and bill drift",
+  "measured_managed_public_builder": 1111428,
+  "previous_actual47_managed_public_builder": 1106063,
+  "measured_browser_builder": 3442219,
+  "previous_actual47_browser_builder": 3477789,
+  "source_inverse_rows": 6,
+  "production_changes": false,
+  "owning_consumer_checks": "NOT_EXECUTED",
+  "scoped_Clippy": "NOT_EXECUTED",
+  "no_agent_token_or_exclusive_causality_claim": true
+}

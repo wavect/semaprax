@@ -121,8 +121,8 @@ fn browser_known_answers_match_authenticated_baseline_and_rename_graphs() {
                     file.write_all(revision.semantic_graph().as_bytes())
                         .expect("capture complete actual calculator graph");
                 }
-                previous_digests.push(historical_builder::current83ca_digest(revision.semantic_graph()));
-                historical_builder::current83ca_drift_controls(revision.semantic_graph());
+                previous_digests.push(historical_builder::current67b_digest(revision.semantic_graph()));
+                historical_builder::current67b_drift_controls(revision.semantic_graph());
                 let actual = [
                     revision.project_revision(),
                     revision.workspace_revision(),
@@ -261,3 +261,6 @@ fn chromium_scalar_calculator_gate_is_isolated_locked_and_serial() {
 // Complete independent Main c11 hosted-wire receiver; live pins remain actual83ca.
 #[path = "scalar_browser_ci_contract/historical_main_c11.rs"]
 mod main_c11;
+
+// Shared custody seam for independent retained Main receivers.
+use historical_builder::custody as browser_custody;

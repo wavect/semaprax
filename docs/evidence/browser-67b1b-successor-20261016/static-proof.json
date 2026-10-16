@@ -1,0 +1,238 @@
+{
+  "scope": "static byte and digest proof only; no compiler/build/test/browser execution",
+  "source_subject": "67b1b02141f19040fdd1b45bc9bea16dcff5d74e",
+  "source_tree": "7896884ed715bdb0bfd51c7e273e4b1304fba5d8",
+  "binding_sha256": "222f96a8e44d1487af7c200f61128844a0a36cf46831299111ba4147e79bae39",
+  "results_sha256": "45817754cb647b294fd8673895696228985479fd7c12681cf47c02d164e2dc27",
+  "wires": [
+    {
+      "fixture": "baseline",
+      "raw_sha256": "f5df278b420d30e04a633c2d333dad48c39a068ba545ba8728c76e0dd5ba6c05",
+      "graph_digest": "sha256:f86125ddd224699471d4b31f8f971774c061c13d6d755e893a801d87d22de275",
+      "builder": 3468381,
+      "complete_historical_domains": [
+        {
+          "path": "docs/evidence/actual83ca-pin-successor-20261016/actual-browser/calculator-baseline.json",
+          "raw_sha256": "d9b9b7e83c3b25445d9437683c6003dc588ce64119b45386b058e9f5d3aca297",
+          "builder": 3442219,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-main75b-independent-20261016/actual55e-calculator-baseline.json",
+          "raw_sha256": "e8fee72ba5e46f44f51fefe1e28e7ed1abfe4f4d9bc58eaf348a9daaa02b3366",
+          "builder": 3439179,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-17104e20c/current-hosted-calculator-baseline.json",
+          "raw_sha256": "42dfc80705a1bb156ed4739aba385266046ad555f9eee4e29271f4712222a6a1",
+          "builder": 3930276,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-2600e49eb/current-hosted-calculator-baseline.json",
+          "raw_sha256": "9306b51988b21468229079173183bc1abbd0615869a3d064666cb71870252a4d",
+          "builder": 3296148,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-268cb0523/current-hosted-calculator-baseline.json",
+          "raw_sha256": "bda678cacc43153bbb606ad7d5503ddc6227deeb07c971190f30a15521aa3059",
+          "builder": 4393980,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-35cc-20261016/actual-capture/calculator-baseline.json",
+          "raw_sha256": "163a5daa41c8bbfaeb4277ac7b3b51c2c88e6eb3ed7126a508c2ec196e592bcc",
+          "builder": 4032239,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-35cc-20261016/actual-capture/prior/17104e20c-current-hosted-calculator-baseline.json",
+          "raw_sha256": "42dfc80705a1bb156ed4739aba385266046ad555f9eee4e29271f4712222a6a1",
+          "builder": 3930276,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-35cc-20261016/actual-capture/prior/841efe3e2-historical-calculator-baseline.json",
+          "raw_sha256": "1388105a39fb89ec84c6b3aed500bda4d654921b2263734866655dc4896194aa",
+          "builder": 1214409,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-75b314f70/current-hosted-calculator-baseline.json",
+          "raw_sha256": "f4bc3195723a4c168352d4a7c8507fb42a4aa0c6361130e2e46fcd45fe597d55",
+          "builder": 2954152,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-841efe3e2/current-hosted-calculator-baseline.json",
+          "raw_sha256": "8dd96cfbb8657dd7eb56368ff40893463c2f868ac0540b8439452f7470cebefe",
+          "builder": 4852388,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-841efe3e2/historical-calculator-baseline.json",
+          "raw_sha256": "1388105a39fb89ec84c6b3aed500bda4d654921b2263734866655dc4896194aa",
+          "builder": 1214409,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-841efe3e2/prior-hosted-calculator-baseline.json",
+          "raw_sha256": "f951893b562c7fb904d4454b417ff910eedb5788b473129ed79879a55becaca8",
+          "builder": 4852372,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-c11a63509/current-hosted-calculator-baseline.json",
+          "raw_sha256": "bf4fb515fc7d71365d42fa69a8acde71404ce525ff56d6ffdbd05ed4c63f837b",
+          "builder": 2967742,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-c451086ce/current-hosted-calculator-baseline.json",
+          "raw_sha256": "9854e2341a3a4c131253fde37e957b5808483c653d7cac6b2fb5b03dd11fafe3",
+          "builder": 2971194,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-f82cec490/current-hosted-calculator-baseline.json",
+          "raw_sha256": "39ffcd65c5917c2870c44e94b9361ef21c1d15d478800da3b8fef6182410152e",
+          "builder": 2958908,
+          "complete_wire_restored": true
+        }
+      ]
+    },
+    {
+      "fixture": "renamed",
+      "raw_sha256": "8072d662d513b7e1239a25e382c1121e6ad179a2e9720812620cbf49230cb543",
+      "graph_digest": "sha256:e324075613d8808bd4916d89d4467f02d1ba0cbb7ce21b45f61b0aa5a1e36a4b",
+      "builder": 3468381,
+      "complete_historical_domains": [
+        {
+          "path": "docs/evidence/actual83ca-pin-successor-20261016/actual-browser/calculator-renamed.json",
+          "raw_sha256": "82df0d17c277c97e1b7b824014da77815e5a3e4d45ab9f7358c22e673f1f79aa",
+          "builder": 3442219,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-main75b-independent-20261016/actual55e-calculator-renamed.json",
+          "raw_sha256": "ad132bc209cddba23570013d0f73d6c3bd82b01e888ee0a809d9a0f0bf1c000b",
+          "builder": 3439179,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-17104e20c/current-hosted-calculator-renamed.json",
+          "raw_sha256": "44c4c500ad37dc8eef82e4d90a5272c971824980c3429bf69e18607d60d77f6d",
+          "builder": 3930276,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-2600e49eb/current-hosted-calculator-renamed.json",
+          "raw_sha256": "750feca2e8cf84343d3389ffa5e133d594e9b8a9311d51efd890637f44ec891a",
+          "builder": 3296148,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-268cb0523/current-hosted-calculator-renamed.json",
+          "raw_sha256": "b99637a24b4460667d7c28d9128fc978dc3ceaf780e7f7b950794f6967074f8e",
+          "builder": 4393980,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-35cc-20261016/actual-capture/calculator-renamed.json",
+          "raw_sha256": "2690c583312eb93da3beb977e04116d3644182baf3ac9d3cfc08f0888ff4fdad",
+          "builder": 4032239,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-35cc-20261016/actual-capture/prior/17104e20c-current-hosted-calculator-renamed.json",
+          "raw_sha256": "44c4c500ad37dc8eef82e4d90a5272c971824980c3429bf69e18607d60d77f6d",
+          "builder": 3930276,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-35cc-20261016/actual-capture/prior/841efe3e2-historical-calculator-renamed.json",
+          "raw_sha256": "ab9e2c01332e10d55dbdc2cf3c1d04973ad64884d6b373d8ab87ab3678eec937",
+          "builder": 1214409,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-75b314f70/current-hosted-calculator-renamed.json",
+          "raw_sha256": "3657f1376dc51e84cfe616a15e7e3c0295df79a3e161bfce3bfcc2a31025baa6",
+          "builder": 2954152,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-841efe3e2/current-hosted-calculator-renamed.json",
+          "raw_sha256": "8ff4b375071848c2b3e3b7d0875fa3d593b4266eb2e335e658d63604bc9790ee",
+          "builder": 4852388,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-841efe3e2/historical-calculator-renamed.json",
+          "raw_sha256": "ab9e2c01332e10d55dbdc2cf3c1d04973ad64884d6b373d8ab87ab3678eec937",
+          "builder": 1214409,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-841efe3e2/prior-hosted-calculator-renamed.json",
+          "raw_sha256": "b46be32be9d067b2bafc9a4adf7aaed9669a1e4413100824a62ea900872ec1f2",
+          "builder": 4852372,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-c11a63509/current-hosted-calculator-renamed.json",
+          "raw_sha256": "4cd98129ae824f38943285ba96f7da0048e845842394ae488315607ab2d9692d",
+          "builder": 2967742,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-c451086ce/current-hosted-calculator-renamed.json",
+          "raw_sha256": "063c86edadd6f8f17686d002daabda66dd9b1956b8b2a06bb8102595c2bcf358",
+          "builder": 2971194,
+          "complete_wire_restored": true
+        },
+        {
+          "path": "docs/evidence/browser-graph-pins-f82cec490/current-hosted-calculator-renamed.json",
+          "raw_sha256": "73d398a7f2c9f95692b6d916921cf7d3d25a57b795293a55d38897c16fdebead",
+          "builder": 2958908,
+          "complete_wire_restored": true
+        }
+      ]
+    }
+  ],
+  "source_inverses": [
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract.rs",
+      "current_sha256": "cd4c7d3fa21b897fedcb67ba907e5e39261458afb4bc043c90e8370776ffe0cb",
+      "exact_preimage_sha256": "ebcde25e9986a0230a54cdf6d75e7b0443282782e55e71778a25aadc0e3ba66e",
+      "retained_inverse_chain_verified": true
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "current_sha256": "4256c1e543c5809f242e0533aeda552d291011047a9a90b396be71b618721714",
+      "exact_preimage_sha256": "c8d4612f23df276990a69e5c6231af35d409d5dd53554a8d68e197834175f942",
+      "retained_inverse_chain_verified": true
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+      "current_sha256": "6337d1b8da661bdf5808c495245cc79c414e6b5667cb3e29affcac5820fd6ed2",
+      "exact_preimage_sha256": "a4086ce6e4325e6c23244393339d1ee82c87c6929c35b102d37891fec5b2b35e",
+      "retained_inverse_chain_verified": true
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_main_75b.rs",
+      "current_sha256": "8c51f7769fcad6c82e79bbc15b08ff7c558f3a0802607959818d006580c553f0",
+      "exact_preimage_sha256": "a668ed42020f20e68a22087f2cfb7deef7e75163a50ff5925f3bf8b781eebdb4",
+      "retained_inverse_chain_verified": true
+    },
+    {
+      "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+      "current_sha256": "96dd49b1b46d6154347edfbff5a40b68232c5dc5df7df9d630e640f64d3b1fd8",
+      "exact_preimage_sha256": "c7b8f291ae9ee4c10e31755f36d9e7bc35af4122fab8d4db16bd2c8961ba9b69",
+      "retained_inverse_chain_verified": true
+    }
+  ],
+  "derived75b_runner_sha256": "516f45fb61675fb77e19e669dc38922430b469ad95940f294cf77e50e9c1ca0c"
+}

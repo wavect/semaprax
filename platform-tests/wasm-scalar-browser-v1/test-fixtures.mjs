@@ -32,9 +32,9 @@ const expectedFunctions = [
   parameters,
   result,
 }));
-// Exact hosted compiler records from c451086ce, including the complete current
-// builder bill. The Rust browser contract retains full historical wire and
-// cursor controls; docs/evidence/browser-graph-pins-c451086ce binds this capture.
+// Actual local67b compiler records include the complete authenticated graph bill.
+// The Rust browser contract composes every retained full-wire receiver.
+// docs/evidence/browser-67b1b-successor-20261016 binds this graph capture.
 const fixtureSpecs = [
   { name: "direct-source", schema: "semaprax.web.v4" },
   {
@@ -42,14 +42,14 @@ const fixtureSpecs = [
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053",
     workspace_revision: "sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6",
-    project_graph_digest: "sha256:24ab606f08d33728febdfc43e1eac554ad19a5ad9e0b9e40da62b9a3f8b2edce",
+    project_graph_digest: "sha256:f86125ddd224699471d4b31f8f971774c061c13d6d755e893a801d87d22de275",
   },
   {
     name: "project-renamed",
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7",
     workspace_revision: "sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71",
-    project_graph_digest: "sha256:d663c471fbcdeb25f572ac20a9074c63a888bb60f3b248345f4b28abe9dadc4c",
+    project_graph_digest: "sha256:e324075613d8808bd4916d89d4467f02d1ba0cbb7ce21b45f61b0aa5a1e36a4b",
   },
 ];
 const expectedArtifacts = [

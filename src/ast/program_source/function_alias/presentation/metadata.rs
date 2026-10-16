@@ -1,7 +1,7 @@
 //! Explicit name lookup and membership without constructing presentation values.
 //! Payload lookup is for name-invariant structural consumers only. It grants no
 //! wrapper/provider authority; those consumers receive the real FunctionRef.
-use super::*;
+use super::{Function, FunctionEntry, FunctionRef, FunctionSlices};
 
 impl<'a> FunctionSlices<'a> {
     pub(crate) fn has_stored_aliases(&self) -> bool {

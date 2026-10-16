@@ -236,12 +236,12 @@
   },
   {
     "source": "src/source_reflows_merge/main44_custody.rs",
-    "sha256": "2e7b57322b6219d65cdf3afc8bf24879def28fb20c774b55b206d67bbbf20f51",
+    "sha256": "052f6e48a6fefc19d18a3c77dab3a012178b9d3f9f695be120894eb72e452ea1",
     "lines": 45
   },
   {
     "source": "src/source_reflows_merge/maina3_custody.rs",
-    "sha256": "69d55d502c41a09d17663daded14f353a4ac7937076713e35e1bf942fff81a82",
+    "sha256": "770ac295f66a79968ab918df080865dae341e0afe3c31388630e356745922e64",
     "lines": 44
   },
   {
@@ -261,8 +261,8 @@
   },
   {
     "source": "tests/wasm/scalar_browser_ci_contract/actual_67b.rs",
-    "sha256": "2f813d0bb00dc4dda1c6c9401dec37927faad2affbe38b7602dc3140a5a77cc2",
-    "lines": 120
+    "sha256": "f15ae6925ae1c2a861726adaa0d54bc8e4bf670925627f3da2b43fb05909294f",
+    "lines": 121
   },
   {
     "source": "tests/wasm/scalar_browser_ci_contract/before_75b.rs",
@@ -278,5 +278,10 @@
     "source": "tests/wasm/scalar_browser_ci_contract/historical_main_75b.rs",
     "sha256": "8c51f7769fcad6c82e79bbc15b08ff7c558f3a0802607959818d006580c553f0",
     "lines": 132
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/next_actual.rs",
+    "sha256": "0d33eea6239ab16b61f0db4344cba9e4b854b95c0ab95275fecde8fe44c469c9",
+    "lines": 110
   }
 ]

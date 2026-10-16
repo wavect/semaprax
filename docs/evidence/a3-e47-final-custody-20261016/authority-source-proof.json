@@ -1,10 +1,10 @@
 {
   "hir": {
-    "raw_sha256": "f87161b3d14ded9737d22dd5756a5148613e78933d9a441cabf245fe17af7c0a",
+    "raw_sha256": "f28995908bdaa541e9f9f9997008024331fec8e2797c0507b8fbe60da99a9b37",
     "production_sha256": "aa7b775c04e0f447dd1a908e617f8d7eead9c341cd6e3f8d3cc97ba9ca31521a",
     "unique_production_files": 379,
-    "unique_test_only_files": 666,
-    "chunks_including_multiplicity_and_separators": 985,
+    "unique_test_only_files": 667,
+    "chunks_including_multiplicity_and_separators": 986,
     "all_original_forbidden_checks_clear": true,
     "exact_existing_forbidden_tokens": [
       "struct Resolver",
@@ -47,17 +47,17 @@
     "tests/hir_module_boundaries.rs": {
       "original_occurrences": 977,
       "preserved_original_order": true,
-      "explicit_added_occurrences": 56
+      "explicit_added_occurrences": 57
     },
     "tests/workspace/semantic_graph/source_inventory.rs": {
       "original_occurrences": 791,
       "preserved_original_order": true,
-      "explicit_added_occurrences": 56
+      "explicit_added_occurrences": 57
     },
     "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
       "original_occurrences": 1413,
       "preserved_original_order": true,
-      "explicit_added_occurrences": 56
+      "explicit_added_occurrences": 57
     }
   },
   "mode": "SOURCE_ONLY_NO_RUST_EXECUTION"

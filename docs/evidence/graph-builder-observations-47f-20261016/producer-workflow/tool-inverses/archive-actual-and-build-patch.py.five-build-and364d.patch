@@ -1,0 +1,24 @@
+--- final/archive-actual-and-build-patch.py
++++ base-derived/archive-actual-and-build-patch.py
+@@ -30,21 +30,6 @@
+  wires.append(dict(wire=file.stem,before_sha256=sha(before),after_sha256=sha(after),json_changes=changes(json.loads(before),json.loads(after)),exact_byte_inverse=edits))
+ assert len(wires)==10
+ (OUT/'whole-wire-exact-inverses.json').write_text(json.dumps(wires,indent=2)+'\n')
+-# Additional complete independently observed364d wires; published BEFORE stays35cc.
+-OBSERVED=Path(__file__).resolve().parent/'historical-observations/observed364d-managed'
+-shutil.copytree(OBSERVED,OUT/'independent-observed364d-capture')
+-observed_wires=[]
+-for file in sorted((OBSERVED/'wires').glob('*.json')):
+- prior=file.read_bytes();actual=(NEW/'wires'/file.name).read_bytes();inverse=[]
+- for op,a,b,c,d in difflib.SequenceMatcher(None,prior,actual,autojunk=True).get_opcodes():
+-  if op!='equal':inverse.append(dict(before_start=a,before_end=b,after_start=c,after_end=d,before_hex=prior[a:b].hex(),after_hex=actual[c:d].hex()))
+- restored=actual
+- for e in reversed(inverse):
+-  assert restored[e['after_start']:e['after_end']]==bytes.fromhex(e['after_hex']);restored=restored[:e['after_start']]+bytes.fromhex(e['before_hex'])+restored[e['after_end']:]
+- assert restored==prior
+- observed_wires.append(dict(wire=file.stem,before_sha256=sha(prior),after_sha256=sha(actual),json_changes=changes(json.loads(prior),json.loads(actual)),exact_byte_inverse=inverse))
+-assert len(observed_wires)==10 and json.loads((OBSERVED/'wires/public-graph.json').read_text())['budget']['used_builder_bytes']==1103165
+-(OUT/'independent-observed364d-whole-wire-inverses.json').write_text(json.dumps(observed_wires,indent=2)+'\n')
+ before={p:(OUT/'source-before'/p).read_bytes() for p in set(e['path'] for e in plan['edits'])|{'docs/evidence/prelude-forecast-286/pin-capture/exact-source-inverses.json'}};after=before.copy()
+ for e in plan['edits']:
+  a=e['before'].encode();b=e['after'].encode();assert after[e['path']].count(a)==1;after[e['path']]=after[e['path']].replace(a,b,1)

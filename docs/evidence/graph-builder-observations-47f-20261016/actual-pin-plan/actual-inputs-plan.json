@@ -1,0 +1,135 @@
+{
+  "status": "AUTHENTICATED_ACTUAL_INPUTS_LITERAL_PLAN_NOT_APPLIED",
+  "source": "47f80b0f7a06fde9b2388439a9c0bfe998a05af1",
+  "managed_plan_sha256": "90747aee95da42b1c5cd3c34318fcd86dbb2cb1df7e8bd6556997f30dc1df3a0",
+  "browser_results_sha256": "65bbfcd6bf4d5601f9a1bcdfd485c7c9cbf14608d5adf14c26f4a689e7398b86",
+  "browser_binding_sha256": "ba28f7428993e5ad3aa8d94d2d87ac8fe7caca2cb2ceb3f6194840f96ea99be6",
+  "actual_build_receipt_sha256": "e5c270a96c43780d9dba1beb2aca405d2dbe3d1427cde18a92eda2fd7f57f7ad",
+  "actual_producer_receipt_sha256": "54357a727783245f7fc6887460d85dfb206dd72071d3ef1fba9a992ea8a2cf05",
+  "managed_edits": 11,
+  "managed_literal_edits": [
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "assert_eq!(graph.budget().used_builder_bytes(), 1_209_652);",
+      "after": "assert_eq!(graph.budget().used_builder_bytes(), 1_106_063);",
+      "actual_wire": "public-graph"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:6b5cc543f824f65ea9deaeb9d713176c8c3ba2d77261fe32ed866ebb69c1f6e6",
+      "after": "sha256:7293df46d33db8b9a6b49b2ead7713daa101c7912a25e0c2d889f5b0074753a7",
+      "actual_wire": "public-graph"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:531c4928f03919cbe391636cb5a3c6e1a81e1e78ef9a6d9b870a662ba4fe64c9",
+      "after": "sha256:adba061c93f5da96b7d62a187ee5497d51a16b4fd182c6526dd23a3a0caa5e7e",
+      "actual_wire": "context"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:3c1ecc805f6e8ce44e8bb5494ab6f8e2e190ea007abd491b4bc5087bae14baa5",
+      "after": "sha256:16c7858a2cc358e72744ffc40d49a1ae77c1d6f3ec33da8136ea3281da820b06",
+      "actual_wire": "forward"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:cbe0ef0e127493fff8d09fd7b71902ec3fa411c05655813ba21702c268a86f06",
+      "after": "sha256:5680ebfc875ef38ef93a4a3601c3ec8dd0d467f9a4b57cdeb8c3066aadcb4e3d",
+      "actual_wire": "capability-context"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:d9aade25e555411d208f04f257dc9ed757c2aab70f9f2f09044d3f7bb3384721",
+      "after": "sha256:9d5ac7d2add4f91887a8d5605eac152f06ef550a7715cbcc10cdd98f0d6fef64",
+      "actual_wire": "type-context"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:0d337f90ce845ad4f6c02930ba578d8002aaf1faee4a150488df961c5a44a2f4",
+      "after": "sha256:f2d1a42ef6181d6e9cfe2e17c1db3a8cedb8250eb71c469f9d74e259da9e0b02",
+      "actual_wire": "impact"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:6e04aedb33f4122be228d6fd36ba8685be17fe9777d366589a8ad00cc81cb98a",
+      "after": "sha256:6ac05ea760adccabc7bcc32d52d9c5cf115f7a0aebdc6815b8d9d7a722f75e4e",
+      "actual_wire": "custom-impact"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:3cdd798dc3486d371419879d8d10fd749d366797e590c14d04c06f098fac3518",
+      "after": "sha256:fac59456ea043dd1a3572a5fdffeaf3691334141cbcc5e385f762803c8f7766d",
+      "actual_wire": "review"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": "sha256:856f47d2ea3b179156a8cb48ea7a14a3fd48908472ecd37d7c5547a62b4a34e3",
+      "after": "sha256:bea367247f53da5459ca37d547c2b6f9523563ff24c7a80df69e388d06f3cfec",
+      "actual_wire": "capability-review"
+    },
+    {
+      "path": "src/workspace_graph/type_proof_tests.rs",
+      "before": "sha256:74dd9cc25b0f9f331aa831d6fac0e44f1d51488d6c3a548f3c60b6a86ff8eb04",
+      "after": "sha256:22d1a59dcf685a59de93b32397874159260325c04afbae9e2b416f770a561be7",
+      "actual_wire": "projection-wire"
+    }
+  ],
+  "browser_runner_digest_edits": 2,
+  "actual_browser": [
+    {
+      "fixture": "baseline",
+      "source": "/Volumes/Semaprax/provenance/browser-capture-47f-20261016/calculator-baseline.json",
+      "sha256": "b62235a5e0232f70c6d6131e18a85188dc3f835205f07491e85aa0a0b464eb37",
+      "graph_digest": "sha256:331ca572cc5c91fedf9da602aa7368b484ec0e96c1963300aea40a93d6cd2fc3",
+      "builder_bytes": 3477789,
+      "full_original_bridges": {
+        "main2600_wire_sha256": "9306b51988b21468229079173183bc1abbd0615869a3d064666cb71870252a4d",
+        "main2600_builder_bytes": 3296148,
+        "observed8bb_wire_sha256": "35c71fa712b5dc70212ff74809d1fdc52f910e56653ec3c220dc5b9e1219e3e7",
+        "observed8bb_builder_bytes": 3534564,
+        "complete_main2600_restore": true,
+        "complete_observed8bb_restore": true,
+        "observed2d4b_wire_sha256": "fb4e25fc11542284d4ca50e984958fb53bbe029ae29ab6e3ac62f4881656f47c",
+        "observed2d4b_builder_bytes": 3558886,
+        "complete_observed2d4b_restore": true,
+        "observed364d_wire_sha256": "33a8b5daec6746e6e4d2a55f854672bdb8d21ab11f312bc81033ded5f5e59dbb",
+        "observed364d_builder_bytes": 3472870,
+        "complete_observed364d_restore": true
+      }
+    },
+    {
+      "fixture": "renamed",
+      "source": "/Volumes/Semaprax/provenance/browser-capture-47f-20261016/calculator-renamed.json",
+      "sha256": "d6775977730ad82f4da116d347a81235498a1e034a03a8e141206224ef60d24a",
+      "graph_digest": "sha256:67946d03e31d346e84de206ce7836c859d62712db8aacdca45ae39c060c30017",
+      "builder_bytes": 3477789,
+      "full_original_bridges": {
+        "main2600_wire_sha256": "750feca2e8cf84343d3389ffa5e133d594e9b8a9311d51efd890637f44ec891a",
+        "main2600_builder_bytes": 3296148,
+        "observed8bb_wire_sha256": "2601057655d7d01c252eec97865dd453b128b382bb8c0bcda7709910b880226f",
+        "observed8bb_builder_bytes": 3534564,
+        "complete_main2600_restore": true,
+        "complete_observed8bb_restore": true,
+        "observed2d4b_wire_sha256": "52d942f159c09520f5784666e3a5e7e3f3aa26abd03d64dc97df5a3b1f9333fb",
+        "observed2d4b_builder_bytes": 3558886,
+        "complete_observed2d4b_restore": true,
+        "observed364d_wire_sha256": "c4f471baa7c0d2e241daf5179f6cc112a7a00f217b440174c4c251c69a126628",
+        "observed364d_builder_bytes": 3472870,
+        "complete_observed364d_restore": true
+      }
+    }
+  ],
+  "literal_source_before_sha256": {
+    "tests/workspace/semantic_graph.rs": "82deedb7e8fd411535340b32410798c92c376acb23b604f6a628088916d0db77",
+    "src/workspace_graph/type_proof_tests.rs": "53736e9d12bb60f3c88b86ae48b6476adba4f1d238a3e287c92a608854308fe7",
+    "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs": "b84b2940d4f909f7240c3e698b3f920546b4f99e8ed141560c782e848708b935"
+  },
+  "literal_source_after_sha256": {
+    "tests/workspace/semantic_graph.rs": "9c4430fe786369a38b16f2081a994157cad20c7b05d0cc03bc1519ac5f228c6b",
+    "src/workspace_graph/type_proof_tests.rs": "fc7995a691693f71686e264b60ef5803a8a724553ea948f5dfd34ce0b6e80eab",
+    "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs": "90aa6a5570bccce154a69673112caf63f081d89b9b87127327f4d16f25e131ae"
+  },
+  "production_integrated": false,
+  "remaining_required": "Complete browser new-to-Main/historical bridges and current-to47 whole-source fronts/authority manifests, then explicit test-evidence-onlyHEAD registration and exact15 new consumer bodies; literal patch alone is not READY."
+}

@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/provenance/session853-final-focused97-draft-20261016/register-final.py", line 18, in <module>
+    row=dict(binding,harness=r['package']+'::'+('lib' if r['kind']=='lib' else r['kind'].split(':',1)[1]),kind=r['kind'],selector=r['selector'],reason='; '.join(r['reasons']),current_batch_selection_reasons=r['reasons'])
+                                                                                                                                                                 ~^^^^^^^^^^^
+KeyError: 'reasons'

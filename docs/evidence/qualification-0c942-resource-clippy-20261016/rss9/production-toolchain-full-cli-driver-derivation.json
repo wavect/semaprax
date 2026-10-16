@@ -1,0 +1,12 @@
+{
+  "original_driver": "/Volumes/Semaprax/lane-prompts/postpin-0c942-97-retry1-qualification-20261016/drivers/run-production-lib-cli-clippy.py",
+  "original_sha256": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077",
+  "derived_driver": "/Volumes/Semaprax/lane-prompts/postpin-0c942-97-retry1-qualification-20261016/run-production-toolchain-full-cli.py",
+  "derived_sha256": "1f54fd082b8aa5292a257a51c8109f1fc71200fc53247823a944e66049fb1131",
+  "complete_source_inverse_exact": true,
+  "changes": [
+    "literal phase/receipt name",
+    "exact package+bin command only"
+  ],
+  "all_other_source_profile_RAM_lock_source_binding_settlement_guards_byteexact": true
+}

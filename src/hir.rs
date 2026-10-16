@@ -104,6 +104,10 @@ mod copy_discard;
 pub(crate) mod funded;
 pub(crate) use copy_discard::source as copy_discard_source;
 mod expr_nodes;
+#[cfg(test)]
+#[allow(dead_code)]
+#[path = "../docs/evidence/receiver-source-custody-v1/src__hir__expr_nodes.rs.before.txt"]
+mod residual_payload_before;
 pub(crate) use copy_discard::{
     function_uses as copy_discard_function_uses, program_uses as copy_discard_program_uses,
 };
@@ -364,7 +368,8 @@ mod vec_field_origin;
 pub use expr_nodes::{
     PatternValue, ResolvedClosureCapture, ResolvedExpr, ResolvedExprKind, ResolvedFieldInitializer,
     ResolvedMatchArm, ResolvedMatchPattern, ResolvedMatchPatternField,
-    ResolvedRecordMatchFieldPattern, ResolvedRecordMatchPatternField, ResolvedStatement,
+    ResolvedRecordMatchFieldPattern, ResolvedRecordMatchPatternField, ResolvedResidualType,
+    ResolvedStatement,
 };
 pub(crate) use ids::CompilerDeclaration;
 pub use ids::{DeclarationId, ExpressionId, FunctionExecutionId, FunctionInstanceId, ValueId};

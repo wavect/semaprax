@@ -291,6 +291,7 @@ pub(super) fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
                 + ok_field.as_str().len()
                 + err_case.as_str().len()
                 + err_field.as_str().len()
+                + std::mem::size_of::<ResolvedType>()
                 + resolved_type_owned_capacity(residual_type);
         }
         ResolvedExprKind::TryOption {
@@ -306,6 +307,7 @@ pub(super) fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
                 + some_case.as_str().len()
                 + some_field.as_str().len()
                 + none_case.as_str().len()
+                + std::mem::size_of::<ResolvedType>()
                 + resolved_type_owned_capacity(residual_type);
         }
         ResolvedExprKind::Block { statements, tail }

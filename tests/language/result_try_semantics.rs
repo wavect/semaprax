@@ -200,7 +200,7 @@ fn independent_hir_validation_rejects_try_identity_type_and_ownership_confusion(
     let ResolvedExprKind::Try { residual_type, .. } = &mut try_expr(&mut hostile).kind else {
         unreachable!();
     };
-    *residual_type = ResolvedType::Nominal {
+    **residual_type = ResolvedType::Nominal {
         declaration: DeclarationId::new("core.result"),
         arguments: vec![ResolvedType::Bool, ResolvedType::I64],
     };

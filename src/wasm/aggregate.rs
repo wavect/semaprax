@@ -5100,7 +5100,7 @@ impl Emitter<'_> {
                             local: self.plan.frame_base,
                             offset: residual_offset,
                         },
-                        ty: residual_type.clone(),
+                        ty: (**residual_type).clone(),
                     };
                     self.apply_try_variant_case_transitions(
                         &expr.id,

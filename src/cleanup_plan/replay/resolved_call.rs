@@ -181,7 +181,7 @@ fn authenticated_changed_success_result<'a>(
             declaration: target,
             arguments: target_arguments,
         },
-    ) = (&operand.ty, residual_type)
+    ) = (&operand.ty, &**residual_type)
     else {
         return Err(replay_error(
             function,

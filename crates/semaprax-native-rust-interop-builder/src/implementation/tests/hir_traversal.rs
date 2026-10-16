@@ -402,7 +402,8 @@ fn hir_fingerprint_admits_exact_depth_result_and_option_try_chains() {
                     some_case: DeclarationId::new("prelude.option.some".to_owned()),
                     some_field: DeclarationId::new("prelude.option.some.value".to_owned()),
                     none_case: DeclarationId::new("prelude.option.none".to_owned()),
-                    residual_type: ResolvedType::I64,
+                    residual_type: crate::hir::ResolvedResidualType::try_new(ResolvedType::I64)
+                        .unwrap(),
                 }
             } else {
                 ResolvedExprKind::Try {
@@ -412,7 +413,8 @@ fn hir_fingerprint_admits_exact_depth_result_and_option_try_chains() {
                     ok_field: DeclarationId::new("prelude.result.ok.value".to_owned()),
                     err_case: DeclarationId::new("prelude.result.err".to_owned()),
                     err_field: DeclarationId::new("prelude.result.err.error".to_owned()),
-                    residual_type: ResolvedType::I64,
+                    residual_type: crate::hir::ResolvedResidualType::try_new(ResolvedType::I64)
+                        .unwrap(),
                 }
             },
         };

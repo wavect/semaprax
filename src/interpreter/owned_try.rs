@@ -32,7 +32,7 @@ pub(super) fn scan_is_admitted(
             }
         && is_admitted_owned_byte_variant(declarations, &operand.ty)
         && is_admitted_owned_byte_variant(declarations, residual_type)
-        && matches!((&operand.ty, residual_type),
+        && matches!((&operand.ty, &**residual_type),
             (ResolvedType::Nominal { arguments: source, .. },
              ResolvedType::Nominal { arguments: target, .. })
                 if source.get(1) == target.get(1))
@@ -74,7 +74,7 @@ impl Evaluator<'_> {
         let ResolvedType::Nominal {
             declaration: target_result,
             arguments: target_arguments,
-        } = residual_type
+        } = &**residual_type
         else {
             return Err(Flow::Guard("owned postfix `?` residual is not Result"));
         };
@@ -152,7 +152,7 @@ impl Evaluator<'_> {
             fields.insert(err_field.clone(), payload);
             Err(Flow::Residual(Value::Variant(Arc::new(
                 OwnedVariantValue {
-                    ty: residual_type.clone(),
+                    ty: (**residual_type).clone(),
                     variant: result.clone(),
                     case: err_case.clone(),
                     fields,

@@ -44,7 +44,7 @@ pub(super) fn ownership_for(operand: &ResolvedType, residual: &ResolvedType) -> 
 
 pub(super) fn resolve_result(
     operand: ResolvedExpr,
-    residual_type: ResolvedType,
+    residual_type: super::ResolvedResidualType,
     ok_type: &ResolvedType,
 ) -> (ResolvedExprKind, ResolvedType, OwnershipMode) {
     let ownership = ownership_for(&operand.ty, &residual_type);

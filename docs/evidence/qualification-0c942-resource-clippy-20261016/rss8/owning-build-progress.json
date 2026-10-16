@@ -1,0 +1,244 @@
+{
+  "observation_helper_path": "/Volumes/Semaprax/lane-prompts/postpin-0c942-97-qualification-20261016/drivers/semaprax_pressure_observation_v3.py",
+  "observation_helper_sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+  "phase_monitor_path": "/Volumes/Semaprax/lane-prompts/postpin-0c942-97-qualification-20261016/drivers/observed_phase.py",
+  "phase_monitor_sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867",
+  "complete": false,
+  "source_subject": "0c942afa4004da34ec84639b3f0a2f6e97b52bb8",
+  "source_tree": "c3dc26e83a72d9b63b8c14c902526a33e8fae147",
+  "cargo_lock_sha256": "73c2e543a41d2524e150597226b62686b36ba67bf023f884b52282ced19865f3",
+  "manifest_sha256": "57c9ec4facbf4a3a02ce56c8c338f589f35045cc109abfc8a81ec28baafe3ff3",
+  "driver_sha256": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888",
+  "ordered_commands": [
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "build",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--test",
+      "hir_module_boundaries",
+      "--test",
+      "module_size",
+      "--test",
+      "project",
+      "--test",
+      "quickstart_v1",
+      "--test",
+      "wasm",
+      "--test",
+      "workspace",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax-toolchain",
+      "--test",
+      "cli_new_project_v1",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ]
+  ],
+  "cargo_build_jobs": 1,
+  "build_target_selection": "explicit-batched-no-run-v1",
+  "results": [
+    {
+      "command": [
+        "/Users/kevin/.cargo/bin/rustup",
+        "run",
+        "1.97.1",
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "--no-run",
+        "--jobs",
+        "1",
+        "--message-format=json"
+      ],
+      "executed": true,
+      "exit_code": -15,
+      "resource_refusal": "process-group RSS cap",
+      "observation_errors": [],
+      "peak_process_group_rss_bytes": 8686616576,
+      "rss_limit_bytes": 8589934592,
+      "last_system_free_percent": 80,
+      "process_high_water_marks": [
+        {
+          "pid": 15038,
+          "ppid": 14856,
+          "rss_bytes": 102776832,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/cargo"
+        },
+        {
+          "pid": 15428,
+          "ppid": 15038,
+          "rss_bytes": 7077888,
+          "name": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/build/semaprax-40b59bcff6ce68fb/build-script-build"
+        },
+        {
+          "pid": 15446,
+          "ppid": 15038,
+          "rss_bytes": 8586362880,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        }
+      ],
+      "wall_seconds": 80.77296420800849,
+      "baseline_telemetry": {
+        "kernel_pressure": {
+          "raw": 1,
+          "label": "normal",
+          "label_status": "exact_kernel_mapping",
+          "kernel_version": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:06 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6030",
+          "mapping_provenance": {
+            "source_tag": "xnu-12377.121.6",
+            "conversion_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/kern/kern_memorystatus_notify.c",
+            "conversion_spans": "1651-1679;1754-1768",
+            "constants_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/sys/event_private.h",
+            "constants_span": "276-278"
+          }
+        },
+        "swap": {
+          "total_bytes": 3221225472,
+          "available_bytes": 1518731264,
+          "used_bytes": 1702494208,
+          "page_size": 16384,
+          "encrypted": true,
+          "raw_sha256": "26e1737f83c6215ec2f95e48edd5bc2aa349370d5502f15f6a55c8ecaf32d20e"
+        },
+        "vm": {
+          "page_size": 16384,
+          "counters": {
+            "Pages free": 349056,
+            "Pages inactive": 216769,
+            "Pages purgeable": 11520,
+            "File-backed pages": 267233,
+            "Pages occupied by compressor": 56533,
+            "Swapins": 113898986,
+            "Swapouts": 155541233
+          }
+        },
+        "windows": [
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-n",
+              "kern.memorystatus_vm_pressure_level"
+            ],
+            "started": 142386.103480666,
+            "finished": 142386.105314875
+          },
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-b",
+              "vm.swapusage"
+            ],
+            "started": 142386.105409541,
+            "finished": 142386.107129291
+          },
+          {
+            "command": [
+              "/usr/bin/vm_stat"
+            ],
+            "started": 142386.10716275,
+            "finished": 142386.109875958
+          }
+        ],
+        "finished": 142386.11003925,
+        "atomic": false
+      },
+      "post_stop_telemetry": null,
+      "post_stop_observation_status": "skipped_unconfirmed_group_settlement",
+      "admission_system_free_percent": 80,
+      "telemetry_sample_count": 35,
+      "maximum_positive_swap_used_delta_bytes": 0,
+      "failed_telemetry_samples": [],
+      "group_settlement": {
+        "owned_pgid": 15038,
+        "confirmed_empty": false,
+        "signals": [
+          15
+        ],
+        "operation_failures": [
+          {
+            "operation": "killpg",
+            "signal": 9,
+            "error_type": "PermissionError",
+            "errno": 1
+          },
+          {
+            "operation": "membership",
+            "error_type": "ObservationError",
+            "errno": null
+          }
+        ],
+        "observation_errors": [
+          "PermissionError: [Errno 1] Operation not permitted",
+          "ObservationError: command observation failed: TimeoutExpired"
+        ],
+        "resource_refusal": "process-group RSS cap",
+        "finished": 142465.13605125
+      },
+      "source_binding_status": "unchanged",
+      "observation_helper_path": "/Volumes/Semaprax/lane-prompts/postpin-0c942-97-qualification-20261016/drivers/semaprax_pressure_observation_v3.py",
+      "observation_helper_sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+      "phase_monitor_path": "/Volumes/Semaprax/lane-prompts/postpin-0c942-97-qualification-20261016/drivers/observed_phase.py",
+      "phase_monitor_sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+    }
+  ],
+  "memory_samples_sha256": "e88d7d1eab598464203efe90cb9d41102d8e0783c3a55c3904c3eca26741757f",
+  "executed_test_bodies": 0,
+  "node_version": "v24.3.0",
+  "private_target_dir": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012"
+}

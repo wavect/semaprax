@@ -26,7 +26,9 @@ fn digest(source: &str) -> String {
 
 fn invert(proof: &serde_json::Value, current: &str) -> String {
     let path = proof["path"].as_str().unwrap();
-    let main = crate::source_reflows_merge::main8a_input(path, current);
+    let main = crate::source_reflows_merge::main8a_historical::input(
+        crate::source_reflows_merge::main8a_historical::Domain::Receivers12, path, current,
+    );
     let current = main.as_str();
     assert_eq!(
         digest(current),

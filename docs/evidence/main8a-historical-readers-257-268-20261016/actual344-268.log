@@ -1,0 +1,27 @@
+
+running 1 test
+test cleanup_plan::replay::compact_stage::source_custody_main8a::all_seven_live_receivers_reconstruct_every_predecessor_byte ... 
+thread 'cleanup_plan::replay::compact_stage::source_custody_main8a::all_seven_live_receivers_reconstruct_every_predecessor_byte' (19067429) panicked at src/source_reflows_merge.rs:149:5:
+assertion `left == right` failed
+  left: "5b193e887cc987cc1becfed4b93bea01f17cfca5fe76490480bf57db9b207793"
+ right: String("a684cd8cf14545809a38789ae587ec827c2945395565fab810da756427bcb213")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'cleanup_plan::replay::compact_stage::source_custody_main8a::all_seven_live_receivers_reconstruct_every_predecessor_byte' (19067429) panicked at src/cleanup_plan/replay/compact_stage/source_custody_main8a.rs:95:5:
+assertion `left == right` failed: "src/cleanup_plan/replay.rs"
+  left: "ee6582dfe9654e0d405cd103834e5ceb501c87c60d4b676ccde829fb4801329f"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+
+thread 'cleanup_plan::replay::compact_stage::source_custody_main8a::all_seven_live_receivers_reconstruct_every_predecessor_byte' (19067429) panicked at src/cleanup_plan/replay/compact_stage/source_custody_main8a.rs:83:5:
+assertion `left == right` failed: "src/cleanup_plan/replay/branch_clone/tests.rs"
+  left: "6509ab480c69cfe00583d9d640f73726f5184f728b16dcde2d7d35b42fe15496"
+ right: String("053dbd5dee8d05d3ed56db80729de01e2f0e572c0299779bed1cfbf6a0f64303")
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::compact_stage::source_custody_main8a::all_seven_live_receivers_reconstruct_every_predecessor_byte
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9448 filtered out; finished in 0.29s
+

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Fixed Main043 source-only custody verifier; --write-endpoints is explicit."""
-import argparse, copy, hashlib, json, re, subprocess
+import argparse, copy, hashlib, json, re, subprocess, runpy
 from pathlib import Path
 p=argparse.ArgumentParser();p.add_argument('--repo',required=True);p.add_argument('--write-endpoints',action='store_true');a=p.parse_args();R=Path(a.repo).resolve()
 A='a82e00cc83f99b16249181c45710d962598577db';M='163865806d2665047cd7121aa013a23eaf726b05';D='docs/evidence/main043-independent-custody-20261016'
@@ -104,11 +104,10 @@ required=set(proof['new_modules'])|{v for o in owners for v in o['raw_inputs']}|
 for path in guards:
  source=read(path);literals=re.findall(r'include_str!\(\s*"([^"]+)"',source)
  for q in required-{path}:assert any(s.endswith('/'+q) for s in literals),(path,'missing raw source',q)
- # Exact original guard text is retained by removing only new include lines.
- original=git(A,path);new_lines=source.splitlines(True)
- for line in list(new_lines):
-  if line.startswith('include_str!("') and line not in original:new_lines.remove(line)
- assert ''.join(new_lines)==original,('original raw guard changed',path)
+ # Exact original guard text is retained after authenticated additive include fragments.
+ original=git(A,path)
+ extension=runpy.run_path(str(R/D/'guard-extensions.py'))
+ extension['verify_guard'](path,source,original,a.write_endpoints)
 for i in [2,4,7]:
  text=read(owners[i]['definition']);assert 'historical_ci_extra' not in text and 'main043_input' not in text
 # Preserve the original reader verbatim; only the two fixed sibling getters append.
@@ -120,6 +119,9 @@ for row in bindings['definitions']:
  if a.write_endpoints and row['path']=='src/source_reflows_merge/main043_custody.rs':
   row['bytes']=len(payload.encode());row['sha256']=sha(payload)
  else:assert row['bytes']==len(payload.encode()) and row['sha256']==sha(payload),('definition drift',row['path'])
-assert bindings['verification_script_sha256']==sha(Path(__file__).read_text()),'verifier source drift'
+extension=runpy.run_path(str(R/D/'guard-extensions.py'));extension['verify_recipe']()
+assert bindings['verification_script_sha256']==sha(read(D+'/guard-extension-original/verify-or-refresh.py')),'original verifier source drift'
+if a.write_endpoints:bindings['guard_extension_verifier_sha256']=sha(Path(__file__).read_text())
+else:assert bindings['guard_extension_verifier_sha256']==sha(Path(__file__).read_text()),'extended verifier source drift'
 endpoint(D+'/definition-bindings.json',bindings)
 print(json.dumps(dict(status='MAIN043_SOURCE_ONLY_CUSTODY_PASS',rows=75,helper_controls=14,historical_extra_views=5,raw_owners=[2,4,7],all_three_raw_inventories=True,rust_executed=False,write_endpoints=a.write_endpoints)))

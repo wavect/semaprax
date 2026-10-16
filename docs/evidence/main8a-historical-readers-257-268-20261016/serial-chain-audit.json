@@ -1,0 +1,154 @@
+[
+  {
+    "domain": "Compact7",
+    "path": "src/cleanup_plan/replay.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "b2561460dbc2d943215674fa00dbd37bdb33b4fda9222579bdfa4233650a77a0",
+    "required_owner_after_sha256": "b2561460dbc2d943215674fa00dbd37bdb33b4fda9222579bdfa4233650a77a0",
+    "old_serial_chain_matches": true
+  },
+  {
+    "domain": "Compact7",
+    "path": "src/cleanup_plan/replay/branch_clone/tests.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "6509ab480c69cfe00583d9d640f73726f5184f728b16dcde2d7d35b42fe15496",
+    "required_owner_after_sha256": "053dbd5dee8d05d3ed56db80729de01e2f0e572c0299779bed1cfbf6a0f64303",
+    "old_serial_chain_matches": false
+  },
+  {
+    "domain": "Compact7",
+    "path": "src/cleanup_plan/replay/factored.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "88ed9119b1af09c4875cf3ec8d07a0b0ced6af6b47528eae581647d401348dd1",
+    "required_owner_after_sha256": "88ed9119b1af09c4875cf3ec8d07a0b0ced6af6b47528eae581647d401348dd1",
+    "old_serial_chain_matches": true
+  },
+  {
+    "domain": "Compact7",
+    "path": "src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "01b3e408874930f2aad015d20cf8317fc1507183f92aae740d11985b99d223e1",
+    "required_owner_after_sha256": "01b3e408874930f2aad015d20cf8317fc1507183f92aae740d11985b99d223e1",
+    "old_serial_chain_matches": true
+  },
+  {
+    "domain": "Compact7",
+    "path": "src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "c9c42329ff2e2ee3802de78f0da6484b42a7c58ae6636532024c4e955b743033",
+    "required_owner_after_sha256": "c9c42329ff2e2ee3802de78f0da6484b42a7c58ae6636532024c4e955b743033",
+    "old_serial_chain_matches": true
+  },
+  {
+    "domain": "Compact7",
+    "path": "tests/hir_module_boundaries.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "a9da48544bca29656b1c453998e1c56ccbf96ab34261bde9a58111805d973568",
+    "required_owner_after_sha256": "a9da48544bca29656b1c453998e1c56ccbf96ab34261bde9a58111805d973568",
+    "old_serial_chain_matches": true
+  },
+  {
+    "domain": "Compact7",
+    "path": "tests/workspace/semantic_graph/source_inventory.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "27f8d194a798710c290af1cf47452527f5e53ccd6df670af293d9d15dc03a9cd",
+    "required_owner_after_sha256": "27f8d194a798710c290af1cf47452527f5e53ccd6df670af293d9d15dc03a9cd",
+    "old_serial_chain_matches": true
+  },
+  {
+    "domain": "Receivers12",
+    "path": "src/cleanup_plan/replay.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "b2561460dbc2d943215674fa00dbd37bdb33b4fda9222579bdfa4233650a77a0",
+    "required_owner_after_sha256": "b2561460dbc2d943215674fa00dbd37bdb33b4fda9222579bdfa4233650a77a0",
+    "old_serial_chain_matches": true
+  },
+  {
+    "domain": "Receivers12",
+    "path": "src/cleanup_plan/replay/factored/oracle_hook.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "0126d25150ca4b96f11995293fc9043d23fc8fff2008485e9560abe5c85cb7ae",
+    "required_owner_after_sha256": "0126d25150ca4b96f11995293fc9043d23fc8fff2008485e9560abe5c85cb7ae",
+    "old_serial_chain_matches": true
+  },
+  {
+    "domain": "Receivers12",
+    "path": "tests/hir_module_boundaries.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "a9da48544bca29656b1c453998e1c56ccbf96ab34261bde9a58111805d973568",
+    "required_owner_after_sha256": "a9da48544bca29656b1c453998e1c56ccbf96ab34261bde9a58111805d973568",
+    "old_serial_chain_matches": true
+  },
+  {
+    "domain": "Receivers12",
+    "path": "tests/workspace/semantic_graph/source_inventory.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "27f8d194a798710c290af1cf47452527f5e53ccd6df670af293d9d15dc03a9cd",
+    "required_owner_after_sha256": "27f8d194a798710c290af1cf47452527f5e53ccd6df670af293d9d15dc03a9cd",
+    "old_serial_chain_matches": true
+  },
+  {
+    "domain": "Receivers12",
+    "path": "src/source_verify/declaration.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "61c807e1dc05a4f559830b4fa3d25eb79c73aac11a066aa7e3e775caaa655dec",
+    "required_owner_after_sha256": "61c807e1dc05a4f559830b4fa3d25eb79c73aac11a066aa7e3e775caaa655dec",
+    "old_serial_chain_matches": true
+  },
+  {
+    "domain": "Receivers12",
+    "path": "src/cleanup_plan/replay/branch_clone/tests.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "6509ab480c69cfe00583d9d640f73726f5184f728b16dcde2d7d35b42fe15496",
+    "required_owner_after_sha256": "053dbd5dee8d05d3ed56db80729de01e2f0e572c0299779bed1cfbf6a0f64303",
+    "old_serial_chain_matches": false
+  },
+  {
+    "domain": "Receivers12",
+    "path": "src/cleanup_plan/replay/factored.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "88ed9119b1af09c4875cf3ec8d07a0b0ced6af6b47528eae581647d401348dd1",
+    "required_owner_after_sha256": "88ed9119b1af09c4875cf3ec8d07a0b0ced6af6b47528eae581647d401348dd1",
+    "old_serial_chain_matches": true
+  },
+  {
+    "domain": "Receivers12",
+    "path": "src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "01b3e408874930f2aad015d20cf8317fc1507183f92aae740d11985b99d223e1",
+    "required_owner_after_sha256": "01b3e408874930f2aad015d20cf8317fc1507183f92aae740d11985b99d223e1",
+    "old_serial_chain_matches": true
+  },
+  {
+    "domain": "Receivers12",
+    "path": "src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "c9c42329ff2e2ee3802de78f0da6484b42a7c58ae6636532024c4e955b743033",
+    "required_owner_after_sha256": "c9c42329ff2e2ee3802de78f0da6484b42a7c58ae6636532024c4e955b743033",
+    "old_serial_chain_matches": true
+  },
+  {
+    "domain": "Receivers12",
+    "path": "src/hir.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "897bb10c195fcbc116cffaf86c3501d918770080a64c0112f86d147fadbb0faf",
+    "required_owner_after_sha256": "897bb10c195fcbc116cffaf86c3501d918770080a64c0112f86d147fadbb0faf",
+    "old_serial_chain_matches": true
+  },
+  {
+    "domain": "Receivers12",
+    "path": "src/hir/validation.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "85ae66ee35b346b0b65fb2c7490601216c49ac858aaae3345a03cbe08691447f",
+    "required_owner_after_sha256": "85ae66ee35b346b0b65fb2c7490601216c49ac858aaae3345a03cbe08691447f",
+    "old_serial_chain_matches": true
+  },
+  {
+    "domain": "Receivers12",
+    "path": "src/hir/expr_nodes.rs",
+    "failed_stage": null,
+    "serial_result_sha256": "be3f28e10fc840d3c1397ccff1573a7940bd933931eee4b99a41bf3c63b15c90",
+    "required_owner_after_sha256": "be3f28e10fc840d3c1397ccff1573a7940bd933931eee4b99a41bf3c63b15c90",
+    "old_serial_chain_matches": true
+  }
+]

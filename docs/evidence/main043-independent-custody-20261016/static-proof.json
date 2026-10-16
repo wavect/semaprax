@@ -203,21 +203,21 @@
     {
       "table": 0,
       "path": "tests/hir_module_boundaries.rs",
-      "current_sha256": "975d32ee3ce5380479890a5d1f2129babc1b706cc64006802ff4620ab5c58865",
+      "current_sha256": "4035569ab4338dbf174988b6cda7b7c649857be3262cbc1524ea4af38f3203a9",
       "incoming_sha256": "0ae8adb325fe50d73fbd8a97a3925decfafd2cc0434311a9231eb08a11c74abc",
       "original_sha256": "03fde58554846398c379bbaa6f60cd1368d2573ff9fc715d340074f4c6ea56dc"
     },
     {
       "table": 0,
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_sha256": "447611d7bcbdf6110f77dd13dab9dcb6bfcbd2002446d450c2c6e4b712a551be",
+      "current_sha256": "905fb0a415c55487d695934712f4dfa185c1b097ab1c8dcd6b9413a9c1dad6ff",
       "incoming_sha256": "3cc384e9243b4686748e517e2b1e02bc9ef0ea61dd032a6a026e841e82068f2b",
       "original_sha256": "bb72229bff1d33b7e6f03887a4022003465f077710cd643d75be9afcf4577961"
     },
     {
       "table": 0,
       "path": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
-      "current_sha256": "ec21af9b66a145abb591a0a1b6bd2b52530be0d048f30a271e0d861aa8c68780",
+      "current_sha256": "75781dd5363c729e7e16eed13724e5e36f305c954177a3b831a1aca50ae58b58",
       "incoming_sha256": "2785bc334d50566ec779367de94d90c8629332c696aff5869ea1993cb48f01a3",
       "original_sha256": "7e0364a194df13c8fc374e4dd1ae2464609a8040ea2087429d06843a00f417c7"
     },
@@ -266,7 +266,7 @@
     {
       "table": 1,
       "path": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
-      "current_sha256": "62a874933af343aee027dd2b3b43d9c1cf5d2407497cb32090fd191a22600a60",
+      "current_sha256": "189f78b035713bf6ce581e5e13c93059ac228c3ad685c22bbedda541b2217a51",
       "incoming_sha256": "6e7a09cd9689cee7a778cb92b078bc37e37eb5bfa4dfd930f915ba0979cf216b",
       "original_sha256": "e539844c397f769ad20cdf13324de0dfd598ed053e88ad57bdb18ee766c7a951"
     },
@@ -280,42 +280,42 @@
     {
       "table": 1,
       "path": "tests/hir_module_boundaries.rs",
-      "current_sha256": "975d32ee3ce5380479890a5d1f2129babc1b706cc64006802ff4620ab5c58865",
+      "current_sha256": "4035569ab4338dbf174988b6cda7b7c649857be3262cbc1524ea4af38f3203a9",
       "incoming_sha256": "0ae8adb325fe50d73fbd8a97a3925decfafd2cc0434311a9231eb08a11c74abc",
       "original_sha256": "ef30bafb7e74ece87a8e4ccc2a056906a5775e3689139e538c74db8d8c4d4b0d"
     },
     {
       "table": 1,
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_sha256": "447611d7bcbdf6110f77dd13dab9dcb6bfcbd2002446d450c2c6e4b712a551be",
+      "current_sha256": "905fb0a415c55487d695934712f4dfa185c1b097ab1c8dcd6b9413a9c1dad6ff",
       "incoming_sha256": "3cc384e9243b4686748e517e2b1e02bc9ef0ea61dd032a6a026e841e82068f2b",
       "original_sha256": "4cc35f98927317e03348e7cb2508fec59d99b697def2b35f620fcac0060735a6"
     },
     {
       "table": 1,
       "path": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
-      "current_sha256": "ec21af9b66a145abb591a0a1b6bd2b52530be0d048f30a271e0d861aa8c68780",
+      "current_sha256": "75781dd5363c729e7e16eed13724e5e36f305c954177a3b831a1aca50ae58b58",
       "incoming_sha256": "2785bc334d50566ec779367de94d90c8629332c696aff5869ea1993cb48f01a3",
       "original_sha256": "a349da31a1efabca38017cca4b1b7305a694ff7bd5f923e8eddad84d9e82053d"
     },
     {
       "table": 2,
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_sha256": "447611d7bcbdf6110f77dd13dab9dcb6bfcbd2002446d450c2c6e4b712a551be",
+      "current_sha256": "905fb0a415c55487d695934712f4dfa185c1b097ab1c8dcd6b9413a9c1dad6ff",
       "incoming_sha256": "3cc384e9243b4686748e517e2b1e02bc9ef0ea61dd032a6a026e841e82068f2b",
       "original_sha256": "6fdc5bc7b641042627d06cd4f5274460171dc3cf4a25d1fdeb2203d797b285e2"
     },
     {
       "table": 2,
       "path": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
-      "current_sha256": "ec21af9b66a145abb591a0a1b6bd2b52530be0d048f30a271e0d861aa8c68780",
+      "current_sha256": "75781dd5363c729e7e16eed13724e5e36f305c954177a3b831a1aca50ae58b58",
       "incoming_sha256": "2ea796a9fc719c898ac9fd2e5fa5d5af5efd35fb54fc389b7ca0c6f1a3f2390f",
       "original_sha256": "90219d6889e0881c7c32a1655a161e83f5b533076d35383edd8e0a3d225c29f9"
     },
     {
       "table": 2,
       "path": "src/hir/declaration_index/identity_payer.rs",
-      "current_sha256": "7674bd3a029ceace73b16bfd12aeb9ff5d90e887d81cd4a9e6f15f5181f287e0",
+      "current_sha256": "8f91aa79490821a6abaf756c55bf4514ccf27b97b7523e78e7efcdb6efbc38f7",
       "incoming_sha256": "7674bd3a029ceace73b16bfd12aeb9ff5d90e887d81cd4a9e6f15f5181f287e0",
       "original_sha256": "14c6cfc312bcf6e8e2da800a98c02cb3df384d1378584dc8b5b77864e6ccd9a0"
     },
@@ -329,7 +329,7 @@
     {
       "table": 2,
       "path": "src/hir/identity_resolution/nominal_tests.rs",
-      "current_sha256": "215c7aff90fdf0d10601a3238a1a394510489d9c127dc716db53528bee64a06a",
+      "current_sha256": "07bbdb5cd82c3ece59732acb004783f1e097462b85bd88f0ce15e7f1da1e1560",
       "incoming_sha256": "215c7aff90fdf0d10601a3238a1a394510489d9c127dc716db53528bee64a06a",
       "original_sha256": "041ba82c66c03d3e0e651f2d7474f32fb4559a3b99742f847385601a4129066c"
     },
@@ -357,14 +357,14 @@
     {
       "table": 2,
       "path": "tests/hir_module_boundaries.rs",
-      "current_sha256": "975d32ee3ce5380479890a5d1f2129babc1b706cc64006802ff4620ab5c58865",
+      "current_sha256": "4035569ab4338dbf174988b6cda7b7c649857be3262cbc1524ea4af38f3203a9",
       "incoming_sha256": "e0f96011e9747cfa5f36253933f6e6ea3c4647fe65212f4b16a5846e09706643",
       "original_sha256": "a75fe0f81394f2579e3fe886761e0057bd68120892739fd5fe2a196028e06a8c"
     },
     {
       "table": 2,
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "current_sha256": "cc97c47b89f1750c0c595184124fdc824d19e96c33a53d4c67f4481fc1255e64",
+      "current_sha256": "4fcef1a7ffb231ff1b42995db0b4b85326c5fc44f91880e09a9a85c4effcc2c7",
       "incoming_sha256": "1cd423cdab9473ed591145366c339f9519892e06593d287c28b799f7e359c660",
       "original_sha256": "952c39e4f1a57a8a705acc02c06753ecf6ea67c52f2b2841699e1f4992300ccc"
     },
@@ -399,7 +399,7 @@
     {
       "table": 2,
       "path": "src/hir/identity_resolution/nominal_tests/legacy.rs",
-      "current_sha256": "fd63f0722fe05cbf45bd3881c7cfdc80c53b1870201aa837af1381cc87075a6c",
+      "current_sha256": "1e72f212c36831ef53675f0eb8f0b81949efa13a9efd4f24f71a1d29d86f77d3",
       "incoming_sha256": "d0989a72e7e7dc8132178cb9f86c783e25e8a1af90dca9c6791616a5b46a1fb7",
       "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
@@ -420,7 +420,7 @@
     {
       "table": 2,
       "path": "src/hir/identity_resolution/nominal_original.rs",
-      "current_sha256": "5900fd7a0af2c484c46e2f7fea1c0ff2e368f043cb7d800d59120d7897558534",
+      "current_sha256": "bad6ec02c52765fce45b4ec5325e0fb4ea450e5a8993c44a0b0bd3a4ec7bdbcb",
       "incoming_sha256": "5900fd7a0af2c484c46e2f7fea1c0ff2e368f043cb7d800d59120d7897558534",
       "original_sha256": "5900fd7a0af2c484c46e2f7fea1c0ff2e368f043cb7d800d59120d7897558534"
     },
@@ -434,14 +434,14 @@
     {
       "table": 3,
       "path": "tests/hir_module_boundaries.rs",
-      "current_sha256": "975d32ee3ce5380479890a5d1f2129babc1b706cc64006802ff4620ab5c58865",
+      "current_sha256": "4035569ab4338dbf174988b6cda7b7c649857be3262cbc1524ea4af38f3203a9",
       "incoming_sha256": "0ae8adb325fe50d73fbd8a97a3925decfafd2cc0434311a9231eb08a11c74abc",
       "original_sha256": "1efc02b5a6d87c7bf56e17bcd40b3bd00adb70be3e8a3c50b0a844f5ba7dd903"
     },
     {
       "table": 3,
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_sha256": "447611d7bcbdf6110f77dd13dab9dcb6bfcbd2002446d450c2c6e4b712a551be",
+      "current_sha256": "905fb0a415c55487d695934712f4dfa185c1b097ab1c8dcd6b9413a9c1dad6ff",
       "incoming_sha256": "3cc384e9243b4686748e517e2b1e02bc9ef0ea61dd032a6a026e841e82068f2b",
       "original_sha256": "49c78bc2b79880849076544e19874e744374f238ee0c0f49e38a7d5c3bb47316"
     },
@@ -455,14 +455,14 @@
     {
       "table": 4,
       "path": "tests/hir_module_boundaries.rs",
-      "current_sha256": "975d32ee3ce5380479890a5d1f2129babc1b706cc64006802ff4620ab5c58865",
+      "current_sha256": "4035569ab4338dbf174988b6cda7b7c649857be3262cbc1524ea4af38f3203a9",
       "incoming_sha256": "e0f96011e9747cfa5f36253933f6e6ea3c4647fe65212f4b16a5846e09706643",
       "original_sha256": "57db1e409226dc2ddf5c9519071ad69822e646d6f71d11cfd16e88d51ad8c4fc"
     },
     {
       "table": 4,
       "path": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
-      "current_sha256": "ec21af9b66a145abb591a0a1b6bd2b52530be0d048f30a271e0d861aa8c68780",
+      "current_sha256": "75781dd5363c729e7e16eed13724e5e36f305c954177a3b831a1aca50ae58b58",
       "incoming_sha256": "2ea796a9fc719c898ac9fd2e5fa5d5af5efd35fb54fc389b7ca0c6f1a3f2390f",
       "original_sha256": "ead6bb549f1bd85d904eecbf182f14103639489320ec8ad09f0d29232f2fe90b"
     },
@@ -511,42 +511,42 @@
     {
       "table": 5,
       "path": "tests/hir_module_boundaries.rs",
-      "current_sha256": "975d32ee3ce5380479890a5d1f2129babc1b706cc64006802ff4620ab5c58865",
+      "current_sha256": "4035569ab4338dbf174988b6cda7b7c649857be3262cbc1524ea4af38f3203a9",
       "incoming_sha256": "0ae8adb325fe50d73fbd8a97a3925decfafd2cc0434311a9231eb08a11c74abc",
       "original_sha256": "4c6763cc6a218441e08de18be3eeb8f54e0612e23879e7c7085462f79521d86e"
     },
     {
       "table": 5,
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_sha256": "447611d7bcbdf6110f77dd13dab9dcb6bfcbd2002446d450c2c6e4b712a551be",
+      "current_sha256": "905fb0a415c55487d695934712f4dfa185c1b097ab1c8dcd6b9413a9c1dad6ff",
       "incoming_sha256": "3cc384e9243b4686748e517e2b1e02bc9ef0ea61dd032a6a026e841e82068f2b",
       "original_sha256": "ffca787b9ed74a134e02ed5af5dcfe62a137815b59360a130d4c2c3149d6f807"
     },
     {
       "table": 5,
       "path": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
-      "current_sha256": "ec21af9b66a145abb591a0a1b6bd2b52530be0d048f30a271e0d861aa8c68780",
+      "current_sha256": "75781dd5363c729e7e16eed13724e5e36f305c954177a3b831a1aca50ae58b58",
       "incoming_sha256": "2785bc334d50566ec779367de94d90c8629332c696aff5869ea1993cb48f01a3",
       "original_sha256": "3aba68eb707236e99d2d93679c19c9e0a9b4849a8f7e94c5bf6ef60e7fc6548f"
     },
     {
       "table": 6,
       "path": "tests/hir_module_boundaries.rs",
-      "current_sha256": "975d32ee3ce5380479890a5d1f2129babc1b706cc64006802ff4620ab5c58865",
+      "current_sha256": "4035569ab4338dbf174988b6cda7b7c649857be3262cbc1524ea4af38f3203a9",
       "incoming_sha256": "0ae8adb325fe50d73fbd8a97a3925decfafd2cc0434311a9231eb08a11c74abc",
       "original_sha256": "5be1edee738ee12b426939fbfbc09635229d4c7a3da4f45d3c1074254e0eb0e2"
     },
     {
       "table": 6,
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_sha256": "447611d7bcbdf6110f77dd13dab9dcb6bfcbd2002446d450c2c6e4b712a551be",
+      "current_sha256": "905fb0a415c55487d695934712f4dfa185c1b097ab1c8dcd6b9413a9c1dad6ff",
       "incoming_sha256": "3cc384e9243b4686748e517e2b1e02bc9ef0ea61dd032a6a026e841e82068f2b",
       "original_sha256": "844628e0b1a3f3dafd563a7a9ef3396f513e664dc63e7d70237912736d6558ea"
     },
     {
       "table": 6,
       "path": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
-      "current_sha256": "ec21af9b66a145abb591a0a1b6bd2b52530be0d048f30a271e0d861aa8c68780",
+      "current_sha256": "75781dd5363c729e7e16eed13724e5e36f305c954177a3b831a1aca50ae58b58",
       "incoming_sha256": "2785bc334d50566ec779367de94d90c8629332c696aff5869ea1993cb48f01a3",
       "original_sha256": "52fd9fb9d542ec3916b7427610885d934f7a9e0e9987e515feea226a0bbabfdb"
     },
@@ -560,14 +560,14 @@
     {
       "table": 7,
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_sha256": "447611d7bcbdf6110f77dd13dab9dcb6bfcbd2002446d450c2c6e4b712a551be",
+      "current_sha256": "905fb0a415c55487d695934712f4dfa185c1b097ab1c8dcd6b9413a9c1dad6ff",
       "incoming_sha256": "3cc384e9243b4686748e517e2b1e02bc9ef0ea61dd032a6a026e841e82068f2b",
       "original_sha256": "bce662240d9e1666a3485a673419fe54a2e440880f74f9f9c8468f3c429f40fe"
     },
     {
       "table": 7,
       "path": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
-      "current_sha256": "ec21af9b66a145abb591a0a1b6bd2b52530be0d048f30a271e0d861aa8c68780",
+      "current_sha256": "75781dd5363c729e7e16eed13724e5e36f305c954177a3b831a1aca50ae58b58",
       "incoming_sha256": "2ea796a9fc719c898ac9fd2e5fa5d5af5efd35fb54fc389b7ca0c6f1a3f2390f",
       "original_sha256": "e0145f1e45f4645db6e97295b98ebe1bfbcc4beb6b53558a0a975f0225e44be2"
     },
@@ -637,14 +637,14 @@
     {
       "table": 7,
       "path": "tests/hir_module_boundaries.rs",
-      "current_sha256": "975d32ee3ce5380479890a5d1f2129babc1b706cc64006802ff4620ab5c58865",
+      "current_sha256": "4035569ab4338dbf174988b6cda7b7c649857be3262cbc1524ea4af38f3203a9",
       "incoming_sha256": "e0f96011e9747cfa5f36253933f6e6ea3c4647fe65212f4b16a5846e09706643",
       "original_sha256": "23b693fa9a9149a78d1c68151bad8cf606ac5f524e444d4f3b1a69879d040187"
     },
     {
       "table": 7,
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "current_sha256": "cc97c47b89f1750c0c595184124fdc824d19e96c33a53d4c67f4481fc1255e64",
+      "current_sha256": "4fcef1a7ffb231ff1b42995db0b4b85326c5fc44f91880e09a9a85c4effcc2c7",
       "incoming_sha256": "1cd423cdab9473ed591145366c339f9519892e06593d287c28b799f7e359c660",
       "original_sha256": "0014f97da6597fb226e335159837994d6fd89b6f3e2852f4dc6180c2afefc835"
     },
@@ -693,21 +693,21 @@
     {
       "table": 8,
       "path": "tests/hir_module_boundaries.rs",
-      "current_sha256": "975d32ee3ce5380479890a5d1f2129babc1b706cc64006802ff4620ab5c58865",
+      "current_sha256": "4035569ab4338dbf174988b6cda7b7c649857be3262cbc1524ea4af38f3203a9",
       "incoming_sha256": "0ae8adb325fe50d73fbd8a97a3925decfafd2cc0434311a9231eb08a11c74abc",
       "original_sha256": "83dc4425c79ca5720aa4d98d61561bdae8690701a0d7fb8daa0fbdfd0076f259"
     },
     {
       "table": 8,
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_sha256": "447611d7bcbdf6110f77dd13dab9dcb6bfcbd2002446d450c2c6e4b712a551be",
+      "current_sha256": "905fb0a415c55487d695934712f4dfa185c1b097ab1c8dcd6b9413a9c1dad6ff",
       "incoming_sha256": "3cc384e9243b4686748e517e2b1e02bc9ef0ea61dd032a6a026e841e82068f2b",
       "original_sha256": "485f5b066ebe1e2edb3a42c9bcdfeb6d6f310d2691736eaf63777a02ac803676"
     },
     {
       "table": 8,
       "path": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
-      "current_sha256": "ec21af9b66a145abb591a0a1b6bd2b52530be0d048f30a271e0d861aa8c68780",
+      "current_sha256": "75781dd5363c729e7e16eed13724e5e36f305c954177a3b831a1aca50ae58b58",
       "incoming_sha256": "2785bc334d50566ec779367de94d90c8629332c696aff5869ea1993cb48f01a3",
       "original_sha256": "44edd8afa0f32ce7d479b54e369ed7ae1220eb0bfdd057edb915808090b29c18"
     },

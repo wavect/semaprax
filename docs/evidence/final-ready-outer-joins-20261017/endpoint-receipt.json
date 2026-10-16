@@ -1,8 +1,8 @@
 {
   "status": "PASS_NEW_UNQUALIFIED_SOURCE_ENDPOINTS_ONLY",
-  "source_head": "57f8758749efe32ebadf99149223dd8a8abba0f2",
+  "source_head": "8dfd912f73c9bf594a86cd2bdf45dbdcbc340de6",
   "source_repo": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
-  "output_repo": "/Volumes/Semaprax/worktrees/main7f8-source-fronts-20261017/AI-Lang",
+  "output_repo": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
   "projected_index_sha256": "2deb3dad2f22dd89f62610637943219100599b214f0ddae33d9737f4c8e14091",
   "raw_inputs": {
     "src/workspace_graph/expected_projection.rs": "974468e7035d1a7baa48b13078ce7ec7b0711c2c7610d64db7feea561b192f0c",
@@ -51,7 +51,7 @@
     "src/workspace_graph/expected_projection/string_slots.rs": "570d9033ca799f4564b0b2f9e90abd82f063747f45cb8f20a3f23a082db09a5f",
     "src/workspace_graph/identity_resolution.rs": "2ab876f8146b3eb19a950a4003bb7c3489a9f9963d7a6496d2019dc9246968dc",
     "src/cleanup_plan/replay/factored/canonical_shared.rs": "b71323aed5dda3f03ca6215b17c2e192a5782dabbeccca40ce5bf280f168f482",
-    "tests/workspace/semantic_graph/source_inventory.rs": "fed18fd5e9dfa7fa9ca21d1121fb87215a307431ef4e5e660bb8c4683aa70c11"
+    "tests/workspace/semantic_graph/source_inventory.rs": "4fcef1a7ffb231ff1b42995db0b4b85326c5fc44f91880e09a9a85c4effcc2c7"
   },
   "endpoints": [
     {

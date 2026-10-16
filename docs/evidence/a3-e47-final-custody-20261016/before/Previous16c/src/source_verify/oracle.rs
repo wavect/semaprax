@@ -1,0 +1,1455 @@
+//! Test-only recursive verification oracle.
+//!
+//! Mirrors the iterative verifier so tests can cross-check the frame machine
+//! against a direct recursive reading of the same rules.
+
+use crate::ast::program_source::ProgramSource;
+mod intrinsic_calls;
+
+use self::calls::{oracle_call, oracle_method_call};
+use self::matching::oracle_match;
+use self::while_oracle::{
+    check_while_statement, reject_finite_iterator_body_oracle, reject_while_disallowed_oracle,
+};
+use super::binding::{Availability, Binding, CheckedValue};
+use super::declared_type::{
+    check_declared_type, function_value_signature, ordinary_option_argument,
+    ordinary_result_arguments,
+};
+use super::diagnostics::{error, reject_native_unit_value, source_identifier};
+use super::hints;
+use super::loans::{
+    activate_local_loan, join_conditional, local_borrow_origin, mark_value_sources_moved,
+    merge_moved, release_dead_local_loans,
+};
+use super::place::{
+    check_source_place_availability, join_definitely_partial, join_moved_places,
+    overlapping_place_state, source_place,
+};
+use super::type_table::{effective_record_fields, TypeTable};
+use crate::ast::{
+    BinaryOp, Expr, ExprKind, Function, ParamMode, Statement, Type, TypeDeclarationKind, UnaryOp,
+};
+#[cfg(test)]
+use crate::diagnostic::Diagnostic;
+use std::collections::{BTreeSet, HashMap, HashSet};
+
+mod calls;
+mod for_traversal;
+mod lexical_exit;
+mod matching;
+mod stdin_stream;
+pub(super) mod while_oracle;
+
+#[cfg(test)]
+#[allow(clippy::too_many_arguments)]
+pub(super) fn check_expr(
+    program: &dyn ProgramSource,
+    current: &Function,
+    expr: &Expr,
+    variables: &mut HashMap<String, Binding>,
+    functions: &HashMap<&str, &Function>,
+    types: &TypeTable<'_>,
+    result_type: Option<&Type>,
+    allow_moves: bool,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Option<CheckedValue> {
+    match &expr.kind {
+        ExprKind::VecConstructor { .. } => match crate::ast::vec_constructor::inspect(expr) {
+            Ok(expansion) if crate::ast::expression_statement::projection_roots(
+                current.requires.iter().chain(std::iter::once(&current.body)).chain(&current.ensures), current.params.iter().map(|param| param.name.as_str()).chain(current.type_parameters.iter().map(|param| param.name.as_str())),
+                crate::bounded_output::reserve_active_required) => check_expr(program, current, expansion.value, variables,
+                functions, types, result_type, allow_moves, diagnostics),
+            Ok(_) => { diagnostics.push(error(program, "SPX-T318", "Vec constructor generated owner names are not hygienic", expr.span)); None }
+            Err(message) => { diagnostics.push(error(program, "SPX-T318", message, expr.span)); None }
+        },
+        ExprKind::LexicalExit{..}=>lexical_exit::check(program,current,expr,variables,functions,types,result_type,allow_moves,diagnostics),
+        ExprKind::Closure {
+            owning: true,
+            return_type,
+            body,
+            ..
+        } => super::owning_closure::check_construction(
+            program,
+            current,
+            expr,
+            return_type,
+            body,
+            allow_moves,
+            variables,
+            diagnostics,
+        ),
+        ExprKind::Closure { .. } => super::closure::oracle(program, current, expr, variables, functions, types, diagnostics),
+        ExprKind::Int(_) => Some(CheckedValue::value(Type::I64)),
+        ExprKind::Int32(_) => Some(CheckedValue::value(Type::I32)),
+        ExprKind::Char(_) => Some(CheckedValue::value(Type::Char)),
+        ExprKind::Uint8(_) => Some(CheckedValue::value(Type::U8)),
+        ExprKind::Usize(_) => Some(CheckedValue::value(Type::Usize)),
+        ExprKind::ArrayU8(values) => Some(CheckedValue::value(Type::ArrayU8(
+            u32::try_from(values.len()).expect("parsed array length fits u32"),
+        ))),
+        ExprKind::RepeatArrayU8 { count, .. } => {
+            Some(CheckedValue::value(Type::ArrayU8(*count)))
+        }
+        ExprKind::Float32(_) => Some(CheckedValue::value(Type::F32)),
+        ExprKind::Float64(_) => Some(CheckedValue::value(Type::F64)),
+        ExprKind::Bool(_) => Some(CheckedValue::value(Type::Bool)),
+        ExprKind::String(_) => Some(CheckedValue::value(Type::String)),
+        ExprKind::BorrowedUtf8Literal(text) => match super::static_text::checked(program, expr.span, text) { Ok(value) => Some(value), Err(error) => { diagnostics.push(error); None } },
+        // This walker only traverses generic-function and contract
+        // expressions; `super` is meaningful only inside a class-method
+        // override, whose body is resolved by the HIR layer instead.
+        ExprKind::SuperMethod { method_span, .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T231",
+                "`super` is only allowed inside a class-method override",
+                *method_span,
+            ));
+            None
+        }
+        ExprKind::Var(name) if name == "result" => result_type
+            .map(|ty| CheckedValue::returned(ty.clone(), types.needs_drop(ty)))
+            .or_else(|| {
+                diagnostics.push(
+                    error(
+                        program,
+                        "SPX-T201",
+                        "`result` is only available in postconditions",
+                        expr.span,
+                    )
+                    .with_help(hints::RESULT_NAME_HELP),
+                );
+                None
+            }),
+        ExprKind::Var(name) => variables
+            .get(name.as_str())
+            .map(|binding| {
+                if binding.traversal_row.is_some() { diagnostics.push(error(program, "SPX-T284", "record traversal row cannot escape or materialize aggregate storage; select a field", expr.span)); }
+                super::owning_closure::reject_escaping_read(
+                    program,
+                    name,
+                    &binding.ty,
+                    expr.span,
+                    diagnostics,
+                );
+                match binding.availability {
+                    Availability::Moved => diagnostics.push(
+                        error(
+                            program,
+                            "SPX-O101",
+                            format!("use of resource `{name}` after ownership was moved"),
+                            expr.span,
+                        )
+                        .with_help(hints::moved_resource_help(&binding.ty, name)),
+                    ),
+                    Availability::MaybeMoved => diagnostics.push(
+                        error(
+                            program,
+                            "SPX-O107",
+                            format!(
+                                "resource `{name}` may have been moved on another control-flow path"
+                            ),
+                            expr.span,
+                        )
+                        .with_help(hints::moved_resource_help(&binding.ty, name)),
+                    ),
+                    Availability::Available => match overlapping_place_state(binding, &[]) {
+                        Availability::Moved => diagnostics.push(
+                            error(
+                                program,
+                                "SPX-O109",
+                                format!("use of partially moved place `{name}`"),
+                                expr.span,
+                            )
+                            .with_help(
+                                "use an available sibling field or avoid moving this place earlier",
+                            ),
+                        ),
+                        Availability::MaybeMoved => diagnostics.push(
+                            error(
+                                program,
+                                "SPX-O110",
+                                format!(
+                                    "place `{name}` may have been moved on another control-flow path"
+                                ),
+                                expr.span,
+                            )
+                            .with_help("move the field on every path or keep it borrowed"),
+                        ),
+                        Availability::Available => {}
+                    },
+                }
+                if binding.native_unit_discard {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-B107",
+                        "Native Rust Interop declaration set is unsupported: scalar value signature required",
+                        expr.span,
+                    ));
+                }
+                CheckedValue {
+                    ty: binding.ty.clone(),
+                    mode: binding.mode,
+                    native_unit: binding.native_unit_discard,
+                }
+            })
+            .or_else(|| {
+                functions
+                    .get(name.as_str())
+                    .and_then(|function| function_value_signature(function))
+                    .map(CheckedValue::value)
+            })
+            .or_else(|| {
+                diagnostics.push(hints::with_optional_help(
+                    error(
+                        program,
+                        "SPX-T202",
+                        format!("unknown value `{name}` in `{}`", current.name),
+                        expr.span,
+                    ),
+                    hints::variant_shorthand_help(name).map(str::to_owned),
+                ));
+                None
+            }),
+        ExprKind::Call { name, type_arguments, args } => oracle_call(
+            name,
+            type_arguments,
+            args,
+            program,
+            current,
+            expr,
+            variables,
+            functions,
+            types,
+            result_type,
+            allow_moves,
+            diagnostics,
+        ),
+        ExprKind::MethodCall { receiver, method, type_arguments, args, .. } => oracle_method_call(
+            receiver,
+            method,
+            type_arguments,
+            args,
+            program,
+            current,
+            expr,
+            variables,
+            functions,
+            types,
+            result_type,
+            allow_moves,
+            diagnostics,
+        ),
+        ExprKind::Unary { op, value } => {
+            // Peel maximal unary chains iteratively. The language admits an
+            // exact semantic depth of 512, which must not consume one verifier
+            // call frame per node on an ordinary caller stack.
+            let mut unary = vec![(*op, value.as_ref(), expr.span)];
+            let mut leaf = value.as_ref();
+            while let ExprKind::Unary { op, value } = &leaf.kind {
+                unary.push((*op, value.as_ref(), leaf.span));
+                leaf = value;
+            }
+            let mut actual = check_expr(
+                program,
+                current,
+                leaf,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            )?;
+            for (op, operand, span) in unary.into_iter().rev() {
+                let numeric = matches!(op, UnaryOp::Neg)
+                    .then(|| actual.ty.clone())
+                    .filter(|ty| matches!(ty, Type::I64 | Type::I32 | Type::F32 | Type::F64));
+                let expected = match (&op, &numeric) {
+                    (UnaryOp::Neg, Some(ty)) => ty.clone(),
+                    (UnaryOp::Neg, None) => Type::I64,
+                    (UnaryOp::Not, _) => Type::Bool,
+                };
+                if !actual.native_unit && actual.ty != expected {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T206",
+                        format!("unary operator expects {expected}, received {}", actual.ty),
+                        span,
+                    ));
+                }
+                reject_native_unit_value(program, operand, &actual, diagnostics);
+                actual = CheckedValue::value(expected);
+            }
+            Some(actual)
+        }
+        ExprKind::Binary { op, left, right } => {
+            let left_ty = check_expr(
+                program,
+                current,
+                left,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            );
+            let right_ty = if matches!(op, BinaryOp::And | BinaryOp::Or) {
+                let names = variables.keys().cloned().collect::<Vec<_>>();
+                let mut right_variables = variables.clone();
+                let value = check_expr(
+                    program,
+                    current,
+                    right,
+                    &mut right_variables,
+                    functions,
+                    types,
+                    result_type,
+                    allow_moves,
+                    diagnostics,
+                );
+                join_conditional(variables, &right_variables, &names);
+                value
+            } else {
+                check_expr(
+                    program,
+                    current,
+                    right,
+                    variables,
+                    functions,
+                    types,
+                    result_type,
+                    allow_moves,
+                    diagnostics,
+                )
+            };
+            if let Some(value) = &left_ty {
+                reject_native_unit_value(program, left, value, diagnostics);
+            }
+            if let Some(value) = &right_ty {
+                reject_native_unit_value(program, right, value, diagnostics);
+            }
+            let native_unit_operand = left_ty.as_ref().is_some_and(|value| value.native_unit)
+                || right_ty.as_ref().is_some_and(|value| value.native_unit);
+            let left_ordered = left_ty
+                .as_ref()
+                .map(|value| value.ty.clone())
+                .filter(|ty| {
+                    matches!(
+                        ty,
+                        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::Usize | Type::F32 | Type::F64 | Type::String
+                    )
+                });
+            let left_narrow = left_ty
+                .as_ref()
+                .map(|value| value.ty.clone())
+                .filter(|ty| matches!(ty, Type::U8));
+            let left_usize = left_ty
+                .as_ref()
+                .map(|value| value.ty.clone())
+                .filter(|ty| matches!(ty, Type::Usize));
+            let left_numeric = left_ty
+                .as_ref()
+                .map(|value| value.ty.clone())
+                .filter(|ty| matches!(ty, Type::F32 | Type::F64));
+            let left_integer = left_ty
+                .as_ref()
+                .map(|value| value.ty.clone())
+                .filter(|ty| matches!(ty, Type::I32));
+            if !native_unit_operand
+                && matches!(op, BinaryOp::Rem)
+                && left_numeric.is_some()
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T208",
+                    format!("operator `{}` expects i64 operands", op.text()),
+                    expr.span,
+                ));
+            }
+            let string_operands = left_ty
+                .as_ref()
+                .is_some_and(|value: &CheckedValue| value.ty == Type::String)
+                || right_ty
+                    .as_ref()
+                    .is_some_and(|value: &CheckedValue| value.ty == Type::String);
+            if !native_unit_operand
+                && !matches!(op, BinaryOp::Eq | BinaryOp::Ne | BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge)
+                && string_operands
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T250",
+                    format!("operator `{}` does not support string operands", op.text()),
+                    expr.span,
+                ).with_help(crate::source_verify::hints::STRING_OPERATOR_HELP));
+            }
+            let (expected, output) = match op {
+                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => {
+                    let expected = left_numeric
+                        .clone()
+                        .or(left_integer)
+                        .or(left_narrow)
+                        .or(left_usize)
+                        .unwrap_or(Type::I64);
+                    (expected.clone(), expected)
+                }
+                BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => {
+                    let expected = left_ordered.unwrap_or(Type::I64);
+                    (expected, Type::Bool)
+                }
+                BinaryOp::And | BinaryOp::Or => (Type::Bool, Type::Bool),
+                BinaryOp::Eq | BinaryOp::Ne => {
+                    if let Some(value) = &left_ty {
+                        super::diagnostics::reject_aggregate_equality(
+                            program,
+                            types,
+                            expr,
+                            value,
+                            diagnostics,
+                        );
+                    }
+                    if !native_unit_operand
+                        && left_ty.is_some()
+                        && right_ty.is_some()
+                        && left_ty.as_ref().map(|value| &value.ty)
+                            != right_ty.as_ref().map(|value| &value.ty)
+                    {
+                        diagnostics.push(hints::with_optional_help(error(
+                            program,
+                            "SPX-T207",
+                            "equality operands must have the same type",
+                            expr.span,
+                        ), hints::equality_types_help(left_ty.as_ref().map(|value| &value.ty), right_ty.as_ref().map(|value| &value.ty), left, right)));
+                    }
+                    return Some(CheckedValue::value(Type::Bool));
+                }
+            };
+            if !native_unit_operand
+                && (!string_operands || matches!(op, BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge))
+                && (left_ty.as_ref().is_some_and(|value| value.ty != expected)
+                    || right_ty.as_ref().is_some_and(|value| value.ty != expected))
+            {
+                diagnostics.push(hints::with_optional_help(
+                    error(
+                        program,
+                        "SPX-T208",
+                        format!("operator `{}` expects {expected} operands", op.text()),
+                        expr.span,
+                    ),
+                    hints::literal_suffix_help(&expected, left, right),
+                ));
+            }
+            Some(CheckedValue::value(output))
+        }
+        ExprKind::ConstructRecord {
+            type_name,
+            type_arguments,
+            fields,
+            ..
+        } => {
+            if matches!(type_name.as_str(),"Map"|"Set") {diagnostics.push(error(program,"SPX-T274","collections can only be created by map_new/set_new",expr.span));return None;}
+            if type_name=="Iter" {diagnostics.push(error(program,"SPX-T290","Iter carriers can only be created by vec_into_iter",expr.span));return None;}
+            let declaration = types.declaration(type_name);
+            let instance = Type::Named {
+                name: type_name.clone(),
+                arguments: type_arguments.clone(),
+            };
+            check_declared_type(
+                program,
+                &instance,
+                expr.span,
+                types,
+                &HashSet::new(),
+                diagnostics,
+            );
+            let declared_fields = declaration.and_then(|declaration| match &declaration.kind {
+                TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => Some(fields.as_slice()),
+                TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Variant { .. } => None,
+            });
+            if declared_fields.is_none() {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T215",
+                    format!("`{type_name}` is not a declared record type"),
+                    expr.span,
+                ));
+            }
+
+            let mut supplied = HashSet::new();
+            for field in fields {
+                let declared = declared_fields.and_then(|declared| {
+                    declared
+                        .iter()
+                        .find(|candidate| candidate.name == field.name)
+                });
+                if !supplied.insert(field.name.as_str()) || declared.is_none() {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T212",
+                        format!(
+                            "unknown or duplicate field `{}` in `{type_name}` construction",
+                            field.name
+                        ),
+                        field.span,
+                    ));
+                }
+                let actual = check_expr(
+                    program,
+                    current,
+                    &field.value,
+                    variables,
+                    functions,
+                    types,
+                    result_type,
+                    allow_moves,
+                    diagnostics,
+                );
+                if let (Some(declared), Some(actual)) = (declared, actual) {
+                    reject_native_unit_value(program, &field.value, &actual, diagnostics);
+                    let expected = declaration
+                        .and_then(|declaration| {
+                            TypeTable::substitute_variant_type(
+                                declaration,
+                                type_arguments,
+                                &declared.ty,
+                            )
+                        })
+                        .unwrap_or_else(|| declared.ty.clone());
+                    if actual.ty != expected {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T215",
+                            format!(
+                                "field `{}.{}` expects {}, received {}",
+                                type_name, field.name, expected, actual.ty
+                            ),
+                            field.value.span,
+                        ));
+                    }
+                    if types.needs_drop(&expected) && actual.mode == ParamMode::Own {
+                        if allow_moves {
+                            mark_value_sources_moved(
+                                program,
+                                &field.value,
+                                variables,
+                                types,
+                                diagnostics,
+                            );
+                        } else {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-O105",
+                                "contract expression cannot transfer an owned record field",
+                                field.value.span,
+                            ));
+                        }
+                    } else if types.needs_drop(&expected)
+                        && matches!(actual.mode, ParamMode::Borrow | ParamMode::Shared)
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-O108",
+                            "cannot move an owned field through a borrowed or shared record",
+                            field.value.span,
+                        ));
+                    }
+                }
+            }
+            if let Some(declared_fields) = declared_fields {
+                for field in declared_fields {
+                    if !supplied.contains(field.name.as_str()) {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T213",
+                            format!(
+                                "record `{type_name}` construction is missing field `{}`",
+                                field.name
+                            ),
+                            expr.span,
+                        ));
+                    }
+                }
+            }
+
+            declared_fields.map(|_| {
+                CheckedValue::returned(instance.clone(), types.needs_drop(&instance))
+            })
+        }
+        ExprKind::ConstructVariant {
+            type_name,
+            type_arguments,
+            case_name,
+            fields,
+            ..
+        } => {
+            let declaration = types.declaration(type_name);
+            let instance = Type::Named {
+                name: type_name.clone(),
+                arguments: type_arguments.clone(),
+            };
+            check_declared_type(
+                program,
+                &instance,
+                expr.span,
+                types,
+                &HashSet::new(),
+                diagnostics,
+            );
+            let cases = declaration.and_then(|declaration| match &declaration.kind {
+                TypeDeclarationKind::Variant { cases } => Some(cases.as_slice()),
+                TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } => None,
+            });
+            let case = cases.and_then(|cases| cases.iter().find(|case| case.name == *case_name));
+            if cases.is_none() || case.is_none() {
+                let diagnostic = error(
+                    program,
+                    "SPX-T215",
+                    format!("`{type_name}::{case_name}` is not a declared variant constructor"),
+                    expr.span,
+                );
+                diagnostics.push(match cases.and_then(|cases| {
+                    hints::nearest_variant_case_name(case_name, cases)
+                }) {
+                    Some(nearest) => diagnostic.with_help(format!(
+                        "did you mean `{type_name}::{nearest} {{ ... }}`?"
+                    )),
+                    None => diagnostic,
+                });
+            }
+            let mut supplied = HashSet::new();
+            for field in fields {
+                let declared = case.and_then(|case| {
+                    case.fields
+                        .iter()
+                        .find(|candidate| candidate.name == field.name)
+                });
+                if !supplied.insert(field.name.as_str()) || (case.is_some() && declared.is_none()) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T212",
+                        format!(
+                            "unknown or duplicate payload field `{}` in `{type_name}::{case_name}` construction",
+                            field.name
+                        ),
+                        field.span,
+                    ));
+                }
+                let actual = check_expr(
+                    program,
+                    current,
+                    &field.value,
+                    variables,
+                    functions,
+                    types,
+                    result_type,
+                    allow_moves,
+                    diagnostics,
+                );
+                if let (Some(declaration), Some(declared), Some(actual)) =
+                    (declaration, declared, actual)
+                {
+                    reject_native_unit_value(program, &field.value, &actual, diagnostics);
+                    let expected = TypeTable::substitute_variant_type(
+                        declaration,
+                        type_arguments,
+                        &declared.ty,
+                    )
+                        .unwrap_or_else(|| declared.ty.clone());
+                    if actual.ty != expected {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T215",
+                            format!(
+                                "payload `{}::{}.{}` expects {}, received {}",
+                                type_name, case_name, field.name, expected, actual.ty
+                            ),
+                            field.value.span,
+                        ));
+                    }
+                    if types.needs_drop(&expected) && actual.mode == ParamMode::Own {
+                        if allow_moves {
+                            mark_value_sources_moved(
+                                program,
+                                &field.value,
+                                variables,
+                                types,
+                                diagnostics,
+                            );
+                        } else {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-O105",
+                                "contract expression cannot transfer an owned variant payload",
+                                field.value.span,
+                            ));
+                        }
+                    } else if types.needs_drop(&expected)
+                        && matches!(actual.mode, ParamMode::Borrow | ParamMode::Shared)
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-O108",
+                            "cannot move an owned variant payload through a borrowed or shared value",
+                            field.value.span,
+                        ));
+                    }
+                }
+            }
+            if let Some(case) = case {
+                for field in &case.fields {
+                    if !supplied.contains(field.name.as_str()) {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T213",
+                            format!(
+                                "variant construction `{type_name}::{case_name}` is missing payload field `{}`",
+                                field.name
+                            ),
+                            expr.span,
+                        ));
+                    }
+                }
+            }
+            declaration
+                .and_then(|declaration| {
+                    matches!(&declaration.kind, TypeDeclarationKind::Variant { .. })
+                        .then_some(CheckedValue::returned(
+                            instance.clone(),
+                            types.needs_drop(&instance),
+                        ))
+                })
+        }
+        ExprKind::Match { mode, scrutinee, arms } => oracle_match(
+            mode,
+            scrutinee,
+            arms,
+            program,
+            current,
+            expr,
+            variables,
+            functions,
+            types,
+            result_type,
+            allow_moves,
+            diagnostics,
+        ),
+        // Resumable Effects v1 (issue #204): mirrors
+        // `iterative::calls::frame_resume_yield` -- the request's own
+        // verified value is discarded, and the whole `yield` expression
+        // verifies as the enclosing function's declared response type.
+        ExprKind::Yield { request } => {
+            let _ = check_expr(
+                program,
+                current,
+                request,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            );
+            return current
+                .yields
+                .as_ref()
+                .map(|yields| CheckedValue::value(yields.response_type.clone()));
+        }
+        ExprKind::Try { operand } => {
+            let operand_value = check_expr(
+                program,
+                current,
+                operand,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            );
+            let operand_value = operand_value?;
+            reject_native_unit_value(program, operand, &operand_value, diagnostics);
+            if !allow_moves {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T218",
+                    "`?` is only valid in an executable function body",
+                    expr.span,
+                ));
+            }
+            let exact_owned_result = crate::source_verify::declared_type::generic_result::concrete_try(&operand_value.ty, &current.return_type);
+            if exact_owned_result && allow_moves {
+                mark_value_sources_moved(program, operand, variables, types, diagnostics);
+            }
+            if variables
+                .values()
+                .any(|binding| {
+                    binding.availability != Availability::Moved && types.needs_drop(&binding.ty)
+                })
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T218",
+                    "`?` with a live resource binding is not supported yet",
+                    expr.span,
+                ));
+            }
+            if let Some((ok, error_ty)) = ordinary_result_arguments(&operand_value.ty) {
+                let Some((_residual_ok_ty, residual_error_ty)) =
+                    ordinary_result_arguments(&current.return_type)
+                else {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T218",
+                        format!(
+                            "function `{}` must return the ordinary compiler-owned Result to propagate a Result with `?`",
+                            current.name
+                        ),
+                        expr.span,
+                    ).with_help(crate::source_verify::hints::TRY_RESULT_RETURN_HELP));
+                    return Some(CheckedValue::value(ok.clone()));
+                };
+                if error_ty != residual_error_ty {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T219",
+                        format!(
+                            "`?` cannot propagate error type {error_ty} into Result error type {residual_error_ty}"
+                        ),
+                        expr.span,
+                    ));
+                }
+                let exact_owned = exact_owned_result;
+                if !exact_owned
+                    && (!matches!(ok, Type::I64 | Type::Bool)
+                        || !matches!(error_ty, Type::I64 | Type::Bool)
+                        || !matches!(residual_error_ty, Type::I64 | Type::Bool))
+                {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T218",
+                        "Result `?` accepts only direct `i64` or `bool` success and error payloads",
+                        expr.span,
+                    ));
+                }
+                return Some(CheckedValue::value(ok.clone()));
+            }
+            if let Some(some) = ordinary_option_argument(&operand_value.ty) {
+                let outer = ordinary_option_argument(&current.return_type);
+                if outer.is_none() {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T218",
+                        format!(
+                            "function `{}` must return the ordinary compiler-owned Option to propagate an Option with `?`",
+                            current.name
+                        ),
+                        expr.span,
+                    ));
+                } else if !matches!(some, Type::I64 | Type::Bool)
+                    || outer.is_some_and(|value| !matches!(value, Type::I64 | Type::Bool))
+                {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T218",
+                        "Option `?` accepts only direct `i64` or `bool` source and enclosing payloads",
+                        expr.span,
+                    ));
+                }
+                return Some(CheckedValue::value(some.clone()));
+            }
+            diagnostics.push(error(
+                program,
+                "SPX-T218",
+                format!(
+                    "`?` operand must be an ordinary compiler-owned Result or Option, received {}",
+                    operand_value.ty
+                ),
+                expr.span,
+            ));
+            None
+        }
+        ExprKind::UpdateRecord { base, fields } => {
+            let base_value = check_expr(
+                program,
+                current,
+                base,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            )?;
+            reject_native_unit_value(program, base, &base_value, diagnostics);
+            if super::declared_type::collection_record::admitted(&base_value.ty, types) {
+                diagnostics.push(error(program, "SPX-T268", "Vec-bearing record update is outside the nested collection-record profile", expr.span));
+                return None;
+            }
+            let declared_fields = effective_record_fields(types, &base_value.ty);
+            if declared_fields.is_none() {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T215",
+                    format!(
+                        "record update requires a record base, received {}",
+                        base_value.ty
+                    ),
+                    base.span,
+                ));
+                return None;
+            }
+
+            let nested_update = types.is_nested_owned_byte_record(&base_value.ty)
+                && !types.is_flat_owned_byte_record(&base_value.ty);
+            if nested_update
+                && source_place(base, variables, types)
+                    .is_none_or(|place| !place.projections.is_empty())
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-O117",
+                    "nested owned-record update requires an exact named owned base place",
+                    expr.span,
+                ));
+            }
+
+            if types.needs_drop(&base_value.ty) {
+                match base_value.mode {
+                    ParamMode::Own if allow_moves => {
+                        mark_value_sources_moved(
+                            program,
+                            base,
+                            variables,
+                            types,
+                            diagnostics,
+                        );
+                    }
+                    ParamMode::Own => diagnostics.push(error(
+                        program,
+                        "SPX-O105",
+                        "contract expression cannot transfer an owned record update base",
+                        base.span,
+                    )),
+                    ParamMode::Borrow | ParamMode::Shared => diagnostics.push(error(
+                        program,
+                        "SPX-O108",
+                        "cannot update an owned record through a borrowed or shared base",
+                        base.span,
+                    )),
+                    ParamMode::Value => {}
+                }
+            }
+
+            let mut supplied = HashSet::new();
+            for field in fields {
+                let declared = declared_fields.and_then(|declared| {
+                    declared
+                        .iter()
+                        .find(|candidate| candidate.name == field.name)
+                });
+                if !supplied.insert(field.name.as_str()) || declared.is_none() {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T212",
+                        format!(
+                            "unknown or duplicate field `{}` in `{}` update",
+                            field.name, base_value.ty
+                        ),
+                        field.span,
+                    ));
+                }
+                let actual = check_expr(
+                    program,
+                    current,
+                    &field.value,
+                    variables,
+                    functions,
+                    types,
+                    result_type,
+                    allow_moves,
+                    diagnostics,
+                );
+                if let (Some(declared), Some(actual)) = (declared, actual) {
+                    reject_native_unit_value(program, &field.value, &actual, diagnostics);
+                    let expected = types
+                        .record_field_type(&base_value.ty, declared)
+                        .unwrap_or_else(|| declared.ty.clone());
+                    if actual.ty != expected {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T215",
+                            format!(
+                                "field `{}.{}` expects {}, received {}",
+                                base_value.ty, field.name, expected, actual.ty
+                            ),
+                            field.value.span,
+                        ));
+                    }
+                    if types.needs_drop(&expected) && actual.mode == ParamMode::Own {
+                        if allow_moves {
+                            mark_value_sources_moved(
+                                program,
+                                &field.value,
+                                variables,
+                                types,
+                                diagnostics,
+                            );
+                        } else {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-O105",
+                                "contract expression cannot transfer an owned record replacement",
+                                field.value.span,
+                            ));
+                        }
+                    } else if types.needs_drop(&expected)
+                        && matches!(actual.mode, ParamMode::Borrow | ParamMode::Shared)
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-O108",
+                            "cannot move an owned replacement through a borrowed or shared value",
+                            field.value.span,
+                        ));
+                    }
+                }
+            }
+
+            Some(CheckedValue::returned(
+                base_value.ty.clone(),
+                types.needs_drop(&base_value.ty),
+            ))
+        }
+        ExprKind::Project { base, field, .. } => {
+            if let Some((root, value)) = super::record_traversal::project(expr, variables, types) {
+                let owner = Expr { kind: ExprKind::Var(root), span: expr.span };
+                if let Some(place) = source_place(&owner, variables, types) { check_source_place_availability(program, &place, variables, expr.span, diagnostics); }
+                return Some(value);
+            }
+            if matching::in_loop_scope() && source_place(base, variables, types).is_some_and(|place| !crate::source_verify::declared_type::owned_leaf_collection::copy_or_leaf_admitted(types, &place.ty) && !crate::source_verify::declared_type::collection_record::admitted(&place.ty, types)) {
+                diagnostics.push(error(program, "SPX-T252", "record field projection is not yet admitted in while bodies", expr.span));
+            }
+            if let Some(place) = source_place(expr, variables, types) {
+                check_source_place_availability(
+                    program,
+                    &place,
+                    variables,
+                    expr.span,
+                    diagnostics,
+                );
+                return Some(CheckedValue {
+                    ty: place.ty,
+                    mode: place.mode,
+                    native_unit: false,
+                });
+            }
+            let base_value = check_expr(
+                program,
+                current,
+                base,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            )?;
+            reject_native_unit_value(program, base, &base_value, diagnostics);
+            if matching::in_loop_scope() && !crate::source_verify::declared_type::owned_leaf_collection::copy_or_leaf_admitted(types, &base_value.ty) && !crate::source_verify::declared_type::collection_record::admitted(&base_value.ty, types) {
+                diagnostics.push(error(program, "SPX-T252", "record field projection is not yet admitted in while bodies", expr.span));
+            }
+            let Some(fields) = effective_record_fields(types, &base_value.ty) else {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T214",
+                    format!("cannot project field `{field}` from `{}`", base_value.ty),
+                    expr.span,
+                ));
+                return None;
+            };
+            let Some(declared) = fields.iter().find(|candidate| candidate.name == *field) else {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T214",
+                    format!("record `{}` has no field `{field}`", base_value.ty),
+                    expr.span,
+                ));
+                return None;
+            };
+            let projected = types
+                .record_field_type(&base_value.ty, declared)
+                .unwrap_or_else(|| declared.ty.clone());
+            let mode = if types.needs_drop(&projected) {
+                base_value.mode
+            } else {
+                ParamMode::Value
+            };
+            Some(CheckedValue {
+                ty: projected,
+                mode,
+                native_unit: false,
+            })
+        }
+        ExprKind::Block { statements, tail } => {
+            let outer_names = variables.keys().cloned().collect::<Vec<_>>();
+            let mut scope = variables.clone();
+            for (index, statement) in statements.iter().enumerate() {
+                match statement {
+                    Statement::Let {
+                        name,
+                        name_span,
+                        value,
+                        mutable,
+                        ..
+                    } => {                        if !source_identifier(name) {
+                            diagnostics.push(hints::reserved_local_binding(
+                                program,
+                                name,
+                                *name_span,
+                            ));
+                        }
+                        let actual = check_expr(
+                            program,
+                            current,
+                            value,
+                            &mut scope,
+                            functions,
+                            types,
+                            result_type,
+                            allow_moves,
+                            diagnostics,
+                        );
+                        if scope.contains_key(name) {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-T209",
+                                format!("local binding `{name}` shadows an existing value"),
+                                *name_span,
+                            ).with_help(crate::source_verify::hints::SHADOW_HELP));
+                            continue;
+                        }
+                        if let Some(actual) = actual {
+                            if let Some(diagnostic) = super::expression_statement::check(program, statement, &actual) { diagnostics.push(diagnostic); }
+                            if actual.ty == Type::Str && *mutable { diagnostics.push(error(program, "SPX-T264", format!("byte-slice alias `{name}` must be immutable and cannot be reassigned"), *name_span)); }
+                            let contract_local = !allow_moves && actual.mode == ParamMode::Own
+                                && super::contract_owners::fresh(value, &actual.ty, &scope);
+                            if types.needs_drop(&actual.ty)
+                                && actual.mode == ParamMode::Own
+                            {
+                                if allow_moves || contract_local {
+                                    mark_value_sources_moved(
+                                        program,
+                                        value,
+                                        &mut scope,
+                                        types,
+                                        diagnostics,
+                                    );
+                                } else {
+                                    diagnostics.push(error(
+                                        program,
+                                        "SPX-O105",
+                                        "contract expression cannot transfer an owned resource into a local binding",
+                                        value.span,
+                                    ));
+                                }
+                            }
+                            let borrow_origin = matches!(actual.ty, Type::SliceU8 | Type::Str)
+                                .then(|| {
+                                    local_borrow_origin(
+                                        program,
+                                        value,
+                                        name,
+                                        *name_span,
+                                        &scope,
+                                        types,
+                                    )
+                                })
+                                .flatten();
+                            if let Some(origin) = &borrow_origin {
+                                activate_local_loan(&mut scope, origin);
+                            }
+                            scope.insert(
+                                name.clone(),
+                                Binding { contract_local, traversal_row: None,
+                                    ty: actual.ty,
+                                    mode: actual.mode,
+                                    availability: Availability::Available,
+                                    moved_places: HashMap::new(),
+                                    definitely_partial: HashSet::new(),
+                                    native_unit_discard: actual.native_unit,
+                                    mutable: false,
+                                    active_loans: BTreeSet::new(),
+                                    borrow_origin,
+                                },
+                            );
+                        }
+                    }
+                    Statement::Assign { value, span, .. } => {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-U106",
+                            "assignment statements are not allowed in contract expressions",
+                            *span,
+                        ));
+                        check_expr(
+                            program,
+                            current,
+                            value,
+                            &mut scope,
+                            functions,
+                            types,
+                            result_type,
+                            allow_moves,
+                            diagnostics,
+                        );
+                    }
+                    Statement::Unsafe { body, span, .. } => {
+                        // Contract expressions stay pure: unsafe boundary
+                        // statements are meaningless inside them.
+                        diagnostics.push(error(
+                            program,
+                            "SPX-N105",
+                            "unsafe boundary statements are not allowed in contract expressions",
+                            *span,
+                        ));
+                        check_expr(
+                            program,
+                            current,
+                            body,
+                            &mut scope,
+                            functions,
+                            types,
+                            result_type,
+                            allow_moves,
+                            diagnostics,
+                        );
+                    }
+                    Statement::While { condition, body, .. } => {
+                        // Contract expressions stay pure: while statements
+                        // never execute inside them. The condition and body
+                        // are still checked so their own diagnostics surface.
+                        check_while_statement(
+                            program,
+                            current,
+                            condition,
+                            body,
+                            condition.span.merge(body.span),
+                            &mut scope,
+                            functions,
+                            types,
+                            result_type,
+                            allow_moves,
+                            diagnostics,
+                        );
+                    }
+                    Statement::ForOwn { item, item_span, values, body, .. } => {
+                        let actual = check_expr(program, current, values, &mut scope, functions, types, result_type, allow_moves, diagnostics);
+                        let element = actual.as_ref().and_then(|actual| match &actual.ty {
+                            Type::Named { name, arguments } if name == "Iter" && actual.mode == ParamMode::Own
+                                && matches!(arguments.as_slice(), [ty] if crate::vec_ops::ast_element_is_admitted(ty)
+                                    || *ty == Type::Bytes
+                                    || crate::source_verify::declared_type::owned_leaf_collection::runtime_element(types, ty)
+                                    || crate::source_verify::declared_type::generic_collection::slot(current, &actual.ty)) => Some(arguments[0].clone()),
+                            _ => None,
+                        });
+                        if element.is_none() {
+                            diagnostics.push(error(program, "SPX-T284", "for own traversal requires an owned Iter<T> for an admitted scalar, Bytes, or owned-record T", values.span));
+                        }
+                        if !allow_moves {
+                            diagnostics.push(error(program, "SPX-T253", "for own statements are not allowed in contract expressions", values.span));
+                        } else if element.is_some() {
+                            mark_value_sources_moved(program, values, &mut scope, types, diagnostics);
+                        }
+                        let baseline = scope.clone();
+                        let item_inserted = !scope.contains_key(item);
+                        if let Some(element) = element.as_ref().filter(|element| item_inserted && {
+                            **element == Type::Bytes
+                                || crate::source_verify::declared_type::owned_leaf_collection::runtime_element(types, element)
+                        }) {
+                            let _ = matching::with_owned_iterator_item(item, element, || {
+                                reject_finite_iterator_body_oracle(program, current, body, functions, types, diagnostics)
+                            });
+                        } else {
+                            let _ = reject_finite_iterator_body_oracle(program, current, body, functions, types, diagnostics);
+                        }
+                        if !item_inserted {
+                            diagnostics.push(error(program, "SPX-T209", format!("loop item `{item}` shadows an existing value"), *item_span));
+                        } else if let Some(element) = element.as_ref() {
+                            let owned = *element == Type::Bytes
+                                || crate::source_verify::declared_type::owned_leaf_collection::runtime_element(types, element);
+                            scope.insert(item.clone(), Binding { contract_local: false, traversal_row: None, ty:element.clone(), mode:if owned { ParamMode::Own } else { ParamMode::Value },
+                                availability:Availability::Available, moved_places:HashMap::new(), definitely_partial:HashSet::new(),
+                                native_unit_discard:false, mutable:false, active_loans:BTreeSet::new(), borrow_origin:None });
+                        }
+                        let checked_body = || check_expr(program, current, body, &mut scope, functions, types, result_type, allow_moves, diagnostics);
+                        let _ = if let Some(element) = element.as_ref().filter(|element| item_inserted && {
+                            **element == Type::Bytes
+                                || crate::source_verify::declared_type::owned_leaf_collection::runtime_element(types, element)
+                        }) {
+                            matching::in_owned_iterator_loop(item, element, checked_body)
+                        } else {
+                            matching::in_loop(checked_body)
+                        };
+                        if item_inserted { scope.remove(item); }
+                        if crate::ast::returns_only(body) { scope=baseline.clone(); }
+                        let mut names = baseline.keys().collect::<Vec<_>>();
+                        names.sort();
+                        for name in names {
+                            let before = &baseline[name];
+                            if scope.get(name).is_none_or(|after| after.availability != before.availability
+                                || after.moved_places != before.moved_places || after.definitely_partial != before.definitely_partial) {
+                                diagnostics.push(error(program, "SPX-T252", format!("ownership of `{name}` changes inside a for own loop"), body.span));
+                            }
+                        }
+                    }
+                    Statement::For { .. } | Statement::ForBorrow { .. } => {
+                        for_traversal::check(program, current, statement, &mut scope, functions, types, result_type, allow_moves, diagnostics);
+                    }
+                }
+                release_dead_local_loans(
+                    &mut scope,
+                    statements.get(index + 1..).unwrap_or_default(),
+                    tail,
+                );
+            }
+            let actual = check_expr(
+                program,
+                current,
+                tail,
+                &mut scope,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            );
+            merge_moved(variables, &scope, &outer_names);
+            actual
+        }
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            if let Some(value) = check_expr(
+                program,
+                current,
+                condition,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            ) {
+                if value.native_unit {
+                    reject_native_unit_value(program, condition, &value, diagnostics);
+                } else if value.ty != Type::Bool {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T210",
+                        "`if` condition must be bool",
+                        condition.span,
+                    ));
+                }
+            }
+            let original_names = variables.keys().cloned().collect::<Vec<_>>();
+            let mut then_variables = variables.clone();
+            let mut else_variables = variables.clone();
+            let then_value = check_expr(
+                program,
+                current,
+                then_branch,
+                &mut then_variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            );
+            let else_value = check_expr(
+                program,
+                current,
+                else_branch,
+                &mut else_variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            );
+            let then_exits=then_value.as_ref().is_some_and(|value|value.ty==Type::Never) && crate::ast::returns_only(then_branch);
+            let else_exits=else_value.as_ref().is_some_and(|value|value.ty==Type::Never) && crate::ast::returns_only(else_branch);
+            for name in &original_names {
+                if let Some(binding) = variables.get_mut(name) {
+                    if then_exits!=else_exits {
+                        if let Some(state)=(if then_exits {&else_variables}else{&then_variables}).get(name) {*binding=state.clone();} continue;
+                    }
+                    let then_state = then_variables
+                        .get(name)
+                        .map_or(Availability::Available, |value| value.availability);
+                    let else_state = else_variables
+                        .get(name)
+                        .map_or(Availability::Available, |value| value.availability);
+                    binding.availability = then_state.join(else_state);
+                    if let (Some(then_binding), Some(else_binding)) =
+                        (then_variables.get(name), else_variables.get(name))
+                    {
+                        binding.active_loans = then_binding
+                            .active_loans
+                            .union(&else_binding.active_loans)
+                            .cloned()
+                            .collect();
+                        binding.moved_places = join_moved_places(then_binding, else_binding);
+                        binding.definitely_partial =
+                            join_definitely_partial(then_binding, else_binding);
+                    }
+                }
+            }
+            match (then_value, else_value) {
+                (Some(left),Some(right)) if left.ty==Type::Never=>Some(right),
+                (Some(left),Some(right)) if right.ty==Type::Never=>Some(left),
+                (Some(then_value), Some(else_value)) => {
+                    if then_value.native_unit || else_value.native_unit {
+                        reject_native_unit_value(
+                            program,
+                            then_branch,
+                            &then_value,
+                            diagnostics,
+                        );
+                        reject_native_unit_value(
+                            program,
+                            else_branch,
+                            &else_value,
+                            diagnostics,
+                        );
+                    } else if then_value.ty != else_value.ty {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T211",
+                            format!(
+                                "`if` branches return different types: {} and {}",
+                                then_value.ty, else_value.ty
+                            ),
+                            expr.span,
+                        ));
+                    }
+                    if types.needs_drop(&then_value.ty) && then_value.mode != else_value.mode
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-O106",
+                            "`if` branches must produce the same resource ownership mode",
+                            expr.span,
+                        ));
+                    }
+                    Some(then_value)
+                }
+                _ => None,
+            }
+        }
+    }
+}

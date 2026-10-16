@@ -1,0 +1,6 @@
+{
+  "scope": "Refresh existing complete19 input endpoints before source inventories; no historical table/guard change",
+  "before_sha256": "30a0fd4a25d4be3b62e6e085942d45a31d0dceae0672e108ee53b71647af991a",
+  "after_sha256": "cf381cfff54a5d506352b23714da3ff24f8325d3d254c6b24acee35a409e19f7",
+  "rust_executed": false
+}

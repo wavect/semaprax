@@ -5,13 +5,13 @@
   "domains": {
     "hir": {
       "original_roots": 1046,
-      "current_boundary_members": 1053,
+      "current_boundary_members": 1054,
       "current_boundary_production": 393,
-      "outside_production_still_fully_authenticated": 69,
-      "full_role_production": 462,
-      "full_role_test_only": 762,
-      "full_raw_sha256": "e4497b0d0bca94834b841c7fd5f662ba00d74f7d0abb0cf945e8f031f5cd281e",
-      "boundary_production_sha256": "5f3a3f1c51111831616fb79a46e4da7ea1a4bea8b82dc8363b6595fb968b722c",
+      "outside_production_still_fully_authenticated": 70,
+      "full_role_production": 463,
+      "full_role_test_only": 763,
+      "full_raw_sha256": "ab5e8e4688ad71a31478c2cfa4caa527943d9e7bf9a1b7d070e6810a9b4b54ea",
+      "boundary_production_sha256": "79f15fe67551562e8aa5a5fc9dbe3e1f63729b92f89811684b85951dd300393b",
       "exact_original_forbidden_tokens": [
         "struct Resolver",
         "impl Resolver",
@@ -31,13 +31,13 @@
     },
     "projection": {
       "original_roots": 179,
-      "current_boundary_members": 180,
+      "current_boundary_members": 181,
       "current_boundary_production": 70,
-      "outside_production_still_fully_authenticated": 517,
-      "full_role_production": 587,
-      "full_role_test_only": 834,
-      "full_raw_sha256": "f44c507134c27946c9f4d8a958925441c666c51c084b061a1ebbea27f44614b0",
-      "boundary_production_sha256": "0f41721912feb7367cde4a7616172526259088a2a95c588b25f0e43185a1648b",
+      "outside_production_still_fully_authenticated": 518,
+      "full_role_production": 588,
+      "full_role_test_only": 836,
+      "full_raw_sha256": "22c8a735744099137e158aa249d4a48b0a7b0a923b839498e36aa53da49e66e4",
+      "boundary_production_sha256": "83cb31ac28ceb90550a1d39159dca6a5e74fa449b6099cde342a679c8ce9a4f5",
       "exact_original_forbidden_tokens": [
         "use super::*;",
         "workspace::",
@@ -64,5 +64,5 @@
     "whole_raw_drift_refused": true,
     "foreign_path_child_cannot_escape": true
   },
-  "status": "SOURCE_ONLY_PROVISIONAL_BOUNDARY_IMPLEMENTATION_PASS_NOT_FINAL_JOINED_BINDING"
+  "status": "SOURCE_ONLY_EXACT_BOUNDARIES_AND_COMPLETE_SOURCE_ROLE_CUSTODY_PASS"
 }

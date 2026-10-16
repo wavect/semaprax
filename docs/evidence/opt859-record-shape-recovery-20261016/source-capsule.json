@@ -5,12 +5,18 @@
       "source": "CHANGELOG.md",
       "archive": "before/CHANGELOG.md",
       "before_sha256": "cf0b5e18d763176bdb17b047657fac85be1a0fff992028be363ed1be743cdd42",
-      "current_sha256": "fd14ddc8d5d29eea28c292c43e13589598c4b3106c1500a7b1a5b1935300629c",
-      "current_length": 556912,
+      "current_sha256": "cf62309d9ec4f7a15b455597fb13d1b1408a5431154a855a8f77316839273181",
+      "current_length": 557174,
       "inverse": [
         {
-          "start": 158959,
-          "end": 159430,
+          "start": 3148,
+          "end": 3410,
+          "after": "- Provision GDB explicitly for hosted low-stack diagnostics when the runner image does not include it.\n\n- Allow manual capture of the unchanged low-stack case with the unit shard's compiler, feature unification and profile, independently of superseded CI runs.\n\n",
+          "before": ""
+        },
+        {
+          "start": 159221,
+          "end": 159692,
           "after": "\n- Share complete cleanup inventory validation with the ordinary schema summary receiver, avoiding discarded inventory storage while retaining the original materializer as an executable control. Source-only candidate; scoped runtime qualification remains pending.\n- Bind dependent invalid owned-record pattern recovery to the original declaration diagnostic, preserving independent body/mode/declaration errors. Source-only #859 candidate; focused qualification pending.\n",
           "before": ""
         }

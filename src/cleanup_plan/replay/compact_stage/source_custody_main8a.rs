@@ -78,7 +78,10 @@ fn digest(text: &str) -> String {
     )
 }
 fn invert(record: &serde_json::Value, current: &str) -> String {
-    let main = crate::source_reflows_merge::main8a_input(record["path"].as_str().unwrap(), current);
+    let main = crate::source_reflows_merge::main8a_historical::input(
+        crate::source_reflows_merge::main8a_historical::Domain::Compact7,
+        record["path"].as_str().unwrap(), current,
+    );
     let current = main.as_str();
     assert_eq!(
         digest(current),

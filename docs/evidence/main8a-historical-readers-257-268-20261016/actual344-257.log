@@ -1,0 +1,17 @@
+
+running 1 test
+test source_reflows::semantic_receivers_main8a::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive ... 
+thread 'source_reflows::semantic_receivers_main8a::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive' (19064458) panicked at src/source_reflows/semantic_receivers_main8a.rs:31:5:
+assertion `left == right` failed: receiver input drifted: src/cleanup_plan/replay/branch_clone/tests.rs
+  left: "6509ab480c69cfe00583d9d640f73726f5184f728b16dcde2d7d35b42fe15496"
+ right: String("053dbd5dee8d05d3ed56db80729de01e2f0e572c0299779bed1cfbf6a0f64303")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    source_reflows::semantic_receivers_main8a::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9448 filtered out; finished in 0.26s
+

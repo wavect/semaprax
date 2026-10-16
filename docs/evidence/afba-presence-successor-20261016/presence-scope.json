@@ -1,0 +1,8 @@
+[
+  "src/cleanup_plan/renewal_profile/ordinary/mod.rs",
+  "src/cleanup_plan/renewal_profile/ordinary/record_presence.rs",
+  "src/loop_calls/byte_writer/module_index/ordinary.rs",
+  "src/cleanup_plan/renewal_profile/ordinary/record_presence/tests.rs",
+  "docs/ORDINARY-RENEWAL-DIRECTORY-V1.md",
+  "CHANGELOG.md"
+]

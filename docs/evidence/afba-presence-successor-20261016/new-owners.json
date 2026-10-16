@@ -1,0 +1,17 @@
+[
+  {
+    "source": "src/cleanup_plan/renewal_profile/ordinary/direct_presence_tests.rs",
+    "sha256": "67016ed77a9173b68114258d131ccfae3c24b6191d3f5c03129fa44534b5f0ba",
+    "lines": 199
+  },
+  {
+    "source": "src/source_reflows/semantic_receivers_main_afba.rs",
+    "sha256": "9934a7458520814c902820aab4e5d7f7fa89a041a9dad2e48d44f6179cc3513c",
+    "lines": 101
+  },
+  {
+    "source": "src/source_reflows_merge/successor_custody.rs",
+    "sha256": "7da4cdd4c27797f6b1a25135af3956aece1a54094174be596486a27145efbcc0",
+    "lines": 96
+  }
+]

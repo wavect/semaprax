@@ -1,0 +1,14 @@
+[
+  "src/cleanup_plan/replay.rs",
+  "src/cleanup_plan/replay/factored/oracle_hook.rs",
+  "tests/hir_module_boundaries.rs",
+  "tests/workspace/semantic_graph/source_inventory.rs",
+  "src/source_verify/declaration.rs",
+  "src/cleanup_plan/replay/branch_clone/tests.rs",
+  "src/cleanup_plan/replay/factored.rs",
+  "src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs",
+  "src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs",
+  "src/hir.rs",
+  "src/hir/validation.rs",
+  "src/hir/expr_nodes.rs"
+]

@@ -1,0 +1,13 @@
+{
+  "status": "PENDING_NOT_IN_FROZEN244",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::sequence_minimum::optimized_tests::positive_work_probe_header_and_full_query_floor_keep_original_six_fields"
+    }
+  ],
+  "retain_original_work_first_floor_owners": true,
+  "retain_original_full_immediate_and_Main44_owners": true,
+  "Rust_execution": false
+}

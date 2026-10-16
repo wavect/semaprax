@@ -1,0 +1,61 @@
+{
+  "base": "e3db5417cc159fd6a3567b88228c860eddab65ad",
+  "source": "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs",
+  "before_archive": "optimized_tests.rs.before.txt",
+  "before_length": 22021,
+  "before_sha256": "3a9766f90634e5843161e61fba311d1949350a269b6b06d965ac7db9370df8da",
+  "current_sha256": "efda66b752b719820b399f1e28b495eecbcb86ea4a8fb75cf4d9b21b321dd7c7",
+  "complete_added_body_sha256": "89dc33c014adfa26919a4a7a9afc0938f959c5adb1fa241a1149686b0e991822",
+  "unchanged": [
+    {
+      "path": "src/cleanup_plan/replay/path_array/sequence_minimum/optimized.rs",
+      "sha256": "b52e6ed55fb0513d531c3de5856e338bbad31e2f32f84ccea0909961a7df1c0b"
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_array/sequence_minimum.rs",
+      "sha256": "586e41c93dbfd3301f444857101bbab092bdd8c417621c516dee0dbec43d644e"
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_array/sequence_minimum/tests.rs",
+      "sha256": "0607204a806a8a736f67e8dbda7a353dfba320478568b19944316aaf048fc46b"
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_array/sequence_minimum/immediate.rs",
+      "sha256": "0c6bdc6774603fe1d546bddb53beed05aa20e169dc6b1b554e3b773bbda68a90"
+    },
+    {
+      "path": "src/cleanup_plan/replay.rs",
+      "sha256": "0cf35a330c89ec7ae532f3ac39ecc4cb0b056cb9538966962ac04851c3a611bc"
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work.rs",
+      "sha256": "07a74198e5a441b7a406cdbde8c0d321ef283c82bbd2d6f810039196cc42fb7f"
+    },
+    {
+      "path": "src/cleanup_plan/replay/physical_budget.rs",
+      "sha256": "95c57d360e5a501cb73d400f8991d6f51e139fc1adeb5b4fb8c62e831b4f7dda"
+    },
+    {
+      "path": "src/bounded_output.rs",
+      "sha256": "a6d258c1e9cfca7c6f1a231c86b48b937184a3af86d5cb81f8aa00b836725d9c"
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "sha256": "3d8d5c070e9ac86d005ed2356872a3be53ee6558fb5bf3a9a9cc52fbce49e627"
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "sha256": "cc7c0fefbfe05532f7ecd17d0a76acf320d11286bbe7f342562fe8e32a6a784c"
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "sha256": "2cc88fefcbdd3be77aadb2894743ea4f2eeb6f544bdf364e7e1d83bea5d09d6c"
+    }
+  ],
+  "selector": {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::path_array::sequence_minimum::optimized_tests::positive_work_probe_header_and_full_query_floor_keep_original_six_fields"
+  },
+  "status": "SOURCE_ONLY_PENDING_RUST_EXECUTION"
+}

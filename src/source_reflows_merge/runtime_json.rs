@@ -59,6 +59,16 @@ pub(super) fn successor_custody(fixture: super::successor_custody::Fixture) -> S
     read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
         .expect("complete authenticated successor source custody")
 }
+pub(super) fn prefix_custody(fixture: super::prefix_custody::Fixture) -> String {
+    let spec = fixture.spec();
+    read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
+        .expect("complete authenticated prefix source custody")
+}
+pub(super) fn joined_custody(fixture: super::joined_custody::Fixture) -> String {
+    let spec = fixture.spec();
+    read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
+        .expect("complete authenticated joined source custody")
+}
 pub(super) fn load(fixture: Fixture) -> String {
     let spec = fixture.spec();
     read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)

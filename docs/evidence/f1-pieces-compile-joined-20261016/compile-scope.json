@@ -1,0 +1,5 @@
+[
+  "src/cleanup_plan/replay/flat_records/paid_leaves.rs",
+  "src/cleanup_plan/replay/lexical_boundary/paid.rs",
+  "src/cleanup_plan/replay/structural_maps/paid.rs"
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/flat_records/paid_leaves.rs",
+    "current_sha256": "b0c4362fb34d7169e09379d23336d5338a2afc8db9cd858fe7cc2e4c017ff88c",
+    "original_sha256": "b0c4362fb34d7169e09379d23336d5338a2afc8db9cd858fe7cc2e4c017ff88c",
+    "edits": []
+  },
+  {
+    "source": "src/cleanup_plan/replay/lexical_boundary/paid.rs",
+    "current_sha256": "5efffe7a2e3dea9e0dc673a9bec80d51cba864ed8405a5a00454087e5cab795d",
+    "original_sha256": "5efffe7a2e3dea9e0dc673a9bec80d51cba864ed8405a5a00454087e5cab795d",
+    "edits": []
+  },
+  {
+    "source": "src/cleanup_plan/replay/structural_maps/paid.rs",
+    "current_sha256": "a07b081475fd830e0187d5526c830de4ea4363670e49b9c5b5f5aa5586038d97",
+    "original_sha256": "a07b081475fd830e0187d5526c830de4ea4363670e49b9c5b5f5aa5586038d97",
+    "edits": []
+  }
+]

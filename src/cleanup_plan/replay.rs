@@ -33,6 +33,8 @@ mod scalar_replay_tree;
 mod selected_callees;
 mod selected_context;
 mod selected_entry;
+#[cfg(test)]
+mod sequence_prefix;
 mod shape_cursor;
 mod status_construction;
 mod structural_control;

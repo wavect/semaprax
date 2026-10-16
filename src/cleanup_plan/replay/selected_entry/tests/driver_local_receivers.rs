@@ -135,7 +135,11 @@ fn duplicated_driver_complete_legacy_bodies_and_current_sources_stay_exact() {
         format!(
             "{:x}",
             crate::digest_hex::LowerHex(Sha256::digest(
-                include_str!("../../lexical_replay.rs").as_bytes()
+                crate::source_reflows_merge::reference781_input(
+                    "src/cleanup_plan/replay/lexical_replay.rs",
+                    include_str!("../../lexical_replay.rs")
+                )
+                .as_bytes()
             ))
         ),
         "00cfdd547cad552bde792319f9804ef2d36c50d853972098debec15fe14caa05"
@@ -144,7 +148,11 @@ fn duplicated_driver_complete_legacy_bodies_and_current_sources_stay_exact() {
         format!(
             "{:x}",
             crate::digest_hex::LowerHex(Sha256::digest(
-                include_str!("../../scalar_replay.rs").as_bytes()
+                crate::source_reflows_merge::reference781_input(
+                    "src/cleanup_plan/replay/scalar_replay.rs",
+                    include_str!("../../scalar_replay.rs")
+                )
+                .as_bytes()
             ))
         ),
         "414c0444a55574badd9d9b9a83a1f0c7298f57cc183eb6afb88b981cd2912b02"

@@ -1,0 +1,28 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/lexical_replay.rs",
+    "checkpoint_revision": "9a3c4fbf969340e7ee29fd9cf931586da30cf7f2",
+    "archive": "docs/evidence/reference-coverage-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/lexical_replay.rs",
+    "current_sha256": "658f2ab6f189d4b084077b7948863566aaf31b8a319921764b35c9cf408d32f4",
+    "original_sha256": "00cfdd547cad552bde792319f9804ef2d36c50d853972098debec15fe14caa05",
+    "edits": [
+      {
+        "new": "        structural_maps::paid_reference::validate(function, budget)?;\n",
+        "old": "        structural_maps::validate_reference_coverage(function, budget)?;\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/scalar_replay.rs",
+    "checkpoint_revision": "9a3c4fbf969340e7ee29fd9cf931586da30cf7f2",
+    "archive": "docs/evidence/reference-coverage-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/scalar_replay.rs",
+    "current_sha256": "1c5b9043a557876df42b2734dfac7cfcc20076b210f341779c6a579e7fb85083",
+    "original_sha256": "414c0444a55574badd9d9b9a83a1f0c7298f57cc183eb6afb88b981cd2912b02",
+    "edits": [
+      {
+        "new": "    structural_maps::paid_reference::validate(function, budget)?;\n",
+        "old": "    structural_maps::validate_reference_coverage(function, budget)?;\n"
+      }
+    ]
+  }
+]

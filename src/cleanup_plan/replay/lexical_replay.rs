@@ -156,7 +156,7 @@ pub(super) fn validate_paid(
     let _return_operands = return_operands;
     let auth = lexical_cert::authenticate(program, function, &owner, &facts, budget)?;
     if selected {
-        structural_maps::validate_reference_coverage(function, budget)?;
+        structural_maps::paid_reference::validate(function, budget)?;
         structural_control::validate_reachable_acyclic_cfg(function, budget)?;
     } else {
         structural_maps::validate_reference_coverage(function, budget)?;

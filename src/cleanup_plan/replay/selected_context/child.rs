@@ -135,3 +135,48 @@ impl ReplayBudget {
         ))
     }
 }
+
+// Actual wrapper argument, inner-result and error-transfer slots. The caller
+// acquires each full tuple on its SAME budget before forming wrapper arguments.
+pub(in super::super) type ArrayReceiving<'a> = (
+    &'a mut ReplayBudget,
+    &'a ResolvedFunction,
+    usize,
+    &'a str,
+    Result<(), crate::diagnostic::Diagnostic>,
+    crate::diagnostic::Diagnostic,
+    BudgetDiagnostic,
+    Deferred,
+    Result<(), Deferred>,
+);
+pub(in super::super) type NodeReceiving<'a> = (
+    &'a mut ReplayBudget,
+    &'a ResolvedFunction,
+    &'a str,
+    Result<(), crate::diagnostic::Diagnostic>,
+    crate::diagnostic::Diagnostic,
+    BudgetDiagnostic,
+    Deferred,
+    Result<(), Deferred>,
+);
+impl ReplayBudget {
+    #[track_caller]
+    pub(in super::super) fn child_reserve_array<T>(
+        &mut self,
+        function: &ResolvedFunction,
+        count: usize,
+        phase: &str,
+    ) -> Result<(), Deferred> {
+        self.reserve_array::<T>(function, count, phase)
+            .map_err(|error| Deferred::Budget(BudgetDiagnostic(error)))
+    }
+    #[track_caller]
+    pub(in super::super) fn child_reserve_btree_node<K, V>(
+        &mut self,
+        function: &ResolvedFunction,
+        phase: &str,
+    ) -> Result<(), Deferred> {
+        self.reserve_btree_node::<K, V>(function, phase)
+            .map_err(|error| Deferred::Budget(BudgetDiagnostic(error)))
+    }
+}

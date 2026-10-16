@@ -1,0 +1,187 @@
+[
+  {
+    "source": "CHANGELOG.md",
+    "checkpoint_revision": "9a3c4fbf969340e7ee29fd9cf931586da30cf7f2",
+    "archive": "docs/evidence/reference-coverage-paid-receiving-781-next-20261016/before/CHANGELOG.md",
+    "current_sha256": "c8c8dc65a3a67c4f5460f8fc6045139fec41431604ffbe817a14dc71a3a492c9",
+    "original_sha256": "3009816812031d3e7ab985dbb3ebdd1f6be9d833921bd3a207a50feca7b45ca4",
+    "edits": [
+      {
+        "new": "\n- Source-only #781 followup gives paid Session reference coverage closed semantic\n  receipts and per-actual-call reference-coverage receiving on its existing\n  ledger. Complete old producers remain; runtime qualification and the remaining\n  dynamic validator families are pending.\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "checkpoint_revision": "9a3c4fbf969340e7ee29fd9cf931586da30cf7f2",
+    "archive": "docs/evidence/reference-coverage-paid-receiving-781-next-20261016/before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "current_sha256": "98a4a6f276b08a0f3a67bc9bc16ef81bdccb97ec7b68b38a59ee8a3e09d5db34",
+    "original_sha256": "b7c024aea9a5c24ba251b2064574fce2d2b935e00cb226ea05a08c5ebf6b928c",
+    "edits": [
+      {
+        "new": "            include_str!(\"../../../../../src/cleanup_plan/replay/final_output.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_maps/paid_reference.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/structural_maps/tests/paid_reference.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/tests/driver_local_receivers.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/compact_stage.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/compact_stage/before.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/compact_stage/lexical_before.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/compact_stage/source_custody.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/compact_stage/tests.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/final_output/before_compaction.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/final_output/before_transfer_current.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/final_output/current_observation_tests.rs\"),  include_str!(\"../../../../../src/source_reflows/semantic_receivers_mainb80.rs\"),  include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/before_c451.rs\"),  include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/historical_main_c451.rs\"),  include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/main_c451_before_2600.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/final_output/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/final_output/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/before_final_edge.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/final_edge_tests.rs\"), include_str!(\"../../../../../src/source_verify/hints/before_capacity_witness.rs\"), include_str!(\"../../../../../src/cli/help/authoring/tasks.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/strategy/before_fitting.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/strategy/fitting_tests.rs\"), include_str!(\"../../../../../src/cli/help/authoring/tasks/tests.rs\"), include_str!(\"../../../../../src/cli/help/authoring/tasks/derive.rs\"), include_str!(\"../../../../../tests/cli_help_surface_v1/task_pages.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/before_state_move.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/state_move_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/main696.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/funded_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../../../../../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../../../../src/hir/validation/held_profiles.rs\"),\n",
+        "old": "            include_str!(\"../../../../../src/cleanup_plan/replay/final_output.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/selected_entry/tests/driver_local_receivers.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/compact_stage.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/compact_stage/before.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/compact_stage/lexical_before.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/compact_stage/source_custody.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/compact_stage/tests.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/final_output/before_compaction.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/final_output/before_transfer_current.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/final_output/current_observation_tests.rs\"),  include_str!(\"../../../../../src/source_reflows/semantic_receivers_mainb80.rs\"),  include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/before_c451.rs\"),  include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/historical_main_c451.rs\"),  include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/main_c451_before_2600.rs\"),  include_str!(\"../../../../../src/cleanup_plan/replay/final_output/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/final_output/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/before_final_edge.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/final_edge_tests.rs\"), include_str!(\"../../../../../src/source_verify/hints/before_capacity_witness.rs\"), include_str!(\"../../../../../src/cli/help/authoring/tasks.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/strategy/before_fitting.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/strategy/fitting_tests.rs\"), include_str!(\"../../../../../src/cli/help/authoring/tasks/tests.rs\"), include_str!(\"../../../../../src/cli/help/authoring/tasks/derive.rs\"), include_str!(\"../../../../../tests/cli_help_surface_v1/task_pages.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/before_state_move.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/state_move_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/main696.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/funded_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../../../../../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../../../../src/hir/validation/held_profiles.rs\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+    "checkpoint_revision": "9a3c4fbf969340e7ee29fd9cf931586da30cf7f2",
+    "archive": "docs/evidence/reference-coverage-paid-receiving-781-next-20261016/before/docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+    "current_sha256": "d386e08dbebaaaa329834c9eb663627feab7e6b16b02e88a8dae23ea8604005f",
+    "original_sha256": "0c081e35cbbcae60e092c84023ffcb9a350d14cefcf9b2ad5d46eb24d28cf5f2",
+    "edits": [
+      {
+        "new": "\n## Reference-coverage receiving cut (#781, source-only)\n\nPaid lexical and scalar Session drivers use the complete reference-coverage\nalgorithm with closed edge-owner, exit-owner and status-declaration refusals.\nThe original Diagnostic producer remains independent. The two actual vector\nwrapper calls each acquire a nine-slot receiving bank and nine initializer work\nunits on the same ledger before their arguments. Each genuinely new status-set\nnode separately acquires its eight-slot bank and eight units before its wrapper;\nduplicates acquire neither. There is no guessed per-function loop allowance.\nThe existing profile permit covers entry/refusal composition. BudgetDiagnostic\nremains sealed: only genuine ReplayBudget producers construct that arm.\n\nThe original status membership and traversal order, then edge/exit/status error\npriority, stay exact. New receiving reservations and initializer work may refuse\nbefore the former backing or semantic frontier; no old allowance is credited.\nThe node helper forwarding Result is eliminated lexically; the two real budget\nwrapper Results and their Diagnostic/Deferred receivers remain explicitly paid.\nInitial report acquisition, report carrier, inline refusal and all legacy\nwrappers stay unchanged. This finite family and the prior profile/owner tranche\ndo not complete the remaining dynamic Session validator families: #781 stays\nopen. Focused semantic, exact/short/zero, duplicate, ledger and Drop controls are\nauthored; no execution or savings claim follows from this source checkpoint.\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/renewal_profile/child_refusal.rs",
+    "checkpoint_revision": "9a3c4fbf969340e7ee29fd9cf931586da30cf7f2",
+    "archive": "docs/evidence/reference-coverage-paid-receiving-781-next-20261016/before/src/cleanup_plan/renewal_profile/child_refusal.rs",
+    "current_sha256": "9929e58521c52246bd8467c0ad7da5844ba9ef2bcaabf9d0b7fc09bda4a7066f",
+    "original_sha256": "fbd2da5b2009357bf8a1ff35f0bb4792e89c5dd41efde6afff740f41f0db4f42",
+    "edits": [
+      {
+        "new": "    ReferenceCoverage(ReferenceCoverage),\n",
+        "old": ""
+      },
+      {
+        "new": "            Self::ReferenceCoverage(reason) => reason.detail(),\n",
+        "old": ""
+      },
+      {
+        "new": "            Self::ReferenceCoverage(_) => true,\n",
+        "old": ""
+      },
+      {
+        "new": "\n/// Closed labels from the complete reference-coverage validator, no identity text.\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub(crate) enum ReferenceCoverage {\n    EdgeOwners,\n    ExitOwners,\n    StatusDeclarations,\n}\nimpl ReferenceCoverage {\n    pub(crate) fn detail(self) -> &'static str {\n        match self {\n            Self::EdgeOwners => {\n                \"each cleanup edge must be referenced by exactly one control-flow owner\"\n            }\n            Self::ExitOwners => \"each cleanup exit must be referenced by exactly one block\",\n            Self::StatusDeclarations => \"declared and referenced cleanup status sources differ\",\n        }\n    }\n}\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/lexical_replay.rs",
+    "checkpoint_revision": "9a3c4fbf969340e7ee29fd9cf931586da30cf7f2",
+    "archive": "docs/evidence/reference-coverage-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/lexical_replay.rs",
+    "current_sha256": "658f2ab6f189d4b084077b7948863566aaf31b8a319921764b35c9cf408d32f4",
+    "original_sha256": "00cfdd547cad552bde792319f9804ef2d36c50d853972098debec15fe14caa05",
+    "edits": [
+      {
+        "new": "        structural_maps::paid_reference::validate(function, budget)?;\n",
+        "old": "        structural_maps::validate_reference_coverage(function, budget)?;\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/scalar_replay.rs",
+    "checkpoint_revision": "9a3c4fbf969340e7ee29fd9cf931586da30cf7f2",
+    "archive": "docs/evidence/reference-coverage-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/scalar_replay.rs",
+    "current_sha256": "1c5b9043a557876df42b2734dfac7cfcc20076b210f341779c6a579e7fb85083",
+    "original_sha256": "414c0444a55574badd9d9b9a83a1f0c7298f57cc183eb6afb88b981cd2912b02",
+    "edits": [
+      {
+        "new": "    structural_maps::paid_reference::validate(function, budget)?;\n",
+        "old": "    structural_maps::validate_reference_coverage(function, budget)?;\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/selected_context/child.rs",
+    "checkpoint_revision": "9a3c4fbf969340e7ee29fd9cf931586da30cf7f2",
+    "archive": "docs/evidence/reference-coverage-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/selected_context/child.rs",
+    "current_sha256": "8bb723f948595f9788bd1507b52c4b1c1e21f2b7519fd8d0ccefe69cf7b785ec",
+    "original_sha256": "1710f802f9b90889de12bbfc6bd5ad713e02d67a605f3c9ada8413580973fe7e",
+    "edits": [
+      {
+        "new": "\n// Actual wrapper argument, inner-result and error-transfer slots. The caller\n// acquires each full tuple on its SAME budget before forming wrapper arguments.\npub(in super::super) type ArrayReceiving<'a> = (\n    &'a mut ReplayBudget,\n    &'a ResolvedFunction,\n    usize,\n    &'a str,\n    Result<(), crate::diagnostic::Diagnostic>,\n    crate::diagnostic::Diagnostic,\n    BudgetDiagnostic,\n    Deferred,\n    Result<(), Deferred>,\n);\npub(in super::super) type NodeReceiving<'a> = (\n    &'a mut ReplayBudget,\n    &'a ResolvedFunction,\n    &'a str,\n    Result<(), crate::diagnostic::Diagnostic>,\n    crate::diagnostic::Diagnostic,\n    BudgetDiagnostic,\n    Deferred,\n    Result<(), Deferred>,\n);\nimpl ReplayBudget {\n    #[track_caller]\n    pub(in super::super) fn child_reserve_array<T>(\n        &mut self,\n        function: &ResolvedFunction,\n        count: usize,\n        phase: &str,\n    ) -> Result<(), Deferred> {\n        self.reserve_array::<T>(function, count, phase)\n            .map_err(|error| Deferred::Budget(BudgetDiagnostic(error)))\n    }\n    #[track_caller]\n    pub(in super::super) fn child_reserve_btree_node<K, V>(\n        &mut self,\n        function: &ResolvedFunction,\n        phase: &str,\n    ) -> Result<(), Deferred> {\n        self.reserve_btree_node::<K, V>(function, phase)\n            .map_err(|error| Deferred::Budget(BudgetDiagnostic(error)))\n    }\n}\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/selected_entry/tests/driver_local_receivers.rs",
+    "checkpoint_revision": "9a3c4fbf969340e7ee29fd9cf931586da30cf7f2",
+    "archive": "docs/evidence/reference-coverage-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/selected_entry/tests/driver_local_receivers.rs",
+    "current_sha256": "5e9118fbdb2b1f581aabdf3b71b1ab0624394b2d8abdc22ce030376a687f1590",
+    "original_sha256": "188d54a310b030e6f803ab8c37d1d93e410b80f6d1336f9aca3cd6c0f5ff3547",
+    "edits": [
+      {
+        "new": "                crate::source_reflows_merge::reference781_input(\n                    \"src/cleanup_plan/replay/lexical_replay.rs\",\n                    include_str!(\"../../lexical_replay.rs\")\n                )\n                .as_bytes()\n",
+        "old": "                include_str!(\"../../lexical_replay.rs\").as_bytes()\n"
+      },
+      {
+        "new": "                crate::source_reflows_merge::reference781_input(\n                    \"src/cleanup_plan/replay/scalar_replay.rs\",\n                    include_str!(\"../../scalar_replay.rs\")\n                )\n                .as_bytes()\n",
+        "old": "                include_str!(\"../../scalar_replay.rs\").as_bytes()\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/structural_maps.rs",
+    "checkpoint_revision": "9a3c4fbf969340e7ee29fd9cf931586da30cf7f2",
+    "archive": "docs/evidence/reference-coverage-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/structural_maps.rs",
+    "current_sha256": "f8c2b1f1de241caafbd30692fe172fb4e2afb58189252d4334878071d95b87a8",
+    "original_sha256": "aacb833fa5db9e2494a415e12c4380c9cc102d500c8e113c302e92d43f878471",
+    "edits": [
+      {
+        "new": "\npub(super) mod paid_reference;\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/structural_maps/tests.rs",
+    "checkpoint_revision": "9a3c4fbf969340e7ee29fd9cf931586da30cf7f2",
+    "archive": "docs/evidence/reference-coverage-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/structural_maps/tests.rs",
+    "current_sha256": "839a2981800cd8587bc992e158fe5232d6c99708247aefed1d28c8b74dbdeb92",
+    "original_sha256": "54b538d0ae5403297d4a5a22088f6385784b539ffef5d1942d04f22a21134f81",
+    "edits": [
+      {
+        "new": "\n#[path = \"tests/paid_reference.rs\"]\nmod paid_reference;\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "checkpoint_revision": "9a3c4fbf969340e7ee29fd9cf931586da30cf7f2",
+    "archive": "docs/evidence/reference-coverage-paid-receiving-781-next-20261016/before/src/source_reflows_merge.rs",
+    "current_sha256": "5e586dfc0d2d911e3f0afb92924a57d88cc5ad8acad88db530ae712584fbfa15",
+    "original_sha256": "83bff59513863555cb8d976dad6ae5c7fe729e21cf3a578bcb80eb9ad9bbb280",
+    "edits": [
+      {
+        "new": "\n// Independent whole-driver input for the immutable first781 receiving owners.\npub(crate) fn reference781_input(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/reference-coverage-paid-receiving-781-next-20261016/current-drivers-to-9a3.json\")), source, current)\n}\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "checkpoint_revision": "9a3c4fbf969340e7ee29fd9cf931586da30cf7f2",
+    "archive": "docs/evidence/reference-coverage-paid-receiving-781-next-20261016/before/tests/hir_module_boundaries.rs",
+    "current_sha256": "1e36c03636e5dd9e3edfdaef2af0c51bfe2aea5a8753294fbe8bdefecf9436a5",
+    "original_sha256": "4863bbae2e22193a7ad5a946f206f12da2cd9b75cdf210f430ebb6714ed76f10",
+    "edits": [
+      {
+        "new": "                include_str!(\"../src/cleanup_plan/replay/final_output.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_maps/paid_reference.rs\"),  include_str!(\"../src/cleanup_plan/replay/structural_maps/tests/paid_reference.rs\"),  include_str!(\"../src/cleanup_plan/replay/selected_entry/tests/driver_local_receivers.rs\"),  include_str!(\"../src/cleanup_plan/replay/compact_stage.rs\"),  include_str!(\"../src/cleanup_plan/replay/compact_stage/before.rs\"),  include_str!(\"../src/cleanup_plan/replay/compact_stage/lexical_before.rs\"),  include_str!(\"../src/cleanup_plan/replay/compact_stage/source_custody.rs\"),  include_str!(\"../src/cleanup_plan/replay/compact_stage/tests.rs\"),  include_str!(\"../src/cleanup_plan/replay/final_output/before_compaction.rs\"),  include_str!(\"../src/cleanup_plan/replay/final_output/before_transfer_current.rs\"),  include_str!(\"../src/cleanup_plan/replay/final_output/current_observation_tests.rs\"),  include_str!(\"../src/source_reflows/semantic_receivers_mainb80.rs\"),  include_str!(\"wasm/scalar_browser_ci_contract/before_c451.rs\"),  include_str!(\"wasm/scalar_browser_ci_contract/historical_main_c451.rs\"),  include_str!(\"wasm/scalar_browser_ci_contract/main_c451_before_2600.rs\"),  include_str!(\"../src/cleanup_plan/replay/final_output/before.rs\"), include_str!(\"../src/cleanup_plan/replay/final_output/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/before_final_edge.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/final_edge_tests.rs\"), include_str!(\"../src/source_verify/hints/before_capacity_witness.rs\"), include_str!(\"../src/cli/help/authoring/tasks.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/strategy/before_fitting.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/strategy/fitting_tests.rs\"), include_str!(\"../src/cli/help/authoring/tasks/tests.rs\"), include_str!(\"../src/cli/help/authoring/tasks/derive.rs\"), include_str!(\"../tests/cli_help_surface_v1/task_pages.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/before_state_move.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/state_move_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/main696.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/funded_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../src/hir/validation.rs\"),\n",
+        "old": "                include_str!(\"../src/cleanup_plan/replay/final_output.rs\"), include_str!(\"../src/cleanup_plan/replay/selected_entry/tests/driver_local_receivers.rs\"),  include_str!(\"../src/cleanup_plan/replay/compact_stage.rs\"),  include_str!(\"../src/cleanup_plan/replay/compact_stage/before.rs\"),  include_str!(\"../src/cleanup_plan/replay/compact_stage/lexical_before.rs\"),  include_str!(\"../src/cleanup_plan/replay/compact_stage/source_custody.rs\"),  include_str!(\"../src/cleanup_plan/replay/compact_stage/tests.rs\"),  include_str!(\"../src/cleanup_plan/replay/final_output/before_compaction.rs\"),  include_str!(\"../src/cleanup_plan/replay/final_output/before_transfer_current.rs\"),  include_str!(\"../src/cleanup_plan/replay/final_output/current_observation_tests.rs\"),  include_str!(\"../src/source_reflows/semantic_receivers_mainb80.rs\"),  include_str!(\"wasm/scalar_browser_ci_contract/before_c451.rs\"),  include_str!(\"wasm/scalar_browser_ci_contract/historical_main_c451.rs\"),  include_str!(\"wasm/scalar_browser_ci_contract/main_c451_before_2600.rs\"),  include_str!(\"../src/cleanup_plan/replay/final_output/before.rs\"), include_str!(\"../src/cleanup_plan/replay/final_output/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/before_final_edge.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/final_edge_tests.rs\"), include_str!(\"../src/source_verify/hints/before_capacity_witness.rs\"), include_str!(\"../src/cli/help/authoring/tasks.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/strategy/before_fitting.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/strategy/fitting_tests.rs\"), include_str!(\"../src/cli/help/authoring/tasks/tests.rs\"), include_str!(\"../src/cli/help/authoring/tasks/derive.rs\"), include_str!(\"../tests/cli_help_surface_v1/task_pages.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/before_state_move.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/state_move_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/main696.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/funded_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../src/hir/validation.rs\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph/source_inventory.rs",
+    "checkpoint_revision": "9a3c4fbf969340e7ee29fd9cf931586da30cf7f2",
+    "archive": "docs/evidence/reference-coverage-paid-receiving-781-next-20261016/before/tests/workspace/semantic_graph/source_inventory.rs",
+    "current_sha256": "8f1dc043231058e2dba723c7c92ad969c87cd4fac86a509c8291fa2ae0739b55",
+    "original_sha256": "b125d9997123f0dd17ba14df69e27b61e61c7f55413a64eb1b08ee2dad9d7952",
+    "edits": [
+      {
+        "new": "        include_str!(\"../../src/cleanup_plan/replay/final_output.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_maps/paid_reference.rs\"),  include_str!(\"../../src/cleanup_plan/replay/structural_maps/tests/paid_reference.rs\"),  include_str!(\"../../src/cleanup_plan/replay/selected_entry/tests/driver_local_receivers.rs\"),  include_str!(\"../../src/cleanup_plan/replay/compact_stage.rs\"),  include_str!(\"../../src/cleanup_plan/replay/compact_stage/before.rs\"),  include_str!(\"../../src/cleanup_plan/replay/compact_stage/lexical_before.rs\"),  include_str!(\"../../src/cleanup_plan/replay/compact_stage/source_custody.rs\"),  include_str!(\"../../src/cleanup_plan/replay/compact_stage/tests.rs\"),  include_str!(\"../../src/cleanup_plan/replay/final_output/before_compaction.rs\"),  include_str!(\"../../src/cleanup_plan/replay/final_output/before_transfer_current.rs\"),  include_str!(\"../../src/cleanup_plan/replay/final_output/current_observation_tests.rs\"),  include_str!(\"../../src/source_reflows/semantic_receivers_mainb80.rs\"),  include_str!(\"../wasm/scalar_browser_ci_contract/before_c451.rs\"),  include_str!(\"../wasm/scalar_browser_ci_contract/historical_main_c451.rs\"),  include_str!(\"../wasm/scalar_browser_ci_contract/main_c451_before_2600.rs\"),  include_str!(\"../../src/cleanup_plan/replay/final_output/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/final_output/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/before_final_edge.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/final_edge_tests.rs\"), include_str!(\"../../src/source_verify/hints/before_capacity_witness.rs\"), include_str!(\"../../src/cli/help/authoring/tasks.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/strategy/before_fitting.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/strategy/fitting_tests.rs\"), include_str!(\"../../src/cli/help/authoring/tasks/tests.rs\"), include_str!(\"../../src/cli/help/authoring/tasks/derive.rs\"), include_str!(\"../../tests/cli_help_surface_v1/task_pages.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/before_state_move.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/state_move_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/main696.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/funded_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_before.rs\"),\n",
+        "old": "        include_str!(\"../../src/cleanup_plan/replay/final_output.rs\"), include_str!(\"../../src/cleanup_plan/replay/selected_entry/tests/driver_local_receivers.rs\"),  include_str!(\"../../src/cleanup_plan/replay/compact_stage.rs\"),  include_str!(\"../../src/cleanup_plan/replay/compact_stage/before.rs\"),  include_str!(\"../../src/cleanup_plan/replay/compact_stage/lexical_before.rs\"),  include_str!(\"../../src/cleanup_plan/replay/compact_stage/source_custody.rs\"),  include_str!(\"../../src/cleanup_plan/replay/compact_stage/tests.rs\"),  include_str!(\"../../src/cleanup_plan/replay/final_output/before_compaction.rs\"),  include_str!(\"../../src/cleanup_plan/replay/final_output/before_transfer_current.rs\"),  include_str!(\"../../src/cleanup_plan/replay/final_output/current_observation_tests.rs\"),  include_str!(\"../../src/source_reflows/semantic_receivers_mainb80.rs\"),  include_str!(\"../wasm/scalar_browser_ci_contract/before_c451.rs\"),  include_str!(\"../wasm/scalar_browser_ci_contract/historical_main_c451.rs\"),  include_str!(\"../wasm/scalar_browser_ci_contract/main_c451_before_2600.rs\"),  include_str!(\"../../src/cleanup_plan/replay/final_output/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/final_output/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/before_final_edge.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/final_edge_tests.rs\"), include_str!(\"../../src/source_verify/hints/before_capacity_witness.rs\"), include_str!(\"../../src/cli/help/authoring/tasks.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/strategy/before_fitting.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/strategy/fitting_tests.rs\"), include_str!(\"../../src/cli/help/authoring/tasks/tests.rs\"), include_str!(\"../../src/cli/help/authoring/tasks/derive.rs\"), include_str!(\"../../tests/cli_help_surface_v1/task_pages.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/before_state_move.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/state_move_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/main696.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/funded_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_array/tests.rs\"), include_str!(\"../../src/source_reflows/semantic_receivers.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/before_inline.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/inline_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_before.rs\"),\n"
+      }
+    ]
+  }
+]

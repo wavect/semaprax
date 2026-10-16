@@ -1,4 +1,9 @@
 <!-- OPT831 source checkpoint: closure-specific duplicate refusal owner and inner id Result removed; unchanged strict qualification pending, no measured gain claimed. -->
+
+- Source-only #781 followup gives paid Session reference coverage closed semantic
+  receipts and per-actual-call reference-coverage receiving on its existing
+  ledger. Complete old producers remain; runtime qualification and the remaining
+  dynamic validator families are pending.
 <!-- Source-only #833: invocation-owned identifier census scratch reuse across
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog

@@ -61,10 +61,17 @@ impl Resolver<'_> {
         &self,
         function: &FunctionExecutionId,
         span: Span,
-    ) -> Result<ResolvedType, Diagnostic> {
+    ) -> Result<super::ResolvedResidualType, Diagnostic> {
         let target = self.program.functions().iter().find(|candidate| matches!(function, FunctionExecutionId::Monomorphic(declaration) if candidate.stable_id == declaration.as_str()))
             .ok_or_else(|| self.error("SPX-H006", format!("resolved `?` has unknown enclosing function `{function}`"), span))?;
-        self.resolve_function_type(target, &target.return_type, target.span)
+        let ty = self.resolve_function_type(target, &target.return_type, target.span)?;
+        super::ResolvedResidualType::try_new(ty).ok_or_else(|| {
+            self.error(
+                "SPX-H006",
+                "resolved residual type backing was refused",
+                span,
+            )
+        })
     }
 
     pub(super) fn generic_function_arguments_are_admitted(

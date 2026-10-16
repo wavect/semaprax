@@ -3,6 +3,21 @@
 use super::*;
 use crate::cache_codec::{codec_enum, codec_struct, codec_tuple, Codec, Decoder, Encoder};
 
+// Transparent compatibility carrier: no new nested node or depth level.
+// Its actual backing is independently counted by decode and the live builder.
+impl Codec for ResolvedResidualType {
+    fn encode(&self, encoder: &mut Encoder) -> crate::cache_codec::Result<()> {
+        (**self).encode(encoder)
+    }
+    fn decode(decoder: &mut Decoder<'_>) -> crate::cache_codec::Result<Self> {
+        decoder.allocate(std::mem::size_of::<ResolvedType>())?;
+        let ty = ResolvedType::decode(decoder)?;
+        Self::try_new(ty).ok_or_else(|| {
+            crate::cache_codec::capacity("cache codec residual type backing was refused")
+        })
+    }
+}
+
 // Same wire as the former owned-String tuple: one nested node around text.
 // Every identity is valid, so encoding has no refusal case of its own.
 impl Codec for DeclarationId {

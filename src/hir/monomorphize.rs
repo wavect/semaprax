@@ -1023,7 +1023,12 @@ pub(super) fn materialize_template_expr(
             ok_field: ok_field.clone(),
             err_case: err_case.clone(),
             err_field: err_field.clone(),
-            residual_type: substitute_type(residual_type, &template.id, arguments)?,
+            residual_type: super::ResolvedResidualType::try_new(substitute_type(
+                residual_type,
+                &template.id,
+                arguments,
+            )?)
+            .ok_or_else(|| hir_error("resolved residual type backing was refused"))?,
         },
         // Resumable Effects v1 (issue #204): unreachable in practice --
         // `hir::resolve_yield` refuses `yields` on any generic function

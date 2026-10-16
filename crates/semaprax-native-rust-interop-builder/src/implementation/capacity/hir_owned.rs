@@ -360,6 +360,8 @@ pub(in crate::implementation) fn hir_expr_owned_capacity(
                         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 }
                 total = total
+                    .checked_add(std::mem::size_of::<ResolvedType>())
+                    .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?
                     .checked_add(
                         hir_type_owned_capacity(residual_type)
                             .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
@@ -381,6 +383,8 @@ pub(in crate::implementation) fn hir_expr_owned_capacity(
                         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 }
                 total = total
+                    .checked_add(std::mem::size_of::<ResolvedType>())
+                    .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?
                     .checked_add(
                         hir_type_owned_capacity(residual_type)
                             .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,

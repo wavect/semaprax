@@ -1,0 +1,24 @@
+{
+  "status": "SOURCE_REGISTRATION_METADATA_FIX_ONLY_NO_CARGO",
+  "original_selection": "/Volumes/Semaprax/provenance/session853-final-focused97-draft-20261016/selection-draft.json",
+  "original_sha256": "e913e1a8bc9d07ec597e2a2a9e4b0574c1cf2a23630629e7d7f7e9763a8a760e",
+  "normalized_selection": "/Volumes/Semaprax/provenance/postpin-0c942-final97-selection-normalized-20261016.json",
+  "normalized_sha256": "e516c5ae31a64b7995fa2b35671e8c3976f8e82f31378bb18c9e5f0a113cfad3",
+  "modified_indices": [
+    76,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85
+  ],
+  "exact_inverse_to_original": true,
+  "all97_tuples_order_roles_unchanged": true,
+  "drivers_parser_guards_unchanged": true,
+  "prior_failed_registration_log": "/Volumes/Semaprax/provenance/postpin-0c942-97-prepare-20261016.log",
+  "prior_failed_registration_log_sha256": "e8085f3c8c16c9b020feb88efb9d1716c0f9c8de5a8d9ab43f394caa1d8434ee"
+}

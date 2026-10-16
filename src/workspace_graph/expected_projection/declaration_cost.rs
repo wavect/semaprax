@@ -333,7 +333,14 @@ fn ast_expr_cost_at(
                 ast_expr_cost_at(&arm.value, cost, RootPosition::Delegated, outside_closure)?;
             }
         }
-        ExprKind::Try { operand } | ExprKind::Yield { request: operand } => {
+        ExprKind::Try { operand } => {
+            // Retain the existing conservative structural expansion for this
+            // new backing too. The constructor additionally pays each actual
+            // box and all receiving layouts on the live monotonic ledger.
+            cost.add(std::mem::size_of::<crate::hir::ResolvedType>())?;
+            ast_expr_cost_at(operand, cost, RootPosition::Delegated, outside_closure)?
+        }
+        ExprKind::Yield { request: operand } => {
             ast_expr_cost_at(operand, cost, RootPosition::Delegated, outside_closure)?
         }
         ExprKind::UpdateRecord { base, fields } => {

@@ -757,6 +757,10 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
 
     let root = concat!(
         include_str!("../src/hir.rs"),
+        include_str!("../src/hir/expr_nodes.rs"),
+        include_str!(
+            "../docs/evidence/receiver-source-custody-v1/src__hir__expr_nodes.rs.before.txt"
+        ),
         include_str!("../src/bounded_output/identity_reservation/base_prelude.rs"),
         include_str!("../src/bounded_output/identity_reservation/base_prelude/tests.rs"),
         include_str!("../src/bounded_output/identity_reservation/producer_failure.rs"),

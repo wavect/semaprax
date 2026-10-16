@@ -1,0 +1,4385 @@
+{
+  "status": "SOURCE_REGISTERED_UNEXECUTED_PARENT_FINAL_HEAD",
+  "source_head": "0c942afa4004da34ec84639b3f0a2f6e97b52bb8",
+  "source_tree": "c3dc26e83a72d9b63b8c14c902526a33e8fae147",
+  "repository": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "selected": 97,
+  "resolved": 97,
+  "issues": [],
+  "rows": [
+    {
+      "source_path": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "line": 3,
+      "name": "complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 7601,
+          "module": "live_oracle",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/live_oracle.rs",
+          "line": 29,
+          "module": "source_custody",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/live_oracle/source_custody.rs",
+          "line": 10,
+          "module": "a",
+          "attributes": []
+        }
+      ],
+      "sha256": "328a65d7a3add4e6fd84b10f9e04d76cb1f03ac9ae8bffe36a2fb17bbb19a104",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "reason": "changed source-front/raw authority/module closure",
+      "current_batch_selection_reasons": [
+        "changed source-front/raw authority/module closure"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "line": 3,
+      "name": "complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 7601,
+          "module": "live_oracle",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/live_oracle.rs",
+          "line": 29,
+          "module": "source_custody",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/live_oracle/source_custody.rs",
+          "line": 11,
+          "module": "b",
+          "attributes": []
+        }
+      ],
+      "sha256": "7f7f0c6c5249591091a7fe7ddc6242631ceb63f6b005034036e24e5ea5ba5c50",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::b::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "reason": "changed source-front/raw authority/module closure",
+      "current_batch_selection_reasons": [
+        "changed source-front/raw authority/module closure"
+      ]
+    },
+    {
+      "source_path": "src/source_reflows_merge/runtime_json/tests.rs",
+      "line": 30,
+      "name": "fixed_projection_json_transport_refuses_hostile_io_before_parsing",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 20,
+          "module": "source_reflows_merge",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/source_reflows_merge.rs",
+          "line": 5,
+          "module": "runtime_json",
+          "attributes": [
+            "#[path = \"source_reflows_merge/runtime_json.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/source_reflows_merge/runtime_json.rs",
+          "line": 88,
+          "module": "tests",
+          "attributes": [
+            "#[path = \"runtime_json/tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "cbe9336a17fa49c7555a905b61bcb4d8405301a12d168c78f25d76ef68cbd649",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_reflows_merge::runtime_json::tests::fixed_projection_json_transport_refuses_hostile_io_before_parsing",
+      "reason": "changed source-front/raw authority/module closure",
+      "current_batch_selection_reasons": [
+        "changed source-front/raw authority/module closure"
+      ]
+    },
+    {
+      "source_path": "tests/hir_module_boundaries.rs",
+      "line": 2,
+      "name": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [],
+      "sha256": "9a28ba3937a7529384bf969dcc63b5ff598e32ce27a86dfee2307354211feebb",
+      "ignored": false,
+      "harness": "semaprax::hir_module_boundaries",
+      "kind": "test:hir_module_boundaries",
+      "selector": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+      "reason": "changed source-front/raw authority/module closure",
+      "current_batch_selection_reasons": [
+        "changed source-front/raw authority/module closure"
+      ]
+    },
+    {
+      "source_path": "tests/workspace/semantic_graph.rs",
+      "line": 358,
+      "name": "expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/workspace.rs",
+          "line": 68,
+          "module": "semantic_graph",
+          "attributes": [
+            "#[path = \"workspace/semantic_graph.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "2e682e40aa451425c60e152e2ab98dd3a46372923297560e38f54f6fb2dca5f1",
+      "ignored": false,
+      "harness": "semaprax::workspace",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "reason": "changed source-front/raw authority/module closure",
+      "current_batch_selection_reasons": [
+        "changed source-front/raw authority/module closure"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs",
+      "line": 3,
+      "name": "merged_current_ci_reflow_and_presence512_complete_inputs_remain_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 7601,
+          "module": "live_oracle",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/live_oracle.rs",
+          "line": 29,
+          "module": "source_custody",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/live_oracle/source_custody.rs",
+          "line": 14,
+          "module": "presence_tests",
+          "attributes": []
+        }
+      ],
+      "sha256": "0f634bae3a57dff7216527c6cfc4a9391db9532a09000dc41389edd68f1ae3f1",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::presence_tests::merged_current_ci_reflow_and_presence512_complete_inputs_remain_exact",
+      "reason": "changed source-front/raw authority/module closure",
+      "current_batch_selection_reasons": [
+        "changed source-front/raw authority/module closure"
+      ]
+    },
+    {
+      "source_path": "tests/module_size.rs",
+      "line": 114,
+      "name": "no_module_exceeds_its_recorded_size",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [],
+      "sha256": "f4db65da11156807050b9e929231c0c2df885256690a8416c6064d31e1b2e14b",
+      "ignored": false,
+      "harness": "semaprax::module_size",
+      "kind": "test:module_size",
+      "selector": "no_module_exceeds_its_recorded_size",
+      "reason": "changed source-front/raw authority/module closure",
+      "current_batch_selection_reasons": [
+        "changed source-front/raw authority/module closure"
+      ]
+    },
+    {
+      "source_path": "tests/native/string_settlement/codec_allocation/codec808_frontier.rs",
+      "line": 139,
+      "name": "primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 5607,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"workspace_graph/tests.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/workspace_graph/tests.rs",
+          "line": 2,
+          "module": "codec808_frontier",
+          "attributes": [
+            "#[path = \"../../tests/native/string_settlement/codec_allocation/codec808_frontier.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "1f90201ed8422af0608dcabba619638bd9618ab00be82eb1a42701bbabb79a9b",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+      "line": 290,
+      "name": "application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "crates/semaprax-toolchain/tests/cli_new_project_v1.rs",
+          "line": 2,
+          "module": "application_starter",
+          "attributes": [
+            "#[path = \"cli_new_project_v1/application_starter.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "e01a02fb235f02b43f8ea37fcb088e61ff72ea5c0b82c87bed187f328e559d53",
+      "ignored": false,
+      "harness": "semaprax-toolchain::cli_new_project_v1",
+      "kind": "test:cli_new_project_v1",
+      "selector": "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "tests/project/standard_library/application_json/owned/shiftsim_typed_records.rs",
+      "line": 134,
+      "name": "unfactored_schedule_retains_original_source_and_factored_admission",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/project.rs",
+          "line": 207,
+          "module": "standard_library",
+          "attributes": [
+            "#[path = \"project/standard_library.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library.rs",
+          "line": 19,
+          "module": "application_json",
+          "attributes": [
+            "#[path = \"standard_library/application_json.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library/application_json.rs",
+          "line": 17,
+          "module": "owned",
+          "attributes": [
+            "#[path = \"application_json/owned.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library/application_json/owned.rs",
+          "line": 12,
+          "module": "shiftsim_typed_records",
+          "attributes": [
+            "#[path = \"owned/shiftsim_typed_records.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "30e0ec893b8c5a65d11a05f98cfbe741381870ba8f6402f52af2687911d6b999",
+      "ignored": false,
+      "harness": "semaprax::project",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::unfactored_schedule_retains_original_source_and_factored_admission",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "tests/project/standard_library/application_json/owned/catalog_scoped_records.rs",
+      "line": 134,
+      "name": "typed_catalog_derives_codecs_and_preserves_all_23_functional_cases",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/project.rs",
+          "line": 207,
+          "module": "standard_library",
+          "attributes": [
+            "#[path = \"project/standard_library.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library.rs",
+          "line": 19,
+          "module": "application_json",
+          "attributes": [
+            "#[path = \"standard_library/application_json.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library/application_json.rs",
+          "line": 17,
+          "module": "owned",
+          "attributes": [
+            "#[path = \"application_json/owned.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library/application_json/owned.rs",
+          "line": 8,
+          "module": "catalog_scoped_records",
+          "attributes": [
+            "#[path = \"owned/catalog_scoped_records.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "fc5048241b7937f487d12cb934f591730185ab905b63c2f5713d1374648f5d9d",
+      "ignored": false,
+      "harness": "semaprax::project",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::owned::catalog_scoped_records::typed_catalog_derives_codecs_and_preserves_all_23_functional_cases",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/workspace_graph/tests/builder_limits.rs",
+      "line": 582,
+      "name": "catalog_normalizer_compact_core_fits_production_builder_cap",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 5607,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"workspace_graph/tests.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/workspace_graph/tests.rs",
+          "line": 7,
+          "module": "builder_limits",
+          "attributes": [
+            "#[path = \"tests/builder_limits.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "c1f40dbe6d396e0bac776028d029b7d3cc938293857a86750aa9f4a03e3a17ed",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/workspace_graph/tests/builder_limits.rs",
+      "line": 795,
+      "name": "pattern_source_workspace_fits_unchanged_builder_budget",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 5607,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"workspace_graph/tests.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/workspace_graph/tests.rs",
+          "line": 7,
+          "module": "builder_limits",
+          "attributes": [
+            "#[path = \"tests/builder_limits.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "c1f40dbe6d396e0bac776028d029b7d3cc938293857a86750aa9f4a03e3a17ed",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::builder_limits::pattern_source_workspace_fits_unchanged_builder_budget",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "tests/project/standard_library.rs",
+      "line": 468,
+      "name": "pattern_executes_on_all_three_backends",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/project.rs",
+          "line": 207,
+          "module": "standard_library",
+          "attributes": [
+            "#[path = \"project/standard_library.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "0e5d02afba9d12ce61316b7d85cac2aa118b5e27ac0a17e9b92f4acc5e4343fe",
+      "ignored": false,
+      "harness": "semaprax::project",
+      "kind": "test:project",
+      "selector": "standard_library::pattern_executes_on_all_three_backends",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/workspace_graph/function_alias/before_core/tests.rs",
+      "line": 98,
+      "name": "actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 19,
+          "module": "constructor_failure",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph/constructor_failure.rs",
+          "line": 92,
+          "module": "typed",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph/constructor_failure/typed.rs",
+          "line": 148,
+          "module": "before_function_alias_core",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"../function_alias/before_core.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/workspace_graph/function_alias/before_core.rs",
+          "line": 359,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"before_core/tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "f5e945c4bfbe403b871f7fd5c4bf959c8f4d2810adb88d18221780694561704d",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_array/funded_tests.rs",
+      "line": 39,
+      "name": "funded_capacity_preserves_complete_main_hir_work_and_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 10,
+          "module": "path_array",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_array.rs",
+          "line": 92,
+          "module": "funded_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "b8b494b0608a2dcadca9d2c27b6feae4280d297b6c7de423747c0eb35ed367e8",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_preserves_complete_main_hir_work_and_drop",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_array/funded_tests.rs",
+      "line": 96,
+      "name": "funded_capacity_exact_short_zero_and_first_output_work_frontier",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 10,
+          "module": "path_array",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_array.rs",
+          "line": 92,
+          "module": "funded_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "b8b494b0608a2dcadca9d2c27b6feae4280d297b6c7de423747c0eb35ed367e8",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::funded_tests::funded_capacity_exact_short_zero_and_first_output_work_frontier",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "line": 140,
+      "name": "inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 106,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 1326,
+          "module": "receiving_layer_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "969a66f6a53585c67165c9b7eba481cc8528bf93e7e8e9a797b47c99352199a7",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/state_move_tests.rs",
+      "line": 41,
+      "name": "singleton_move_keeps_complete_immediate_work_and_hostile_diagnostic",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 141,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 1153,
+          "module": "state_move_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "7c81b56268cdc2c7f899d9691b8f6083cecedd1375c26b65472bcddd3ca79059",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::state_move_tests::singleton_move_keeps_complete_immediate_work_and_hostile_diagnostic",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/state_move_tests.rs",
+      "line": 109,
+      "name": "singleton_move_reports_whole_immediate_costs_and_exact_short_zero_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 141,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 1153,
+          "module": "state_move_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "7c81b56268cdc2c7f899d9691b8f6083cecedd1375c26b65472bcddd3ca79059",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::state_move_tests::singleton_move_reports_whole_immediate_costs_and_exact_short_zero_drop",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/branch_join/tests.rs",
+      "line": 60,
+      "name": "identical_branch_arms_replay_the_producer_join_and_refuse_either_repaired_order",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 141,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 13,
+          "module": "branch_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/branch_join.rs",
+          "line": 281,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f546579f561b5a9e23c081dbd8c1b0a9d9f6583983bbbd9b0a9beb14369fe740",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::identical_branch_arms_replay_the_producer_join_and_refuse_either_repaired_order",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/branch_join/tests.rs",
+      "line": 286,
+      "name": "actual_lexical_exact_rejoin_is_never_rekeyed_or_charged",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 141,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 13,
+          "module": "branch_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/branch_join.rs",
+          "line": 281,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f546579f561b5a9e23c081dbd8c1b0a9d9f6583983bbbd9b0a9beb14369fe740",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::actual_lexical_exact_rejoin_is_never_rekeyed_or_charged",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/branch_join/tests.rs",
+      "line": 347,
+      "name": "normalization_debits_root_comparisons_and_the_self_join_before_rekeying",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 141,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 13,
+          "module": "branch_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/branch_join.rs",
+          "line": 281,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f546579f561b5a9e23c081dbd8c1b0a9d9f6583983bbbd9b0a9beb14369fe740",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::branch_join::tests::normalization_debits_root_comparisons_and_the_self_join_before_rekeying",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+      "line": 41,
+      "name": "singleton_direct_group_keeps_complete_old_success_work_and_hostile_diagnostic",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 141,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 1144,
+          "module": "singleton_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "79810d95fa864955dc08d7883b8c4b83f205837499fb07385bec9b80b6e954a6",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::singleton_direct_group_keeps_complete_old_success_work_and_hostile_diagnostic",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+      "line": 109,
+      "name": "singleton_whole_replay_reports_real_costs_and_exact_short_zero_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 141,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 1144,
+          "module": "singleton_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "79810d95fa864955dc08d7883b8c4b83f205837499fb07385bec9b80b6e954a6",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::singleton_whole_replay_reports_real_costs_and_exact_short_zero_drop",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+      "line": 166,
+      "name": "complete_immediate_old_and_unchanged_multistate_body_stay_source_bound",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 141,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 1144,
+          "module": "singleton_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "79810d95fa864955dc08d7883b8c4b83f205837499fb07385bec9b80b6e954a6",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::complete_immediate_old_and_unchanged_multistate_body_stay_source_bound",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/receiver_tests.rs",
+      "line": 40,
+      "name": "whole_original_and_boxed_replay_keep_success_work_and_hostile_diagnostic",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 141,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 15,
+          "module": "receiver_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "b988e44e6a1b1c4fb5a8353ae1377717b4613bc1982ac1e5a056099439008dda",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::receiver_tests::whole_original_and_boxed_replay_keep_success_work_and_hostile_diagnostic",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/receiver_tests.rs",
+      "line": 85,
+      "name": "complete_current_replay_has_exact_and_one_short_physical_limits_with_last_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 141,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 15,
+          "module": "receiver_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "b988e44e6a1b1c4fb5a8353ae1377717b4613bc1982ac1e5a056099439008dda",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::receiver_tests::complete_current_replay_has_exact_and_one_short_physical_limits_with_last_drop",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/tests.rs",
+      "line": 105,
+      "name": "boxed_prefix_keeps_every_history_union_and_control_disagreement",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 141,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 908,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "6a00500ce95449c9d08ebba90cdaef85c7ce0d4e5a69769bedcdde62502725eb",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::tests::boxed_prefix_keeps_every_history_union_and_control_disagreement",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs",
+      "line": 148,
+      "name": "duplicate_zero_auth_keeps_complete_main_diagnostic_and_first_receipt_at_sticky_floor",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 141,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 12,
+          "module": "boxed_states",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+          "line": 189,
+          "module": "receiving_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"boxed_states/receiving_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "8a4b4e790189d0980e3025051db5fe531adf61a72866b7ace874ef245fdca148",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::duplicate_zero_auth_keeps_complete_main_diagnostic_and_first_receipt_at_sticky_floor",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs",
+      "line": 197,
+      "name": "foreign_function_budget_and_scope_poison_only_original_owner_and_never_restore_entry",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 141,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 12,
+          "module": "boxed_states",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+          "line": 189,
+          "module": "receiving_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"boxed_states/receiving_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "8a4b4e790189d0980e3025051db5fe531adf61a72866b7ace874ef245fdca148",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::foreign_function_budget_and_scope_poison_only_original_owner_and_never_restore_entry",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/workspace_graph/tests.rs",
+      "line": 1984,
+      "name": "callable_limit_exact_advances_and_one_over_is_g171",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 5607,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"workspace_graph/tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "563d66569e1de4b8a5d9932442ec2e387158496c22a443defbe0e15a1cce58d5",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::callable_limit_exact_advances_and_one_over_is_g171",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/renewal_profile/ordinary/consuming/tests.rs",
+      "line": 11,
+      "name": "phase_presence_keeps_full_current_directories_and_every_consuming_entry",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 30,
+          "module": "renewal_profile",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/renewal_profile.rs",
+          "line": 5,
+          "module": "ordinary",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/renewal_profile/ordinary/mod.rs",
+          "line": 3,
+          "module": "consuming",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/renewal_profile/ordinary/consuming.rs",
+          "line": 8,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "2d59fe6bb8e60380c426e3c07fdbfe165a7ba59745fd0b706d3653a6074ea13d",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::consuming::tests::phase_presence_keeps_full_current_directories_and_every_consuming_entry",
+      "reason": "affected current complete caller/application control",
+      "current_batch_selection_reasons": [
+        "affected current complete caller/application control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/final_edge_tests.rs",
+      "line": 41,
+      "name": "final_edge_move_keeps_complete_immediate_work_and_hostile_diagnostic",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 141,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 1158,
+          "module": "final_edge_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "a654131265e705b51c180661fae85034a4c747ef0f224bf800a865e6f1a86c84",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::final_edge_tests::final_edge_move_keeps_complete_immediate_work_and_hostile_diagnostic",
+      "reason": "ready changed shipping owner or Main receiver domain",
+      "current_batch_selection_reasons": [
+        "ready changed shipping owner or Main receiver domain"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/final_edge_tests.rs",
+      "line": 139,
+      "name": "final_edge_move_reports_whole_immediate_costs_and_exact_short_zero_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 141,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 1158,
+          "module": "final_edge_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "a654131265e705b51c180661fae85034a4c747ef0f224bf800a865e6f1a86c84",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::final_edge_tests::final_edge_move_reports_whole_immediate_costs_and_exact_short_zero_drop",
+      "reason": "ready changed shipping owner or Main receiver domain",
+      "current_batch_selection_reasons": [
+        "ready changed shipping owner or Main receiver domain"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/final_output/tests.rs",
+      "line": 117,
+      "name": "final_output_keeps_complete_hir_plan_multiplicity_work_and_failures",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 9,
+          "module": "final_output",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/final_output.rs",
+          "line": 115,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "34c3509135ef13e6bf9e0cc189f42daa7fa7a81d8753626d423ff7cf1a31ed5a",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::final_output::tests::final_output_keeps_complete_hir_plan_multiplicity_work_and_failures",
+      "reason": "ready changed shipping owner or Main receiver domain",
+      "current_batch_selection_reasons": [
+        "ready changed shipping owner or Main receiver domain"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/final_output/tests.rs",
+      "line": 204,
+      "name": "final_output_whole_owners_report_capacities_exact_short_zero_and_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 9,
+          "module": "final_output",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/final_output.rs",
+          "line": 115,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "34c3509135ef13e6bf9e0cc189f42daa7fa7a81d8753626d423ff7cf1a31ed5a",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::final_output::tests::final_output_whole_owners_report_capacities_exact_short_zero_and_drop",
+      "reason": "ready changed shipping owner or Main receiver domain",
+      "current_batch_selection_reasons": [
+        "ready changed shipping owner or Main receiver domain"
+      ]
+    },
+    {
+      "source_path": "src/source_verify/hints.rs",
+      "line": 920,
+      "name": "publication_witness_keeps_exact_repair_and_primary_at_optional_limits",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 529,
+          "module": "source_verify",
+          "attributes": [
+            "#[allow(\n    clippy::needless_borrows_for_generic_args,\n    clippy::needless_return,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/source_verify.rs",
+          "line": 53,
+          "module": "hints",
+          "attributes": []
+        },
+        {
+          "source_path": "src/source_verify/hints.rs",
+          "line": 848,
+          "module": "authoring_repair_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "eb8ee06bd22de47d9c66cc23c492f2784ede93d16ff7f7d94b8f5e53fc26eeb6",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_verify::hints::authoring_repair_tests::publication_witness_keeps_exact_repair_and_primary_at_optional_limits",
+      "reason": "ready changed shipping owner or Main receiver domain",
+      "current_batch_selection_reasons": [
+        "ready changed shipping owner or Main receiver domain"
+      ]
+    },
+    {
+      "source_path": "src/source_verify/hints.rs",
+      "line": 976,
+      "name": "publication_witness_never_replaces_a_sticky_refusal_or_invents_a_repair",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 529,
+          "module": "source_verify",
+          "attributes": [
+            "#[allow(\n    clippy::needless_borrows_for_generic_args,\n    clippy::needless_return,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/source_verify.rs",
+          "line": 53,
+          "module": "hints",
+          "attributes": []
+        },
+        {
+          "source_path": "src/source_verify/hints.rs",
+          "line": 848,
+          "module": "authoring_repair_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "eb8ee06bd22de47d9c66cc23c492f2784ede93d16ff7f7d94b8f5e53fc26eeb6",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_verify::hints::authoring_repair_tests::publication_witness_never_replaces_a_sticky_refusal_or_invents_a_repair",
+      "reason": "ready changed shipping owner or Main receiver domain",
+      "current_batch_selection_reasons": [
+        "ready changed shipping owner or Main receiver domain"
+      ]
+    },
+    {
+      "source_path": "src/source_verify/hints.rs",
+      "line": 1017,
+      "name": "publication_composition_pays_all_backing_and_complete_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 529,
+          "module": "source_verify",
+          "attributes": [
+            "#[allow(\n    clippy::needless_borrows_for_generic_args,\n    clippy::needless_return,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/source_verify.rs",
+          "line": 53,
+          "module": "hints",
+          "attributes": []
+        },
+        {
+          "source_path": "src/source_verify/hints.rs",
+          "line": 848,
+          "module": "authoring_repair_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "eb8ee06bd22de47d9c66cc23c492f2784ede93d16ff7f7d94b8f5e53fc26eeb6",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_verify::hints::authoring_repair_tests::publication_composition_pays_all_backing_and_complete_drop",
+      "reason": "ready changed shipping owner or Main receiver domain",
+      "current_batch_selection_reasons": [
+        "ready changed shipping owner or Main receiver domain"
+      ]
+    },
+    {
+      "source_path": "src/source_reflows/semantic_receivers.rs",
+      "line": 60,
+      "name": "every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 18,
+          "module": "source_reflows",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[macro_use]"
+          ]
+        },
+        {
+          "source_path": "src/source_reflows.rs",
+          "line": 26,
+          "module": "semantic_receivers",
+          "attributes": [
+            "#[path = \"source_reflows/semantic_receivers.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "651d174d04fad97da5c08ad215a869fd395a7d691d4a78dc901a99e814fc8252",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_reflows::semantic_receivers::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+      "reason": "ready changed shipping owner or Main receiver domain",
+      "current_batch_selection_reasons": [
+        "ready changed shipping owner or Main receiver domain"
+      ]
+    },
+    {
+      "source_path": "src/source_reflows/semantic_receivers.rs",
+      "line": 87,
+      "name": "receiver_mutation_and_forged_predecessor_fail_closed",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 18,
+          "module": "source_reflows",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[macro_use]"
+          ]
+        },
+        {
+          "source_path": "src/source_reflows.rs",
+          "line": 26,
+          "module": "semantic_receivers",
+          "attributes": [
+            "#[path = \"source_reflows/semantic_receivers.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "651d174d04fad97da5c08ad215a869fd395a7d691d4a78dc901a99e814fc8252",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_reflows::semantic_receivers::receiver_mutation_and_forged_predecessor_fail_closed",
+      "reason": "ready changed shipping owner or Main receiver domain",
+      "current_batch_selection_reasons": [
+        "ready changed shipping owner or Main receiver domain"
+      ]
+    },
+    {
+      "source_path": "src/source_reflows.rs",
+      "line": 128,
+      "name": "approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 18,
+          "module": "source_reflows",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[macro_use]"
+          ]
+        }
+      ],
+      "sha256": "8fca19450e0085f7986e79a1878b9246f86fe884646c70fca5f1d4508d367505",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_reflows::approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors",
+      "reason": "ready changed shipping owner or Main receiver domain",
+      "current_batch_selection_reasons": [
+        "ready changed shipping owner or Main receiver domain"
+      ]
+    },
+    {
+      "source_path": "tests/quickstart_v1/fused_source.rs",
+      "line": 301,
+      "name": "explicit_fused_source_wasm_package_uses_paired_loader_one_account_and_lossless_results",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/quickstart_v1.rs",
+          "line": 24,
+          "module": "fused_source",
+          "attributes": [
+            "#[path = \"quickstart_v1/fused_source.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "e34b72f66ec89117b87a03dcfd20fa77b101b9a2c9dfd40b957b79e2387c23da",
+      "ignored": false,
+      "harness": "semaprax::quickstart_v1",
+      "kind": "test:quickstart_v1",
+      "selector": "fused_source::explicit_fused_source_wasm_package_uses_paired_loader_one_account_and_lossless_results",
+      "reason": "ready changed shipping owner or Main receiver domain",
+      "current_batch_selection_reasons": [
+        "ready changed shipping owner or Main receiver domain"
+      ]
+    },
+    {
+      "source_path": "tests/project/semantic_cache.rs",
+      "line": 487,
+      "name": "warm_row_loan_consumers_reprove_current_provider_helpers",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/project.rs",
+          "line": 187,
+          "module": "semantic_cache",
+          "attributes": [
+            "#[path = \"project/semantic_cache.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "6006d4af965e4293b535ad34271129080794734957f2de88a2d0ebe7eb580ba3",
+      "ignored": false,
+      "harness": "semaprax::project",
+      "kind": "test:project",
+      "selector": "semantic_cache::warm_row_loan_consumers_reprove_current_provider_helpers",
+      "reason": "missing actual full #796 row-loan acceptance owner; production fix already present",
+      "current_batch_selection_reasons": [
+        "missing actual full #796 row-loan acceptance owner; production fix already present"
+      ]
+    },
+    {
+      "source_path": "src/source_verify/hints/before_capacity_witness.rs",
+      "line": 52,
+      "name": "publication_witness_keeps_exact_repair_and_primary_at_optional_limits",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 529,
+          "module": "source_verify",
+          "attributes": [
+            "#[allow(\n    clippy::needless_borrows_for_generic_args,\n    clippy::needless_return,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/source_verify.rs",
+          "line": 53,
+          "module": "hints",
+          "attributes": []
+        },
+        {
+          "source_path": "src/source_verify/hints.rs",
+          "line": 845,
+          "module": "before_capacity_witness",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/source_verify/hints/before_capacity_witness.rs",
+          "line": 48,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "08b35a359b94a740f7e349ec8ac3178f56678059c498dfcd5d1f5ac2e262f737",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_verify::hints::before_capacity_witness::tests::publication_witness_keeps_exact_repair_and_primary_at_optional_limits",
+      "reason": "complete independent Main851 old optional-repair helper+body controls",
+      "current_batch_selection_reasons": [
+        "complete independent Main851 old optional-repair helper+body controls"
+      ]
+    },
+    {
+      "source_path": "src/source_verify/hints/before_capacity_witness.rs",
+      "line": 79,
+      "name": "publication_witness_never_replaces_a_sticky_refusal_or_invents_a_repair",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 529,
+          "module": "source_verify",
+          "attributes": [
+            "#[allow(\n    clippy::needless_borrows_for_generic_args,\n    clippy::needless_return,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/source_verify.rs",
+          "line": 53,
+          "module": "hints",
+          "attributes": []
+        },
+        {
+          "source_path": "src/source_verify/hints.rs",
+          "line": 845,
+          "module": "before_capacity_witness",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/source_verify/hints/before_capacity_witness.rs",
+          "line": 48,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "08b35a359b94a740f7e349ec8ac3178f56678059c498dfcd5d1f5ac2e262f737",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_verify::hints::before_capacity_witness::tests::publication_witness_never_replaces_a_sticky_refusal_or_invents_a_repair",
+      "reason": "complete independent Main851 old optional-repair helper+body controls",
+      "current_batch_selection_reasons": [
+        "complete independent Main851 old optional-repair helper+body controls"
+      ]
+    },
+    {
+      "source_path": "src/source_verify/hints/before_capacity_witness.rs",
+      "line": 104,
+      "name": "publication_composition_pays_all_backing_and_complete_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 529,
+          "module": "source_verify",
+          "attributes": [
+            "#[allow(\n    clippy::needless_borrows_for_generic_args,\n    clippy::needless_return,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/source_verify.rs",
+          "line": 53,
+          "module": "hints",
+          "attributes": []
+        },
+        {
+          "source_path": "src/source_verify/hints.rs",
+          "line": 845,
+          "module": "before_capacity_witness",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/source_verify/hints/before_capacity_witness.rs",
+          "line": 48,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "08b35a359b94a740f7e349ec8ac3178f56678059c498dfcd5d1f5ac2e262f737",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_verify::hints::before_capacity_witness::tests::publication_composition_pays_all_backing_and_complete_drop",
+      "reason": "complete independent Main851 old optional-repair helper+body controls",
+      "current_batch_selection_reasons": [
+        "complete independent Main851 old optional-repair helper+body controls"
+      ]
+    },
+    {
+      "source_path": "src/workspace_graph/type_proof_tests.rs",
+      "line": 829,
+      "name": "rendered_document_has_literal_sha_exact_wire_order_and_digest_binding",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 5611,
+          "module": "type_proof_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"workspace_graph/type_proof_tests.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/workspace_graph/type_proof_tests.rs",
+          "line": 30,
+          "module": "projection_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "9d228fa1055bb3a5d5ec36f0dec4350714a38cf9c62e740521d8c9b5ae7e952a",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding",
+      "reason": "actual new pin consumer; only run after producer-backed test/evidence successor",
+      "current_batch_selection_reasons": [
+        "actual new pin consumer; only run after producer-backed test/evidence successor"
+      ]
+    },
+    {
+      "source_path": "tests/workspace/semantic_graph.rs",
+      "line": 628,
+      "name": "public_api_cli_bytes_getters_and_read_only_locking_are_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/workspace.rs",
+          "line": 68,
+          "module": "semantic_graph",
+          "attributes": [
+            "#[path = \"workspace/semantic_graph.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "2e682e40aa451425c60e152e2ab98dd3a46372923297560e38f54f6fb2dca5f1",
+      "ignored": false,
+      "harness": "semaprax::workspace",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact",
+      "reason": "actual new pin consumer; only run after producer-backed test/evidence successor",
+      "current_batch_selection_reasons": [
+        "actual new pin consumer; only run after producer-backed test/evidence successor"
+      ]
+    },
+    {
+      "source_path": "tests/workspace/semantic_graph.rs",
+      "line": 872,
+      "name": "public_workspace_analysis_api_cli_kats_and_locking_are_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/workspace.rs",
+          "line": 68,
+          "module": "semantic_graph",
+          "attributes": [
+            "#[path = \"workspace/semantic_graph.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "2e682e40aa451425c60e152e2ab98dd3a46372923297560e38f54f6fb2dca5f1",
+      "ignored": false,
+      "harness": "semaprax::workspace",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::public_workspace_analysis_api_cli_kats_and_locking_are_exact",
+      "reason": "actual new pin consumer; only run after producer-backed test/evidence successor",
+      "current_batch_selection_reasons": [
+        "actual new pin consumer; only run after producer-backed test/evidence successor"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "line": 160,
+      "name": "current_hosted_wires_replay_complete_historical_cursor_controls",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "1b3033a860933b4c3f4ab2c438bd1830bbcc9bed56d7f5f59f2af9488da11c05",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::current_hosted_wires_replay_complete_historical_cursor_controls",
+      "reason": "actual new pin consumer; only run after producer-backed test/evidence successor",
+      "current_batch_selection_reasons": [
+        "actual new pin consumer; only run after producer-backed test/evidence successor"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "line": 180,
+      "name": "current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "1b3033a860933b4c3f4ab2c438bd1830bbcc9bed56d7f5f59f2af9488da11c05",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration",
+      "reason": "actual new pin consumer; only run after producer-backed test/evidence successor",
+      "current_batch_selection_reasons": [
+        "actual new pin consumer; only run after producer-backed test/evidence successor"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "line": 208,
+      "name": "a_rehashed_non_builder_budget_mutation_cannot_pass_the_historical_bridge",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "1b3033a860933b4c3f4ab2c438bd1830bbcc9bed56d7f5f59f2af9488da11c05",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::a_rehashed_non_builder_budget_mutation_cannot_pass_the_historical_bridge",
+      "reason": "actual new pin consumer; only run after producer-backed test/evidence successor",
+      "current_batch_selection_reasons": [
+        "actual new pin consumer; only run after producer-backed test/evidence successor"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "line": 251,
+      "name": "complete_prior_browser_contract_has_only_registration_and_call_adapter_changes",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "1b3033a860933b4c3f4ab2c438bd1830bbcc9bed56d7f5f59f2af9488da11c05",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::complete_prior_browser_contract_has_only_registration_and_call_adapter_changes",
+      "reason": "actual new pin consumer; only run after producer-backed test/evidence successor",
+      "current_batch_selection_reasons": [
+        "actual new pin consumer; only run after producer-backed test/evidence successor"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/before_2600.rs",
+      "line": 73,
+      "name": "current_hosted_wires_replay_complete_historical_cursor_controls",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 279,
+          "module": "main2600",
+          "attributes": [
+            "#[path = \"historical_main2600.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main2600.rs",
+          "line": 6,
+          "module": "before_2600",
+          "attributes": [
+            "#[path = \"before_2600.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "c8f7162f8910572826e18000efd3415464a0f3653581c05b4b0a431c2761e32c",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::before_2600::current_hosted_wires_replay_complete_historical_cursor_controls",
+      "reason": "actual new pin consumer; only run after producer-backed test/evidence successor",
+      "current_batch_selection_reasons": [
+        "actual new pin consumer; only run after producer-backed test/evidence successor"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/before_2600.rs",
+      "line": 88,
+      "name": "current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 279,
+          "module": "main2600",
+          "attributes": [
+            "#[path = \"historical_main2600.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main2600.rs",
+          "line": 6,
+          "module": "before_2600",
+          "attributes": [
+            "#[path = \"before_2600.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "c8f7162f8910572826e18000efd3415464a0f3653581c05b4b0a431c2761e32c",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::before_2600::current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration",
+      "reason": "actual new pin consumer; only run after producer-backed test/evidence successor",
+      "current_batch_selection_reasons": [
+        "actual new pin consumer; only run after producer-backed test/evidence successor"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/before_2600.rs",
+      "line": 116,
+      "name": "a_rehashed_non_builder_budget_mutation_cannot_pass_the_historical_bridge",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 279,
+          "module": "main2600",
+          "attributes": [
+            "#[path = \"historical_main2600.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main2600.rs",
+          "line": 6,
+          "module": "before_2600",
+          "attributes": [
+            "#[path = \"before_2600.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "c8f7162f8910572826e18000efd3415464a0f3653581c05b4b0a431c2761e32c",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::before_2600::a_rehashed_non_builder_budget_mutation_cannot_pass_the_historical_bridge",
+      "reason": "actual new pin consumer; only run after producer-backed test/evidence successor",
+      "current_batch_selection_reasons": [
+        "actual new pin consumer; only run after producer-backed test/evidence successor"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/before_2600.rs",
+      "line": 132,
+      "name": "complete_prior_browser_contract_has_only_registration_and_call_adapter_changes",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 279,
+          "module": "main2600",
+          "attributes": [
+            "#[path = \"historical_main2600.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main2600.rs",
+          "line": 6,
+          "module": "before_2600",
+          "attributes": [
+            "#[path = \"before_2600.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "c8f7162f8910572826e18000efd3415464a0f3653581c05b4b0a431c2761e32c",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::before_2600::complete_prior_browser_contract_has_only_registration_and_call_adapter_changes",
+      "reason": "actual new pin consumer; only run after producer-backed test/evidence successor",
+      "current_batch_selection_reasons": [
+        "actual new pin consumer; only run after producer-backed test/evidence successor"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main2600.rs",
+      "line": 62,
+      "name": "hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 279,
+          "module": "main2600",
+          "attributes": [
+            "#[path = \"historical_main2600.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "565c2dc1ecc8a99502474133fe88e35f56e43f9efa84317b1637760c958b5b78",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+      "reason": "actual new pin consumer; only run after producer-backed test/evidence successor",
+      "current_batch_selection_reasons": [
+        "actual new pin consumer; only run after producer-backed test/evidence successor"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main2600.rs",
+      "line": 80,
+      "name": "a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 279,
+          "module": "main2600",
+          "attributes": [
+            "#[path = \"historical_main2600.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "565c2dc1ecc8a99502474133fe88e35f56e43f9efa84317b1637760c958b5b78",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+      "reason": "actual new pin consumer; only run after producer-backed test/evidence successor",
+      "current_batch_selection_reasons": [
+        "actual new pin consumer; only run after producer-backed test/evidence successor"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main2600.rs",
+      "line": 97,
+      "name": "the_complete_old_bridge_changes_only_its_retained_runner_include",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 279,
+          "module": "main2600",
+          "attributes": [
+            "#[path = \"historical_main2600.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "565c2dc1ecc8a99502474133fe88e35f56e43f9efa84317b1637760c958b5b78",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main2600::the_complete_old_bridge_changes_only_its_retained_runner_include",
+      "reason": "actual new pin consumer; only run after producer-backed test/evidence successor",
+      "current_batch_selection_reasons": [
+        "actual new pin consumer; only run after producer-backed test/evidence successor"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+      "line": 53,
+      "name": "browser_known_answers_match_authenticated_baseline_and_rename_graphs",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "0566bc0f16072083d485cdfe86385d6e1c9613ba426a28278d0aa03708f0dccc",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::browser_known_answers_match_authenticated_baseline_and_rename_graphs",
+      "reason": "actual new pin consumer; only run after producer-backed test/evidence successor",
+      "current_batch_selection_reasons": [
+        "actual new pin consumer; only run after producer-backed test/evidence successor"
+      ]
+    },
+    {
+      "source_path": "src/workspace_graph/function_alias/before_core/tests.rs",
+      "line": 14,
+      "name": "actual_uncached_core_old_and_current_include_new_entry_controls_and_all_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 19,
+          "module": "constructor_failure",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph/constructor_failure.rs",
+          "line": 92,
+          "module": "typed",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph/constructor_failure/typed.rs",
+          "line": 148,
+          "module": "before_function_alias_core",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"../function_alias/before_core.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/workspace_graph/function_alias/before_core.rs",
+          "line": 359,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"before_core/tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "f5e945c4bfbe403b871f7fd5c4bf959c8f4d2810adb88d18221780694561704d",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_uncached_core_old_and_current_include_new_entry_controls_and_all_drop",
+      "reason": "parent-authorized actual noncompact uncached complete caller changed; independent old/current limits, all fields, allocations and Drop",
+      "current_batch_selection_reasons": [
+        "parent-authorized actual noncompact uncached complete caller changed; independent old/current limits, all fields, allocations and Drop"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/compact_stage/tests.rs",
+      "line": 39,
+      "name": "all_canonical_fields_order_and_debug_survive_compaction",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 4,
+          "module": "compact_stage",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/compact_stage.rs",
+          "line": 195,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "2ef612fae1f39852ff210c563321ce676cedc7cf4bed3d1a4f685cfac22865d6",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::compact_stage::tests::all_canonical_fields_order_and_debug_survive_compaction",
+      "reason": "New Main production/dependency source control or required current120 whole-owner counterpart.",
+      "current_batch_selection_reasons": [
+        "New Main production/dependency source control or required current120 whole-owner counterpart."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/compact_stage/tests.rs",
+      "line": 101,
+      "name": "constructor_and_rc_pay_all_backing_with_zero_exact_short_and_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 4,
+          "module": "compact_stage",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/compact_stage.rs",
+          "line": 195,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "2ef612fae1f39852ff210c563321ce676cedc7cf4bed3d1a4f685cfac22865d6",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::compact_stage::tests::constructor_and_rc_pay_all_backing_with_zero_exact_short_and_drop",
+      "reason": "New Main production/dependency source control or required current120 whole-owner counterpart.",
+      "current_batch_selection_reasons": [
+        "New Main production/dependency source control or required current120 whole-owner counterpart."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/compact_stage/tests.rs",
+      "line": 159,
+      "name": "complete_original_plan_paths_keep_every_field_work_and_materialization",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 4,
+          "module": "compact_stage",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/compact_stage.rs",
+          "line": 195,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "2ef612fae1f39852ff210c563321ce676cedc7cf4bed3d1a4f685cfac22865d6",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::compact_stage::tests::complete_original_plan_paths_keep_every_field_work_and_materialization",
+      "reason": "New Main production/dependency source control or required current120 whole-owner counterpart.",
+      "current_batch_selection_reasons": [
+        "New Main production/dependency source control or required current120 whole-owner counterpart."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/compact_stage/source_custody.rs",
+      "line": 120,
+      "name": "all_seven_live_receivers_reconstruct_every_predecessor_byte",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 4,
+          "module": "compact_stage",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/compact_stage.rs",
+          "line": 193,
+          "module": "source_custody",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "8b0cb2c2c16f3fcba177489b1718b52da6666b21dd6d5828823edbc1474943d8",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::compact_stage::source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte",
+      "reason": "New Main production/dependency source control or required current120 whole-owner counterpart.",
+      "current_batch_selection_reasons": [
+        "New Main production/dependency source control or required current120 whole-owner counterpart."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/compact_stage/source_custody.rs",
+      "line": 142,
+      "name": "original_enumerator_enum_header_traits_and_lexical_helper_stay_complete",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 4,
+          "module": "compact_stage",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/compact_stage.rs",
+          "line": 193,
+          "module": "source_custody",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "8b0cb2c2c16f3fcba177489b1718b52da6666b21dd6d5828823edbc1474943d8",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::compact_stage::source_custody::original_enumerator_enum_header_traits_and_lexical_helper_stay_complete",
+      "reason": "New Main production/dependency source control or required current120 whole-owner counterpart.",
+      "current_batch_selection_reasons": [
+        "New Main production/dependency source control or required current120 whole-owner counterpart."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/oracle_order/tests.rs",
+      "line": 17,
+      "name": "compact_staged_order_preserves_canonical_fields_work_and_refusals",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 106,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 1035,
+          "module": "oracle_order",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/oracle_order.rs",
+          "line": 901,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "c46342d7c901468838d2b5d594050c693526affead95167c0e9416ef6ab458fd",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::oracle_order::tests::compact_staged_order_preserves_canonical_fields_work_and_refusals",
+      "reason": "New Main production/dependency source control or required current120 whole-owner counterpart.",
+      "current_batch_selection_reasons": [
+        "New Main production/dependency source control or required current120 whole-owner counterpart."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/structural_maps/tests.rs",
+      "line": 122,
+      "name": "borrowed_status_coverage_still_rejects_missing_and_changed_declarations",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 39,
+          "module": "structural_maps",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/structural_maps.rs",
+          "line": 229,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "839a2981800cd8587bc992e158fe5232d6c99708247aefed1d28c8b74dbdeb92",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::structural_maps::tests::borrowed_status_coverage_still_rejects_missing_and_changed_declarations",
+      "reason": "New Main production/dependency source control or required current120 whole-owner counterpart.",
+      "current_batch_selection_reasons": [
+        "New Main production/dependency source control or required current120 whole-owner counterpart."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/structural_maps/tests.rs",
+      "line": 146,
+      "name": "borrowed_status_sets_keep_full_identity_order_and_pay_backing_through_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 39,
+          "module": "structural_maps",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/structural_maps.rs",
+          "line": 229,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "839a2981800cd8587bc992e158fe5232d6c99708247aefed1d28c8b74dbdeb92",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::structural_maps::tests::borrowed_status_sets_keep_full_identity_order_and_pay_backing_through_drop",
+      "reason": "New Main production/dependency source control or required current120 whole-owner counterpart.",
+      "current_batch_selection_reasons": [
+        "New Main production/dependency source control or required current120 whole-owner counterpart."
+      ]
+    },
+    {
+      "source_path": "src/source_reflows/semantic_receivers_mainb80.rs",
+      "line": 60,
+      "name": "every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 18,
+          "module": "source_reflows",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[macro_use]"
+          ]
+        },
+        {
+          "source_path": "src/source_reflows.rs",
+          "line": 29,
+          "module": "semantic_receivers_mainb80",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"source_reflows/semantic_receivers_mainb80.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "778a3a4b0356b3b3f74f93ed93a1aa1f6a31f87d2cb91a1fe219b90f937148be",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_reflows::semantic_receivers_mainb80::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+      "reason": "New Main production/dependency source control or required current120 whole-owner counterpart.",
+      "current_batch_selection_reasons": [
+        "New Main production/dependency source control or required current120 whole-owner counterpart."
+      ]
+    },
+    {
+      "source_path": "src/source_reflows/semantic_receivers_mainb80.rs",
+      "line": 87,
+      "name": "receiver_mutation_and_forged_predecessor_fail_closed",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 18,
+          "module": "source_reflows",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[macro_use]"
+          ]
+        },
+        {
+          "source_path": "src/source_reflows.rs",
+          "line": 29,
+          "module": "semantic_receivers_mainb80",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"source_reflows/semantic_receivers_mainb80.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "778a3a4b0356b3b3f74f93ed93a1aa1f6a31f87d2cb91a1fe219b90f937148be",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed",
+      "reason": "New Main production/dependency source control or required current120 whole-owner counterpart.",
+      "current_batch_selection_reasons": [
+        "New Main production/dependency source control or required current120 whole-owner counterpart."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/final_output/current_observation_tests.rs",
+      "line": 116,
+      "name": "final_output_keeps_complete_hir_plan_multiplicity_work_and_failures",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 9,
+          "module": "final_output",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/final_output.rs",
+          "line": 156,
+          "module": "current_observation_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"final_output/current_observation_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "c6cd5f2027247d74506c5ba21085eaabb68cc4af0f7b7c3462bf0a16fdfc4f73",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::final_output::current_observation_tests::final_output_keeps_complete_hir_plan_multiplicity_work_and_failures",
+      "reason": "New Main production/dependency source control or required current120 whole-owner counterpart.",
+      "current_batch_selection_reasons": [
+        "New Main production/dependency source control or required current120 whole-owner counterpart."
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/final_output/current_observation_tests.rs",
+      "line": 203,
+      "name": "final_output_whole_owners_report_capacities_exact_short_zero_and_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 9,
+          "module": "final_output",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/final_output.rs",
+          "line": 156,
+          "module": "current_observation_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"final_output/current_observation_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "c6cd5f2027247d74506c5ba21085eaabb68cc4af0f7b7c3462bf0a16fdfc4f73",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::final_output::current_observation_tests::final_output_whole_owners_report_capacities_exact_short_zero_and_drop",
+      "reason": "New Main production/dependency source control or required current120 whole-owner counterpart.",
+      "current_batch_selection_reasons": [
+        "New Main production/dependency source control or required current120 whole-owner counterpart."
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main_c451.rs",
+      "line": 62,
+      "name": "hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 366,
+          "module": "main_c451",
+          "attributes": [
+            "#[path = \"historical_main_c451.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "cfc4bae611ebdb4693549b43f8c7b81f3b092c6127278f894a55f20cb25d7f73",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+      "reason": "new Main c451 owning controls",
+      "current_batch_selection_reasons": [
+        "new Main c451 owning controls"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main_c451.rs",
+      "line": 77,
+      "name": "a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 366,
+          "module": "main_c451",
+          "attributes": [
+            "#[path = \"historical_main_c451.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "cfc4bae611ebdb4693549b43f8c7b81f3b092c6127278f894a55f20cb25d7f73",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+      "reason": "new Main c451 owning controls",
+      "current_batch_selection_reasons": [
+        "new Main c451 owning controls"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main_c451.rs",
+      "line": 94,
+      "name": "the_complete_old_bridge_changes_only_its_retained_runner_include",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 366,
+          "module": "main_c451",
+          "attributes": [
+            "#[path = \"historical_main_c451.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "cfc4bae611ebdb4693549b43f8c7b81f3b092c6127278f894a55f20cb25d7f73",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::the_complete_old_bridge_changes_only_its_retained_runner_include",
+      "reason": "new Main c451 owning controls",
+      "current_batch_selection_reasons": [
+        "new Main c451 owning controls"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/before_c451.rs",
+      "line": 62,
+      "name": "hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 366,
+          "module": "main_c451",
+          "attributes": [
+            "#[path = \"historical_main_c451.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main_c451.rs",
+          "line": 6,
+          "module": "before_c451",
+          "attributes": [
+            "#[path = \"before_c451.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "2db121ad5e55ff4893d6f394acbf76992d310cff305586e431173d87f2ce10a5",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::before_c451::hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+      "reason": "complete Main previous receiver controls",
+      "current_batch_selection_reasons": [
+        "complete Main previous receiver controls"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/before_c451.rs",
+      "line": 78,
+      "name": "a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 366,
+          "module": "main_c451",
+          "attributes": [
+            "#[path = \"historical_main_c451.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main_c451.rs",
+          "line": 6,
+          "module": "before_c451",
+          "attributes": [
+            "#[path = \"before_c451.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "2db121ad5e55ff4893d6f394acbf76992d310cff305586e431173d87f2ce10a5",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::before_c451::a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+      "reason": "complete Main previous receiver controls",
+      "current_batch_selection_reasons": [
+        "complete Main previous receiver controls"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/before_c451.rs",
+      "line": 95,
+      "name": "the_complete_old_bridge_changes_only_its_retained_runner_include",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 366,
+          "module": "main_c451",
+          "attributes": [
+            "#[path = \"historical_main_c451.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main_c451.rs",
+          "line": 6,
+          "module": "before_c451",
+          "attributes": [
+            "#[path = \"before_c451.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "2db121ad5e55ff4893d6f394acbf76992d310cff305586e431173d87f2ce10a5",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::before_c451::the_complete_old_bridge_changes_only_its_retained_runner_include",
+      "reason": "complete Main previous receiver controls",
+      "current_batch_selection_reasons": [
+        "complete Main previous receiver controls"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/main_c451_before_2600.rs",
+      "line": 73,
+      "name": "current_hosted_wires_replay_complete_historical_cursor_controls",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 366,
+          "module": "main_c451",
+          "attributes": [
+            "#[path = \"historical_main_c451.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main_c451.rs",
+          "line": 6,
+          "module": "before_c451",
+          "attributes": [
+            "#[path = \"before_c451.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/before_c451.rs",
+          "line": 6,
+          "module": "before_2600",
+          "attributes": [
+            "#[path = \"main_c451_before_2600.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "b7e6b422a7ed8be68fdc06d3447e5370cd53c618c80461f6be9bc631906c58c2",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::before_c451::before_2600::current_hosted_wires_replay_complete_historical_cursor_controls",
+      "reason": "complete original Main old controls",
+      "current_batch_selection_reasons": [
+        "complete original Main old controls"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/main_c451_before_2600.rs",
+      "line": 88,
+      "name": "current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 366,
+          "module": "main_c451",
+          "attributes": [
+            "#[path = \"historical_main_c451.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main_c451.rs",
+          "line": 6,
+          "module": "before_c451",
+          "attributes": [
+            "#[path = \"before_c451.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/before_c451.rs",
+          "line": 6,
+          "module": "before_2600",
+          "attributes": [
+            "#[path = \"main_c451_before_2600.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "b7e6b422a7ed8be68fdc06d3447e5370cd53c618c80461f6be9bc631906c58c2",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::before_c451::before_2600::current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration",
+      "reason": "complete original Main old controls",
+      "current_batch_selection_reasons": [
+        "complete original Main old controls"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/main_c451_before_2600.rs",
+      "line": 116,
+      "name": "a_rehashed_non_builder_budget_mutation_cannot_pass_the_historical_bridge",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 366,
+          "module": "main_c451",
+          "attributes": [
+            "#[path = \"historical_main_c451.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main_c451.rs",
+          "line": 6,
+          "module": "before_c451",
+          "attributes": [
+            "#[path = \"before_c451.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/before_c451.rs",
+          "line": 6,
+          "module": "before_2600",
+          "attributes": [
+            "#[path = \"main_c451_before_2600.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "b7e6b422a7ed8be68fdc06d3447e5370cd53c618c80461f6be9bc631906c58c2",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::before_c451::before_2600::a_rehashed_non_builder_budget_mutation_cannot_pass_the_historical_bridge",
+      "reason": "complete original Main old controls",
+      "current_batch_selection_reasons": [
+        "complete original Main old controls"
+      ]
+    },
+    {
+      "source_path": "tests/wasm/scalar_browser_ci_contract/main_c451_before_2600.rs",
+      "line": 132,
+      "name": "complete_prior_browser_contract_has_only_registration_and_call_adapter_changes",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/wasm.rs",
+          "line": 28,
+          "module": "scalar_browser_ci_contract",
+          "attributes": [
+            "#[path = \"wasm/scalar_browser_ci_contract.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract.rs",
+          "line": 7,
+          "module": "historical_builder",
+          "attributes": [
+            "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+          "line": 366,
+          "module": "main_c451",
+          "attributes": [
+            "#[path = \"historical_main_c451.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/historical_main_c451.rs",
+          "line": 6,
+          "module": "before_c451",
+          "attributes": [
+            "#[path = \"before_c451.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/wasm/scalar_browser_ci_contract/before_c451.rs",
+          "line": 6,
+          "module": "before_2600",
+          "attributes": [
+            "#[path = \"main_c451_before_2600.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "b7e6b422a7ed8be68fdc06d3447e5370cd53c618c80461f6be9bc631906c58c2",
+      "ignored": false,
+      "harness": "semaprax::wasm",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main_c451::before_c451::before_2600::complete_prior_browser_contract_has_only_registration_and_call_adapter_changes",
+      "reason": "complete original Main old controls",
+      "current_batch_selection_reasons": [
+        "complete original Main old controls"
+      ]
+    },
+    {
+      "source_path": "tests/project/standard_library/application_json/utf8/max_shape.rs",
+      "line": 245,
+      "name": "utf8_maximum_shape_preserves_raw_escaped_and_mixed_64_byte_values",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/project.rs",
+          "line": 207,
+          "module": "standard_library",
+          "attributes": [
+            "#[path = \"project/standard_library.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library.rs",
+          "line": 19,
+          "module": "application_json",
+          "attributes": [
+            "#[path = \"standard_library/application_json.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library/application_json.rs",
+          "line": 29,
+          "module": "utf8",
+          "attributes": [
+            "#[path = \"application_json/utf8.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library/application_json/utf8.rs",
+          "line": 7,
+          "module": "max_shape",
+          "attributes": [
+            "#[path = \"utf8/max_shape.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "c3bfbbbc31d8296a3845a929d67fd4dc3af856e47f417aadb2c25e87f6faf2cc",
+      "ignored": false,
+      "harness": "semaprax::project",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::utf8::max_shape::utf8_maximum_shape_preserves_raw_escaped_and_mixed_64_byte_values",
+      "reason": "Parent-authorized single literal #753 remaining maximum-shape positive; unchanged160M-step/16MiB envelope; historical2ffc row81 G171 remains failure",
+      "current_batch_selection_reasons": [
+        "Parent-authorized single literal #753 remaining maximum-shape positive; unchanged160M-step/16MiB envelope; historical2ffc row81 G171 remains failure"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/structural_maps/tests/paid_reference.rs",
+      "line": 48,
+      "name": "complete_reference_oracle_keeps_all_three_refusals_and_first_error_order",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 39,
+          "module": "structural_maps",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/structural_maps.rs",
+          "line": 229,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/structural_maps/tests.rs",
+          "line": 228,
+          "module": "paid_reference",
+          "attributes": [
+            "#[path = \"tests/paid_reference.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "0509ba0f7167dbf7f65391924bb7f873fc9f595ef51c3895656246128b254ab3",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::structural_maps::tests::paid_reference::complete_reference_oracle_keeps_all_three_refusals_and_first_error_order",
+      "reason": "Parent-authorized finite #781 reference/profile-owner or #853 streaming comparison cut; source-only NOT_EXECUTED; retain full legacy and report/ledger/Drop acceptance",
+      "current_batch_selection_reasons": [
+        "Parent-authorized finite #781 reference/profile-owner or #853 streaming comparison cut; source-only NOT_EXECUTED; retain full legacy and report/ledger/Drop acceptance"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/structural_maps/tests/paid_reference.rs",
+      "line": 93,
+      "name": "reference_per_actual_call_banks_exact_short_zero_duplicates_and_whole_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 39,
+          "module": "structural_maps",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/structural_maps.rs",
+          "line": 229,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/structural_maps/tests.rs",
+          "line": 228,
+          "module": "paid_reference",
+          "attributes": [
+            "#[path = \"tests/paid_reference.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "0509ba0f7167dbf7f65391924bb7f873fc9f595ef51c3895656246128b254ab3",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::structural_maps::tests::paid_reference::reference_per_actual_call_banks_exact_short_zero_duplicates_and_whole_drop",
+      "reason": "Parent-authorized finite #781 reference/profile-owner or #853 streaming comparison cut; source-only NOT_EXECUTED; retain full legacy and report/ledger/Drop acceptance",
+      "current_batch_selection_reasons": [
+        "Parent-authorized finite #781 reference/profile-owner or #853 streaming comparison cut; source-only NOT_EXECUTED; retain full legacy and report/ledger/Drop acceptance"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/selected_entry/tests/driver_local_receivers.rs",
+      "line": 52,
+      "name": "duplicated_driver_profile_and_owner_keep_raw_oracle_and_transfer_one_paid_report",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 35,
+          "module": "selected_entry",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/selected_entry.rs",
+          "line": 414,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/selected_entry/tests.rs",
+          "line": 172,
+          "module": "driver_local_receivers",
+          "attributes": [
+            "#[path = \"tests/driver_local_receivers.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "5e9118fbdb2b1f581aabdf3b71b1ab0624394b2d8abdc22ce030376a687f1590",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_entry::tests::driver_local_receivers::duplicated_driver_profile_and_owner_keep_raw_oracle_and_transfer_one_paid_report",
+      "reason": "Parent-authorized finite #781 reference/profile-owner or #853 streaming comparison cut; source-only NOT_EXECUTED; retain full legacy and report/ledger/Drop acceptance",
+      "current_batch_selection_reasons": [
+        "Parent-authorized finite #781 reference/profile-owner or #853 streaming comparison cut; source-only NOT_EXECUTED; retain full legacy and report/ledger/Drop acceptance"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/selected_entry/tests/driver_local_receivers.rs",
+      "line": 132,
+      "name": "duplicated_driver_complete_legacy_bodies_and_current_sources_stay_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 35,
+          "module": "selected_entry",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/selected_entry.rs",
+          "line": 414,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/selected_entry/tests.rs",
+          "line": 172,
+          "module": "driver_local_receivers",
+          "attributes": [
+            "#[path = \"tests/driver_local_receivers.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "5e9118fbdb2b1f581aabdf3b71b1ab0624394b2d8abdc22ce030376a687f1590",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_entry::tests::driver_local_receivers::duplicated_driver_complete_legacy_bodies_and_current_sources_stay_exact",
+      "reason": "Parent-authorized finite #781 reference/profile-owner or #853 streaming comparison cut; source-only NOT_EXECUTED; retain full legacy and report/ledger/Drop acceptance",
+      "current_batch_selection_reasons": [
+        "Parent-authorized finite #781 reference/profile-owner or #853 streaming comparison cut; source-only NOT_EXECUTED; retain full legacy and report/ledger/Drop acceptance"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs",
+      "line": 131,
+      "name": "selected_session_receipt_full_carrier_exact_short_zero_sticky_report_and_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 35,
+          "module": "selected_entry",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/selected_entry.rs",
+          "line": 414,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/selected_entry/tests.rs",
+          "line": 169,
+          "module": "session_errors",
+          "attributes": []
+        }
+      ],
+      "sha256": "2b27003287b4e325ed126b4e26f9f933fc039e42f66739242b63759d3d713b05",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_entry::tests::session_errors::selected_session_receipt_full_carrier_exact_short_zero_sticky_report_and_drop",
+      "reason": "Parent-authorized finite #781 reference/profile-owner or #853 streaming comparison cut; source-only NOT_EXECUTED; retain full legacy and report/ledger/Drop acceptance",
+      "current_batch_selection_reasons": [
+        "Parent-authorized finite #781 reference/profile-owner or #853 streaming comparison cut; source-only NOT_EXECUTED; retain full legacy and report/ledger/Drop acceptance"
+      ]
+    },
+    {
+      "source_path": "src/hir/ids/instance_match/tests.rs",
+      "line": 80,
+      "name": "streamed_instance_matches_complete_encoder_all_forms_and_forged_bytes",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 178,
+          "module": "hir",
+          "attributes": [
+            "#[allow(\n    unused_imports,\n    clippy::needless_borrows_for_generic_args,\n    clippy::too_many_arguments,\n    clippy::unnecessary_map_or,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/hir.rs",
+          "line": 126,
+          "module": "ids",
+          "attributes": []
+        },
+        {
+          "source_path": "src/hir/ids.rs",
+          "line": 684,
+          "module": "instance_match",
+          "attributes": [
+            "#[path = \"ids/instance_match.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/hir/ids/instance_match.rs",
+          "line": 139,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"instance_match/tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "5fefa8ec471bbaeaf985dfc6ac50b4974364b659c2fde2f74e126482827917e5",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "hir::ids::instance_match::tests::streamed_instance_matches_complete_encoder_all_forms_and_forged_bytes",
+      "reason": "Parent-authorized finite #781 reference/profile-owner or #853 streaming comparison cut; source-only NOT_EXECUTED; retain full legacy and report/ledger/Drop acceptance",
+      "current_batch_selection_reasons": [
+        "Parent-authorized finite #781 reference/profile-owner or #853 streaming comparison cut; source-only NOT_EXECUTED; retain full legacy and report/ledger/Drop acceptance"
+      ]
+    },
+    {
+      "source_path": "src/hir/ids/instance_match/tests.rs",
+      "line": 122,
+      "name": "streamed_instance_exact_short_zero_sticky_floor_keep_all_key_producers_and_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 178,
+          "module": "hir",
+          "attributes": [
+            "#[allow(\n    unused_imports,\n    clippy::needless_borrows_for_generic_args,\n    clippy::too_many_arguments,\n    clippy::unnecessary_map_or,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/hir.rs",
+          "line": 126,
+          "module": "ids",
+          "attributes": []
+        },
+        {
+          "source_path": "src/hir/ids.rs",
+          "line": 684,
+          "module": "instance_match",
+          "attributes": [
+            "#[path = \"ids/instance_match.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/hir/ids/instance_match.rs",
+          "line": 139,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"instance_match/tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "5fefa8ec471bbaeaf985dfc6ac50b4974364b659c2fde2f74e126482827917e5",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "hir::ids::instance_match::tests::streamed_instance_exact_short_zero_sticky_floor_keep_all_key_producers_and_drop",
+      "reason": "Parent-authorized finite #781 reference/profile-owner or #853 streaming comparison cut; source-only NOT_EXECUTED; retain full legacy and report/ledger/Drop acceptance",
+      "current_batch_selection_reasons": [
+        "Parent-authorized finite #781 reference/profile-owner or #853 streaming comparison cut; source-only NOT_EXECUTED; retain full legacy and report/ledger/Drop acceptance"
+      ]
+    },
+    {
+      "source_path": "src/hir/ids/instance_match/tests.rs",
+      "line": 266,
+      "name": "streamed_instance_validator_preserves_duplicate_before_canonical_refusal",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 178,
+          "module": "hir",
+          "attributes": [
+            "#[allow(\n    unused_imports,\n    clippy::needless_borrows_for_generic_args,\n    clippy::too_many_arguments,\n    clippy::unnecessary_map_or,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/hir.rs",
+          "line": 126,
+          "module": "ids",
+          "attributes": []
+        },
+        {
+          "source_path": "src/hir/ids.rs",
+          "line": 684,
+          "module": "instance_match",
+          "attributes": [
+            "#[path = \"ids/instance_match.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/hir/ids/instance_match.rs",
+          "line": 139,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"instance_match/tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "5fefa8ec471bbaeaf985dfc6ac50b4974364b659c2fde2f74e126482827917e5",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "hir::ids::instance_match::tests::streamed_instance_validator_preserves_duplicate_before_canonical_refusal",
+      "reason": "Parent-authorized finite #781 reference/profile-owner or #853 streaming comparison cut; source-only NOT_EXECUTED; retain full legacy and report/ledger/Drop acceptance",
+      "current_batch_selection_reasons": [
+        "Parent-authorized finite #781 reference/profile-owner or #853 streaming comparison cut; source-only NOT_EXECUTED; retain full legacy and report/ledger/Drop acceptance"
+      ]
+    },
+    {
+      "source_path": "tests/project/standard_library/application_json/owned/shiftsim_typed_records.rs",
+      "line": 183,
+      "name": "typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/project.rs",
+          "line": 207,
+          "module": "standard_library",
+          "attributes": [
+            "#[path = \"project/standard_library.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library.rs",
+          "line": 19,
+          "module": "application_json",
+          "attributes": [
+            "#[path = \"standard_library/application_json.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library/application_json.rs",
+          "line": 17,
+          "module": "owned",
+          "attributes": [
+            "#[path = \"application_json/owned.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library/application_json/owned.rs",
+          "line": 12,
+          "module": "shiftsim_typed_records",
+          "attributes": [
+            "#[path = \"owned/shiftsim_typed_records.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "30e0ec893b8c5a65d11a05f98cfbe741381870ba8f6402f52af2687911d6b999",
+      "ignored": false,
+      "harness": "semaprax::project",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus",
+      "reason": "Parent-authorized literal847 unchanged application gate; actual35cc175 FAIL101 row49; same currentProjectroute affected; rerun/disclose actualfailure withoutpromisingpositivefit",
+      "current_batch_selection_reasons": [
+        "Parent-authorized literal847 unchanged application gate; actual35cc175 FAIL101 row49; same currentProjectroute affected; rerun/disclose actualfailure withoutpromisingpositivefit"
+      ]
+    },
+    {
+      "source_path": "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+      "line": 441,
+      "name": "application_starter_selected_file_declared_native_tests_and_unchanged_cli49",
+      "attributes": [
+        "#[cfg(unix)]",
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "crates/semaprax-toolchain/tests/cli_new_project_v1.rs",
+          "line": 2,
+          "module": "application_starter",
+          "attributes": [
+            "#[path = \"cli_new_project_v1/application_starter.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "e01a02fb235f02b43f8ea37fcb088e61ff72ea5c0b82c87bed187f328e559d53",
+      "ignored": false,
+      "harness": "semaprax-toolchain::cli_new_project_v1",
+      "kind": "test:cli_new_project_v1",
+      "selector": "application_starter::application_starter_selected_file_declared_native_tests_and_unchanged_cli49",
+      "reason": "Parent-authorized literal847 unchanged application gate; actual35cc175 FAIL101 row30; same currentProjectroute affected; rerun/disclose actualfailure withoutpromisingpositivefit",
+      "current_batch_selection_reasons": [
+        "Parent-authorized literal847 unchanged application gate; actual35cc175 FAIL101 row30; same currentProjectroute affected; rerun/disclose actualfailure withoutpromisingpositivefit"
+      ]
+    }
+  ],
+  "prior_failed_bodies": 0,
+  "parser_source": "/Volumes/Semaprax/provenance/qualification-registration-module-path-20261014.py",
+  "parser_sha256": "8774afeeb957dabcde7eee44a29c1a91aec2572d7740413a0dbebf473ec7da6f",
+  "parser_span_protocol": "Original definitions through before first parse; override R only; original enumeration through before failp unchanged",
+  "selection_sha256": "e516c5ae31a64b7995fa2b35671e8c3976f8e82f31378bb18c9e5f0a113cfad3",
+  "discovery_performed": false,
+  "execution_performed": false
+}

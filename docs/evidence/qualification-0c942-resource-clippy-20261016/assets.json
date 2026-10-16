@@ -1,0 +1,282 @@
+[
+  {
+    "path": "README.md",
+    "bytes": 1465,
+    "sha256": "74e1a166884667db5a957ea775288e323e0b88ac812c3217d9124ed708a45b97"
+  },
+  {
+    "path": "rss8/READY.md",
+    "bytes": 689,
+    "sha256": "3f5db5e274561643f7dd454d0382558ef7da667a027bdc599b04dd15cf3fffb1"
+  },
+  {
+    "path": "rss8/compilation-manifest.json",
+    "bytes": 876268,
+    "sha256": "57c9ec4facbf4a3a02ce56c8c338f589f35045cc109abfc8a81ec28baafe3ff3"
+  },
+  {
+    "path": "rss8/drivers/build-owning.py",
+    "bytes": 9776,
+    "sha256": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888"
+  },
+  {
+    "path": "rss8/drivers/draft_contract.py",
+    "bytes": 1752,
+    "sha256": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1"
+  },
+  {
+    "path": "rss8/drivers/observed_phase.py",
+    "bytes": 11471,
+    "sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+  },
+  {
+    "path": "rss8/drivers/run-owning-selected.py",
+    "bytes": 10438,
+    "sha256": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450"
+  },
+  {
+    "path": "rss8/drivers/run-production-lib-cli-clippy.py",
+    "bytes": 6214,
+    "sha256": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077"
+  },
+  {
+    "path": "rss8/drivers/semaprax_pressure_observation_v3.py",
+    "bytes": 10269,
+    "sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b"
+  },
+  {
+    "path": "rss8/expected-counts.json",
+    "bytes": 876268,
+    "sha256": "57c9ec4facbf4a3a02ce56c8c338f589f35045cc109abfc8a81ec28baafe3ff3"
+  },
+  {
+    "path": "rss8/independent-postterminal-group-observation.json",
+    "bytes": 197,
+    "sha256": "0c951dfd6fff1731d7e23f7cfd37bcb9af80b99d7321678c6f940605600dbdc1"
+  },
+  {
+    "path": "rss8/launch-binding.json",
+    "bytes": 645,
+    "sha256": "4122543103630deb795521c65b3657c629e13950b50c7d91db433d993d831cf1"
+  },
+  {
+    "path": "rss8/memory-samples.jsonl",
+    "bytes": 86230,
+    "sha256": "e88d7d1eab598464203efe90cb9d41102d8e0783c3a55c3904c3eca26741757f"
+  },
+  {
+    "path": "rss8/owning-build-progress.json",
+    "bytes": 7671,
+    "sha256": "24911a80b3c61d2e1c8c55efbc720f7dd355e4814e1230f08c8a86dbfb9bd0f7"
+  },
+  {
+    "path": "rss8/owning-build-result.json",
+    "bytes": 7985,
+    "sha256": "42c92dec8c9403065b01ca5ff60471b8484507c0b3a19cf65a6d4b3631f315bf"
+  },
+  {
+    "path": "rss8/owning-build.jsonl",
+    "bytes": 252666,
+    "sha256": "c904a8b26818b3fc68e20277bbbd78a53b3dd32fa2e99b1488afd1a7efbc3909"
+  },
+  {
+    "path": "rss8/owning-build.log",
+    "bytes": 105,
+    "sha256": "7c718e24287f3d59d597c6f922c84e2e4cae0de9da73df1865bac255b53d09d2"
+  },
+  {
+    "path": "rss8/postpin-0c942-97-prepare-20261016.log",
+    "bytes": 570,
+    "sha256": "e8085f3c8c16c9b020feb88efb9d1716c0f9c8de5a8d9ab43f394caa1d8434ee"
+  },
+  {
+    "path": "rss8/postpin-0c942-final97-selection-normalization-20261016.json",
+    "bytes": 928,
+    "sha256": "b2201045fc523ab33023323a0a2bb45230216ce82a6a5c1fb9476b6337702fa9"
+  },
+  {
+    "path": "rss8/preparation-receipt.json",
+    "bytes": 32434,
+    "sha256": "db56fd20a80c4aea9fcd4f7f9951cc5dc6e2054c34dc370ef448ab2bac7298bb"
+  },
+  {
+    "path": "rss8/pressure-guardian-source.py",
+    "bytes": 6400,
+    "sha256": "115dfba227713331fe0b021d787e9c7ddff44e3cf5ad1524526da45bb322021a"
+  },
+  {
+    "path": "rss8/pressure-guardian.jsonl",
+    "bytes": 16219,
+    "sha256": "007a5c44900f81db20a62fd75fbb637c9974dcdfe6d4f5efddb3b026a1031a02"
+  },
+  {
+    "path": "rss8/registration.json",
+    "bytes": 159526,
+    "sha256": "ace4a041f393c6a1a8d9efed431c03ee0573f73393db44425b0716a37674466d"
+  },
+  {
+    "path": "rss8/supplemental-historical-outcomes.json",
+    "bytes": 66861,
+    "sha256": "abbd79fbd011854ec5aed75975a3dce065d21e33ad855746dd3d47bc7ca493c6"
+  },
+  {
+    "path": "rss9/READY.md",
+    "bytes": 696,
+    "sha256": "41e706acb5ab748d974e9f2cbe5f697f9a1dea302356df3545c442a75f413777"
+  },
+  {
+    "path": "rss9/clippy-production-memory-samples.jsonl",
+    "bytes": 82023,
+    "sha256": "6f02471b9e1179bbff043568879b082d8d14f495f479a3bc215d3f0558081c8d"
+  },
+  {
+    "path": "rss9/clippy-production-result.json",
+    "bytes": 7433,
+    "sha256": "db0db4ca67d16e175f520c015568a0290d2f08472935126c2cf3a2ea3a7d204f"
+  },
+  {
+    "path": "rss9/clippy-production-toolchain-full-cli-memory-samples.jsonl",
+    "bytes": 84417,
+    "sha256": "2ff58fabbd53066b74f696f1ed11a15d0bc9017a9f26c3b7984e65e847b9d6cb"
+  },
+  {
+    "path": "rss9/clippy-production-toolchain-full-cli-result.json",
+    "bytes": 7581,
+    "sha256": "4a5ef7c90f2257b6ad5fd7dfe70cdd7978f1016bdc97b0de60576e397bf6b199"
+  },
+  {
+    "path": "rss9/clippy-production-toolchain-full-cli.log",
+    "bytes": 613,
+    "sha256": "ca65f3a1764feb6962ed95148c733d53cccc265db1c6f630acad1c6d1195165b"
+  },
+  {
+    "path": "rss9/clippy-production.log",
+    "bytes": 166,
+    "sha256": "cb43567367032c5e4114aa68e740b1c1b72e868e78dee5b5e195032f7db4bb29"
+  },
+  {
+    "path": "rss9/compilation-manifest.json",
+    "bytes": 876800,
+    "sha256": "c030a6d0799b3abde5d486924cd43a95f29d7e76d7e998bd4a14b9ad4d947e1b"
+  },
+  {
+    "path": "rss9/drivers/build-owning.py",
+    "bytes": 9776,
+    "sha256": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888"
+  },
+  {
+    "path": "rss9/drivers/draft_contract.py",
+    "bytes": 1752,
+    "sha256": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1"
+  },
+  {
+    "path": "rss9/drivers/observed_phase.py",
+    "bytes": 11471,
+    "sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+  },
+  {
+    "path": "rss9/drivers/run-owning-selected.py",
+    "bytes": 10438,
+    "sha256": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450"
+  },
+  {
+    "path": "rss9/drivers/run-production-lib-cli-clippy.py",
+    "bytes": 6214,
+    "sha256": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077"
+  },
+  {
+    "path": "rss9/drivers/semaprax_pressure_observation_v3.py",
+    "bytes": 10269,
+    "sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b"
+  },
+  {
+    "path": "rss9/expected-counts.json",
+    "bytes": 876800,
+    "sha256": "c030a6d0799b3abde5d486924cd43a95f29d7e76d7e998bd4a14b9ad4d947e1b"
+  },
+  {
+    "path": "rss9/focused-build-pressure-v6-derivation-20261016.json",
+    "bytes": 760,
+    "sha256": "02437608f156fb7fb32de391660c3f1ed14668b417e648213527e4e80f760413"
+  },
+  {
+    "path": "rss9/historical-rss8-attempt-binding.json",
+    "bytes": 5560,
+    "sha256": "87b42cbe142db19feffe5dc59c3c50601738f56779d2ccbd1c24cd23c7750eab"
+  },
+  {
+    "path": "rss9/independent-postterminal-group-observation.json",
+    "bytes": 167,
+    "sha256": "af92c578bf40240860a0ba5964d2ef63e45f56d20603be8573f9bc600ca67eca"
+  },
+  {
+    "path": "rss9/launch-binding.json",
+    "bytes": 652,
+    "sha256": "11571054d883a2c0a722e1725021a38cdee81641e28628491aecf71ccd714057"
+  },
+  {
+    "path": "rss9/memory-samples.jsonl",
+    "bytes": 99292,
+    "sha256": "4ecf437e0dba338bd88e02062fa08bd5a1201b3e715d48f77bf177eab23e7e67"
+  },
+  {
+    "path": "rss9/owning-build-progress.json",
+    "bytes": 7208,
+    "sha256": "c41e5ccd1b17228e3da963dec1c2cf9841ebd1a835cf132bdab0e2e7766f1ecb"
+  },
+  {
+    "path": "rss9/owning-build-result.json",
+    "bytes": 7521,
+    "sha256": "c5d34647fae95a00893c9b9d15bd22211b805e4056c142e8ca7fd7c3e311bc38"
+  },
+  {
+    "path": "rss9/owning-build.jsonl",
+    "bytes": 258647,
+    "sha256": "133b2519c8f01673c8a21acbee3c87b9234fdb09e450aa5114acaa8fc70cf549"
+  },
+  {
+    "path": "rss9/owning-build.log",
+    "bytes": 105,
+    "sha256": "7c718e24287f3d59d597c6f922c84e2e4cae0de9da73df1865bac255b53d09d2"
+  },
+  {
+    "path": "rss9/postpin-0c942-final97-selection-normalization-20261016.json",
+    "bytes": 928,
+    "sha256": "b2201045fc523ab33023323a0a2bb45230216ce82a6a5c1fb9476b6337702fa9"
+  },
+  {
+    "path": "rss9/preparation-receipt.json",
+    "bytes": 32966,
+    "sha256": "19e43eeed45ee520191323ee9ac9234882265d8a718a8ff767d5215b31278ac6"
+  },
+  {
+    "path": "rss9/pressure-guardian-source.py",
+    "bytes": 6397,
+    "sha256": "8188fc7040a3ce3557971243059f9621cad74c76d5cc71b02d7d9bec43534de4"
+  },
+  {
+    "path": "rss9/pressure-guardian.jsonl",
+    "bytes": 18417,
+    "sha256": "d0c76666516df488007bb7d549f0dc56fb569b1096c071024b1ad247f2454296"
+  },
+  {
+    "path": "rss9/production-toolchain-full-cli-driver-derivation.json",
+    "bytes": 681,
+    "sha256": "4cfe4fcc43d8222f52a0cff3ddfbed715edd74878500d93fd1ad8cca1fb2c215"
+  },
+  {
+    "path": "rss9/registration.json",
+    "bytes": 159526,
+    "sha256": "ace4a041f393c6a1a8d9efed431c03ee0573f73393db44425b0716a37674466d"
+  },
+  {
+    "path": "rss9/run-production-toolchain-full-cli.py",
+    "bytes": 6278,
+    "sha256": "1f54fd082b8aa5292a257a51c8109f1fc71200fc53247823a944e66049fb1131"
+  },
+  {
+    "path": "rss9/supplemental-historical-outcomes.json",
+    "bytes": 67400,
+    "sha256": "c768db9171ee8183c66843a06d34a0d9e961d2fda212ab44291f7fe094717d51"
+  }
+]

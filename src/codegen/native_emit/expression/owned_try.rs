@@ -67,7 +67,7 @@ impl<O: COutput> CEmitter<'_, O> {
                                 arguments,
                             )
                     )
-                    && matches!(residual_type,
+                    && matches!(&**residual_type,
                         ResolvedType::Nominal { declaration, arguments }
                             if declaration == result
                                 && crate::hir::admitted_owned_byte_prelude_instance(

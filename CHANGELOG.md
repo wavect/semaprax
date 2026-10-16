@@ -23,6 +23,9 @@
 - Reuse the already-built exact HIR/plan comparison for fitting ordinary lexical proof after unchanged enumeration admission/reservation; retain complete forced old enumeration and all weighted receiver payments, with no allowance refund or measured application/agent improvement claim.
 
 - Move the validated singleton ownership state and its conditional variants through unchanged normalization, removing absent clones while preserving join validation, work, scheduling and the complete old receiver; focused numerical qualification remains pending.
+
+- Compact HIR expression storage with funded residual-type boxes, preserving full type data, private cache bytes and limits, complete previous expression definitions, and physical allocation/refusal controls.
+
 - Audit the test-only allocation observer in the root unsafe quarantine, requiring its test-only module boundary and single System allocator implementation.
 
 - Run complete owned-data JavaScript test hosts from fixture files, preserving their strict guards and argument positions while avoiding Windows command-line limits.

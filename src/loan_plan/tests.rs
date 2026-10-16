@@ -198,7 +198,7 @@ fn option_try_residual_edge_terminates_a_normal_path_loan() {
             some_case: crate::hir::DeclarationId::new("prelude.option.some"),
             some_field: crate::hir::DeclarationId::new("prelude.option.some.value"),
             none_case: crate::hir::DeclarationId::new("prelude.option.none"),
-            residual_type: ResolvedType::Bool,
+            residual_type: crate::hir::ResolvedResidualType::try_new(ResolvedType::Bool).unwrap(),
         };
         operand_id
     };

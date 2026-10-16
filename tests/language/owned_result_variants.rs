@@ -627,7 +627,7 @@ fn convert(value: own Result<Bytes, Bytes>) -> Result<bool, Bytes> {
     let ResolvedExprKind::Try { residual_type, .. } = &mut try_expression.kind else {
         unreachable!()
     };
-    *residual_type = ResolvedType::Nominal {
+    **residual_type = ResolvedType::Nominal {
         declaration: DeclarationId::new("core.result"),
         arguments: vec![ResolvedType::Bool, ResolvedType::I64],
     };

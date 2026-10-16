@@ -1,0 +1,14 @@
+{
+  "original": "/Volumes/Semaprax/provenance/focused-build-pressure-wrapper-v5-20261015.py",
+  "original_sha256": "115dfba227713331fe0b021d787e9c7ddff44e3cf5ad1524526da45bb322021a",
+  "derived": "/Volumes/Semaprax/provenance/focused-build-pressure-wrapper-v6-single9-20261016.py",
+  "derived_sha256": "8188fc7040a3ce3557971243059f9621cad74c76d5cc71b02d7d9bec43534de4",
+  "changes": [
+    "Admit at most original driver9GiB ceiling",
+    "Tighten startup to kernel1 and systemfree>=60percent",
+    "Tighten runtime stop to systemfree<30percent"
+  ],
+  "all_other_guard_bytes_unchanged": true,
+  "original_rss8_failed_round": "/Volumes/Semaprax/lane-prompts/postpin-0c942-97-qualification-20261016",
+  "source_and_four_commands_and_97_bodies_unchanged": true
+}

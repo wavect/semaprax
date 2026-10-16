@@ -12,6 +12,62 @@ use super::nodes::{
 };
 use super::Place;
 
+/// Complete residual type kept out of the common expression enum's inline
+/// layout. The private cache codec deliberately preserves the former Type wire
+/// and node/depth accounting; the box owns no additional semantic authority.
+#[repr(transparent)]
+#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct ResolvedResidualType(Box<ResolvedType>);
+
+impl ResolvedResidualType {
+    // Full box backing plus conservative receiving controls: two Option<Self>
+    // results, two Self carriers, Box pointer, incoming Type, debit and bool.
+    // All are acquired before allocation, including on retry. Nested Type
+    // backing was acquired by its existing producer and remains fully charged.
+    pub(crate) const CONSTRUCTION_BYTES: usize = std::mem::size_of::<ResolvedType>()
+        + 2 * std::mem::size_of::<Option<Self>>()
+        + 2 * std::mem::size_of::<Self>()
+        + std::mem::size_of::<Box<ResolvedType>>()
+        + std::mem::size_of::<ResolvedType>()
+        + std::mem::size_of::<usize>()
+        + std::mem::size_of::<bool>();
+
+    /// Refuses before allocation if the current builder cannot fund the box.
+    /// Without an active builder this has the ordinary owned HIR behavior.
+    pub fn try_new(value: ResolvedType) -> Option<Self> {
+        if !crate::bounded_output::reserve_active_required(Self::CONSTRUCTION_BYTES) {
+            return None;
+        }
+        Some(Self(Box::new(value)))
+    }
+}
+impl std::ops::Deref for ResolvedResidualType {
+    type Target = ResolvedType;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl std::ops::DerefMut for ResolvedResidualType {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+impl std::fmt::Debug for ResolvedResidualType {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&**self, formatter)
+    }
+}
+impl PartialEq<ResolvedType> for ResolvedResidualType {
+    fn eq(&self, other: &ResolvedType) -> bool {
+        **self == *other
+    }
+}
+impl PartialEq<ResolvedResidualType> for ResolvedType {
+    fn eq(&self, other: &ResolvedResidualType) -> bool {
+        *self == **other
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedExpr {
     pub id: ExpressionId,
@@ -167,7 +223,7 @@ pub enum ResolvedExprKind {
         ok_field: DeclarationId,
         err_case: DeclarationId,
         err_field: DeclarationId,
-        residual_type: ResolvedType,
+        residual_type: ResolvedResidualType,
     },
     TryOption {
         operand: Box<ResolvedExpr>,
@@ -175,7 +231,7 @@ pub enum ResolvedExprKind {
         some_case: DeclarationId,
         some_field: DeclarationId,
         none_case: DeclarationId,
-        residual_type: ResolvedType,
+        residual_type: ResolvedResidualType,
     },
     UpdateRecord {
         base: Box<ResolvedExpr>,
@@ -560,6 +616,197 @@ mod borrowed_variant_case_tests {
                 });
             assert!(answer);
             assert!(!allocation.invalid && allocation.allocated == 0 && allocation.live == 0);
+        }
+    }
+}
+
+#[cfg(test)]
+mod residual_payload_tests {
+    use super::*;
+    use crate::bounded_output as output;
+    use crate::hir::residual_payload_before as before;
+    use crate::test_allocation_observer::measure;
+    use std::mem::size_of;
+
+    #[test]
+    fn residual_payload_compacts_the_complete_previous_expression_layout() {
+        let saved = size_of::<ResolvedType>() - size_of::<Box<ResolvedType>>();
+        assert_eq!(
+            size_of::<before::ResolvedExprKind>() - size_of::<ResolvedExprKind>(),
+            saved
+        );
+        assert_eq!(
+            size_of::<before::ResolvedExpr>() - size_of::<ResolvedExpr>(),
+            saved
+        );
+        assert_eq!(
+            std::mem::align_of::<before::ResolvedExpr>(),
+            std::mem::align_of::<ResolvedExpr>()
+        );
+    }
+
+    #[test]
+    fn residual_payload_zero_exact_short_and_drop_pay_before_allocation() {
+        let debit = ResolvedResidualType::CONSTRUCTION_BYTES;
+        for limit in [0, debit - 1, debit] {
+            let ((constructed, allocation), refused, used) =
+                output::with_limit_usage(limit, || {
+                    measure(|| {
+                        let value = ResolvedResidualType::try_new(ResolvedType::Bool);
+                        let constructed = value.is_some();
+                        if let Some(value) = value {
+                            assert_eq!(*value, ResolvedType::Bool);
+                            drop(value);
+                        }
+                        constructed
+                    })
+                });
+            assert_eq!(constructed, limit == debit);
+            assert_eq!(refused, limit < debit);
+            assert_eq!(used, if constructed { debit } else { 0 });
+            let bytes = if constructed {
+                size_of::<ResolvedType>()
+            } else {
+                0
+            };
+            assert!(!allocation.invalid);
+            assert_eq!(allocation.allocated, bytes);
+            assert_eq!(allocation.freed, bytes);
+            assert_eq!(allocation.live, 0);
+            assert_eq!(allocation.reallocations, 0);
+        }
+        let (_, refused, used, first, _) = output::with_limit_usage_refusal_site(0, || {
+            assert!(!output::reserve_active_required(debit + 17));
+            assert!(ResolvedResidualType::try_new(ResolvedType::Bool).is_none());
+        });
+        assert!(refused);
+        assert_eq!(used, 0);
+        assert_eq!(first.unwrap().requested, debit + 17);
+    }
+
+    fn leaf() -> ResolvedExpr {
+        ResolvedExpr {
+            id: ExpressionId::from_owned("residual.operand".into()),
+            ty: ResolvedType::Bool,
+            ownership: OwnershipMode::Value,
+            kind: ResolvedExprKind::Bool(true),
+            span: Span {
+                start: 0,
+                end: 1,
+                line: 1,
+                column: 1,
+            },
+        }
+    }
+    fn old_leaf() -> before::ResolvedExpr {
+        let leaf = leaf();
+        before::ResolvedExpr {
+            id: leaf.id,
+            ty: leaf.ty,
+            ownership: leaf.ownership,
+            kind: before::ResolvedExprKind::Bool(true),
+            span: leaf.span,
+        }
+    }
+
+    #[test]
+    fn residual_payload_keeps_all_result_and_option_fields_debug_clone_and_backing() {
+        let ty = ResolvedType::Function {
+            parameters: vec![ResolvedType::I64, ResolvedType::Bool],
+            result: Box::new(ResolvedType::Bytes),
+        };
+        let id = DeclarationId::new;
+        let old = before::ResolvedExprKind::Try {
+            operand: Box::new(old_leaf()),
+            result: id("result"),
+            ok_case: id("ok"),
+            ok_field: id("ok.value"),
+            err_case: id("error"),
+            err_field: id("error.value"),
+            residual_type: ty.clone(),
+        };
+        let current = ResolvedExprKind::Try {
+            operand: Box::new(leaf()),
+            result: id("result"),
+            ok_case: id("ok"),
+            ok_field: id("ok.value"),
+            err_case: id("error"),
+            err_field: id("error.value"),
+            residual_type: ResolvedResidualType::try_new(ty.clone()).unwrap(),
+        };
+        assert_eq!(format!("{old:#?}"), format!("{current:#?}"));
+        let (_, old_allocation) = measure(|| {
+            let value = old.clone();
+            assert_eq!(value, old);
+        });
+        let (_, allocation) = measure(|| {
+            let value = current.clone();
+            assert_eq!(value, current);
+        });
+        assert!(!old_allocation.invalid && !allocation.invalid);
+        assert_eq!(old_allocation.live, 0);
+        assert_eq!(allocation.live, 0);
+        assert_eq!(allocation.allocated, allocation.freed);
+        // Cloning the operand saves its inline node bytes; the rare residual
+        // creates its complete, separately owned Type box. Nested backing is
+        // still cloned in full by both complete representations.
+        assert_eq!(
+            allocation.allocated,
+            old_allocation.allocated + size_of::<ResolvedType>()
+                - (size_of::<before::ResolvedExpr>() - size_of::<ResolvedExpr>())
+        );
+        let old = before::ResolvedExprKind::TryOption {
+            operand: Box::new(old_leaf()),
+            option: id("option"),
+            some_case: id("some"),
+            some_field: id("some.value"),
+            none_case: id("none"),
+            residual_type: ty.clone(),
+        };
+        let current = ResolvedExprKind::TryOption {
+            operand: Box::new(leaf()),
+            option: id("option"),
+            some_case: id("some"),
+            some_field: id("some.value"),
+            none_case: id("none"),
+            residual_type: ResolvedResidualType::try_new(ty).unwrap(),
+        };
+        assert_eq!(format!("{old:#?}"), format!("{current:#?}"));
+        let mut changed = current.clone();
+        let ResolvedExprKind::TryOption { residual_type, .. } = &mut changed else {
+            unreachable!()
+        };
+        **residual_type = ResolvedType::Bool;
+        assert_ne!(changed, current);
+    }
+
+    #[test]
+    fn residual_payload_cache_keeps_wire_depth_node_and_hostile_input_boundaries() {
+        use crate::cache_codec::{decode, encode};
+        for depth in [0, 40, 100, 127, 128] {
+            let mut ty = ResolvedType::I64;
+            for _ in 0..depth {
+                ty = ResolvedType::Function {
+                    parameters: Vec::new(),
+                    result: Box::new(ty),
+                };
+            }
+            let wrapped = ResolvedResidualType::try_new(ty.clone()).unwrap();
+            let old = encode(&ty);
+            let current = encode(&wrapped);
+            assert_eq!(old, current, "codec depth {depth}");
+            if let Ok(bytes) = old {
+                let direct = decode::<ResolvedType>(&bytes);
+                let boxed = decode::<ResolvedResidualType>(&bytes);
+                assert_eq!(direct.is_ok(), boxed.is_ok(), "decode depth {depth}");
+                if let (Ok(direct), Ok(boxed)) = (direct, boxed) {
+                    assert_eq!(direct, *boxed);
+                }
+                let mut trailing = bytes.clone();
+                trailing.push(0);
+                assert!(decode::<ResolvedResidualType>(&trailing).is_err());
+                assert!(decode::<ResolvedResidualType>(&bytes[..bytes.len() - 1]).is_err());
+            }
         }
     }
 }

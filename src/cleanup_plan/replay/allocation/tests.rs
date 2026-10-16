@@ -244,3 +244,5 @@ fn active_builder_zero_exact_short_refusal_is_sticky_and_moves_paid_text() {
 
 mod accounting_scope;
 mod ordinary_before;
+
+mod clone_cursor;

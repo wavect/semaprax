@@ -1,0 +1,39 @@
+{
+  "mode": "SOURCE_ONLY_NO_RUST",
+  "original_guards_preserved_byteexact_by_unique_fragment_removal": true,
+  "changes": [
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "before_sha256": "c66f2dd19808377ba17ad4b79f04c00d0643531d87140abdb8333ed063209af5",
+      "after_sha256": "3202811d39c94200fab7dd5b1258efb8a7b8f5427c9ae27d7f750030964836de",
+      "exact_additive_fragment": " include_str!(\"../src/cleanup_plan/replay/allocation/tests/clone_cursor.rs\"), include_str!(\"../src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs\"),",
+      "added_sources": [
+        "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs",
+        "src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs"
+      ],
+      "line_count_unchanged": true
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "before_sha256": "28d9dc920640d190d483a5d70f7d4d764d1893f549e96c9c2fa6858e68aae3a7",
+      "after_sha256": "6b32d381d61dc27663768d97df66e0ff9694d7202df87b7b82886fd67f9528f9",
+      "exact_additive_fragment": " include_str!(\"../../src/cleanup_plan/replay/allocation/tests/clone_cursor.rs\"), include_str!(\"../../src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs\"),",
+      "added_sources": [
+        "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs",
+        "src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs"
+      ],
+      "line_count_unchanged": true
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "before_sha256": "68c0e2cf69c3d08a42b5e8d93e9ee395ffc9f90186805fedb8ee6803b78f1161",
+      "after_sha256": "55a511587c9f9919fc7ad8b36309fb572ae6e8b7db18b66b635cc3e52c2699bd",
+      "exact_additive_fragment": " include_str!(\"../../../../../src/cleanup_plan/replay/allocation/tests/clone_cursor.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs\"),",
+      "added_sources": [
+        "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs",
+        "src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs"
+      ],
+      "line_count_unchanged": true
+    }
+  ]
+}

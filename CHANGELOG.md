@@ -19,6 +19,10 @@
 - Reconcile Main8a finished-path capacity, arbitrary final-suffix transfer and borrowed nominal context with lexical paid receiving; preserve original work-before-optional-payment priority and complete Main controls. Qualification and net application cost remain pending.
 
 - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.
+- Preserve borrowed-root hostile census checks while applying nested freeze-loan assertions to local owned storage; separate nested test-ledger backing from production refusal allocations.
+
+- Acquire the ordinary replay type-clone cursor only for payloads that can construct it, retaining owned backing charges, conservative recursive fallback and sticky payer authentication.
+
 - Bind allocation release-order watches to the initial allocation lifetime, retaining duplicate/missing-free refusals when System reuses an address during DAG destruction.
 
 - Require the checked agent-function boundary to reject forged match ownership while preserving the complete legacy mode-encoding assertions through the existing query serializer.

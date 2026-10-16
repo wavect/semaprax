@@ -1,0 +1,126 @@
+{
+  "schema": "semaprax.nested-a9a-joined-input.v1",
+  "source": "src/hir/validation/byte_traversal/nested/tests.rs",
+  "helper": "src/hir/validation/byte_traversal/nested/tests/source_composition.rs",
+  "joined_sha256": "489816bc00ef3f93be7c69f874aa6cc64272fa62ec9d3cac9bfdb34b633eeb82",
+  "helper_sha256": "31473c03e04eece1c5f155cac724f69a6249c5076c3150443dc5d8dc7625d29c",
+  "joined_to_incoming": {
+    "after_sha256": "489816bc00ef3f93be7c69f874aa6cc64272fa62ec9d3cac9bfdb34b633eeb82",
+    "before_sha256": "9a8b41dff3fd9bb3211e62f7180beabe0a0251da41266ed6a2a83e69f67af63f",
+    "inverse": [
+      {
+        "start": 31731,
+        "end": 31796,
+        "after_sha256": "72f64c2e62ea750c3321a3af737e51f7a8deac66b81b07cc553143ee51f50168",
+        "before": ""
+      },
+      {
+        "start": 27432,
+        "end": 27716,
+        "after_sha256": "145f989a6399e38de781c5a113b797c3fa0e612048eaee2e366df5490a7ebe8f",
+        "before": "        let current = std::fs::read_to_string(root.join(record[\"path\"].as_str().unwrap())).unwrap();\n"
+      },
+      {
+        "start": 16719,
+        "end": 16778,
+        "after_sha256": "75465ce1bc1136834c529e6f61d2f2d43da4e94e92dfce8ac187957ca47ef2dc",
+        "before": ""
+      },
+      {
+        "start": 16607,
+        "end": 16607,
+        "after_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "before": "        // The complete original window includes one nested test-ledger Rc.\n        // Its independently measured creation/Drop is the only allocation.\n"
+      },
+      {
+        "start": 13911,
+        "end": 16243,
+        "after_sha256": "b4f326163e4b7b05d12dc2cebe6d91762b92c314f007d7d5a7c6c92e42c835ee",
+        "before": "                (\n                    measure(|| {\n                        let (error, child_refused, child_used, child_first) =\n                            with_limit_usage_refusal(0, || {\n                                let before = current_metrics();\n                                let error = slot.region(&program, sum, root).err().unwrap();\n                                assert_eq!(current_metrics(), before);\n                                error\n                            });\n                        assert!(!child_refused);\n                        assert_eq!(child_used, 0);\n                        assert_eq!(child_first, None);\n                        assert!(error.message.contains(\"detached\"));\n                        drop(error);\n                        let before = current_metrics();\n                        let restored = slot.region(&program, sum, root).err().unwrap();\n                        assert!(restored.message.contains(\"detached\"));\n                        drop(restored);\n                        drop(slot);\n                        assert_eq!(current_metrics(), before);\n                    }),\n                    remaining,\n                )\n"
+      },
+      {
+        "start": 13500,
+        "end": 13581,
+        "after_sha256": "54c706e8d842c78090134ffb63bca53bab3d2bb173193f61b3c24525fa7745fd",
+        "before": "        let ((((), metrics), remaining), refused, used, first) =\n"
+      },
+      {
+        "start": 6447,
+        "end": 8704,
+        "after_sha256": "38d19a84c54ee40ae44b61833a0338ca2b9b85a7dac3aee4f2d77268f88b9b96",
+        "before": ""
+      }
+    ]
+  },
+  "joined_to_ours": {
+    "after_sha256": "489816bc00ef3f93be7c69f874aa6cc64272fa62ec9d3cac9bfdb34b633eeb82",
+    "before_sha256": "bb7ae50a94f03a334dab03412baeb1986a98d7e2d4694bcd033d6f03008cf431",
+    "inverse": [
+      {
+        "start": 25529,
+        "end": 31796,
+        "after_sha256": "f23a5f7106c3d4596a4cf153ca79bb437f55ebdc4161325c037fa95c2f8de67f",
+        "before": ""
+      },
+      {
+        "start": 16607,
+        "end": 16719,
+        "after_sha256": "37557fb33d0bcf78781849bbc8e9a25f9a964dc06e40fed27a9839bfc63da7c6",
+        "before": ""
+      },
+      {
+        "start": 14587,
+        "end": 16117,
+        "after_sha256": "f965913943a1e631a25b13665d9960319b22d3763ec3a4fba9ed039c69e5fafc",
+        "before": "                        let (error, child_refused, child_used, child_first) =\n                            with_limit_usage_refusal(0, || {\n                                let before = current_metrics().allocated;\n                                let error = slot.region(&program, sum, root).err().unwrap();\n                                assert_eq!(current_metrics().allocated, before);\n                                error\n                            });\n                        assert!(!child_refused);\n                        assert_eq!(child_used, 0);\n                        assert_eq!(child_first, None);\n                        assert!(error.message.contains(\"detached\"));\n                        drop(error);\n                        let before = current_metrics().allocated;\n                        let restored = slot.region(&program, sum, root).err().unwrap();\n                        assert!(restored.message.contains(\"detached\"));\n                        drop(restored);\n                        drop(slot);\n                        assert_eq!(current_metrics().allocated, before);\n                    });\n                assert_eq!((observed.1.allocations, observed.1.allocated),\n                    (setup.allocations, setup.allocated));\n"
+      },
+      {
+        "start": 14493,
+        "end": 14543,
+        "after_sha256": "d509d2c45ed3d06874ca82d77f69a5831e31c5899aeb67e67567ef86d05ac1b3",
+        "before": ""
+      },
+      {
+        "start": 13110,
+        "end": 13175,
+        "after_sha256": "267ec560802c45f38cfebac68b7d6300d9699d70badfcba245792c3ba77ae58a",
+        "before": ""
+      },
+      {
+        "start": 11665,
+        "end": 13010,
+        "after_sha256": "b545f3625ca4981c4683e9c08b8ffcfb41ba17e68db502477b7822a236d23954",
+        "before": ""
+      },
+      {
+        "start": 8704,
+        "end": 10359,
+        "after_sha256": "648ea7c1085dd29e9490c56b8d6246f1eac965bd0367b2b5f218cd503c4a95d7",
+        "before": ""
+      },
+      {
+        "start": 80,
+        "end": 94,
+        "after_sha256": "94794ffc42c8135c1ec6efb6c70825e425106f6226ca530408e7af2bb5c411cb",
+        "before": "use super::{Census, Diagnostic, ResolvedExpr, ResolvedFunction, Slot, shape};\nuse super::super::{\n    ControlTarget, ExpressionId, FunctionExecutionId, ResolvedExprKind, ResolvedProgram,\n    ResolvedStatement,\n};\n"
+      }
+    ]
+  },
+  "ours_to_940": {
+    "after_sha256": "bb7ae50a94f03a334dab03412baeb1986a98d7e2d4694bcd033d6f03008cf431",
+    "before_sha256": "16a6195ebf472b9d328c9da1f6267a400d3f34c783e39080641e8714219f7caf",
+    "inverse": [
+      {
+        "start": 5082,
+        "end": 6171,
+        "after_sha256": "33f670dd3b53a182eed519dfb66d6f3a474763c54b817f3e91b8ab74f7a91176",
+        "before": ""
+      }
+    ]
+  },
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "original_recipes_unchanged": [
+    "docs/evidence/nested-byte-traversal-780/ci-scope-original.json",
+    "docs/evidence/nested-byte-actual-fixture-correction-940/source-inverses.json"
+  ]
+}

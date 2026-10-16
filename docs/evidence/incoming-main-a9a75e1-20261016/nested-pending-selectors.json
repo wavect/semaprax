@@ -1,0 +1,14 @@
+{
+  "status": "PENDING_NOT_EXECUTED",
+  "package": "semaprax",
+  "kind": "lib",
+  "new": [
+    "hir::validation::byte_traversal::nested::tests::source_composition::joined_nested_source_keeps_full_live_union_and_both_complete_parent_custodies",
+    "hir::validation::byte_traversal::nested::tests::source_composition::joined_nested_source_refuses_foreign_truncated_drifted_predicates_and_partial_recipes"
+  ],
+  "incoming": [
+    "hir::validation::byte_traversal::nested::tests::ci_scope::nested_empty_budget_scope_records_only_its_real_ledger_allocation",
+    "hir::validation::byte_traversal::nested::tests::ci_scope::nested_scope_correction_retains_complete_original_hostile_and_loan_controls",
+    "hir::validation::byte_traversal::nested::tests::ci_scope::nested_storage_foreign_restore_has_no_allocation_beyond_test_scope"
+  ]
+}

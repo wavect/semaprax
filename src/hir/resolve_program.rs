@@ -65,7 +65,7 @@ impl Resolver<'_> {
         let target = self.program.functions().iter().find(|candidate| matches!(function, FunctionExecutionId::Monomorphic(declaration) if candidate.stable_id == declaration.as_str()))
             .ok_or_else(|| self.error("SPX-H006", format!("resolved `?` has unknown enclosing function `{function}`"), span))?;
         let ty = self.resolve_function_type(target, &target.return_type, target.span)?;
-        super::ResolvedResidualType::try_new(ty).ok_or_else(|| {
+        crate::hir::resolved_residual_type!(ty).ok_or_else(|| {
             self.error(
                 "SPX-H006",
                 "resolved residual type backing was refused",

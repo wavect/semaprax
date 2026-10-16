@@ -7381,3 +7381,9 @@ are authored. Qualification is pending; Catalog corpus and limits are unchanged.
 - Source-only #781 boundary admission and selected chain receiving: preserve
   complete prior algorithms, lexical callback/order semantics, and explicit
   unmigrated Diagnostic children. Four runtime owners remain unexecuted.
+
+- Correct the compact HIR residual receiving frontier (#855): replace owned
+  `try_new(Type)` forwarding with admission before lexical Box construction,
+  preserve original Type producer/error order and parser-independent fixtures,
+  and retain complete Main models/cache controls. Source-only; no new executable
+  qualification or measured saving is claimed.

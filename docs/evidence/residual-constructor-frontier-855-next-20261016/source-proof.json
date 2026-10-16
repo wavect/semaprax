@@ -1,0 +1,10 @@
+{
+  "mode": "SOURCE_ONLY_NO_COMPILATION",
+  "complete_main_inverse_rows": 10,
+  "whole_main_model_and_nested_tests_exact": true,
+  "old_nominal_codec_exact": true,
+  "owned_try_new_parameter_absent_from_current_routes": true,
+  "unchanged_cache_backend_validation_language_controls": true,
+  "source_owners": 1,
+  "pending_existing_and_new_controls": 10
+}

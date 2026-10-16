@@ -17,30 +17,50 @@ use super::Place;
 /// and node/depth accounting; the box owns no additional semantic authority.
 #[repr(transparent)]
 #[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct ResolvedResidualType(Box<ResolvedType>);
+// Like the other public HIR fields, this raw payload carries NO checked
+// authority. Independent hir::validate remains mandatory for forged inputs.
+// Compiler and repository construction uses resolved_residual_type! below.
+pub struct ResolvedResidualType(#[doc(hidden)] pub Box<ResolvedType>);
 
 impl ResolvedResidualType {
-    // Full box backing plus conservative receiving controls: two Option<Self>
-    // results, two Self carriers, Box pointer, incoming Type, debit and bool.
-    // All are acquired before allocation, including on retry. Nested Type
-    // backing was acquired by its existing producer and remains fully charged.
+    // Actual lexical constructor: full Type box backing; two Option<Self>
+    // initializer/receiving carriers; two Self carriers; Box return/field headers;
+    // Box::new's Type parameter; the reservation length; and the required-call
+    // and zero-owned-argument admission-return bool receivers. No Type is
+    // forwarded into a separate constructor function.
     pub(crate) const CONSTRUCTION_BYTES: usize = std::mem::size_of::<ResolvedType>()
         + 2 * std::mem::size_of::<Option<Self>>()
         + 2 * std::mem::size_of::<Self>()
-        + std::mem::size_of::<Box<ResolvedType>>()
+        + 2 * std::mem::size_of::<Box<ResolvedType>>()
         + std::mem::size_of::<ResolvedType>()
         + std::mem::size_of::<usize>()
-        + std::mem::size_of::<bool>();
+        + 2 * std::mem::size_of::<bool>();
 
-    /// Refuses before allocation if the current builder cannot fund the box.
-    /// Without an active builder this has the ordinary owned HIR behavior.
-    pub fn try_new(value: ResolvedType) -> Option<Self> {
-        if !crate::bounded_output::reserve_active_required(Self::CONSTRUCTION_BYTES) {
-            return None;
-        }
-        Some(Self(Box::new(value)))
+    /// Fixed admission only: no owned value parameter and no allocation.
+    /// The ordinary initial reservation failure remains an unreceived caller
+    /// boundary; success prepays the lexical constructor before its arguments.
+    #[doc(hidden)]
+    pub fn construction_is_admitted() -> bool {
+        crate::bounded_output::reserve_active_required(Self::CONSTRUCTION_BYTES)
     }
 }
+
+/// Construct a raw residual HIR carrier after its exact receiving admission.
+/// This macro grants no validation, source, cache, or backend authority. Fallible
+/// old Type producers must run before this macro, preserving their original order.
+#[macro_export]
+macro_rules! resolved_residual_type {
+    ($value:expr) => {{
+        if $crate::hir::ResolvedResidualType::construction_is_admitted() {
+            ::core::option::Option::Some($crate::hir::ResolvedResidualType(::std::boxed::Box::new(
+                $value,
+            )))
+        } else {
+            ::core::option::Option::None
+        }
+    }};
+}
+
 impl std::ops::Deref for ResolvedResidualType {
     type Target = ResolvedType;
     fn deref(&self) -> &Self::Target {
@@ -652,7 +672,7 @@ mod residual_payload_tests {
             let ((constructed, allocation), refused, used) =
                 output::with_limit_usage(limit, || {
                     measure(|| {
-                        let value = ResolvedResidualType::try_new(ResolvedType::Bool);
+                        let value = crate::hir::resolved_residual_type!(ResolvedType::Bool);
                         let constructed = value.is_some();
                         if let Some(value) = value {
                             assert_eq!(*value, ResolvedType::Bool);
@@ -677,11 +697,62 @@ mod residual_payload_tests {
         }
         let (_, refused, used, first, _) = output::with_limit_usage_refusal_site(0, || {
             assert!(!output::reserve_active_required(debit + 17));
-            assert!(ResolvedResidualType::try_new(ResolvedType::Bool).is_none());
+            assert!(crate::hir::resolved_residual_type!(ResolvedType::Bool).is_none());
         });
         assert!(refused);
         assert_eq!(used, 0);
         assert_eq!(first.unwrap().requested, debit + 17);
+    }
+
+    #[test]
+    fn lexical_residual_receiving_keeps_old_producer_order_floor_and_restored_sticky_owner() {
+        use std::cell::Cell;
+        let old_produced = Cell::new(0);
+        let new_arguments = Cell::new(0);
+        let debit = ResolvedResidualType::CONSTRUCTION_BYTES;
+        let ((present, allocation), refused, used, first, _) =
+            output::with_limit_usage_refusal_site(debit, || {
+                assert!(output::set_active_floor(1));
+                // The old fallible producer's result exists at its original
+                // point. It is not skipped by new receiving admission.
+                old_produced.set(old_produced.get() + 1);
+                let ty = ResolvedType::Bool;
+                measure(|| {
+                    let value = crate::hir::resolved_residual_type!({
+                        new_arguments.set(new_arguments.get() + 1);
+                        ty
+                    });
+                    let present = value.is_some();
+                    drop(value);
+                    present
+                })
+            });
+        assert!(!present && refused);
+        assert_eq!(old_produced.get(), 1);
+        assert_eq!(new_arguments.get(), 0);
+        assert_eq!(used, 0);
+        assert_eq!(first.unwrap().requested, debit);
+        assert!(!allocation.invalid);
+        assert_eq!(allocation.allocated, 0);
+        assert_eq!(allocation.live, 0);
+
+        let (_, refused, used, first, _) = output::with_limit_usage_refusal_site(0, || {
+            assert!(!output::reserve_active_required(17));
+            // A constructor retains no ambient owner/permit: the current
+            // independently entered scope pays, then its Drop restores the
+            // already-sticky old account without replacing its first refusal.
+            let ((), inner_refused, inner_used) = output::with_limit_usage(debit, || {
+                let value = crate::hir::resolved_residual_type!(ResolvedType::I64).unwrap();
+                assert_eq!(*value, ResolvedType::I64);
+                drop(value);
+            });
+            assert!(!inner_refused);
+            assert_eq!(inner_used, debit);
+            assert!(crate::hir::resolved_residual_type!(ResolvedType::Bool).is_none());
+        });
+        assert!(refused);
+        assert_eq!(used, 0);
+        assert_eq!(first.unwrap().requested, 17);
     }
 
     fn leaf() -> ResolvedExpr {
@@ -732,7 +803,10 @@ mod residual_payload_tests {
             ok_field: id("ok.value"),
             err_case: id("error"),
             err_field: id("error.value"),
-            residual_type: ResolvedResidualType::try_new(ty.clone()).unwrap(),
+            residual_type: {
+                let residual = ty.clone();
+                crate::hir::resolved_residual_type!(residual).unwrap()
+            },
         };
         assert_eq!(format!("{old:#?}"), format!("{current:#?}"));
         let (_, old_allocation) = measure(|| {
@@ -769,7 +843,7 @@ mod residual_payload_tests {
             some_case: id("some"),
             some_field: id("some.value"),
             none_case: id("none"),
-            residual_type: ResolvedResidualType::try_new(ty).unwrap(),
+            residual_type: crate::hir::resolved_residual_type!(ty).unwrap(),
         };
         assert_eq!(format!("{old:#?}"), format!("{current:#?}"));
         let mut changed = current.clone();
@@ -791,7 +865,8 @@ mod residual_payload_tests {
                     result: Box::new(ty),
                 };
             }
-            let wrapped = ResolvedResidualType::try_new(ty.clone()).unwrap();
+            let residual = ty.clone();
+            let wrapped = crate::hir::resolved_residual_type!(residual).unwrap();
             let old = encode(&ty);
             let current = encode(&wrapped);
             assert_eq!(old, current, "codec depth {depth}");

@@ -1,0 +1,52 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "hir::expr_nodes::residual_payload_tests::residual_payload_compacts_the_complete_previous_expression_layout"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "hir::expr_nodes::residual_payload_tests::residual_payload_zero_exact_short_and_drop_pay_before_allocation"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "hir::expr_nodes::residual_payload_tests::residual_payload_keeps_all_result_and_option_fields_debug_clone_and_backing"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "hir::expr_nodes::residual_payload_tests::residual_payload_cache_keeps_wire_depth_node_and_hostile_input_boundaries"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "hir::expr_nodes::residual_payload_tests::lexical_residual_receiving_keeps_old_producer_order_floor_and_restored_sticky_owner"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "hir::residual_constructor_before::residual_payload_tests::residual_payload_compacts_the_complete_previous_expression_layout"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "hir::residual_constructor_before::residual_payload_tests::residual_payload_zero_exact_short_and_drop_pay_before_allocation"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "hir::residual_constructor_before::residual_payload_tests::residual_payload_keeps_all_result_and_option_fields_debug_clone_and_backing"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "hir::residual_constructor_before::residual_payload_tests::residual_payload_cache_keeps_wire_depth_node_and_hostile_input_boundaries"
+  },
+  {
+    "package": "semaprax-native-rust-interop-builder",
+    "kind": "lib",
+    "selector": "implementation::tests::hir_traversal::hir_fingerprint_admits_exact_depth_result_and_option_try_chains"
+  }
+]

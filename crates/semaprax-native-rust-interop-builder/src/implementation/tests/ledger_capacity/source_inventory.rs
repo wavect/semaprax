@@ -1,7 +1,7 @@
-// Complete additive source union; original receivers included without slicing.
+macro_rules! audit_source_join { ($($piece:expr),* $(,)?) => {{ let pieces: &[&str] = &[$(&$piece),*]; pieces.concat() }}; } // Complete additive source union; original receivers included without slicing.
 macro_rules! held_call_profile_source_inventory {
     () => {
-        concat!(
+        audit_source_join!(
             include_str!("../../../../../src/cleanup_plan/replay/final_output.rs"), include_str!("../../../../../tests/wasm/scalar_browser_ci_contract/actual_83ca.rs"),  include_str!("../../../../../src/bounded_output/checked_string.rs"),  include_str!("../../../../../src/hir/ids/instance_match.rs"),  include_str!("../../../../../src/hir/ids/instance_match/tests.rs"),  include_str!("../../../../../src/hir/nodes/instance_key.rs"),  include_str!("../../../../../src/cleanup_plan/replay/structural_maps/paid_reference.rs"),  include_str!("../../../../../src/cleanup_plan/replay/structural_maps/tests/paid_reference.rs"),  include_str!("../../../../../src/cleanup_plan/replay/selected_entry/tests/driver_local_receivers.rs"),  include_str!("../../../../../src/cleanup_plan/replay/compact_stage.rs"),  include_str!("../../../../../src/cleanup_plan/replay/compact_stage/before.rs"),  include_str!("../../../../../src/cleanup_plan/replay/compact_stage/lexical_before.rs"),  include_str!("../../../../../src/cleanup_plan/replay/compact_stage/source_custody.rs"),  include_str!("../../../../../src/cleanup_plan/replay/compact_stage/tests.rs"),  include_str!("../../../../../src/cleanup_plan/replay/final_output/before_compaction.rs"),  include_str!("../../../../../src/cleanup_plan/replay/final_output/before_transfer_current.rs"),  include_str!("../../../../../src/cleanup_plan/replay/final_output/current_observation_tests.rs"),  include_str!("../../../../../src/source_reflows/semantic_receivers_mainb80.rs"),  include_str!("../../../../../tests/wasm/scalar_browser_ci_contract/before_c451.rs"),  include_str!("../../../../../tests/wasm/scalar_browser_ci_contract/historical_main_c451.rs"),  include_str!("../../../../../tests/wasm/scalar_browser_ci_contract/main_c451_before_2600.rs"),  include_str!("../../../../../src/cleanup_plan/replay/final_output/before.rs"), include_str!("../../../../../src/cleanup_plan/replay/final_output/tests.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/before_final_edge.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/final_edge_tests.rs"), include_str!("../../../../../src/source_verify/hints/before_capacity_witness.rs"), include_str!("../../../../../src/cli/help/authoring/tasks.rs"), include_str!("../../../../../src/cleanup_plan/replay/factored/strategy/before_fitting.rs"), include_str!("../../../../../src/cleanup_plan/replay/factored/strategy/fitting_tests.rs"), include_str!("../../../../../src/cli/help/authoring/tasks/tests.rs"), include_str!("../../../../../src/cli/help/authoring/tasks/derive.rs"), include_str!("../../../../../tests/cli_help_surface_v1/task_pages.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/before_state_move.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/state_move_tests.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_array/main696.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_array/funded_tests.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_array.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_array/before.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_array/tests.rs"), include_str!("../../../../../src/source_reflows/semantic_receivers.rs"), include_str!("../../../../../src/cleanup_plan/replay/branch_clone/before_inline.rs"), include_str!("../../../../../src/cleanup_plan/replay/branch_clone/inline_tests.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/tests.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs"), include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs"), include_str!("../../../../../src/hir/validation/held_profiles.rs"),
             include_str!("../../../../../src/hir/validation/held_profiles/tests.rs"),
             include_str!("../../../../../src/hir/validation/held_profiles/source_audit.rs"),
@@ -15,7 +15,7 @@ macro_rules! held_call_profile_source_inventory {
 // Complete additive source union; original receivers included without slicing.
 macro_rules! fixed_operation_identity_source_inventory {
     () => {
-        concat!(
+        audit_source_join!(
             include_str!("../../../../../src/hir/ids/fixed_operation_tests.rs"),
             include_str!("../../../../../src/hir/resolve_box_call/map/identity_tests.rs"),
             include_str!("../../../../../src/hir/resolve_box_call/list/identity_tests.rs"),
@@ -26,7 +26,7 @@ macro_rules! fixed_operation_identity_source_inventory {
 // Shared complete byte-writer/frontier source join for both owning audits. No test bodies, assertions or literal contents are relocated here.
 macro_rules! byte_writer_source_inventory {
     () => {
-        concat!(
+        audit_source_join!(
             include_str!("../../../../../src/loop_calls/byte_writer.rs"),
             include_str!("../../../../../src/loop_calls/byte_writer/source.rs"),
             include_str!("../../../../../src/loop_calls/byte_writer/source_index.rs"),
@@ -63,7 +63,7 @@ macro_rules! byte_writer_source_inventory {
 // Full generic directory implementation and unchanged original test owner.
 macro_rules! generic_values_source_inventory {
     () => {
-        concat!(
+        audit_source_join!(
             include_str!("../../../../../src/hir/validation/generic_template/values.rs"),
             include_str!("../../../../../src/hir/validation/generic_template/values/charge.rs"),
             include_str!(
@@ -83,7 +83,7 @@ macro_rules! generic_values_source_inventory {
 // Complete original loan scratch source join, plus private ordered carrier.
 macro_rules! loan_cfg_source_inventory {
     () => {
-        concat!(
+        audit_source_join!(
         include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_before.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs"),
@@ -168,7 +168,7 @@ macro_rules! loan_cfg_source_inventory {
         include_str!("../../../../../src/cleanup_plan/replay/structural_control/blocks.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/structural_control/call_receiving.rs"), include_str!("../../../../../src/cleanup_plan/replay/supplemental/receiving.rs"), include_str!("../../../../../src/cleanup_plan/replay/supplemental/receiving/tests.rs"),
-        concat!(include_str!("../../../../../src/cleanup_plan/replay/structural_control/calls.rs"), include_str!("../../../../../src/cleanup_plan/replay/structural_control/calls/cursor.rs"), include_str!("../../../../../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs"), include_str!("../../../../../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs"), include_str!("../../../../../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs")),
+        audit_source_join!(include_str!("../../../../../src/cleanup_plan/replay/structural_control/calls.rs"), include_str!("../../../../../src/cleanup_plan/replay/structural_control/calls/cursor.rs"), include_str!("../../../../../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs"), include_str!("../../../../../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs"), include_str!("../../../../../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs")),
         include_str!("../../../../../src/cleanup_plan/replay/structural_control/calls/custody_tests.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/structural_control/calls/custody_tests/source.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/structural_control/calls_before_receipt.rs"),
@@ -267,7 +267,7 @@ macro_rules! loan_cfg_source_inventory {
 // Full static diagnostic and ordinary scope/frontier owners, including old tests.
 macro_rules! diagnostic_source_inventory {
     () => {
-        concat!(
+        audit_source_join!(
             include_str!("../../../../../src/diagnostic.rs"),
             include_str!("../../../../../src/diagnostic/refusal_tests.rs"),
             include_str!("../../../../../src/workspace_report.rs"),
@@ -318,7 +318,7 @@ macro_rules! diagnostic_source_inventory {
 // Complete substituters and the saved current caller, alongside original gates.
 macro_rules! substitution_leaf_source_inventory {
     () => {
-        concat!(
+        audit_source_join!(
             include_str!("../../../../../src/hir/monomorphize.rs"),
             include_str!("../../../../../src/hir/monomorphize/substitution_saved.rs"),
             include_str!("../../../../../src/hir/monomorphize/substitution_leaf_tests.rs"),
@@ -327,7 +327,7 @@ macro_rules! substitution_leaf_source_inventory {
 }
 macro_rules! reachability_leaf_source_inventory {
     () => {
-        concat!(
+        audit_source_join!(
             include_str!("../../../../../src/hir/type_reachability.rs"),
             include_str!("../../../../../src/hir/type_reachability/inventory.rs"),
             include_str!("../../../../../src/hir/type_reachability/nested_generic_function.rs"),
@@ -344,7 +344,7 @@ macro_rules! reachability_leaf_source_inventory {
 // Complete borrowed-root oracle owners and their relocated children.
 macro_rules! hir_borrowed_root_oracle_source_inventory {
     () => {
-        concat!(
+        audit_source_join!(
             include_str!("../../../../../src/hir/borrowed_root_oracle.rs"),
             include_str!("../../../../../src/hir/borrowed_root_oracle/resolve_box_call.rs"),
             include_str!(
@@ -391,9 +391,9 @@ macro_rules! hir_borrowed_root_oracle_source_inventory {
 // Resolver source join: every original source in its original order, with the missing production descendants inserted beside their parents.
 macro_rules! hir_resolver_source_inventory {
     () => {
-        concat!(
+        audit_source_join!(
             byte_writer_source_inventory!(),
-            concat!(
+            audit_source_join!(
                 include_str!("../../../../../src/hir.rs"),
         include_str!("../../../../../src/bounded_output/identity_reservation/base_prelude.rs"),
         include_str!("../../../../../src/bounded_output/identity_reservation/base_prelude/tests.rs"),
@@ -546,8 +546,8 @@ macro_rules! hir_resolver_source_inventory {
             include_str!("../../../../../src/hir/agent_validation/embedded.rs"),
             include_str!("../../../../../src/hir/owned_result_try.rs"),
             include_str!("../../../../../src/hir/resolve_class.rs"),
-            concat!(
-                concat!(
+            audit_source_join!(
+                audit_source_join!(
                     include_str!("../../../../../src/hir/resolve_expr.rs"),
                     include_str!("../../../../../src/hir/resolve_expr/vec_constructor.rs")
                 ),
@@ -581,8 +581,8 @@ macro_rules! hir_resolver_source_inventory {
             include_str!("../../../../../src/hir/yield_aggregate.rs"),
             include_str!("../../../../../src/hir/resolve_expr_frame.rs"),
             include_str!("../../../../../src/hir/resolve_expr_frame/fixed_results.rs"),
-            concat!(
-                concat!(
+            audit_source_join!(
+                audit_source_join!(
                     include_str!("../../../../../src/hir/resolve_expr_reference.rs"),
                     include_str!("../../../../../src/hir/resolve_expr_reference/block.rs")
                 ),
@@ -603,7 +603,7 @@ macro_rules! hir_resolver_source_inventory {
             include_str!("../../../../../src/hir/iterator_loop/renewal/paid_scan.rs"),
             include_str!("../../../../../src/hir/iterator_loop/renewal/funded.rs"),
             include_str!("../../../../../src/hir/resolve_pattern.rs"),
-            concat!(
+            audit_source_join!(
                 include_str!("../../../../../src/hir/resolve_program.rs"),
                 include_str!("../../../../../src/hir/resolve_program/agent_identity.rs"),
                 include_str!("../../../../../src/hir/resolve_program/agent_identity/fixture.rs"),
@@ -630,7 +630,7 @@ macro_rules! hir_resolver_source_inventory {
             include_str!("../../../../../src/hir/variant_equality.rs"),
             include_str!("../../../../../src/hir/record_invariants.rs"),
             include_str!("../../../../../src/hir/record_invariants/source.rs"),
-            concat!(
+            audit_source_join!(
                 include_str!("../../../../../src/hir/byte_capacity.rs"),
                 include_str!("../../../../../src/hir/byte_capacity/static_extent.rs"),
                 include_str!("../../../../../src/hir/byte_capacity/static_extent_tests.rs"),
@@ -657,18 +657,18 @@ macro_rules! hir_resolver_source_inventory {
                 "\n",
                 include_str!("../../../../../src/finite_byte_scratch/source.rs"),
                 "\n",
-                concat!(
+                audit_source_join!(
                     include_str!("../../../../../src/finite_byte_scratch/resolved.rs"),
                     include_str!("../../../../../src/finite_owned_record_loop.rs"),
                     include_str!("../../../../../src/finite_owned_record_loop/source.rs"),
-                    concat!(
+                    audit_source_join!(
                         include_str!("../../../../../src/finite_owned_record_loop/resolved.rs"),
                         include_str!("../../../../../src/finite_owned_record_loop/tests.rs")
                     ),
                     include_str!("../../../../../src/hir/copy_discard.rs")
                 )
             ),
-            concat!(
+            audit_source_join!(
                 include_str!("../../../../../src/hir/byte_slice_provenance.rs"),
                 "\n",
                 include_str!("../../../../../src/hir/byte_slice_provenance/inline_range.rs"),
@@ -678,7 +678,7 @@ macro_rules! hir_resolver_source_inventory {
             ),
             include_str!("../../../../../src/hir/capacity_probe.rs"),
             include_str!("../../../../../src/hir/expr_nodes.rs"),
-            concat!(
+            audit_source_join!(
                 include_str!("../../../../../src/hir/ids.rs"),
                 fixed_operation_identity_source_inventory!(),
                 include_str!("../../../../../src/hir/ids/compiler.rs"),
@@ -687,7 +687,7 @@ macro_rules! hir_resolver_source_inventory {
                 "\n",
                 include_str!("../../../../../src/hir/ids/metered_owner.rs")
             ),
-            concat!(
+            audit_source_join!(
                 include_str!("../../../../../src/hir/inspection.rs"),
                 "\n",
                 include_str!("../../../../../src/hir/inspection/paid_nul.rs"),
@@ -706,7 +706,7 @@ macro_rules! hir_resolver_source_inventory {
             reachability_leaf_source_inventory!(),
             include_str!("../../../../../src/hir/type_reachability/classifier_tests.rs"),
             include_str!("../../../../../src/hir/type_reachability/classifier_tests/old.rs"),
-            concat!(
+            audit_source_join!(
                 include_str!("../../../../../src/hir/workspace_link.rs"),
                 "\n",
                 include_str!("../../../../../src/hir/workspace_link/stream_collection_record.rs"),
@@ -718,7 +718,7 @@ macro_rules! hir_resolver_source_inventory {
                 include_str!("../../../../../src/hir/workspace_link/stream_record.rs")
             ),
             include_str!("../../../../../src/hir/cache_codec.rs"),
-            concat!(
+            audit_source_join!(
                 include_str!("../../../../../src/hir/declaration_index.rs"),
                 include_str!("../../../../../src/hir/declaration_index/inventory_lookup.rs"),
                 include_str!("../../../../../src/hir/declaration_index/inventory_lookup/compound.rs"),
@@ -731,7 +731,7 @@ macro_rules! hir_resolver_source_inventory {
             ),
             include_str!("../../../../../src/hir/declaration_index/source.rs"),
             include_str!("../../../../../src/hir/declaration_index/identity_payer.rs"),
-            concat!(
+            audit_source_join!(
                     include_str!("../../../../../src/hir/identity_resolution.rs"),
                     include_str!("../../../../../src/hir/identity_resolution/previous_source.rs"),
                     include_str!("../../../../../src/hir/function_reuse_source.rs")
@@ -756,7 +756,7 @@ macro_rules! hir_resolver_source_inventory {
             include_str!("../../../../../src/hir/declaration_index/flags/paid/inventory_constructor.rs"),
             include_str!("../../../../../src/hir/declaration_index/flags/paid/inventory_constructor/key.rs"),
             include_str!("../../../../../src/hir/declaration_index/flags/paid/inventory_constructor/substitute.rs"),
-            concat!(
+            audit_source_join!(
                 include_str!("../../../../../src/hir/declaration_index/flags/nominal_key.rs"),
                 include_str!("../../../../../src/hir/declaration_index/flags/nominal_key/compound.rs"),
                 include_str!(
@@ -806,7 +806,7 @@ macro_rules! hir_resolver_source_inventory {
 // Validator source join, same ordering rule as the resolver join.
 macro_rules! hir_validator_source_inventory {
     () => {
-        concat!(
+        audit_source_join!(
             include_str!("../../../../../src/hir/function_directory/caller.rs"),
             include_str!("../../../../../src/hir/canonical_loan_storage.rs"),
             include_str!("../../../../../src/bounded_output/canonical_stage_tests.rs"),
@@ -818,7 +818,7 @@ macro_rules! hir_validator_source_inventory {
             include_str!(
                 "../../../../../src/hir/canonical_loan_storage/deferred/tests/selected.rs"
             ),
-            concat!(concat!(include_str!("../../../../../src/hir/canonical_loan_storage/caller.rs"), include_str!("../../../../../src/hir/canonical_loan_storage/caller/shared.rs"), include_str!("../../../../../src/hir/canonical_loan_storage/caller/shared/tests.rs"), include_str!("../../../../../src/hir/canonical_loan_storage/caller/owned_before.rs")), include_str!("../../../../../src/hir/canonical_loan_storage/caller_before.rs"), include_str!("../../../../../src/hir/canonical_loan_storage/scratch.rs"), include_str!("../../../../../src/hir/canonical_loan_storage/tests/reuse.rs")),
+            audit_source_join!(audit_source_join!(include_str!("../../../../../src/hir/canonical_loan_storage/caller.rs"), include_str!("../../../../../src/hir/canonical_loan_storage/caller/shared.rs"), include_str!("../../../../../src/hir/canonical_loan_storage/caller/shared/tests.rs"), include_str!("../../../../../src/hir/canonical_loan_storage/caller/owned_before.rs")), include_str!("../../../../../src/hir/canonical_loan_storage/caller_before.rs"), include_str!("../../../../../src/hir/canonical_loan_storage/scratch.rs"), include_str!("../../../../../src/hir/canonical_loan_storage/tests/reuse.rs")),
             include_str!("../../../../../src/hir/canonical_loan_storage/tests.rs"),
             include_str!("../../../../../src/hir/canonical_loan_storage/tests/old.rs"),
             include_str!("../../../../../src/hir.rs"),
@@ -829,9 +829,9 @@ macro_rules! hir_validator_source_inventory {
             include_str!("../../../../../src/hir/static_text/backing.rs"),
             include_str!("../../../../../src/hir/static_text/origin.rs"),
             byte_writer_source_inventory!(),
-            concat!(
-                concat!(
-                    concat!(
+            audit_source_join!(
+                audit_source_join!(
+                    audit_source_join!(
                         include_str!("../../../../../src/hir/validation.rs"),
                         held_call_profile_source_inventory!(),
                         include_str!("../../../../../src/hir/validation/function_scope.rs"),
@@ -860,11 +860,11 @@ macro_rules! hir_validator_source_inventory {
                         include_str!("../../../../../src/hir/validation/call_signature.rs"),
                         include_str!("../../../../../src/hir/validation/effect_keys.rs"),
                         include_str!("../../../../../src/hir/validation/row_loan.rs"),
-                        concat!(include_str!("../../../../../src/hir/validation/constructor_seed.rs"), concat!(include_str!("../../../../../src/hir/validation/constructor_seed/original.rs"), include_str!("../../../../../src/list_ops/original_constructor.rs"), include_str!("../../../../../src/iterator_ops/original_constructor.rs"), include_str!("../../../../../src/hir/validation/constructor_seed/original_intrinsics.rs"), include_str!("../../../../../src/hir/validation/constructor_seed/intrinsic_tests.rs"))),
+                        audit_source_join!(include_str!("../../../../../src/hir/validation/constructor_seed.rs"), audit_source_join!(include_str!("../../../../../src/hir/validation/constructor_seed/original.rs"), include_str!("../../../../../src/list_ops/original_constructor.rs"), include_str!("../../../../../src/iterator_ops/original_constructor.rs"), include_str!("../../../../../src/hir/validation/constructor_seed/original_intrinsics.rs"), include_str!("../../../../../src/hir/validation/constructor_seed/intrinsic_tests.rs"))),
                         include_str!("../../../../../src/hir/validation/contract_owners.rs"),
                         include_str!("../../../../../src/hir/validation/contract_owners/tests.rs"),
                         include_str!("../../../../../src/hir/validation/contract_owners/tests/old.rs"),
-                        concat!(include_str!("../../../../../src/hir/validation/canonical_loans.rs"), include_str!("../../../../../src/hir/validation/canonical_loans/constructors_before.rs"), include_str!("../../../../../src/hir/validation/canonical_loans/ownership_tests.rs")),
+                        audit_source_join!(include_str!("../../../../../src/hir/validation/canonical_loans.rs"), include_str!("../../../../../src/hir/validation/canonical_loans/constructors_before.rs"), include_str!("../../../../../src/hir/validation/canonical_loans/ownership_tests.rs")),
                         include_str!("../../../../../src/hir/validation/aggregate_metadata.rs"),
                         include_str!("../../../../../src/hir/validation/continuation_path.rs"),
                         include_str!(
@@ -874,8 +874,8 @@ macro_rules! hir_validator_source_inventory {
                             "../../../../../src/hir/validation/aggregate_metadata/tests.rs"
                         ),
                         "\n",
-                        concat!(
-                            concat!(include_str!("../../../../../src/hir/validation/function_lookup.rs"), include_str!("../../../../../src/hir/validation/function_lookup/original.rs"), include_str!("../../../../../src/hir/validation/function_lookup/paid_custody.rs")),
+                        audit_source_join!(
+                            audit_source_join!(include_str!("../../../../../src/hir/validation/function_lookup.rs"), include_str!("../../../../../src/hir/validation/function_lookup/original.rs"), include_str!("../../../../../src/hir/validation/function_lookup/paid_custody.rs")),
                             include_str!(
                                 "../../../../../src/hir/validation/function_lookup/permits.rs"
                             ),
@@ -884,7 +884,7 @@ macro_rules! hir_validator_source_inventory {
                         )
                     ),
                     include_str!("../../../../../src/hir/validation/type_requirement.rs"),
-                    concat!(
+                    audit_source_join!(
                         include_str!("../../../../../src/hir/vec_constructor.rs"),
                         include_str!("../../../../../src/hir/vec_constructor/capture.rs")
                     )
@@ -929,18 +929,18 @@ macro_rules! hir_validator_source_inventory {
             include_str!("../../../../../src/hir/validation/string_replacement.rs"),
             include_str!("../../../../../src/hir/validation/borrowed_argument.rs"),
             include_str!("../../../../../src/hir/validation/borrowed_bytes_call_tests.rs"),
-            concat!(
+            audit_source_join!(
                 include_str!("../../../../../src/hir/validation/iterator_loops.rs"),
                 "\n",
                 include_str!("../../../../../src/finite_byte_scratch.rs"),
                 "\n",
                 include_str!("../../../../../src/finite_byte_scratch/source.rs"),
                 "\n",
-                concat!(
+                audit_source_join!(
                     include_str!("../../../../../src/finite_byte_scratch/resolved.rs"),
                     include_str!("../../../../../src/finite_owned_record_loop.rs"),
                     include_str!("../../../../../src/finite_owned_record_loop/source.rs"),
-                    concat!(
+                    audit_source_join!(
                         include_str!("../../../../../src/finite_owned_record_loop/resolved.rs"),
                         include_str!("../../../../../src/finite_owned_record_loop/tests.rs")
                     ),
@@ -954,11 +954,11 @@ macro_rules! hir_validator_source_inventory {
             include_str!("../../../../../src/hir/validation/closure/old.rs"),
             include_str!("../../../../../src/hir/validation/generic_variant.rs"),
             include_str!("../../../../../src/hir/validation/box_intrinsic.rs"),
-            concat!(include_str!("../../../../../src/hir/validation/stdin_stream.rs"), include_str!("../../../../../src/hir/validation/stdin_stream/paid.rs"), include_str!("../../../../../src/hir/validation/stdin_stream/paid/analysis.rs"), include_str!("../../../../../src/hir/validation/stdin_stream/paid/tests.rs")),
+            audit_source_join!(include_str!("../../../../../src/hir/validation/stdin_stream.rs"), include_str!("../../../../../src/hir/validation/stdin_stream/paid.rs"), include_str!("../../../../../src/hir/validation/stdin_stream/paid/analysis.rs"), include_str!("../../../../../src/hir/validation/stdin_stream/paid/tests.rs")),
             include_str!("../../../../../src/hir/validation/branch_merge.rs"),
             include_str!("../../../../../src/hir/validation/vec_intrinsic.rs"),
             include_str!("../../../../../src/hir/validation/borrowed_str.rs"),
-            concat!(include_str!("../../../../../src/hir/validation/generic_template.rs"), include_str!("../../../../../src/hir/validation/generic_template/call_graph.rs"), include_str!("../../../../../src/hir/validation/generic_template/call_graph/ordered.rs"), include_str!("../../../../../src/hir/validation/generic_template/call_graph/original.rs"), include_str!("../../../../../src/hir/validation/generic_template/call_graph/tests.rs")),
+            audit_source_join!(include_str!("../../../../../src/hir/validation/generic_template.rs"), include_str!("../../../../../src/hir/validation/generic_template/call_graph.rs"), include_str!("../../../../../src/hir/validation/generic_template/call_graph/ordered.rs"), include_str!("../../../../../src/hir/validation/generic_template/call_graph/original.rs"), include_str!("../../../../../src/hir/validation/generic_template/call_graph/tests.rs")),
             include_str!("../../../../../src/hir/validation/generic_template/reachability.rs"),
             generic_values_source_inventory!(),
             diagnostic_source_inventory!(),
@@ -995,12 +995,12 @@ macro_rules! hir_validator_source_inventory {
 // Source verifier join, same ordering rule as the resolver join.
 macro_rules! verifier_source_inventory {
     () => {
-        concat!(
+        audit_source_join!(
             include_str!("../../../../../src/loop_calls/byte_writer.rs"),
             include_str!("../../../../../src/loop_calls/byte_writer/source.rs"),
             include_str!("../../../../../src/loop_calls/byte_writer/source_index.rs"),
             include_str!("../../../../../src/loop_calls/byte_writer/source_index_original.rs"),
-            concat!(
+            audit_source_join!(
                 include_str!("../../../../../src/source_verify.rs"),
                 include_str!("../../../../../src/source_verify/field_unique.rs"),
                 include_str!("../../../../../src/source_verify/private_names.rs"),
@@ -1028,7 +1028,7 @@ macro_rules! verifier_source_inventory {
                 include_str!("../../../../../src/source_verify/byte_traversal/nested/tests.rs"),
                 include_str!("../../../../../src/source_verify/iterative/while_rules/before_nested.rs"),
                 "\n",
-                concat!(
+                audit_source_join!(
                     include_str!("../../../../../src/source_verify/capacity.rs"),
                     "\n",
                     include_str!("../../../../../src/source_verify/capacity/empty_clone.rs"),
@@ -1037,11 +1037,11 @@ macro_rules! verifier_source_inventory {
                     "\n",
                     include_str!("../../../../../src/finite_byte_scratch/source.rs"),
                     "\n",
-                    concat!(
+                    audit_source_join!(
                         include_str!("../../../../../src/finite_byte_scratch/resolved.rs"),
                         include_str!("../../../../../src/finite_owned_record_loop.rs"),
                         include_str!("../../../../../src/finite_owned_record_loop/source.rs"),
-                        concat!(
+                        audit_source_join!(
                             include_str!("../../../../../src/finite_owned_record_loop/resolved.rs"),
                             include_str!("../../../../../src/finite_owned_record_loop/tests.rs")
                         ),
@@ -1158,18 +1158,18 @@ macro_rules! verifier_source_inventory {
                 "\n",
                 include_str!("../../../../../src/source_verify/iterative/run.rs"),
                 "\n",
-                concat!(
+                audit_source_join!(
                     include_str!("../../../../../src/source_verify/iterative/while_rules.rs"),
                     "\n",
                     include_str!("../../../../../src/finite_byte_scratch.rs"),
                     "\n",
                     include_str!("../../../../../src/finite_byte_scratch/source.rs"),
                     "\n",
-                    concat!(
+                    audit_source_join!(
                         include_str!("../../../../../src/finite_byte_scratch/resolved.rs"),
                         include_str!("../../../../../src/finite_owned_record_loop.rs"),
                         include_str!("../../../../../src/finite_owned_record_loop/source.rs"),
-                        concat!(
+                        audit_source_join!(
                             include_str!("../../../../../src/finite_owned_record_loop/resolved.rs"),
                             include_str!("../../../../../src/finite_owned_record_loop/tests.rs")
                         ),
@@ -1251,7 +1251,7 @@ macro_rules! verifier_source_inventory {
 // Cleanup-plan lowering join, same ordering rule as the resolver join.
 macro_rules! lower_source_inventory {
     () => {
-        concat!(
+        audit_source_join!(
             include_str!("../../../../../src/cleanup/schema_summary.rs"),
             include_str!("../../../../../src/cleanup/schema_summary/generic_record.rs"),
             include_str!("../../../../../src/cleanup/schema_summary/support.rs"),
@@ -1314,13 +1314,13 @@ macro_rules! lower_source_inventory {
             include_str!("../../../../../src/test_allocation_observer/free_order.rs"),
             include_str!("../../../../../src/cleanup_plan/replay/expression_facts.rs"),
             include_str!("../../../../../src/cleanup_plan/replay/expression_facts/saved.rs"),
-            concat!(include_str!("../../../../../src/cleanup_plan/replay/expression_facts/arena/producer.rs"), include_str!("../../../../../src/cleanup_plan/replay/expression_facts/arena/before_cursor.rs"), include_str!("../../../../../src/cleanup_plan/replay/expression_facts/arena/producer_before_cursor.rs"), include_str!("../../../../../src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs"), include_str!("../../../../../src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs")),
+            audit_source_join!(include_str!("../../../../../src/cleanup_plan/replay/expression_facts/arena/producer.rs"), include_str!("../../../../../src/cleanup_plan/replay/expression_facts/arena/before_cursor.rs"), include_str!("../../../../../src/cleanup_plan/replay/expression_facts/arena/producer_before_cursor.rs"), include_str!("../../../../../src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs"), include_str!("../../../../../src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs")),
             include_str!("../../../../../src/cleanup_plan/replay/expression_facts/arena.rs"),
             include_str!("../../../../../src/cleanup_plan/replay/expression_facts/borrowed/tests.rs"),
             include_str!("../../../../../src/cleanup_plan/replay/expression_facts/borrowed.rs"),
             include_str!("../../../../../src/cleanup_plan/replay/expression_facts/capacity.rs"),
             include_str!("../../../../../src/cleanup_plan/replay/expression_facts/errors.rs"),
-            concat!(include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving.rs"),
+            audit_source_join!(include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving.rs"),
             include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained.rs"),
             include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers.rs"),
             include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/regions.rs"),
@@ -1414,7 +1414,7 @@ macro_rules! lower_source_inventory {
 // Joined source audit inventory for the additive final-validation children.
 macro_rules! hir_final_validation_source_inventory {
     () => {
-        concat!(
+        audit_source_join!(
             include_str!("../../../../../src/hir/validation/call_parameters.rs"),
             held_call_profile_source_inventory!(),
             include_str!("../../../../../src/hir/validation/nominal_facts.rs"),
@@ -1423,7 +1423,7 @@ macro_rules! hir_final_validation_source_inventory {
             include_str!("../../../../../src/hir/validation/ownership_flags/tests.rs"),
             include_str!("../../../../../src/hir/validation/call_parameters/copy_before.rs"),
             include_str!("../../../../../src/hir/validation/call_parameters/copy_flags_tests.rs"),
-            concat!(include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving.rs"),
+            audit_source_join!(include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving.rs"),
             include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained.rs"),
             include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers.rs"),
             include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/regions.rs"),

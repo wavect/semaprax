@@ -1,15 +1,16 @@
+macro_rules! audit_source_join { ($($piece:expr),* $(,)?) => {{ let pieces: &[&str] = &[$(&$piece),*]; pieces.concat() }}; }
 // Complete own-module private-layout input for projection purity. The broad
 // compiled-control union below keeps every original source in its original order.
 macro_rules! semantic_graph_private_layout_owned_source_inventory {
-    () => { concat!(semantic_graph_private_layout_owned_source_inventory!(capacity), semantic_graph_private_layout_owned_source_inventory!(core)) };
-    (capacity) => { concat!(
+    () => { audit_source_join!(semantic_graph_private_layout_owned_source_inventory!(capacity), semantic_graph_private_layout_owned_source_inventory!(core)) };
+    (capacity) => { audit_source_join!(
         include_str!("../../src/hir/expr_nodes.rs"), include_str!("../../docs/evidence/receiver-source-custody-v1/src__hir__expr_nodes.rs.before.txt"),
         include_str!("../../src/cleanup_plan/replay/final_output.rs"), include_str!("../wasm/scalar_browser_ci_contract/actual_83ca.rs"),  include_str!("../../src/bounded_output/checked_string.rs"),  include_str!("../../src/hir/ids/instance_match.rs"),  include_str!("../../src/hir/ids/instance_match/tests.rs"),  include_str!("../../src/hir/nodes/instance_key.rs"),  include_str!("../../src/cleanup_plan/replay/structural_maps/paid_reference.rs"),  include_str!("../../src/cleanup_plan/replay/structural_maps/tests/paid_reference.rs"),  include_str!("../../src/cleanup_plan/replay/selected_entry/tests/driver_local_receivers.rs"),  include_str!("../../src/cleanup_plan/replay/compact_stage.rs"),  include_str!("../../src/cleanup_plan/replay/compact_stage/before.rs"),  include_str!("../../src/cleanup_plan/replay/compact_stage/lexical_before.rs"),  include_str!("../../src/cleanup_plan/replay/compact_stage/source_custody.rs"),  include_str!("../../src/cleanup_plan/replay/compact_stage/tests.rs"),  include_str!("../../src/cleanup_plan/replay/final_output/before_compaction.rs"),  include_str!("../../src/cleanup_plan/replay/final_output/before_transfer_current.rs"),  include_str!("../../src/cleanup_plan/replay/final_output/current_observation_tests.rs"),  include_str!("../../src/source_reflows/semantic_receivers_mainb80.rs"),  include_str!("../wasm/scalar_browser_ci_contract/before_c451.rs"),  include_str!("../wasm/scalar_browser_ci_contract/historical_main_c451.rs"),  include_str!("../wasm/scalar_browser_ci_contract/main_c451_before_2600.rs"),  include_str!("../../src/cleanup_plan/replay/final_output/before.rs"), include_str!("../../src/cleanup_plan/replay/final_output/tests.rs"), include_str!("../../src/cleanup_plan/replay/path_join/before_final_edge.rs"), include_str!("../../src/cleanup_plan/replay/path_join/final_edge_tests.rs"), include_str!("../../src/source_verify/hints/before_capacity_witness.rs"), include_str!("../../src/cli/help/authoring/tasks.rs"), include_str!("../../src/cleanup_plan/replay/factored/strategy/before_fitting.rs"), include_str!("../../src/cleanup_plan/replay/factored/strategy/fitting_tests.rs"), include_str!("../../src/cli/help/authoring/tasks/tests.rs"), include_str!("../../src/cli/help/authoring/tasks/derive.rs"), include_str!("../../tests/cli_help_surface_v1/task_pages.rs"), include_str!("../../src/cleanup_plan/replay/path_join/before_state_move.rs"), include_str!("../../src/cleanup_plan/replay/path_join/state_move_tests.rs"), include_str!("../../src/cleanup_plan/replay/path_array/main696.rs"), include_str!("../../src/cleanup_plan/replay/path_array/funded_tests.rs"), include_str!("../../src/cleanup_plan/replay/path_array.rs"), include_str!("../../src/cleanup_plan/replay/path_array/before.rs"), include_str!("../../src/cleanup_plan/replay/path_array/tests.rs"), include_str!("../../src/source_reflows/semantic_receivers.rs"), include_str!("../../src/cleanup_plan/replay/branch_clone/before_inline.rs"), include_str!("../../src/cleanup_plan/replay/branch_clone/inline_tests.rs"), include_str!("../../src/cleanup_plan/replay/path_join/tests.rs"), include_str!("../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs"), include_str!("../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs"), include_str!("../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs"), include_str!("../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs"), include_str!("../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs"), include_str!("../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs"), include_str!("../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs"), include_str!("../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs"), include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs"), include_str!("../../src/workspace_graph/expected_projection/private_layout/capacity_before.rs"),
         include_str!("../../src/workspace_graph/expected_projection/private_layout/capacity_tests.rs"),
         include_str!("../../src/workspace_graph/expected_projection/private_layout/capacity_tests/owner_controls.rs"),
         include_str!("../../src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs"),
     ) };
-    (core) => { concat!(
+    (core) => { audit_source_join!(
         include_str!("../../src/workspace_graph/expected_projection/private_layout.rs"), include_str!("../../src/workspace_graph/expected_projection/private_layout/registry/storage.rs"), include_str!("../../src/workspace_graph/expected_projection/private_layout/registry/before_retained.rs"), include_str!("../../src/workspace_graph/expected_projection/private_layout/registry/retained_tests.rs"),
         include_str!("../../src/workspace_graph/expected_projection/private_layout/registry.rs"),
         include_str!("../../src/workspace_graph/expected_projection/private_layout/before_registry.rs"),
@@ -52,7 +53,7 @@ macro_rules! semantic_graph_private_layout_owned_source_inventory {
 }
 // Complete private-layout source inventory; original includes and literal bytes retained.
 macro_rules! semantic_graph_private_layout_source_inventory {
-    () => { concat!(
+    () => { audit_source_join!(
         include_str!("../../src/workspace_graph/expected_projection/cached_exact/tests.rs"),
         include_str!("../../src/workspace_graph/expected_projection/call_absence_tests.rs"),
         include_str!("../../src/workspace_graph/expected_projection/carrier_absence_tests.rs"),
@@ -174,11 +175,11 @@ macro_rules! semantic_graph_root_source_inventory {
     () => {
         format!(
         "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
-        concat!(
-            concat!(
-                concat!(
-                    concat!(
-                    concat!(concat!(concat!(include_str!("../../src/workspace_graph.rs"), include_str!("../../src/workspace_graph/initial_report.rs"), include_str!("../../src/workspace_graph/initial_report/before.rs"), include_str!("../../src/workspace_graph/initial_report/before_mappers.rs"), include_str!("../../src/workspace_graph/initial_report/build.rs"), include_str!("../../src/workspace_graph/initial_report/tests.rs"),
+        audit_source_join!(
+            audit_source_join!(
+                audit_source_join!(
+                    audit_source_join!(
+                    audit_source_join!(audit_source_join!(audit_source_join!(include_str!("../../src/workspace_graph.rs"), include_str!("../../src/workspace_graph/initial_report.rs"), include_str!("../../src/workspace_graph/initial_report/before.rs"), include_str!("../../src/workspace_graph/initial_report/before_mappers.rs"), include_str!("../../src/workspace_graph/initial_report/build.rs"), include_str!("../../src/workspace_graph/initial_report/tests.rs"),
         include_str!("../../src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs"),
         include_str!("../../src/cleanup_plan/replay/live_oracle/source_custody/presence.rs"),
         include_str!("../../src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs"),
@@ -187,7 +188,7 @@ macro_rules! semantic_graph_root_source_inventory {
         include_str!("../../src/cleanup_plan/replay/path_join/storage/atomic_controls.rs"),
         include_str!("../../src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs"),
         include_str!("../../src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs"),
-        concat!(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving.rs"), include_str!("../../src/cleanup_plan/replay/expression_facts/arena/before_cursor.rs"), include_str!("../../src/cleanup_plan/replay/expression_facts/arena/producer_before_cursor.rs"), include_str!("../../src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs"), include_str!("../../src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs")),
+        audit_source_join!(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving.rs"), include_str!("../../src/cleanup_plan/replay/expression_facts/arena/before_cursor.rs"), include_str!("../../src/cleanup_plan/replay/expression_facts/arena/producer_before_cursor.rs"), include_str!("../../src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs"), include_str!("../../src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs")),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory.rs"),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/return_operands.rs"),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/return_operands/exits.rs"),
@@ -201,7 +202,7 @@ macro_rules! semantic_graph_root_source_inventory {
         include_str!("../../src/cleanup_plan/replay/structural_control/blocks.rs"),
         include_str!("../../src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs"),
         include_str!("../../src/cleanup_plan/replay/structural_control/call_receiving.rs"), include_str!("../../src/cleanup_plan/replay/supplemental/receiving.rs"), include_str!("../../src/cleanup_plan/replay/supplemental/receiving/tests.rs"),
-        concat!(include_str!("../../src/cleanup_plan/replay/structural_control/calls.rs"), include_str!("../../src/cleanup_plan/replay/structural_control/calls/cursor.rs"), include_str!("../../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs"), include_str!("../../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs"), include_str!("../../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs")),
+        audit_source_join!(include_str!("../../src/cleanup_plan/replay/structural_control/calls.rs"), include_str!("../../src/cleanup_plan/replay/structural_control/calls/cursor.rs"), include_str!("../../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs"), include_str!("../../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs"), include_str!("../../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs")),
         include_str!("../../src/cleanup_plan/replay/structural_control/calls/custody_tests.rs"),
         include_str!("../../src/cleanup_plan/replay/structural_control/calls/custody_tests/source.rs"),
         include_str!("../../src/cleanup_plan/replay/structural_control/calls_before_receipt.rs"),
@@ -372,7 +373,7 @@ include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/inl
                 include_str!("../../src/workspace_graph/owned_generics/available.rs"),
                 include_str!("../../src/workspace_graph/static_text.rs"),
                 include_str!("../../src/workspace_graph/static_text/primitive.rs"),
-                concat!(
+                audit_source_join!(
                     include_str!("../../src/workspace_graph/static_text/scalar_helpers.rs"),
                     "\n",
                     include_str!("../../src/workspace_graph/static_text/scalar_helpers/legacy.rs")
@@ -403,7 +404,7 @@ include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/inl
                 "\n",
                 include_str!("../../src/workspace_graph/package.rs"),
                 "\n",
-                concat!(
+                audit_source_join!(
                     include_str!("../../src/workspace_graph/record_traversal.rs"),
                     "\n",
                     include_str!("../../src/workspace_graph/record_traversal/row_loan.rs"),
@@ -431,7 +432,7 @@ include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/inl
                 include_str!(
                     "../../src/workspace_graph/source_schema/static_text/primitive/helpers/local.rs"
                 ),
-                concat!(
+                audit_source_join!(
                     include_str!(
                         "../../src/workspace_graph/source_schema/static_text/primitive/helpers/tests.rs"
                     ),
@@ -477,7 +478,7 @@ include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/inl
             include_str!("../../src/workspace_graph/type_names.rs"),
             include_str!("../../src/workspace_graph/shape_identity.rs"),
             include_str!("../../src/workspace_graph/operation_sidecar.rs"),
-            concat!(
+            audit_source_join!(
                 include_str!("../../src/graph/copy_discard.rs"),
                 "\n",
                 include_str!("../../src/graph/copy_discard/finite_composition.rs"),
@@ -485,7 +486,7 @@ include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/inl
                 include_str!("../../src/graph/copy_discard/tests.rs")
             ),
             include_str!("../../src/workspace_graph/operation_sidecar/tokens.rs"),
-            concat!(
+            audit_source_join!(
                 include_str!("../../src/workspace_graph/operation_sidecar/fingerprint.rs"),
                 include_str!("../../src/workspace_graph/operation_sidecar/constructor.rs")
             )
@@ -496,7 +497,7 @@ include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/inl
         include_str!("../../src/workspace_graph/diagnostics/borrowed_help_tests.rs"),
         include_str!("../../src/workspace_graph/diagnostics/invocation.rs"),
         include_str!("../../src/workspace_graph/diagnostics/invocation/tests.rs"),
-        concat!(
+        audit_source_join!(
             include_str!("../../src/workspace_graph/generic_type_import.rs"),
             include_str!("../../src/workspace_graph/generic_type_import/receiving.rs"),
         include_str!("../../src/workspace_graph/generic_type_import/receiving/tests.rs"),
@@ -506,7 +507,7 @@ include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/inl
             include_str!("../../src/workspace_graph/generic_type_import/parameter_names/receiving.rs"),
             include_str!("../../src/workspace_graph/generic_type_import/parameter_names/tests.rs"),
         ),
-        concat!(
+        audit_source_join!(
             include_str!("../../src/workspace_graph/owned_generics.rs"),
             include_str!("../../src/hir/type_reachability/inventory.rs"),
             include_str!("../../src/hir/type_reachability/classifier_tests.rs"),
@@ -517,24 +518,24 @@ include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/inl
             include_str!("../../src/workspace_graph/owned_generics/retention.rs"),
             include_str!("../../src/workspace_graph/owned_generics/retention/tests.rs")
         ),
-        concat!(
+        audit_source_join!(
             include_str!("../../src/workspace_graph/owned_function_import.rs"),
             include_str!("../../src/workspace_graph/owned_function_import/text_collections.rs")
         ),
-        concat!(
+        audit_source_join!(
             include_str!("../../src/workspace_graph/prelude_binding.rs"),
             include_str!("../../src/workspace_graph/prelude_binding/collection_selection.rs"),
             include_str!("../../src/workspace_graph/prelude_binding/vec_selection.rs")
         ),
         include_str!("../../src/workspace_graph/project_render.rs"),
         include_str!("../../src/workspace_graph/session_protocol_decl.rs"),
-        concat!(
+        audit_source_join!(
             include_str!("../../src/workspace_graph/agent_execution.rs"),
             include_str!("../../src/workspace_graph/indexed_rust.rs"),
             include_str!("../../src/workspace_graph/native_law.rs")
         ),
-        concat!(
-            concat!(
+        audit_source_join!(
+            audit_source_join!(
                 include_str!("../../src/workspace_graph/source_callables.rs"),
                 "\n",
                 include_str!("../../src/workspace_graph/source_callables/old_walk.rs")
@@ -542,7 +543,7 @@ include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/inl
             include_str!("../../src/workspace_graph/source_callables/path_cursor.rs")
         ),
         include_str!("../../src/workspace_graph/callee_inventory.rs"),
-        concat!(
+        audit_source_join!(
             include_str!("../../src/workspace_graph/retained_validation.rs"),
             include_str!("../../src/workspace_graph/retained_validation/authority.rs"),
             include_str!("../../src/workspace_graph/retained_validation/capability_projection.rs"),
@@ -556,7 +557,7 @@ include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/inl
         ),
         include_str!("../../src/workspace_graph/retained_validation/dependency_closure.rs"),
         include_str!("../../src/workspace_graph/retained_validation/scalar_link.rs"),
-        concat!(
+        audit_source_join!(
             include_str!("../../src/workspace_graph/retained_vectors.rs"),
             include_str!("../../src/workspace_graph/loan_retention.rs"),
             include_str!("../../src/workspace_graph/loan_retention/tests.rs"),
@@ -570,9 +571,9 @@ include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/inl
 
 macro_rules! semantic_graph_projection_root_source_inventory {
     () => {
-        concat!(
-        concat!(
-            concat!(
+        audit_source_join!(
+        audit_source_join!(
+            audit_source_join!(
                 include_str!("../../src/workspace_graph/expected_projection.rs"),
                 include_str!("../../src/workspace_graph/expected_projection/vec_constructor.rs"),
                 include_str!("../../src/workspace_graph/expected_projection/held_projection.rs"),
@@ -600,7 +601,7 @@ macro_rules! semantic_graph_projection_root_source_inventory {
                 include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/tests/initialization.rs"),
                 include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/receiving.rs"),
                 include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/tests/full/receiving.rs"),
-                concat!(
+                audit_source_join!(
                     include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/tests/full/transient.rs"),
                     include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs"),
                     include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/tests/full/original_construct.rs")
@@ -609,7 +610,7 @@ macro_rules! semantic_graph_projection_root_source_inventory {
                 include_str!("../../src/bounded_output/key_directory/tests.rs"),
                 include_str!("../../src/ast/program_source/receiving_roots.rs"),
                 include_str!("../../src/ast/program_source/generated_roots.rs"),
-                concat!(
+                audit_source_join!(
                     include_str!("../../src/ast/program_source.rs"),
                     include_str!("../../src/ast/program_source/checked_key.rs"),
                     include_str!("../../src/ast/program_source/checked_key/encode.rs"),
@@ -639,7 +640,7 @@ macro_rules! semantic_graph_projection_child_source_inventory {
         include_str!("../../src/workspace_graph/expected_projection/call_sites.rs")
     };
     (cost) => {
-        concat!(
+        audit_source_join!(
             include_str!("../../src/workspace_graph/expected_projection/cost.rs"),
             include_str!("../../src/workspace_graph/expected_projection/cost/constructor.rs"),
             include_str!(
@@ -658,14 +659,13 @@ macro_rules! semantic_graph_projection_child_source_inventory {
         include_str!("../../src/workspace_graph/expected_projection/statement_segment.rs")
     };
     (defaults) => {
-        concat!(
+        audit_source_join!(
             include_str!("../../src/workspace_graph/expected_projection/defaults.rs"),
-                include_str!("../../src/workspace_graph/expected_projection/defaults/typed.rs"),
-                include_str!("../../src/workspace_graph/expected_projection/defaults/inline.rs"),
-                include_str!("../../src/workspace_graph/expected_projection/defaults/inline_fields.rs"),
-                include_str!("../../src/workspace_graph/expected_projection/defaults/inline_tests.rs"),
-                include_str!("../../src/workspace_graph/expected_projection/defaults/typed_fields.rs"),
-
+            include_str!("../../src/workspace_graph/expected_projection/defaults/typed.rs"),
+            include_str!("../../src/workspace_graph/expected_projection/defaults/inline.rs"),
+            include_str!("../../src/workspace_graph/expected_projection/defaults/inline_fields.rs"),
+            include_str!("../../src/workspace_graph/expected_projection/defaults/inline_tests.rs"),
+            include_str!("../../src/workspace_graph/expected_projection/defaults/typed_fields.rs"),
             include_str!(
                 "../../src/workspace_graph/expected_projection/defaults/field_directory.rs"
             ),
@@ -679,10 +679,9 @@ macro_rules! semantic_graph_projection_child_source_inventory {
         )
     };
     (import_stub) => {
-        concat!(
+        audit_source_join!(
             include_str!("../../src/workspace_graph/expected_projection/import_stub.rs"),
-                include_str!("../../src/workspace_graph/expected_projection/import_stub/typed.rs"),
-
+            include_str!("../../src/workspace_graph/expected_projection/import_stub/typed.rs"),
             include_str!(
                 "../../src/workspace_graph/expected_projection/import_stub/byte_helper.rs"
             ),
@@ -699,14 +698,14 @@ macro_rules! semantic_graph_projection_child_source_inventory {
         )
     };
     (uncached_peak) => {
-        concat!(
+        audit_source_join!(
             include_str!("../../src/workspace_graph/expected_projection/uncached_peak.rs"),
             include_str!("../../src/workspace_graph/expected_projection/retention.rs"),
             include_str!("../../src/workspace_graph/expected_projection/cached_exact.rs"),
         )
     };
     (type_rewrite) => {
-        concat!(
+        audit_source_join!(
             include_str!("../../src/workspace_graph/expected_projection/type_rewrite.rs"),
             include_str!("../../src/workspace_graph/expected_projection/type_rewrite/receiving.rs")
         )

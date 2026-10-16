@@ -1,0 +1,12 @@
+{
+  "source": "afba-presence-successor-20261016",
+  "original_generator_sha256": "c5dfca5df2e3dbcb8494b18498db4ee4b96340b1879abb2d57f4d5f5a9d96a09",
+  "derived_generator_sha256": "0c4b31857cdb8a4f645d61c6f0d2453c33c6adddb8c6f26d9c37b56620841590",
+  "original_verifier_sha256": "ec4cbd308d8537896e63193de53f7d5da96b8dc3c7b34fc854c1d7dbf48ddac4",
+  "derived_verifier_sha256": "5b533aff8428066db6a7ba11eed2284bfbbea81db7ff38086daf6ba1eed6e643",
+  "generator_delta": "exact canonical macro-prefix check + audit_source_join\u2192concat expression-language normalization ONLY; actual source bytes unchanged; existing function/class ASTs byte-equivalent",
+  "verifier_delta": "original verify function, forbidden loops and6negative bodies exact; newtail requires exact prior complete chunk/literal/role equality and unchanged production source hash/length",
+  "registration_parser": "docs/evidence/production-source-authority-partition-20261016/original-module-parser-prefix.py",
+  "registration_parser_sha256": "87a903ce0f9927d3d90063fdd686b50b5302e2ac10cfea324918f7c030b28599",
+  "execution": "STATIC_PYTHON_ONLY_NO_RUST_NO_CARGO"
+}

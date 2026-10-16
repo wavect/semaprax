@@ -360,6 +360,7 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     // shared helpers", so the read has to follow the module, not just its root
     // file: a helper relocated into a sibling submodule must still count as
     // present in the root and absent from the projection.
+    assert_eq!(audit_source_join!("", "α", "\0", "\r\n", "β"), "α\0\r\nβ");
     let root = semantic_graph_root_source_inventory!();
     let root = root.as_str();
     let projection_root = semantic_graph_projection_root_source_inventory!();
@@ -384,9 +385,7 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     );
     let production_projection = production_source_inventory::production(
         &projection,
-        include_str!(
-            "../../docs/evidence/afba-presence-successor-20261016/projection.json"
-        ),
+        include_str!("../../docs/evidence/compiled-audit-pieces-798-next-20261016/projection.json"),
     );
     assert!(root.contains("mod expected_projection;"));
     assert!(!production_projection.contains("use super::*;"));
@@ -449,7 +448,7 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     // The complete actual projection above remains the purity input. This
     // independent historical view retains the original facade assertion too.
     let current_projection_root = projection_root;
-    let projection_root = historical_projection_root_facade(current_projection_root);
+    let projection_root = historical_projection_root_facade(current_projection_root.as_str());
     assert_eq!(
         projection_root
             .lines()
@@ -1341,15 +1340,32 @@ fn historical_projection_root_facade(current: &str) -> String {
     use sha2::{Digest, Sha256};
     let row: serde_json::Value = serde_json::from_str(include_str!(
         "../../docs/evidence/projection-facade-frontier-8bb-20261016/root-input.json"
-    )).unwrap();
-    assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))), row["current_sha256"]);
+    ))
+    .unwrap();
+    assert_eq!(
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+        ),
+        row["current_sha256"]
+    );
     let mut previous = current.to_owned();
     for edit in row["edits"].as_array().unwrap() {
         let new = edit["new"].as_str().unwrap();
-        assert_eq!(previous.matches(new).count(), 1, "complete unique facade input inverse");
+        assert_eq!(
+            previous.matches(new).count(),
+            1,
+            "complete unique facade input inverse"
+        );
         previous = previous.replacen(new, edit["old"].as_str().unwrap(), 1);
     }
-    assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(previous.as_bytes()))), row["original_sha256"]);
+    assert_eq!(
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(previous.as_bytes()))
+        ),
+        row["original_sha256"]
+    );
     historical_projection_root_facade_before(&previous)
 }
 
@@ -1390,13 +1406,33 @@ fn current_projection_facade_input(current: &str) -> String {
         "../../docs/evidence/actual50-fixture-and-facade-corrections-20261016/current-facade-input.json"
     )).unwrap();
     let actual = include_str!("../../src/ast/program_source/decl_slices.rs");
-    assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(actual.as_bytes()))), row["current_decl_sha256"]);
-    assert_eq!(current.matches(actual).count(), 1, "complete actual declaration owner in raw facade union");
+    assert_eq!(
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(actual.as_bytes()))
+        ),
+        row["current_decl_sha256"]
+    );
+    assert_eq!(
+        current.matches(actual).count(),
+        1,
+        "complete actual declaration owner in raw facade union"
+    );
     assert!(actual.contains("impl<'a, T> DeclSlices<'a, T> {"));
     let method = row["actual_projected_method"].as_str().unwrap();
     assert!(method.starts_with("    pub(super) fn projected("));
-    assert_eq!(actual.matches(method).count(), 1, "complete current parent-private projected method");
-    assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))), row["current_sha256"]);
+    assert_eq!(
+        actual.matches(method).count(),
+        1,
+        "complete current parent-private projected method"
+    );
+    assert_eq!(
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+        ),
+        row["current_sha256"]
+    );
     let mut previous = current.to_owned();
     for edit in row["edits"].as_array().unwrap() {
         let new = edit["new"].as_str().unwrap();
@@ -1404,6 +1440,12 @@ fn current_projection_facade_input(current: &str) -> String {
         assert_eq!(previous.matches(new).count(), 1);
         previous = previous.replacen(new, edit["old"].as_str().unwrap(), 1);
     }
-    assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(previous.as_bytes()))), row["original_sha256"]);
+    assert_eq!(
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(previous.as_bytes()))
+        ),
+        row["original_sha256"]
+    );
     previous
 }

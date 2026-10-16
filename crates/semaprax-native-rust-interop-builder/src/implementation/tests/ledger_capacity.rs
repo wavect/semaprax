@@ -115,8 +115,10 @@ fn full_bundle_builder_limit_is_cumulative_exact_and_cannot_be_widened() {
 fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     // The resolver is split across submodules; its layout pins live beside the
     // frame machinery they describe, so bind the root and the resolver files.
+    assert_eq!(audit_source_join!("", "α", "\0", "\r\n", "β"), "α\0\r\nβ");
     let hir_resolver = hir_resolver_source_inventory!();
-    let hir_validator = [hir_validator_source_inventory!(), scope_projection::TEXT].concat();
+    let hir_validator = hir_validator_source_inventory!();
+    let hir_validator = [hir_validator.as_str(), scope_projection::TEXT].concat();
     let verifier = verifier_source_inventory!();
     let cleanup = concat!(
         include_str!("../../../../../src/cleanup.rs"),
@@ -132,7 +134,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     let lower = lower_source_inventory!();
     let calls = include_str!("../../../../../src/call_index.rs");
     for (source, expected) in [
-        (hir_resolver, "size_of::<Frame<'static>>() <= 592"),
+        (hir_resolver.as_str(), "size_of::<Frame<'static>>() <= 592"),
         (
             hir_validator.as_str(),
             "size_of::<Frame<'static>>() == super::VALIDATOR_FRAME_BYTES",
@@ -141,11 +143,17 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
             hir_validator.as_str(),
             "pub const VALIDATOR_FRAME_BYTES: usize = 248;",
         ),
-        (verifier, "size_of::<VerifierFrame<'static>>() == 320"),
-        (verifier, "size_of::<VariantMatchState<'static>>() == 312"),
+        (
+            verifier.as_str(),
+            "size_of::<VerifierFrame<'static>>() == 320",
+        ),
+        (
+            verifier.as_str(),
+            "size_of::<VariantMatchState<'static>>() == 312",
+        ),
         (cleanup, "size_of::<Frame<'static>>() == 40"),
         (cleanup, "size_of::<Frame<'static>>() == 24"),
-        (lower, "size_of::<Frame<'static>>() <= 392"),
+        (lower.as_str(), "size_of::<Frame<'static>>() <= 392"),
         (calls, "size_of::<Frame<'static>>() == 16"),
     ] {
         assert!(

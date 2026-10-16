@@ -1,0 +1,101 @@
+{
+  "head": "6db5964817b0c3e2a368074995c32fe00b5228fa",
+  "changes": [
+    {
+      "path": "docs/evidence/ordinary-schema-summary-20261016/verify-source.py",
+      "archive": "before/docs__evidence__ordinary-schema-summary-20261016__verify-source.py",
+      "before_sha256": "d63536f08aba8c054b6b8f7487493c1bf12e0349814f1c802fd21cf20455af86",
+      "after_sha256": "df708bf172c9aedfa9cd6f331304816fc75a2cf0e05e60a730a7c5ccc06d73ab",
+      "replacements": [
+        {
+          "before": "sha=lambda b:hashlib.sha256(b).hexdigest()",
+          "after": "sha=lambda b:hashlib.sha256(b).hexdigest()\n# Exact additive6db predecessor; original scripts/capsules archived in full.\nimport runpy\ncompose=runpy.run_path(str(R/'docs/evidence/main-eb2-finite-predecessors-20261016/finite.py'))['compose']\n"
+        },
+        {
+          "before": "def restore(row,raw):\n",
+          "after": "def restore(row,raw):\n raw=compose('ordinary',row['source'],raw)\n"
+        },
+        {
+          "before": "for predecessor in [before,joined,boundary_joined,record_joined,next_joined]:",
+          "after": "main_joined=json.loads(subprocess.check_output(['git','show','6db5964817b0c3e2a368074995c32fe00b5228fa:'+allowed],cwd=R))\nfor predecessor in [before,joined,boundary_joined,record_joined,next_joined,main_joined]:"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/opt859-record-shape-recovery-20261016/verify-source.py",
+      "archive": "before/docs__evidence__opt859-record-shape-recovery-20261016__verify-source.py",
+      "before_sha256": "0cbbdc7e7ca41fd120677782cfd646e212e668b5a948c762446e3abfe2b0fbdf",
+      "after_sha256": "0a4cbce75635d9dcde7b07cdaac21be242860ecea287b21dfd926555e38dc330",
+      "replacements": [
+        {
+          "before": "sha=lambda b:hashlib.sha256(b).hexdigest()",
+          "after": "sha=lambda b:hashlib.sha256(b).hexdigest()\n# Exact additive6db predecessor; original scripts/capsules archived in full.\nimport runpy\ncompose=runpy.run_path(str(R/'docs/evidence/main-eb2-finite-predecessors-20261016/finite.py'))['compose']\n"
+        },
+        {
+          "before": "def restore(row,raw):\n",
+          "after": "def restore(row,raw):\n raw=compose('859',row['source'],raw)\n"
+        },
+        {
+          "before": "for ref in [BASE,PARENT,'1f1521e2d4f07ae06e4d1a1d90dbcbdbe92a50f3']:",
+          "after": "for ref in [BASE,PARENT,'1f1521e2d4f07ae06e4d1a1d90dbcbdbe92a50f3','6db5964817b0c3e2a368074995c32fe00b5228fa']:"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/next831858852-source-composition-20261016/verify-joined.py",
+      "archive": "before/docs__evidence__next831858852-source-composition-20261016__verify-joined.py",
+      "before_sha256": "3b6c291a99e5f6f169001dcee250d871bda0026b8c7607e579c6510ccd3cf830",
+      "after_sha256": "068a2e04dcb26e2f3a37c92ad2c82091698c5d24a0085e6973242d45f76a84c1",
+      "replacements": [
+        {
+          "before": "D=json.loads((E/'composition.json').read_text());sha=lambda b:hashlib.sha256(b).hexdigest()",
+          "after": "D=json.loads((E/'composition.json').read_text());sha=lambda b:hashlib.sha256(b).hexdigest()\n# Exact additive6db predecessor; original scripts/capsules archived in full.\nimport runpy\ncompose=runpy.run_path(str(R/'docs/evidence/main-eb2-finite-predecessors-20261016/finite.py'))['compose']\n"
+        },
+        {
+          "before": "actual=(R/row['path']).read_bytes();private=project(actual,row)",
+          "after": "actual=(R/row['path']).read_bytes();actual=compose('next-'+name,row['path'],actual);private=project(actual,row)"
+        },
+        {
+          "before": "registry=D['allow_registry'];assert sha((R/registry['path']).read_bytes())==registry['current_sha256']",
+          "after": "registry=D['allow_registry'];registry_input=compose('next-registry',registry['path'],(R/registry['path']).read_bytes());assert sha(registry_input)==registry['current_sha256']"
+        },
+        {
+          "before": "new=json.loads((R/registry['path']).read_text())",
+          "after": "new=json.loads(registry_input)"
+        },
+        {
+          "before": "actual=(R/row['path']).read_bytes();assert sha(actual)==row['current_sha256']",
+          "after": "actual=(R/row['path']).read_bytes();actual=compose('next-registration',row['path'],actual);assert sha(actual)==row['current_sha256']"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/main8a-historical-readers-257-268-20261016/verify856-joined.py",
+      "archive": "before/docs__evidence__main8a-historical-readers-257-268-20261016__verify856-joined.py",
+      "before_sha256": "73c2dbcbf50263e7e5f5830d2fb47c29a10c1f55efdc23f0c5c98134815214fd",
+      "after_sha256": "94a2a091f1cb3d100a0ad5b763c2497a82bff8e703aed618e480f7fc8a375777",
+      "replacements": [
+        {
+          "before": "def git(ref,path):return subprocess.check_output(['git','show',ref+':'+path],cwd=R)",
+          "after": "def git(ref,path):return subprocess.check_output(['git','show',ref+':'+path],cwd=R)\n# Exact additive6db predecessor; original scripts/capsules archived in full.\nimport runpy\ncompose=runpy.run_path(str(R/'docs/evidence/main-eb2-finite-predecessors-20261016/finite.py'))['compose']\n"
+        },
+        {
+          "before": "for f in promoted:assert(R/f).read_bytes()==git(PRIVATE,f),('promoted production module drift',f)",
+          "after": "for f in promoted:assert compose('856-promoted',f,(R/f).read_bytes())==git(PRIVATE,f),('promoted production module drift',f)"
+        },
+        {
+          "before": "for f,row in reviewed_additional.items():",
+          "after": "\nreviewed_main={f:{'commit':'6db5964817b0c3e2a368074995c32fe00b5228fa','sha256':sha(git('6db5964817b0c3e2a368074995c32fe00b5228fa',f))}for f in ['docs/ARCHITECTURE.md','src/cleanup_plan/replay.rs','src/cleanup_plan/replay/physical_budget.rs']}\nfor f,row in reviewed_additional.items():"
+        },
+        {
+          "before": "actual=(R/f).read_bytes();assert actual==git(row['commit'],f) and sha(actual)==row['sha256'],('reviewed joined input drift',f)",
+          "after": "actual=(R/f).read_bytes();choices=[row,reviewed_main[f]];assert any(actual==git(x['commit'],f) and sha(actual)==x['sha256']for x in choices),('reviewed joined input drift',f)"
+        },
+        {
+          "before": "*reviewed_additional};bindings=[];privateviews={}",
+          "after": "*reviewed_additional,*[r['path']for r in json.loads((R/'docs/evidence/main-eb2-finite-predecessors-20261016/extensions.json').read_text())['rows']if r['domain']=='856-promoted']};bindings=[];privateviews={}"
+        }
+      ]
+    }
+  ]
+}

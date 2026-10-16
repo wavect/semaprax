@@ -5,6 +5,10 @@ E=pathlib.Path(__file__).resolve().parent;R=E.parents[2]
 p=argparse.ArgumentParser();p.add_argument('--views',type=pathlib.Path,required=True);a=p.parse_args()
 V=a.views.resolve();assert V.is_relative_to('/Volumes/Semaprax') and not V.is_relative_to(R)
 D=json.loads((E/'composition.json').read_text());sha=lambda b:hashlib.sha256(b).hexdigest()
+# Exact additive6db predecessor; original scripts/capsules archived in full.
+import runpy
+compose=runpy.run_path(str(R/'docs/evidence/main-eb2-finite-predecessors-20261016/finite.py'))['compose']
+
 def git(c,path):return subprocess.check_output(['git','show',c+':'+path],cwd=R)
 def project(raw,row):
     assert sha(raw)==row['current_sha256'],row['path']
@@ -21,7 +25,7 @@ for name,component in D['components'].items():
     view=V/name;view.mkdir(parents=True,exist_ok=True)
     differences=[]
     for row in component['rows']:
-        actual=(R/row['path']).read_bytes();private=project(actual,row)
+        actual=(R/row['path']).read_bytes();actual=compose('next-'+name,row['path'],actual);private=project(actual,row)
         assert private==git(component['private_commit'],row['path'])
         full_inputs+=1
         if row['path'].startswith(component['capsule']+'/'):
@@ -49,8 +53,8 @@ for guard in D['raw_guards']:
     for subject in D['new_rust_subjects']:
         assert raw.count('/'+subject+'"')==1,(guard,subject)
 assert len((R/D['raw_guards'][-1]).read_text().splitlines())==1500
-registry=D['allow_registry'];assert sha((R/registry['path']).read_bytes())==registry['current_sha256']
-old=json.loads(git(D['base'],registry['path']));new=json.loads((R/registry['path']).read_text())
+registry=D['allow_registry'];registry_input=compose('next-registry',registry['path'],(R/registry['path']).read_bytes());assert sha(registry_input)==registry['current_sha256']
+old=json.loads(git(D['base'],registry['path']));new=json.loads(registry_input)
 assert new.keys()==old.keys()
 for guard in old:
     assert new[guard].keys()==old[guard].keys()
@@ -59,7 +63,7 @@ for guard in old:
         expected.update({s:1 for s in D['new_rust_subjects']});assert new[guard][policy]==expected
 for subject in D['new_rust_subjects']:assert len((R/subject).read_text().splitlines())<=1500
 for row in D['additive_workspace_registration']:
-    actual=(R/row['path']).read_bytes();assert sha(actual)==row['current_sha256']
+    actual=(R/row['path']).read_bytes();actual=compose('next-registration',row['path'],actual);assert sha(actual)==row['current_sha256']
     before=(E/row['archive']).read_bytes();assert sha(before)==row['base_sha256'] and before==git(D['base'],row['path'])
     lines=before.decode().splitlines(True);offset=0
     for edit in row['additions']:

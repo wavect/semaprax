@@ -11,6 +11,8 @@
     "src/cleanup_plan/replay.rs",
     "src/cleanup_plan/replay/physical_budget.rs",
     "src/hir/nodes/instance_key.rs",
+    "src/literal_format/funded.rs",
+    "src/loop_calls/byte_writer/resolved/funded.rs",
     "tests/hir_module_boundaries.rs",
     "tests/workspace/semantic_graph/source_inventory.rs"
   ],

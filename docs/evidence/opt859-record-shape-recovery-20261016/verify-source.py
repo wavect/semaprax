@@ -4,6 +4,10 @@ import argparse,difflib,hashlib,json,re,subprocess
 p=argparse.ArgumentParser();p.add_argument('--write-current',action='store_true');a=p.parse_args()
 R=Path(__file__).resolve().parents[3];D=Path(__file__).resolve().parent
 BASE='12e7f8a4d3fcb3c5464327a68a8e13506b43e303';PARENT='ad5fc3e203d9e89dde7840e2bd97194c02c88e98';sha=lambda b:hashlib.sha256(b).hexdigest()
+# Exact additive6db predecessor; original scripts/capsules archived in full.
+import runpy
+compose=runpy.run_path(str(R/'docs/evidence/main-eb2-finite-predecessors-20261016/finite.py'))['compose']
+
 def old(ref,path):return subprocess.check_output(['git','show',ref+':'+path],cwd=R)
 new=['src/source_verify/declaration/record_shape.rs','src/source_verify/declaration/record_shape_before.rs']
 guards=['tests/hir_module_boundaries.rs','tests/workspace/semantic_graph/source_inventory.rs','crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs']
@@ -18,6 +22,7 @@ if a.write_current:
 m=json.loads((D/'source-capsule.json').read_text());assert m['base']==BASE
 
 def restore(row,raw):
+ raw=compose('859',row['source'],raw)
  assert sha(raw)==row['current_sha256'] and len(raw)==row['current_length']
  text=raw.decode();at=0;out=''
  for e in row['inverse']:
@@ -76,7 +81,7 @@ for path in guards:assert len((R/path).read_bytes().splitlines())<=1500 or path.
 # Only the exact two helper subjects extend the existing finite allowed registry;
 # parent ad5 is an independently committed second predecessor, never guessed scope.
 registry='docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json';current=json.loads((R/registry).read_text());accepted=False
-for ref in [BASE,PARENT,'1f1521e2d4f07ae06e4d1a1d90dbcbdbe92a50f3']:
+for ref in [BASE,PARENT,'1f1521e2d4f07ae06e4d1a1d90dbcbdbe92a50f3','6db5964817b0c3e2a368074995c32fe00b5228fa']:
  expected=json.loads(old(ref,registry))
  for guard in guards:
   for key in ['required','maximum']:expected[guard][key].update({x:1 for x in new})

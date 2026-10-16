@@ -3,7 +3,12 @@ from pathlib import Path
 import hashlib,json,re,subprocess
 R=Path(__file__).resolve().parents[3];D=Path(__file__).resolve().parent
 sha=lambda b:hashlib.sha256(b).hexdigest()
+# Exact additive6db predecessor; original scripts/capsules archived in full.
+import runpy
+compose=runpy.run_path(str(R/'docs/evidence/main-eb2-finite-predecessors-20261016/finite.py'))['compose']
+
 def restore(row,raw):
+ raw=compose('ordinary',row['source'],raw)
  assert sha(raw)==row['current_sha256'] and len(raw)==row['current_length']
  text=raw.decode();cursor=0;out=''
  for e in row['inverse']:
@@ -96,7 +101,8 @@ boundary_joined=json.loads(subprocess.check_output(['git','show','f61449708234f9
 record_joined=json.loads(subprocess.check_output(['git','show','d96247b3cb69282c3d1b835b2428779e8bde82c7:'+allowed],cwd=R))
 next_joined=json.loads(subprocess.check_output(['git','show','1f1521e2d4f07ae06e4d1a1d90dbcbdbe92a50f3:'+allowed],cwd=R))
 allowed_registry=False
-for predecessor in [before,joined,boundary_joined,record_joined,next_joined]:
+main_joined=json.loads(subprocess.check_output(['git','show','6db5964817b0c3e2a368074995c32fe00b5228fa:'+allowed],cwd=R))
+for predecessor in [before,joined,boundary_joined,record_joined,next_joined,main_joined]:
  expected=json.loads(json.dumps(predecessor))
  for guard in m['raw_guards']:
   for key in ['required','maximum']:

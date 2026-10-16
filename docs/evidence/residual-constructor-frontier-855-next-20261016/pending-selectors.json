@@ -45,7 +45,7 @@
     "selector": "hir::residual_constructor_before::residual_payload_tests::residual_payload_cache_keeps_wire_depth_node_and_hostile_input_boundaries"
   },
   {
-    "package": "semaprax-native-rust-interop-builder",
+    "package": "semaprax-native-rust-interop",
     "kind": "lib",
     "selector": "implementation::tests::hir_traversal::hir_fingerprint_admits_exact_depth_result_and_option_try_chains"
   }

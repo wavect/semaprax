@@ -34,6 +34,8 @@ fn full_plan_enumerator_keeps_every_original_path_work_and_materialization() {
             for function in &program.functions {
                 let mut old = ReplayBudget::new();
                 let mut current = ReplayBudget::new();
+                reserve_program_skeleton_work(&program, std::iter::once(function), &mut old).unwrap();
+                reserve_program_skeleton_work(&program, std::iter::once(function), &mut current).unwrap();
                 assert!(old.pays_allocations() && current.pays_allocations());
                 let before = skeleton_materializations();
                 let expected = with_original(|| plan_skeleton_paths(function, &mut old)).unwrap();
@@ -71,6 +73,9 @@ fn clone_and_push_keep_capacity_contents_work_and_drop_with_less_backing() {
                         let mut budget = ReplayBudget::new();
                         let before = skeleton_materializations();
                         let result = (|| {
+                            // One actual clone and exactly this many pushes; lend
+                            // their work from the unchanged global caller budget.
+                            budget.reserve_skeleton(function, 1 + pushes)?;
                             let mut copy = if original {
                                 skeleton_clone(&mut budget, function, &values, "branch clone")?
                             } else {
@@ -92,6 +97,7 @@ fn clone_and_push_keep_capacity_contents_work_and_drop_with_less_backing() {
                                 .all(|(a, b)| Rc::ptr_eq(a, b)));
                             assert!(copy[width..].iter().all(|value| Rc::ptr_eq(value, &next)));
                             let capacity = copy.capacity();
+                            assert_eq!(budget.skeleton_remaining, 0);
                             drop(copy);
                             Ok::<_, Diagnostic>(capacity)
                         })();

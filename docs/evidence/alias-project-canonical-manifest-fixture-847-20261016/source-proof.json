@@ -1,0 +1,8 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "whole_old_git_equal": true,
+  "unique_full_inverse": true,
+  "only_change": "four blank table separators",
+  "all_original_assertions_and_payloads_exact": true,
+  "rust_executed": false
+}

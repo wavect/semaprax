@@ -1,0 +1,108 @@
+[
+  {
+    "level": "error",
+    "rendered": "error[E0583]: file not found for module `held_tests`\n   --> src/cleanup_plan/replay/factored/canonical_shared/before_empty/memo/retained.rs:126:1\n    |\n126 | mod held_tests;\n    | ^^^^^^^^^^^^^^^\n    |\n    = help: to create the module `held_tests`, create file \"src/cleanup_plan/replay/factored/canonical_shared/before_empty/memo/held_tests.rs\" or \"src/cleanup_plan/replay/factored/canonical_shared/before_empty/memo/held_tests/mod.rs\"\n    = note: if there is a `mod held_tests` elsewhere in the crate already, import it with `use crate::...` instead\n\n",
+    "code": {
+      "code": "E0583",
+      "explanation": "A file wasn't found for an out-of-line module.\n\nErroneous code example:\n\n```compile_fail,E0583\nmod file_that_doesnt_exist; // error: file not found for module\n\nfn main() {}\n```\n\nPlease be sure that a file corresponding to the module exists. If you\nwant to use a module named `file_that_doesnt_exist`, you need to have a file\nnamed `file_that_doesnt_exist.rs` or `file_that_doesnt_exist/mod.rs` in the\nsame directory.\n"
+    }
+  },
+  {
+    "level": "error",
+    "rendered": "error[E0583]: file not found for module `amortized_source`\n   --> src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights.rs:360:1\n    |\n360 | mod amortized_source;\n    | ^^^^^^^^^^^^^^^^^^^^^\n    |\n    = help: to create the module `amortized_source`, create file \"src/cleanup_plan/replay/factored/canonical_shared/before_empty/amortized_source.rs\" or \"src/cleanup_plan/replay/factored/canonical_shared/before_empty/amortized_source/mod.rs\"\n    = note: if there is a `mod amortized_source` elsewhere in the crate already, import it with `use crate::...` instead\n\n",
+    "code": {
+      "code": "E0583",
+      "explanation": "A file wasn't found for an out-of-line module.\n\nErroneous code example:\n\n```compile_fail,E0583\nmod file_that_doesnt_exist; // error: file not found for module\n\nfn main() {}\n```\n\nPlease be sure that a file corresponding to the module exists. If you\nwant to use a module named `file_that_doesnt_exist`, you need to have a file\nnamed `file_that_doesnt_exist.rs` or `file_that_doesnt_exist/mod.rs` in the\nsame directory.\n"
+    }
+  },
+  {
+    "level": "error",
+    "rendered": "error[E0583]: file not found for module `receiver_tests`\n   --> src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights.rs:362:1\n    |\n362 | mod receiver_tests;\n    | ^^^^^^^^^^^^^^^^^^^\n    |\n    = help: to create the module `receiver_tests`, create file \"src/cleanup_plan/replay/factored/canonical_shared/before_empty/receiver_tests.rs\" or \"src/cleanup_plan/replay/factored/canonical_shared/before_empty/receiver_tests/mod.rs\"\n    = note: if there is a `mod receiver_tests` elsewhere in the crate already, import it with `use crate::...` instead\n\n",
+    "code": {
+      "code": "E0583",
+      "explanation": "A file wasn't found for an out-of-line module.\n\nErroneous code example:\n\n```compile_fail,E0583\nmod file_that_doesnt_exist; // error: file not found for module\n\nfn main() {}\n```\n\nPlease be sure that a file corresponding to the module exists. If you\nwant to use a module named `file_that_doesnt_exist`, you need to have a file\nnamed `file_that_doesnt_exist.rs` or `file_that_doesnt_exist/mod.rs` in the\nsame directory.\n"
+    }
+  },
+  {
+    "level": "error",
+    "rendered": "error[E0583]: file not found for module `source`\n   --> src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights.rs:364:1\n    |\n364 | mod source;\n    | ^^^^^^^^^^^\n    |\n    = help: to create the module `source`, create file \"src/cleanup_plan/replay/factored/canonical_shared/before_empty/source.rs\" or \"src/cleanup_plan/replay/factored/canonical_shared/before_empty/source/mod.rs\"\n    = note: if there is a `mod source` elsewhere in the crate already, import it with `use crate::...` instead\n\n",
+    "code": {
+      "code": "E0583",
+      "explanation": "A file wasn't found for an out-of-line module.\n\nErroneous code example:\n\n```compile_fail,E0583\nmod file_that_doesnt_exist; // error: file not found for module\n\nfn main() {}\n```\n\nPlease be sure that a file corresponding to the module exists. If you\nwant to use a module named `file_that_doesnt_exist`, you need to have a file\nnamed `file_that_doesnt_exist.rs` or `file_that_doesnt_exist/mod.rs` in the\nsame directory.\n"
+    }
+  },
+  {
+    "level": "error",
+    "rendered": "error[E0433]: cannot find `lexical_plan_tests` in `replay`\n --> src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight/tests.rs:5:34\n  |\n5 |     crate::cleanup_plan::replay::lexical_plan_tests::fixture(crate::cleanup_plan::replay::lexical_plan_tests::WHILE)\n  |                                  ^^^^^^^^^^^^^^^^^^ could not find `lexical_plan_tests` in `replay`\n  |\nhelp: consider importing this module\n  |\n1 + use crate::cleanup_plan::replay::factored::lexical_plan_tests;\n  |\nhelp: if you import `lexical_plan_tests`, refer to it directly\n  |\n5 -     crate::cleanup_plan::replay::lexical_plan_tests::fixture(crate::cleanup_plan::replay::lexical_plan_tests::WHILE)\n5 +     lexical_plan_tests::fixture(crate::cleanup_plan::replay::lexical_plan_tests::WHILE)\n  |\n\n",
+    "code": {
+      "code": "E0433",
+      "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+    }
+  },
+  {
+    "level": "error",
+    "rendered": "error[E0433]: cannot find `lexical_plan_tests` in `replay`\n --> src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight/tests.rs:5:91\n  |\n5 |     crate::cleanup_plan::replay::lexical_plan_tests::fixture(crate::cleanup_plan::replay::lexical_plan_tests::WHILE)\n  |                                                                                           ^^^^^^^^^^^^^^^^^^ could not find `lexical_plan_tests` in `replay`\n  |\nhelp: consider importing this module\n  |\n1 + use crate::cleanup_plan::replay::factored::lexical_plan_tests;\n  |\nhelp: if you import `lexical_plan_tests`, refer to it directly\n  |\n5 -     crate::cleanup_plan::replay::lexical_plan_tests::fixture(crate::cleanup_plan::replay::lexical_plan_tests::WHILE)\n5 +     crate::cleanup_plan::replay::lexical_plan_tests::fixture(lexical_plan_tests::WHILE)\n  |\n\n",
+    "code": {
+      "code": "E0433",
+      "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+    }
+  },
+  {
+    "level": "error",
+    "rendered": "error[E0433]: cannot find `lexical_plan_tests` in `replay`\n  --> src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs:18:34\n   |\n18 |     crate::cleanup_plan::replay::lexical_plan_tests::fixture(crate::cleanup_plan::replay::lexical_plan_tests::WHILE).1\n   |                                  ^^^^^^^^^^^^^^^^^^ could not find `lexical_plan_tests` in `replay`\n   |\nhelp: consider importing this module\n   |\n 1 + use crate::cleanup_plan::replay::factored::lexical_plan_tests;\n   |\nhelp: if you import `lexical_plan_tests`, refer to it directly\n   |\n18 -     crate::cleanup_plan::replay::lexical_plan_tests::fixture(crate::cleanup_plan::replay::lexical_plan_tests::WHILE).1\n18 +     lexical_plan_tests::fixture(crate::cleanup_plan::replay::lexical_plan_tests::WHILE).1\n   |\n\n",
+    "code": {
+      "code": "E0433",
+      "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+    }
+  },
+  {
+    "level": "error",
+    "rendered": "error[E0433]: cannot find `lexical_plan_tests` in `replay`\n  --> src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs:18:91\n   |\n18 |     crate::cleanup_plan::replay::lexical_plan_tests::fixture(crate::cleanup_plan::replay::lexical_plan_tests::WHILE).1\n   |                                                                                           ^^^^^^^^^^^^^^^^^^ could not find `lexical_plan_tests` in `replay`\n   |\nhelp: consider importing this module\n   |\n 1 + use crate::cleanup_plan::replay::factored::lexical_plan_tests;\n   |\nhelp: if you import `lexical_plan_tests`, refer to it directly\n   |\n18 -     crate::cleanup_plan::replay::lexical_plan_tests::fixture(crate::cleanup_plan::replay::lexical_plan_tests::WHILE).1\n18 +     crate::cleanup_plan::replay::lexical_plan_tests::fixture(lexical_plan_tests::WHILE).1\n   |\n\n",
+    "code": {
+      "code": "E0433",
+      "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+    }
+  },
+  {
+    "level": "error",
+    "rendered": "error[E0433]: cannot find `lexical_plan_tests` in `replay`\n --> src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/tests.rs:5:34\n  |\n5 |     crate::cleanup_plan::replay::lexical_plan_tests::fixture(crate::cleanup_plan::replay::lexical_plan_tests::WHILE).1\n  |                                  ^^^^^^^^^^^^^^^^^^ could not find `lexical_plan_tests` in `replay`\n  |\nhelp: consider importing this module\n  |\n2 + use crate::cleanup_plan::replay::factored::lexical_plan_tests;\n  |\nhelp: if you import `lexical_plan_tests`, refer to it directly\n  |\n5 -     crate::cleanup_plan::replay::lexical_plan_tests::fixture(crate::cleanup_plan::replay::lexical_plan_tests::WHILE).1\n5 +     lexical_plan_tests::fixture(crate::cleanup_plan::replay::lexical_plan_tests::WHILE).1\n  |\n\n",
+    "code": {
+      "code": "E0433",
+      "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+    }
+  },
+  {
+    "level": "error",
+    "rendered": "error[E0433]: cannot find `lexical_plan_tests` in `replay`\n --> src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/tests.rs:5:91\n  |\n5 |     crate::cleanup_plan::replay::lexical_plan_tests::fixture(crate::cleanup_plan::replay::lexical_plan_tests::WHILE).1\n  |                                                                                           ^^^^^^^^^^^^^^^^^^ could not find `lexical_plan_tests` in `replay`\n  |\nhelp: consider importing this module\n  |\n2 + use crate::cleanup_plan::replay::factored::lexical_plan_tests;\n  |\nhelp: if you import `lexical_plan_tests`, refer to it directly\n  |\n5 -     crate::cleanup_plan::replay::lexical_plan_tests::fixture(crate::cleanup_plan::replay::lexical_plan_tests::WHILE).1\n5 +     crate::cleanup_plan::replay::lexical_plan_tests::fixture(lexical_plan_tests::WHILE).1\n  |\n\n",
+    "code": {
+      "code": "E0433",
+      "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+    }
+  },
+  {
+    "level": "error",
+    "rendered": "error[E0425]: cannot find type `Rc` in this scope\n    --> src/cleanup_plan/replay.rs:6657:50\n     |\n6657 |                         branch_clone::controls::<Rc<SkeletonObservation>, SkeletonObservation>(),\n     |                                                  ^^ not found in this scope\n     |\n     = note: struct `crate::provider_adapter_sdk::source_bridge::tests::settlement_boundary::Rc` exists but is inaccessible\nhelp: consider importing this struct\n     |\n   8 + use std::rc::Rc;\n     |\n\n",
+    "code": {
+      "code": "E0425",
+      "explanation": "An unresolved name was used.\n\nErroneous code examples:\n\n```compile_fail,E0425\nsomething_that_doesnt_exist::foo;\n// error: unresolved name `something_that_doesnt_exist::foo`\n\n// or:\n\ntrait Foo {\n    fn bar() {\n        Self; // error: unresolved name `Self`\n    }\n}\n\n// or:\n\nlet x = unknown_variable;  // error: unresolved name `unknown_variable`\n```\n\nPlease verify that the name wasn't misspelled and ensure that the\nidentifier being referred to is valid for the given situation. Example:\n\n```\nenum something_that_does_exist {\n    Foo,\n}\n```\n\nOr:\n\n```\nmod something_that_does_exist {\n    pub static foo : i32 = 0i32;\n}\n\nsomething_that_does_exist::foo; // ok!\n```\n\nOr:\n\n```\nlet unknown_variable = 12u32;\nlet x = unknown_variable; // ok!\n```\n\nIf the item is not defined in the current module, it must be imported using a\n`use` statement, like so:\n\n```\n# mod foo { pub fn bar() {} }\n# fn main() {\nuse foo::bar;\nbar();\n# }\n```\n\nIf the item you are importing is not defined in some super-module of the\ncurrent module, then it must also be declared as public (e.g., `pub fn`).\n"
+    }
+  },
+  {
+    "level": "warning",
+    "rendered": "warning: unused imports: `historical_inline_inventory`, `historical_inline_root`, and `historical_root`\n   --> src/workspace_graph/identity_resolution.rs:160:5\n    |\n160 |     historical_inline_inventory, historical_inline_root, historical_root,\n    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^\n    |\n    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default\n\n",
+    "code": {
+      "code": "unused_imports",
+      "explanation": null
+    }
+  },
+  {
+    "level": "failure-note",
+    "rendered": "Some errors have detailed explanations: E0425, E0433, E0583.\n",
+    "code": null
+  },
+  {
+    "level": "failure-note",
+    "rendered": "For more information about an error, try `rustc --explain E0425`.\n",
+    "code": null
+  }
+]

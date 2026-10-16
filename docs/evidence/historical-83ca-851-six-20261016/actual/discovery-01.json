@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04",
+    "source_verify::hints::authoring_repair_tests::publication_witness_never_replaces_a_sticky_refusal_or_invents_a_repair",
+    "--exact",
+    "--list",
+    "--format",
+    "terse"
+  ],
+  "exit_code": 0,
+  "stdout": "source_verify::hints::authoring_repair_tests::publication_witness_never_replaces_a_sticky_refusal_or_invents_a_repair: test\n",
+  "stderr": ""
+}

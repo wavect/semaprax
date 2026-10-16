@@ -1,0 +1,13 @@
+
+running 1 test
+test source_verify::hints::authoring_repair_tests::publication_witness_keeps_exact_repair_and_primary_at_optional_limits ... capacity_witness controls=561 backing=213 limit=0 floor=0 used=0
+capacity_witness controls=561 backing=213 limit=560 floor=0 used=0
+capacity_witness controls=561 backing=213 limit=561 floor=0 used=561
+capacity_witness controls=561 backing=213 limit=773 floor=0 used=561
+capacity_witness controls=561 backing=213 limit=774 floor=0 used=774
+capacity_witness controls=561 backing=213 limit=561 floor=1 used=0
+capacity_witness controls=561 backing=213 limit=774 floor=1 used=561
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9276 filtered out; finished in 0.00s
+

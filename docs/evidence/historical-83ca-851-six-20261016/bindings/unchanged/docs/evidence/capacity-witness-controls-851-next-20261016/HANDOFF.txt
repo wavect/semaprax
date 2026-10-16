@@ -1,0 +1,59 @@
+#851 source-only capacity-witness receiving correction
+
+Baseff5f11a325fedf0754c1a2eaa371fd46d1858eb1 (Main8fb merge).
+Existing production file/API only: src/source_verify/hints.rs. No Cargo,
+Rust/test/Clippy, global authority generation or large historical replay run.
+
+An exact static receiving bank is optionally acquired BEFORE any new eligibility
+borrow, classifier Option, length/checked-add or String-control receiver. The
+filter/and_then closure transports and tuple/named Option chain are eliminated.
+Two explicit checked-add result matches remain and are paid. Actual String
+backing is reserved separately at its computed exact length before String::new
+and try_reserve_exact. Original three writes, exact-capacity check and publication
+remain. No Diagnostic-returning wrapper, persistent payer, guessed backing,
+refund, cap increase or mandatory optional String is added. Real per-site sizeof
+inventory is RECEIVING-INVENTORY.txt; independent review found no concrete gap.
+
+Two frontiers / explicit billing change
+Initial optional admission can fail unreceived; the existing Diagnostic/witness
+owners move through the unchanged old fallback without allocation or a new
+failure owner. On successful acquisition, its actual control charge remains
+spent if eligibility/backing later refuses. This is explicitly different from
+Main8fb's atomic-used0 short observation. It is not a refund, hidden success,
+quota donation or claimed efficiency gain. Neither optional frontier selects
+or replaces required sticky refusal, stage or reserved floor. All primary
+Diagnostic fields and complete old witness remain; only successful optional
+composition appends the exact old repair after the original separator.
+
+Original old scope and equally strong shipping coverage
+before_capacity_witness.rs contains BOTH complete Main8fb helpers and ALL THREE
+original test bodies byte for byte, including the original used0 short assertion.
+It calls its own old helpers, not shipping. Its shared authoring-repair helpers
+and the previous four tests remain byte exact and are bound by the source proof.
+Existing shipping owner names cover the same three original scenarios, plus
+zero/control-short/control-only/backing-short/exact/reserved-floor accounting,
+all six Diagnostic fields (with nonempty path/span), sticky first receipt,
+explicit None versus Some("") input and complete Some("") fallback, real backing
+and balanced Drop for successful composition and backing refusal. Original
+Main bodies are separately executable, not silently substituted for shipping.
+No current runtime, fee-saving or closure claim is made; SIX lib bodies pending
+in pending-selectors.json and no additional binary/role.
+
+Custody / compositor interface
+Two full Git before inputs and exact inverse line edits: hints.rs and CHANGELOG.
+One new cfg(test)-closed child: hints/before_capacity_witness.rs. Complete old
+helper/test fragments and the new production fragment are authenticated by the
+third shipping owner AFTER both measured scopes; no new IO/global cache or
+allocation-probe warming. All old JSON/data/source inverses remain untouched.
+No hash is embedded in its own source. Current raw hints need no synthetic source
+view while the component file is kept exact; direct source guard compares the
+entire before child and one unique production fragment. If a later join changes
+those bytes, it needs an independent authenticated final→this checkpoint before
+that guard, not relaxed literals. Canonical owns all three raw audit joins,
+current authority regeneration and final→ff5 before inherited historical chains.
+No global helper/inventory is edited by this component. The ownership remains
+the existing hints module; the changelog records the source-only history.
+
+Small source check:
+python3 docs/evidence/capacity-witness-controls-851-next-20261016/verify-source.py
+It reads only this small component, no historical JSON/runtime namespace replay.

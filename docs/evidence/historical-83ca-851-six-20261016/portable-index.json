@@ -1,0 +1,48 @@
+{
+  "raw_results": "actual/results.json",
+  "plan": "plan.json",
+  "producer_receipt": "producer83ca/owning-build-result.json",
+  "producer_metadata": "producer83ca/owning-build.jsonl",
+  "producer_manifest": "producer83ca/expected-counts.json",
+  "producer_readiness": "producer83ca/actual-producer-readiness.json",
+  "production_equivalence": "bindings/complete-Git-production-equivalence.json",
+  "dependencies_prefix": "bindings/unchanged",
+  "owners": [
+    {
+      "selector": "source_verify::hints::authoring_repair_tests::publication_witness_keeps_exact_repair_and_primary_at_optional_limits",
+      "log": "actual/owner-00.log",
+      "memory": "actual/owner-00-memory.jsonl",
+      "discovery": "actual/discovery-00.json"
+    },
+    {
+      "selector": "source_verify::hints::authoring_repair_tests::publication_witness_never_replaces_a_sticky_refusal_or_invents_a_repair",
+      "log": "actual/owner-01.log",
+      "memory": "actual/owner-01-memory.jsonl",
+      "discovery": "actual/discovery-01.json"
+    },
+    {
+      "selector": "source_verify::hints::authoring_repair_tests::publication_composition_pays_all_backing_and_complete_drop",
+      "log": "actual/owner-02.log",
+      "memory": "actual/owner-02-memory.jsonl",
+      "discovery": "actual/discovery-02.json"
+    },
+    {
+      "selector": "source_verify::hints::before_capacity_witness::tests::publication_witness_keeps_exact_repair_and_primary_at_optional_limits",
+      "log": "actual/owner-03.log",
+      "memory": "actual/owner-03-memory.jsonl",
+      "discovery": "actual/discovery-03.json"
+    },
+    {
+      "selector": "source_verify::hints::before_capacity_witness::tests::publication_witness_never_replaces_a_sticky_refusal_or_invents_a_repair",
+      "log": "actual/owner-04.log",
+      "memory": "actual/owner-04-memory.jsonl",
+      "discovery": "actual/discovery-04.json"
+    },
+    {
+      "selector": "source_verify::hints::before_capacity_witness::tests::publication_composition_pays_all_backing_and_complete_drop",
+      "log": "actual/owner-05.log",
+      "memory": "actual/owner-05-memory.jsonl",
+      "discovery": "actual/discovery-05.json"
+    }
+  ]
+}

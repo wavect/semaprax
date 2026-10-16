@@ -1,0 +1,59 @@
+fn capacity_witness_receiving_bytes() -> usize {
+    use std::mem::size_of;
+    // Full actual prospective controls, admitted before their first formation.
+    // The existing Diagnostic/witness arguments replace the old with_help
+    // receiver/value; no extra Diagnostic owner or failure Result is introduced.
+    2 * size_of::<String>() // String::new initializer and named composed owner
+        + 19 * size_of::<usize>() // initializer/binding/argument site map in the source packet
+        + 2 * size_of::<Option<usize>>() // two checked-add results, no and_then
+        + size_of::<Option<&str>>() // exact classifier return; no filter transport
+        + size_of::<&Option<String>>() // match the already-owned help field
+        + 6 * size_of::<&String>() // help binding/as_str, message, witness len/push, capacity
+        + 10 * size_of::<&str>() // classifier/selected/comparison/push/len receiving roles
+        + 4 * size_of::<&&str>() // code and exact repair-text equality arguments
+        + 4 * size_of::<&mut String>() // try_reserve_exact and three push_str calls
+        + size_of::<Result<(), std::collections::TryReserveError>>()
+        + size_of::<&Result<(), std::collections::TryReserveError>>() // is_err
+        + 9 * size_of::<bool>() // two admissions/negations, two guards, error/capacity/OR
+}
+
+/// Optional composition has two real frontiers: control acquisition, then
+/// exact String backing. A later refusal keeps the already-paid control spend;
+/// neither frontier selects a failure or makes the optional String mandatory.
+pub(super) fn with_capacity_witness(mut diagnostic: Diagnostic, witness: String) -> Diagnostic {
+    if !crate::bounded_output::reserve_active_preserving(capacity_witness_receiving_bytes(), 0) {
+        // Initial unreceived admission publishes the already-owned old fallback.
+        return diagnostic.with_help(witness);
+    }
+    let repair = match &diagnostic.help {
+        Some(help) if diagnostic.code == "SPX-T269" => {
+            match authoring_repair_help(diagnostic.code, &diagnostic.message) {
+                Some(expected) if expected == help.as_str() => expected,
+                _ => return diagnostic.with_help(witness),
+            }
+        }
+        _ => return diagnostic.with_help(witness),
+    };
+    let witness_bytes = witness.len();
+    let repair_bytes = repair.len();
+    let with_separator = match witness_bytes.checked_add(2) {
+        Some(length) => length,
+        None => return diagnostic.with_help(witness),
+    };
+    let length = match with_separator.checked_add(repair_bytes) {
+        Some(length) => length,
+        None => return diagnostic.with_help(witness),
+    };
+    if !crate::bounded_output::reserve_active_preserving(length, 0) {
+        return diagnostic.with_help(witness);
+    }
+    let mut composed = String::new();
+    if composed.try_reserve_exact(length).is_err() || composed.capacity() != length {
+        return diagnostic.with_help(witness);
+    }
+    composed.push_str(&witness);
+    composed.push_str("\n\n");
+    composed.push_str(repair);
+    diagnostic.help = Some(composed);
+    diagnostic
+}

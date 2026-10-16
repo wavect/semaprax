@@ -1,0 +1,12 @@
+[
+  "CHANGELOG.md",
+  "crates/semaprax-native-rust-interop-builder/src/implementation/tests/hir_traversal.rs",
+  "docs/ARCHITECTURE.md",
+  "src/hir.rs",
+  "src/hir/cache_codec.rs",
+  "src/hir/expr_nodes.rs",
+  "src/hir/monomorphize.rs",
+  "src/hir/resolve_program.rs",
+  "src/loan_plan/children_tests.rs",
+  "src/loan_plan/tests.rs"
+]

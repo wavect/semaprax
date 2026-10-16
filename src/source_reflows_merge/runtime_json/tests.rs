@@ -30,9 +30,14 @@ fn authenticate_keys(fixture: Fixture, rows: &serde_json::Value) {
 fn fixed_projection_json_transport_refuses_hostile_io_before_parsing() {
     // Both exact selector arms normalize to the identical common source before
     // any historical source inverse. No arbitrary edited source is accepted.
-    let arm_view = super::super::metadata_json::previous(
+    let final_view = super::super::final_custody::input(
+        super::super::final_custody::Fixture::Common,
         "src/source_reflows_merge/runtime_json.rs",
         include_str!("../runtime_json.rs"),
+    );
+    let arm_view = super::super::metadata_json::previous(
+        "src/source_reflows_merge/runtime_json.rs",
+        &final_view,
     );
     let arm = arm_view.as_str();
     let common = pair_custody::normalize("src/source_reflows_merge/runtime_json.rs", arm);

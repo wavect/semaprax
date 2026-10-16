@@ -1,0 +1,1191 @@
+//! Generic instantiation for resolved declarations.
+//!
+//! Substitutes one concrete argument vector into a declaration-owned
+//! template so payload validation, layouts, and backends agree.
+
+use std::collections::BTreeMap;
+
+use crate::ast::Type;
+use crate::cleanup::CleanupInventory;
+use crate::cleanup_plan::CleanupPlan;
+use crate::diagnostic::Diagnostic;
+use crate::loan_plan::LoanPlan;
+
+use super::expr_nodes::{
+    ResolvedExpr, ResolvedExprKind, ResolvedFieldInitializer, ResolvedMatchArm,
+    ResolvedMatchPattern, ResolvedRecordMatchFieldPattern, ResolvedRecordMatchPatternField,
+    ResolvedStatement,
+};
+use super::ids::{DeclarationId, ExpressionId, FunctionExecutionId, FunctionInstanceId, ValueId};
+use super::nodes::{
+    ResolvedBinding, ResolvedFunction, ResolvedFunctionTemplate, ResolvedNativeRustImportCall,
+    ResolvedParam, ResolvedType,
+};
+use super::{hir_error, Place};
+
+/// Substitute one concrete generic instantiation into a declaration-owned
+/// type template. Consumers share this helper so payload validation, type
+/// facts, layouts, and backends cannot disagree about parameter identity.
+pub(crate) fn substitute_type(
+    template: &ResolvedType,
+    owner: &DeclarationId,
+    arguments: &[ResolvedType],
+) -> Result<ResolvedType, Diagnostic> {
+    match template {
+        ResolvedType::TypeParameter {
+            owner: parameter_owner,
+            index,
+        } => {
+            if parameter_owner != owner {
+                return Err(hir_error(format!(
+                    "type template for `{owner}` contains foreign parameter owner `{parameter_owner}`"
+                )));
+            }
+            return arguments
+                .get(usize::try_from(*index).map_err(|_| {
+                    hir_error(format!("type parameter index {index} does not fit usize"))
+                })?)
+                .cloned()
+                .ok_or_else(|| {
+                    hir_error(format!(
+                        "type template for `{owner}` references missing parameter {index}"
+                    ))
+                });
+        }
+        ResolvedType::Nominal { arguments, .. } if arguments.is_empty() => {
+            return Ok(template.clone())
+        }
+        ResolvedType::Never
+        | ResolvedType::Unit
+        | ResolvedType::I64
+        | ResolvedType::I32
+        | ResolvedType::Char
+        | ResolvedType::U8
+        | ResolvedType::Usize
+        | ResolvedType::ArrayU8(_)
+        | ResolvedType::F32
+        | ResolvedType::F64
+        | ResolvedType::Bool
+        | ResolvedType::String
+        | ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64
+        | ResolvedType::Bytes
+        | ResolvedType::Str
+        | ResolvedType::SliceU8
+        | ResolvedType::StringMap => return Ok(template.clone()),
+        ResolvedType::Nominal { .. } | ResolvedType::Function { .. } => {}
+    }
+    enum Frame<'a> {
+        Enter(&'a ResolvedType),
+        Finish(&'a DeclarationId, usize),
+        FinishCallable(usize),
+    }
+    let mut frames = vec![Frame::Enter(template)];
+    let mut resolved = Vec::new();
+    while let Some(frame) = frames.pop() {
+        match frame {
+            Frame::Enter(template) => match template {
+                ResolvedType::Function { parameters, result } => {
+                    frames.push(Frame::FinishCallable(parameters.len()));
+                    frames.push(Frame::Enter(result));
+                    frames.extend(parameters.iter().rev().map(Frame::Enter));
+                }
+                ResolvedType::Never => resolved.push(ResolvedType::Never),
+                ResolvedType::Unit => resolved.push(ResolvedType::Unit),
+                ResolvedType::I64 => resolved.push(ResolvedType::I64),
+                ResolvedType::I32 => resolved.push(ResolvedType::I32),
+                ResolvedType::Char => resolved.push(ResolvedType::Char),
+                ResolvedType::U8 => resolved.push(ResolvedType::U8),
+                ResolvedType::Usize => resolved.push(ResolvedType::Usize),
+                ResolvedType::ArrayU8(length) => resolved.push(ResolvedType::ArrayU8(*length)),
+                ResolvedType::F32 => resolved.push(ResolvedType::F32),
+                ResolvedType::F64 => resolved.push(ResolvedType::F64),
+                ResolvedType::Bool => resolved.push(ResolvedType::Bool),
+                ResolvedType::String => resolved.push(ResolvedType::String),
+                ResolvedType::OnceFunction => resolved.push(ResolvedType::OnceFunction),
+                ResolvedType::OnceFunctionI64 => resolved.push(ResolvedType::OnceFunctionI64),
+                ResolvedType::MutFunctionI64 => resolved.push(ResolvedType::MutFunctionI64),
+                ResolvedType::OnceFunctionI64Pair => {
+                    resolved.push(ResolvedType::OnceFunctionI64Pair)
+                }
+                ResolvedType::Bytes => resolved.push(ResolvedType::Bytes),
+                ResolvedType::Str => resolved.push(ResolvedType::Str),
+                ResolvedType::SliceU8 => resolved.push(ResolvedType::SliceU8),
+                ResolvedType::StringMap => resolved.push(ResolvedType::StringMap),
+                ResolvedType::TypeParameter {
+                    owner: parameter_owner,
+                    index,
+                } => {
+                    if parameter_owner != owner {
+                        return Err(hir_error(format!(
+                            "type template for `{owner}` contains foreign parameter owner `{parameter_owner}`"
+                        )));
+                    }
+                    resolved.push(
+                        arguments
+                            .get(usize::try_from(*index).map_err(|_| {
+                                hir_error(format!("type parameter index {index} does not fit usize"))
+                            })?)
+                            .cloned()
+                            .ok_or_else(|| {
+                                hir_error(format!(
+                                    "type template for `{owner}` references missing parameter {index}"
+                                ))
+                            })?,
+                    );
+                }
+                ResolvedType::Nominal {
+                    declaration,
+                    arguments,
+                } => {
+                    frames.push(Frame::Finish(declaration, arguments.len()));
+                    frames.extend(arguments.iter().rev().map(Frame::Enter));
+                }
+            },
+            Frame::FinishCallable(count) => {
+                let result = resolved
+                    .pop()
+                    .ok_or_else(|| hir_error("incomplete callable substitution"))?;
+                let split = resolved
+                    .len()
+                    .checked_sub(count)
+                    .ok_or_else(|| hir_error("incomplete callable parameters"))?;
+                let parameters = resolved.drain(split..).collect();
+                resolved.push(ResolvedType::Function {
+                    parameters,
+                    result: Box::new(result),
+                });
+            }
+            Frame::Finish(declaration, count) => {
+                let split = resolved
+                    .len()
+                    .checked_sub(count)
+                    .ok_or_else(|| hir_error("type substitution traversal is incomplete"))?;
+                let nested = resolved.drain(split..).collect();
+                resolved.push(ResolvedType::Nominal {
+                    declaration: declaration.clone(),
+                    arguments: nested,
+                });
+            }
+        }
+    }
+    if resolved.len() != 1 {
+        return Err(hir_error("type substitution traversal did not settle"));
+    }
+    Ok(resolved
+        .pop()
+        .expect("substitution result count checked above"))
+}
+
+pub(super) fn substitute_source_function_type(
+    function: &crate::ast::Function,
+    arguments: &[Type],
+    template: &Type,
+) -> Option<Type> {
+    match template {
+        Type::Named {
+            name,
+            arguments: nested,
+        } if nested.is_empty() => {
+            // A generic parameter name takes precedence over a nominal name,
+            // including missing actual arguments and duplicate parameter names.
+            if let Some(index) = function
+                .type_parameters
+                .iter()
+                .position(|parameter| parameter.name == *name)
+            {
+                return arguments.get(index).cloned();
+            }
+            return Some(template.clone());
+        }
+        Type::Never
+        | Type::I64
+        | Type::I32
+        | Type::Char
+        | Type::U8
+        | Type::Usize
+        | Type::ArrayU8(_)
+        | Type::F32
+        | Type::F64
+        | Type::Bool
+        | Type::String
+        | Type::OnceFunction
+        | Type::OnceFunctionI64
+        | Type::OnceFunctionI64Pair
+        | Type::MutFunctionI64
+        | Type::Bytes
+        | Type::Str
+        | Type::SliceU8
+        | Type::StringMap => return Some(template.clone()),
+        Type::Named { .. } | Type::Function { .. } => {}
+    }
+    enum Frame<'a> {
+        Enter(&'a Type),
+        Finish(&'a str, usize),
+        FinishCallable(usize),
+    }
+    let mut frames = vec![Frame::Enter(template)];
+    let mut resolved = Vec::new();
+    while let Some(frame) = frames.pop() {
+        match frame {
+            Frame::Enter(template) => match template {
+                Type::Function { parameters, result } => {
+                    frames.push(Frame::FinishCallable(parameters.len()));
+                    frames.push(Frame::Enter(result));
+                    frames.extend(parameters.iter().rev().map(Frame::Enter));
+                }
+                Type::Never => resolved.push(Type::Never),
+                Type::I64 => resolved.push(Type::I64),
+                Type::I32 => resolved.push(Type::I32),
+                Type::Char => resolved.push(Type::Char),
+                Type::U8 => resolved.push(Type::U8),
+                Type::Usize => resolved.push(Type::Usize),
+                Type::ArrayU8(length) => resolved.push(Type::ArrayU8(*length)),
+                Type::F32 => resolved.push(Type::F32),
+                Type::F64 => resolved.push(Type::F64),
+                Type::Bool => resolved.push(Type::Bool),
+                Type::String => resolved.push(Type::String),
+                Type::OnceFunction => resolved.push(Type::OnceFunction),
+                Type::OnceFunctionI64 => resolved.push(Type::OnceFunctionI64),
+                Type::OnceFunctionI64Pair => resolved.push(Type::OnceFunctionI64Pair),
+                Type::MutFunctionI64 => resolved.push(Type::MutFunctionI64),
+                Type::Bytes => resolved.push(Type::Bytes),
+                Type::Str => resolved.push(Type::Str),
+                Type::SliceU8 => resolved.push(Type::SliceU8),
+                Type::StringMap => resolved.push(Type::StringMap),
+                Type::Named {
+                    name,
+                    arguments: nested,
+                } => {
+                    if nested.is_empty() {
+                        if let Some(index) = function
+                            .type_parameters
+                            .iter()
+                            .position(|parameter| parameter.name == *name)
+                        {
+                            resolved.push(arguments.get(index)?.clone());
+                            continue;
+                        }
+                    }
+                    frames.push(Frame::Finish(name, nested.len()));
+                    frames.extend(nested.iter().rev().map(Frame::Enter));
+                }
+            },
+            Frame::FinishCallable(count) => {
+                let result = resolved.pop()?;
+                let split = resolved.len().checked_sub(count)?;
+                let parameters = resolved.drain(split..).collect();
+                resolved.push(Type::Function {
+                    parameters,
+                    result: Box::new(result),
+                });
+            }
+            Frame::Finish(name, count) => {
+                let split = resolved.len().checked_sub(count)?;
+                let arguments = resolved.drain(split..).collect();
+                resolved.push(Type::Named {
+                    name: name.to_owned(),
+                    arguments,
+                });
+            }
+        }
+    }
+    (resolved.len() == 1).then(|| resolved.pop().expect("type count checked above"))
+}
+
+pub(super) fn materialize_function_template(
+    template: &ResolvedFunctionTemplate,
+    arguments: &[ResolvedType],
+) -> Result<ResolvedFunction, Diagnostic> {
+    let instance = FunctionInstanceId::derive(&template.id, arguments);
+    let execution = FunctionExecutionId::Generic(instance);
+    let mut values = BTreeMap::new();
+    let params = template
+        .params
+        .iter()
+        .enumerate()
+        .map(|(index, parameter)| {
+            let id = ValueId::parameter(&execution, index);
+            values.insert(parameter.id.clone(), id.clone());
+            Ok(ResolvedParam {
+                id,
+                name: parameter.name.clone(),
+                ownership: parameter.ownership,
+                ty: substitute_type(&parameter.ty, &template.id, arguments)?,
+                span: parameter.span,
+            })
+        })
+        .collect::<Result<Vec<_>, Diagnostic>>()?;
+    let result_id = ValueId::result(&execution);
+    let return_type = substitute_type(&template.return_type, &template.id, arguments)?;
+    let requires = template
+        .requires
+        .iter()
+        .enumerate()
+        .map(|(index, expression)| {
+            materialize_template_expr(
+                template,
+                arguments,
+                &execution,
+                expression,
+                &values,
+                &format!("requires.{index}"),
+            )
+        })
+        .collect::<Result<_, _>>()?;
+    let body = materialize_template_expr(
+        template,
+        arguments,
+        &execution,
+        &template.body,
+        &values,
+        "body",
+    )?;
+    let mut ensures_values = values;
+    ensures_values.insert(template.result_id.clone(), result_id.clone());
+    let ensures = template
+        .ensures
+        .iter()
+        .enumerate()
+        .map(|(index, expression)| {
+            materialize_template_expr(
+                template,
+                arguments,
+                &execution,
+                expression,
+                &ensures_values,
+                &format!("ensures.{index}"),
+            )
+        })
+        .collect::<Result<_, _>>()?;
+    Ok(ResolvedFunction {
+        id: template.id.clone(),
+        name: template.name.clone(),
+        params,
+        result_id,
+        return_type,
+        effects: template.effects.clone(),
+        // Resumable Effects v1 (issue #204): `hir::resolve_yield` refuses
+        // `yields` on any generic function, so a template never carries
+        // one to substitute here.
+        yields: None,
+        requires,
+        ensures,
+        body,
+        cleanup: CleanupInventory::unresolved(),
+        cleanup_plan: CleanupPlan::unresolved(),
+        loan_plan: LoanPlan::unresolved(),
+        span: template.span,
+    })
+}
+
+pub(super) fn resolved_scalar_substitutions(parameter_count: usize) -> Vec<Vec<ResolvedType>> {
+    debug_assert!((1..=2).contains(&parameter_count));
+    (0..(1_usize << parameter_count))
+        .map(|bits| {
+            (0..parameter_count)
+                .map(|index| {
+                    if bits & (1 << index) == 0 {
+                        ResolvedType::I64
+                    } else {
+                        ResolvedType::Bool
+                    }
+                })
+                .collect()
+        })
+        .collect()
+}
+
+pub(super) fn resolved_owned_record_substitutions(
+    parameter_count: usize,
+) -> Vec<Vec<ResolvedType>> {
+    debug_assert!((1..=2).contains(&parameter_count));
+    let copy = [
+        ResolvedType::I64,
+        ResolvedType::I32,
+        ResolvedType::Char,
+        ResolvedType::U8,
+        ResolvedType::Usize,
+        ResolvedType::F32,
+        ResolvedType::F64,
+        ResolvedType::Bool,
+    ];
+    let count = copy.len().pow(parameter_count as u32);
+    (0..count)
+        .map(|mut ordinal| {
+            (0..parameter_count)
+                .map(|_| {
+                    let ty = copy[ordinal % copy.len()].clone();
+                    ordinal /= copy.len();
+                    ty
+                })
+                .collect()
+        })
+        .collect()
+}
+
+pub(super) fn same_function_meaning(
+    expected: &ResolvedFunction,
+    actual: &ResolvedFunction,
+) -> bool {
+    expected.id == actual.id
+        && expected.name == actual.name
+        && expected.params == actual.params
+        && expected.result_id == actual.result_id
+        && expected.return_type == actual.return_type
+        && expected.effects == actual.effects
+        && expected.requires == actual.requires
+        && expected.ensures == actual.ensures
+        && expected.body == actual.body
+        && expected.span == actual.span
+}
+
+pub(super) fn materialize_template_expr(
+    template: &ResolvedFunctionTemplate,
+    arguments: &[ResolvedType],
+    execution: &FunctionExecutionId,
+    expression: &ResolvedExpr,
+    values: &BTreeMap<ValueId, ValueId>,
+    path: &str,
+) -> Result<ResolvedExpr, Diagnostic> {
+    let kind = match &expression.kind {
+        ResolvedExprKind::LexicalExit {
+            kind,
+            target,
+            value,
+        } => ResolvedExprKind::LexicalExit {
+            kind: *kind,
+            target: super::lexical_exit::rekey::target(
+                target,
+                &FunctionExecutionId::Monomorphic(template.id.clone()),
+                execution,
+            )?,
+            value: value
+                .as_ref()
+                .map(|operand| {
+                    materialize_template_expr(
+                        template,
+                        arguments,
+                        execution,
+                        operand,
+                        values,
+                        &format!("{path}.value"),
+                    )
+                    .map(Box::new)
+                })
+                .transpose()?,
+        },
+        ResolvedExprKind::Closure { .. } => {
+            super::closure::materialize(template, arguments, execution, expression, values, path)?
+        }
+        ResolvedExprKind::FunctionReference { target } => ResolvedExprKind::FunctionReference {
+            target: target.clone(),
+        },
+        ResolvedExprKind::Invoke { callable, args } => ResolvedExprKind::Invoke {
+            callable: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                callable,
+                values,
+                &format!("{path}.callable"),
+            )?),
+            args: args
+                .iter()
+                .enumerate()
+                .map(|(index, arg)| {
+                    materialize_template_expr(
+                        template,
+                        arguments,
+                        execution,
+                        arg,
+                        values,
+                        &format!("{path}.arg.{index}"),
+                    )
+                })
+                .collect::<Result<_, _>>()?,
+        },
+        ResolvedExprKind::Int(value) => ResolvedExprKind::Int(*value),
+        ResolvedExprKind::Int32(value) => ResolvedExprKind::Int32(*value),
+        ResolvedExprKind::Char(value) => ResolvedExprKind::Char(*value),
+        ResolvedExprKind::Uint8(value) => ResolvedExprKind::Uint8(*value),
+        ResolvedExprKind::Usize(value) => ResolvedExprKind::Usize(*value),
+        ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::ByteRange { .. }
+        | ResolvedExprKind::HostCommandCall(_) => {
+            return Err(hir_error(
+                "generic template uses portable byte data outside the generic slice",
+            ));
+        }
+        // The rooted owned-String view is the one byte view inside the generic
+        // slice. It carries no projection, so materialization only remaps the
+        // storage root; every other byte operation and every projected place
+        // stays outside.
+        ResolvedExprKind::BorrowPlace { operation, place } => {
+            if crate::byte_ops::by_id(operation.as_str())
+                != Some(crate::byte_ops::ByteOp::StringAsStr)
+                || !place.projections.is_empty()
+            {
+                return Err(hir_error(
+                    "generic template uses portable byte data outside the generic slice",
+                ));
+            }
+            ResolvedExprKind::BorrowPlace {
+                operation: operation.clone(),
+                place: Place {
+                    root: values
+                        .get(&place.root)
+                        .cloned()
+                        .ok_or_else(|| hir_error("generic template place is out of scope"))?,
+                    projections: Vec::new(),
+                },
+            }
+        }
+        ResolvedExprKind::Float32(bits) => ResolvedExprKind::Float32(*bits),
+        ResolvedExprKind::Float64(bits) => ResolvedExprKind::Float64(*bits),
+        ResolvedExprKind::Bool(value) => ResolvedExprKind::Bool(*value),
+        ResolvedExprKind::String(value) => ResolvedExprKind::String(value.clone()),
+        ResolvedExprKind::BorrowedUtf8Literal(value) => {
+            ResolvedExprKind::BorrowedUtf8Literal(value.clone())
+        }
+        ResolvedExprKind::LiteralFormat { .. }
+        | ResolvedExprKind::VecFieldRead { .. }
+        | ResolvedExprKind::RowLoan { .. } => {
+            return Err(hir_error(
+                "generic templates cannot construct literal formats",
+            ))
+        }
+        ResolvedExprKind::Place(place) => ResolvedExprKind::Place(Place {
+            root: values
+                .get(&place.root)
+                .cloned()
+                .ok_or_else(|| hir_error("generic template place is out of scope"))?,
+            projections: place.projections.clone(),
+        }),
+        ResolvedExprKind::Call {
+            callee,
+            type_arguments,
+            instance,
+            args,
+        } => {
+            let transparent_vec_call = crate::vec_ops::hir_wrapper(template)
+                == crate::vec_ops::by_id(callee.as_str())
+                && instance.is_none()
+                && type_arguments.len() == 1;
+            let transparent_box_call = crate::box_ops::hir_wrapper(template)
+                == crate::box_ops::by_id(callee.as_str())
+                && instance.is_none()
+                && type_arguments.len() == 1;
+            let collection_call = super::generic_collection::profile(template)
+                && instance.is_none()
+                && type_arguments.len() == 1
+                && (crate::box_ops::by_id(callee.as_str()).is_some()
+                    || crate::vec_ops::by_id(callee.as_str()).is_some()
+                    || crate::iterator_ops::by_id(callee.as_str()).is_some());
+            let forwarded_generic_call = instance.as_ref().is_some_and(|instance| {
+                !type_arguments.is_empty()
+                    && FunctionInstanceId::derive(callee, type_arguments) == *instance
+            });
+            if (!collection_call
+                && !transparent_vec_call
+                && !transparent_box_call
+                && !forwarded_generic_call)
+                && (instance.is_some() || !type_arguments.is_empty())
+            {
+                return Err(hir_error(
+                    "generic templates cannot call generic function instances",
+                ));
+            }
+            let type_arguments = type_arguments
+                .iter()
+                .map(|argument| substitute_type(argument, &template.id, arguments))
+                .collect::<Result<Vec<_>, _>>()?;
+            ResolvedExprKind::Call {
+                callee: callee.clone(),
+                instance: forwarded_generic_call
+                    .then(|| FunctionInstanceId::derive(callee, &type_arguments)),
+                type_arguments,
+                args: args
+                    .iter()
+                    .enumerate()
+                    .map(|(index, argument)| {
+                        materialize_template_expr(
+                            template,
+                            arguments,
+                            execution,
+                            argument,
+                            values,
+                            &format!("{path}.arg.{index}"),
+                        )
+                    })
+                    .collect::<Result<_, _>>()?,
+            }
+        }
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            ResolvedExprKind::NativeRustImportCall(ResolvedNativeRustImportCall {
+                expression: ExpressionId::new(execution, path),
+                import: call.import.clone(),
+                args: call
+                    .args
+                    .iter()
+                    .enumerate()
+                    .map(|(index, argument)| {
+                        materialize_template_expr(
+                            template,
+                            arguments,
+                            execution,
+                            argument,
+                            values,
+                            &format!("{path}.native-rust-arg.{index}"),
+                        )
+                    })
+                    .collect::<Result<_, _>>()?,
+                result: call.result.clone(),
+            })
+        }
+        ResolvedExprKind::Unary { op, value } => ResolvedExprKind::Unary {
+            op: *op,
+            value: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                value,
+                values,
+                &format!("{path}.value"),
+            )?),
+        },
+        ResolvedExprKind::Binary { op, left, right } => ResolvedExprKind::Binary {
+            op: *op,
+            left: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                left,
+                values,
+                &format!("{path}.left"),
+            )?),
+            right: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                right,
+                values,
+                &format!("{path}.right"),
+            )?),
+        },
+        ResolvedExprKind::Block { statements, tail }
+        | ResolvedExprKind::VecConstructor {
+            statements, tail, ..
+        } => {
+            let mut block_values = values.clone();
+            let mut materialized = Vec::with_capacity(statements.len());
+            for (index, statement) in statements.iter().enumerate() {
+                let statement_path = format!("{path}.s{index}");
+                match statement {
+                    ResolvedStatement::CopyDiscard { value, span } => {
+                        let value = materialize_template_expr(
+                            template,
+                            arguments,
+                            execution,
+                            value,
+                            &block_values,
+                            &format!("{statement_path}.value"),
+                        )?;
+                        materialized.push(ResolvedStatement::CopyDiscard { value, span: *span });
+                    }
+                    ResolvedStatement::Let {
+                        binding,
+                        mutable,
+                        value,
+                        span,
+                    } => {
+                        let value = materialize_template_expr(
+                            template,
+                            arguments,
+                            execution,
+                            value,
+                            &block_values,
+                            &format!("{statement_path}.value"),
+                        )?;
+                        let id = ValueId::local(execution, &statement_path);
+                        block_values.insert(binding.id.clone(), id.clone());
+                        materialized.push(ResolvedStatement::Let {
+                            binding: ResolvedBinding {
+                                id,
+                                name: binding.name.clone(),
+                                ownership: binding.ownership,
+                                ty: substitute_type(&binding.ty, &template.id, arguments)?,
+                                span: binding.span,
+                            },
+                            mutable: *mutable,
+                            value,
+                            span: *span,
+                        });
+                    }
+                    ResolvedStatement::Assign {
+                        binding,
+                        field,
+                        value,
+                        span,
+                    } => {
+                        if !super::generic_collection::profile(template) || field.is_some() {
+                            return Err(hir_error(
+                                "generic mutation requires the bounded collection profile",
+                            ));
+                        }
+                        materialized.push(ResolvedStatement::Assign {
+                            binding: ResolvedBinding {
+                                id: block_values.get(&binding.id).cloned().ok_or_else(|| {
+                                    hir_error("generic assignment target is out of scope")
+                                })?,
+                                name: binding.name.clone(),
+                                ownership: binding.ownership,
+                                ty: substitute_type(&binding.ty, &template.id, arguments)?,
+                                span: binding.span,
+                            },
+                            field: None,
+                            value: materialize_template_expr(
+                                template,
+                                arguments,
+                                execution,
+                                value,
+                                &block_values,
+                                &format!("{statement_path}.value"),
+                            )?,
+                            span: *span,
+                        });
+                    }
+                    ResolvedStatement::While {
+                        condition,
+                        body,
+                        span,
+                    }
+                    | ResolvedStatement::LexicalWhile {
+                        condition,
+                        body,
+                        span,
+                        ..
+                    } => {
+                        if !super::generic_collection::profile(template) {
+                            return Err(hir_error(
+                                "generic loops require the bounded collection profile",
+                            ));
+                        }
+                        let condition = Box::new(materialize_template_expr(
+                            template,
+                            arguments,
+                            execution,
+                            condition,
+                            &block_values,
+                            &format!("{statement_path}.condition"),
+                        )?);
+                        let body = Box::new(materialize_template_expr(
+                            template,
+                            arguments,
+                            execution,
+                            body,
+                            &block_values,
+                            &format!("{statement_path}.body"),
+                        )?);
+                        materialized.push(match statement {
+                            ResolvedStatement::LexicalWhile { latch, .. } => {
+                                ResolvedStatement::LexicalWhile {
+                                    condition,
+                                    body,
+                                    latch: super::lexical_exit::rekey::latch(
+                                        latch,
+                                        &FunctionExecutionId::Monomorphic(template.id.clone()),
+                                        execution,
+                                    )?,
+                                    span: *span,
+                                }
+                            }
+                            _ => ResolvedStatement::While {
+                                condition,
+                                body,
+                                span: *span,
+                            },
+                        });
+                    }
+                    ResolvedStatement::Unsafe { audit, body, span } => {
+                        let body = materialize_template_expr(
+                            template,
+                            arguments,
+                            execution,
+                            body,
+                            &block_values,
+                            &format!("{statement_path}.body"),
+                        )?;
+                        materialized.push(ResolvedStatement::Unsafe {
+                            audit: audit.clone(),
+                            body: Box::new(body),
+                            span: *span,
+                        });
+                    }
+                }
+            }
+            let tail = Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                tail,
+                &block_values,
+                &format!("{path}.tail"),
+            )?);
+            if let ResolvedExprKind::VecConstructor { element, count, .. } = &expression.kind {
+                ResolvedExprKind::VecConstructor {
+                    element: substitute_type(element, &template.id, arguments)?,
+                    count: *count,
+                    statements: materialized,
+                    tail,
+                }
+            } else {
+                ResolvedExprKind::Block {
+                    statements: materialized,
+                    tail,
+                }
+            }
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => ResolvedExprKind::If {
+            condition: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                condition,
+                values,
+                &format!("{path}.condition"),
+            )?),
+            then_branch: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                then_branch,
+                values,
+                &format!("{path}.then"),
+            )?),
+            else_branch: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                else_branch,
+                values,
+                &format!("{path}.else"),
+            )?),
+        },
+        ResolvedExprKind::ConstructRecord { record, fields } => ResolvedExprKind::ConstructRecord {
+            record: record.clone(),
+            fields: materialize_fields(template, arguments, execution, fields, values, path)?,
+        },
+        ResolvedExprKind::UpdateRecord {
+            base,
+            record,
+            fields,
+        } => ResolvedExprKind::UpdateRecord {
+            base: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                base,
+                values,
+                &format!("{path}.base"),
+            )?),
+            record: record.clone(),
+            fields: materialize_fields(template, arguments, execution, fields, values, path)?,
+        },
+        ResolvedExprKind::Project { base, field } => ResolvedExprKind::Project {
+            base: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                base,
+                values,
+                &format!("{path}.base"),
+            )?),
+            field: field.clone(),
+        },
+        ResolvedExprKind::Match {
+            mode,
+            scrutinee,
+            arms,
+        } => {
+            let scrutinee = Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                scrutinee,
+                values,
+                &format!("{path}.scrutinee"),
+            )?);
+            let mut materialized = Vec::with_capacity(arms.len());
+            for (index, arm) in arms.iter().enumerate() {
+                let mut arm_values = values.clone();
+                let pattern = materialize_pattern(
+                    template,
+                    arguments,
+                    execution,
+                    &arm.pattern,
+                    &mut arm_values,
+                    &format!("{path}.arm.{index}"),
+                )?;
+                materialized.push(ResolvedMatchArm {
+                    pattern,
+                    guard: arm
+                        .guard
+                        .as_ref()
+                        .map(|guard| {
+                            materialize_template_expr(
+                                template,
+                                arguments,
+                                execution,
+                                guard,
+                                &arm_values,
+                                &format!("{path}.arm.{index}.guard"),
+                            )
+                            .map(Box::new)
+                        })
+                        .transpose()?,
+                    value: materialize_template_expr(
+                        template,
+                        arguments,
+                        execution,
+                        &arm.value,
+                        &arm_values,
+                        &format!("{path}.arm.{index}.value"),
+                    )?,
+                    span: arm.span,
+                });
+            }
+            ResolvedExprKind::Match {
+                mode: *mode,
+                scrutinee,
+                arms: materialized,
+            }
+        }
+        ResolvedExprKind::ConstructVariant {
+            variant,
+            case,
+            fields,
+        } if super::generic_result::profile(template)
+            || super::generic_variant::symbolic_slot(
+                &expression.ty,
+                &template.id,
+                template.type_parameters.len(),
+            ) =>
+        {
+            ResolvedExprKind::ConstructVariant {
+                variant: variant.clone(),
+                case: case.clone(),
+                fields: fields
+                    .iter()
+                    .enumerate()
+                    .map(|(index, field)| {
+                        Ok(ResolvedFieldInitializer {
+                            field: field.field.clone(),
+                            value: materialize_template_expr(
+                                template,
+                                arguments,
+                                execution,
+                                &field.value,
+                                values,
+                                &format!("{path}.field.{index}.value"),
+                            )?,
+                        })
+                    })
+                    .collect::<Result<Vec<_>, Diagnostic>>()?,
+            }
+        }
+        ResolvedExprKind::Try {
+            operand,
+            result,
+            ok_case,
+            ok_field,
+            err_case,
+            err_field,
+            residual_type,
+        } if super::generic_result::profile(template) => ResolvedExprKind::Try {
+            operand: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                operand,
+                values,
+                &format!("{path}.operand"),
+            )?),
+            result: result.clone(),
+            ok_case: ok_case.clone(),
+            ok_field: ok_field.clone(),
+            err_case: err_case.clone(),
+            err_field: err_field.clone(),
+            residual_type: substitute_type(residual_type, &template.id, arguments)?,
+        },
+        // Resumable Effects v1 (issue #204): unreachable in practice --
+        // `hir::resolve_yield` refuses `yields` on any generic function
+        // before a template is ever built.
+        ResolvedExprKind::ConstructVariant { .. }
+        | ResolvedExprKind::Try { .. }
+        | ResolvedExprKind::TryOption { .. }
+        | ResolvedExprKind::Upcast { .. }
+        | ResolvedExprKind::Yield { .. } => {
+            return Err(hir_error(
+                "generic template uses an expression outside the direct-scalar slice",
+            ));
+        }
+    };
+    Ok(ResolvedExpr {
+        id: ExpressionId::new(execution, path),
+        ty: substitute_type(&expression.ty, &template.id, arguments)?,
+        ownership: expression.ownership,
+        kind,
+        span: expression.span,
+    })
+}
+
+fn materialize_fields(
+    template: &ResolvedFunctionTemplate,
+    arguments: &[ResolvedType],
+    execution: &FunctionExecutionId,
+    fields: &[ResolvedFieldInitializer],
+    values: &BTreeMap<ValueId, ValueId>,
+    path: &str,
+) -> Result<Vec<ResolvedFieldInitializer>, Diagnostic> {
+    fields
+        .iter()
+        .enumerate()
+        .map(|(index, field)| {
+            Ok(ResolvedFieldInitializer {
+                field: field.field.clone(),
+                value: materialize_template_expr(
+                    template,
+                    arguments,
+                    execution,
+                    &field.value,
+                    values,
+                    &format!("{path}.field.{index}.value"),
+                )?,
+            })
+        })
+        .collect()
+}
+
+fn materialize_pattern(
+    template: &ResolvedFunctionTemplate,
+    arguments: &[ResolvedType],
+    execution: &FunctionExecutionId,
+    pattern: &ResolvedMatchPattern,
+    values: &mut BTreeMap<ValueId, ValueId>,
+    path: &str,
+) -> Result<ResolvedMatchPattern, Diagnostic> {
+    match pattern {
+        ResolvedMatchPattern::Record {
+            record,
+            instance,
+            fields,
+        } => Ok(ResolvedMatchPattern::Record {
+            record: record.clone(),
+            instance: substitute_type(instance, &template.id, arguments)?,
+            fields: materialize_record_pattern_fields(
+                template,
+                arguments,
+                execution,
+                fields,
+                values,
+                &format!("{path}.record"),
+            )?,
+        }),
+        ResolvedMatchPattern::Variant {
+            variant,
+            case,
+            fields,
+        } => Ok(ResolvedMatchPattern::Variant {
+            variant: variant.clone(),
+            case: case.clone(),
+            fields: fields
+                .iter()
+                .enumerate()
+                .map(|(index, field)| {
+                    let id = ValueId::local(execution, &format!("{path}.binding.{index}"));
+                    values.insert(field.binding.id.clone(), id.clone());
+                    Ok(super::ResolvedMatchPatternField {
+                        field: field.field.clone(),
+                        binding: ResolvedBinding {
+                            id,
+                            name: field.binding.name.clone(),
+                            ty: substitute_type(&field.binding.ty, &template.id, arguments)?,
+                            ownership: field.binding.ownership,
+                            span: field.binding.span,
+                        },
+                    })
+                })
+                .collect::<Result<Vec<_>, Diagnostic>>()?,
+        }),
+        ResolvedMatchPattern::Wildcard => Ok(ResolvedMatchPattern::Wildcard),
+        _ => Err(hir_error(
+            "generic template match pattern is outside the owned-record slice",
+        )),
+    }
+}
+
+fn materialize_record_pattern_fields(
+    template: &ResolvedFunctionTemplate,
+    arguments: &[ResolvedType],
+    execution: &FunctionExecutionId,
+    fields: &[ResolvedRecordMatchPatternField],
+    values: &mut BTreeMap<ValueId, ValueId>,
+    path: &str,
+) -> Result<Vec<ResolvedRecordMatchPatternField>, Diagnostic> {
+    fields
+        .iter()
+        .enumerate()
+        .map(|(index, field)| {
+            let field_path = format!("{path}.field.{index}");
+            let pattern = match &field.pattern {
+                ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                    let id = ValueId::local(execution, &format!("{field_path}.binding"));
+                    values.insert(binding.id.clone(), id.clone());
+                    ResolvedRecordMatchFieldPattern::Binding(ResolvedBinding {
+                        id,
+                        name: binding.name.clone(),
+                        ownership: binding.ownership,
+                        ty: substitute_type(&binding.ty, &template.id, arguments)?,
+                        span: binding.span,
+                    })
+                }
+                ResolvedRecordMatchFieldPattern::Wildcard => {
+                    ResolvedRecordMatchFieldPattern::Wildcard
+                }
+                ResolvedRecordMatchFieldPattern::Record {
+                    record,
+                    instance,
+                    fields,
+                } => ResolvedRecordMatchFieldPattern::Record {
+                    record: record.clone(),
+                    instance: substitute_type(instance, &template.id, arguments)?,
+                    fields: materialize_record_pattern_fields(
+                        template,
+                        arguments,
+                        execution,
+                        fields,
+                        values,
+                        &format!("{field_path}.record"),
+                    )?,
+                },
+            };
+            Ok(ResolvedRecordMatchPatternField {
+                field: field.field.clone(),
+                pattern,
+            })
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod substitution_leaf_tests;
+#[cfg(test)]
+pub(super) mod substitution_saved;

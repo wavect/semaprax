@@ -1,0 +1,64 @@
+{
+  "hir": {
+    "raw_sha256": "13e48376fab563e35f8376cfd667e31b71cc409ccd441cacdbba8d5702712516",
+    "production_sha256": "c4f5175cc1f41d3b67335ef84d668ba82e03bba3bea8db5abcf412fc1c319c44",
+    "unique_production_files": 365,
+    "unique_test_only_files": 551,
+    "chunks_including_multiplicity_and_separators": 855,
+    "all_original_forbidden_checks_clear": true,
+    "exact_existing_forbidden_tokens": [
+      "struct Resolver",
+      "impl Resolver",
+      "fn scoped_identity(",
+      "fn materialize_function_template",
+      "fn specialize_source_function",
+      "pub fn resolve(",
+      "crate::cleanup::build_inventory",
+      "crate::cleanup_plan::build_plan",
+      "std::fs",
+      "std::process",
+      "platform::"
+    ],
+    "three_static_negatives_refused": true
+  },
+  "projection": {
+    "raw_sha256": "751454e5415ed6ecdb5223d49e203890f3433b9850941a58f7870a13bc55edb4",
+    "production_sha256": "c2a8f28b33121b325a62865657a0600cffb452d6ad170cae35a3e577d87eec5b",
+    "unique_production_files": 67,
+    "unique_test_only_files": 101,
+    "chunks_including_multiplicity_and_separators": 172,
+    "all_original_forbidden_checks_clear": true,
+    "exact_existing_forbidden_tokens": [
+      "use super::*;",
+      "workspace::",
+      "std::fs",
+      "std::process",
+      "snapshot(",
+      "build_authenticated",
+      "render_graph_json",
+      "write_file",
+      "create_dir",
+      "remove_file",
+      "ACTIVE"
+    ],
+    "three_static_negatives_refused": true
+  },
+  "all_three_original_raw_include_sequences_preserved": {
+    "tests/hir_module_boundaries.rs": {
+      "original_occurrences": 853,
+      "preserved_original_order": true,
+      "explicit_added_occurrences": 50
+    },
+    "tests/workspace/semantic_graph/source_inventory.rs": {
+      "original_occurrences": 668,
+      "preserved_original_order": true,
+      "explicit_added_occurrences": 49
+    },
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
+      "original_occurrences": 1292,
+      "preserved_original_order": true,
+      "explicit_added_occurrences": 48
+    }
+  },
+  "mode": "SOURCE_ONLY_NO_RUST_EXECUTION"
+}

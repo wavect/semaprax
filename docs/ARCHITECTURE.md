@@ -5083,3 +5083,5 @@ classification in the existing paid certificate caller. It preserves the
 complete primitive/Option/Vec/current-flat query closure without new forwarding
 Results or budget parameters. Original classifiers, oracle authentication and
 ordinary dynamic diagnostics remain independently owned boundaries.
+
+The joined test-source custody front uses fixed authenticated runtime tables for independent common, arena and Main12 inputs. A sealed final sibling owns only fixed paths, lengths and digests; both bulk90 selector arms normalize by their complete source identities before these views, while each arm retains truthful physical-source authority metadata. The original five-row, Main nine-row and Main twelve-row receiver controls remain separate, and the complete compiled earlier expression model is linked to its whole-source inverse. These test-only reads grant no compiler admission or production filesystem authority.

@@ -1,7 +1,7 @@
 //! An affine receipt permit acquired on the exact subject's existing budget.
 //! All current success and failure receiving controls are paid before child entry.
-use super::{Context, ReplayBudget, ResolvedFunction, expression_facts, semantic_refusal};
-use crate::cleanup_plan::renewal_profile::{RenewalBindings, child_refusal::Refusal};
+use super::{expression_facts, semantic_refusal, Context, ReplayBudget, ResolvedFunction};
+use crate::cleanup_plan::renewal_profile::{child_refusal::Refusal, RenewalBindings};
 type Error = expression_facts::errors::EngineError;
 pub(in super::super) struct Permit<'a> {
     subject: &'a ResolvedFunction,
@@ -30,7 +30,7 @@ impl<'a> Permit<'a> {
     }
     /// No new debit after work/physical failure: these full controls were paid
     /// before entry. Moving the receipt does not replace its ledger's first error.
-    pub(super) fn refuse(self, reason: Refusal) -> Error {
+    pub(in super::super) fn refuse(self, reason: Refusal) -> Error {
         Error::Structural(semantic_refusal::Receipt::selected_child(
             self.subject,
             reason,

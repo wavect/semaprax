@@ -600,7 +600,7 @@ impl ResolvedStatement {
 
 #[cfg(test)]
 mod borrowed_variant_case_tests {
-    use super::*;
+    use super::{DeclarationId, ResolvedMatchPattern};
     fn case(id: &str) -> ResolvedMatchPattern {
         ResolvedMatchPattern::Variant {
             variant: DeclarationId::new("variant"),
@@ -642,7 +642,10 @@ mod borrowed_variant_case_tests {
 
 #[cfg(test)]
 mod residual_payload_tests {
-    use super::*;
+    use super::{
+        DeclarationId, ExpressionId, OwnershipMode, ResolvedExpr, ResolvedExprKind,
+        ResolvedResidualType, ResolvedType, Span,
+    };
     use crate::bounded_output as output;
     use crate::hir::residual_payload_before as before;
     use crate::test_allocation_observer::measure;

@@ -49,7 +49,7 @@
     {
       "domain": "Compact7",
       "path": "tests/hir_module_boundaries.rs",
-      "current_sha256": "3d8d5c070e9ac86d005ed2356872a3be53ee6558fb5bf3a9a9cc52fbce49e627",
+      "current_sha256": "975d32ee3ce5380479890a5d1f2129babc1b706cc64006802ff4620ab5c58865",
       "historical_after_sha256": "a9da48544bca29656b1c453998e1c56ccbf96ab34261bde9a58111805d973568",
       "archive_before_sha256": "0fe29b4e9a4c1aea7e6ff38c608e4bc3f8b82c4c3c3a4484f35cf7f2490842bb",
       "reverse_operations": 10,
@@ -58,7 +58,7 @@
     {
       "domain": "Compact7",
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "current_sha256": "cc7c0fefbfe05532f7ecd17d0a76acf320d11286bbe7f342562fe8e32a6a784c",
+      "current_sha256": "cc97c47b89f1750c0c595184124fdc824d19e96c33a53d4c67f4481fc1255e64",
       "historical_after_sha256": "27f8d194a798710c290af1cf47452527f5e53ccd6df670af293d9d15dc03a9cd",
       "archive_before_sha256": "401c904b0941c4dc7e4677936366d23375d7503944692061ee024f9278d40cb1",
       "reverse_operations": 10,
@@ -107,7 +107,7 @@
     {
       "domain": "Receivers12",
       "path": "tests/hir_module_boundaries.rs",
-      "current_sha256": "3d8d5c070e9ac86d005ed2356872a3be53ee6558fb5bf3a9a9cc52fbce49e627",
+      "current_sha256": "975d32ee3ce5380479890a5d1f2129babc1b706cc64006802ff4620ab5c58865",
       "historical_after_sha256": "a9da48544bca29656b1c453998e1c56ccbf96ab34261bde9a58111805d973568",
       "archive_before_sha256": "444261bea247a81d21553b5c52d19dbad5b3f3cd55304774479aa9fb8ef9938d",
       "reverse_operations": 14,
@@ -131,7 +131,7 @@
     {
       "domain": "Receivers12",
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "current_sha256": "cc7c0fefbfe05532f7ecd17d0a76acf320d11286bbe7f342562fe8e32a6a784c",
+      "current_sha256": "cc97c47b89f1750c0c595184124fdc824d19e96c33a53d4c67f4481fc1255e64",
       "historical_after_sha256": "27f8d194a798710c290af1cf47452527f5e53ccd6df670af293d9d15dc03a9cd",
       "archive_before_sha256": "ed939b86f3382619c6d610582c724b899dbfd332f10ee4ccec4933b37bc10a9a",
       "reverse_operations": 11,

@@ -1,0 +1,36 @@
+[
+  {
+    "path": "src/hir/lexical_exit/walk.rs",
+    "before_sha256": "22c884265ff26cf1640cf538f7307d47e9688953ba1a479c53d01ac99a038252",
+    "after_sha256": "47adb85ccd9863fbaaf765f7948ee69cd2782d572063f39a8e190a97454fdded",
+    "inverse": [
+      {
+        "after": "            let frame = stack[len - 1]\n                .as_mut()\n                .expect(\"occupied lexical scan frame\");\n            let expr = frame.expression();\n            if include_markers\n                && !frame.is_started()\n                && (expr.ty == crate::hir::ResolvedType::Never\n                    || matches!(&expr.kind, K::Block { statements, .. } | K::VecConstructor { statements, .. }\n                        if statements.iter().any(|s| matches!(s, crate::hir::ResolvedStatement::LexicalWhile { .. }))))\n            {\n                return Ok(true);\n            }\n            if !frame.is_started() && matches!(&expr.kind, K::LexicalExit { .. }) {\n                if len > crate::cache_codec::MAX_DEPTH + 1 {\n                    return Err(Diagnostic::io(\n",
+        "before": "            let frame = stack[len - 1]\n                .as_mut()\n                .expect(\"occupied lexical scan frame\");\n            let expr = frame.expression();\n            if include_markers && !frame.is_started() {\n                if expr.ty == crate::hir::ResolvedType::Never\n                    || matches!(&expr.kind, K::Block { statements, .. } | K::VecConstructor { statements, .. }\n                        if statements.iter().any(|s| matches!(s, crate::hir::ResolvedStatement::LexicalWhile { .. })))\n                {\n                    return Ok(true);\n                }\n            }\n            if !frame.is_started() && matches!(&expr.kind, K::LexicalExit { .. }) {\n                if len > crate::cache_codec::MAX_DEPTH + 1 {\n                    return Err(Diagnostic::io(\n"
+      },
+      {
+        "after": "}\n\n/// Admitted resolver output already obeys the HIR depth bound.\npub(crate) fn contains(root: &ResolvedExpr) -> bool {\n    let mut stack = [None; PRESENCE_DEPTH];\n    stack[0] = Some(ChildCursor::new(root));\n    let mut len = 1;\n    while len != 0 {\n        let frame = stack[len - 1].as_mut().expect(\"occupied lexical frame\");\n",
+        "before": "}\n\n/// Admitted resolver output already obeys the HIR depth bound.\npub(crate) fn contains(root: &ResolvedExpr) -> bool {\n    let mut stack = [None; crate::cache_codec::MAX_DEPTH + 1];\n    stack[0] = Some(ChildCursor::new(root));\n    let mut len = 1;\n    while len != 0 {\n        let frame = stack[len - 1].as_mut().expect(\"occupied lexical frame\");\n"
+      },
+      {
+        "after": "            let frame = stack[len - 1]\n                .as_mut()\n                .expect(\"occupied lexical scan frame\");\n            let expr = frame.expression();\n            if include_markers && !frame.is_started() {\n                if expr.ty == crate::hir::ResolvedType::Never\n                    || matches!(&expr.kind, K::Block { statements, .. } | K::VecConstructor { statements, .. }\n                        if statements.iter().any(|s| matches!(s, crate::hir::ResolvedStatement::LexicalWhile { .. })))\n                {\n                    return Ok(true);\n                }\n            }\n            if !frame.is_started() && matches!(&expr.kind, K::LexicalExit { .. }) {\n                if len > crate::cache_codec::MAX_DEPTH + 1 {\n                    return Err(Diagnostic::io(\n                        \"SPX-H006\",\n                        \"lexical control scan exceeds admitted expression depth\",\n                    ));\n                }\n                return Ok(true);\n            }\n            if let Some(next) = frame.next() {\n                if len == stack.len() {\n",
+        "before": "            let frame = stack[len - 1]\n                .as_mut()\n                .expect(\"occupied lexical scan frame\");\n            let expr = frame.expression();\n            if !frame.is_started() && matches!(&expr.kind, K::LexicalExit { .. }) {\n                return Ok(true);\n            }\n            if let Some(next) = frame.next() {\n                if len == stack.len() {\n"
+      },
+      {
+        "after": "        | K::BorrowPlace { .. } => None,\n    }\n}\n\n// Ordinary expression admission has a 512-node boundary, plus its root cursor.\n// Lexical contours retain their narrower cache-depth contract only when an\n// actual exit selects it, matching the independent authored-source verifier.\npub(super) const PRESENCE_DEPTH: usize = 513;\n\n/// Finite depth-first scan: no frontier allocation, identity clones or recursion.\n/// Callers charge this one source-defined function walk in their existing work census.\npub(crate) fn requires(function: &ResolvedFunction) -> Result<bool, Diagnostic> {\n    scan(function, false)\n}\n\npub(super) fn requires_validation(function: &ResolvedFunction) -> Result<bool, Diagnostic> {\n    scan(function, true)\n}\n\nfn scan(function: &ResolvedFunction, include_markers: bool) -> Result<bool, Diagnostic> {\n    let mut stack = [None; PRESENCE_DEPTH];\n    for root in function\n        .requires\n        .iter()\n        .chain(std::iter::once(&function.body))\n",
+        "before": "        | K::BorrowPlace { .. } => None,\n    }\n}\n\n/// Finite depth-first scan: no frontier allocation, identity clones or recursion.\n/// Callers charge this one source-defined function walk in their existing work census.\npub(crate) fn requires(function: &ResolvedFunction) -> Result<bool, Diagnostic> {\n    let mut stack = [None; crate::cache_codec::MAX_DEPTH + 1];\n    for root in function\n        .requires\n        .iter()\n        .chain(std::iter::once(&function.body))\n"
+      }
+    ]
+  },
+  {
+    "path": "src/hir/lexical_exit/owner_funded.rs",
+    "before_sha256": "410df8435c6885aabd9885d6deca92bab31484b9fd79358a7bf3b371d82d65c6",
+    "after_sha256": "8dc737500f805a4146c372358a562933bfdad1884e5a82068ced301c8048e049",
+    "inverse": [
+      {
+        "after": ") -> Result<bool, FundedError<E>> {\n    const DEPTH_TEXT: &str = \"lexical control scan exceeds admitted expression depth\";\n    funded::charge(\n        reserve,\n        std::mem::size_of::<[Option<super::ChildCursor<'_>>; super::walk::PRESENCE_DEPTH]>(),\n    )?;\n    funded::charge(reserve, DEPTH_TEXT.len())?;\n    Ok(super::requires(function).unwrap_or(false))\n}\n",
+        "before": ") -> Result<bool, FundedError<E>> {\n    const DEPTH_TEXT: &str = \"lexical control scan exceeds admitted expression depth\";\n    funded::charge(\n        reserve,\n        std::mem::size_of::<[Option<super::ChildCursor<'_>>; crate::cache_codec::MAX_DEPTH + 1]>(),\n    )?;\n    funded::charge(reserve, DEPTH_TEXT.len())?;\n    Ok(super::requires(function).unwrap_or(false))\n}\n"
+      }
+    ]
+  }
+]

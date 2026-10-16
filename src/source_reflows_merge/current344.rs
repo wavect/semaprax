@@ -144,3 +144,18 @@ mod sequence_minimum_input_tests {
         }
     }
 }
+
+// Keep the original push-order source predicate on the real current owner as
+// well as the independent historical Main44 namespace fixture.
+#[cfg(test)]
+mod live_push_source_tests {
+    #[test]
+    fn actual_skeleton_pushes_keep_work_before_materialization_and_growth() {
+        let work = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/cleanup_plan/replay/skeleton_work.rs"
+        ));
+        let original_push = "        self.charge(1, phase)?;\n        note_skeleton_materialization();\n        self.budget.reserve_vec(self.function, paths, 1, phase)?;\n        paths.push(path);";
+        assert_eq!(work.matches(original_push).count(), 2);
+    }
+}

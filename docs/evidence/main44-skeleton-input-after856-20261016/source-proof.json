@@ -1,0 +1,8 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED",
+  "base_head": "adfbf36a24ed8c96840cebf2574f7281bbf8f42b",
+  "before_compiled_sha256": "3daeb0965ab7a7348dd6bd9c1bb76139baa059f55da79917eba457a957495ad7",
+  "after_compiled_sha256": "9199f60a9fa34805f8de4ca6013dfa1931c668ac0fa2fdd3ff8f98a644694ffe",
+  "complete_existing_historical_skeleton_snapshot_sha256": "f6163b3cc48322bf40549c18cccf8ea412a52a450daadd82d7f93e5daa6b8716",
+  "exact_change": "One include literal now uses the existing complete Main44 historical input, as all other original includes already do. Original push count assertion, operations and before snapshots unchanged. Current skeleton source remains raw in all3 live source inventories and the distinct Main44 source-domain owner."
+}

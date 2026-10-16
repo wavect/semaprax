@@ -558,6 +558,40 @@
           "before": "use crate::hir::funded::{self, FundedError, Reserve};\n"
         }
       ]
+    },
+    {
+      "domain": "next-858",
+      "path": "docs/evidence/main44-independent-custody-20261016/current-to-main44.json",
+      "current_sha256": "701fbe15391acbc13a61302e5cd1b008dd709d4ddfe4786a1cd16422bf32770a",
+      "target_sha256": "f698c661ebafca8e72a14c176eafa876aa8331f4d797c52715a7f3812e1e646e",
+      "target_archive": "targets/28.txt",
+      "edits": [
+        {
+          "start": 2149390,
+          "end": 2149454,
+          "after": "975d32ee3ce5380479890a5d1f2129babc1b706cc64006802ff4620ab5c58865",
+          "before": "3d8d5c070e9ac86d005ed2356872a3be53ee6558fb5bf3a9a9cc52fbce49e627"
+        },
+        {
+          "start": 2149981,
+          "end": 2150047,
+          "after": "source_reflows_merge/main_eb2_inputs.rs\\\"), include_str!(\\\"../src/",
+          "before": ""
+        },
+        {
+          "start": 2300601,
+          "end": 2300663,
+          "after": "97c47b89f1750c0c595184124fdc824d19e96c33a53d4c67f4481fc1255e64",
+          "before": "7c0fefbfe05532f7ecd17d0a76acf320d11286bbe7f342562fe8e32a6a784c"
+        },
+        {
+          "start": 2301380,
+          "end": 2301449,
+          "after": "source_reflows_merge/main_eb2_inputs.rs\\\"), include_str!(\\\"../../src/",
+          "before": ""
+        }
+      ],
+      "source_head": "7528979b0141bfe400587371ca89d90c6fb5bd58"
     }
   ]
 }

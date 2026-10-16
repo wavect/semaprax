@@ -1,0 +1,22 @@
+{
+  "base": "f549279ade64ec7a79f849039576a9e5513f442d",
+  "current_metadata_commit": "7528979b0141bfe400587371ca89d90c6fb5bd58",
+  "path": "docs/evidence/main44-independent-custody-20261016/current-to-main44.json",
+  "domain": "next-858",
+  "new_row": {
+    "domain": "next-858",
+    "path": "docs/evidence/main44-independent-custody-20261016/current-to-main44.json",
+    "current_sha256": "701fbe15391acbc13a61302e5cd1b008dd709d4ddfe4786a1cd16422bf32770a",
+    "target_sha256": "f698c661ebafca8e72a14c176eafa876aa8331f4d797c52715a7f3812e1e646e",
+    "target_archive": "targets/28.txt",
+    "source_head": "7528979b0141bfe400587371ca89d90c6fb5bd58"
+  },
+  "old28_rows_unchanged": true,
+  "all_four_previous_script_recipes_unchanged": true,
+  "original_capsules_and_assertions_unchanged": true,
+  "Rust_changes": false,
+  "verifier_replacement": {
+    "before": "raw=(R/row['path']).read_bytes();assert raw==git(HEAD,row['path']);assert sha(raw)==row['current_sha256'];target=",
+    "after": "raw=(R/row['path']).read_bytes()\n if 'source_head' in row:\n  assert (row['domain'],row['path'],row['source_head'],row['current_sha256'],row['target_sha256'])==('next-858','docs/evidence/main44-independent-custody-20261016/current-to-main44.json','7528979b0141bfe400587371ca89d90c6fb5bd58','701fbe15391acbc13a61302e5cd1b008dd709d4ddfe4786a1cd16422bf32770a','f698c661ebafca8e72a14c176eafa876aa8331f4d797c52715a7f3812e1e646e')\n  assert raw==git(row['source_head'],row['path'])\n else:assert raw==git(HEAD,row['path'])\n assert sha(raw)==row['current_sha256'];target="
+  }
+}

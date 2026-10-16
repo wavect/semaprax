@@ -1,0 +1,10 @@
+{
+  "status": "SOURCE_ONLY_FINITE_ADDITIVE_REGISTRY_PREDECESSOR",
+  "before_sha256": "e18f8aae6541c2cc6396fdd729595f0351c2f455e1941c118937f1143140a691",
+  "current_sha256": "21b7ad2ab97eae6e96d52fe4e2482c3102b399fcc944abe48fc6c72a88491d66",
+  "before": "allowed_registry=False\nfor predecessor in [before,joined]:",
+  "after": "boundary_joined=json.loads(subprocess.check_output(['git','show','f61449708234f99b2a50fa7455a2a1154b765876:'+allowed],cwd=R))\nallowed_registry=False\nfor predecessor in [before,joined,boundary_joined]:",
+  "added_exact_predecessor": "f61449708234f99b2a50fa7455a2a1154b765876",
+  "original_c228_and12e7_support_retained": true,
+  "all_original_assertions_and_collectors_unchanged": true
+}

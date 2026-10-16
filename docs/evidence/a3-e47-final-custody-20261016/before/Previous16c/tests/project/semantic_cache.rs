@@ -1,0 +1,608 @@
+//! Checked-module cache evidence authored without running tests or compiler gates.
+use semaprax::diagnostic::Diagnostic;
+use semaprax::project::{
+    with_authenticated_project, ImageWorkspace, ProjectFrontendBuild, ProjectFrontendCache,
+    ProjectFrontendSource, ProjectManifest, ProjectRevision, ProjectSemanticImage,
+};
+use serde_json::{json, Value};
+use std::path::{Path, PathBuf};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
+
+#[path = "../fixtures/checked_cache_profiles.rs"]
+mod checked_cache_profiles;
+
+static SERIAL: AtomicU64 = AtomicU64::new(0);
+const PATHS: [&str; 4] = [
+    "src/app.spx",
+    "src/core.spx",
+    "src/spare.spx",
+    "src/tests.spx",
+];
+struct Fixture(PathBuf);
+impl Fixture {
+    fn new() -> Self {
+        let root = std::env::temp_dir().join(format!(
+            "spx-semantic-cache-{}-{}",
+            std::process::id(),
+            SERIAL.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(root.join("src")).unwrap();
+        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/calculator-project");
+        for path in ["src/app.spx", "src/core.spx", "src/tests.spx"] {
+            std::fs::copy(sample.join(path), root.join(path)).unwrap();
+        }
+        let manifest = std::fs::read_to_string(sample.join("semaprax.toml"))
+            .unwrap()
+            .replace(
+                "\"src/tests.spx\"]",
+                "\"src/spare.spx\", \"src/tests.spx\"]",
+            );
+        std::fs::write(root.join("semaprax.toml"), manifest).unwrap();
+        let fixture = Self(root.canonicalize().unwrap());
+        fixture.write(
+            "src/spare.spx",
+            "module calculator.spare; @id(\"calculator.spare.value\") fn value() -> i64 { 3 }",
+        );
+        fixture
+    }
+    fn read(&self, path: &str) -> String {
+        std::fs::read_to_string(self.0.join(path)).unwrap()
+    }
+    fn write(&self, path: &str, source: &str) {
+        let program = semaprax::parse(source, path).unwrap();
+        std::fs::write(self.0.join(path), semaprax::format::canonical(&program)).unwrap();
+    }
+    fn replace(&self, path: &str, from: &str, to: &str) {
+        let source = self.read(path);
+        assert!(source.contains(from));
+        self.write(path, &source.replace(from, to));
+    }
+    fn manifest(&self) -> ProjectManifest {
+        ProjectManifest::parse(&self.read("semaprax.toml")).unwrap()
+    }
+    fn sources(&self) -> Vec<ProjectFrontendSource> {
+        PATHS
+            .iter()
+            .map(|path| ProjectFrontendSource::new(path, &self.read(path)).unwrap())
+            .collect()
+    }
+    fn cold(&self) -> Result<Arc<ProjectRevision>, Vec<Diagnostic>> {
+        with_authenticated_project(&self.0.join("semaprax.toml"), |snapshot| {
+            Ok(snapshot.retain_revision())
+        })
+    }
+}
+impl Drop for Fixture {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+fn image(revision: Arc<ProjectRevision>) -> Arc<ProjectSemanticImage> {
+    let expected = revision.project_revision().to_owned();
+    Arc::new(ProjectSemanticImage::derive(revision, &expected).unwrap())
+}
+fn same(cached: &Arc<ProjectRevision>, cold: Arc<ProjectRevision>) {
+    assert_eq!(cached.project_revision(), cold.project_revision());
+    assert_eq!(cached.workspace_revision(), cold.workspace_revision());
+    assert_eq!(cached.workspace_manifest(), cold.workspace_manifest());
+    assert_eq!(cached.sources(), cold.sources());
+    assert_eq!(cached.semantic_graph(), cold.semantic_graph());
+    let left = image(Arc::clone(cached));
+    let right = image(cold);
+    assert_eq!(left.image_digest(), right.image_digest());
+    assert_eq!(left.to_json(), right.to_json());
+}
+/// #130/#131 narrowed the AST-level frontend cache (`modules_parsed`/
+/// `modules_reused`) to depend only on each file's own text, while the
+/// checked-HIR cache (`modules_resolved`/`checked_HIR_reused`) keeps its own,
+/// separately exact `synthetic`-equality gate. The two counts coincide for
+/// every edit in this file except the provider-body edit below, where a
+/// consumer's own text is untouched (an AST-cache hit) but its imported
+/// function's byte span still shifted (a checked-HIR-cache miss) --
+/// `work_split` states both counts explicitly for that case.
+fn work_split(
+    build: &ProjectFrontendBuild,
+    ast_parsed: usize,
+    ast_reused: usize,
+    hir_resolved: usize,
+    hir_reused: usize,
+) -> Value {
+    let report: Value = serde_json::from_str(build.to_json()).unwrap();
+    assert_eq!(report["schema"], "semaprax.project-semantic-cache-work.v1");
+    assert_eq!(
+        report["compiler"]["compatibility"],
+        semaprax::project::PROJECT_SEMANTIC_CACHE_COMPATIBILITY
+    );
+    assert_eq!(report["work"]["modules_parsed"], ast_parsed);
+    assert_eq!(report["work"]["canonicalizer_calls"], ast_parsed);
+    assert_eq!(report["work"]["modules_reused"], ast_reused);
+    assert_eq!(report["work"]["modules_resolved"], hir_resolved);
+    assert_eq!(report["work"]["checked_HIR_reused"], hir_reused);
+    assert_eq!(report["work"]["full_cross_file_checks"], true);
+    assert_eq!(report["work"]["full_link_and_profile_admission"], true);
+    report
+}
+fn work(build: &ProjectFrontendBuild, parsed: usize, reused: usize) -> Value {
+    work_split(build, parsed, reused, parsed, reused)
+}
+fn errors<T>(result: Result<T, Vec<Diagnostic>>) -> Vec<Diagnostic> {
+    match result {
+        Ok(_) => panic!("expected rejection"),
+        Err(errors) => errors,
+    }
+}
+
+#[test]
+fn warm_checked_modules_preserve_cold_graph_image_bytes_and_legacy_mode() {
+    let fixture = Fixture::new();
+    let manifest = fixture.manifest();
+    let mut cache = ProjectFrontendCache::new_with_semantic_cache();
+    let first = cache.build(&manifest, &fixture.sources()).unwrap();
+    work(&first, 4, 0);
+    same(first.revision(), fixture.cold().unwrap());
+    let warm = cache.build(&manifest, &fixture.sources()).unwrap();
+    assert_eq!(work(&warm, 0, 4)["invalidated_sources"], json!([]));
+    same(warm.revision(), fixture.cold().unwrap());
+    assert_eq!(
+        warm.to_json(),
+        cache
+            .build(&manifest, &fixture.sources())
+            .unwrap()
+            .to_json()
+    );
+    let mut ast_only = ProjectFrontendCache::new();
+    ast_only.build(&manifest, &fixture.sources()).unwrap();
+    let build = ast_only.build(&manifest, &fixture.sources()).unwrap();
+    let report: Value = serde_json::from_str(build.to_json()).unwrap();
+    assert_eq!(report["schema"], "semaprax.project-frontend-cache-work.v1");
+    assert_eq!(report["work"]["modules_resolved"], 4);
+    assert_eq!(report["work"]["checked_HIR_reused"], 0);
+    same(build.revision(), Arc::clone(warm.revision()));
+}
+
+#[test]
+fn leaf_provider_and_private_body_edits_invalidate_their_checked_modules() {
+    let fixture = Fixture::new();
+    let manifest = fixture.manifest();
+    let mut cache = ProjectFrontendCache::new_with_semantic_cache();
+    cache.build(&manifest, &fixture.sources()).unwrap();
+    fixture.replace("src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
+    let leaf = cache.build(&manifest, &fixture.sources()).unwrap();
+    assert_eq!(
+        work(&leaf, 1, 3)["invalidated_sources"],
+        json!(["src/app.spx"])
+    );
+    same(leaf.revision(), fixture.cold().unwrap());
+    // #130/#131: `src/app.spx` and `src/tests.spx` import `add` from
+    // `src/core.spx`, but their own text is untouched by this edit, so the
+    // AST-level frontend cache reuses their `Program` (1 parsed, 3 reused)
+    // instead of the whole-project reparse this used to force. The edit
+    // lengthens `add`'s body, which still shifts `add`'s byte span and so
+    // still misses the checked-HIR cache's own `synthetic`-equality gate for
+    // its importers (3 resolved, 1 reused) exactly as before -- this
+    // narrowing changed only which cache layer pays for the edit, not
+    // whether the change was caught.
+    fixture.replace("src/core.spx", "left + right", "left + right + 1");
+    let provider = cache.build(&manifest, &fixture.sources()).unwrap();
+    assert_eq!(
+        work_split(&provider, 1, 3, 3, 1)["invalidated_sources"],
+        json!(["src/core.spx"])
+    );
+    same(provider.revision(), fixture.cold().unwrap());
+    fixture.replace("src/spare.spx", "    3", "    4");
+    let local = cache.build(&manifest, &fixture.sources()).unwrap();
+    assert_eq!(
+        work(&local, 1, 3)["invalidated_sources"],
+        json!(["src/spare.spx"])
+    );
+    same(local.revision(), fixture.cold().unwrap());
+}
+
+#[test]
+fn body_only_edit_reuses_exact_sibling_functions_but_contract_change_invalidates_all() {
+    let fixture = Fixture::new();
+    fixture.write(
+        "src/spare.spx",
+        r#"module calculator.spare;
+@id("calculator.spare.value")
+fn value(input: i64) -> i64 requires input >= 0 { input + 1 }
+@id("calculator.spare.other")
+fn other() -> i64 { 7 }
+"#,
+    );
+    let manifest = fixture.manifest();
+    let mut cache = ProjectFrontendCache::new_with_semantic_cache();
+    let cold = cache.build(&manifest, &fixture.sources()).unwrap();
+    let function_count = work(&cold, 4, 0)["work"]["monomorphic_functions_resolved"]
+        .as_u64()
+        .unwrap();
+
+    fixture.replace("src/spare.spx", "input + 1", "input + 2");
+    let body = cache.build(&manifest, &fixture.sources()).unwrap();
+    let report = work(&body, 1, 3);
+    assert_eq!(report["work"]["monomorphic_functions_resolved"], 1);
+    // Every other authored or compiler-owned monomorphic function has exact
+    // AST and environment and must reuse its checked HIR.
+    assert_eq!(
+        report["work"]["monomorphic_function_HIR_reused"],
+        function_count - 1
+    );
+    assert_eq!(report["work"]["full_source_verification"], true);
+    assert_eq!(report["work"]["full_HIR_validation"], true);
+    same(body.revision(), fixture.cold().unwrap());
+
+    fixture.replace("src/spare.spx", "input >= 0", "input >= 1");
+    let contract = cache.build(&manifest, &fixture.sources()).unwrap();
+    let report = work(&contract, 1, 3);
+    // Changing a contract invalidates all three monomorphic functions in the
+    // owning module, while the other checked modules remain reusable.
+    assert_eq!(report["work"]["monomorphic_functions_resolved"], 3);
+    assert_eq!(
+        report["work"]["monomorphic_function_HIR_reused"],
+        function_count - 3
+    );
+    same(contract.revision(), fixture.cold().unwrap());
+}
+
+#[test]
+fn stale_import_signature_cannot_hide_behind_cached_consumers() {
+    let fixture = Fixture::new();
+    let manifest = fixture.manifest();
+    let mut cache = ProjectFrontendCache::new_with_semantic_cache();
+    cache.build(&manifest, &fixture.sources()).unwrap();
+    let original = fixture.read("src/core.spx");
+    fixture.replace(
+        "src/core.spx",
+        "fn add(left: i64, right: i64)",
+        "fn add(left: i64, right: i64, extra: i64)",
+    );
+    let cached = errors(cache.build(&manifest, &fixture.sources()));
+    let cold = errors(fixture.cold());
+    assert_eq!(format!("{cached:?}"), format!("{cold:?}"));
+    fixture.write("src/core.spx", &original);
+    work(&cache.build(&manifest, &fixture.sources()).unwrap(), 0, 4);
+    // Changing an import binding must also prevent retaining old resolved calls.
+    let app = fixture.read("src/app.spx");
+    fixture.replace(
+        "src/app.spx",
+        "@id(\"calculator.add\")",
+        "@id(\"calculator.not\")",
+    );
+    let cached = errors(cache.build(&manifest, &fixture.sources()));
+    assert_eq!(
+        format!("{cached:?}"),
+        format!("{:?}", errors(fixture.cold()))
+    );
+    fixture.write("src/app.spx", &app);
+    work(&cache.build(&manifest, &fixture.sources()).unwrap(), 0, 4);
+    // A coordinated admitted signature edit rebuilds both consumers instead of
+    // keeping stale imported stubs merely because their stable IDs survived.
+    fixture.replace(
+        "src/core.spx",
+        "fn add(left: i64, right: i64)",
+        "fn add(left: i64, right: i64, extra: i64)",
+    );
+    fixture.replace(
+        "src/app.spx",
+        "add(multiply(6, 7), subtract(divide(4, 2), 2))",
+        "add(multiply(6, 7), subtract(divide(4, 2), 2), 0)",
+    );
+    fixture.replace("src/tests.spx", "add(19, 23)", "add(19, 23, 0)");
+    let coordinated = cache.build(&manifest, &fixture.sources()).unwrap();
+    work(&coordinated, 3, 1);
+    same(coordinated.revision(), fixture.cold().unwrap());
+}
+
+#[test]
+fn failed_semantics_and_manifest_reset_do_not_install_partial_checked_state() {
+    let fixture = Fixture::new();
+    let manifest = fixture.manifest();
+    let mut cache = ProjectFrontendCache::new_with_semantic_cache();
+    cache.build(&manifest, &fixture.sources()).unwrap();
+    let spare = fixture.read("src/spare.spx");
+    let tests = fixture.read("src/tests.spx");
+    fixture.replace("src/spare.spx", "    3", "    4");
+    fixture.replace("src/tests.spx", "not(false)", "not(4)");
+    let cached = errors(cache.build(&manifest, &fixture.sources()));
+    assert_eq!(
+        format!("{cached:?}"),
+        format!("{:?}", errors(fixture.cold()))
+    );
+    fixture.write("src/spare.spx", &spare);
+    fixture.write("src/tests.spx", &tests);
+    work(&cache.build(&manifest, &fixture.sources()).unwrap(), 0, 4);
+    let changed = ProjectManifest::parse(
+        &manifest
+            .to_canonical_toml()
+            .replace("name = \"calculator\"", "name = \"calculator-new\""),
+    )
+    .unwrap();
+    let reset = cache.build(&changed, &fixture.sources()).unwrap();
+    assert_eq!(work(&reset, 4, 0)["manifest_context_reset"], true);
+    let cold = ProjectFrontendCache::new()
+        .build(&changed, &fixture.sources())
+        .unwrap();
+    same(reset.revision(), Arc::clone(cold.revision()));
+    work(&cache.build(&changed, &fixture.sources()).unwrap(), 0, 4);
+}
+
+#[test]
+fn owned_source_refresh_reuses_checked_modules_and_rolls_back_failed_admission() {
+    let fixture = Fixture::new();
+    let manifest = fixture.manifest();
+    let original = image(fixture.cold().unwrap());
+    let expected = original.image_digest().to_owned();
+    let mut workspace = ImageWorkspace::with_semantic_cache(Arc::clone(&original)).unwrap();
+    let unchanged = workspace
+        .refresh_owned_sources(&manifest, &fixture.sources(), &expected)
+        .unwrap();
+    let report: Value = serde_json::from_str(unchanged.to_json()).unwrap();
+    assert_eq!(report["frontend_work"]["work"]["checked_HIR_reused"], 4);
+    assert!(Arc::ptr_eq(workspace.image(), &original));
+    fixture.replace("src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
+    workspace
+        .refresh_owned_sources(&manifest, &fixture.sources(), &expected)
+        .unwrap();
+    same(workspace.image().revision(), fixture.cold().unwrap());
+    let retained = Arc::clone(workspace.image());
+    let expected = retained.image_digest().to_owned();
+    let mut bad = fixture.sources();
+    bad[0] = ProjectFrontendSource::new("src/app.spx", "invalid source").unwrap();
+    assert!(workspace
+        .refresh_owned_sources(&manifest, &bad, &expected)
+        .is_err());
+    assert!(Arc::ptr_eq(workspace.image(), &retained));
+    let warm = workspace
+        .refresh_owned_sources(&manifest, &fixture.sources(), &expected)
+        .unwrap();
+    let report: Value = serde_json::from_str(warm.to_json()).unwrap();
+    assert_eq!(report["frontend_work"]["work"]["modules_resolved"], 0);
+    assert_eq!(report["frontend_work"]["work"]["checked_HIR_reused"], 4);
+}
+
+#[test]
+fn nonempty_loan_plan_clones_preserve_cold_graph_builder_accounting() {
+    let root = std::env::temp_dir().join(format!(
+        "spx-semantic-loan-cache-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir_all(root.join("src")).unwrap();
+    let fixture = Fixture(root.canonicalize().unwrap());
+    let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/frame-payload-project");
+    for path in [
+        "semaprax.toml",
+        "src/app.spx",
+        "src/frame.spx",
+        "src/tests.spx",
+    ] {
+        std::fs::copy(sample.join(path), fixture.0.join(path)).unwrap();
+    }
+    // Same nonempty parent/range/sibling loan structure as shared_loan_graph_v1.
+    let frame = fixture.read("src/frame.spx")
+        + r#"
+@id("loan.consume-bytes")
+fn consume_bytes(value: own Bytes) -> i64 { 7 }
+@id("loan.projected")
+fn projected() -> i64 {
+    let source = [7u8, 8u8, 9u8];
+    let owned = bytes_copy(array_as_slice(source));
+    let parent = bytes_as_slice(owned);
+    let child = byte_range(parent, 1usize, byte_len(parent));
+    let sibling = bytes_as_slice(owned);
+    let byte_observed = if byte_len(child) + byte_len(sibling) > 0usize { 1 } else { 0 };
+    consume_bytes(owned) + byte_observed
+}
+"#;
+    fixture.write("src/frame.spx", &frame);
+    let tests=fixture.read("src/tests.spx")
+        .replace("module frame_payload.tests;","module frame_payload.tests;\nuse function @id(\"loan.projected\") from frame_payload.frame as loan_projected;")
+        .replace("if valid_ok && mismatch_ok","if valid_ok && mismatch_ok && loan_projected() == 8");
+    fixture.write("src/tests.spx", &tests);
+    let manifest = fixture.manifest();
+    let sources = manifest
+        .sources()
+        .iter()
+        .map(|path| ProjectFrontendSource::new(path, &fixture.read(path)).unwrap())
+        .collect::<Vec<_>>();
+    let mut cache = ProjectFrontendCache::new_with_semantic_cache();
+    let cold = cache.build(&manifest, &sources).unwrap();
+    work(&cold, 3, 0);
+    assert!(cold
+        .revision()
+        .sources()
+        .iter()
+        .any(|source| source.source_graph_schema() == "semaprax.graph.v32"));
+    let projected = cold
+        .revision()
+        .test_program()
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "loan.projected")
+        .unwrap();
+    assert_eq!(
+        projected.loan_plan.schema,
+        semaprax::loan_plan::LOAN_PLAN_SCHEMA_V1
+    );
+    assert!(projected.loan_plan.loans.len() >= 4);
+    assert!(projected
+        .loan_plan
+        .loans
+        .iter()
+        .any(|loan| loan.parent.is_some()));
+    let warm = cache.build(&manifest, &sources).unwrap();
+    work(&warm, 0, 3);
+    let cloned = warm
+        .revision()
+        .test_program()
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "loan.projected")
+        .unwrap();
+    assert_eq!(projected.loan_plan, cloned.loan_plan);
+    same(warm.revision(), Arc::clone(cold.revision()));
+    same(warm.revision(), fixture.cold().unwrap());
+}
+
+/// Row Loan v1 provider/consumer pair on the owned-data project: the provider
+/// module defines the record and its scalar-reader helper, and the test module
+/// lends each frozen traversal row to that imported helper.
+fn row_loan_fixture() -> Fixture {
+    let root = std::env::temp_dir().join(format!(
+        "spx-semantic-row-loan-cache-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir_all(root.join("src")).unwrap();
+    let fixture = Fixture(root.canonicalize().unwrap());
+    let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/frame-payload-project");
+    for path in [
+        "semaprax.toml",
+        "src/app.spx",
+        "src/frame.spx",
+        "src/tests.spx",
+    ] {
+        std::fs::copy(sample.join(path), fixture.0.join(path)).unwrap();
+    }
+    for (path, source) in checked_cache_profiles::sources(false) {
+        if path != "src/app.spx" {
+            fixture.write(path, &source);
+        }
+    }
+    fixture
+}
+
+fn row_loan_sources(fixture: &Fixture, manifest: &ProjectManifest) -> Vec<ProjectFrontendSource> {
+    manifest
+        .sources()
+        .iter()
+        .map(|path| ProjectFrontendSource::new(path, &fixture.read(path)).unwrap())
+        .collect()
+}
+
+#[test]
+fn warm_row_loan_consumers_reprove_current_provider_helpers() {
+    let fixture = row_loan_fixture();
+    let manifest = fixture.manifest();
+    let mut cache = ProjectFrontendCache::new_with_semantic_cache();
+    let cold = cache
+        .build(&manifest, &row_loan_sources(&fixture, &manifest))
+        .unwrap();
+    work(&cold, 3, 0);
+    assert!(cold
+        .revision()
+        .sources()
+        .iter()
+        .any(|source| source.source_graph_schema() == "semaprax.graph.v82"));
+    same(cold.revision(), fixture.cold().unwrap());
+    let warm = cache
+        .build(&manifest, &row_loan_sources(&fixture, &manifest))
+        .unwrap();
+    assert_eq!(work(&warm, 0, 3)["invalidated_sources"], json!([]));
+    same(warm.revision(), Arc::clone(cold.revision()));
+
+    // A provider-only body edit that remains a scalar reader is re-proven
+    // against the warm consumer and matches the cold build exactly.
+    let original = fixture.read("src/frame.spx");
+    fixture.replace("src/frame.spx", "row.n + 1", "1 + row.n");
+    let reader = cache
+        .build(&manifest, &row_loan_sources(&fixture, &manifest))
+        .unwrap();
+    let report: Value = serde_json::from_str(reader.to_json()).unwrap();
+    assert_eq!(report["work"]["modules_parsed"], 1);
+    assert_eq!(report["invalidated_sources"], json!(["src/frame.spx"]));
+    same(reader.revision(), fixture.cold().unwrap());
+
+    // The consumer's text and checked descriptor are unchanged, but the
+    // current provider helper no longer reads only Copy scalar fields of a
+    // borrowed row: it views a leaf, forwards the row, or owns it. Cached
+    // checked HIR carries no proof; the warm build refuses exactly as cold.
+    let reader = fixture.read("src/frame.spx");
+    for (from, to) in [
+        ("1 + row.n", "str_len_bytes(string_as_str(row.text))"),
+        ("1 + row.n", "loan_weight(row)"),
+        ("row: borrow LoanRow", "row: own LoanRow"),
+    ] {
+        fixture.replace("src/frame.spx", from, to);
+        let cached = errors(cache.build(&manifest, &row_loan_sources(&fixture, &manifest)));
+        let cold = errors(fixture.cold());
+        assert_eq!(format!("{cached:?}"), format!("{cold:?}"), "{to}");
+        assert!(
+            cached.iter().any(|error| error.code == "SPX-T284"),
+            "{to}: {cached:#?}"
+        );
+        fixture.write("src/frame.spx", &reader);
+    }
+
+    // Valid provider-only owned-result changes remain closed even if their
+    // bodies never escape/read a non-Copy row field. The current signature is
+    // rechecked through the same warm consumer, independently of a cached flag.
+    let start = reader.find("@id(\"loan.weight\")").unwrap();
+    assert_eq!(
+        reader[start..].matches("@id(").count(),
+        1,
+        "only the final helper is replaced"
+    );
+    for helper in [
+        "@id(\"loan.weight\") fn loan_weight(row:borrow LoanRow)->string {\"owned\"}",
+        "@id(\"loan.weight\") fn loan_weight(row:borrow LoanRow)->Bytes {bytes_zeroed(0usize)}",
+    ] {
+        fixture.write("src/frame.spx", &format!("{}{}", &reader[..start], helper));
+        let cached = errors(cache.build(&manifest, &row_loan_sources(&fixture, &manifest)));
+        let cold = errors(fixture.cold());
+        assert_eq!(format!("{cached:?}"), format!("{cold:?}"), "{helper}");
+        assert!(
+            cached.iter().any(|error| error.code == "SPX-T284"),
+            "{helper}: {cached:#?}"
+        );
+        fixture.write("src/frame.spx", &reader);
+    }
+
+    // No refused build installed partial checked state: restoring the original
+    // provider reproduces the original cold revision.
+    fixture.write("src/frame.spx", &original);
+    let restored = cache
+        .build(&manifest, &row_loan_sources(&fixture, &manifest))
+        .unwrap();
+    same(restored.revision(), fixture.cold().unwrap());
+    same(restored.revision(), Arc::clone(cold.revision()));
+}
+
+#[path = "semantic_cache/byte_traversal.rs"]
+mod byte_traversal;
+
+#[path = "semantic_cache/string_transfer.rs"]
+mod string_transfer;
+
+#[path = "semantic_cache/copy_discard.rs"]
+mod copy_discard;
+
+#[test]
+fn same_length_provider_edits_after_a_checked_hit_keep_full_cold_graph_and_image_bytes() {
+    let fixture = Fixture::new();
+    let manifest = fixture.manifest();
+    let mut cache = ProjectFrontendCache::new_with_semantic_cache();
+    let first = cache.build(&manifest, &fixture.sources()).unwrap();
+    work(&first, 4, 0);
+    same(first.revision(), fixture.cold().unwrap());
+    for (from, to) in [
+        ("left + right", "right + left"),
+        ("right + left", "left + right"),
+    ] {
+        let before = fixture.read("src/core.spx");
+        fixture.replace("src/core.spx", from, to);
+        assert_eq!(fixture.read("src/core.spx").len(), before.len());
+        let edited = cache.build(&manifest, &fixture.sources()).unwrap();
+        let report = work_split(&edited, 1, 3, 1, 3);
+        assert_eq!(report["invalidated_sources"], json!(["src/core.spx"]));
+        // The app sorts before its provider and retains an exact checked hit.
+        // A miss after it must not acquire an already-replayed prelude twice.
+        same(edited.revision(), fixture.cold().unwrap());
+        let unchanged = cache.build(&manifest, &fixture.sources()).unwrap();
+        work(&unchanged, 0, 4);
+        same(unchanged.revision(), fixture.cold().unwrap());
+    }
+}

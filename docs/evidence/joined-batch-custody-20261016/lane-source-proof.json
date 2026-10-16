@@ -1,0 +1,12 @@
+{
+  "status": "PASS_JOINED_LANE_SOURCE_BINDINGS_ONLY",
+  "current344_bridges": 4,
+  "wrong_input_preimages": 12,
+  "runtime_original_chain": true,
+  "complete_fixture_preimages": 5,
+  "residual855_inputs_at_predecessor_front": 2,
+  "instance853_verifier": "unchanged with explicitly historical private changelog and residual855 reexport projection",
+  "instance853_output": "{\"status\": \"SOURCE_ONLY_FORMAT_COMPLETION_CUSTODY_PASS\", \"original_inputs\": 4, \"unchanged_public_key_and_comparator\": true, \"complete_old_checked_encoder_live\": true, \"checked_format_sites\": 6, \"first_child_request_retained\": 8208, \"frontier_observation_test_only\": true, \"rust_executed\": false}",
+  "protected_files": 208,
+  "rust_executed": false
+}

@@ -1,0 +1,21 @@
+{
+  "scope": "static source/JSON proof only; no build, compiler, browser or test execution",
+  "incoming_subject": "44f52ebee749b2877ba001c5398acbf803a277a1",
+  "complete_source_views": 26,
+  "namespace_adapters": 11,
+  "new_sources_in_every_authority_inventory": 22,
+  "complete_independent_tables": [
+    {
+      "table": "compact-inverse7.json",
+      "sha256": "99a8a6c0ba7694c8268f54a10e69ad9d70ffad90db354ac60b80d26a45ae6f80",
+      "rows": 7,
+      "complete_original_inverse_and_archive_match": true
+    },
+    {
+      "table": "receiver-inverse12.json",
+      "sha256": "7548f9e7d429e7ef8fb25c422d9b2614d088681a6342a3e1195749381d4bde12",
+      "rows": 12,
+      "complete_original_inverse_and_archive_match": true
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+OPT759 fitting lexical held comparison — source only
+
+Base b3a53367d4def76240d14dca25ee414785bed9d6. No Cargo/build/Rust/help/test,
+benchmark, model or ROOT execution. No actual cost, admission, application-fit,
+agent saving or #759 closure claim.
+
+One shipping file changes: factored/strategy.rs. Candidate/from_built, both exact
+terminal censuses and all prior independent lexical HIR/ownership/exit/certificate/
+CFG authentication remain unchanged. ArithmeticOverflow rejects before strategy
+choice. Known still selects Enumerated ADMISSION. Its original selected-provider
+refusal, lexical_census::validate_size_budget_and_skeleton callback and exact
+reserve_enumerated call remain at the same positions after the first comparison.
+
+The fitting branch no longer calls the second typed-control enumeration. It
+falls through to the existing complete LexicalFactored weighted tail, borrowing
+that SAME candidate.built; no reconstruction, clone, second enumeration or wrapper
+Result is introduced. Counts never prove equality. HIR root and independent plan
+root still require checked weighted-language equality. Selected physical already
+used this route; its provider/type contract is untouched. No new enum, field,
+cache, signature, borrowed holder, slot or production callback is introduced.
+
+The legacy upper stays reserved/held. The canonical proof debits actual ordinary
+free work; it does not borrow skeleton_remaining, refill, refund, transfer from
+another owner or retry a failed proof with fresh allowance. This conservative
+frontier may be worse on a tight fitting invocation and is explicitly disclosed.
+
+Actual removed fitting constructors: second unmerged HIR walk and its owned
+observation/path/continuation instances; second independent plan queue/history/
+path vectors; both terminal-vector multisets and sorts; their actual function
+Result/iterator/borrow/clone receiving instances. No first-build or census fee is
+removed merely because it is now reused. No surviving nested Result fee changes.
+
+Actual added fitting instances are the existing complete canonical tail: borrowed
+BuiltComparison fields and canonical receiver, all retained memo/frame/map owners,
+root vectors, weighted/Rc states and the invocation success/refusal slot. The
+original DIRECT_CONTROLS payment (two complete Self layouts plus named Option
+Diagnostic/Diagnostic/value and bootstrap Result), root-array payments and all
+canonical/Memo/scratch/backing/work/identity payments remain exactly as before.
+The shared tail is identical modulo target rustfmt's optional call trailing commas
+and indentation; its string literals and all substantive tokens are checked.
+No removed enumeration receipt credits a new canonical owner. The original cold
+unreceived Diagnostic ABI/activation boundaries are not repaired or represented
+as prepaid by this change; OPT825 scope is not closed.
+
+Complete immediate-old validate_authenticated is compiled in before_fitting.rs,
+with the same unchanged build/census/enumerator dependencies. Explicit test
+forcing Enumerated dispatches there before the new entry constructs anything;
+the old receiver retains its complete original forced-strategy/preflight/proof
+body. Shipping compiles out that dispatch and constructs no forwarding result or
+arguments. All existing activation/coverage/hostile/test files are Git-byte-exact.
+Thus forced old controls do not silently become the new weighted proof twice.
+
+Two new lib bodies cover actual unforced shipping versus the complete forced
+old entry on while/generated/nested break/continue/return/owned-result/ensures
+fixtures, exact independently expanded HIR/plan oracles, full unchanged plans,
+six-field forged-plan diagnostics, and whole authenticated constructor→Drop
+physical costs. Paid metrics include every old/new held comparison and proof;
+fixture setup is excluded identically. Costs are printed without universal gain
+inequality. Current zero/exact/one-short work/backing and cumulative module work
+controls are authored; all partial/error owners drop inside their allocation
+measurement. Cold initial ABI refusal does not acquire a new zero-allocation
+claim. Existing65536/65537, true overflow and immutable old ShiftSim refusal
+controls remain unchanged, with exact retained selectors in pending-selectors.json.
+
+Five entire modified Git inputs are archived with unique current→base inverses;
+two new cfg(test) owners have hashes. verify-source.py passed only finite source
+checks: exact immediate-old entry, unchanged dependency/old-test files, unchanged
+first build/census/preflight/reservation, and the same weighted tail. No runtime
+JSON, old source table, literal assertion, cap or allowance is modified. Source
+verification is not executable qualification. The lexical owning spec, RFC0003
+clarification, architecture map and changelog explicitly describe the new backend
+choice and conservative budget behavior; no matrix status is promoted.
+
+Integrating lane must add both test-only children to all three complete raw source
+inventories, classify their actual closed cfg(test) chain, retain interop1500,
+and authenticate full final→this component/base inputs before inherited strategy
+source guards. Do not mutate old JSON/hashes or feed an unrelated branch's raw
+input to an old table. No source_reflows_merge/global audit change is included
+in this component; parent/canonical owns final composition.
+
+#759 remains OPEN. Original ShiftSim all15 differential acceptance applies if
+original admission is claimed; unchanged genuine forced enumeration-over-limit
+refusal remains required. Matched source-bound qualification and live-agent
+measurements precede any numerical/end-to-end improvement claim.

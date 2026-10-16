@@ -375,8 +375,15 @@ The plan side is read from the plan alone and the HIR side from typed HIR
 alone; neither trusts the builder. All work, including the merged walk, is
 charged to the same program-wide work budget. If the factored comparison
 exhausts it above the path ceiling, the diagnostic is the path-budget
-`SPX-H006`; at or below the ceiling, enumeration decides instead. Emitted
-plans, graphs, and backend code are unchanged; only which plans replay can
+`SPX-H006`; at or below the ceiling, ordinary nonlexical enumeration decides
+instead. The authenticated lexical extension retains fitting enumeration
+admission ceilings and its original upper reservation, then reuses the exact
+held weighted comparison rather than constructing both languages again; its
+complete prior enumerator remains an independent test oracle. That proof spends
+ordinary free work without refunding or borrowing the held enumeration pool.
+[Lexical structured exits v1](LEXICAL-STRUCTURED-EXITS-V1.md) owns this bounded
+extension and its pending qualification. Emitted plans, graphs, and backend
+code are unchanged; only which plans replay can
 authenticate within budget changes. Test builds additionally run the
 factored comparison beside enumeration on every function small enough to
 enumerate and require the same verdict.

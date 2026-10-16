@@ -70,6 +70,8 @@ fn main531_child_input(source: &str, current: &str) -> String {
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main531-original-tests-child-20261016/current-to-7e9f.json")), source, current)
 }
 fn b3a_compile_fixture_input(source: &str, current: &str) -> String {
+    let joined = fitting759_input(source, current);
+    let current = joined.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/b3a-compile-fixture-task722-join-20261016/current-to-b3a.json")), source, current)
 }
 fn post_main0ab1_input(source: &str, current: &str) -> String {
@@ -98,6 +100,9 @@ fn actual50_fixture_input(source: &str, current: &str) -> String {
     let joined = project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/next-unit-branch-receiving-joined-20261016/final-to-bac.json")), source, current);
     let current = joined.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/actual50-fixture-and-facade-corrections-20261016/current-to-183.json")), source, current)
+}
+fn fitting759_input(source: &str, current: &str) -> String {
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/task722-held-fitting759-join-20261016/current-to-0e7b.json")), source, current)
 }
 fn project(rows: &str, source: &str, current: &str) -> String {
     let rows: serde_json::Value = serde_json::from_str(rows).expect("fixed merge projections");

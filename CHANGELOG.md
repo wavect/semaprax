@@ -4,6 +4,7 @@
 # Changelog
 
 - Add bounded V6 checked task/profile pages with repeated complete prerequisites, exact imported declaration rows and deterministic continuation; preserve V5 cards and scaffold capsules, explicitly refuse unverified stdin JSON composition, and leave executable qualification and agent-cost improvement unclaimed.
+- Reuse the already-built exact HIR/plan comparison for fitting ordinary lexical proof after unchanged enumeration admission/reservation; retain complete forced old enumeration and all weighted receiver payments, with no allowance refund or measured application/agent improvement claim.
 
 - Move the validated singleton ownership state and its conditional variants through unchanged normalization, removing absent clones while preserving join validation, work, scheduling and the complete old receiver; focused numerical qualification remains pending.
 

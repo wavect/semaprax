@@ -1,0 +1,83 @@
+{
+  "base": "b3a53367d4def76240d14dca25ee414785bed9d6",
+  "executed": false,
+  "checks": [
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::factored::strategy::fitting_tests::shipping_fitting_held_proof_matches_complete_enumerator_and_lexical_forgeries",
+      "scope": "NEW",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::factored::strategy::fitting_tests::ordinary_fitting_whole_owner_costs_exact_short_work_bytes_and_drop_are_actual",
+      "scope": "NEW",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::factored::strategy::activation_tests::forced_authenticated_strategies_agree_on_small_full_multisets",
+      "scope": "RETAINED_CONTRACT",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::factored::strategy::activation_tests::exact_65536_and_65537_choose_distinct_routes_without_raising_ceiling",
+      "scope": "RETAINED_CONTRACT",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::factored::strategy::activation_tests::above_cap_equal_terminal_totals_do_not_authenticate_reordered_decisions",
+      "scope": "RETAINED_CONTRACT",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::factored::strategy::activation_tests::immutable_original_shiftsim_forced_enumerated_retains_frozen_refusal",
+      "scope": "RETAINED_CONTRACT",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::factored::strategy::activation_tests::deferred_functions_share_one_cumulative_module_work_ledger",
+      "scope": "RETAINED_CONTRACT",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::factored::strategy::activation_tests::deferred_enumerated_reservation_adds_to_held_pool_without_refund",
+      "scope": "RETAINED_CONTRACT",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::factored::strategy::coverage_tests::forced_nested_loops_preserve_nearest_targets_and_complete_multisets",
+      "scope": "RETAINED_CONTRACT",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::factored::strategy::coverage_tests::forced_conditional_owned_results_preserve_transfer_and_publication",
+      "scope": "RETAINED_CONTRACT",
+      "status": "PENDING_NOT_EXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::factored::strategy::coverage_tests::forced_ensures_domains_preserve_failure_cleanup_and_return_multiplicity",
+      "scope": "RETAINED_CONTRACT",
+      "status": "PENDING_NOT_EXECUTED"
+    }
+  ]
+}

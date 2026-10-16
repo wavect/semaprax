@@ -1,0 +1,28 @@
+{
+  "base": "d5adc0db841b39b0506361ce51a2716160f7ff9a",
+  "rows": [
+    {
+      "source": "src/literal_format/funded.rs",
+      "before_sha256": "aec70969b3168feacc6ce48701e7d6797e10aedf427bfc9a3a4191f70719f431",
+      "after_sha256": "c80bf82ed4cb60a58038c05229725b154b858a3afa56935000df8a5651c1b8a7",
+      "archive": "docs/evidence/focused-production-imports-20261016/src__literal_format__funded.rs.before.txt",
+      "edit": {
+        "before": "use super::*;\n",
+        "after": "#[cfg(test)]\nuse super::*;\n"
+      }
+    },
+    {
+      "source": "src/loop_calls/byte_writer/resolved/funded.rs",
+      "before_sha256": "27b2e40d3eca4ba2b9b49ca1a625cb275ba9f3517142cd9c64b31ad18d8ceda6",
+      "after_sha256": "e6eab15f9b6228435190df01b8b8a088427473e0c35d905873406f385861bf1d",
+      "archive": "docs/evidence/focused-production-imports-20261016/src__loop_calls__byte_writer__resolved__funded.rs.before.txt",
+      "edit": {
+        "before": "use crate::hir::funded::{self, FundedError, Reserve};",
+        "after": "#[cfg(test)]\nuse crate::hir::funded;\nuse crate::hir::funded::{FundedError, Reserve};"
+      }
+    }
+  ],
+  "reason": "Actual production unused-import diagnostics from e3db; retain imports under cfg(test) where used by the unchanged original tests.",
+  "runtime_or_assertion_changes": false,
+  "verification": "PENDING_SCOPED_PRODUCTION_CLIPPY"
+}

@@ -13,7 +13,9 @@
 //! A refusal from either callback is returned as `Refused` and is never read
 //! as a census verdict.
 use super::*;
-use crate::hir::funded::{self, FundedError, Reserve};
+#[cfg(test)]
+use crate::hir::funded;
+use crate::hir::funded::{FundedError, Reserve};
 
 struct Funding<'r, 'w, E> {
     reserve: Reserve<'r, E>,

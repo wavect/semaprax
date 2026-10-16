@@ -22,8 +22,8 @@ Self::Alias1ae => &["src/workspace_graph/expected_projection/borrowed_imports/ty
 Self::MainE47 => &["src/bounded_output.rs", "src/bounded_output/canonical_stage_tests.rs"],
 }}
  pub(super) fn spec(self) -> Spec {match self {
-Self::Previous16c => Spec {path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/a3-e47-final-custody-20261016/current-to-Previous16c.json"), length: 1348366, sha256: [191, 205, 52, 240, 177, 36, 129, 191, 119, 146, 4, 101, 160, 38, 228, 43, 222, 225, 225, 147, 234, 43, 90, 98, 213, 181, 42, 73, 8, 177, 19, 130]},
-Self::Maina3 => Spec {path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/a3-e47-final-custody-20261016/current-to-Maina3.json"), length: 1550468, sha256: [239, 214, 251, 50, 200, 23, 111, 89, 164, 204, 125, 251, 123, 193, 239, 163, 9, 170, 176, 179, 191, 166, 105, 215, 34, 232, 47, 145, 55, 90, 56, 106]},
+Self::Previous16c => Spec {path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/a3-e47-final-custody-20261016/current-to-Previous16c.json"), length: 1349301, sha256: [177, 22, 118, 225, 177, 203, 217, 139, 98, 19, 176, 218, 47, 180, 79, 70, 100, 185, 157, 25, 73, 174, 220, 174, 2, 53, 163, 244, 254, 254, 195, 139]},
+Self::Maina3 => Spec {path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/a3-e47-final-custody-20261016/current-to-Maina3.json"), length: 1550708, sha256: [152, 218, 45, 183, 129, 42, 203, 151, 58, 212, 225, 58, 174, 230, 153, 216, 150, 73, 1, 34, 241, 139, 216, 111, 247, 37, 91, 197, 222, 161, 83, 164]},
 Self::Alias1ae => Spec {path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/a3-e47-final-custody-20261016/current-to-Alias1ae.json"), length: 1947, sha256: [179, 152, 179, 41, 18, 169, 168, 79, 83, 55, 111, 219, 235, 174, 3, 95, 141, 134, 57, 1, 39, 19, 81, 120, 245, 229, 225, 7, 9, 175, 72, 19]},
 Self::MainE47 => Spec {path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/a3-e47-final-custody-20261016/current-to-MainE47.json"), length: 864, sha256: [173, 230, 192, 36, 248, 244, 151, 213, 242, 161, 97, 117, 143, 2, 37, 194, 78, 195, 48, 150, 124, 224, 24, 81, 76, 135, 79, 3, 160, 61, 226, 0]},
 }}}

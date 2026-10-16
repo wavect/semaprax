@@ -1,6 +1,6 @@
 {
   "base": "3220d0bf17ebf41f73abdbad1b5f5c66e5bbfbf8",
-  "scope": "FOUR FIXED CURRENT-TO-3220 SOURCE VIEWS; includes later Clippy and final joined changes; source custody only, no execution",
+  "scope": "FOUR FIXED CURRENT-TO-3220 SOURCE VIEWS; separate postpin218a phase; original predecessors and assertions retained; source custody only, no execution",
   "rows": [
     {
       "source": "src/cleanup/inventory_builder/typed/before_initial.rs",
@@ -71,7 +71,7 @@
       ]
     }
   ],
-  "current_source_commit": "a5be7c1bebad9e01aa45b6f9854e40e1cc0831ed",
+  "current_source_commit": "1aaaa78f1def8a7c1e0e25642f8fc4e4e0ffac61",
   "historical_packet_commit": "67b1b02141f19040fdd1b45bc9bea16dcff5d74e",
   "historical_packet": "docs/evidence/compile-corrections-3220-20261016/historical-67b"
 }

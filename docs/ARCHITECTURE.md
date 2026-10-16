@@ -140,6 +140,12 @@ ownership replay precede observation-automaton construction; terminal census alo
 has no authority. Expression-scoped Copy discovery closes before caller-prefix
 sequencing. The held automata, weighted proof and selected physical backing share
 one cumulative ledger; the selected provider/type profile remains separate.
+Fitting ordinary lexical replay retains the complete Enumerated admission
+preflight and held upper, then consumes that same Candidate's weighted proof
+without a second HIR/plan enumeration. Canonical work uses ordinary free work;
+held enumeration units are not refunded or lent. The complete immediate-old
+entry stays independently compiled in `strategy/before_fitting.rs`, and explicit
+test forcing retains the old enumerator and its real over-limit refusals.
 
 `factored/canonical_shared.rs` owns ordinary immutable weighted payload sharing
 for both ordinary and selected lexical canonicalization. Moved vectors retain

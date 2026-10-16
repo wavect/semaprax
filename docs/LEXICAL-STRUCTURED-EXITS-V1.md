@@ -113,10 +113,17 @@ The exact census counts accepted routes per Success, Failure and LoopLatch
 terminal. It distinguishes Known and Exceeded totals from ArithmeticOverflow
 without capping or reclassifying any terminal class. Duplicate routes contribute
 separately; cycles, unknown targets and nonterminal sinks refuse. A census alone
-grants no equality or ownership authority. Ordinary Known cases choose Enumerated,
-retain the legacy ceilings and reserve their old upper in addition to every held
-program reservation. Exceeded cases choose LexicalFactored and compare the same
-retained observation automata by checked weighted multiset equality. Multiplicity
+grants no equality or ownership authority. Ordinary Known cases retain Enumerated
+as their admission class: the complete legacy size/work preflight and ceilings
+remain, and their old upper is reserved in addition to every held program
+reservation. The fitting proof then consumes the already-built independent HIR
+and plan observation automata through the same checked weighted multiset equality
+used by LexicalFactored. It does not enumerate either language a second time.
+The retained enumeration allowance is neither refunded nor lent to canonical
+work: that proof debits the same invocation's ordinary free work and can refuse
+at an unfavorable tight frontier. Exceeded cases choose LexicalFactored without
+an enumerating upper. Test-only forcing still executes the complete prior
+Enumerated receiver after its original preflight as the differential oracle. Multiplicity
 overflow, work exhaustion or backing refusal cannot fall back or retry with fresh
 credits. The selected physical profile always uses this metered factored route;
 its existing primitive/direct-record provider and Vec/type exclusions are unchanged.

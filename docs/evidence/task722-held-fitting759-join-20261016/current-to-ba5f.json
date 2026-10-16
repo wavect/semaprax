@@ -1,0 +1,28 @@
+[
+  {
+    "source": "CHANGELOG.md",
+    "checkpoint_revision": "ba5fe75d67d8138d345f618db697c58226e7c895",
+    "archive": "docs/evidence/task722-held-fitting759-join-20261016/before/current-to-ba5f/CHANGELOG.md.txt",
+    "current_sha256": "75c0556df5cb312c554e97511de391461e647c5e330dd32b76a079437d3669cc",
+    "original_sha256": "af17b84fbbc51077badeca4340337a4803e0b646dafaa56d26c6600d0e2f6864",
+    "edits": [
+      {
+        "new": "     distinct cold callers; full old receiver retained; qualification pending. -->\n# Changelog\n\n- Add bounded V6 checked task/profile pages with repeated complete prerequisites, exact imported declaration rows and deterministic continuation; preserve V5 cards and scaffold capsules, explicitly refuse unverified stdin JSON composition, and leave executable qualification and agent-cost improvement unclaimed.\n- Reuse the already-built exact HIR/plan comparison for fitting ordinary lexical proof after unchanged enumeration admission/reservation; retain complete forced old enumeration and all weighted receiver payments, with no allowance refund or measured application/agent improvement claim.\n\n- Move the validated singleton ownership state and its conditional variants through unchanged normalization, removing absent clones while preserving join validation, work, scheduling and the complete old receiver; focused numerical qualification remains pending.\n",
+        "old": "     distinct cold callers; full old receiver retained; qualification pending. -->\n# Changelog\n\n- Reuse the already-built exact HIR/plan comparison for fitting ordinary lexical proof after unchanged enumeration admission/reservation; retain complete forced old enumeration and all weighted receiver payments, with no allowance refund or measured application/agent improvement claim.\n\n- Move the validated singleton ownership state and its conditional variants through unchanged normalization, removing absent clones while preserving join validation, work, scheduling and the complete old receiver; focused numerical qualification remains pending.\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/ARCHITECTURE.md",
+    "checkpoint_revision": "ba5fe75d67d8138d345f618db697c58226e7c895",
+    "archive": "docs/evidence/task722-held-fitting759-join-20261016/before/current-to-ba5f/docs/ARCHITECTURE.md.txt",
+    "current_sha256": "b9201e7be56393b09840d889f58f368236e20ad4485a12c3ae1ee4f940805f41",
+    "original_sha256": "bbcb97cd06606bd0f0b1d96e00667df5745c7aaf0bedc98297c979e5f719b251",
+    "edits": [
+      {
+        "new": "`source_execution.rs` owns single-file build, run, and diagnostics.\n`diagnostic/writer.rs` borrows caller output for shared JSON/human rendering; the CLI report path owns its stream lock. Active bounded JSON retains the complete legacy renderer and its logical quote order. Neither writer nor stream lock certifies prepaid report/output storage.\n`help_dispatch.rs` prints the global and scoped `cli::help` surfaces.\n`cli/help/authoring/tasks.rs` owns V6 fixed task/profile pages over an embedded scaffold-derived descriptor and the existing library catalog. Its test child rederives complete manifest/source/import bindings; help itself performs no host I/O or source compilation. The old V5 cards and v2-v8 scaffold capsules retain their owners and bytes.\nThe `source_execution.rs` module\u2019s `fused_profile` child dispatches the explicit source-only profile before\nordinary checking. Public `fused_source` parses once and lends a private full\nselected owner to each target; it accepts no caller HIR or grant.\n",
+        "old": "`source_execution.rs` owns single-file build, run, and diagnostics.\n`diagnostic/writer.rs` borrows caller output for shared JSON/human rendering; the CLI report path owns its stream lock. Active bounded JSON retains the complete legacy renderer and its logical quote order. Neither writer nor stream lock certifies prepaid report/output storage.\n`help_dispatch.rs` prints the global and scoped `cli::help` surfaces.\nThe `source_execution.rs` module\u2019s `fused_profile` child dispatches the explicit source-only profile before\nordinary checking. Public `fused_source` parses once and lends a private full\nselected owner to each target; it accepts no caller HIR or grant.\n"
+      }
+    ]
+  }
+]

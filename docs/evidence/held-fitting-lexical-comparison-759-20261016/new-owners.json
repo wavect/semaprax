@@ -1,0 +1,12 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/factored/strategy/before_fitting.rs",
+    "sha256": "3781772927deaadfc0f25160a74e8240c914cf7c9d5f5c92ad6781b67aff32d4",
+    "cfg_test_parent": "src/cleanup_plan/replay/factored/strategy.rs"
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/strategy/fitting_tests.rs",
+    "sha256": "f3d21d6bf2f633be38722355380b6ea0203e7224609ff33a69a5cdf24ab34b62",
+    "cfg_test_parent": "src/cleanup_plan/replay/factored/strategy.rs"
+  }
+]

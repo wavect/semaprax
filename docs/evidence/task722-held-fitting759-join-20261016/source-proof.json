@@ -1,0 +1,11 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "whole_current_to_0e7b_rows": 10,
+  "independent759_doc_rows": 2,
+  "predecessor_proof_reused_only_via_complete_existing_namespace_equality": true,
+  "all_prior_JSON_and90_runtime_files_immutable": true,
+  "actual759_production_and_two_children_exact_reviewed_component": true,
+  "original759_verifier_executed_in_authenticated_component_view": true,
+  "all3_raw_joins": true,
+  "Rust_executed": false
+}

@@ -307,11 +307,29 @@ pub(super) fn main8a_input(source: &str, current: &str) -> String {
 
 // Independent outer seam; every old immutable browser table sees exact4251.
 pub(super) fn before_e47_input(source: &str, current: &str) -> String {
+    let restored = current67b_input(source, current);
+    let current = restored.as_str();
     pin_project(
         include_str!(
             "../../../docs/evidence/browser-main75b-independent-20261016/current-to-prior.json"
         ),
         source,
+        current,
+    )
+}
+
+// Exact outer inverse. Every older source predicate receives its full preimage.
+pub(super) fn current67b_input(source: &str, current: &str) -> String {
+    pin_project(
+        include_str!("../../../docs/evidence/browser-67b1b-successor-20261016/current-to-prior.json"),
+        source,
+        current,
+    )
+}
+pub(super) fn current67b_runner75b(current: &str) -> String {
+    pin_project(
+        include_str!("../../../docs/evidence/browser-67b1b-successor-20261016/current-to-retained75b-runner.json"),
+        "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
         current,
     )
 }

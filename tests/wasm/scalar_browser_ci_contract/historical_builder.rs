@@ -274,7 +274,7 @@ fn complete_prior_browser_contract_has_only_registration_and_call_adapter_change
 // Independent actual MAIN2600 capture and its complete previous receiver.
 use super::digest_without_checked_value_cursor_budget;
 #[path = "browser_custody.rs"]
-mod custody;
+pub(super) mod custody;
 #[path = "historical_main2600.rs"]
 mod main2600;
 pub(super) fn main_digest(graph: &str) -> String {
@@ -385,3 +385,13 @@ mod main_f82;
 mod browser_75b_controls;
 #[path = "historical_main_75b.rs"]
 mod main_75b;
+
+// Actual authenticated67b graph wires compose both independent receiver trees.
+#[path = "actual_67b.rs"]
+mod actual_67b;
+pub(super) fn current67b_digest(graph: &str) -> String {
+    actual_67b::digest(graph)
+}
+pub(super) fn current67b_drift_controls(graph: &str) {
+    actual_67b::drift_controls(graph);
+}

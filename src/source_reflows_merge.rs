@@ -761,7 +761,16 @@ fn main_dd0_previous(source: &str, current: &str) -> String {
 
 // New owner and inherited domains remain independent; all old tables stay exact.
 pub(crate) fn arena854_input(source: &str, current: &str) -> String {
+    let next = project(include_str!("../docs/evidence/arena854-borrowed-query-zip-20261016/current-to-2d87.json"), source, current);
     let main65 = main65_previous(source, current);
+    // The complete16c overlay may already remove this same source delta.
+    // Authenticate raw bytes above, then accept only raw or that exact old view.
+    let main65 = if next != current {
+        assert!(main65 == current || main65 == next, "arena854 normalized input drift");
+        next
+    } else {
+        main65
+    };
     let current = main65.as_str();
     let cursor = cursor_clippy_input(source, current);
     let current = cursor.as_str();

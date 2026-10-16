@@ -102,6 +102,13 @@ impl<T> Memo<T> {
                 || !ledger_matches
             {
                 self.failed = true;
+            } else if budget.refusal_spent
+                || (budget.pays_allocations() && crate::bounded_output::active_refused())
+            {
+                // Identity is already bound before reading this same account.
+                // A warm poisoned owner must not consume its report or reset
+                // work through a fresh zero-byte payer authentication.
+                self.failed = true;
             }
             true
         } else {

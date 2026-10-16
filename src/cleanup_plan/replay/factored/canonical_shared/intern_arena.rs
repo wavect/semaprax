@@ -33,18 +33,16 @@ impl<K: Ord> Query<K> for K {
 }
 
 // The child IDs were all resolved, in original order, before this view exists.
-// Its two borrowed slices are not a cached signature or source authority.
+// Its two borrowed Vec owners are not a cached signature or source authority.
 pub(super) struct SignatureQuery<'a> {
     pub(super) accepted: u64,
-    pub(super) successors: &'a [(Label, SharedWeighted)],
-    pub(super) children: &'a [usize],
+    pub(super) successors: &'a Vec<(Label, SharedWeighted)>,
+    pub(super) children: &'a Vec<usize>,
 }
 impl SignatureQuery<'_> {
     pub(super) const CONTROLS: usize = 2 * size_of::<Self>()
         + 2 * size_of::<&Vec<(Label, SharedWeighted)>>()
-        + 2 * size_of::<&Vec<usize>>()
-        + size_of::<&[(Label, SharedWeighted)]>()
-        + size_of::<&[usize]>();
+        + 2 * size_of::<&Vec<usize>>();
     // Additional per-exit producers: this positive admission, retained scratch
     // growth, and child scalar admission. The original signature reserve_array
     // still exists on misses; no old Result is credited as a reused grant.
@@ -53,6 +51,19 @@ impl SignatureQuery<'_> {
         + 2 * size_of::<std::slice::Iter<'static, (Label, SharedWeighted)>>()
         + 2 * size_of::<&Vec<(Label, SharedWeighted)>>()
         + size_of::<&[(Label, SharedWeighted)]>();
+    // The owned successor iterator is the original label-move producer. Zip
+    // adds its owned argument, the borrowed-ID iterator and its result owner;
+    // borrowed child IDs replace the explicit index/increment operands.
+    pub(super) const MISS_CONTROLS: usize =
+        size_of::<std::vec::IntoIter<(Label, SharedWeighted)>>()
+        + 2 * size_of::<std::slice::Iter<'static, usize>>()
+        + 2 * size_of::<std::iter::Zip<
+            std::vec::IntoIter<(Label, SharedWeighted)>,
+            std::slice::Iter<'static, usize>,
+        >>()
+        + 3 * size_of::<&Vec<usize>>()
+        + 2 * size_of::<&[usize]>()
+        + 2 * size_of::<Result<(), super::Diagnostic>>();
 }
 impl Query<Signature> for SignatureQuery<'_> {
     fn compare(&self, stored: &Signature) -> Ordering {

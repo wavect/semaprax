@@ -1323,25 +1323,19 @@ impl<'a> Canonicalizer<'a> {
                             attempt!(budget.reserve_array::<(Label, usize)>(
                                 function, successors.len(), "factored canonical signature vector",
                             ));
-                            // New index initializer/local and the actual index /
-                            // increment operands precede the owning miss producer.
+                            // Every ID is already resolved. Move each original
+                            // label with its borrowed ID, without an owned
+                            // scalar cursor or repeated index/increment operands.
                             attempt!(budget.reserve_bytes(
-                                function, 2 * std::mem::size_of::<usize>()
-                                    + 2 * std::mem::size_of::<Result<(), Diagnostic>>(),
-                                "canonical signature miss cursor",
+                                function, intern_arena::SignatureQuery::MISS_CONTROLS,
+                                "canonical signature miss iterator receiving",
                             ));
-                            attempt!(budget.reserve_array::<[usize; 3]>(
-                                function, successors.len(), "canonical signature miss indexing",
+                            attempt!(budget.reserve_array::<[&usize; 2]>(
+                                function, successors.len(), "canonical signature miss borrowed IDs",
                             ));
                             let mut key = Vec::with_capacity(successors.len());
-                            let mut index = 0;
-                            #[expect(
-                                clippy::explicit_counter_loop,
-                                reason = "The scalar cursor is prepaid above; enumerate would add an iterator-adapter receiving layout."
-                            )]
-                            for (label, _child) in successors {
-                                key.push((label, self.child_ids[index]));
-                                index += 1;
+                            for ((label, _child), id) in successors.into_iter().zip(&self.child_ids) {
+                                key.push((label, *id));
                             }
                             let key = (accepted, key);
                             intern_arena::prepare_insert!(self.ids, intern_arena::Signature, function, budget);

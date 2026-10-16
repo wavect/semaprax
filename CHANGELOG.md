@@ -8,6 +8,12 @@
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
 
+- Keep warm canonical Memo rejection ahead of the poisoned payer, and remove
+  query slice coercions and miss indexing through borrowed Vec/Zip receiving.
+  Complete old controls and strict paid-reduction gate remain; NEXT qualification
+  and actual application effects are pending.
+
+
 - Preserve Main043 as an independent complete 75-input live source-audit domain and 14-control historical helper, alongside the unchanged nine a82e tables and five-proof helper. Keep incoming CI diagnostics and all original snapshots; joined Rust qualification remains pending.
 - Add bounded exact-profile JSON task guidance from the paired ShiftSim specimen, including existing full-host assembly, native pure tests, complete input/dependency inventories and exact signatures. Existing task pages remain; ordinary admission and execution qualification are pending, with no measured agent-cost claim.
 - Track completeness for every formatted checked instance-key fragment, including zero-argument nominals and final rematerialization; calibrate floor refusals at the actual write frontier while retaining exact/short/zero, sticky retry, key-producer and Drop controls. Qualification remains pending.

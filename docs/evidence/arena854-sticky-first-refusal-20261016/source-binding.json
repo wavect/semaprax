@@ -1,0 +1,9 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED",
+  "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+  "before_sha256": "3dba9b3d84f9e190dfaf0f7afce3f8eee7ffde172e20ce1927187ba2df3f529e",
+  "after_sha256": "dbc91af11348d3b17aa3c052cf681c506f65ec5aac18aee82f3d30d150726c82",
+  "assertion_count": 54,
+  "full_diagnostic_equality": true,
+  "rust_executed": false
+}

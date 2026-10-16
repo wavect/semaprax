@@ -1,0 +1,37 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix.rs",
+    "sha256": "584d266d42d054e56bf6423cd1b5a9a4e28b0188f02825a46a1eb1bd5a9abbd8",
+    "lines": 71
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/before.rs",
+    "sha256": "268d548459b7ef72cc260ece1570f1dffc3fbd320146f1941af103b18a87b7a8",
+    "lines": 59
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/tests.rs",
+    "sha256": "2c2f6eb2d776d79270552c932208eba9cd52f96d71d81a263f6b351e9121218f",
+    "lines": 297
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main_current.rs",
+    "sha256": "a2519ef0d9fbacf28ce325666a973c319837a433bd67446e58fee49e998ec92f",
+    "lines": 68
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/shipping_tests.rs",
+    "sha256": "d40e58b2b49d26942b7b30841bcd939c34e792fa0a10061dc326c7e72ac2e62c",
+    "lines": 87
+  },
+  {
+    "source": "src/source_reflows/semantic_receivers_main_f1.rs",
+    "sha256": "00faa384927a91d9ae51814f6a7e2c5e92d0c5e297f26613ae0bffa60c6dcef1",
+    "lines": 102
+  },
+  {
+    "source": "src/source_reflows_merge/prefix_custody.rs",
+    "sha256": "8ff5e808d09dfcda6c7b222df8378f780f5b869858b71968971f8b1c0792b6cc",
+    "lines": 76
+  }
+]

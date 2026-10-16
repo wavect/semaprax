@@ -1,5 +1,9 @@
 //! Complete physical-input successors for the immutable CI and Source36 views.
 //! This test-only projection owns no compiler authority and grants no admission.
+#[path = "source_reflows_merge/joined_custody.rs"]
+mod joined_custody;
+#[path = "source_reflows_merge/prefix_custody.rs"]
+mod prefix_custody;
 #[path = "source_reflows_merge/successor_custody.rs"]
 mod successor_custody;
 use sha2::{Digest, Sha256};
@@ -724,11 +728,15 @@ fn reference_family_input(source: &str, current: &str) -> String {
 
 // A later compositor uses this normalization-only front BEFORE its raw table.
 pub(crate) fn bulk848_arm_input(source: &str, current: &str) -> String {
-    successor_custody::normalize(source, current)
+    joined_custody::normalize(source, current)
 }
 
 // Main's compiled test corpus keeps every original source-domain check.
 fn main_dd0_previous(source: &str, current: &str) -> String {
+    let joined = joined_custody::input(source, current);
+    let current = joined.as_str();
+    let prefix_view = prefix_custody::input(prefix_custody::Fixture::SealedB5, source, current);
+    let current = prefix_view.as_str();
     let successor =
         successor_custody::input(successor_custody::Fixture::Sealed724, source, current);
     let current = successor.as_str();
@@ -743,6 +751,10 @@ fn main_dd0_previous(source: &str, current: &str) -> String {
 
 // New owner and inherited domains remain independent; all old tables stay exact.
 pub(crate) fn arena854_input(source: &str, current: &str) -> String {
+    let joined = joined_custody::input(source, current);
+    let current = joined.as_str();
+    let prefix_view = prefix_custody::input(prefix_custody::Fixture::SealedB5, source, current);
+    let current = prefix_view.as_str();
     let successor =
         successor_custody::input(successor_custody::Fixture::Sealed724, source, current);
     let current = successor.as_str();
@@ -759,6 +771,10 @@ pub(crate) fn arena854_previous(source: &str, current: &str) -> String {
 
 // The complete twelve-row Main receiver has an independent scoped input.
 pub(crate) fn main7c6_input(source: &str, current: &str) -> String {
+    let joined = joined_custody::input(source, current);
+    let current = joined.as_str();
+    let prefix_view = prefix_custody::input(prefix_custody::Fixture::SealedB5, source, current);
+    let current = prefix_view.as_str();
     let successor =
         successor_custody::input(successor_custody::Fixture::Sealed724, source, current);
     let current = successor.as_str();
@@ -767,5 +783,15 @@ pub(crate) fn main7c6_input(source: &str, current: &str) -> String {
 
 // Independent complete Main-afba receiver scope.
 pub(crate) fn main_afba_input(source: &str, current: &str) -> String {
+    let joined = joined_custody::input(source, current);
+    let current = joined.as_str();
+    let prefix_view = prefix_custody::input(prefix_custody::Fixture::SealedB5, source, current);
+    let current = prefix_view.as_str();
     successor_custody::input(successor_custody::Fixture::MainAfba, source, current)
+}
+
+pub(crate) fn main_f1_input(source: &str, current: &str) -> String {
+    let joined = joined_custody::input(source, current);
+    let current = joined.as_str();
+    prefix_custody::input(prefix_custody::Fixture::MainF1, source, current)
 }

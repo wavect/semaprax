@@ -1,0 +1,32 @@
+{
+  "base": "253bc2442d2c2c4023c95267caf6d607839f4f23",
+  "common_source_sha256": "9cb29df6ad4083a97648b5687f83d85a2c9e2e826077381b7da4433df03412d6",
+  "embedded_source_sha256": "d8cc1109d229c050295460799aa08baf39d7b2b13549617a99c15b129058a728",
+  "selector_source": "src/source_reflows_merge/runtime_json.rs",
+  "runtime_literal": "runtime_json/transport_runtime.rs",
+  "embedded_literal": "runtime_json/transport_embedded.rs",
+  "changed_preexisting": [
+    "CHANGELOG.md",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "src/cleanup_plan/replay/flat_records/paid_leaves.rs",
+    "src/cleanup_plan/replay/lexical_boundary/paid.rs",
+    "src/cleanup_plan/replay/structural_maps/paid.rs",
+    "src/source_reflows_merge.rs",
+    "src/source_reflows_merge/runtime_json.rs",
+    "src/source_reflows_merge/runtime_json/tests.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "fixed_fixture_count": 90,
+  "fixed_fixture_bytes": 93641932,
+  "selected_child_pilot": "runtime unchanged in both arms",
+  "execution": "NONE_SOURCE_ONLY",
+  "final_normalizer": "src/source_reflows_merge/joined_custody.rs",
+  "final_normalizer_sha256": "6453066a76120cd7a0be1216903f8e0a23e2382f68f5ced2ee0c1a94948bc8aa",
+  "component_runtime_source": "253bc2442d2c2c4023c95267caf6d607839f4f23",
+  "scope": "ONE original90 selector; fixed36 and all final source metadata runtime in both arms",
+  "authority_generator_sha256": "0c4b31857cdb8a4f645d61c6f0d2453c33c6adddb8c6f26d9c37b56620841590",
+  "authority_generator_context": "unchanged reviewed798 exact piece alias normalization; original parser/function/class ASTs retained"
+}

@@ -5085,3 +5085,12 @@ Results or budget parameters. Original classifiers, oracle authentication and
 ordinary dynamic diagnostics remain independently owned boundaries.
 
 The joined test-source custody front uses fixed authenticated runtime tables for independent common, arena and Main12 inputs. A sealed final sibling owns only fixed paths, lengths and digests; both bulk90 selector arms normalize by their complete source identities before these views, while each arm retains truthful physical-source authority metadata. The original five-row, Main nine-row and Main twelve-row receiver controls remain separate, and the complete compiled earlier expression model is linked to its whole-source inverse. These test-only reads grant no compiler admission or production filesystem authority.
+
+Main-f1's complete single-successor prefix helper, current sequencing receiver,
+previous clone receiver and five original controls remain independently compiled
+under cfg(test) in `cleanup_plan/replay/sequence_prefix.rs`. Shipping sequencing
+keeps its earlier lexical single-successor transfer byte-for-byte: it already
+moves the complete funded prefix and skips the clone for every sole suffix.
+No optional helper argument/result boundary or fallback eligibility probe is
+added to production. A complete corpus compares the real Main receiver with
+this shipping path. Original path-array work preflight remains unchanged.

@@ -1,0 +1,64 @@
+{
+  "hir": {
+    "raw_sha256": "38e85a11b0f08bce8b925276ec53678726fb065c8d45c23c44bfb0be636640e4",
+    "production_sha256": "b0a8c8c2632c12373696fc7fb0d30abc754824add9bbbd78c3caaa093969f1a0",
+    "unique_production_files": 365,
+    "unique_test_only_files": 561,
+    "chunks_including_multiplicity_and_separators": 865,
+    "all_original_forbidden_checks_clear": true,
+    "exact_existing_forbidden_tokens": [
+      "struct Resolver",
+      "impl Resolver",
+      "fn scoped_identity(",
+      "fn materialize_function_template",
+      "fn specialize_source_function",
+      "pub fn resolve(",
+      "crate::cleanup::build_inventory",
+      "crate::cleanup_plan::build_plan",
+      "std::fs",
+      "std::process",
+      "platform::"
+    ],
+    "three_static_negatives_refused": true
+  },
+  "projection": {
+    "raw_sha256": "18803b45de6ef0121db825791d4163f62efdfc9928d85a21f21884d215f578b1",
+    "production_sha256": "1b0d172ab4a6bd21a96460590425a2106f2f4b2e1a05689c1e73ff3553fcc2ba",
+    "unique_production_files": 67,
+    "unique_test_only_files": 101,
+    "chunks_including_multiplicity_and_separators": 172,
+    "all_original_forbidden_checks_clear": true,
+    "exact_existing_forbidden_tokens": [
+      "use super::*;",
+      "workspace::",
+      "std::fs",
+      "std::process",
+      "snapshot(",
+      "build_authenticated",
+      "render_graph_json",
+      "write_file",
+      "create_dir",
+      "remove_file",
+      "ACTIVE"
+    ],
+    "three_static_negatives_refused": true
+  },
+  "all_three_original_raw_include_sequences_preserved": {
+    "tests/hir_module_boundaries.rs": {
+      "original_occurrences": 906,
+      "preserved_original_order": true,
+      "explicit_added_occurrences": 7
+    },
+    "tests/workspace/semantic_graph/source_inventory.rs": {
+      "original_occurrences": 720,
+      "preserved_original_order": true,
+      "explicit_added_occurrences": 7
+    },
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
+      "original_occurrences": 1343,
+      "preserved_original_order": true,
+      "explicit_added_occurrences": 7
+    }
+  },
+  "mode": "SOURCE_ONLY_NO_RUST_EXECUTION"
+}

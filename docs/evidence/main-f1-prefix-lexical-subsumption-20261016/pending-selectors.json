@@ -1,0 +1,42 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix::tests::complete_original_sequence_keeps_order_path_fields_work_and_materializations"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix::tests::transfer_reuses_full_backing_and_preserves_each_observation_identity"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix::tests::original_receiver_source_remains_complete"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix::tests::bypasses_and_sticky_refusals_leave_the_complete_input_untouched"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::sequence_prefix::shipping_tests::shipping_lexical_single_successor_matches_complete_main_f1_corpus"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "source_reflows::semantic_receivers_main_f1::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "source_reflows::semantic_receivers_main_f1::receiver_mutation_and_forged_predecessor_fail_closed"
+  }
+]

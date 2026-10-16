@@ -31,6 +31,8 @@
 - Reuse the already-built exact HIR/plan comparison for fitting ordinary lexical proof after unchanged enumeration admission/reservation; retain complete forced old enumeration and all weighted receiver payments, with no allowance refund or measured application/agent improvement claim.
 
 - Move the validated singleton ownership state and its conditional variants through unchanged normalization, removing absent clones while preserving join validation, work, scheduling and the complete old receiver; focused numerical qualification remains pending.
+- Reconcile Main prefix transfer with the existing broader lexical single-successor transfer; retain complete independent Main and clone controls while preserving shipping code and exact work preflight.
+
 - Retain the original mixed String/Bytes programs as source, HIR and canonical graph acceptance regressions; keep unsupported-array declaration and pattern refusals under the existing exact diagnostics.
 
 - Adapt the final Option residual forgery check and move boxed residual types into the native builder’s unchanged iterative-disposal frames.

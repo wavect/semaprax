@@ -1,0 +1,771 @@
+//! Complete physical-input successors for the immutable CI and Source36 views.
+//! This test-only projection owns no compiler authority and grants no admission.
+#[path = "source_reflows_merge/successor_custody.rs"]
+mod successor_custody;
+use sha2::{Digest, Sha256};
+#[path = "source_reflows_merge/final_custody.rs"]
+mod final_custody;
+#[path = "source_reflows_merge/metadata_json.rs"]
+mod metadata_json;
+#[path = "source_reflows_merge/runtime_json.rs"]
+mod runtime_json;
+// The final compositor authenticates its raw view at this independent owner front.
+pub(crate) fn boxed849_input(source: &str, current: &str) -> String {
+    let compile_fixed = compile_fixture_input(source, current);
+    let current = compile_fixed.as_str();
+    let qualified = metadata_json::project(metadata_json::Fixture::M00, source, current);
+    let current = qualified.as_str();
+    let next = metadata_json::project(metadata_json::Fixture::M01, source, current);
+    let current = next.as_str();
+    let joined = metadata_json::project(metadata_json::Fixture::M02, source, current);
+    let current = joined.as_str();
+    metadata_json::project(metadata_json::Fixture::M03, source, current)
+}
+pub(crate) fn boxed849_previous(source: &str, current: &str) -> String {
+    metadata_json::project(
+        metadata_json::Fixture::M04,
+        source,
+        &boxed849_input(source, current),
+    )
+}
+// Direct current831 owner; inherited guards first receive the exact2d4b input.
+pub(crate) fn unit831_input(source: &str, current: &str) -> String {
+    let latest = main696_previous(source, current);
+    let current = latest.as_str();
+    let joined = metadata_json::project(metadata_json::Fixture::M05, source, current);
+    let current = joined.as_str();
+    let preflight = metadata_json::project(metadata_json::Fixture::M06, source, current);
+    let current = preflight.as_str();
+    metadata_json::project(metadata_json::Fixture::M07, source, current)
+}
+pub(crate) fn compile_fixture_input(source: &str, current: &str) -> String {
+    let previous = main531_previous(source, current);
+    let current = previous.as_str();
+    metadata_json::project(metadata_json::Fixture::M08, source, current)
+}
+pub(crate) fn main531_previous(source: &str, current: &str) -> String {
+    let fixed = main531_child_input(source, current);
+    let current = fixed.as_str();
+    metadata_json::project(metadata_json::Fixture::M09, source, current)
+}
+pub(crate) fn main531_input(source: &str, current: &str) -> String {
+    let fixed = main531_child_input(
+        "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+        current,
+    );
+    let current = fixed.as_str();
+    metadata_json::project(metadata_json::Fixture::M10, source, current)
+}
+fn main531_child_input(source: &str, current: &str) -> String {
+    let fixed = actual50_fixture_input(source, current);
+    let current = fixed.as_str();
+    metadata_json::project(metadata_json::Fixture::M11, source, current)
+}
+fn b3a_compile_fixture_input(source: &str, current: &str) -> String {
+    let joined = fitting759_input(source, current);
+    let current = joined.as_str();
+    metadata_json::project(metadata_json::Fixture::M12, source, current)
+}
+fn post_main0ab1_input(source: &str, current: &str) -> String {
+    let compiled = b3a_compile_fixture_input(source, current);
+    let current = compiled.as_str();
+    metadata_json::project(metadata_json::Fixture::M13, source, current)
+}
+fn main696_corrected_input(source: &str, current: &str) -> String {
+    let next = post_main0ab1_input(source, current);
+    let current = next.as_str();
+    metadata_json::project(metadata_json::Fixture::M14, source, current)
+}
+pub(crate) fn main696_input(source: &str, current: &str) -> String {
+    let corrected = main696_corrected_input(source, current);
+    let current = corrected.as_str();
+    metadata_json::project(metadata_json::Fixture::M15, source, current)
+}
+fn main696_previous(source: &str, current: &str) -> String {
+    let corrected = main696_corrected_input(source, current);
+    let current = corrected.as_str();
+    metadata_json::project(metadata_json::Fixture::M16, source, current)
+}
+fn actual50_fixture_input(source: &str, current: &str) -> String {
+    let latest = main696_previous(source, current);
+    let current = latest.as_str();
+    let joined = metadata_json::project(metadata_json::Fixture::M17, source, current);
+    let current = joined.as_str();
+    metadata_json::project(metadata_json::Fixture::M18, source, current)
+}
+fn fitting759_input(source: &str, current: &str) -> String {
+    let pinned = pin47_input(source, current);
+    let current = pinned.as_str();
+    metadata_json::project(metadata_json::Fixture::M19, source, current)
+}
+fn pin47_input(source: &str, current: &str) -> String {
+    let joined = future_bcd_input(source, current);
+    let current = joined.as_str();
+    metadata_json::project(metadata_json::Fixture::M20, source, current)
+}
+// The new Main receiver has one additional, independently authenticated input;
+// its older four owners still use their exact Main696 domains.
+pub(crate) fn main8fb_input(source: &str, current: &str) -> String {
+    if source == "src/source_verify/declaration.rs" {
+        let joined = future_main8fb_input(source, current);
+        let current = joined.as_str();
+        return metadata_json::project(metadata_json::Fixture::M21, source, current);
+    }
+    main696_input(source, current)
+}
+pub(crate) fn future_bcd_input(source: &str, current: &str) -> String {
+    let joined = post21_input(source, current);
+    let current = joined.as_str();
+    metadata_json::project(metadata_json::Fixture::M22, source, current)
+}
+pub(crate) fn future_main8fb_input(source: &str, current: &str) -> String {
+    let joined = post21_input(source, current);
+    let current = joined.as_str();
+    metadata_json::project(metadata_json::Fixture::M23, source, current)
+}
+fn post21_input(source: &str, current: &str) -> String {
+    let joined = main_b80_prior_input(source, current);
+    let current = joined.as_str();
+    metadata_json::project(metadata_json::Fixture::M24, source, current)
+}
+fn project(rows: &str, source: &str, current: &str) -> String {
+    let rows: serde_json::Value = serde_json::from_str(rows).expect("fixed merge projections");
+    let matching: Vec<_> = rows
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|r| r["source"] == source)
+        .collect();
+    assert!(matching.len() <= 1, "unique merge source view");
+    let Some(row) = matching.first() else {
+        return current.to_owned();
+    };
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+        ),
+        row["current_sha256"]
+    );
+    let mut result = current.to_owned();
+    for edit in row["edits"].as_array().unwrap() {
+        let new = edit["new"].as_str().unwrap();
+        assert_eq!(
+            result.matches(new).count(),
+            1,
+            "complete unique merge inverse"
+        );
+        result = result.replacen(new, edit["old"].as_str().unwrap(), 1);
+    }
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(result.as_bytes()))
+        ),
+        row["original_sha256"]
+    );
+    result
+}
+// Exact post-build name/visibility repair, before every protected older domain.
+// Unlisted sources remain unchanged; listed inputs must match their full new SHA.
+fn before_build_fix(source: &str, current: &str) -> String {
+    runtime_json::project(runtime_json::Fixture::F00, source, current)
+}
+pub(crate) fn ours(source: &str, current: &str) -> String {
+    let staged = runtime_json::project(runtime_json::Fixture::F01, source, current);
+    let current = staged.as_str();
+    runtime_json::project(runtime_json::Fixture::F02, source, current)
+}
+fn prior_main(source: &str, current: &str) -> String {
+    let predecessor = assembled_previous(source, current);
+    let current = predecessor.as_str();
+    runtime_json::project(runtime_json::Fixture::F03, source, current)
+}
+
+pub(crate) fn held(source: &str, current: &str) -> String {
+    let predecessor = assembled_previous(source, current);
+    let current = predecessor.as_str();
+    runtime_json::project(runtime_json::Fixture::F04, source, current)
+}
+
+pub(crate) fn weighted(path: &str, current: &str) -> String {
+    let staged = if path == "../epsilon_alias/tests.rs" {
+        final_ready_input(
+            "d8",
+            "src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs",
+            current,
+        )
+    } else {
+        current.to_owned()
+    };
+    let current = staged.as_str();
+    if path == "../../../../../../docs/ARCHITECTURE.md" {
+        return assembled_previous("docs/ARCHITECTURE.md", current);
+    }
+    if path != "../epsilon_alias/tests.rs" {
+        return current.to_owned();
+    }
+    runtime_json::project(
+        runtime_json::Fixture::F05,
+        "src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs",
+        current,
+    )
+}
+
+// NEXT842 source transport precedes every immutable runtime domain.
+fn inline_weighted_previous(source: &str, current: &str) -> String {
+    runtime_json::project(runtime_json::Fixture::F06, source, current)
+}
+
+// Separate authenticated #843 predecessor; older runtime manifests stay immutable.
+pub(crate) fn closure_previous(source: &str, current: &str) -> String {
+    runtime_json::project(runtime_json::Fixture::F07, source, current)
+}
+
+// Each isolated branch projector remains strict. Authenticate the actual final
+// input separately into its named branch before comparing complete base bytes.
+pub(crate) fn assembly_view(stage: &str, source: &str, current: &str) -> String {
+    let previous = latest_previous(source, current);
+    let current = previous.as_str();
+    let data = match stage {
+        "9d" => runtime_json::Fixture::F08,
+        "842" => runtime_json::Fixture::F09,
+        "843" => runtime_json::Fixture::F10,
+        _ => panic!("unknown immutable assembly source domain"),
+    };
+    runtime_json::project(data, source, current)
+}
+fn assembled_previous(source: &str, current: &str) -> String {
+    let repaired = assembly_view("9d", source, current);
+    let repaired = before_build_fix(source, &repaired);
+    let inline = assembly_view("842", source, current);
+    let inline = inline_weighted_previous(source, &inline);
+    let closure = assembly_view("843", source, current);
+    let closure = closure_previous(source, &closure);
+    assert_eq!(
+        repaired, inline,
+        "independent branch sources must reach the same complete7800 input"
+    );
+    assert_eq!(
+        repaired, closure,
+        "held branch source must reach the same complete7800 input"
+    );
+    repaired
+}
+
+// Strict newest input, before the immutable9365 branch domains. No old raw input
+// is accepted as an alternative to its complete current source.
+fn latest_previous(source: &str, current: &str) -> String {
+    let corrected = corrected_previous(source, current);
+    let current = corrected.as_str();
+    runtime_json::project(runtime_json::Fixture::F11, source, current)
+}
+pub(crate) fn main(source: &str, current: &str) -> String {
+    if source == "src/cleanup_plan/replay/skeleton_work/ordinary_dag/tests.rs" {
+        return main_f045_input(source, current);
+    }
+    let branch = final_main_input(source, current);
+    let physical = before_f045(source, &branch);
+    let _prior = prior_main(source, current);
+    let corrected = corrected_previous(source, current);
+    let _historical_main7f = runtime_json::project(runtime_json::Fixture::F12, source, &corrected);
+    runtime_json::project(runtime_json::Fixture::F13, source, &physical)
+}
+
+// Actual corrective owners authenticate before the immutable d1bb source view.
+fn corrected_previous(source: &str, current: &str) -> String {
+    let baseline = consumer_previous(source, current);
+    let current = baseline.as_str();
+    runtime_json::project(runtime_json::Fixture::F14, source, current)
+}
+pub(crate) fn scalar_policy_input(source: &str, current: &str) -> String {
+    let previous = before_main927(source, current);
+    let current = previous.as_str();
+    runtime_json::project(runtime_json::Fixture::F15, source, current)
+}
+
+// The consumer correction has one strict current→frozen3d4b predecessor.
+fn consumer_previous(source: &str, current: &str) -> String {
+    let predecessor = corrected_consumers_previous(source, current);
+    let current = predecessor.as_str();
+    runtime_json::project(runtime_json::Fixture::F16, source, current)
+}
+pub(crate) fn consumer_input(domain: &str, source: &str, current: &str) -> String {
+    let predecessor = corrected_consumers_previous(source, current);
+    let current = predecessor.as_str();
+    let data = match domain {
+        "decl825" => runtime_json::Fixture::F17,
+        "cost825" => runtime_json::Fixture::F18,
+        "signature825" => runtime_json::Fixture::F19,
+        "capacity834" => runtime_json::Fixture::F20,
+        "registry833" => runtime_json::Fixture::F21,
+        "receiving831" => runtime_json::Fixture::F22,
+        "lexical832" => runtime_json::Fixture::F23,
+        "cold835" => runtime_json::Fixture::F24,
+        _ => panic!("unknown complete source consumer domain"),
+    };
+    runtime_json::project(data, source, current)
+}
+
+fn corrected_consumers_previous(source: &str, current: &str) -> String {
+    let fixes = final_fix_input(source, current);
+    let fixes = runtime_json::project(runtime_json::Fixture::F25, source, &fixes);
+    let fixes = runtime_json::project(runtime_json::Fixture::F26, source, &fixes);
+    let main = final_main_input(source, current);
+    let main = ff_previous(source, &main);
+    assert_eq!(
+        fixes, main,
+        "independent final branches must reach the same complete ae91 input"
+    );
+    fixes
+}
+
+pub(crate) fn consumer_child(domain: &str, source: &str, current: &str) -> String {
+    let branch = final_fix_input(source, current);
+    let current = branch.as_str();
+    let rows = match domain {
+        "registry833" => runtime_json::Fixture::F27,
+        "cold835" => runtime_json::Fixture::F28,
+        "ordered838" => runtime_json::Fixture::F29,
+        _ => panic!("unknown source child domain"),
+    };
+    runtime_json::project(rows, source, current)
+}
+
+fn final_fix_input(source: &str, current: &str) -> String {
+    let previous = before_main927(source, current);
+    let current = previous.as_str();
+    runtime_json::project(runtime_json::Fixture::F30, source, current)
+}
+fn final_main_input(source: &str, current: &str) -> String {
+    let previous = before_main927(source, current);
+    let current = previous.as_str();
+    runtime_json::project(runtime_json::Fixture::F31, source, current)
+}
+fn ff_previous(source: &str, current: &str) -> String {
+    let predecessor = before_f045(source, current);
+    let previous = runtime_json::project(runtime_json::Fixture::F32, source, &predecessor);
+    runtime_json::project(runtime_json::Fixture::F33, source, &previous)
+}
+// MAIN's exact guards retain their complete immutable f045 physical domain.
+pub(crate) fn main_f045_input(source: &str, current: &str) -> String {
+    let branch = final_main_input(source, current);
+    runtime_json::project(runtime_json::Fixture::F34, source, &branch)
+}
+fn before_f045(source: &str, current: &str) -> String {
+    runtime_json::project(runtime_json::Fixture::F35, source, current)
+}
+
+// Preserve the complete frozen9b domains independently of the newer MAIN proof.
+fn before_main927(source: &str, current: &str) -> String {
+    let previous = before_setup825(source, current);
+    let current = previous.as_str();
+    let main_view = assembly_main927_input(source, current);
+    let hex_view = runtime_json::project(runtime_json::Fixture::F36, source, current);
+    let hex_previous = facade_hex_previous(source, &hex_view);
+    let previous = main927_previous(source, &main_view);
+    assert_eq!(
+        previous, hex_previous,
+        "complete independent predecessor: {source}"
+    );
+    previous
+}
+fn main927_previous(source: &str, current: &str) -> String {
+    runtime_json::project(runtime_json::Fixture::F37, source, current)
+}
+// Only these named inputs may enter MAIN's unchanged semantic source proofs.
+pub(crate) fn main927_input(source: &str, current: &str) -> String {
+    let previous = before_setup825(source, current);
+    let current = previous.as_str();
+    let view = assembly_main927_input(source, current);
+    let current = view.as_str();
+    runtime_json::project(runtime_json::Fixture::F38, source, current)
+}
+
+// Compiler-confirmed facade digest correction precedes immutable9b source views.
+fn facade_hex_previous(source: &str, current: &str) -> String {
+    runtime_json::project(runtime_json::Fixture::F39, source, current)
+}
+
+// Independent complete branch inputs; neither branch is fed the other's view.
+fn assembly_main927_input(source: &str, current: &str) -> String {
+    runtime_json::project(runtime_json::Fixture::F40, source, current)
+}
+
+// Authenticated physical successor for the bounded preowned-setup/starter batch.
+fn before_setup825(source: &str, current: &str) -> String {
+    let previous = before_setup_reference_controls(source, current);
+    let current = previous.as_str();
+    runtime_json::project(runtime_json::Fixture::F41, source, current)
+}
+// Preserve the complete immutable typed825 runtime manifest's own exact domain.
+pub(crate) fn setup_typed_input(source: &str, current: &str) -> String {
+    let previous = before_setup_reference_controls(source, current);
+    let current = previous.as_str();
+    runtime_json::project(runtime_json::Fixture::F42, source, current)
+}
+
+// Corrected physical receiving fees precede the immutable initial setup views.
+fn before_setup_reference_controls(source: &str, current: &str) -> String {
+    let previous = before_region_status_view(source, current);
+    let current = previous.as_str();
+    runtime_json::project(runtime_json::Fixture::F43, source, current)
+}
+
+// Full physical successor; the prior receiving correction domain stays exact.
+fn before_region_status_view(source: &str, current: &str) -> String {
+    let previous = before_constructor_complete_views(source, current);
+    let current = previous.as_str();
+    runtime_json::project(runtime_json::Fixture::F44, source, current)
+}
+
+fn before_constructor_complete_views(source: &str, current: &str) -> String {
+    let previous = before_current_main(source, current);
+    let current = previous.as_str();
+    runtime_json::project(runtime_json::Fixture::F45, source, current)
+}
+// These two complete manifests describe physical e4b inputs, not CI reflows.
+pub(crate) fn constructor_complete_input(source: &str, current: &str) -> String {
+    let previous = before_current_main(source, current);
+    let current = previous.as_str();
+    runtime_json::project(runtime_json::Fixture::F46, source, current)
+}
+
+// New MAIN/fixture bytes authenticate into the complete previous private batch.
+fn before_current_main(source: &str, current: &str) -> String {
+    let previous = before_fixture841(source, current);
+    let current = previous.as_str();
+    runtime_json::project(runtime_json::Fixture::F47, source, current)
+}
+// MAIN's refusal-site source proofs retain their actual5ba physical domain.
+pub(crate) fn main_current_input(source: &str, current: &str) -> String {
+    let previous = before_fixture841(source, current);
+    let current = previous.as_str();
+    runtime_json::project(runtime_json::Fixture::F48, source, current)
+}
+
+// Independent branches: inherited guards see13d; the pilot sees its exact5f input.
+fn before_fixture841(source: &str, current: &str) -> String {
+    let previous = before_retained833(source, current);
+    let current = previous.as_str();
+    runtime_json::project(runtime_json::Fixture::F49, source, current)
+}
+pub(crate) fn compressed_fixture_input(source: &str, current: &str) -> String {
+    // Independently authenticate the raw-default checkpoint and its complete
+    // immediate shim view; the inherited chain below retains every old guard.
+    let raw_default = final_batch_input("841", source, current);
+    let _whole_raw_default_before =
+        runtime_json::project(runtime_json::Fixture::F50, source, &raw_default);
+    let previous = before_retained833(source, current);
+    let current = previous.as_str();
+    runtime_json::project(runtime_json::Fixture::F51, source, current)
+}
+
+// The retained registry owner and inherited guards have distinct whole inputs.
+fn before_retained833(source: &str, current: &str) -> String {
+    let previous = before_main66517(source, current);
+    let current = previous.as_str();
+    runtime_json::project(runtime_json::Fixture::F52, source, current)
+}
+pub(crate) fn retained833_input(source: &str, current: &str) -> String {
+    let previous = before_main66517(source, current);
+    let current = previous.as_str();
+    runtime_json::project(runtime_json::Fixture::F53, source, current)
+}
+
+// Latest MAIN source enters the immutable combined833/841 checkpoint first.
+fn before_main66517(source: &str, current: &str) -> String {
+    let previous = before_retry_guard(source, current);
+    let current = previous.as_str();
+    runtime_json::project(runtime_json::Fixture::F54, source, current)
+}
+
+// Preserve the complete old runtime input before every inherited source domain.
+fn before_retry_guard(source: &str, current: &str) -> String {
+    let previous = before_direct_carriers831(source, current);
+    let current = previous.as_str();
+    runtime_json::project(runtime_json::Fixture::F55, source, current)
+}
+pub(crate) fn retry_fixture_input(source: &str, current: &str) -> String {
+    let previous = before_direct_carriers831(source, current);
+    let current = previous.as_str();
+    runtime_json::project(runtime_json::Fixture::F56, source, current)
+}
+
+// Every older runtime source guard retains the exact297 physical domain.
+fn before_direct_carriers831(source: &str, current: &str) -> String {
+    let observed = before_cached_acquisition_observer(source, current);
+    let current = observed.as_str();
+    runtime_json::project(runtime_json::Fixture::F57, source, current)
+}
+
+// Test-only observation successor; exact prior runtime tables remain immutable.
+fn before_cached_acquisition_observer(source: &str, current: &str) -> String {
+    let staged = before_sourceguard_inputs(source, current);
+    let current = staged.as_str();
+    runtime_json::project(runtime_json::Fixture::F58, source, current)
+}
+
+// Preserve complete physical7a87 inputs before the cached observer's older view.
+fn before_sourceguard_inputs(source: &str, current: &str) -> String {
+    let staged = before_actual_pin_consumers(source, current);
+    let current = staged.as_str();
+    runtime_json::project(runtime_json::Fixture::F59, source, current)
+}
+pub(crate) fn source36_classifier_input(source: &str, current: &str) -> String {
+    let staged = before_storage_oracle_join(source, current);
+    runtime_json::project(runtime_json::Fixture::F60, source, &staged)
+}
+
+// Actual producer literals are transported only for historical full-source guards.
+fn before_actual_pin_consumers(source: &str, current: &str) -> String {
+    let current = final_ready_input("d8", source, current);
+    let current = current.as_str();
+    runtime_json::project(runtime_json::Fixture::F61, source, current)
+}
+
+// Independent physical-input domains: no checkpoint table accepts another stage.
+fn final_ready_input(stage: &str, source: &str, current: &str) -> String {
+    let current = if stage == "844" {
+        let previous = main27424_stage("523", source, current);
+        runtime_json::project(runtime_json::Fixture::F62, source, &previous)
+    } else {
+        let previous = main27424_stage("7f", source, current);
+        runtime_json::project(runtime_json::Fixture::F63, source, &previous)
+    };
+    let current = current.as_str();
+    let data = match stage {
+        "d8" => runtime_json::Fixture::F64,
+        "844" => runtime_json::Fixture::F65,
+        "846" => runtime_json::Fixture::F66,
+        _ => panic!("unknown exact ready checkpoint"),
+    };
+    runtime_json::project(data, source, current)
+}
+pub(crate) fn compact844_current_input(source: &str, current: &str) -> String {
+    final_ready_input("844", source, current)
+}
+pub(crate) fn compact844_input(source: &str, current: &str) -> String {
+    let current = final_ready_input("844", source, current);
+    runtime_json::project(runtime_json::Fixture::F67, source, &current)
+}
+pub(crate) fn diagnostic846_input(source: &str, current: &str) -> String {
+    final_ready_input("846", source, current)
+}
+
+// MAIN and the two677 compile corrections have independent physical inputs.
+fn main27424_stage(stage: &str, source: &str, current: &str) -> String {
+    let current = combined_ready_input("main", source, current);
+    let current = current.as_str();
+    let data = match stage {
+        "7f" => runtime_json::Fixture::F68,
+        "523" => runtime_json::Fixture::F69,
+        "main" => runtime_json::Fixture::F70,
+        _ => panic!("unknown exact MAIN27424 source domain"),
+    };
+    runtime_json::project(data, source, current)
+}
+pub(crate) fn main27424_input(source: &str, current: &str) -> String {
+    main27424_stage("main", source, current)
+}
+
+// Independent physical847 source for its complete owning guards.
+fn retained_function847_previous(source: &str, current: &str) -> String {
+    joined_feature_input("453", source, current)
+}
+pub(crate) fn retained_function847_input(source: &str, current: &str) -> String {
+    retained_function847_previous(source, current)
+}
+pub(crate) fn directory825_input(source: &str, current: &str) -> String {
+    let previous = joined_feature_input("453", source, current);
+    runtime_json::project(runtime_json::Fixture::F71, source, &previous)
+}
+fn joined_feature_input(stage: &str, source: &str, current: &str) -> String {
+    let current = combined_ready_input("alias", source, current);
+    let current = current.as_str();
+    let rows = match stage {
+        "453" => runtime_json::Fixture::F72,
+        "523" => runtime_json::Fixture::F73,
+        "7f" => runtime_json::Fixture::F74,
+        _ => panic!("unknown independent feature input"),
+    };
+    runtime_json::project(rows, source, current)
+}
+
+// Independent final raw fronts for MAIN integration versus retained alias owners.
+fn combined_ready_input(stage: &str, source: &str, current: &str) -> String {
+    let final_view = final_batch_input("796", source, current);
+    let current = final_view.as_str();
+    let previous = runtime_json::project(runtime_json::Fixture::F75, source, current);
+    let current = previous.as_str();
+    let prior = runtime_json::project(runtime_json::Fixture::F76, source, current);
+    let current = prior.as_str();
+    let previous = runtime_json::project(runtime_json::Fixture::F77, source, current);
+    let current = previous.as_str();
+    let rows = match stage {
+        "main" => runtime_json::Fixture::F78,
+        "alias" => runtime_json::Fixture::F79,
+        _ => panic!("unknown exact final source front"),
+    };
+    runtime_json::project(rows, source, current)
+}
+
+// The direct831 source owner has a separate immediate domain from old guards.
+pub(crate) fn branch_closed831_input(source: &str, current: &str) -> String {
+    final_batch_input("831", source, current)
+}
+fn final_batch_input(branch: &str, source: &str, current: &str) -> String {
+    let before_transport = before_runtime_json_transport(source, current);
+    let current = before_transport.as_str();
+    let before_runtime848 = runtime_json::project(runtime_json::Fixture::F80, source, current);
+    let current = before_runtime848.as_str();
+    let before_main = runtime_json::project(runtime_json::Fixture::F81, source, current);
+    let current = before_main.as_str();
+    let prior_docs = runtime_json::project(runtime_json::Fixture::F82, source, current);
+    let current = prior_docs.as_str();
+    let rows = match branch {
+        "796" => runtime_json::Fixture::F83,
+        "831" => runtime_json::Fixture::F84,
+        "841" => runtime_json::Fixture::F85,
+        "845" => runtime_json::Fixture::F86,
+        _ => panic!("unknown independent final batch source checkpoint"),
+    };
+    runtime_json::project(rows, source, current)
+}
+
+// Direct845 owners authenticate independently from inherited source guards.
+pub(crate) fn initial845_input(source: &str, current: &str) -> String {
+    let checkpoint = final_batch_input("845", source, current);
+    let _complete_original845_before =
+        runtime_json::project(runtime_json::Fixture::F87, source, &checkpoint);
+    checkpoint
+}
+
+// Direct runtime-fixture custody stays independent of inherited source views.
+pub(crate) fn runtime848_input(source: &str, current: &str) -> String {
+    let before_transport = before_runtime_json_transport(source, current);
+    let current = before_transport.as_str();
+    runtime_json::project(runtime_json::Fixture::F88, source, current)
+}
+
+// Complete pre-transport physical inputs precede every older named view.
+fn before_runtime_json_transport(source: &str, current: &str) -> String {
+    let before_main83 = main83_physical_input(source, current);
+    let current = before_main83.as_str();
+    runtime_json::project(runtime_json::Fixture::Custody, source, current)
+}
+
+// MAIN83 reads its formatted fixture independently of historical preformat F56.
+pub(crate) fn main83_retry_fixture_input(source: &str, current: &str) -> String {
+    let formatted = main83_physical_input(source, current);
+    let _historical_preformat = retry_fixture_input(source, current);
+    formatted
+}
+fn main83_physical_input(source: &str, current: &str) -> String {
+    let joined = before_storage_oracle_join(source, current);
+    let current = joined.as_str();
+    metadata_json::project(metadata_json::Fixture::M25, source, current)
+}
+
+// Full post-compiler-fix inputs precede the immutable MAIN83 and older domains.
+fn before_storage_oracle_join(source: &str, current: &str) -> String {
+    let compile_fixed = compile_fixture_input(source, current);
+    let current = compile_fixed.as_str();
+    let qualified = metadata_json::project(metadata_json::Fixture::M00, source, current);
+    let current = qualified.as_str();
+    let next = metadata_json::project(metadata_json::Fixture::M01, source, current);
+    let current = next.as_str();
+    let integrated = metadata_json::project(metadata_json::Fixture::M26, source, current);
+    let current = integrated.as_str();
+    let previous = metadata_json::project(metadata_json::Fixture::M27, source, current);
+    let current = previous.as_str();
+    metadata_json::project(metadata_json::Fixture::M28, source, current)
+}
+
+// Independent complete Main and pre-Main source domains.
+pub(crate) fn main_b80_input(source: &str, current: &str) -> String {
+    let merged = main_dd0_previous(source, current);
+    let current = merged.as_str();
+    if matches!(
+        source,
+        "src/cleanup_plan/replay/compact_stage/before.rs"
+            | "src/cleanup_plan/replay/compact_stage/lexical_before.rs"
+    ) {
+        return metadata_json::project(metadata_json::Fixture::M29, source, current);
+    }
+    let latest = session_reference_input(source, current);
+    let current = latest.as_str();
+    metadata_json::project(metadata_json::Fixture::M30, source, current)
+}
+pub(crate) fn main_b80_prior_input(source: &str, current: &str) -> String {
+    let merged = main_dd0_previous(source, current);
+    let current = merged.as_str();
+    let latest = session_reference_input(source, current);
+    let current = latest.as_str();
+    metadata_json::project(metadata_json::Fixture::M31, source, current)
+}
+
+// Independent whole-driver input for the immutable first781 receiving owners.
+pub(crate) fn reference781_input(source: &str, current: &str) -> String {
+    let merged = main_dd0_previous(source, current);
+    let current = merged.as_str();
+    let latest = reference_family_input(source, current);
+    let current = latest.as_str();
+    metadata_json::project(metadata_json::Fixture::M32, source, current)
+}
+
+// Independent physical predecessor domains, before all immutable older stages.
+fn session_reference_input(source: &str, current: &str) -> String {
+    metadata_json::project(metadata_json::Fixture::M33, source, current)
+}
+fn reference_family_input(source: &str, current: &str) -> String {
+    metadata_json::project(metadata_json::Fixture::M34, source, current)
+}
+
+// A later compositor uses this normalization-only front BEFORE its raw table.
+pub(crate) fn bulk848_arm_input(source: &str, current: &str) -> String {
+    successor_custody::normalize(source, current)
+}
+
+// Main's compiled test corpus keeps every original source-domain check.
+fn main_dd0_previous(source: &str, current: &str) -> String {
+    let successor =
+        successor_custody::input(successor_custody::Fixture::Sealed724, source, current);
+    let current = successor.as_str();
+    let final_view = final_custody::input(final_custody::Fixture::Common, source, current);
+    let current = final_view.as_str();
+    let metadata = metadata_json::previous(source, current);
+    let current = metadata.as_str();
+    let pair = runtime_json::pair_previous(source, current);
+    let current = pair.as_str();
+    metadata_json::project(metadata_json::Fixture::M35, source, current)
+}
+
+// New owner and inherited domains remain independent; all old tables stay exact.
+pub(crate) fn arena854_input(source: &str, current: &str) -> String {
+    let successor =
+        successor_custody::input(successor_custody::Fixture::Sealed724, source, current);
+    let current = successor.as_str();
+    let final_view = final_custody::input(final_custody::Fixture::Arena, source, current);
+    let current = final_view.as_str();
+    let receiving = final_custody::project(final_custody::Fixture::ArenaReceiving, source, current);
+    let current = receiving.as_str();
+    final_custody::project(final_custody::Fixture::ArenaJoined, source, current)
+}
+pub(crate) fn arena854_previous(source: &str, current: &str) -> String {
+    let component = arena854_input(source, current);
+    final_custody::project(final_custody::Fixture::ArenaPrevious, source, &component)
+}
+
+// The complete twelve-row Main receiver has an independent scoped input.
+pub(crate) fn main7c6_input(source: &str, current: &str) -> String {
+    let successor =
+        successor_custody::input(successor_custody::Fixture::Sealed724, source, current);
+    let current = successor.as_str();
+    final_custody::input(final_custody::Fixture::Main7c6, source, current)
+}
+
+// Independent complete Main-afba receiver scope.
+pub(crate) fn main_afba_input(source: &str, current: &str) -> String {
+    successor_custody::input(successor_custody::Fixture::MainAfba, source, current)
+}

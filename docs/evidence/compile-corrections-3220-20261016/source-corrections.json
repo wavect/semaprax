@@ -1,6 +1,6 @@
 {
   "base": "3220d0bf17ebf41f73abdbad1b5f5c66e5bbfbf8",
-  "scope": "FOUR SOURCE COMPILE CORRECTIONS ONLY; no Rust execution by this receipt",
+  "scope": "FOUR FIXED CURRENT-TO-3220 SOURCE VIEWS; includes later Clippy and final joined changes; source custody only, no execution",
   "rows": [
     {
       "source": "src/cleanup/inventory_builder/typed/before_initial.rs",
@@ -17,12 +17,32 @@
     {
       "source": "src/cleanup/inventory_builder/typed/traversal.rs",
       "before_sha256": "30a44a440f2799e1a48baddd337dd95d7191d303549f838586df923e8c5c0da0",
-      "current_sha256": "730e64d95a9ece5f3ab120bce2631874c45629defe6f51b8aa5b2cce1a397794",
+      "current_sha256": "36d07aa06eb16c55c36a7db7650604146316a62fc8697daacb3ed282d5c7ded2",
       "archive": "docs/evidence/compile-corrections-3220-20261016/before/src/cleanup/inventory_builder/typed/traversal.rs.txt",
       "edits": [
         {
+          "new": "    OwnershipMode, ResolvedBinding, ResolvedExpr, ResolvedExprKind, ResolvedStatement, ResolvedType,\n",
+          "old": "    OwnershipMode, ResolvedBinding, ResolvedExpr, ResolvedExprKind, ResolvedMatchPattern,\n    ResolvedRecordMatchFieldPattern, ResolvedStatement, ResolvedType,\n"
+        },
+        {
           "new": "    pub(super) fn collect_expression(\n        &mut self,\n        expression: &ResolvedExpr,\n    ) -> Result<(), InventoryFailure> {\n",
           "old": "    fn collect_expression(&mut self, expression: &ResolvedExpr) -> Result<(), InventoryFailure> {\n"
+        },
+        {
+          "new": "                    let Some(declared) = self.program.declarations().record_fields(record) else {\n                        return Err(InventoryFailure(Kind::Finite(\n                            Reason::RecordPatternHasNoFieldInventory,\n                        )));\n                    };\n",
+          "old": "                    let declared = self\n                        .program\n                        .declarations()\n                        .record_fields(record)\n                        .ok_or_else(|| {\n                            InventoryFailure(Kind::Finite(Reason::RecordPatternHasNoFieldInventory))\n                        })?;\n"
+        },
+        {
+          "new": "                        let Some(field) = fields.iter().find(|field| field.field == declaration.id)\n                        else {\n                            return Err(InventoryFailure(Kind::Finite(\n                                Reason::RecordPatternFieldInventoryIsIncomplete,\n                            )));\n                        };\n",
+          "old": "                        let field = fields\n                            .iter()\n                            .find(|field| field.field == declaration.id)\n                            .ok_or_else(|| {\n                                InventoryFailure(Kind::Finite(\n                                    Reason::RecordPatternFieldInventoryIsIncomplete,\n                                ))\n                            })?;\n"
+        },
+        {
+          "new": "                    let Some(declared) = self.program.declarations().record_fields(record) else {\n                        return Err(InventoryFailure(Kind::Finite(\n                            Reason::NestedRecordPatternHasNoFieldInventory,\n                        )));\n                    };\n",
+          "old": "                    let declared = self\n                        .program\n                        .declarations()\n                        .record_fields(record)\n                        .ok_or_else(|| {\n                            InventoryFailure(Kind::Finite(\n                                Reason::NestedRecordPatternHasNoFieldInventory,\n                            ))\n                        })?;\n"
+        },
+        {
+          "new": "                        let Some(field) = fields.iter().find(|field| field.field == declaration.id)\n                        else {\n                            return Err(InventoryFailure(Kind::Finite(\n                                Reason::NestedRecordPatternFieldInventoryIsIncomplete,\n                            )));\n                        };\n",
+          "old": "                        let field = fields\n                            .iter()\n                            .find(|field| field.field == declaration.id)\n                            .ok_or_else(|| {\n                                InventoryFailure(Kind::Finite(\n                                    Reason::NestedRecordPatternFieldInventoryIsIncomplete,\n                                ))\n                            })?;\n"
         }
       ]
     },
@@ -50,5 +70,8 @@
         }
       ]
     }
-  ]
+  ],
+  "current_source_commit": "a5be7c1bebad9e01aa45b6f9854e40e1cc0831ed",
+  "historical_packet_commit": "67b1b02141f19040fdd1b45bc9bea16dcff5d74e",
+  "historical_packet": "docs/evidence/compile-corrections-3220-20261016/historical-67b"
 }

@@ -1,10 +1,10 @@
 {
   "hir": {
-    "raw_sha256": "3315ab61338cf31dc1c0054aaa07db19bbf445b87e0b5e9683312b1f94c66183",
-    "production_sha256": "1bcd001cee3a2d109f18ddabf942263ca473c1895281be0775491d3e1a5e0da5",
-    "unique_production_files": 378,
-    "unique_test_only_files": 644,
-    "chunks_including_multiplicity_and_separators": 962,
+    "raw_sha256": "f87161b3d14ded9737d22dd5756a5148613e78933d9a441cabf245fe17af7c0a",
+    "production_sha256": "aa7b775c04e0f447dd1a908e617f8d7eead9c341cd6e3f8d3cc97ba9ca31521a",
+    "unique_production_files": 379,
+    "unique_test_only_files": 666,
+    "chunks_including_multiplicity_and_separators": 985,
     "all_original_forbidden_checks_clear": true,
     "exact_existing_forbidden_tokens": [
       "struct Resolver",
@@ -22,10 +22,10 @@
     "three_static_negatives_refused": true
   },
   "projection": {
-    "raw_sha256": "9240fe206245a339743e2f39c903a7fa6176aa80e7f176a8d086203ecaaf8bf4",
-    "production_sha256": "10afbf2627aeda3d688fce1f4c22b36cd31825f8c60b2fe447a0ef065f6979f2",
-    "unique_production_files": 68,
-    "unique_test_only_files": 107,
+    "raw_sha256": "a66e593e57d31bca8339a37946e93bd1ce4063e7251add4fc53586511d5a80e1",
+    "production_sha256": "a0d51b9c64a5039576d2f7354da699a4a13efa84bfbdc7b27d272891e861b364",
+    "unique_production_files": 69,
+    "unique_test_only_files": 110,
     "chunks_including_multiplicity_and_separators": 172,
     "all_original_forbidden_checks_clear": true,
     "exact_existing_forbidden_tokens": [
@@ -47,17 +47,17 @@
     "tests/hir_module_boundaries.rs": {
       "original_occurrences": 977,
       "preserved_original_order": true,
-      "explicit_added_occurrences": 33
+      "explicit_added_occurrences": 56
     },
     "tests/workspace/semantic_graph/source_inventory.rs": {
       "original_occurrences": 791,
       "preserved_original_order": true,
-      "explicit_added_occurrences": 33
+      "explicit_added_occurrences": 56
     },
     "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
       "original_occurrences": 1413,
       "preserved_original_order": true,
-      "explicit_added_occurrences": 33
+      "explicit_added_occurrences": 56
     }
   },
   "mode": "SOURCE_ONLY_NO_RUST_EXECUTION"

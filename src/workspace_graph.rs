@@ -3997,9 +3997,9 @@ fn build_resolved_core_current(
     let mut validation = retained_output_only
         .then(|| staged!(CompactValidation, WorkspaceValidationIndex::new(programs)))
         .transpose()?;
-    let authority = expected_projection::private_layout::authority::invocation::Invocation::new(
+    let authority = expected_projection::private_layout::authority::invocation::scratch::ScratchInvocation::new(
         programs, authored,
-    );
+    ).ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
     let mut synthetic_modules = if retained_output_only {
         Vec::new()
     } else {
@@ -5245,9 +5245,9 @@ fn reconstruct_workspace_declaration_facts(
     programs: &[Program],
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
 ) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
-    let authority = expected_projection::private_layout::authority::invocation::Invocation::new(
+    let authority = expected_projection::private_layout::authority::invocation::scratch::ScratchInvocation::new(
         programs, authored,
-    );
+    ).ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
     reconstruct_workspace_declaration_facts_with_authority(
         modules,
         programs,
@@ -5260,7 +5260,7 @@ fn reconstruct_workspace_declaration_facts_with_authority(
     modules: &[(String, ResolvedModuleInput)],
     programs: &[Program],
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
-    authority: Option<&expected_projection::private_layout::authority::invocation::Invocation<'_>>,
+    authority: Option<&expected_projection::private_layout::authority::invocation::scratch::ScratchInvocation<'_>>,
 ) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
     let expected = expected_declaration_facts(programs)?;
     let resolved_record_iterator = modules
@@ -5283,12 +5283,7 @@ fn reconstruct_workspace_declaration_facts_with_authority(
             programs,
             module_uses_record_iterator,
         )?;
-        let private = match authority {
-            Some(owner) => owner.derive_bound(source, programs, authored)?,
-            None => expected_projection::private_layout::authority::PrivateTypes::derive(
-                source, programs, authored,
-            )?,
-        };
+        let private = expected_projection::private_layout::authority::invocation::scratch::Current::derive(authority, source, programs, authored)?;
         let synthetic_main = crate::bounded_output::budgeted_format(format_args!(
             "workspace.synthetic.main.{module}"
         ));
@@ -5625,3 +5620,6 @@ pub(crate) mod custody;
 
 pub(crate) mod initial_report;
 pub(crate) use diagnostics::initial::Captured as InitialReport;
+
+#[cfg(test)]
+mod before_private_roots;

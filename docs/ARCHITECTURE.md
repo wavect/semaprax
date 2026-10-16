@@ -5164,3 +5164,12 @@ controls. Main44's complete independent implementation and original assertions
 live in `path_array/main44`; neither source domain changes cleanup semantics,
 the builder cap, or the shipping general-DAG vector/final-suffix transfers.
 Execution qualification and net application receipts remain pending.
+
+The #765 private-authority roots scratch receiver lives in
+`workspace_graph/expected_projection/private_layout/authority_invocation/scratch`.
+Its invocation-paid Vec retains backing across sequential complete consumers;
+exclusive RefMut guards clear logical roots/DFS frames at Drop and retain no
+current-HIR verdict. Exact source/map/caller and active-ledger binding precede
+reuse. The original owning Invocation, PrivateTypes and complete prior consumers
+remain independently compiled. New controls and ordinary fallback widening can
+increase tiny-case debit; execution and application impact remain pending.

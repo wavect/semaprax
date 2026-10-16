@@ -1,0 +1,309 @@
+[
+  {
+    "source": "CHANGELOG.md",
+    "before_sha256": "aa2bdfd66506637ae1c75a78ac01dd1188d5817c3d578af68861ed42440baf8c",
+    "after_sha256": "c7453705d73bfb975d13522a0dc0ec1740f17beebf004f9d747685b708e808d1",
+    "inverse": [
+      {
+        "start": 7487,
+        "end": 7493,
+        "before": "",
+        "after_sha256": "10fd22587486d37477cdb07efe4c0697572e27ddf18d4a4d166f781a6c004344"
+      }
+    ]
+  },
+  {
+    "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "before_sha256": "90edecb52f036166c16be375ddcb94c0e3f9fce682dbc091e37fa37dffae4935",
+    "after_sha256": "cf8ea5d88879a52a73d7fa5f02709b94c29e40cb7ffbb465379a72e05561a035",
+    "inverse": [
+      {
+        "start": 3,
+        "end": 4,
+        "before": "        audit_source_join!(\n",
+        "after_sha256": "a1bcc9ebf19f3bc80e5f88b136b84634184a5042bcea410474b9d53d5519e90d"
+      }
+    ]
+  },
+  {
+    "source": "docs/ARCHITECTURE.md",
+    "before_sha256": "1ecfbe685f29f708b89ff49ae94170da5293a070ef3f0dd7e6f25b4357b9818e",
+    "after_sha256": "30bbfe531aa65bb4c30b463a89045e4e3431b1a64f414965bd151d0a97b7c799",
+    "inverse": [
+      {
+        "start": 5164,
+        "end": 5173,
+        "before": "",
+        "after_sha256": "e31c243dd9a131ed7046bb1fab7107facd2b9444ccfa27e51254afe9bb4ed8de"
+      }
+    ]
+  },
+  {
+    "source": "docs/WORKSPACE-SEMANTIC-GRAPH-V1.md",
+    "before_sha256": "9b4945cbc3fe88b5f969b87f65d5733ba369617c1feb0aed4b9229c051f7d43a",
+    "after_sha256": "a54e24b6b372b8bcc3c0e1878a65ccc1e18e1a4258e730fb666131676c901d17",
+    "inverse": [
+      {
+        "start": 423,
+        "end": 439,
+        "before": "lookup universe, one precharged legacy function/type map. Roots remain fresh\nper caller and charged to the same cumulative builder account. Every caller\n",
+        "after_sha256": "7847119eb7618a397ff6aaa4c50eeea6020f7296ac58d95c2f3a6c8f8639a672"
+      }
+    ]
+  },
+  {
+    "source": "src/bounded_output.rs",
+    "before_sha256": "62a3715093b73e9ecb181ab9b52b4cb56199c6ad85f00b176a1aba6bed6ffefc",
+    "after_sha256": "a6d258c1e9cfca7c6f1a231c86b48b937184a3af86d5cb81f8aa00b836725d9c",
+    "inverse": [
+      {
+        "start": 1341,
+        "end": 1343,
+        "before": "",
+        "after_sha256": "d42ba545054e846ba604574f9142ab76c74c25ced6dc86c81d63201aed495654"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph.rs",
+    "before_sha256": "9eab12b59d54c41c3b71f2e0b3b3d6937390da03cd8c7d4b2fe2ed1da39ae565",
+    "after_sha256": "1f5df049a249d8e94bfa9608102347cf8c3c9ee70ee8e064f075c0bd482da848",
+    "inverse": [
+      {
+        "start": 5622,
+        "end": 5625,
+        "before": "",
+        "after_sha256": "20a06ceec4dae2b8b3231ab3106689871641bb3b0fb2757f131f73350351e638"
+      },
+      {
+        "start": 5285,
+        "end": 5286,
+        "before": "        let private = match authority {\n            Some(owner) => owner.derive_bound(source, programs, authored)?,\n            None => expected_projection::private_layout::authority::PrivateTypes::derive(\n                source, programs, authored,\n            )?,\n        };\n",
+        "after_sha256": "6ecd6a5119dd8bd73d105efb6335e7d06f0b62f7bf8aaefc2f8cd3747d9c9bea"
+      },
+      {
+        "start": 5262,
+        "end": 5263,
+        "before": "    authority: Option<&expected_projection::private_layout::authority::invocation::Invocation<'_>>,\n",
+        "after_sha256": "2b7aaae0f62155370f0eb873e634bc8c22aa73dad0a71d9d7ba127f3c4a79bd9"
+      },
+      {
+        "start": 5249,
+        "end": 5250,
+        "before": "    );\n",
+        "after_sha256": "ac07299906cd0f7f0871e63f754af95c6624ed92febaf0d8694a51c714e3baa7"
+      },
+      {
+        "start": 5247,
+        "end": 5248,
+        "before": "    let authority = expected_projection::private_layout::authority::invocation::Invocation::new(\n",
+        "after_sha256": "dfaf7e8e1e9ca0b70ba045722bec743384324c3e0535816fc9270d07183c4347"
+      },
+      {
+        "start": 4001,
+        "end": 4002,
+        "before": "    );\n",
+        "after_sha256": "ac07299906cd0f7f0871e63f754af95c6624ed92febaf0d8694a51c714e3baa7"
+      },
+      {
+        "start": 3999,
+        "end": 4000,
+        "before": "    let authority = expected_projection::private_layout::authority::invocation::Invocation::new(\n",
+        "after_sha256": "dfaf7e8e1e9ca0b70ba045722bec743384324c3e0535816fc9270d07183c4347"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/cache_key_original.rs",
+    "before_sha256": "d6e2136b47f4e56554eb858fad2e79dfcd9ac066e1170a2e5b74f4dee8b91268",
+    "after_sha256": "171ec4e12985170eb6aa294ac6afc411ee3a7afdc666c7e5e1e507bfc251e662",
+    "inverse": [
+      {
+        "start": 533,
+        "end": 536,
+        "before": "",
+        "after_sha256": "4552e854299cb22f84fc770c7c7b1786e93fec3d4180e108335e7da8a4a5b51a"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/constructor_failure/receiving/before.rs",
+    "before_sha256": "6135d75cf3f57029b9dd754030aba155a75ca902772aa036345481c1d3abc8b1",
+    "after_sha256": "f07589cda30b524062f7ad4dcb87cfc1244b2746729b2b1e5cd0e84320786aed",
+    "inverse": [
+      {
+        "start": 361,
+        "end": 364,
+        "before": "",
+        "after_sha256": "4552e854299cb22f84fc770c7c7b1786e93fec3d4180e108335e7da8a4a5b51a"
+      },
+      {
+        "start": 9,
+        "end": 10,
+        "before": "    validate_retained_declaration_shapes, validate_stub_signatures_authored,\n",
+        "after_sha256": "7da8f318adcecb5d3c89ce87218f30e89163828811a25a979af5d332f84758a4"
+      },
+      {
+        "start": 6,
+        "end": 7,
+        "before": "    owned_generics, reconstruct_workspace_declaration_facts_with_authority,\n",
+        "after_sha256": "78391f090a46c1cbd8b76517635bbcf7efe0060f6bfeeffcdf62dc6325e4e5b1"
+      },
+      {
+        "start": 4,
+        "end": 5,
+        "before": "    WorkspaceValidationIndex, charge_builder_prebound, checked_retention, collect_expected_edges,\n",
+        "after_sha256": "dc731ec1560490fa290bf89744f9c3aeb9ee7e302e24ad944f37feb2ee2ee409"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/private_layout.rs",
+    "before_sha256": "ca6c93a679b97cf275c83168b03d6ee550c2989b12c6d4a08db93063f43ff9a3",
+    "after_sha256": "ca6c93a679b97cf275c83168b03d6ee550c2989b12c6d4a08db93063f43ff9a3",
+    "inverse": []
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/private_layout/authority.rs",
+    "before_sha256": "9a66a7bb422c27e3528e7d17aaf44ef96ca868017df31d21a44e9a1abdb375fe",
+    "after_sha256": "9a66a7bb422c27e3528e7d17aaf44ef96ca868017df31d21a44e9a1abdb375fe",
+    "inverse": []
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/private_layout/authority_invocation.rs",
+    "before_sha256": "8948b8bad000ab56b794525678ab709218675f42b9772b0e1a0499e04e7a0fd5",
+    "after_sha256": "8da861c040f59d451e2420b395291f69e19b5f02a05b83aaf377c8ceff3fb5d2",
+    "inverse": [
+      {
+        "start": 221,
+        "end": 224,
+        "before": "",
+        "after_sha256": "2645e9c84d2df28bedff0f0f3ce2490bde9952be9f25afae8ebf0d4dbf929b3b"
+      },
+      {
+        "start": 88,
+        "end": 89,
+        "before": "",
+        "after_sha256": "255b2db81abba56e9247bb608dfb9989428adcd80c7704dbe765e83fe1595504"
+      },
+      {
+        "start": 61,
+        "end": 62,
+        "before": "",
+        "after_sha256": "255b2db81abba56e9247bb608dfb9989428adcd80c7704dbe765e83fe1595504"
+      },
+      {
+        "start": 48,
+        "end": 49,
+        "before": "",
+        "after_sha256": "255b2db81abba56e9247bb608dfb9989428adcd80c7704dbe765e83fe1595504"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/private_layout/authority_invocation/tests.rs",
+    "before_sha256": "481d906a657a599afb0faadba2a362ee410f47c52709086b70d7eb0edf11fd27",
+    "after_sha256": "481d906a657a599afb0faadba2a362ee410f47c52709086b70d7eb0edf11fd27",
+    "inverse": []
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/private_layout/authority_oracle.rs",
+    "before_sha256": "2025c1ba5ee0e56e09748ea5c0a6a25321a22e7e2ef47e330a1a6414e4daf813",
+    "after_sha256": "2025c1ba5ee0e56e09748ea5c0a6a25321a22e7e2ef47e330a1a6414e4daf813",
+    "inverse": []
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/private_layout/authority_tests.rs",
+    "before_sha256": "86e1536f42748775fb622dbeca26ace1ec21994524db0912c21d32167a9c9ed2",
+    "after_sha256": "86e1536f42748775fb622dbeca26ace1ec21994524db0912c21d32167a9c9ed2",
+    "inverse": []
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/private_layout/authority_view.rs",
+    "before_sha256": "b46f22a0c2b30f5c6260a3076a66e2331f444529e937662ce5199b183bb5fe8e",
+    "after_sha256": "b46f22a0c2b30f5c6260a3076a66e2331f444529e937662ce5199b183bb5fe8e",
+    "inverse": []
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/private_layout/roots.rs",
+    "before_sha256": "d42b4ecfeb89bb91cb89bfde0058e755e7e20bbb1b7c353da9ba0489721e72cf",
+    "after_sha256": "d42b4ecfeb89bb91cb89bfde0058e755e7e20bbb1b7c353da9ba0489721e72cf",
+    "inverse": []
+  },
+  {
+    "source": "src/workspace_graph/function_alias/before_core.rs",
+    "before_sha256": "17442fc7c7d6023617ea0f84a57564ac779bf0e4882963f29133ce9c46c89578",
+    "after_sha256": "4b0a8ea2da5186b87d3481d4cec49e50fffe899c6cbd102229a9b94d7d33b1b6",
+    "inverse": [
+      {
+        "start": 391,
+        "end": 394,
+        "before": "",
+        "after_sha256": "4552e854299cb22f84fc770c7c7b1786e93fec3d4180e108335e7da8a4a5b51a"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/validation.rs",
+    "before_sha256": "efd9facda18231f7e396d7be0791716852c48a1781b6cfcbf1aba478706f6364",
+    "after_sha256": "fdd173857f64d3dd870c5517e32c7eaff9ceb9a29fbf3b284f6ffda23fbb7899",
+    "inverse": [
+      {
+        "start": 1000,
+        "end": 1003,
+        "before": "",
+        "after_sha256": "3826472e7f5274ee8f244c852eedc4a0a97f6c98d1dbe4deba8522eb9c9a3670"
+      },
+      {
+        "start": 793,
+        "end": 794,
+        "before": "        let private = match authority {\n            Some(owner) => owner.derive_bound(caller, programs, authored)?,\n            None => super::expected_projection::private_layout::authority::PrivateTypes::derive(\n                caller, programs, authored,\n            )?,\n        };\n",
+        "after_sha256": "a2c6332dae38a7b27389e01feb6e2f5e7bf2cdcad5c42bc359596f3eabf63db7"
+      },
+      {
+        "start": 400,
+        "end": 401,
+        "before": "            let private = match authority {\n                Some(owner) => owner.derive_bound(caller, programs, authored)?,\n                None => {\n                    super::expected_projection::private_layout::authority::PrivateTypes::derive(\n                        caller, programs, authored,\n                    )?\n                }\n            };\n",
+        "after_sha256": "7e98e210e6ce1f98c2cabd5006328a5b0cf7bb7ac84b1b2ab67c5594111d76a5"
+      },
+      {
+        "start": 187,
+        "end": 188,
+        "before": "        let private = match authority {\n            Some(owner) => owner.derive_bound(source, programs, authored)?,\n            None => super::expected_projection::private_layout::authority::PrivateTypes::derive(\n                source, programs, authored,\n            )?,\n        };\n",
+        "after_sha256": "3ecd51d0dbf7d19b87dbcaa5f031479f269103ea1a1e8c69e2a70c88deffa12f"
+      },
+      {
+        "start": 8,
+        "end": 11,
+        "before": "use super::expected_projection::private_layout::authority::invocation::Invocation;\n",
+        "after_sha256": "5cf406026a8b290762d13ea50a963a4a1a106be8a2bf521042d59da2591d626f"
+      }
+    ]
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "before_sha256": "17234fe7aa36c0279713898125a16fbc954714a5396057e1301bbaa8ff6e5d22",
+    "after_sha256": "12771c212bee966c3fc47d717f1b7321125d79025f25405e79596e0459e3eccd",
+    "inverse": [
+      {
+        "start": 4,
+        "end": 5,
+        "before": "    let validation_raw = audit_source_join!(\n",
+        "after_sha256": "7ba01a23523cc57faa264622889e8bdab0877722767695358d7ea3dff546a4c7"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph/source_inventory.rs",
+    "before_sha256": "98f8e928b51f30b162fe4353bf4d30653d7a2a18bf9f707c0b979f25b38a1c4d",
+    "after_sha256": "078ef04cd749e510ead63700d561c07715bfddbbf28449dd58328f5ba1c0039e",
+    "inverse": [
+      {
+        "start": 227,
+        "end": 228,
+        "before": "        audit_source_join!(\n",
+        "after_sha256": "b3c64a1e173e71ed6c527f0dd949b056d2958b00854c567f864ce65532dba7a9"
+      }
+    ]
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "status": "SOURCE_ONLY_EXACT_ADDITIVE_JOIN",
+  "all_original_and_incoming_include_multiplicities_preserved": true,
+  "incoming_added_tokens": {
+    "../../../../../src/bounded_output/invocation_binding.rs": 1,
+    "../../../../../src/workspace_graph/before_private_roots.rs": 1,
+    "../../../../../src/workspace_graph/cache_key_original.rs": 1,
+    "../../../../../src/workspace_graph/constructor_failure/receiving/before.rs": 1,
+    "../../../../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs": 1,
+    "../../../../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs": 1,
+    "../../../../../src/workspace_graph/validation/before_roots.rs": 1
+  },
+  "native_inventory_lines": 1500,
+  "added_fragment": " include_str!(\"../../../../../src/bounded_output/invocation_binding.rs\"), include_str!(\"../../../../../src/workspace_graph/before_private_roots.rs\"), include_str!(\"../../../../../src/workspace_graph/cache_key_original.rs\"), include_str!(\"../../../../../src/workspace_graph/constructor_failure/receiving/before.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs\"), include_str!(\"../../../../../src/workspace_graph/validation/before_roots.rs\"),"
+}

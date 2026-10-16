@@ -7490,3 +7490,9 @@ are authored. Qualification is pending; Catalog corpus and limits are unchanged.
 - Add typed raw-inventory refusals at genuine primitive failure sites and transfer
   only sealed budget failures through the same paid ledger. Preserve the complete
   original callback/builder; schema and supplemental families remain open.
+
+- Source-authored #765 invocation-paid private-authority roots backing leases
+  rebuild logical roots/work on every complete caller, retain exclusive cleanup
+  guards through consumer use, and preserve independent full old receivers.
+  Zero/exact/short/floor/sticky/foreign/Drop/parity controls await qualification;
+  no measured savings or application admission is claimed.

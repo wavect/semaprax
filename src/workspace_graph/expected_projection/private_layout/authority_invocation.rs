@@ -46,6 +46,7 @@ impl<'a> Invocation<'a> {
             }),
         }
     }
+    #[cfg(test)]
     pub(in crate::workspace_graph) fn derive_bound(
         &self,
         caller: &Program,
@@ -58,6 +59,7 @@ impl<'a> Invocation<'a> {
         }
         self.derive(caller)
     }
+    #[cfg(test)]
     pub(in crate::workspace_graph) fn derive(
         &self,
         caller: &Program,
@@ -84,6 +86,7 @@ impl<'a> Invocation<'a> {
         }
         result
     }
+    #[cfg(test)]
     fn derive_current(
         &self,
         caller: &Program,
@@ -216,3 +219,6 @@ fn legacy<'a>(
 #[cfg(test)]
 #[path = "authority_invocation/tests.rs"]
 mod tests;
+
+#[path = "authority_invocation/scratch.rs"]
+pub(in crate::workspace_graph) mod scratch;

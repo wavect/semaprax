@@ -1,0 +1,19 @@
+{
+  "status": "PENDING_NOT_EXECUTED",
+  "package": "semaprax",
+  "harness": "lib",
+  "new": [
+    "workspace_graph::expected_projection::private_layout::authority::invocation::scratch::tests::sequential_leases_repeat_complete_old_roots_work_queries_and_current_callbacks",
+    "workspace_graph::expected_projection::private_layout::authority::invocation::scratch::tests::roots_backing_is_paid_once_exact_short_floor_sticky_and_drop_are_observed",
+    "workspace_graph::expected_projection::private_layout::authority::invocation::scratch::tests::absent_explicit_zero_types_and_ordinary_fallback_keep_unfavorable_controls_visible",
+    "workspace_graph::expected_projection::private_layout::authority::invocation::scratch::tests::foreign_bindings_overlap_current_work_and_unwind_cannot_reuse_stale_authority",
+    "workspace_graph::expected_projection::private_layout::authority::invocation::scratch::tests::incomplete_partial_walk_and_overflow_layout_never_publish_roots",
+    "workspace_graph::expected_projection::private_layout::authority::invocation::scratch::tests::all_four_complete_consumers_match_independent_previous_receivers_and_six_diagnostic_fields"
+  ],
+  "unchanged_original": [
+    "workspace_graph::expected_projection::private_layout::authority::invocation::tests::one_invocation_preserves_old_authority_universe_and_current_caller_checks",
+    "workspace_graph::expected_projection::private_layout::authority::invocation::tests::foreign_same_cardinality_authority_and_map_binding_fail_stickily",
+    "workspace_graph::expected_projection::private_layout::authority::invocation::tests::held_frames_are_funded_once_and_repeated_roots_keep_exact_short_and_drop_controls"
+  ],
+  "additional_required": "existing private-authority full ordinary/compact workspace graph/HIR/image/cache/application owners on final joined source"
+}

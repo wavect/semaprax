@@ -1,0 +1,209 @@
+{
+  "base": "37c771b08",
+  "status": "SOURCE_ONLY_COMMON_AUTHORITY_REBIND_PENDING_847",
+  "span_protocol": "ZERO-BASED half-open line spans, reverse order; authenticate full current SHA first",
+  "rows": [
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "archive": "before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "before_sha256": "fc7e29ee8ad79bbd06cc82cdc79579cabba6c3308acf4f1e83aaa6a31ea05a2e",
+      "current_sha256": "40cb92bb103d876ac39ccf53ddf3c19df703aed60194b08fdc7465a9c6b24218",
+      "inverse": [
+        {
+          "start_line": 85,
+          "end_line": 86,
+          "current": "        audit_source_join!(include_str!(\"../../../../../src/workspace_graph/identity_resolution/base/cache_billing/main7f8_inputs.rs\"), include_str!(\"../../../../../src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/import_stub/core_proofs/main7f8_provider.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/sequence_vector/observation_parity.rs\"), include_str!(\"../../../../../src/cli/json_codec/retained_receipt.rs\"), include_str!(\"../../../../../src/cli/json_codec/retained_receipt/tests.rs\"), include_str!(\"../../../../../src/project/authority/retained_input.rs\"), include_str!(\"../../../../../src/project/json_codec/retained_receipt.rs\"), include_str!(\"../../../../../src/project/json_codec/retained_receipt/tests.rs\"), include_str!(\"../../../../../tests/project/standard_library/application_json/retained_receipt.rs\"), include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs\"), include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/before_524.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main7f8_presence.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main7f8_source_inputs.rs\"),\n",
+          "previous": "        audit_source_join!(\n"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json",
+      "archive": "before/docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json",
+      "before_sha256": "6c7ed7c81cc1ff0d8e4dd2558f828512422647bab2c27e786a7c16866d1c6755",
+      "current_sha256": "e30b24d4e4681c52fa6062026fc954cba88944e33a0eda078255379dacade3e4",
+      "inverse": [
+        {
+          "start_line": 62,
+          "end_line": 77,
+          "current": "      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\": 1,\n      \"src/workspace_graph/identity_resolution/base/cache_billing/main7f8_inputs.rs\": 1,\n      \"src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs\": 1,\n      \"src/workspace_graph/expected_projection/import_stub/core_proofs/main7f8_provider.rs\": 1,\n      \"src/cleanup_plan/replay/sequence_vector/observation_parity.rs\": 1,\n      \"src/cli/json_codec/retained_receipt.rs\": 1,\n      \"src/cli/json_codec/retained_receipt/tests.rs\": 1,\n      \"src/project/authority/retained_input.rs\": 1,\n      \"src/project/json_codec/retained_receipt.rs\": 1,\n      \"src/project/json_codec/retained_receipt/tests.rs\": 1,\n      \"tests/project/standard_library/application_json/retained_receipt.rs\": 1,\n      \"tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs\": 1,\n      \"tests/wasm/scalar_browser_ci_contract/before_524.rs\": 1,\n      \"src/source_reflows_merge/main7f8_presence.rs\": 1,\n      \"src/source_reflows_merge/main7f8_source_inputs.rs\": 1\n",
+          "previous": "      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\": 1\n"
+        },
+        {
+          "start_line": 144,
+          "end_line": 159,
+          "current": "      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\": 1,\n      \"src/workspace_graph/identity_resolution/base/cache_billing/main7f8_inputs.rs\": 1,\n      \"src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs\": 1,\n      \"src/workspace_graph/expected_projection/import_stub/core_proofs/main7f8_provider.rs\": 1,\n      \"src/cleanup_plan/replay/sequence_vector/observation_parity.rs\": 1,\n      \"src/cli/json_codec/retained_receipt.rs\": 1,\n      \"src/cli/json_codec/retained_receipt/tests.rs\": 1,\n      \"src/project/authority/retained_input.rs\": 1,\n      \"src/project/json_codec/retained_receipt.rs\": 1,\n      \"src/project/json_codec/retained_receipt/tests.rs\": 1,\n      \"tests/project/standard_library/application_json/retained_receipt.rs\": 1,\n      \"tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs\": 1,\n      \"tests/wasm/scalar_browser_ci_contract/before_524.rs\": 1,\n      \"src/source_reflows_merge/main7f8_presence.rs\": 1,\n      \"src/source_reflows_merge/main7f8_source_inputs.rs\": 1\n",
+          "previous": "      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\": 1\n"
+        },
+        {
+          "start_line": 257,
+          "end_line": 272,
+          "current": "      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\": 1,\n      \"src/workspace_graph/identity_resolution/base/cache_billing/main7f8_inputs.rs\": 1,\n      \"src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs\": 1,\n      \"src/workspace_graph/expected_projection/import_stub/core_proofs/main7f8_provider.rs\": 1,\n      \"src/cleanup_plan/replay/sequence_vector/observation_parity.rs\": 1,\n      \"src/cli/json_codec/retained_receipt.rs\": 1,\n      \"src/cli/json_codec/retained_receipt/tests.rs\": 1,\n      \"src/project/authority/retained_input.rs\": 1,\n      \"src/project/json_codec/retained_receipt.rs\": 1,\n      \"src/project/json_codec/retained_receipt/tests.rs\": 1,\n      \"tests/project/standard_library/application_json/retained_receipt.rs\": 1,\n      \"tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs\": 1,\n      \"tests/wasm/scalar_browser_ci_contract/before_524.rs\": 1,\n      \"src/source_reflows_merge/main7f8_presence.rs\": 1,\n      \"src/source_reflows_merge/main7f8_source_inputs.rs\": 1\n",
+          "previous": "      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\": 1\n"
+        },
+        {
+          "start_line": 368,
+          "end_line": 383,
+          "current": "      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\": 1,\n      \"src/workspace_graph/identity_resolution/base/cache_billing/main7f8_inputs.rs\": 1,\n      \"src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs\": 1,\n      \"src/workspace_graph/expected_projection/import_stub/core_proofs/main7f8_provider.rs\": 1,\n      \"src/cleanup_plan/replay/sequence_vector/observation_parity.rs\": 1,\n      \"src/cli/json_codec/retained_receipt.rs\": 1,\n      \"src/cli/json_codec/retained_receipt/tests.rs\": 1,\n      \"src/project/authority/retained_input.rs\": 1,\n      \"src/project/json_codec/retained_receipt.rs\": 1,\n      \"src/project/json_codec/retained_receipt/tests.rs\": 1,\n      \"tests/project/standard_library/application_json/retained_receipt.rs\": 1,\n      \"tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs\": 1,\n      \"tests/wasm/scalar_browser_ci_contract/before_524.rs\": 1,\n      \"src/source_reflows_merge/main7f8_presence.rs\": 1,\n      \"src/source_reflows_merge/main7f8_source_inputs.rs\": 1\n",
+          "previous": "      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\": 1\n"
+        },
+        {
+          "start_line": 451,
+          "end_line": 466,
+          "current": "      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\": 1,\n      \"src/workspace_graph/identity_resolution/base/cache_billing/main7f8_inputs.rs\": 1,\n      \"src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs\": 1,\n      \"src/workspace_graph/expected_projection/import_stub/core_proofs/main7f8_provider.rs\": 1,\n      \"src/cleanup_plan/replay/sequence_vector/observation_parity.rs\": 1,\n      \"src/cli/json_codec/retained_receipt.rs\": 1,\n      \"src/cli/json_codec/retained_receipt/tests.rs\": 1,\n      \"src/project/authority/retained_input.rs\": 1,\n      \"src/project/json_codec/retained_receipt.rs\": 1,\n      \"src/project/json_codec/retained_receipt/tests.rs\": 1,\n      \"tests/project/standard_library/application_json/retained_receipt.rs\": 1,\n      \"tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs\": 1,\n      \"tests/wasm/scalar_browser_ci_contract/before_524.rs\": 1,\n      \"src/source_reflows_merge/main7f8_presence.rs\": 1,\n      \"src/source_reflows_merge/main7f8_source_inputs.rs\": 1\n",
+          "previous": "      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\": 1\n"
+        },
+        {
+          "start_line": 532,
+          "end_line": 547,
+          "current": "      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\": 1,\n      \"src/workspace_graph/identity_resolution/base/cache_billing/main7f8_inputs.rs\": 1,\n      \"src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs\": 1,\n      \"src/workspace_graph/expected_projection/import_stub/core_proofs/main7f8_provider.rs\": 1,\n      \"src/cleanup_plan/replay/sequence_vector/observation_parity.rs\": 1,\n      \"src/cli/json_codec/retained_receipt.rs\": 1,\n      \"src/cli/json_codec/retained_receipt/tests.rs\": 1,\n      \"src/project/authority/retained_input.rs\": 1,\n      \"src/project/json_codec/retained_receipt.rs\": 1,\n      \"src/project/json_codec/retained_receipt/tests.rs\": 1,\n      \"tests/project/standard_library/application_json/retained_receipt.rs\": 1,\n      \"tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs\": 1,\n      \"tests/wasm/scalar_browser_ci_contract/before_524.rs\": 1,\n      \"src/source_reflows_merge/main7f8_presence.rs\": 1,\n      \"src/source_reflows_merge/main7f8_source_inputs.rs\": 1\n",
+          "previous": "      \"src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf_empty_memo.rs\": 1\n"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/live_oracle/source_custody/presence.rs",
+      "archive": "before/src/cleanup_plan/replay/live_oracle/source_custody/presence.rs",
+      "before_sha256": "c7a3cab3473b69f55413d1dbe1fe6c4ab18c4ca73b02c1168124289fb35533ae",
+      "current_sha256": "a7496cf1bc1d259df188c0db6b5384ef403bdbac9ded3484653d51064d85c457",
+      "inverse": [
+        {
+          "start_line": 11,
+          "end_line": 12,
+          "current": "    *current = crate::source_reflows_merge::main7f8_presence::before_eb2(path, current);\n",
+          "previous": ""
+        },
+        {
+          "start_line": 13,
+          "end_line": 14,
+          "current": "    *current = crate::source_reflows_merge::main7f8_presence::after_eb2(path, current);\n",
+          "previous": ""
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs",
+      "archive": "before/src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs",
+      "before_sha256": "0f634bae3a57dff7216527c6cfc4a9391db9532a09000dc41389edd68f1ae3f1",
+      "current_sha256": "d4fdaf15c651ee326cf2dcb6cde810f4a7c766ef0e337291053f5f14004fa64e",
+      "inverse": [
+        {
+          "start_line": 3,
+          "end_line": 4,
+          "current": "    crate::source_reflows_merge::main7f8_presence::controls();\n",
+          "previous": ""
+        }
+      ]
+    },
+    {
+      "path": "src/hir/lexical_exit/walk/tests.rs",
+      "archive": "before/src/hir/lexical_exit/walk/tests.rs",
+      "before_sha256": "412a9092ccdf367c7db50e42c75ec2f514f6102e8435b4084d17e9a8a45d6d70",
+      "current_sha256": "9f3ac71703fa3926dc37a0a5ea02ecef1c9b41d102f445dbb89a34758e7a7596",
+      "inverse": [
+        {
+          "start_line": 603,
+          "end_line": 604,
+          "current": "        let current = crate::source_reflows_merge::main7f8_source_inputs::source(\"eb2-compact\", record[\"path\"].as_str().unwrap(), &current);\n",
+          "previous": ""
+        },
+        {
+          "start_line": 605,
+          "end_line": 606,
+          "current": "        let current = crate::source_reflows_merge::main7f8_presence::compact_after_eb2(record[\"path\"].as_str().unwrap(), &current);\n",
+          "previous": ""
+        }
+      ]
+    },
+    {
+      "path": "src/loan_plan/tests.rs",
+      "archive": "before/src/loan_plan/tests.rs",
+      "before_sha256": "66bff4967279f1284333996c107ec486341fa5bd6c000c6c4efd3fa17abf4795",
+      "current_sha256": "bc2074ab329ba1f71416d503c222a5fcd75b49b65f11f70a784cac90bfa110a0",
+      "inverse": [
+        {
+          "start_line": 646,
+          "end_line": 647,
+          "current": "        let current = crate::source_reflows_merge::main7f8_source_inputs::source(\"loan-stack\", record[\"path\"].as_str().unwrap(), &current);\n",
+          "previous": ""
+        }
+      ]
+    },
+    {
+      "path": "src/project/incremental.rs",
+      "archive": "before/src/project/incremental.rs",
+      "before_sha256": "0e0dcf6bedf6d4e3beb9f49f78cb188f57e32ffb8d7e82ac4a2479fbaa51202f",
+      "current_sha256": "c34c4705dc8ecad1d8f61d3b8f997a074a3c4ba1c64dfb1b8a7dc0234dea4497",
+      "inverse": [
+        {
+          "start_line": 1027,
+          "end_line": 1028,
+          "current": "        crate::source_reflows_merge::main7f8_source_inputs::controls();\n",
+          "previous": ""
+        },
+        {
+          "start_line": 1046,
+          "end_line": 1047,
+          "current": "            let current = crate::source_reflows_merge::main7f8_source_inputs::source(\"cache-fit\", record[\"path\"].as_str().unwrap(), &current);\n",
+          "previous": ""
+        }
+      ]
+    },
+    {
+      "path": "src/source_reflows/semantic_receivers.rs",
+      "archive": "before/src/source_reflows/semantic_receivers.rs",
+      "before_sha256": "764f614be848c3ce6d2635d0cd9dc4e2b92c15e24eba822e754f9f82155644b9",
+      "current_sha256": "457d115f41607edd272dbf214714a0df276dfa75fb8a86a2cb313586c5bc495c",
+      "inverse": [
+        {
+          "start_line": 154,
+          "end_line": 155,
+          "current": "        let current = crate::source_reflows_merge::main7f8_source_inputs::source(\"source-followups\", record[\"path\"].as_str().unwrap(), &current);\n",
+          "previous": ""
+        }
+      ]
+    },
+    {
+      "path": "src/source_reflows_merge.rs",
+      "archive": "before/src/source_reflows_merge.rs",
+      "before_sha256": "c26217deba0156a4035da8ade4cf365098a2dbfcbcbf202feb88b293bc0eea57",
+      "current_sha256": "3889d849e0a3c8401bebdc2f9f37249027e429e61553b35646cd74de2fa33ce7",
+      "inverse": [
+        {
+          "start_line": 1007,
+          "end_line": 1013,
+          "current": "\n// Distinct closed Main7f8 historical input domains; no compiler authority.\n#[path = \"source_reflows_merge/main7f8_presence.rs\"]\npub(crate) mod main7f8_presence;\n#[path = \"source_reflows_merge/main7f8_source_inputs.rs\"]\npub(crate) mod main7f8_source_inputs;\n",
+          "previous": ""
+        }
+      ]
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "archive": "before/tests/hir_module_boundaries.rs",
+      "before_sha256": "f551556ae32ac5359ee5987f636f21efd19949edc76836469f8ab1817a977faf",
+      "current_sha256": "fd7918bc0b116c5a5e7aa23e82df6abbb74f166e6175509a3ec55f9a8b43630c",
+      "inverse": [
+        {
+          "start_line": 4,
+          "end_line": 5,
+          "current": "    let validation_raw = audit_source_join!(include_str!(\"../src/workspace_graph/identity_resolution/base/cache_billing/main7f8_inputs.rs\"), include_str!(\"../src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs\"), include_str!(\"../src/workspace_graph/expected_projection/import_stub/core_proofs/main7f8_provider.rs\"), include_str!(\"../src/cleanup_plan/replay/sequence_vector/observation_parity.rs\"), include_str!(\"../src/cli/json_codec/retained_receipt.rs\"), include_str!(\"../src/cli/json_codec/retained_receipt/tests.rs\"), include_str!(\"../src/project/authority/retained_input.rs\"), include_str!(\"../src/project/json_codec/retained_receipt.rs\"), include_str!(\"../src/project/json_codec/retained_receipt/tests.rs\"), include_str!(\"../tests/project/standard_library/application_json/retained_receipt.rs\"), include_str!(\"../tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs\"), include_str!(\"../tests/wasm/scalar_browser_ci_contract/before_524.rs\"), include_str!(\"../src/source_reflows_merge/main7f8_presence.rs\"), include_str!(\"../src/source_reflows_merge/main7f8_source_inputs.rs\"),include_str!(\"../src/source_reflows_merge/main_eb2_inputs.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/sequence_minimum/optimized.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/sequence_minimum/immediate.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs\"), include_str!(\"../src/source_reflows_merge/opt858_sequence_input.rs\"), include_str!(\"../src/bounded_output/invocation_binding.rs\"), include_str!(\"../src/source_verify/declaration/record_shape.rs\"), include_str!(\"../src/source_verify/declaration/record_shape_before.rs\"), include_str!(\"../src/cleanup_plan/replay/schema/original_materializer.rs\"), include_str!(\"../src/cleanup_plan/replay/schema/ordinary_tests.rs\"), include_str!(\"support/production_source_inventory_original.rs\"), include_str!(\"support/new_boundary_module.rs\"), include_str!(\"../src/workspace_graph/before_private_roots.rs\"), include_str!(\"../src/workspace_graph/cache_key_original.rs\"), include_str!(\"../src/workspace_graph/constructor_failure/receiving/before.rs\"), include_str!(\"../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs\"), include_str!(\"../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs\"), include_str!(\"../src/workspace_graph/validation/before_roots.rs\"),\n",
+          "previous": "    let validation_raw = audit_source_join!(include_str!(\"../src/source_reflows_merge/main_eb2_inputs.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/sequence_minimum/optimized.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/sequence_minimum/immediate.rs\"), include_str!(\"../src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs\"), include_str!(\"../src/source_reflows_merge/opt858_sequence_input.rs\"), include_str!(\"../src/bounded_output/invocation_binding.rs\"), include_str!(\"../src/source_verify/declaration/record_shape.rs\"), include_str!(\"../src/source_verify/declaration/record_shape_before.rs\"), include_str!(\"../src/cleanup_plan/replay/schema/original_materializer.rs\"), include_str!(\"../src/cleanup_plan/replay/schema/ordinary_tests.rs\"), include_str!(\"support/production_source_inventory_original.rs\"), include_str!(\"support/new_boundary_module.rs\"), include_str!(\"../src/workspace_graph/before_private_roots.rs\"), include_str!(\"../src/workspace_graph/cache_key_original.rs\"), include_str!(\"../src/workspace_graph/constructor_failure/receiving/before.rs\"), include_str!(\"../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs\"), include_str!(\"../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs\"), include_str!(\"../src/workspace_graph/validation/before_roots.rs\"),\n"
+        }
+      ]
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "archive": "before/tests/workspace/semantic_graph/source_inventory.rs",
+      "before_sha256": "e6e8aeb3beb22719215bf789af1db6d82582281018922d00e56f44baa36bb2e5",
+      "current_sha256": "9791a5c5cfdc3234e53c74ce40f29d139ca97a7d0d0864da77d360cb838858c1",
+      "inverse": [
+        {
+          "start_line": 5,
+          "end_line": 6,
+          "current": "    (capacity) => { audit_source_join!(include_str!(\"../../src/workspace_graph/identity_resolution/base/cache_billing/main7f8_inputs.rs\"), include_str!(\"../../src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/import_stub/core_proofs/main7f8_provider.rs\"), include_str!(\"../../src/cleanup_plan/replay/sequence_vector/observation_parity.rs\"), include_str!(\"../../src/cli/json_codec/retained_receipt.rs\"), include_str!(\"../../src/cli/json_codec/retained_receipt/tests.rs\"), include_str!(\"../../src/project/authority/retained_input.rs\"), include_str!(\"../../src/project/json_codec/retained_receipt.rs\"), include_str!(\"../../src/project/json_codec/retained_receipt/tests.rs\"), include_str!(\"../../tests/project/standard_library/application_json/retained_receipt.rs\"), include_str!(\"../../tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs\"), include_str!(\"../../tests/wasm/scalar_browser_ci_contract/before_524.rs\"), include_str!(\"../../src/source_reflows_merge/main7f8_presence.rs\"), include_str!(\"../../src/source_reflows_merge/main7f8_source_inputs.rs\"),\n",
+          "previous": "    (capacity) => { audit_source_join!(\n"
+        }
+      ]
+    }
+  ]
+}

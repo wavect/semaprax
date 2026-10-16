@@ -249,3 +249,115 @@ fn omitted_private_layout_source_persisted_cache_reconstructs_provider_layout_an
 
 #[path = "application_profiles/statement_markers.rs"]
 mod statement_markers;
+
+#[test]
+#[ignore = "explicit hosted wire audit after the owning persisted-cache shard fails"]
+fn private_layout_cold_warm_image_wire_audit() {
+    use semaprax::project::{
+        ProjectFrontendCache, ProjectFrontendSource, ProjectManifest, ProjectSemanticImage,
+    };
+    use sha2::{Digest, Sha256};
+    use std::fmt::Write as _;
+
+    let fixture = Fixture::new();
+    let manifest_text = IDENTIFIER_MANIFEST
+        .replace("consumer.app", "function_layout.app")
+        .replace("consumer.tests", "function_layout.tests")
+        .replace("src/schema.spx", "src/provider.spx");
+    std::fs::write(fixture.root.join("semaprax.toml"), &manifest_text).unwrap();
+    write(
+        &fixture,
+        "src/app.spx",
+        include_str!(
+            "../../src/workspace_graph/expected_projection/private_layout/function_caller.spx"
+        ),
+    );
+    write(
+        &fixture,
+        "src/provider.spx",
+        include_str!(
+            "../../src/workspace_graph/expected_projection/private_layout/function_provider.spx"
+        ),
+    );
+    write(
+        &fixture,
+        "src/tests.spx",
+        "module function_layout.tests; @id(\"layout.tests.main\") fn main()->i64 {0}",
+    );
+    let manifest = ProjectManifest::parse(&manifest_text).unwrap();
+    let sources = manifest
+        .sources()
+        .iter()
+        .map(|path| {
+            ProjectFrontendSource::new(
+                path,
+                &std::fs::read_to_string(fixture.root.join(path)).unwrap(),
+            )
+            .unwrap()
+        })
+        .collect::<Vec<_>>();
+    let mut cache = ProjectFrontendCache::new_with_semantic_cache();
+    let cold = cache.build(&manifest, &sources).unwrap();
+    let warm = cache.build(&manifest, &sources).unwrap();
+    semaprax::semantic_cache_store::initialize(&fixture.store).unwrap();
+    let sealed = semaprax::semantic_cache_store::persist(&fixture.store, &cache).unwrap();
+    let mut restored =
+        semaprax::semantic_cache_store::load(&fixture.store, sealed.entry_digest()).unwrap();
+    let restored = restored.build(&manifest, &sources).unwrap();
+    let mut records = Vec::new();
+    let mut images = Vec::new();
+    for (label, build) in [("cold", &cold), ("warm", &warm), ("restored", &restored)] {
+        assert_eq!(
+            build.revision().project_revision(),
+            cold.revision().project_revision()
+        );
+        let image = ProjectSemanticImage::derive(
+            std::sync::Arc::clone(build.revision()),
+            build.revision().project_revision(),
+        )
+        .unwrap();
+        for (kind, wire, semantic_digest) in [
+            (
+                "graph",
+                build.revision().semantic_graph(),
+                build.revision().semantic_graph_digest(),
+            ),
+            ("image", image.to_json(), image.image_digest()),
+        ] {
+            let name = format!("{label}-{kind}.json");
+            let bytes = wire.as_bytes();
+            let chunks = bytes.chunks(2048);
+            records.push(serde_json::json!({
+                "name":name,"bytes":bytes.len(),"chunks":chunks.len(),
+                "sha256":format!("{:x}",semaprax::digest_hex::LowerHex(Sha256::digest(bytes))),
+                "semantic_digest":semantic_digest,
+            }));
+            for (index, chunk) in chunks.enumerate() {
+                let mut hex = String::with_capacity(chunk.len() * 2);
+                for byte in chunk {
+                    write!(hex, "{byte:02x}").unwrap();
+                }
+                println!(
+                    "SEMAPRAX_CACHE_WIRE_CHUNK_V1 {}",
+                    serde_json::json!({
+                        "name":name,"index":index,"hex":hex,
+                    })
+                );
+            }
+        }
+        images.push(image);
+    }
+    println!(
+        "SEMAPRAX_CACHE_WIRE_MANIFEST_V1 {}",
+        serde_json::json!({
+            "head":std::env::var("GITHUB_SHA").ok(),
+            "fixture":"exact omitted-private-layout provider/caller",
+            "owner":"public library frontend build and authenticated store in this test executable",
+            "compiler_digest":sealed.compiler_digest(),
+            "files":records,
+            "scope":"diagnostic wire evidence only; no CLI or current-main success claim",
+        })
+    );
+    assert_eq!(images[0].image_digest(), images[1].image_digest());
+    assert_eq!(images[0].image_digest(), images[2].image_digest());
+}

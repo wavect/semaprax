@@ -270,7 +270,9 @@ fn inspect_package_envelope_inner(envelope: &str) -> Result<CxxPackage, Diagnost
     let options = CxxShimOptions::new(selection.clone(), max_bytes).map_err(|_| {
         consistency_error("package selection or construction limit is invalid".to_owned())
     })?;
-    let (replayed, overflowed) = with_limit(max_bytes, || {
+    // Replay has the same hard construction cap as generation. The embedded
+    // options still bound its rendered envelope independently of parser/HIR work.
+    let (replayed, overflowed) = with_limit(MAX_CONSTRUCTION_BYTES, || {
         generate_from_source(source_text, Path::new(source_path), &options, true)
     });
     let replayed = replayed.map_err(|_| {

@@ -1114,6 +1114,7 @@ Audience: all documentation readers.
 - [Minimum ownership path array capacity](evidence/minimum-path-array-v1/README.md)
 - [Finished cleanup path array capacity](evidence/completed-skeleton-array-v1/README.md)
 - [Single-successor path vector reuse](evidence/sequence-vector-reuse-v1/README.md)
+- [Sequencing capacity from the first active prefix](evidence/sequence-minimum-v1/README.md)
 - [Ownership classifier leaf cloning](evidence/ownership-leaf-clone-v1/README.md)
 - [Reservation call-site layout follow-up](evidence/reservation-site-layout-v1/README.md)
 - [Paid boxed ownership path states](evidence/boxed-path-states-v1/README.md)

@@ -853,14 +853,7 @@ fn validate_rendered_project(
             return Ok(());
         }
         Err(diagnostics) => {
-            return Err(scaffold_error(format!(
-                "built-in {template} project failed exact check or test: {}",
-                diagnostics
-                    .first()
-                    .map_or("unknown diagnostic", |diagnostic| {
-                        diagnostic.message.as_ref()
-                    })
-            )));
+            return Err(scaffold_validation_error(template, diagnostics));
         }
     };
     if execution.command_succeeded() {
@@ -870,6 +863,23 @@ fn validate_rendered_project(
             "built-in {template} project tests did not pass"
         )))
     }
+}
+
+fn scaffold_validation_error(template: &str, mut diagnostics: Vec<Diagnostic>) -> Vec<Diagnostic> {
+    let mut failure = scaffold_error(format!(
+        "built-in {template} project failed exact check or test: {}",
+        diagnostics
+            .first()
+            .map_or("unknown diagnostic", |diagnostic| diagnostic
+                .message
+                .as_ref())
+    ));
+    // Preserve the selected diagnostic's already-owned explanation, including
+    // its first sticky reservation receipt. No help text is copied or invented.
+    failure[0].help = diagnostics
+        .first_mut()
+        .and_then(|diagnostic| diagnostic.help.take());
+    failure
 }
 
 fn render_descriptor(artifact: &ProjectScaffoldV1) -> String {
@@ -991,4 +1001,56 @@ fn scaffold_error(message: impl Into<String>) -> Vec<Diagnostic> {
 
 fn capacity(message: impl Into<String>) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-J116", message)]
+}
+
+#[cfg(test)]
+mod validation_diagnostic_tests {
+    use super::*;
+
+    #[test]
+    fn selected_validation_help_moves_with_its_original_message_and_backing() {
+        let mut help = String::with_capacity(256);
+        help.push_str("first sticky reservation: 320 bytes; é\0receipt");
+        let pointer = help.as_ptr();
+        let capacity = help.capacity();
+        let diagnostics = vec![
+            Diagnostic::io_static("TST-A001", "builder limit").with_help(help),
+            Diagnostic::io_static("TST-B002", "later failure").with_help("later explanation"),
+        ];
+        let failure = scaffold_validation_error("service", diagnostics);
+        assert_eq!(failure.len(), 1);
+        assert_eq!(failure[0].code, "SPX-J115");
+        assert_eq!(
+            failure[0].message,
+            "built-in service project failed exact check or test: builder limit"
+        );
+        let retained = failure[0].help.as_ref().unwrap();
+        assert_eq!(retained, "first sticky reservation: 320 bytes; é\0receipt");
+        assert_eq!(retained.as_ptr(), pointer);
+        assert_eq!(retained.capacity(), capacity);
+    }
+
+    #[test]
+    fn absent_selected_help_and_empty_diagnostics_keep_the_original_fallback() {
+        let failure = scaffold_validation_error(
+            "library",
+            vec![
+                Diagnostic::io_static("TST-B002", "first failure"),
+                Diagnostic::io_static("TST-A001", "later failure").with_help("unselected help"),
+            ],
+        );
+        assert_eq!(failure[0].code, "SPX-J115");
+        assert_eq!(
+            failure[0].message,
+            "built-in library project failed exact check or test: first failure"
+        );
+        assert!(failure[0].help.is_none());
+        let empty = scaffold_validation_error("library", Vec::new());
+        assert_eq!(empty[0].code, "SPX-J115");
+        assert_eq!(
+            empty[0].message,
+            "built-in library project failed exact check or test: unknown diagnostic"
+        );
+        assert!(empty[0].help.is_none());
+    }
 }

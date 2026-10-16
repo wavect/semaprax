@@ -154,3 +154,13 @@ pub(super) fn maina3_input(fixture: super::maina3_custody::Input) -> String {
     read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
         .expect("complete authenticated a3 input capsule")
 }
+
+// Full incoming arrays use the same sealed reader; metadata never authorizes live work.
+pub(super) fn main44_metadata(fixture: super::main44_custody::Fixture) -> String {
+    let spec = fixture.spec();
+    read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256).expect("complete authenticated Main44 metadata")
+}
+pub(super) fn main44_input() -> String {
+    let spec = super::main44_custody::input_spec();
+    read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256).expect("complete authenticated Main44 source domain")
+}

@@ -1,7 +1,7 @@
 //! Complete60ad initial entry, retained only for historical typed controls.
 use super::note_metadata;
 use super::receiving::before_initial::{INITIAL_BYTES, INITIAL_CONTROL_INITIALIZERS};
-use super::{debit, InventoryBuilder, InventoryFailure, Kind, Reason};
+use super::{debit, reserve, InventoryBuilder, InventoryFailure, Kind, Ledger, Reason};
 use crate::cleanup::{
     CleanupEntryState, CleanupInventory, CleanupStorageOrigin, FieldLivenessShape,
     CLEANUP_INVENTORY_SCHEMA_V1, CLEANUP_INVENTORY_SCHEMA_V2,

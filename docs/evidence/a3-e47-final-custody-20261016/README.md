@@ -6,7 +6,7 @@ changed since 55e: new producer/capture qualification is required. No Rust tests
 compile-memory savings or issue closure is established by this packet.
 
 Four independent complete views authenticate current bytes before unique inverse
-edits: 40 changed inputs to 16c, 30 to actual Main a3, two to private 1ae, and
+edits: 42 changed inputs to 16c, 30 to actual Main a3, two to private 1ae, and
 two to actual Main e47. Unchanged keys remain unchanged. Existing normalized
 loan-table operands keep their original preprocessing; raw e47 is not substituted
 for those older semantic operands. The five original/five incoming a3 tables and
@@ -31,3 +31,7 @@ python3 docs/evidence/a3-e47-final-custody-20261016/verify-authority.py
 `source-proof.json` and `authority-source-proof.json` record actual terminal
 source-only success. They carry no compiler, runtime, capture or publication
 authority. All preceding private/public evidence retains its original scope.
+
+The consolidated four-file compile correction retains its exact3220 predecessor
+in `../compile-corrections-3220-20261016/`. The same endpoint domains and reader
+remain; no new test owner or runtime semantics are introduced by those corrections.

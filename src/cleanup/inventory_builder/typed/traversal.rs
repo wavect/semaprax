@@ -5,7 +5,10 @@ use crate::hir::{
     ResolvedRecordMatchFieldPattern, ResolvedStatement, ResolvedType,
 };
 impl InventoryBuilder<'_> {
-    fn collect_expression(&mut self, expression: &ResolvedExpr) -> Result<(), InventoryFailure> {
+    pub(super) fn collect_expression(
+        &mut self,
+        expression: &ResolvedExpr,
+    ) -> Result<(), InventoryFailure> {
         receiving!(&self.ledger, ());
         enum Frame<'a> {
             Enter(&'a ResolvedExpr),

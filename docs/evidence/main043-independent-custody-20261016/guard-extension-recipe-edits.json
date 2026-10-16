@@ -26,5 +26,9 @@
   {
     "before": "for path in ['.github/workflows/ci.yml','scripts/ci-low-stack-trace.py','scripts/tests/test_ci_low_stack_trace.py']:\n assert read(path)==git('b4523cc7c46de19287a1675a3482416d860d4976',path),('reviewed latest-main CI bytes',path)",
     "after": "# Preserve the complete reviewed CI equality through a distinct closed historical view.\nassert sha(read(D+'/reviewed-ci-view.py'))=='65bebec36af234e9860777e986ad4563ca24db02ce7a6266403168a241df770f','reviewed CI view source drift'\nreviewed_ci=runpy.run_path(str(R/D/'reviewed-ci-view.py'))\nfor path in ['.github/workflows/ci.yml','scripts/ci-low-stack-trace.py','scripts/tests/test_ci_low_stack_trace.py']:\n assert reviewed_ci['historical'](R,path,read(path))==git('b4523cc7c46de19287a1675a3482416d860d4976',path),('reviewed latest-main CI bytes',path)"
+  },
+  {
+    "before": "reader=read('src/source_reflows_merge/runtime_json.rs');assert reader.startswith(git(A,'src/source_reflows_merge/runtime_json.rs'))",
+    "after": "assert sha(read(D+'/runtime-prefix-view.py'))=='526555fb178acc8632958104c9e989cf247869fead6b92635fdcc13b16106bfc','historical runtime prefix view source drift'\nruntime_prefix=runpy.run_path(str(R/D/'runtime-prefix-view.py'))\nreader=runtime_prefix['historical'](R,read('src/source_reflows_merge/runtime_json.rs'));assert reader.startswith(git(A,'src/source_reflows_merge/runtime_json.rs'))"
   }
 ]

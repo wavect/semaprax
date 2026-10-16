@@ -679,9 +679,7 @@ pub(crate) fn requires_same_owner_set(function: &crate::hir::ResolvedFunction) -
     !same_owner_set_bindings(function).is_empty()
 }
 
-#[cfg(test)]
 mod funded;
-#[cfg(test)]
 pub(crate) use funded::same_owner_set_bindings_funded;
 
 #[cfg(test)]

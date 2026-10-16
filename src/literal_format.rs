@@ -213,9 +213,7 @@ pub(crate) fn accepts_hir_type(ty: &crate::hir::ResolvedType) -> bool {
     )
 }
 
-#[cfg(test)]
 mod funded;
-#[cfg(test)]
 pub(crate) use funded::checked_moving_string_operands_funded;
 
 #[cfg(test)]

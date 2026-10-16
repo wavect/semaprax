@@ -65,6 +65,8 @@ reads task trees, executes an oracle, accepts approval or emits model results.
 The original 81 cells and nine later additions remain distinct. Nonzero blocked
 status and missing independent-review/custody records cannot confer authority.
 
+`cleanup_plan/replay/skeleton_work.rs` ordinary construction uses the explicit-payer renewal, moving-string, condition and lexical-owner collectors. It prepares the held ReplayBudget refusal/census backing before any collector allocation; original collectors and the complete previous constructor remain independent test controls. No allocation-funding claim is inferred from a transfer optimization.
+
 ## System shape
 
 ```text

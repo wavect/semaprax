@@ -10,6 +10,163 @@ mod dag_storage;
 mod oracle_entry;
 mod ordinary_dag;
 
+#[cfg(test)]
+mod constructor_funding_tests {
+    use super::*;
+    use crate::bounded_output::with_limit_usage_refusal;
+    use crate::test_allocation_observer::measure;
+
+    fn program(source: &str) -> ResolvedProgram {
+        let checked = crate::check(source, "constructor-funding.spx").unwrap();
+        let canonical = crate::format::canonical(&checked);
+        let checked = crate::check(&canonical, "constructor-funding.spx").unwrap();
+        crate::hir::resolve(&checked).unwrap()
+    }
+
+    #[test]
+    fn ordinary_constructor_matches_complete_previous_collectors_and_order() {
+        for source in [
+            "module constructor.simple; @id(\"main\") fn main()->i64 {0}",
+            include_str!("../../../tests/owned_data/byte_helper_renewal.spx"),
+            r#"module constructor.moving;
+@id("main") fn main()->i64 {
+ let mut text=string_from_i64(1);
+ let mut count=0;
+ while count<2 {text=string_concat(text,"x"); count=count+1; 0}
+ string_len(text)
+}"#,
+        ] {
+            let program = program(source);
+            with_limit_usage_refusal(usize::MAX, || {
+                let held = crate::loop_calls::byte_writer::ModuleIndex::new(&program).unwrap();
+                for function in program.functions.iter().chain(
+                    program
+                        .function_instances
+                        .iter()
+                        .map(|instance| &instance.function),
+                ) {
+                    for index in [None, Some(&held)] {
+                        let mut old_budget =
+                            ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+                        let mut new_budget =
+                            ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+                        let old = SkeletonWork::with_index_before_funding(
+                            &program,
+                            function,
+                            &mut old_budget,
+                            index,
+                        )
+                        .unwrap();
+                        let new =
+                            SkeletonWork::with_index(&program, function, &mut new_budget, index)
+                                .unwrap();
+                        assert_eq!(new.string_owner_moves, old.string_owner_moves);
+                        assert_eq!(new.string_condition_reads, old.string_condition_reads);
+                        assert_eq!(new.owner, old.owner);
+                        assert_eq!(
+                            new.renewal_bindings.has_helpers(),
+                            old.renewal_bindings.has_helpers()
+                        );
+                        assert_eq!(
+                            new.renewal_bindings.appends(),
+                            old.renewal_bindings.appends()
+                        );
+                        crate::hir::function_value::walk(function, |expression| {
+                            assert_eq!(
+                                new.renewal_bindings
+                                    .get(&expression.id)
+                                    .map(|binding| &binding.id),
+                                old.renewal_bindings
+                                    .get(&expression.id)
+                                    .map(|binding| &binding.id)
+                            );
+                            assert_eq!(
+                                new.renewal_bindings.is_helper(&expression.id),
+                                old.renewal_bindings.is_helper(&expression.id)
+                            );
+                        });
+                        assert_eq!(new.budget.remaining, old.budget.remaining);
+                        assert_eq!(new.budget.skeleton_remaining, old.budget.skeleton_remaining);
+                    }
+                }
+            });
+        }
+    }
+
+    #[test]
+    fn ordinary_constructor_prepays_real_scratch_at_zero_short_exact_and_sticky_limits() {
+        let program = program("module constructor.physical; @id(\"main\") fn main()->i64 {0}");
+        let function = &program.functions[0];
+        // Execute the full old constructor as a distinct historical witness.
+        // It acquired traversal backing before a single reservation at zero.
+        let ((accepted, old_heap), refused, paid, first) = with_limit_usage_refusal(0, || {
+            measure(|| {
+                let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+                let result =
+                    SkeletonWork::with_index_before_funding(&program, function, &mut budget, None);
+                let accepted = result.is_ok();
+                drop(result);
+                drop(budget);
+                accepted
+            })
+        });
+        assert!(accepted && !refused && paid == 0 && first.is_none());
+        assert!(old_heap.allocated > 0 && old_heap.live == 0 && !old_heap.invalid);
+        assert_eq!(old_heap.allocated, old_heap.freed);
+        // The old constructor did not fail here. Compare all six Diagnostic
+        // fields to the independently executed, byte-exact original bootstrap
+        // that now lawfully selects the first failure before any collector.
+        let (expected_zero, refused, paid, first) = with_limit_usage_refusal(0, || {
+            let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+            budget.prepare_builder(function).unwrap_err()
+        });
+        assert!(refused && paid == 0 && first.is_some());
+        let observe = |limit| {
+            with_limit_usage_refusal(limit, || {
+                measure(|| {
+                    let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+                    let result = SkeletonWork::with_index(&program, function, &mut budget, None);
+                    let accepted = result.is_ok();
+                    if limit == 0 {
+                        assert_eq!(result.as_ref().err(), Some(&expected_zero));
+                    }
+                    drop(result);
+                    if !accepted {
+                        let after_first = crate::bounded_output::active_remaining();
+                        assert!(
+                            SkeletonWork::with_index(&program, function, &mut budget, None)
+                                .is_err()
+                        );
+                        assert_eq!(crate::bounded_output::active_remaining(), after_first);
+                    }
+                    drop(budget);
+                    accepted
+                })
+            })
+        };
+        let ((accepted, heap), refused, exact, first) = observe(usize::MAX);
+        assert!(accepted && !refused && first.is_none());
+        assert!(!heap.invalid && heap.live == 0);
+        assert_eq!(heap.allocated, heap.freed);
+        assert!(heap.allocated <= exact);
+        for limit in [0, exact - 1, exact] {
+            let ((accepted, heap), refused, paid, first) = observe(limit);
+            assert_eq!(accepted, limit == exact);
+            assert_eq!(refused, limit != exact);
+            assert_eq!(first.is_some(), limit != exact);
+            assert!(!heap.invalid && heap.live == 0);
+            assert_eq!(heap.allocated, heap.freed);
+            assert!(
+                heap.allocated <= paid,
+                "limit={limit} exact={exact} paid={paid} heap={heap:?} first={first:?}"
+            );
+            if limit == 0 {
+                assert_eq!(heap.allocated, 0);
+            }
+        }
+    }
+}
+
 pub(super) struct SkeletonWork<'a, 'b> {
     pub(super) continuations: Option<&'b mut continuation_storage::Storage<'a>>,
     pub(super) function: &'a ResolvedFunction,
@@ -39,6 +196,115 @@ impl<'a, 'b> SkeletonWork<'a, 'b> {
         Self::with_index(program, function, budget, None).expect("unlimited test inventory")
     }
     pub(super) fn with_index(
+        program: &'a dyn crate::cleanup::ReplayContext,
+        function: &'a ResolvedFunction,
+        budget: &'b mut ReplayBudget,
+        index: Option<&'b crate::loop_calls::byte_writer::ModuleIndex<'a>>,
+    ) -> Result<Self, Diagnostic> {
+        #[cfg(test)]
+        if let Some(lease) = budget.oracle_lease() {
+            return Self::oracle_with_index(program, function, budget, index, lease);
+        }
+        use crate::hir::funded::FundedError;
+        // The held payer owns refusal text and the exact clone census cursor
+        // before any collector may acquire scratch, keys or tree nodes.
+        budget.prepare_builder(function)?;
+        budget.prepare_clone_cursor(function)?;
+        // Concrete new fallible receiving sums, closures and explicit reserve
+        // references, before those receivers are formed. No guessed heap fee.
+        let controls = 2 * std::mem::size_of::<
+            Result<
+                crate::cleanup_plan::renewal_profile::RenewalBindings<'_>,
+                FundedError<Diagnostic>,
+            >,
+        >() + 4 * std::mem::size_of::<
+            Result<BTreeSet<ExpressionId>, FundedError<Diagnostic>>,
+        >() + 2 * std::mem::size_of::<Result<bool, FundedError<Diagnostic>>>()
+            + 2 * std::mem::size_of::<
+                Result<
+                    Result<crate::hir::FunctionExecutionId, crate::hir::lexical_exit::OwnerVerdict>,
+                    FundedError<Diagnostic>,
+                >,
+            >()
+            + 2 * std::mem::size_of::<(&mut ReplayBudget, &ResolvedFunction)>()
+            + 10 * std::mem::size_of::<&mut dyn FnMut(usize) -> Result<(), Diagnostic>>();
+        budget.reserve_array::<u8>(
+            function,
+            controls,
+            "ordinary skeleton constructor receivers",
+        )?;
+        let mut reserve = |bytes| {
+            budget.reserve_bytes(function, bytes, "ordinary skeleton constructor inventory")
+        };
+        macro_rules! inventory {
+            ($operation:expr) => {
+                match $operation {
+                    Ok(value) => value,
+                    // Forward the already-selected Diagnostic and paid backing.
+                    Err(FundedError::Refused(error)) => return Err(error),
+                    Err(
+                        FundedError::Layout(reason)
+                        | FundedError::Census(reason)
+                        | FundedError::Unfunded(reason),
+                    ) => {
+                        return Err(budget.budget_refusal(function, reason, ""));
+                    }
+                }
+            };
+        }
+        let renewal_bindings = if index.is_some() {
+            crate::cleanup_plan::renewal_profile::RenewalBindings::empty()
+        } else {
+            inventory!(
+                crate::cleanup_plan::renewal_profile::bindings_with_index_funded(
+                    program,
+                    function,
+                    None,
+                    &mut reserve
+                )
+            )
+        };
+        let string_owner_moves = inventory!(
+            crate::literal_format::checked_moving_string_operands_funded(function, &mut reserve)
+        );
+        let string_condition_reads = inventory!(
+            crate::string_ops::conditions::function_reads_funded(function, &mut reserve)
+        );
+        let requires = inventory!(crate::hir::lexical_exit::requires_funded(
+            function,
+            &mut reserve
+        ));
+        let owner = if requires {
+            inventory!(crate::hir::lexical_exit::owner_funded(
+                program,
+                function,
+                &mut reserve
+            ))
+            .ok()
+        } else {
+            None
+        };
+        Ok(Self {
+            function,
+            budget,
+            continuations: None,
+            active_copy_region: None,
+            dag_scratch: None,
+            ordinary_scratch: None,
+            next_ordinary_dag: 0,
+            held_renewals: None,
+            ordinary_index: index,
+            ordinary_program: Some(program),
+            renewal_bindings,
+            string_owner_moves,
+            string_condition_reads,
+            owner,
+        })
+    }
+
+    // Complete ordinary previous constructor, independent test control.
+    #[cfg(test)]
+    pub(super) fn with_index_before_funding(
         program: &'a dyn crate::cleanup::ReplayContext,
         function: &'a ResolvedFunction,
         budget: &'b mut ReplayBudget,

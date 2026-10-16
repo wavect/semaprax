@@ -12,9 +12,7 @@ use crate::hir::{
     ResolvedStatement, ResolvedType,
 };
 
-#[cfg(test)]
 mod funded;
-#[cfg(test)]
 pub(crate) use funded::function_reads_funded;
 
 fn is_condition_read(op: super::StringOp) -> bool {

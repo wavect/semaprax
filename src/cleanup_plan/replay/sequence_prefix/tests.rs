@@ -246,7 +246,7 @@ fn complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_lim
         assert_eq!(first.is_some(), limit != exact);
         assert!(!alloc.invalid && alloc.live == 0);
         assert_eq!(alloc.allocated, alloc.freed);
-        assert!(alloc.allocated <= paid);
+        assert!(alloc.allocated <= paid, "limit={limit} exact={exact} paid={paid} alloc={alloc:?} refused={refused} first={first:?}");
         if limit == 0 {
             assert_eq!(alloc.allocated, 0);
         }

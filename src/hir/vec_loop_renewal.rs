@@ -2,9 +2,7 @@
 use super::*;
 use std::collections::{BTreeMap, BTreeSet};
 pub(crate) mod consuming;
-#[cfg(test)]
 mod funded;
-#[cfg(test)]
 pub(crate) use funded::bindings_in_funded;
 
 pub(crate) fn requires(function: &ResolvedFunction) -> bool {

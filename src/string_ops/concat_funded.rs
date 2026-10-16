@@ -1,4 +1,4 @@
-//! Test-only funded twins of `is_same_owner_concat_hir`,
+//! Explicit-payer funded twins of `is_same_owner_concat_hir`,
 //! `same_owner_concat_appends` and `same_owner_concat_operands`. Admission and
 //! the first-wins/last-wins map semantics are the original's; every owned
 //! temporary is debited on the caller's payer before it exists:

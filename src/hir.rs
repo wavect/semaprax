@@ -100,7 +100,6 @@ pub use static_text::StaticUtf8;
 mod capacity_probe;
 pub mod closure;
 mod copy_discard;
-#[cfg(test)]
 pub(crate) mod funded;
 pub(crate) use copy_discard::source as copy_discard_source;
 mod expr_nodes;

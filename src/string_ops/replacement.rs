@@ -62,7 +62,5 @@ pub(crate) fn requires(function: &ResolvedFunction) -> bool {
     !bindings(function).is_empty()
 }
 
-#[cfg(test)]
 mod funded;
-#[cfg(test)]
 pub(crate) use funded::bindings_funded;

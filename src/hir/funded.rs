@@ -1,4 +1,4 @@
-//! Test-only funded traversal primitives for the explicit renewal receivers.
+//! Explicit-payer funded traversal primitives for the explicit renewal receivers.
 //! Every helper debits a caller-supplied exact payer before it allocates. A
 //! refusal is returned unchanged; it is never turned into a smaller result.
 use super::{ExpressionId, ResolvedExpr, ResolvedExprKind};

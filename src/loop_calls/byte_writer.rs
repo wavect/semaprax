@@ -29,8 +29,9 @@ pub(crate) use resolved::{
     nonallocating as resolved_nonallocating,
     nonallocating_with_cursor as resolved_nonallocating_with_cursor, ProofCursor,
 };
+pub(crate) use resolved::checked_bindings_funded_with_work;
 #[cfg(test)]
-pub(crate) use resolved::{checked_bindings_funded, checked_bindings_funded_with_work};
+pub(crate) use resolved::checked_bindings_funded;
 pub(crate) use source::nonallocating as source_nonallocating;
 pub(crate) use source_index::{SourceBacking, SourceHelpers, SourceIndex, SourceProofs};
 const DEPTH: usize = crate::cache_codec::MAX_DEPTH;

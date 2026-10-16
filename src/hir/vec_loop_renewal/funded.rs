@@ -1,4 +1,4 @@
-//! Explicit funded twin of `bindings_in` (test only). Collector order, same-cell
+//! Explicit funded twin of `bindings_in` (explicit payer). Collector order, same-cell
 //! admission and duplicate-identity precedence are the original ones; every
 //! Vec, set/map entry and tree node is reserved on the supplied payer first and
 //! a refusal is returned rather than a smaller binding set.

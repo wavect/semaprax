@@ -1,7 +1,7 @@
 macro_rules! audit_source_join { ($($piece:expr),* $(,)?) => {{ let pieces: &[&str] = &[$(&$piece),*]; pieces.concat() }}; } // Complete additive source union; original receivers included without slicing.
 macro_rules! held_call_profile_source_inventory {
     () => {
-        audit_source_join!(
+        audit_source_join!( include_str!("../../../../../src/literal_format/funded.rs"), include_str!("../../../../../src/string_ops/concat_funded.rs"), include_str!("../../../../../src/string_ops/conditions/funded.rs"), include_str!("../../../../../src/string_ops/replacement/funded.rs"), include_str!("../../../../../src/byte_ops/funded.rs"), include_str!("../../../../../src/cleanup_plan/renewal_profile/funded.rs"),
 include_str!("../../../../../src/cleanup_plan/replay.rs"),
 include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs"),
 include_str!("../../../../../src/cleanup_plan/replay/factored.rs"),

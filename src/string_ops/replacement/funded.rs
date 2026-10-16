@@ -1,4 +1,4 @@
-//! Explicit funded twin of `bindings` (test only). Traversal order, the closure
+//! Explicit funded twin of `bindings` (explicit payer). Traversal order, the closure
 //! skip, the admission predicate and the mutable filter are the original ones;
 //! every Vec, set/map entry and tree node is reserved on the supplied payer.
 use super::*;

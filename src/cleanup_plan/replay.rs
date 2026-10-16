@@ -7608,3 +7608,7 @@ pub(crate) use live_oracle::with_financed_test_oracles;
 pub(crate) use factored::EpsilonAppCensus;
 
 mod selected_type_drop;
+
+#[cfg(test)]
+#[path = "replay/sequence_prefix/main24/mod.rs"]
+mod sequence_prefix_main24;

@@ -425,3 +425,179 @@ fn exact_small_successor_producer_keeps_complete_old_weighted_algebra_and_work()
         }
     }
 }
+
+mod targets {
+    use super::super::targets::Targets;
+    use super::*;
+
+    fn function() -> ResolvedFunction {
+        super::super::super::lexical_plan_tests::fixture(
+            super::super::super::lexical_plan_tests::WHILE,
+        )
+        .1
+    }
+
+    #[test]
+    fn sorted_targets_preserve_zero_duplicate_maximum_and_overflow_weights() {
+        let function = function();
+        for entries in [
+            vec![],
+            vec![(7, 0), (2, 3), (7, 4), (0, 1), (2, 5)],
+            vec![(usize::MAX, u64::MAX), (0, 0)],
+            vec![(1, u64::MAX), (1, 1)],
+        ] {
+            let run = |paid| {
+                let mut budget = ReplayBudget::new();
+                let mut targets = Targets::new(paid);
+                let mut verdicts = Vec::new();
+                for &(node, weight) in &entries {
+                    let admitted = targets.add(&function, &mut budget, node, weight).unwrap();
+                    verdicts.push(admitted);
+                    if !admitted {
+                        break;
+                    }
+                }
+                let weights = targets.share(&function, &mut budget).unwrap();
+                (verdicts, weights)
+            };
+            assert_eq!(run(true), run(false));
+        }
+    }
+
+    #[test]
+    fn paid_targets_move_backing_and_keep_exact_short_zero_and_sticky_limits() {
+        let function = function();
+        let observe = |paid, limit, floor| {
+            crate::bounded_output::with_limit_usage_refusal(limit + floor, || {
+                assert!(crate::bounded_output::set_active_floor(floor));
+                crate::test_allocation_observer::measure(|| {
+                    let mut budget = ReplayBudget::new();
+                    let result = (|| {
+                        let mut targets = Targets::new(paid);
+                        for node in (0..64).rev() {
+                            assert!(targets.add(&function, &mut budget, node, 2)?);
+                            assert!(targets.add(&function, &mut budget, node, 3)?);
+                        }
+                        let pointer = match &targets {
+                            Targets::Paid(weights) => Some(weights.as_ptr()),
+                            Targets::Legacy(_) => None,
+                        };
+                        let shared = targets.share(&function, &mut budget)?;
+                        if let Some(pointer) = pointer {
+                            assert_eq!(pointer, shared.as_ptr(), "backing moves without copying");
+                        }
+                        assert_eq!(shared.len(), 64);
+                        for (expected, &(node, weight)) in shared.iter().enumerate() {
+                            assert_eq!((node, weight), (expected, 5));
+                        }
+                        drop(shared);
+                        Ok::<_, Diagnostic>(())
+                    })();
+                    let success = result.is_ok();
+                    if !success {
+                        assert!(budget
+                            .reserve_bytes(&function, 0, "sticky targets")
+                            .is_err());
+                    }
+                    drop(result);
+                    drop(budget);
+                    success
+                })
+            })
+        };
+        let ((ok, old), refused, before, first) = observe(false, usize::MAX, 0);
+        assert!(ok && !refused && first.is_none());
+        let ((ok, new), refused, exact, first) = observe(true, usize::MAX, 0);
+        assert!(ok && !refused && first.is_none());
+        assert!(exact < before && new.allocated < old.allocated);
+        for allocation in [old, new] {
+            assert!(!allocation.invalid && allocation.live == 0);
+            assert_eq!(allocation.allocated, allocation.freed);
+        }
+        assert!(new.allocated <= exact && old.allocated <= before);
+        for (limit, floor) in [0, 37]
+            .into_iter()
+            .flat_map(|floor| [0, exact - 1, exact].map(|limit| (limit, floor)))
+        {
+            let ((ok, allocation), refused, spent, first) = observe(true, limit, floor);
+            assert_eq!(ok, limit == exact);
+            assert_eq!(refused, limit != exact);
+            assert_eq!(first.is_some(), limit != exact);
+            if let Some(receipt) = first {
+                assert_eq!(receipt.floor, floor);
+            }
+            assert!(spent <= limit);
+            assert!(!allocation.invalid && allocation.live == 0);
+            assert_eq!(allocation.allocated, allocation.freed);
+            if ok {
+                assert_eq!(spent, exact);
+            }
+        }
+    }
+
+    #[test]
+    fn target_work_refusal_precedes_growth_and_preserves_existing_weights() {
+        let function = function();
+        let mut budget = ReplayBudget::new();
+        let mut targets = Targets::new(true);
+        assert!(targets.add(&function, &mut budget, 3, 7).unwrap());
+        budget.remaining = 0;
+        assert!(targets.add(&function, &mut budget, 1, 2).is_err());
+        let Targets::Paid(weights) = targets else {
+            unreachable!()
+        };
+        assert_eq!(weights, vec![(3, 7)]);
+    }
+
+    // Whole predecessors remain byte-bound before every historical inverse.
+    use sha2::{Digest, Sha256};
+
+    #[test]
+    fn complete_predecessors_and_new_target_sources_are_bound() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let evidence = root.join("docs/evidence/factored-flat-targets-v1");
+        let proof: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(evidence.join("sources.json")).unwrap())
+                .unwrap();
+        let digest = |text: &str| {
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
+            )
+        };
+        for record in proof["predecessors"].as_array().unwrap() {
+            let before =
+                std::fs::read_to_string(evidence.join(record["archive"].as_str().unwrap()))
+                    .unwrap();
+            let current =
+                std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
+            assert_eq!(digest(&before), record["before_sha256"]);
+            assert_eq!(digest(&current), record["after_sha256"]);
+            let restore = |input: &str| -> Option<String> {
+                let mut output = input.to_owned();
+                for edit in record["inverse"].as_array().unwrap() {
+                    let after = edit["after"].as_str().unwrap();
+                    if output.matches(after).count() != 1 {
+                        return None;
+                    }
+                    output = output.replacen(after, edit["before"].as_str().unwrap(), 1);
+                }
+                Some(output)
+            };
+            assert_eq!(restore(&current).as_deref(), Some(before.as_str()));
+            assert_ne!(
+                restore(&(current.clone() + "\n")).as_deref(),
+                Some(before.as_str())
+            );
+            let mut changed = current.clone();
+            changed.replace_range(..1, "!");
+            assert_ne!(restore(&changed).as_deref(), Some(before.as_str()));
+        }
+        for record in proof["new_files"].as_array().unwrap() {
+            let current =
+                std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
+            assert_eq!(digest(&current), record["sha256"]);
+            assert_ne!(digest(&(current + "\n")), record["sha256"]);
+        }
+    }
+}

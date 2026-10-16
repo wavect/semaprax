@@ -71,6 +71,8 @@
 - Reconcile Main8a finished-path capacity, arbitrary final-suffix transfer and borrowed nominal context with lexical paid receiving; preserve original work-before-optional-payment priority and complete Main controls. Qualification and net application cost remain pending.
 
 - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.
+- Build paid factored successor weights directly in sorted vectors and move their backing into shared states, retaining checked multiplicity, the original unobserved work path and all historical source proofs.
+
 - Capture bounded stopped-frame layouts and function prologues for the unchanged 128 KiB diagnostic case after constructor phase isolation still crashed.
 
 - Select the complete factored verifier earlier for scalar path products, retaining original resource-bearing selection, every enumeration cross-check, all limits, and sticky comparison failures.

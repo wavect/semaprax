@@ -47,3 +47,24 @@ execution; compiler/runtime peaks were 203,264 and 59,888 KiB under the 200 MiB
 guard. The complete Product Acceptance and Public SDK CI contract harnesses
 passed all 12 tests, including the new eight-job tool/SDK pairing regression.
 The hosted CLT 27 configuration and full SDK consumers still need CI evidence.
+
+## Ordinary native dependency headers
+
+[Job 116733021038](https://github.com/wavect/semaprax/actions/runs/38825665695/job/116733021038)
+then exposed a separate ordinary Cargo dependency-build failure: the direct
+CLT driver could not find `TargetConditionals.h`, `stdio.h` or `stdlib.h`.
+An independent local syntax-only check reproduced the missing `stdio.h` with
+an empty environment and passed with the explicit CLT `SDKROOT`.
+
+Each affected macOS setup now exports the matching `DEVELOPER_DIR` and
+`SDKROOT` in its current shell and into later CI steps. This configures ordinary
+Cargo C dependencies and their tool discovery. It changes no machine-wide
+developer selection. Held production tools retain their empty environment and
+explicit SDK arguments. The CI reference now checks standard-header discovery
+with only those two configured values and independently compiles the held-style
+C objects with explicit SDK arguments and an empty environment.
+
+The new Python/YAML and all eight shell routes passed lightweight checks. A
+subsequent compiler-guarded reference/contract rerun was deferred when another
+user compiler exceeded the local RAM precondition; full Cargo and hosted
+qualification remain CI work.

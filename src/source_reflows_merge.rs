@@ -40,7 +40,22 @@ pub(crate) fn boxed849_previous(source: &str, current: &str) -> String {
     )
 }
 pub(crate) fn compile_fixture_input(source: &str, current: &str) -> String {
+    let previous = main531_previous(source, current);
+    let current = previous.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/compile-fixture-successor-5aac-20261016/current-to-5aac.json")), source, current)
+}
+pub(crate) fn main531_previous(source: &str, current: &str) -> String {
+    let fixed = main531_child_input(source, current);
+    let current = fixed.as_str();
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main531-independent-groups-20261016/current-to-2d4b.json")), source, current)
+}
+pub(crate) fn main531_input(source: &str, current: &str) -> String {
+    let fixed = main531_child_input("src/cleanup_plan/replay/path_join/main_single_groups/mod.rs", current);
+    let current = fixed.as_str();
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main531-independent-groups-20261016/runtime-main-root.json")), source, current)
+}
+fn main531_child_input(source: &str, current: &str) -> String {
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main531-original-tests-child-20261016/current-to-7e9f.json")), source, current)
 }
 fn project(rows: &str, source: &str, current: &str) -> String {
     let rows: serde_json::Value = serde_json::from_str(rows).expect("fixed merge projections");

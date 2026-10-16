@@ -2,7 +2,7 @@
 macro_rules! held_call_profile_source_inventory {
     () => {
         concat!(
-            include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs"), include_str!("../../../../../src/hir/validation/held_profiles.rs"),
+            include_str!("../../../../../src/cleanup_plan/replay/path_join/tests.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs"), include_str!("../../../../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs"), include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs"), include_str!("../../../../../src/hir/validation/held_profiles.rs"),
             include_str!("../../../../../src/hir/validation/held_profiles/tests.rs"),
             include_str!("../../../../../src/hir/validation/held_profiles/source_audit.rs"),
             include_str!("../../../../../src/hir/validation/executable_profiles/held.rs"),

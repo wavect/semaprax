@@ -1,0 +1,219 @@
+[
+  {
+    "source": ".github/workflows/ci.yml",
+    "checkpoint_revision": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+    "archive": "docs/evidence/main531-independent-groups-20261016/before/.github/workflows/ci.yml.txt",
+    "current_sha256": "9713e6e0913494ccbff235ae30948005642d2403b5eda9ab4bc170afc5102c36",
+    "original_sha256": "921fda9d6369c5d2effc459af16d174800302c60a47bf1609589b571085f1d61",
+    "edits": [
+      {
+        "new": "          cargo_path=\"$(rustup which cargo)\"\n          clang_path=\"$(command -v clang)\"\n          if [[ \"$RUNNER_OS\" == \"macOS\" ]]; then\n            # The held builder uses the Command Line Tools SDK explicitly.\n            # Select that installation's driver and companion linker together.\n            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang\n            test -x \"$clang_path\"\n            test -d /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\n            export DEVELOPER_DIR=/Library/Developer/CommandLineTools\n            export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\n            echo \"DEVELOPER_DIR=$DEVELOPER_DIR\" >> \"$GITHUB_ENV\"\n            echo \"SDKROOT=$SDKROOT\" >> \"$GITHUB_ENV\"\n          elif [[ \"$RUNNER_OS\" == \"Linux\" ]]; then\n            clang_path=\"$(readlink -f \"$clang_path\")\"\n          fi\n",
+        "old": "          cargo_path=\"$(rustup which cargo)\"\n          clang_path=\"$(command -v clang)\"\n          if [[ \"$RUNNER_OS\" == \"macOS\" ]]; then\n            # The held builder uses the Command Line Tools SDK explicitly.\n            # Select that installation's driver and companion linker together.\n            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang\n            test -x \"$clang_path\"\n          elif [[ \"$RUNNER_OS\" == \"Linux\" ]]; then\n            clang_path=\"$(readlink -f \"$clang_path\")\"\n          fi\n"
+      },
+      {
+        "new": "          rustc_path=\"$(rustup which rustc)\"\n          clang_path=\"$(command -v clang)\"\n          if [[ \"$RUNNER_OS\" == \"macOS\" ]]; then\n            # The held builder uses the Command Line Tools SDK explicitly.\n            # Select that installation's driver and companion linker together.\n            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang\n            test -x \"$clang_path\"\n            test -d /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\n            export DEVELOPER_DIR=/Library/Developer/CommandLineTools\n            export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\n            echo \"DEVELOPER_DIR=$DEVELOPER_DIR\" >> \"$GITHUB_ENV\"\n            echo \"SDKROOT=$SDKROOT\" >> \"$GITHUB_ENV\"\n          elif [[ \"$RUNNER_OS\" == \"Linux\" ]]; then\n            clang_path=\"$(readlink -f \"$clang_path\")\"\n          fi\n",
+        "old": "          rustc_path=\"$(rustup which rustc)\"\n          clang_path=\"$(command -v clang)\"\n          if [[ \"$RUNNER_OS\" == \"macOS\" ]]; then\n            # The held builder uses the Command Line Tools SDK explicitly.\n            # Select that installation's driver and companion linker together.\n            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang\n            test -x \"$clang_path\"\n          elif [[ \"$RUNNER_OS\" == \"Linux\" ]]; then\n            clang_path=\"$(readlink -f \"$clang_path\")\"\n          fi\n"
+      },
+      {
+        "new": "          toolchain: \"1.88\"\n      - name: Resolve exact held native tools (Unix)\n        if: runner.os != 'Windows'\n        shell: bash\n        run: |\n          set -euo pipefail\n          echo \"RUSTC=$(rustup which rustc)\" >> \"$GITHUB_ENV\"\n          clang_path=\"$(command -v clang)\"\n          if [[ \"$RUNNER_OS\" == \"macOS\" ]]; then\n            # The held builder uses the Command Line Tools SDK explicitly.\n            # Select that installation's driver and companion linker together.\n            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang\n            test -x \"$clang_path\"\n            test -d /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\n            export DEVELOPER_DIR=/Library/Developer/CommandLineTools\n            export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\n            echo \"DEVELOPER_DIR=$DEVELOPER_DIR\" >> \"$GITHUB_ENV\"\n            echo \"SDKROOT=$SDKROOT\" >> \"$GITHUB_ENV\"\n          elif [[ \"$RUNNER_OS\" == \"Linux\" ]]; then\n            clang_path=\"$(readlink -f \"$clang_path\")\"\n          fi\n",
+        "old": "          toolchain: \"1.88\"\n      - name: Resolve exact held native tools (Unix)\n        if: runner.os != 'Windows'\n        shell: bash\n        run: |\n          set -euo pipefail\n          echo \"RUSTC=$(rustup which rustc)\" >> \"$GITHUB_ENV\"\n          clang_path=\"$(command -v clang)\"\n          if [[ \"$RUNNER_OS\" == \"macOS\" ]]; then\n            # The held builder uses the Command Line Tools SDK explicitly.\n            # Select that installation's driver and companion linker together.\n            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang\n            test -x \"$clang_path\"\n          elif [[ \"$RUNNER_OS\" == \"Linux\" ]]; then\n            clang_path=\"$(readlink -f \"$clang_path\")\"\n          fi\n"
+      },
+      {
+        "new": "          node-version: 22\n      - name: Resolve exact held native tools (Unix)\n        if: runner.os != 'Windows'\n        shell: bash\n        run: |\n          set -euo pipefail\n          echo \"RUSTC=$(rustup which rustc)\" >> \"$GITHUB_ENV\"\n          clang_path=\"$(command -v clang)\"\n          if [[ \"$RUNNER_OS\" == \"macOS\" ]]; then\n            # The held builder uses the Command Line Tools SDK explicitly.\n            # Select that installation's driver and companion linker together.\n            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang\n            test -x \"$clang_path\"\n            test -d /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\n            export DEVELOPER_DIR=/Library/Developer/CommandLineTools\n            export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\n            echo \"DEVELOPER_DIR=$DEVELOPER_DIR\" >> \"$GITHUB_ENV\"\n            echo \"SDKROOT=$SDKROOT\" >> \"$GITHUB_ENV\"\n          elif [[ \"$RUNNER_OS\" == \"Linux\" ]]; then\n            clang_path=\"$(readlink -f \"$clang_path\")\"\n          fi\n",
+        "old": "          node-version: 22\n      - name: Resolve exact held native tools (Unix)\n        if: runner.os != 'Windows'\n        shell: bash\n        run: |\n          set -euo pipefail\n          echo \"RUSTC=$(rustup which rustc)\" >> \"$GITHUB_ENV\"\n          clang_path=\"$(command -v clang)\"\n          if [[ \"$RUNNER_OS\" == \"macOS\" ]]; then\n            # The held builder uses the Command Line Tools SDK explicitly.\n            # Select that installation's driver and companion linker together.\n            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang\n            test -x \"$clang_path\"\n          elif [[ \"$RUNNER_OS\" == \"Linux\" ]]; then\n            clang_path=\"$(readlink -f \"$clang_path\")\"\n          fi\n"
+      },
+      {
+        "new": "        run: npm ci --ignore-scripts --prefix platform-tests/wasm-scalar-browser-v1\n      - name: Resolve the real held rustc image (Unix)\n        if: runner.os != 'Windows'\n        run: echo \"RUSTC=$(rustup which rustc)\" >> \"$GITHUB_ENV\"\n      - name: Resolve the held Clang and deterministic archiver images (Unix)\n        if: runner.os != 'Windows'\n        shell: bash\n        run: |\n          set -euo pipefail\n          clang_path=\"$(command -v clang)\"\n          if [[ \"$RUNNER_OS\" == \"macOS\" ]]; then\n            # The held builder uses the Command Line Tools SDK explicitly.\n            # Select that installation's driver and companion linker together.\n            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang\n            test -x \"$clang_path\"\n            test -d /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\n            export DEVELOPER_DIR=/Library/Developer/CommandLineTools\n            export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\n            echo \"DEVELOPER_DIR=$DEVELOPER_DIR\" >> \"$GITHUB_ENV\"\n            echo \"SDKROOT=$SDKROOT\" >> \"$GITHUB_ENV\"\n          elif [[ \"$RUNNER_OS\" == \"Linux\" ]]; then\n            clang_path=\"$(readlink -f \"$clang_path\")\"\n          fi\n",
+        "old": "        run: npm ci --ignore-scripts --prefix platform-tests/wasm-scalar-browser-v1\n      - name: Resolve the real held rustc image (Unix)\n        if: runner.os != 'Windows'\n        run: echo \"RUSTC=$(rustup which rustc)\" >> \"$GITHUB_ENV\"\n      - name: Resolve the held Clang and deterministic archiver images (Unix)\n        if: runner.os != 'Windows'\n        shell: bash\n        run: |\n          set -euo pipefail\n          clang_path=\"$(command -v clang)\"\n          if [[ \"$RUNNER_OS\" == \"macOS\" ]]; then\n            # The held builder uses the Command Line Tools SDK explicitly.\n            # Select that installation's driver and companion linker together.\n            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang\n            test -x \"$clang_path\"\n          elif [[ \"$RUNNER_OS\" == \"Linux\" ]]; then\n            clang_path=\"$(readlink -f \"$clang_path\")\"\n          fi\n"
+      },
+      {
+        "new": "          node-version: 22\n      - name: Resolve the real held rustc image (Unix)\n        if: runner.os != 'Windows'\n        run: echo \"RUSTC=$(rustup which rustc)\" >> \"$GITHUB_ENV\"\n      - name: Resolve the held Clang and deterministic archiver images (Unix)\n        if: runner.os != 'Windows'\n        shell: bash\n        run: |\n          set -euo pipefail\n          clang_path=\"$(command -v clang)\"\n          if [[ \"$RUNNER_OS\" == \"macOS\" ]]; then\n            # The held builder uses the Command Line Tools SDK explicitly.\n            # Select that installation's driver and companion linker together.\n            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang\n            test -x \"$clang_path\"\n            test -d /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\n            export DEVELOPER_DIR=/Library/Developer/CommandLineTools\n            export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\n            echo \"DEVELOPER_DIR=$DEVELOPER_DIR\" >> \"$GITHUB_ENV\"\n            echo \"SDKROOT=$SDKROOT\" >> \"$GITHUB_ENV\"\n          elif [[ \"$RUNNER_OS\" == \"Linux\" ]]; then\n            clang_path=\"$(readlink -f \"$clang_path\")\"\n          fi\n",
+        "old": "          node-version: 22\n      - name: Resolve the real held rustc image (Unix)\n        if: runner.os != 'Windows'\n        run: echo \"RUSTC=$(rustup which rustc)\" >> \"$GITHUB_ENV\"\n      - name: Resolve the held Clang and deterministic archiver images (Unix)\n        if: runner.os != 'Windows'\n        shell: bash\n        run: |\n          set -euo pipefail\n          clang_path=\"$(command -v clang)\"\n          if [[ \"$RUNNER_OS\" == \"macOS\" ]]; then\n            # The held builder uses the Command Line Tools SDK explicitly.\n            # Select that installation's driver and companion linker together.\n            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang\n            test -x \"$clang_path\"\n          elif [[ \"$RUNNER_OS\" == \"Linux\" ]]; then\n            clang_path=\"$(readlink -f \"$clang_path\")\"\n          fi\n"
+      },
+      {
+        "new": "        run: npm install -g typescript@5.8.3\n      - name: Resolve the real held rustc image (Unix)\n        if: runner.os != 'Windows'\n        run: echo \"RUSTC=$(rustup which rustc)\" >> \"$GITHUB_ENV\"\n      - name: Resolve the held Clang and deterministic archiver images (Unix)\n        if: runner.os != 'Windows'\n        shell: bash\n        run: |\n          set -euo pipefail\n          clang_path=\"$(command -v clang)\"\n          if [[ \"$RUNNER_OS\" == \"macOS\" ]]; then\n            # The held builder uses the Command Line Tools SDK explicitly.\n            # Select that installation's driver and companion linker together.\n            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang\n            test -x \"$clang_path\"\n            test -d /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\n            export DEVELOPER_DIR=/Library/Developer/CommandLineTools\n            export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\n            echo \"DEVELOPER_DIR=$DEVELOPER_DIR\" >> \"$GITHUB_ENV\"\n            echo \"SDKROOT=$SDKROOT\" >> \"$GITHUB_ENV\"\n          elif [[ \"$RUNNER_OS\" == \"Linux\" ]]; then\n            clang_path=\"$(readlink -f \"$clang_path\")\"\n          fi\n",
+        "old": "        run: npm install -g typescript@5.8.3\n      - name: Resolve the real held rustc image (Unix)\n        if: runner.os != 'Windows'\n        run: echo \"RUSTC=$(rustup which rustc)\" >> \"$GITHUB_ENV\"\n      - name: Resolve the held Clang and deterministic archiver images (Unix)\n        if: runner.os != 'Windows'\n        shell: bash\n        run: |\n          set -euo pipefail\n          clang_path=\"$(command -v clang)\"\n          if [[ \"$RUNNER_OS\" == \"macOS\" ]]; then\n            # The held builder uses the Command Line Tools SDK explicitly.\n            # Select that installation's driver and companion linker together.\n            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang\n            test -x \"$clang_path\"\n          elif [[ \"$RUNNER_OS\" == \"Linux\" ]]; then\n            clang_path=\"$(readlink -f \"$clang_path\")\"\n          fi\n"
+      },
+      {
+        "new": "      - name: Resolve held test tools\n        shell: bash\n        run: |\n          set -euo pipefail\n          echo \"RUSTC=$(rustup which rustc)\" >> \"$GITHUB_ENV\"\n          clang_path=\"$(command -v clang)\"\n          if [[ \"$RUNNER_OS\" == \"macOS\" ]]; then\n            # The held builder uses the Command Line Tools SDK explicitly.\n            # Select that installation's driver and companion linker together.\n            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang\n            test -x \"$clang_path\"\n            test -d /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\n            export DEVELOPER_DIR=/Library/Developer/CommandLineTools\n            export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\n            echo \"DEVELOPER_DIR=$DEVELOPER_DIR\" >> \"$GITHUB_ENV\"\n            echo \"SDKROOT=$SDKROOT\" >> \"$GITHUB_ENV\"\n          elif [[ \"$RUNNER_OS\" == \"Linux\" ]]; then\n            clang_path=\"$(readlink -f \"$clang_path\")\"\n          fi\n",
+        "old": "      - name: Resolve held test tools\n        shell: bash\n        run: |\n          set -euo pipefail\n          echo \"RUSTC=$(rustup which rustc)\" >> \"$GITHUB_ENV\"\n          clang_path=\"$(command -v clang)\"\n          if [[ \"$RUNNER_OS\" == \"macOS\" ]]; then\n            # The held builder uses the Command Line Tools SDK explicitly.\n            # Select that installation's driver and companion linker together.\n            clang_path=/Library/Developer/CommandLineTools/usr/bin/clang\n            test -x \"$clang_path\"\n          elif [[ \"$RUNNER_OS\" == \"Linux\" ]]; then\n            clang_path=\"$(readlink -f \"$clang_path\")\"\n          fi\n"
+      }
+    ]
+  },
+  {
+    "source": "CHANGELOG.md",
+    "checkpoint_revision": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+    "archive": "docs/evidence/main531-independent-groups-20261016/before/CHANGELOG.md.txt",
+    "current_sha256": "e08ad686313384fe50dfec9736de837e9a34963ad0702706ae808e00b603b891",
+    "original_sha256": "05441cf46464ecbb85485c1a7eba0b970ac1e3dfcf0c886620a08527fe5bb5ae",
+    "edits": [
+      {
+        "new": "<!-- Source-only #833: invocation-owned identifier census scratch reuse across\n     distinct cold callers; full old receiver retained; qualification pending. -->\n# Changelog\n\n- Reuse a sole incoming ownership-state tree as its identity control partition, retaining complete key construction, work charges, all join/replay checks and the original grouped producer while prepaying new receiving layouts.\n\n- Configure ordinary macOS Cargo native builds with the paired CLT developer and SDK roots, and check standard-header discovery independently of the held tools' empty-environment route.\n\n- Pair macOS CI Clang, its companion linker and C++ driver with the Command Line Tools installation used by the builder's explicit SDK, preserving held-tool admission and the unchanged SDK profile.\n\n",
+        "old": "<!-- Source-only #833: invocation-owned identifier census scratch reuse across\n     distinct cold callers; full old receiver retained; qualification pending. -->\n# Changelog\n\n- Pair macOS CI Clang, its companion linker and C++ driver with the Command Line Tools installation used by the builder's explicit SDK, preserving held-tool admission and the unchanged SDK profile.\n\n"
+      }
+    ]
+  },
+  {
+    "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "checkpoint_revision": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+    "archive": "docs/evidence/main531-independent-groups-20261016/before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs.txt",
+    "current_sha256": "0947eebd5968a7ef9b7997588326626b36da471a8d55b559620547e0dc15be79",
+    "original_sha256": "ec376fb35758d964e045fc66122daa1efeecf44bf174792201c2fc31c531d1e4",
+    "edits": [
+      {
+        "new": "macro_rules! held_call_profile_source_inventory {\n    () => {\n        concat!(\n            include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../../../../src/hir/validation/held_profiles.rs\"),\n            include_str!(\"../../../../../src/hir/validation/held_profiles/tests.rs\"),\n            include_str!(\"../../../../../src/hir/validation/held_profiles/source_audit.rs\"),\n            include_str!(\"../../../../../src/hir/validation/executable_profiles/held.rs\"),\n",
+        "old": "macro_rules! held_call_profile_source_inventory {\n    () => {\n        concat!(\n            include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../../../../src/hir/validation/held_profiles.rs\"),\n            include_str!(\"../../../../../src/hir/validation/held_profiles/tests.rs\"),\n            include_str!(\"../../../../../src/hir/validation/held_profiles/source_audit.rs\"),\n            include_str!(\"../../../../../src/hir/validation/executable_profiles/held.rs\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/ARCHITECTURE.md",
+    "checkpoint_revision": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+    "archive": "docs/evidence/main531-independent-groups-20261016/before/docs/ARCHITECTURE.md.txt",
+    "current_sha256": "89963e7dd350e19f94af094fdbef664b5a17a6bfdb9eacfcf5beee1c4cb525e1",
+    "original_sha256": "129baec3655c88d2b2129b3718f56d03d9bc3b9680abc9e6ce7cdcbbf28b88a1",
+    "edits": [
+      {
+        "new": "The singleton incoming-state route stays in `path_join`: it runs the complete\nvalidators and original scheduling tail while avoiding constructors used only\nto group multiple states. Its full old route remains an independent test owner.\nThe test-only `path_join::main_single_groups` namespace preserves the complete\nMain531 grouping producer, key constructors, prior boxed receiver and original\ncontrols independently. Production keeps its direct singleton route; historical\nMain measurements grant no production-cost or application-fit claim.\nThese NEXT changes are source-ready and await their focused executable gates;\nno application-cap or universal physical-cost improvement is certified here.\n",
+        "old": "The singleton incoming-state route stays in `path_join`: it runs the complete\nvalidators and original scheduling tail while avoiding constructors used only\nto group multiple states. Its full old route remains an independent test owner.\nThese NEXT changes are source-ready and await their focused executable gates;\nno application-cap or universal physical-cost improvement is certified here.\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/darwin-native-link-reference-v1/README.md",
+    "checkpoint_revision": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+    "archive": "docs/evidence/main531-independent-groups-20261016/before/docs/evidence/darwin-native-link-reference-v1/README.md.txt",
+    "current_sha256": "6f6d0c19f29e3703929bda72c7ef361dc01685e60b519dd40b50b872d1af565e",
+    "original_sha256": "c9e0c3661d7ba9c1d577b60b163c06f2356bfaf292db1f94510860811ad66af0",
+    "edits": [
+      {
+        "new": "guard. The complete Product Acceptance and Public SDK CI contract harnesses\npassed all 12 tests, including the new eight-job tool/SDK pairing regression.\nThe hosted CLT 27 configuration and full SDK consumers still need CI evidence.\n\n## Ordinary native dependency headers\n\n[Job 116733021038](https://github.com/wavect/semaprax/actions/runs/38825665695/job/116733021038)\nthen exposed a separate ordinary Cargo dependency-build failure: the direct\nCLT driver could not find `TargetConditionals.h`, `stdio.h` or `stdlib.h`.\nAn independent local syntax-only check reproduced the missing `stdio.h` with\nan empty environment and passed with the explicit CLT `SDKROOT`.\n\nEach affected macOS setup now exports the matching `DEVELOPER_DIR` and\n`SDKROOT` in its current shell and into later CI steps. This configures ordinary\nCargo C dependencies and their tool discovery. It changes no machine-wide\ndeveloper selection. Held production tools retain their empty environment and\nexplicit SDK arguments. The CI reference now checks standard-header discovery\nwith only those two configured values and independently compiles the held-style\nC objects with explicit SDK arguments and an empty environment.\n\nThe new Python/YAML and all eight shell routes passed lightweight checks. A\nsubsequent compiler-guarded reference/contract rerun was deferred when another\nuser compiler exceeded the local RAM precondition; full Cargo and hosted\nqualification remain CI work.\n",
+        "old": "guard. The complete Product Acceptance and Public SDK CI contract harnesses\npassed all 12 tests, including the new eight-job tool/SDK pairing regression.\nThe hosted CLT 27 configuration and full SDK consumers still need CI evidence.\n"
+      }
+    ]
+  },
+  {
+    "source": "scripts/ci-darwin-native-reference.py",
+    "checkpoint_revision": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+    "archive": "docs/evidence/main531-independent-groups-20261016/before/scripts/ci-darwin-native-reference.py.txt",
+    "current_sha256": "9837441ebf75ab889bc7044f38f7eb63cdc76058d075a969e9b0c11ffb62cbdc",
+    "original_sha256": "ab55e6524f0813616c1fb4dabf1335ad840a1a4f9288252108b81d3e4b110196",
+    "edits": [
+      {
+        "new": "\"\"\"Expose native tool failures without changing the held builder's diagnostics.\n\nThis is an ordinary CI reference process, not a substitute for held executable,\ndirectory, process-settlement, or SDK publication admission. Held-style children\nreceive the builder's empty environment. The ordinary header reference receives\nonly its two explicitly configured developer/SDK roots.\n\"\"\"\n\nimport os\n",
+        "old": "\"\"\"Expose native tool failures without changing the held builder's diagnostics.\n\nThis is an ordinary CI reference process, not a substitute for held executable,\ndirectory, process-settlement, or SDK publication admission. Children receive\nthe empty environment used by the builder's Darwin tools.\n\"\"\"\n\nimport os\n"
+      },
+      {
+        "new": "import tempfile\n\n\ndef run(arguments, directory, environment=None):\n    print(\"native reference:\", \" \".join(map(str, arguments)), flush=True)\n    result = subprocess.run(\n        arguments,\n        cwd=directory,\n        env={} if environment is None else environment,\n        stdout=subprocess.PIPE,\n        stderr=subprocess.STDOUT,\n        check=False,\n",
+        "old": "import tempfile\n\n\ndef run(arguments, directory):\n    print(\"native reference:\", \" \".join(map(str, arguments)), flush=True)\n    result = subprocess.run(\n        arguments,\n        cwd=directory,\n        env={},\n        stdout=subprocess.PIPE,\n        stderr=subprocess.STDOUT,\n        check=False,\n"
+      },
+      {
+        "new": "        if len(hosts) != 1 or hosts[0] not in (\"aarch64-apple-darwin\", \"x86_64-apple-darwin\"):\n            raise SystemExit(\"native reference requires exactly one admitted Darwin host\")\n        target = hosts[0]\n        sdk = \"/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\"\n        native_environment = {\n            \"SDKROOT\": os.environ[\"SDKROOT\"],\n            \"DEVELOPER_DIR\": os.environ[\"DEVELOPER_DIR\"],\n        }\n        if native_environment != {\n            \"SDKROOT\": sdk,\n            \"DEVELOPER_DIR\": \"/Library/Developer/CommandLineTools\",\n        }:\n            raise SystemExit(\"ordinary native builds require the paired CLT developer and SDK roots\")\n        (directory / \"bridge.rs\").write_text(\n            '#[no_mangle]\\npub extern \"C\" fn spx_native_reference() -> i32 {\\n'\n            '    std::panic::catch_unwind(|| std::hint::black_box(42)).unwrap_or(-1)\\n}\\n'\n",
+        "old": "        if len(hosts) != 1 or hosts[0] not in (\"aarch64-apple-darwin\", \"x86_64-apple-darwin\"):\n            raise SystemExit(\"native reference requires exactly one admitted Darwin host\")\n        target = hosts[0]\n        (directory / \"bridge.rs\").write_text(\n            '#[no_mangle]\\npub extern \"C\" fn spx_native_reference() -> i32 {\\n'\n            '    std::panic::catch_unwind(|| std::hint::black_box(42)).unwrap_or(-1)\\n}\\n'\n"
+      },
+      {
+        "new": "            \"extern int spx_native_reference(void);\\n\"\n            \"int main(void) { return spx_native_reference() == 42 ? 0 : 1; }\\n\"\n        )\n        (directory / \"module.c\").write_text(\n            \"#include <stdio.h>\\n#include <stdint.h>\\n#include <TargetConditionals.h>\\n\"\n            \"int spx_native_reference_module(void) { return TARGET_OS_OSX ? 0 : 1; }\\n\"\n        )\n        # Cargo's ordinary C dependency builds use configured SDK/developer\n        # roots. Check their header discovery without inheriting other values.\n        run([\n            clang, \"-target\", target, \"-std=c11\", \"-Wall\", \"-Wextra\", \"-Werror\",\n            \"-fsyntax-only\", \"module.c\",\n        ], directory, native_environment)\n        # Match the prepared Rust staticlib invocation, including its warning\n        # policy and unwind runtime. No inherited PATH, SDKROOT or DYLD values.\n        run([\n",
+        "old": "            \"extern int spx_native_reference(void);\\n\"\n            \"int main(void) { return spx_native_reference() == 42 ? 0 : 1; }\\n\"\n        )\n        (directory / \"module.c\").write_text(\"int spx_native_reference_module(void) { return 0; }\\n\")\n        # Match the prepared Rust staticlib invocation, including its warning\n        # policy and unwind runtime. No inherited PATH, SDKROOT or DYLD values.\n        run([\n"
+      },
+      {
+        "new": "        for source in (\"main\", \"module\"):\n            run([\n                clang, \"-target\", target, \"-std=c11\", \"-Wall\", \"-Wextra\", \"-Werror\",\n                \"-c\", source + \".c\", \"-o\", source + \".o\", \"-isysroot\", sdk,\n            ], directory)\n        # Keep the current prepared link spelling and SDK explicit so a missing\n        # SDK, unsupported flag or unresolved native symbol is visible in CI.\n        run([\n            clang, \"-target\", target, \"-Wl,-no_warn_duplicate_libraries\",\n            \"main.o\", \"module.o\", \"libbridge.a\", \"-o\", \"reference\",\n            \"-isysroot\", sdk,\n        ], directory)\n        run([directory / \"reference\"], directory)\n        print(\"PASS ordinary Darwin Rust/C tool link and execution reference\", flush=True)\n",
+        "old": "        for source in (\"main\", \"module\"):\n            run([\n                clang, \"-target\", target, \"-std=c11\", \"-Wall\", \"-Wextra\", \"-Werror\",\n                \"-c\", source + \".c\", \"-o\", source + \".o\",\n            ], directory)\n        # Keep the current prepared link spelling and SDK explicit so a missing\n        # SDK, unsupported flag or unresolved native symbol is visible in CI.\n        run([\n            clang, \"-target\", target, \"-Wl,-no_warn_duplicate_libraries\",\n            \"main.o\", \"module.o\", \"libbridge.a\", \"-o\", \"reference\",\n            \"-isysroot\", \"/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\",\n        ], directory)\n        run([directory / \"reference\"], directory)\n        print(\"PASS ordinary Darwin Rust/C tool link and execution reference\", flush=True)\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join.rs",
+    "checkpoint_revision": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+    "archive": "docs/evidence/main531-independent-groups-20261016/before/src/cleanup_plan/replay/path_join.rs.txt",
+    "current_sha256": "35bf81f5aefc552a5eda2b6d383bda9a753313a5d363a7d4e572d4f169fa0a99",
+    "original_sha256": "b8d47fc0577bc2ac9a702641de71b52ca35f0bdc877ae9ec7713256794752967",
+    "edits": [
+      {
+        "new": "mod before_singleton;\n#[cfg(test)]\nmod singleton_tests;\n\n#[cfg(test)]\n#[path = \"path_join/main_single_groups/mod.rs\"]\nmod main_single_groups;\n",
+        "old": "mod before_singleton;\n#[cfg(test)]\nmod singleton_tests;\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+    "checkpoint_revision": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+    "archive": "docs/evidence/main531-independent-groups-20261016/before/src/cleanup_plan/replay/path_join/singleton_tests.rs.txt",
+    "current_sha256": "79810d95fa864955dc08d7883b8c4b83f205837499fb07385bec9b80b6e954a6",
+    "original_sha256": "b8a80827eb32e3f916f2e710d87fae2559e09ff4817c4ff85b9fecbff2efedd9",
+    "edits": [
+      {
+        "new": "    )))\n    .unwrap();\n    let row = &manifest[\"sources\"][0];\n    let prior = crate::source_reflows_merge::main531_previous(\"src/cleanup_plan/replay/path_join.rs\", include_str!(\"../path_join.rs\"));\n    let raw = prior.as_str();\n    assert_eq!(raw, row[\"current\"].as_str().unwrap());\n    assert_eq!(\n        format!(\n",
+        "old": "    )))\n    .unwrap();\n    let row = &manifest[\"sources\"][0];\n    let raw = include_str!(\"../path_join.rs\");\n    assert_eq!(raw, row[\"current\"].as_str().unwrap());\n    assert_eq!(\n        format!(\n"
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "checkpoint_revision": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+    "archive": "docs/evidence/main531-independent-groups-20261016/before/src/source_reflows_merge.rs.txt",
+    "current_sha256": "c816f3d06e3ea48b3d6294ddb012e3577995eaa4913769a8136d5f54207953a3",
+    "original_sha256": "a89d2c1ea4fd445ae42198c9286d3df86c12e7f51f73aed065cc4da7d16de666",
+    "edits": [
+      {
+        "new": "    )\n}\npub(crate) fn compile_fixture_input(source: &str, current: &str) -> String {\n    let previous = main531_previous(source, current);\n    let current = previous.as_str();\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/compile-fixture-successor-5aac-20261016/current-to-5aac.json\")), source, current)\n}\npub(crate) fn main531_previous(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main531-independent-groups-20261016/current-to-2d4b.json\")), source, current)\n}\npub(crate) fn main531_input(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/main531-independent-groups-20261016/runtime-main-root.json\")), source, current)\n}\nfn project(rows: &str, source: &str, current: &str) -> String {\n    let rows: serde_json::Value = serde_json::from_str(rows).expect(\"fixed merge projections\");\n",
+        "old": "    )\n}\npub(crate) fn compile_fixture_input(source: &str, current: &str) -> String {\n    project(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/compile-fixture-successor-5aac-20261016/current-to-5aac.json\")), source, current)\n}\nfn project(rows: &str, source: &str, current: &str) -> String {\n    let rows: serde_json::Value = serde_json::from_str(rows).expect(\"fixed merge projections\");\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "checkpoint_revision": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+    "archive": "docs/evidence/main531-independent-groups-20261016/before/tests/hir_module_boundaries.rs.txt",
+    "current_sha256": "8197dfe03e0cf48db2fd5983229da50fb205d46a0311e792e1ce8469702e00ce",
+    "original_sha256": "a39cbaedc163415251a957e2f087b6885022b0c6cf1ddc9cf37cddbcef5a9384",
+    "edits": [
+      {
+        "new": "    let validation_raw = concat!(\n        concat!(\n            concat!(\n                include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../src/hir/validation.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles/tests.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles/source_audit.rs\"),\n",
+        "old": "    let validation_raw = concat!(\n        concat!(\n            concat!(\n                include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../src/hir/validation.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles/tests.rs\"),\n                include_str!(\"../src/hir/validation/held_profiles/source_audit.rs\"),\n"
+      },
+      {
+        "new": "    );\n    let validation = production_source_inventory::production(\n        validation_raw,\n        include_str!(\"../docs/evidence/main531-independent-groups-20261016/hir.json\"),\n    );\n    for forbidden in [\n        \"struct Resolver\",\n",
+        "old": "    );\n    let validation = production_source_inventory::production(\n        validation_raw,\n        include_str!(\"../docs/evidence/compile-fixture-successor-5aac-20261016/hir.json\"),\n    );\n    for forbidden in [\n        \"struct Resolver\",\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/project_product_acceptance_ci_contract.rs",
+    "checkpoint_revision": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+    "archive": "docs/evidence/main531-independent-groups-20261016/before/tests/project_product_acceptance_ci_contract.rs.txt",
+    "current_sha256": "c0148ae13a8e5879513dc54972e3c64de6f6d52594682d6a8e99e296bab951cd",
+    "original_sha256": "65b11423bcf43df718db8e5e23d316535fbe8497b244436fd48edc990e72d7fe",
+    "edits": [
+      {
+        "new": "                && macos.contains(\"test -x \\\"$clang_path\\\"\"),\n            \"{name} must use the installed driver paired with the explicit SDK\"\n        );\n        for required in [\n            \"DEVELOPER_DIR=/Library/Developer/CommandLineTools\",\n            \"SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\",\n            \"echo \\\"DEVELOPER_DIR=$DEVELOPER_DIR\\\" >> \\\"$GITHUB_ENV\\\"\",\n            \"echo \\\"SDKROOT=$SDKROOT\\\" >> \\\"$GITHUB_ENV\\\"\",\n        ] {\n            assert!(\n                macos.contains(required),\n                \"{name} lost ordinary native SDK configuration: {required}\"\n            );\n        }\n        assert!(linux.contains(\"clang_path=\\\"$(readlink -f \\\"$clang_path\\\")\\\"\"));\n    }\n    let consumers = job(&workflow, \"public-generic-ownership-milestone\");\n",
+        "old": "                && macos.contains(\"test -x \\\"$clang_path\\\"\"),\n            \"{name} must use the installed driver paired with the explicit SDK\"\n        );\n        assert!(linux.contains(\"clang_path=\\\"$(readlink -f \\\"$clang_path\\\")\\\"\"));\n    }\n    let consumers = job(&workflow, \"public-generic-ownership-milestone\");\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph.rs",
+    "checkpoint_revision": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+    "archive": "docs/evidence/main531-independent-groups-20261016/before/tests/workspace/semantic_graph.rs.txt",
+    "current_sha256": "f0c4dcb8c185e08453e9f7cb3866fa3879e588d8bf78c295378471ec00e4b5cd",
+    "original_sha256": "23320ee1f59318b777d5fcc7d6c9b1f2a02591f828d0ca14b1d61225f97802d8",
+    "edits": [
+      {
+        "new": "    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\n            \"../../docs/evidence/main531-independent-groups-20261016/projection.json\"\n        ),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n",
+        "old": "    let production_projection = production_source_inventory::production(\n        &projection,\n        include_str!(\n            \"../../docs/evidence/compile-fixture-successor-5aac-20261016/projection.json\"\n        ),\n    );\n    assert!(root.contains(\"mod expected_projection;\"));\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph/source_inventory.rs",
+    "checkpoint_revision": "2d4b68d3a416cae5fba6ac08498cd56721878ba1",
+    "archive": "docs/evidence/main531-independent-groups-20261016/before/tests/workspace/semantic_graph/source_inventory.rs.txt",
+    "current_sha256": "bf0c556fcd81d180f355b5049d021ecdc77a0d5504d50ccc1390fdad6185198c",
+    "original_sha256": "b4ba0b820262c02510fa48a902f6b6b456238eeadcd87f1744e25948b2e33ce2",
+    "edits": [
+      {
+        "new": "macro_rules! semantic_graph_private_layout_owned_source_inventory {\n    () => { concat!(semantic_graph_private_layout_owned_source_inventory!(capacity), semantic_graph_private_layout_owned_source_inventory!(core)) };\n    (capacity) => { concat!(\n        include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/boxed_states/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/mod.rs\"), include_str!(\"../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_before.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests/owner_controls.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs\"),\n",
+        "old": "macro_rules! semantic_graph_private_layout_owned_source_inventory {\n    () => { concat!(semantic_graph_private_layout_owned_source_inventory!(capacity), semantic_graph_private_layout_owned_source_inventory!(core)) };\n    (capacity) => { concat!(\n        include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights/receiver_tests.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_before.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests/owner_controls.rs\"),\n        include_str!(\"../../src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs\"),\n"
+      }
+    ]
+  }
+]

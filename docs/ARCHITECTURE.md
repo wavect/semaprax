@@ -4960,5 +4960,9 @@ prechange receivers remain compiled under the test-only `before_empty` tree.
 The singleton incoming-state route stays in `path_join`: it runs the complete
 validators and original scheduling tail while avoiding constructors used only
 to group multiple states. Its full old route remains an independent test owner.
+The test-only `path_join::main_single_groups` namespace preserves the complete
+Main531 grouping producer, key constructors, prior boxed receiver and original
+controls independently. Production keeps its direct singleton route; historical
+Main measurements grant no production-cost or application-fit claim.
 These NEXT changes are source-ready and await their focused executable gates;
 no application-cap or universal physical-cost improvement is certified here.

@@ -334,6 +334,11 @@ jobs:
             # Select that installation's driver and companion linker together.
             clang_path=/Library/Developer/CommandLineTools/usr/bin/clang
             test -x "$clang_path"
+            test -d /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+            export DEVELOPER_DIR=/Library/Developer/CommandLineTools
+            export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+            echo "DEVELOPER_DIR=$DEVELOPER_DIR" >> "$GITHUB_ENV"
+            echo "SDKROOT=$SDKROOT" >> "$GITHUB_ENV"
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
             clang_path="$(readlink -f "$clang_path")"
           fi
@@ -1112,6 +1117,11 @@ jobs:
             # Select that installation's driver and companion linker together.
             clang_path=/Library/Developer/CommandLineTools/usr/bin/clang
             test -x "$clang_path"
+            test -d /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+            export DEVELOPER_DIR=/Library/Developer/CommandLineTools
+            export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+            echo "DEVELOPER_DIR=$DEVELOPER_DIR" >> "$GITHUB_ENV"
+            echo "SDKROOT=$SDKROOT" >> "$GITHUB_ENV"
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
             clang_path="$(readlink -f "$clang_path")"
           fi
@@ -1244,6 +1254,11 @@ jobs:
             # Select that installation's driver and companion linker together.
             clang_path=/Library/Developer/CommandLineTools/usr/bin/clang
             test -x "$clang_path"
+            test -d /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+            export DEVELOPER_DIR=/Library/Developer/CommandLineTools
+            export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+            echo "DEVELOPER_DIR=$DEVELOPER_DIR" >> "$GITHUB_ENV"
+            echo "SDKROOT=$SDKROOT" >> "$GITHUB_ENV"
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
             clang_path="$(readlink -f "$clang_path")"
           fi
@@ -1336,6 +1351,11 @@ jobs:
             # Select that installation's driver and companion linker together.
             clang_path=/Library/Developer/CommandLineTools/usr/bin/clang
             test -x "$clang_path"
+            test -d /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+            export DEVELOPER_DIR=/Library/Developer/CommandLineTools
+            export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+            echo "DEVELOPER_DIR=$DEVELOPER_DIR" >> "$GITHUB_ENV"
+            echo "SDKROOT=$SDKROOT" >> "$GITHUB_ENV"
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
             clang_path="$(readlink -f "$clang_path")"
           fi
@@ -1464,6 +1484,11 @@ jobs:
             # Select that installation's driver and companion linker together.
             clang_path=/Library/Developer/CommandLineTools/usr/bin/clang
             test -x "$clang_path"
+            test -d /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+            export DEVELOPER_DIR=/Library/Developer/CommandLineTools
+            export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+            echo "DEVELOPER_DIR=$DEVELOPER_DIR" >> "$GITHUB_ENV"
+            echo "SDKROOT=$SDKROOT" >> "$GITHUB_ENV"
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
             clang_path="$(readlink -f "$clang_path")"
           fi
@@ -1772,6 +1797,11 @@ jobs:
             # Select that installation's driver and companion linker together.
             clang_path=/Library/Developer/CommandLineTools/usr/bin/clang
             test -x "$clang_path"
+            test -d /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+            export DEVELOPER_DIR=/Library/Developer/CommandLineTools
+            export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+            echo "DEVELOPER_DIR=$DEVELOPER_DIR" >> "$GITHUB_ENV"
+            echo "SDKROOT=$SDKROOT" >> "$GITHUB_ENV"
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
             clang_path="$(readlink -f "$clang_path")"
           fi
@@ -1960,6 +1990,11 @@ jobs:
             # Select that installation's driver and companion linker together.
             clang_path=/Library/Developer/CommandLineTools/usr/bin/clang
             test -x "$clang_path"
+            test -d /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+            export DEVELOPER_DIR=/Library/Developer/CommandLineTools
+            export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+            echo "DEVELOPER_DIR=$DEVELOPER_DIR" >> "$GITHUB_ENV"
+            echo "SDKROOT=$SDKROOT" >> "$GITHUB_ENV"
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
             clang_path="$(readlink -f "$clang_path")"
           fi
@@ -2130,6 +2165,11 @@ jobs:
             # Select that installation's driver and companion linker together.
             clang_path=/Library/Developer/CommandLineTools/usr/bin/clang
             test -x "$clang_path"
+            test -d /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+            export DEVELOPER_DIR=/Library/Developer/CommandLineTools
+            export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+            echo "DEVELOPER_DIR=$DEVELOPER_DIR" >> "$GITHUB_ENV"
+            echo "SDKROOT=$SDKROOT" >> "$GITHUB_ENV"
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
             clang_path="$(readlink -f "$clang_path")"
           fi

@@ -1,0 +1,18 @@
+[
+  {
+    "status": "REFUSED_STALE_DRAFT_MANIFEST",
+    "script": "verify-authority.py",
+    "actual_failure": "current source length/hash assertion",
+    "reason": "Check invoked while updated current authority generator was still running after adding complete shared Main test source to three raw inventories",
+    "Rust_executed": false
+  },
+  {
+    "status": "SOURCE_ONLY_PASS",
+    "scripts": [
+      "verify-source.py",
+      "verify-authority.py"
+    ],
+    "reason": "Both checks rerun sequentially after generator completed; complete current hashes/source partition and all six inverse rows pass",
+    "Rust_executed": false
+  }
+]

@@ -1,0 +1,13 @@
+            let key = if storage::atomic_controls::selected(&state, budget) {
+                let payload = storage::atomic_controls::reserve(function, &state, budget)?;
+                storage::atomic_controls::copy(payload)
+            } else {
+                storage::reserve_control_clone(function, &state, budget)?;
+                (
+                    state.pending_failure.clone(),
+                    state.selected_failure.clone(),
+                    state.staged_copy_result.clone(),
+                    state.published,
+                    state.returned.clone(),
+                )
+            };

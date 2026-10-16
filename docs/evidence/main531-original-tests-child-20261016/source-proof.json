@@ -1,0 +1,13 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "predecessor": "7e9fae0af7dff14fbdc31e48af056a380989b06c",
+  "whole_prior_inputs": 6,
+  "compact_bytes": 15245,
+  "full_shared_Main_tests": true,
+  "recursive_Main_module_files": 9,
+  "literal_Main_test_bodies": 14,
+  "new_authored_test_bodies": 0,
+  "old_7e_JSON_and_evidence_exact": true,
+  "new_namespace_to_Main_root_complete": true,
+  "Rust_executed": false
+}

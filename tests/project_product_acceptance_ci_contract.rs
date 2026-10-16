@@ -212,6 +212,17 @@ fn macos_native_jobs_pair_the_driver_with_the_explicit_builder_sdk() {
                 && macos.contains("test -x \"$clang_path\""),
             "{name} must use the installed driver paired with the explicit SDK"
         );
+        for required in [
+            "DEVELOPER_DIR=/Library/Developer/CommandLineTools",
+            "SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+            "echo \"DEVELOPER_DIR=$DEVELOPER_DIR\" >> \"$GITHUB_ENV\"",
+            "echo \"SDKROOT=$SDKROOT\" >> \"$GITHUB_ENV\"",
+        ] {
+            assert!(
+                macos.contains(required),
+                "{name} lost ordinary native SDK configuration: {required}"
+            );
+        }
         assert!(linux.contains("clang_path=\"$(readlink -f \"$clang_path\")\""));
     }
     let consumers = job(&workflow, "public-generic-ownership-milestone");

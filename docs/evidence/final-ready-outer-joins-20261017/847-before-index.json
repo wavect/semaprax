@@ -1,0 +1,1083 @@
+{
+  "scope": "read-only validation of complete original847preimages; does not normalize current behavior or qualify compiler",
+  "base": "37c771b08aa807365433d1beb23dcf138c216977",
+  "candidate": "a2f1a3c7fa867728d58b78bcaafe639d12dbbdfa",
+  "receipt_sha256": "697847f639c077d266e1b1f988fcca580e15c302a830358a5221a2fab72af698",
+  "rows": [
+    {
+      "path": "CHANGELOG.md",
+      "original_before_sha256": "cca6752c88460dffaff8123a36a4867ff27dbb7a4e19fa0cb6f4782fb0914f80",
+      "a2_candidate_sha256": "1998d21a8a6364a9d7734fb18a5dc5f9a32420649fa6b79ddd8a4bfedfecf913",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/CHANGELOG.md"
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "original_before_sha256": "fc7e29ee8ad79bbd06cc82cdc79579cabba6c3308acf4f1e83aaa6a31ea05a2e",
+      "a2_candidate_sha256": "9550e74dad7a391437831e66ab4a2780300599346fa80e38fe7f1d3f1225486a",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+    },
+    {
+      "path": "docs/evidence/retained-wrapper-rename-847/README.md",
+      "original_before_sha256": null,
+      "a2_candidate_sha256": "788aac9692f4c9ed3a889bd41ebb39fcb25eb81f79e8fa057787deb1c9448fab",
+      "whole_before_archive": null
+    },
+    {
+      "path": "docs/evidence/retained-wrapper-rename-847/compare.py",
+      "original_before_sha256": null,
+      "a2_candidate_sha256": "97406a3c4eb233b608233cfa296234f51dc840d088de1a2d72cee14b36739d88",
+      "whole_before_archive": null
+    },
+    {
+      "path": "docs/evidence/retained-wrapper-rename-847/oracle.rs",
+      "original_before_sha256": null,
+      "a2_candidate_sha256": "293c58f66677a2f4a0bd2e21ff83fa09a72474e5892f121ff54c23d179146514",
+      "whole_before_archive": null
+    },
+    {
+      "path": "docs/evidence/retained-wrapper-rename-847/prepare.py",
+      "original_before_sha256": null,
+      "a2_candidate_sha256": "147bcac5c255ff4cceb91c0104b489d8debbfceeca5f7d5267d72d103e919ce5",
+      "whole_before_archive": null
+    },
+    {
+      "path": "src/ast/program_source.rs",
+      "original_before_sha256": "9dd45e944d328662eba17e20de0a5dcba4c38ce48d47add41d00f0352ea912bc",
+      "a2_candidate_sha256": "2b3d504ef2cbcea751116cfb4314877034251ba6cda77dd6826a3fd37a88f855",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/ast/program_source.rs"
+    },
+    {
+      "path": "src/ast/program_source/checked_key.rs",
+      "original_before_sha256": "d8823d89a6e967d1ec6d4c45887aa25075eea32d648ee177bdcd9120589367c2",
+      "a2_candidate_sha256": "8d4bc38177d9af2ea67378d904cf4e0b53a5b9bc304c187a787970d3a1eba3a4",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/ast/program_source/checked_key.rs"
+    },
+    {
+      "path": "src/ast/program_source/function_alias.rs",
+      "original_before_sha256": "5a17ee7902bbb474a8dc2a0153d767f861abd755f2fd58b145bbf10c6c4bdd9e",
+      "a2_candidate_sha256": "67bc93a9e52e70a42ad53614b4475a5fa881e96b17859fa376205bbc558088b2",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/ast/program_source/function_alias.rs"
+    },
+    {
+      "path": "src/ast/program_source/function_alias/presentation.rs",
+      "original_before_sha256": null,
+      "a2_candidate_sha256": "4bb433ce0aa09fb0a1e06e9e40712cabd82ce78a2371756200e3d66678980a17",
+      "whole_before_archive": null
+    },
+    {
+      "path": "src/ast/program_source/function_alias/presentation/metadata.rs",
+      "original_before_sha256": null,
+      "a2_candidate_sha256": "cfc8317b5816af0c79c6f33028387ea8c50975b1881578cc54e8f09c344825b1",
+      "whole_before_archive": null
+    },
+    {
+      "path": "src/ast/program_source/function_alias/presentation/metadata/tests.rs",
+      "original_before_sha256": null,
+      "a2_candidate_sha256": "ca66c5b42b10578da168b3714ba1de57380bcad509be5818ae7c14edb664c9ff",
+      "whole_before_archive": null
+    },
+    {
+      "path": "src/bounded_output/identity_reservation.rs",
+      "original_before_sha256": "64da492f79082786a70e53115848dc51c0cf878af25e03bed29680cd8aa12ce1",
+      "a2_candidate_sha256": "5d67d57bb12fe7d5d3f6669a9ecb306ec0d651ed0c772835ef4a74e58c6e67e4",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/bounded_output/identity_reservation.rs"
+    },
+    {
+      "path": "src/bounded_output/identity_reservation/function_cells.rs",
+      "original_before_sha256": null,
+      "a2_candidate_sha256": "8825339dac4f7d902b3a0fc4d81eb7714646ca0c8a19dd9d74cb6dfb55e4b5ac",
+      "whole_before_archive": null
+    },
+    {
+      "path": "src/bounded_output/identity_reservation/source_abort.rs",
+      "original_before_sha256": null,
+      "a2_candidate_sha256": "dd92d2041bd8db505f14099637fe687bf9e24c3743c0dd345dd3bdfde534f879",
+      "whole_before_archive": null
+    },
+    {
+      "path": "src/box_ops.rs",
+      "original_before_sha256": "c3d6d016d9efab50ffc624862b0566c3afebec2f894d8f3094943c8fc629ce27",
+      "a2_candidate_sha256": "25e68508777637c9e5ae54c15a67997b29aaadf368e438ccb7793b285407ff0f",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/box_ops.rs"
+    },
+    {
+      "path": "src/box_ops/wrappers.rs",
+      "original_before_sha256": "62c12326214532a8cdc2d0cf8097c52159ed2bacb19e16af98685a31d9d47492",
+      "a2_candidate_sha256": "c6b3c14f8bd6804840419e4502d944bea9c661300d7172479ef377130db67690",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/box_ops/wrappers.rs"
+    },
+    {
+      "path": "src/hir.rs",
+      "original_before_sha256": "ec7b9720f0546603ca02c56e26fbc68e7ce4ded927f662de4fb8e11cf3aead8c",
+      "a2_candidate_sha256": "e3aaf1c870be500fa794ec24d393f8dc94fcd996990abf388222ce079f4e0b04",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir.rs"
+    },
+    {
+      "path": "src/hir/borrowed_root_oracle.rs",
+      "original_before_sha256": "04ad51a068a5253dfb39767004d5bde69d25693c5b564ca875e028edb4b9d013",
+      "a2_candidate_sha256": "cbb91cbfedcf0a515a6bd549f9622266c05f8f3eb87fed714e1f9c7213db132b",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/borrowed_root_oracle.rs"
+    },
+    {
+      "path": "src/hir/borrowed_root_oracle/resolve_expr/path_arena_regression_tests.rs",
+      "original_before_sha256": "d74cdc3bf7ba9110abe91e879eff26402dead68118f2f595d1a5ae03d31274fd",
+      "a2_candidate_sha256": "02dd6444c7872f0730b88893cd94ec516a731d2354972a7dcdb1025c6d9dcbc3",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/borrowed_root_oracle/resolve_expr/path_arena_regression_tests.rs"
+    },
+    {
+      "path": "src/hir/byte_partition.rs",
+      "original_before_sha256": "fe4a515c0f2bdb231131f3c9e020112d6dabd0cd2216d21fe000d5e9492e62e1",
+      "a2_candidate_sha256": "b41ef7aef3a792b2d5fe3df10bdb2a3cdfc71d3dc8a63f0b96b0d22f545574ec",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/byte_partition.rs"
+    },
+    {
+      "path": "src/hir/closure/mutable.rs",
+      "original_before_sha256": "78a6a814591758354edd22e20317dde244894387e38e040cd27a2994e27d6b96",
+      "a2_candidate_sha256": "237cbd8d91f9331a47e9c90402dcf435d548bbfa09007a4826fd4e9a1d738895",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/closure/mutable.rs"
+    },
+    {
+      "path": "src/hir/closure/once.rs",
+      "original_before_sha256": "f45f7909124dcca1ccf75b09b53e1af115f929852ddab7f2dbc2564f6f68d6c7",
+      "a2_candidate_sha256": "048928cd79ce68e7ebd71d66d10cd69e08c6ab2f7769753f9eb637b9a62b8527",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/closure/once.rs"
+    },
+    {
+      "path": "src/hir/closure/resolve.rs",
+      "original_before_sha256": "b80c0ff64b54e8bfdd33809efc5f32b7936cf6541dea9e0190d45dddb5789d67",
+      "a2_candidate_sha256": "1351b8470da0d625b47df68b1c62555b1e6f9eb9722a1099ec86ee32b5f429fc",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/closure/resolve.rs"
+    },
+    {
+      "path": "src/hir/declaration_index/identity_payer.rs",
+      "original_before_sha256": "7674bd3a029ceace73b16bfd12aeb9ff5d90e887d81cd4a9e6f15f5181f287e0",
+      "a2_candidate_sha256": "8f91aa79490821a6abaf756c55bf4514ccf27b97b7523e78e7efcdb6efbc38f7",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/declaration_index/identity_payer.rs"
+    },
+    {
+      "path": "src/hir/declaration_index/identity_reuse/resolver_held.rs",
+      "original_before_sha256": "0b84fab83adb6f43616c25d9be7ee0812b310795a34afe30a5b256cf65050249",
+      "a2_candidate_sha256": "be0ed9bf194c2130bfb9fdfc75c5ab01f2d3374f385aa9eb46a2a0d5b9c2f033",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/declaration_index/identity_reuse/resolver_held.rs"
+    },
+    {
+      "path": "src/hir/function_reuse_source.rs",
+      "original_before_sha256": "aeb1b328e99da53a5c5fba4103e37f312df9bf83eacb404cdb130c343eb21a71",
+      "a2_candidate_sha256": "dd957afe0c2a052aff99e99ff64966c33888b5b7f85c27c6c484550972b1be32",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/function_reuse_source.rs"
+    },
+    {
+      "path": "src/hir/function_value/resolve.rs",
+      "original_before_sha256": "22370180296207253ab2a43210b86a499d890d325bf9942bd37f3a5823d49256",
+      "a2_candidate_sha256": "14c9b6b7e4a3713c4ff1f0e4fbd6e80f86fce06e0fe192262b796c714433c397",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/function_value/resolve.rs"
+    },
+    {
+      "path": "src/hir/generic_collection.rs",
+      "original_before_sha256": "656d0f116410d2e90676dd84140d615d19d2653dc4bfbdf68313560a6af17806",
+      "a2_candidate_sha256": "0f177e24bcd7892f2d7f7fdcaf8ae5fb3c9aac07addce8ee9da51d778d321c9f",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/generic_collection.rs"
+    },
+    {
+      "path": "src/hir/generic_inference.rs",
+      "original_before_sha256": "e9188fda0ca70e468fd4135fb5d0eb227dc770cf6bb95e328ce0de1a209af4cb",
+      "a2_candidate_sha256": "49c2ad95956f340ce5ecf3310fcd5bf6c8e5852d4c7438bcb2c89b5a2085b901",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/generic_inference.rs"
+    },
+    {
+      "path": "src/hir/identity_resolution.rs",
+      "original_before_sha256": "1736a621032c7a3125da14618ec2c79956ece69dd88003b079cc4f0c1e4e7af0",
+      "a2_candidate_sha256": "d5ac03e866e671a48f7b66b88546679814e9d8df41e986944da968118c506413",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/identity_resolution.rs"
+    },
+    {
+      "path": "src/hir/identity_resolution/nominal.rs",
+      "original_before_sha256": "fa30ef12b33d718ffcf0a4df82d115a82a4245adff92f3f42ed392caf6fda462",
+      "a2_candidate_sha256": "023dca0e0134a0c6a11ca10864608a1f52ed99ca81f13291e4e1a613748f1f30",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/identity_resolution/nominal.rs"
+    },
+    {
+      "path": "src/hir/identity_resolution/nominal_original.rs",
+      "original_before_sha256": "5900fd7a0af2c484c46e2f7fea1c0ff2e368f043cb7d800d59120d7897558534",
+      "a2_candidate_sha256": "bad6ec02c52765fce45b4ec5325e0fb4ea450e5a8993c44a0b0bd3a4ec7bdbcb",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/identity_resolution/nominal_original.rs"
+    },
+    {
+      "path": "src/hir/identity_resolution/nominal_tests.rs",
+      "original_before_sha256": "215c7aff90fdf0d10601a3238a1a394510489d9c127dc716db53528bee64a06a",
+      "a2_candidate_sha256": "07bbdb5cd82c3ece59732acb004783f1e097462b85bd88f0ce15e7f1da1e1560",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/identity_resolution/nominal_tests.rs"
+    },
+    {
+      "path": "src/hir/identity_resolution/nominal_tests/legacy.rs",
+      "original_before_sha256": "fd63f0722fe05cbf45bd3881c7cfdc80c53b1870201aa837af1381cc87075a6c",
+      "a2_candidate_sha256": "1e72f212c36831ef53675f0eb8f0b81949efa13a9efd4f24f71a1d29d86f77d3",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/identity_resolution/nominal_tests/legacy.rs"
+    },
+    {
+      "path": "src/hir/iterative_validator_tests.rs",
+      "original_before_sha256": "0523fe1de713575b16fa383c759f96df3af836aa08541a8b4131e95579d62952",
+      "a2_candidate_sha256": "6672bac73976f070d7c3085390e625c5d18cb2c1f55cd6b7e3957fd5423bccfe",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/iterative_validator_tests.rs"
+    },
+    {
+      "path": "src/hir/ordinary_identity.rs",
+      "original_before_sha256": "d7a66ab073a02943677913423a20b4e3c373720ffe6ccf470eb1dceaf309f1ed",
+      "a2_candidate_sha256": "f829d5db3105f7f2e893532012f360a53a03d2ed35d62767a40733f3fb66f91b",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/ordinary_identity.rs"
+    },
+    {
+      "path": "src/hir/ordinary_identity/tests.rs",
+      "original_before_sha256": "681a2dba56edd0482314510549f719db7323c66a4dfcf7c168be9a230e64c8bd",
+      "a2_candidate_sha256": "7ff0f5ab2218ffa3ee937bac8021ff337c289533d5afb7ab51b3fcda95866464",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/ordinary_identity/tests.rs"
+    },
+    {
+      "path": "src/hir/record_invariants/source.rs",
+      "original_before_sha256": "6a300ce64275bc3307a44773e28d36d9fc6a109ed46c139d3098914a2ebf3f8a",
+      "a2_candidate_sha256": "1638348212228bca72e9f6a78d4f74579e158ab38e2dc63bcb4e4239b7e51f3a",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/record_invariants/source.rs"
+    },
+    {
+      "path": "src/hir/resolve_box_call.rs",
+      "original_before_sha256": "8e651e382ebf01d83b413502021bb2a90406a989ef1d0ec4777b6a3c5ab98b59",
+      "a2_candidate_sha256": "51c0516a48f76032c85c44b893219828664ce4df7dbff47d860115f36186ad3c",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_box_call.rs"
+    },
+    {
+      "path": "src/hir/resolve_box_call/iterator.rs",
+      "original_before_sha256": "ae9ccaa46f0b096abb043ee026b88344da8ffb607d3f920b9aed245195663da2",
+      "a2_candidate_sha256": "baae64178a8d976efc9b4878012de2ddb3b21156d85cfcb481bab4188e5c03c6",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_box_call/iterator.rs"
+    },
+    {
+      "path": "src/hir/resolve_box_call/list.rs",
+      "original_before_sha256": "a2c91ec14e6e4b21f570d1df0502a91b3d57348194376a6c7bc0e7e632af10cc",
+      "a2_candidate_sha256": "4df2da179a706465d8a3be1b5122fb6715e252807b0ecbb4b560e9f1625179ed",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_box_call/list.rs"
+    },
+    {
+      "path": "src/hir/resolve_box_call/map.rs",
+      "original_before_sha256": "b7bcaad9459c3199df5519a574b6001859eff13aa29780ea9508b4b3d841218d",
+      "a2_candidate_sha256": "75ac21229bceda2b12a1e225570f89de39c2e70e83eda383340076fdbcc9b27e",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_box_call/map.rs"
+    },
+    {
+      "path": "src/hir/resolve_class.rs",
+      "original_before_sha256": "07f711d842f3d522890144d31101f10181e5a9932c7b57b5788532df6ca00e71",
+      "a2_candidate_sha256": "2bcf0692b3ed2d7b958c920bcac3992534caa4eccab66f90e8090eae3ab3b49d",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_class.rs"
+    },
+    {
+      "path": "src/hir/resolve_expr.rs",
+      "original_before_sha256": "8af5423c4101d8f87c06f700ec51c6728c12164669cb716778e001323a787bf0",
+      "a2_candidate_sha256": "234c0317b9c29ba6722044186e7e9fc7e20e0cfb2862407b22c84e226ffddc2b",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_expr.rs"
+    },
+    {
+      "path": "src/hir/resolve_expr/byte_view.rs",
+      "original_before_sha256": "6df7f7b92a99dfa68d24e8697f788a1e46c147a7144a855f9798ced1b3dc6567",
+      "a2_candidate_sha256": "dbf07dc264949d7e18ce759ee9f053206600fe0e170f7db99893383c15693866",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_expr/byte_view.rs"
+    },
+    {
+      "path": "src/hir/resolve_expr/finish.rs",
+      "original_before_sha256": "c5848605154f79d0eb903aa467010cb756eda6eb0b21f0549d08321b49de763a",
+      "a2_candidate_sha256": "3e70aa00d1ffcb5d712727e35f4c06839f04f8d7a85de6684b48b915f452538c",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_expr/finish.rs"
+    },
+    {
+      "path": "src/hir/resolve_expr/literal_format.rs",
+      "original_before_sha256": "1f908ed2e18deb8f70f1011a0a8ea0a7da8695b02743b67b172a92a5635be676",
+      "a2_candidate_sha256": "c25fd584cdfc15618c78d66dc30da7d0d249d1c51139ad25d8d4a2eff1310195",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_expr/literal_format.rs"
+    },
+    {
+      "path": "src/hir/resolve_expr/path_arena_regression_tests.rs",
+      "original_before_sha256": "e2393cb011f764bdb53a5d3a2a33afa62210715fe83ed78b0ecd76b2ec37f285",
+      "a2_candidate_sha256": "6118ca550b558ab5970c657166fa0424ee0d4669f09c39559c4219424166c434",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_expr/path_arena_regression_tests.rs"
+    },
+    {
+      "path": "src/hir/resolve_expr/sort_keys.rs",
+      "original_before_sha256": "55417c54eb3ed7c6aa2dde68a8ce77f6a31d0bb5cffa551d560bd470ab6c9e8d",
+      "a2_candidate_sha256": "c724cb0ba17fdf9657d98a2adbb6098afb3a79f733f2b311ab29d26d2886b26e",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_expr/sort_keys.rs"
+    },
+    {
+      "path": "src/hir/resolve_expr/super_method.rs",
+      "original_before_sha256": "418659659d0207231490acb7e44eee2653f0b1268c7ef451ed5d54811ed3b329",
+      "a2_candidate_sha256": "4591badc2f10f712e8e14a228eee46e73fbcb3ebf863e75aa28a73fb8af5e0ce",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_expr/super_method.rs"
+    },
+    {
+      "path": "src/hir/resolve_expr/variable.rs",
+      "original_before_sha256": "8c2bf8b6316e5cb3dc21d47af540a1c767b7085ba1daa2acd38d9166693be0b7",
+      "a2_candidate_sha256": "421e9edd81c65b89cef9dcaf7fcdb7c251afcb6f6f27e8bf5b6e824bf9258edd",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_expr/variable.rs"
+    },
+    {
+      "path": "src/hir/resolve_expr/vec_constructor.rs",
+      "original_before_sha256": "7b57ea02a598263f11216d261193c8dc707c66bc53009b7b6010e40c75a656be",
+      "a2_candidate_sha256": "ef54853c1e8d3321f98afd5d7406e78f20e96abd94f59aaf6983379b9cf33fc0",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_expr/vec_constructor.rs"
+    },
+    {
+      "path": "src/hir/resolve_expr/vec_field.rs",
+      "original_before_sha256": "ff9f016cb7d25e957dc857da84ca5d75e192f96622f2baa597e72e1641f55206",
+      "a2_candidate_sha256": "5ed1c0036be4c11da6161f67127f5827671b37de0712361ebfdd2f9d8f2b7ae7",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_expr/vec_field.rs"
+    },
+    {
+      "path": "src/hir/resolve_expr_reference.rs",
+      "original_before_sha256": "8cef80fc6bddcdcaefbf200be0cdd934818ee2becd7b939134280b09f3b91d86",
+      "a2_candidate_sha256": "052f56b46c90134152b60762bbe925d798e5b62615449365fc2dfaac41c18192",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_expr_reference.rs"
+    },
+    {
+      "path": "src/hir/resolve_expr_reference/block.rs",
+      "original_before_sha256": "62118f353343f7e472ced187dd9550733fcb82d368cfc621bd441955b9aab080",
+      "a2_candidate_sha256": "ba6f290981b6179813f5af334e2dd2f77e04b5ccc699aa2214ff874b42decb8b",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_expr_reference/block.rs"
+    },
+    {
+      "path": "src/hir/resolve_expr_reference/control.rs",
+      "original_before_sha256": "1d0a68eba2342f9526805cd06d8ba132b11fb7dc9aebb46f8445872ce71be7f2",
+      "a2_candidate_sha256": "a743c2655bf1366a1e687bfab37c8d2c481601fe2c32a64b0068598fbade2130",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_expr_reference/control.rs"
+    },
+    {
+      "path": "src/hir/resolve_expr_reference/literal_format.rs",
+      "original_before_sha256": "e8694028546bca1731b2ef5df5dc048d5a8d00416d8a0c607d0dba1bcf8603bd",
+      "a2_candidate_sha256": "6d7c6e223c14dbf80c06d63e05270b47b2abb61ab0048061acc3d35c7a5b09cd",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_expr_reference/literal_format.rs"
+    },
+    {
+      "path": "src/hir/resolve_expr_reference/projection.rs",
+      "original_before_sha256": "c41bef8b5d4236b5baaa5a961555de9384f78be765642eda27a03d096f93c1cf",
+      "a2_candidate_sha256": "768961857a89b99a7329cc3df1208c82169364eb5c7095b87421f0d78661041f",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_expr_reference/projection.rs"
+    },
+    {
+      "path": "src/hir/resolve_for.rs",
+      "original_before_sha256": "7ac1471409421db6e96dd16a58939e4257ef41cdf22370e000977c4af5e93c94",
+      "a2_candidate_sha256": "172fc31cff4e09d86c79cfb8518a04b13b9fa5b555db5965ba2a0b314c8b791c",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_for.rs"
+    },
+    {
+      "path": "src/hir/resolve_for/record.rs",
+      "original_before_sha256": "817c8e4d822efb1b2671b4799d6b9c95d7a9fa3e5fa8ea9fe34e44a4a4eb7a62",
+      "a2_candidate_sha256": "1e26856d408a844f38df3d571f2b65811d18c23012046df005a6370835388e48",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_for/record.rs"
+    },
+    {
+      "path": "src/hir/resolve_for_own.rs",
+      "original_before_sha256": "769e9370992ff68436c5aabf9f63ec28b347ad2050e24ce62760f93210acc2b2",
+      "a2_candidate_sha256": "aba63cd70e0facbf891fbe93e915b7a7052a3487e03b80a288dafd5ce72e9bf0",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_for_own.rs"
+    },
+    {
+      "path": "src/hir/resolve_native_rust_result.rs",
+      "original_before_sha256": "1452cadb1ece91ac1272e1b85c458c2e49dce212bc400c84fa323b4c1bc2cbd4",
+      "a2_candidate_sha256": "cf578a41dc3ceb439209ecefcf9aeffa47a1c4b895168ac99cb3e13aa6c54a01",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_native_rust_result.rs"
+    },
+    {
+      "path": "src/hir/resolve_pattern.rs",
+      "original_before_sha256": "d08427d6cbfb7a81daff194733fa206433980add63c74453002973d336eb07ed",
+      "a2_candidate_sha256": "9f2e2c0c60f45defe15266985d64edd6b3f9756c459a77e9912230c80ee936a5",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_pattern.rs"
+    },
+    {
+      "path": "src/hir/resolve_program.rs",
+      "original_before_sha256": "8539c5b063467ed6e9605899b777635287ed183e42f4cef90fe4edc942be3700",
+      "a2_candidate_sha256": "dd9169af4cb61cfd1b8437abee879f82841f2122c8b97d107a8175973e768baa",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_program.rs"
+    },
+    {
+      "path": "src/hir/resolve_program/agent_identity/tests.rs",
+      "original_before_sha256": "51c06964705ed13ffaa4876ebc6c180f0e3db1ebd7c315595f531caee5ec39e9",
+      "a2_candidate_sha256": "c4fed3ba45bc66ae99d624d74999891dec464ded025b473f5a7d0061ca53c376",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_program/agent_identity/tests.rs"
+    },
+    {
+      "path": "src/hir/resolve_program/agent_identity_original.rs",
+      "original_before_sha256": "e12b9f4d7a7a115cfd6537ebca61610736a6f63971ea6ab2dd294261ec631108",
+      "a2_candidate_sha256": "e2920783d84eec6b48608f81a7ab0d0bdd63612fb3032b55859e70d116b0a3b8",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_program/agent_identity_original.rs"
+    },
+    {
+      "path": "src/hir/resolve_program/tests.rs",
+      "original_before_sha256": "3dc52f67648dbb5f720d56359e16f0df9719763f84a75d634ce4541527176bdb",
+      "a2_candidate_sha256": "bf70e1516f371835e919a46a7ae3ed437c2f98cf69d79f11cfcf379c9a100fbb",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_program/tests.rs"
+    },
+    {
+      "path": "src/hir/resolve_statement.rs",
+      "original_before_sha256": "07d2596502fa58b0a9ced3e4bdf3e027a676fbbc7b0a03d0012365780cf98443",
+      "a2_candidate_sha256": "bf48637f4d773d3921c78315598ae738bea8e3fc67869c36b9a83f739dcf532a",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_statement.rs"
+    },
+    {
+      "path": "src/hir/resolve_statement/nested_byte_tests.rs",
+      "original_before_sha256": "858b8bac2df74287cb1f90cb1120101291685f7b7514f7c4e93e31c873a63d29",
+      "a2_candidate_sha256": "758f10a0e552c90df99d567a62a26a36bfd0819f5af9df49d54c231aa81466b6",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_statement/nested_byte_tests.rs"
+    },
+    {
+      "path": "src/hir/resolve_stdin_stream.rs",
+      "original_before_sha256": "c53ba3cab2af6ae4a0b32a2d948d6762f23bfda5fa898ab79a8c2c05759eeee3",
+      "a2_candidate_sha256": "e0b55589be83bc00baf0b6962b8467d01f3a71300e3e32e307937aba948c3f79",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_stdin_stream.rs"
+    },
+    {
+      "path": "src/hir/resolve_variant_or.rs",
+      "original_before_sha256": "dca128376a134d52a4d475b71b5622c511a8149b2015cd1543cc5b236ec5aafb",
+      "a2_candidate_sha256": "043c67c71274a7592b1a2ea4f13743a5b561dfca95d3839246b6d063f75c5bc6",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_variant_or.rs"
+    },
+    {
+      "path": "src/hir/resolve_vec_call.rs",
+      "original_before_sha256": "5291df15e464475436d1b6151b815f2fd7d57ad18cbfea647148bd5be7e79665",
+      "a2_candidate_sha256": "8f1e2362bb090fd442707eb8d10a0d86382a573beed20cca0b45ca9e56acb7a5",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_vec_call.rs"
+    },
+    {
+      "path": "src/hir/resolve_yield.rs",
+      "original_before_sha256": "d4e824b079b3bbea306ef3da6ea45cb6cf7dd5b4a19c4cca5bf8ebd458e7f6a8",
+      "a2_candidate_sha256": "ccf21881d5ce8dc37a171de909a4a2620e2adbdcad5b4ca253f976e3680657e0",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolve_yield.rs"
+    },
+    {
+      "path": "src/hir/resolver_scope/tests.rs",
+      "original_before_sha256": "ba431a35df05ed1411edfec0bfae839e62520a58b1317785b0f343fc92a89453",
+      "a2_candidate_sha256": "3d9f0527b626689f6595b68f31d7349e1cf59646303955f26079f75368c128e8",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/resolver_scope/tests.rs"
+    },
+    {
+      "path": "src/hir/row_loan.rs",
+      "original_before_sha256": "a3c739844135f310fa8f5ccfb520f2c33b53de72b82326f5f549b1b038e9a760",
+      "a2_candidate_sha256": "6e6bc8a3fea4fa4b07a454a86236b55f30f8e1db9505a82e0f2706177fa0768d",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/row_loan.rs"
+    },
+    {
+      "path": "src/hir/selected_fused_candidate/resolution.rs",
+      "original_before_sha256": "564235a42848f164379b9d196ee9fab6f7f93cdf28a6c5e73647dd2ad3a7bd87",
+      "a2_candidate_sha256": "121765441fa1675654449e51b8bbf4108a919e10ca49317fafe9ac8197f4f1b2",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/hir/selected_fused_candidate/resolution.rs"
+    },
+    {
+      "path": "src/iterator_ops.rs",
+      "original_before_sha256": "6a9bd6dfb76df8707e5cd21ddd4e0ec85b0248cfc1834645c14824d11d775b16",
+      "a2_candidate_sha256": "6e702c1143ee946c4eab0acc1c67355e3074916c5e40e503979cefaa9e95c8cd",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/iterator_ops.rs"
+    },
+    {
+      "path": "src/loop_calls/byte_writer/source.rs",
+      "original_before_sha256": "dc862821c4e964f0fefed6f801c374ce397e541e59eebd3cfdc41b69b8f7814d",
+      "a2_candidate_sha256": "9f113a5e8adb48225fb2210fcaedeee9fafc4f6e3346b542061998b16367d53b",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/loop_calls/byte_writer/source.rs"
+    },
+    {
+      "path": "src/loop_calls/byte_writer/source_index.rs",
+      "original_before_sha256": "278d20c1f0aa21e4bad8e05175943f54346731a5f326a83cd90628d991dc8830",
+      "a2_candidate_sha256": "7928d9bd59990c467d426080d42c5ce6cd4d826eceeec8666ba7cc5fdf9f7fc9",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/loop_calls/byte_writer/source_index.rs"
+    },
+    {
+      "path": "src/prelude_sort_keys.rs",
+      "original_before_sha256": "cca0e2beab1975b246d66c4a7dd546724e6c3d1ca06f010d0f5e82f7e080e8d9",
+      "a2_candidate_sha256": "5cb8884527bfee8b93c96dd5fab1d9eb8923f90efeca265167bf9eb192639607",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/prelude_sort_keys.rs"
+    },
+    {
+      "path": "src/project/incremental/paid_resolution/base.rs",
+      "original_before_sha256": "89828ffa1ecd28cdd7d998f6e4cb56ca187b3865a94b68d02f552e6f7e1201fe",
+      "a2_candidate_sha256": "04a27442f626dd9c2f9aa51c071d30e13bd27a03f6b4765fb7cfd3219dba7f39",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/project/incremental/paid_resolution/base.rs"
+    },
+    {
+      "path": "src/protocol_check.rs",
+      "original_before_sha256": "b7433a09345c06a42f7243dd05ba307cab64021f4b6ca6959b734f3bf3345544",
+      "a2_candidate_sha256": "d3854894bb3b79fdd799f7b6bda5f8fafd75c165af748a0c34b6fffdc59e5926",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/protocol_check.rs"
+    },
+    {
+      "path": "src/source_verify.rs",
+      "original_before_sha256": "256ac8dfb791e37b71596000b188715ae467025571029b911529d54b9c3019ff",
+      "a2_candidate_sha256": "3af1da2b8fd7478dff9a3a2ccbe4b450f026087adb5525c76fc391865092ecc6",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify.rs"
+    },
+    {
+      "path": "src/source_verify/borrowed_closure.rs",
+      "original_before_sha256": "72446644a123914b709dfc39d2d2f916f27f53466fb40dd94432b9fd1b14e389",
+      "a2_candidate_sha256": "d7de26e324b9048de33e52b51b43aa344494f086ad0ffb2cea23ebe5aea5eb3d",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/borrowed_closure.rs"
+    },
+    {
+      "path": "src/source_verify/byte_traversal/nested.rs",
+      "original_before_sha256": "9af78b959436730a3ee2fc21270f95550bd8399ea6ca2188ad7d4c678102bc00",
+      "a2_candidate_sha256": "59a95c796d8beb7781db85c926686fe4efaef83bce8281411d5f5f7d0dbeb1be",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/byte_traversal/nested.rs"
+    },
+    {
+      "path": "src/source_verify/capacity.rs",
+      "original_before_sha256": "8d71391ced41f7293b99e07fc738268c9a0b9300997da0ae039db31e6935c6b8",
+      "a2_candidate_sha256": "0dded647a8d71c7f8e0b3dd7a4de8424435afb1b13192eca69f51a16c799ba21",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/capacity.rs"
+    },
+    {
+      "path": "src/source_verify/capacity/empty_clone.rs",
+      "original_before_sha256": "cf2445d7241c973468bec5a5a4e0c9b8d2b4cf915c5835281e98d28586743dd2",
+      "a2_candidate_sha256": "019fb99481dab005952fe2366f2afec813f8f4c5ae7f5925ab840c88091d9546",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/capacity/empty_clone.rs"
+    },
+    {
+      "path": "src/source_verify/capacity/functions.rs",
+      "original_before_sha256": "dbedc372c148f6361ab6feb49da41e4b9f74a2cf2ffc9b51f25911f1abe1ad32",
+      "a2_candidate_sha256": "91b8691fcb00ab4e3c43452185d67cdf10b37a6ec0948e5e54c8531afed38405",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/capacity/functions.rs"
+    },
+    {
+      "path": "src/source_verify/capacity/fused_selection.rs",
+      "original_before_sha256": "610a1a7385d1f56e28f217452ed91b4df45eb1f749ed9110ae3a749f8a7f52c3",
+      "a2_candidate_sha256": "5c0bd22ea8c1fc73e2b9a59166d0d22cd21cb74660a6a3e00adae5e0f1d835c5",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/capacity/fused_selection.rs"
+    },
+    {
+      "path": "src/source_verify/closure.rs",
+      "original_before_sha256": "2a651ce98e9aadfa3c96eaabbee818436df44eea8ac4076067966022038763f3",
+      "a2_candidate_sha256": "a9e6bcf9d41ea176680ceb10a825f64031fd4133415e42f0984820d333bd8df7",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/closure.rs"
+    },
+    {
+      "path": "src/source_verify/constructor_tests/corpus.rs",
+      "original_before_sha256": "bd8d27d9ed469498d8c44b2a1d8c6f7916089787380d2c63d2f03bb1dcecc3fc",
+      "a2_candidate_sha256": "24b20d5eecc054475be58008756096f75c8e925d876dbce12af889a242958de5",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/constructor_tests/corpus.rs"
+    },
+    {
+      "path": "src/source_verify/declaration.rs",
+      "original_before_sha256": "a1cc16e547c5a873afc6763487e04f38ff5983843d3635c05b79841b9084d221",
+      "a2_candidate_sha256": "54605125ded642e2b60dc23f79f214e36ed0340df53dc8571794649f5496911d",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/declaration.rs"
+    },
+    {
+      "path": "src/source_verify/declaration/declarations.rs",
+      "original_before_sha256": "2c9e52ddd0453357328e6ac770dc15e8fac9df34119a593792ff8bba5f41b8a6",
+      "a2_candidate_sha256": "2b37023d68d6abbbb65c9ddd29efacd024fd098303c0060eb22f6b6e7a2ea446",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/declaration/declarations.rs"
+    },
+    {
+      "path": "src/source_verify/declaration/functions.rs",
+      "original_before_sha256": "eac543ff2fda4e17dfd372f421d44ccdb337aeb27e30ea643d6ab86a890a2a44",
+      "a2_candidate_sha256": "dfcd807eb94759d9e738908ac5cebb52cdcee95acb5e14c1085157d54d1539c1",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/declaration/functions.rs"
+    },
+    {
+      "path": "src/source_verify/declaration/functions/funding_tests.rs",
+      "original_before_sha256": null,
+      "a2_candidate_sha256": "0b735c1f79d18788300da5a2f747b9443b50c5bcdc445c6b684aa22a4142c1d1",
+      "whole_before_archive": null
+    },
+    {
+      "path": "src/source_verify/declaration/functions/generic_cycle_compat.rs",
+      "original_before_sha256": null,
+      "a2_candidate_sha256": "5af1e7c3b5d1418e895531478e1b1b7a6c18f2a09bf5edc029fdc5013d30a214",
+      "whole_before_archive": null
+    },
+    {
+      "path": "src/source_verify/declaration/functions/generic_inference_tests.rs",
+      "original_before_sha256": "4663bbb57b0478c69cea362481ef00968690289adb8388ef20e56e3986cf8ae1",
+      "a2_candidate_sha256": "7b954b78bc66b7f6d47c643d12a2a16fd059ac7f98f7c4e81c0aeacb9f3611d6",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/declaration/functions/generic_inference_tests.rs"
+    },
+    {
+      "path": "src/source_verify/declaration/functions/old.rs",
+      "original_before_sha256": "05ae0a4f9a612275189c7cdeaa377fb672fc6b7f241fb62dbd78ae682b3e56ac",
+      "a2_candidate_sha256": "eb05bff41a5c161eee87320b58f9c0e1476947bf7686e89c8ed8f889f1aa1367",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/declaration/functions/old.rs"
+    },
+    {
+      "path": "src/source_verify/declaration/functions/public_signature_before.rs",
+      "original_before_sha256": "2ae5c2bbaf96bb273789f7431551ebae1a53bc458706e6ec20637d655e79f64b",
+      "a2_candidate_sha256": "05cb069082838883c82b5b638e7acdbedd1a3ffc089894528c3b5105839217f8",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/declaration/functions/public_signature_before.rs"
+    },
+    {
+      "path": "src/source_verify/declaration/functions/signature_refusal.rs",
+      "original_before_sha256": "8c83998cd30140d73c4100ae4296b016bb9fae7f97a4abe51e04a61ca35843fb",
+      "a2_candidate_sha256": "583ff5d919886de2bb94fd4b118a3c7530c34b5c0e4d6a27bef5ee3f32cc71db",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/declaration/functions/signature_refusal.rs"
+    },
+    {
+      "path": "src/source_verify/declaration/functions/signature_refusal/tests.rs",
+      "original_before_sha256": "33feff458327729ee8af86ce83aa96555030581a40e51869fa759d11f27b3884",
+      "a2_candidate_sha256": "9e0214fd78f60122acf65e091c9e978584cddc0cb1423b6b3e389d4a2c79325b",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/declaration/functions/signature_refusal/tests.rs"
+    },
+    {
+      "path": "src/source_verify/declaration/fusion.rs",
+      "original_before_sha256": "8e416c050138c181ccee82805b7cfbd08aaa3381ac0a37afc5d36001d194ea00",
+      "a2_candidate_sha256": "059d754bc0ee60d1063dbe129cb38ce244bc0c7910e84e6dc731317a445a2a75",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/declaration/fusion.rs"
+    },
+    {
+      "path": "src/source_verify/declaration/old.rs",
+      "original_before_sha256": "e02437199273c46d949ab916f08c305a470bfe77750d67003f218b50308969d8",
+      "a2_candidate_sha256": "c39efff8900dd86458e891ac6f6de44667e43b64348d70da10cf6ba63ed7a87c",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/declaration/old.rs"
+    },
+    {
+      "path": "src/source_verify/declaration/public_signature_before.rs",
+      "original_before_sha256": "7c385c983031164a5f1e292256c7ec0b4a387439ff7ab414050aab89f9a1fab3",
+      "a2_candidate_sha256": "43ac67504972e3f0f1816d57512f876044e425e33ce41f7b4af7e7bbbd4c574d",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/declaration/public_signature_before.rs"
+    },
+    {
+      "path": "src/source_verify/declared_type.rs",
+      "original_before_sha256": "49f7b8c7c1dddf800981e8f911647e979d276b6dec234fa0f80856f49975a720",
+      "a2_candidate_sha256": "aade320a3d7f328cee459c2489f3ad828a20d5367c4ef80fd8479d3f479a73dc",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/declared_type.rs"
+    },
+    {
+      "path": "src/source_verify/diagnostics.rs",
+      "original_before_sha256": "95bd8721029021074f39f5c76e4e0183771831112f591143e4a42bd90ce670d9",
+      "a2_candidate_sha256": "226eb9f85f1ff21eb2dba120ada064ec10c21b7ef25634b33bcca7b6196f2889",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/diagnostics.rs"
+    },
+    {
+      "path": "src/source_verify/function_map.rs",
+      "original_before_sha256": null,
+      "a2_candidate_sha256": "4fdf6175e65eb5985d903b9a02c5a17f8939076ee39f7b414ad33f113bfcf7e2",
+      "whole_before_archive": null
+    },
+    {
+      "path": "src/source_verify/function_map/tests.rs",
+      "original_before_sha256": null,
+      "a2_candidate_sha256": "898e7f0dc8b3073e67d8aa5e135ccbe177ed61769b7ed596281040126b066de9",
+      "whole_before_archive": null
+    },
+    {
+      "path": "src/source_verify/function_value_inventory.rs",
+      "original_before_sha256": "d78151c4c262f3331ea9f8c4e116aae593e16847793159ee270606c50ad761c4",
+      "a2_candidate_sha256": "eae31876b3421f2b884731a188472450467e76dc5919460c1f0c0826ed50d311",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/function_value_inventory.rs"
+    },
+    {
+      "path": "src/source_verify/funding.rs",
+      "original_before_sha256": null,
+      "a2_candidate_sha256": "a22421b1991a5aab756c56a97e5b9e0beb75a15ef56c901d5193e8c3a1fe3cfb",
+      "whole_before_archive": null
+    },
+    {
+      "path": "src/source_verify/funding/tests.rs",
+      "original_before_sha256": null,
+      "a2_candidate_sha256": "2a03f7926b10515077e58661029f08f7ac135341319d57279399f5b9556f3fdc",
+      "whole_before_archive": null
+    },
+    {
+      "path": "src/source_verify/generic_inference.rs",
+      "original_before_sha256": "1ffb1e5984581e2bc5fa5916e053019805dbef95c5a60beb74c3f2caa18d06e7",
+      "a2_candidate_sha256": "52d3f8b48a07050dcc4d009941b5cbe32d1d1fa1f41849090afc2ffee1115584",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/generic_inference.rs"
+    },
+    {
+      "path": "src/source_verify/hints.rs",
+      "original_before_sha256": "eb8ee06bd22de47d9c66cc23c492f2784ede93d16ff7f7d94b8f5e53fc26eeb6",
+      "a2_candidate_sha256": "31bb888dba750bbe9d226d02ce3c632015e9d87cfa4c289a467c6b4170db362f",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/hints.rs"
+    },
+    {
+      "path": "src/source_verify/iterative.rs",
+      "original_before_sha256": "dfc5153b385372f7f01db31ae3203a3e1545a67cd35430d61ac974350f1aba59",
+      "a2_candidate_sha256": "6fd44c8be4eb38cea040ea6f64d49e0944542c4ca37b45b8d56d3d7ee927b1b2",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/blocks.rs",
+      "original_before_sha256": "1214270b23b2e900d3a64aba7899ed0939801fe424792f29fac0e8c7c0203611",
+      "a2_candidate_sha256": "c43bbd6c0a209afff37e527c1ebbeb745aa96809f767c7887556e5cffbfc8c2d",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/blocks.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/calls.rs",
+      "original_before_sha256": "e6fb511a3f1d294a6ae8dfe4fd024c9233cdb7ad73197c1d0331b5c5435f9430",
+      "a2_candidate_sha256": "0bf64bedb667a89e68d8a7279b23de944fb166649b31e64434ad7015bbacdc5d",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/calls.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/calls/calls_before_components.rs",
+      "original_before_sha256": "d66c04be8c658186decde992b398455c4e5384beaa3dd9e9735695aa1c3704ba",
+      "a2_candidate_sha256": "a97c34b56fe9a60f637983730122cf43172064bec3f96954af8907b2b3961cfe",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/calls/calls_before_components.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/calls/calls_before_extended.rs",
+      "original_before_sha256": "5ffda1d2588248919e0ce72575e9cd7690467930f8ecf7e54c35b6de33d5b3cf",
+      "a2_candidate_sha256": "479953e3cb8f6b2376a371ba7e5cc441f62d8cb0415180962ae8521d072eb370",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/calls/calls_before_extended.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/enter.rs",
+      "original_before_sha256": "e0a80b58bb9bd72221a1200eac626a04289a2ce57d69089e4ae20a9ca22f93f9",
+      "a2_candidate_sha256": "8a816536e45c0aa441b9cbf9291a28b778377a4e7cc691c9f3a6455d9271c1cd",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/enter.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/enter/enter_before_components.rs",
+      "original_before_sha256": "154353f1bb72e4ed742dbf4a7eb7e003c6416fa61cbe2384c16113c28de6df32",
+      "a2_candidate_sha256": "b2ba677d2dce0ce94b974200ff62e8eb590cf39e65e1a1b1bdca99ff05394f47",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/enter/enter_before_components.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/enter/enter_before_extended.rs",
+      "original_before_sha256": "c02a2e949346f78c89cf94f707cfbab369367c38a3b4c7490e608417876395ba",
+      "a2_candidate_sha256": "243c7c57ab6707716a6bc6fd36cd15aa04641c080caa1b000eebd6a3bd91dd34",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/enter/enter_before_extended.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/lexical_exit.rs",
+      "original_before_sha256": "2ea40b1d6543d70a7bfddb9ebd2dba6ff990795b95b8d1c3e26d361d52e6be11",
+      "a2_candidate_sha256": "12200adfc8bbc872545c73d8301be8cfa26b8f5e87a5878abd6675389536771e",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/lexical_exit.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/match_arms.rs",
+      "original_before_sha256": "c32f2cd5607faca80b4779fd9a675c7512df89097e9e3d67f467080a7f7a4237",
+      "a2_candidate_sha256": "435d6f0e9a5af5660557cdbf279f2dc55faa26ffde1b4713dc5be7d3fbce1f47",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/match_arms.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/match_arms/arms_before_799.rs",
+      "original_before_sha256": "73138d759061a49e35b7e031d9eb0587bd9b03255c83a9cac4f59760ec0537e1",
+      "a2_candidate_sha256": "9faa93d3d42b26bbfacf55acc16d8df14dccf04c7132a3cda28f3204c946f013",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/match_arms/arms_before_799.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/match_arms/refused_patterns.rs",
+      "original_before_sha256": "1ac936e1a546eea8ea58b1a87be8b7677f0a60b2232c61fef80b690fb6b3a697",
+      "a2_candidate_sha256": "a2083ca4b593de645047995225f5d594ea18530ddfe0f299c4660fb345765d2f",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/match_arms/refused_patterns.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/matching.rs",
+      "original_before_sha256": "7e83bbae4b5b8a5d5684c6998086df8ea7b0d6451b465b416282cec739d1f8ee",
+      "a2_candidate_sha256": "652068c14b74f1d32dbdc7433c767b480dfef1723dc60600803d6f176c354efe",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/matching.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/matching/matching_before_799.rs",
+      "original_before_sha256": "71b92d75a4126e289167418b110d03ad74729525aedac9c999f404a6f5054669",
+      "a2_candidate_sha256": "8dcb1d483949ce22ed932a8315f694a2f61dd1ba95f8036724bdadce4659f39a",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/matching/matching_before_799.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/operators.rs",
+      "original_before_sha256": "e1a53409191261e40e13c144ebca52b5e8fa887921e40246e697e91b9df256fc",
+      "a2_candidate_sha256": "a28a2f558a43fe66e1e239f6557d7b12e19de8a6c3046921b115ac0b87c3c8b5",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/operators.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/operators/before_799.rs",
+      "original_before_sha256": "980d81b504ff777e616a2ec078408c4e2722ba7aa3db731263c9133ab5737b25",
+      "a2_candidate_sha256": "f2059109d408a25c0369e14433f48aac63d9fa54a4e926f79858840ad86d79db",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/operators/before_799.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/records.rs",
+      "original_before_sha256": "3815d3c5ff48005151e871372f50a42d92eab84cb3d9f6d286d775684c4c2d4f",
+      "a2_candidate_sha256": "465b958c840919e518d3dcc2d6a25cd58f92975a2ab54cd5115ab0ad967462b3",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/records.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/records/records_before_extended.rs",
+      "original_before_sha256": "1dad75385bc41627f930c18f0f807fbdad22dfc967da5a196bbd59afa6b2d908",
+      "a2_candidate_sha256": "2274fb3f2061a80bab3c647ef233c0603d3a1dbe451a6520e30eb7dfd520a36f",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/records/records_before_extended.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/run.rs",
+      "original_before_sha256": "a153d312f6ce5df9e573afcc5ca2b9eebfac4ae9ef1ffcc53a83eefe6de49187",
+      "a2_candidate_sha256": "88e81c3d3be81d4d788fe2aefbd037a0d15e03167640ed45ccfda48cc4ff8743",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/run.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/while_rules.rs",
+      "original_before_sha256": "6d54fded8b56234ef21b908a052ac182d9c16373b10e361156d559fa4af9285f",
+      "a2_candidate_sha256": "e86aea3290e8783f7b9e0990dc3045052e5d26c74cb05a055f8e8214a655a44d",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/while_rules.rs"
+    },
+    {
+      "path": "src/source_verify/iterative/while_rules/before_nested.rs",
+      "original_before_sha256": "30584d1e8d3eb97afb2635f82a5a1c16438cad65d6bcfcbb75837a34bbed3b18",
+      "a2_candidate_sha256": "afb62054fc95ef5e11e0dae94b4d529f36549d2e42ef4d5952af93aa79cf6a77",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative/while_rules/before_nested.rs"
+    },
+    {
+      "path": "src/source_verify/iterative_verifier_tests.rs",
+      "original_before_sha256": "fd518f8db28215b111d513bde3181d424bca60b86f6f60912f17458ff3f643ca",
+      "a2_candidate_sha256": "2709ad0eb3787d5ac5e4187ce69024a24c75212ef9daf55fbdbd0db091d3bef8",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/iterative_verifier_tests.rs"
+    },
+    {
+      "path": "src/source_verify/lexical_exit.rs",
+      "original_before_sha256": "99f25b5a8a59cd7dd6ee58531fc75a5b578f0d657e3e2ac8dfd01c76041b91a5",
+      "a2_candidate_sha256": "a4bd1b0e829b842fd41c193ceae5e3fdf03dc513460fa15af6014531cfc47c18",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/lexical_exit.rs"
+    },
+    {
+      "path": "src/source_verify/mutable_closure.rs",
+      "original_before_sha256": "3df895af99e0a077507cc417df1c8dc4245215e512a0c2a0832a46ff333ecf01",
+      "a2_candidate_sha256": "9cd9f8cdeaa59279f2ecec139b001c20f41019fcc27bdb59f91a628da680b909",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/mutable_closure.rs"
+    },
+    {
+      "path": "src/source_verify/oracle.rs",
+      "original_before_sha256": "62161094697c8b86a2aa3b04ae03f2a3c9c26e8fa1b160dcbffb1b0bfcb67123",
+      "a2_candidate_sha256": "da272b4146b10afbc1e04d8d976f99d61c73f0fe22dd88defef45e9f939f0317",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/oracle.rs"
+    },
+    {
+      "path": "src/source_verify/oracle/calls.rs",
+      "original_before_sha256": "60690b82b241d884dd2270f560b452dd98f752f65f44bb08bc41e00d53363fa0",
+      "a2_candidate_sha256": "8187f0e4fb9b34b7bbb1affcbc9e03fdc7637b158f278f7ba64a2f6709acb34d",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/oracle/calls.rs"
+    },
+    {
+      "path": "src/source_verify/oracle/for_traversal.rs",
+      "original_before_sha256": "32d67e092d9876f4c5257c2c0016cc1217ff698816894b6321666fe0851ad934",
+      "a2_candidate_sha256": "769a9ef4c00286927fd018c9d3deec2ad0dc073a269ee76376e529470a2fd731",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/oracle/for_traversal.rs"
+    },
+    {
+      "path": "src/source_verify/oracle/intrinsic_calls.rs",
+      "original_before_sha256": "600dbf30cec0f6ef63dbabd65cfddf24fb34727ae15249b3ced53f3df842cc10",
+      "a2_candidate_sha256": "497990c2849ffab10e217038507e58ada28dd8ca02c5e1811fcc0bf4ba938f42",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/oracle/intrinsic_calls.rs"
+    },
+    {
+      "path": "src/source_verify/oracle/lexical_exit.rs",
+      "original_before_sha256": "df786885f1066bbf52549d597395deaffded312538c3f6b0d49a3df42a723df9",
+      "a2_candidate_sha256": "dca0254a231f02a4616e2d3a7f6fc922695b0301431c1e3586925e6c36959841",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/oracle/lexical_exit.rs"
+    },
+    {
+      "path": "src/source_verify/oracle/matching.rs",
+      "original_before_sha256": "b74e37cbf3cba3158c85d83885c9053b4bef67b4c5c43567fc588409dbe7db65",
+      "a2_candidate_sha256": "0b3062ecb83c6ee9f4292effc066b1da586fcfb098756d2835e4fac825cd0361",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/oracle/matching.rs"
+    },
+    {
+      "path": "src/source_verify/oracle/stdin_stream.rs",
+      "original_before_sha256": "23e4aacebc2779d8751c9462227e01189216c3b05e4caf8708f3dd2abe5568e4",
+      "a2_candidate_sha256": "cce08d91ef91acf3d7d9bbd07e467fa31ff5e55e7c1173ac08d63d093e7f6c81",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/oracle/stdin_stream.rs"
+    },
+    {
+      "path": "src/source_verify/oracle/while_oracle.rs",
+      "original_before_sha256": "3dbf18d67eb7e3603355ab889c78044bd8f30b70f6d0d13e5b1689ce98dd9487",
+      "a2_candidate_sha256": "5a019790eff1e7d537111a9f125ed28ab1dc6952fa498eb5f26b512554d4901d",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/oracle/while_oracle.rs"
+    },
+    {
+      "path": "src/source_verify/owning_closure.rs",
+      "original_before_sha256": "834ef75d968df5a2698a5801ad4ba7294c5b2fc2e2b9db0733eff3869c1642b3",
+      "a2_candidate_sha256": "6d408448aa93e2c2b77890e8e048b20bff340c2cba169f6bdd5c5426a64eefe6",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/owning_closure.rs"
+    },
+    {
+      "path": "src/source_verify/record_invariants.rs",
+      "original_before_sha256": "d47af66378f76d4540fb3d6257475521f2474b6e61f385ef076a66d680dfa479",
+      "a2_candidate_sha256": "da6e8a531dc46d2e7d13596a2013761672f7e2adec52fdcf634bff451db16cfc",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/record_invariants.rs"
+    },
+    {
+      "path": "src/source_verify/record_traversal/row_loan.rs",
+      "original_before_sha256": "ce64debe7e297f9a87fde7905aa63ffe889ead04ad9465d32d34d39b51bae342",
+      "a2_candidate_sha256": "7bc5989921721ba6d2ea26bde20289babbecd596c743167a995f77f3484ab654",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/record_traversal/row_loan.rs"
+    },
+    {
+      "path": "src/source_verify/recovery.rs",
+      "original_before_sha256": "745a95b3875bb3b6b7e35b42a2787fbdd5b4c6822c8c2218e6740400d8256402",
+      "a2_candidate_sha256": "4623d51b0d4e44d2f619f2021ef0fe3880c9a087336d70ffde3b7ea8c0087e2f",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/recovery.rs"
+    },
+    {
+      "path": "src/source_verify/recovery_legacy.rs",
+      "original_before_sha256": "68e95e9723de78f8829a5a2c2db4960fde8ca285c924ecaa88adae66a7e01b51",
+      "a2_candidate_sha256": "bdfcc97303220fc64a152ed84e6678ddbdc8d1f35b1af26ae52df271ca5129ae",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/recovery_legacy.rs"
+    },
+    {
+      "path": "src/source_verify/recovery_legacy/blocks.rs",
+      "original_before_sha256": "58b08e6ea668a08b32afe22cf0311c402bc50457c3e61474b8ed6bdcd8697eca",
+      "a2_candidate_sha256": "365b9d2e59271644eeceee4f342f02feddc418b85241a399789f9356fee5da27",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/recovery_legacy/blocks.rs"
+    },
+    {
+      "path": "src/source_verify/recovery_legacy/enter.rs",
+      "original_before_sha256": "6ba3691f769083e3da929796cf7d1fd439f59ec1dc061bdc238c96e27cdb9baf",
+      "a2_candidate_sha256": "87fe396734719f04352b64fcd342adf01492c2d6cdbf674311f1b79712563b86",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/recovery_legacy/enter.rs"
+    },
+    {
+      "path": "src/source_verify/recovery_legacy/match_arms.rs",
+      "original_before_sha256": "111693274eb072e3dc9d33d44b25db0de90780e1993a9a1d256b45e68e3a0203",
+      "a2_candidate_sha256": "45e9af8d0ff0e5b90fda865a1c70ec3b20c7f4da548ca7a42bb8d13a3f5d3507",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/recovery_legacy/match_arms.rs"
+    },
+    {
+      "path": "src/source_verify/recovery_legacy/operators.rs",
+      "original_before_sha256": "6089f5a212a04c7942327125dbac2e3e3738ff79594a4cbc7ed022c474b01ba2",
+      "a2_candidate_sha256": "09e5ce04c0cdb4b6a6ab7a545c3794415866e18c3c8b9d50066b1371bcfde5d2",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/recovery_legacy/operators.rs"
+    },
+    {
+      "path": "src/source_verify/recovery_legacy/records.rs",
+      "original_before_sha256": "1877ed286aa2ecfb5d94b4233a6c3b7d9740fb8c41b43d8a043d99ae431da43a",
+      "a2_candidate_sha256": "079f0152329de14e6f2c3bb5e403e5ae9491dcfb81ad3e7c9f1bde74e2e2c3b6",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/recovery_legacy/records.rs"
+    },
+    {
+      "path": "src/source_verify/recovery_tests.rs",
+      "original_before_sha256": "347424f1224173758b151398bf2182c90ceb8cdce707322c7d327c08e6dfa139",
+      "a2_candidate_sha256": "f4f56d7a400c19b556be1e71217c30918e69137e015905a9f774179c8df621c6",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/recovery_tests.rs"
+    },
+    {
+      "path": "src/source_verify/recovery_tests/boundaries.rs",
+      "original_before_sha256": "85c893651f965a4dbffd5c3d517380a1902735e94d29ae2e42db795ab759ed21",
+      "a2_candidate_sha256": "e177fa4f2193daf74cb7525579d07a98437205e1092afae050428fc94408b6da",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/recovery_tests/boundaries.rs"
+    },
+    {
+      "path": "src/source_verify/recovery_tests/callee_components.rs",
+      "original_before_sha256": "3c2622682ccef823feab3f33d298f18b66f70a632ac75a36139a3c264e78708f",
+      "a2_candidate_sha256": "34c741e11206bb1c9e0b37c7d713ee0d4504e37cadfa08f673334b0f4be1cc6d",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/recovery_tests/callee_components.rs"
+    },
+    {
+      "path": "src/source_verify/recovery_tests/extended_components.rs",
+      "original_before_sha256": "83ec2cd7f9d701a42e3cfd01c756344798d2d274edb24ec43eba6d5b8261646c",
+      "a2_candidate_sha256": "5c63e460aa6be5c38d9e8da5f5715b54bb5d258157ada94117c2d278a4c5a02f",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/recovery_tests/extended_components.rs"
+    },
+    {
+      "path": "src/source_verify/recovery_tests/refusal_dependency.rs",
+      "original_before_sha256": "d159c8e7e02ccf10e817685b50ff385a5079ce1234f7a479f5555387bc03162f",
+      "a2_candidate_sha256": "2d954432b5333edc6d4d678541fc2c4478ad693592eb1fa0f633ca80cc298b64",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/recovery_tests/refusal_dependency.rs"
+    },
+    {
+      "path": "src/source_verify/scope.rs",
+      "original_before_sha256": "ea01202a694f030acc597163cb157513cdda4cf39ca29abc6e7fab82f28878ef",
+      "a2_candidate_sha256": "b3ed945ca8e5a0bc1bf05014776c999234273f4ade74cc2671e2ec1c9cdec4c8",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/scope.rs"
+    },
+    {
+      "path": "src/source_verify/stdin_stream.rs",
+      "original_before_sha256": "8a35e5c3dba17482555500019b07916d569400aa10404acf86875493778c6c26",
+      "a2_candidate_sha256": "08b8a7069d5178795b4bc5aef5708d8755f0cf42763625c40cdcb5488270af12",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/stdin_stream.rs"
+    },
+    {
+      "path": "src/source_verify/vec_field.rs",
+      "original_before_sha256": "2d9f2183a4cc3be3e29134caa20e922c0d8831bc3a70b4dd82346d6c4c9e0bb0",
+      "a2_candidate_sha256": "11280698f95ab8f2a7e567c7f32b4cbc0aa0592155daeb52c3e7d4234065f273",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/source_verify/vec_field.rs"
+    },
+    {
+      "path": "src/static_protocol.rs",
+      "original_before_sha256": "3ec572377dc9ab18b39e948d48f7c71512c57da784246700544263537178daf3",
+      "a2_candidate_sha256": "7bd46eb8f3501417d68024f9c068678e9981c13534c71acc4e479ed3ae3d728d",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/static_protocol.rs"
+    },
+    {
+      "path": "src/stdin_stream_ops.rs",
+      "original_before_sha256": "bc1e107b8756db7b323000b0d282b731db08b06b29b21ca9a3e86bb6366bef97",
+      "a2_candidate_sha256": "b495382d4c293d13642127d5783ac0d01018500ae314597bbadbed9df5529b43",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/stdin_stream_ops.rs"
+    },
+    {
+      "path": "src/vec_ops/wrappers.rs",
+      "original_before_sha256": "dcf96c5d2d48ac31b7474d13e173b9b78f144e1e3369f67ea33f6d4e853021dc",
+      "a2_candidate_sha256": "170b31f9154b9c53ff2ef9cd63be5d621130a5b271ab59eb2d53e1fee2322313",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/vec_ops/wrappers.rs"
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+      "original_before_sha256": "d936be1644c80d6a53e4c07cb07a3bb03ae3b3fabba865475c80ce8a22260168",
+      "a2_candidate_sha256": "2532586630034d6c7f2953a1f487c34c25953a5b13dc86a2170bb7561a8fac36",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/workspace_graph/expected_projection/borrowed_imports/typed.rs"
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs",
+      "original_before_sha256": "d3e1bd0b288ffd3f6adc0079340b49146ab39b74a526b6a1129cc641fbe4c537",
+      "a2_candidate_sha256": "434640ce68332a1d96840ae10b8e4a500799a567f6d75cc903a6e272196a24b2",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs"
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs",
+      "original_before_sha256": "73b0bb64d9205a31dbbe55fcf4651441b4d1745e7a10c9614b3292d978fd4bef",
+      "a2_candidate_sha256": "a75c86aeb4a3e36f43e6ab963f6ff5357b8f9694c34250df32627a6ac513975b",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs"
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs",
+      "original_before_sha256": null,
+      "a2_candidate_sha256": "23a5a80a3f863b673b6f08433bb50e49d748ff326f6c5e8343faa5c92ec6c164",
+      "whole_before_archive": null
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs",
+      "original_before_sha256": "1cf6e9ba50b29043f0ee92a6a6aa1b58bb06f1f7d738cda8e0ac5b9a71ce7f6c",
+      "a2_candidate_sha256": "fdd92e3f7dd1a2064a727f478bdc15f217c5c93edc9d4bb32d0d901d510ec1da",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs"
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/borrowed_imports/typed/name_equal.rs",
+      "original_before_sha256": null,
+      "a2_candidate_sha256": "05906ca42296878998eea4cb2910e59902e31cea65899edc3c26da16f5af02b5",
+      "whole_before_archive": null
+    },
+    {
+      "path": "src/workspace_graph/expected_projection/borrowed_leaf.rs",
+      "original_before_sha256": "e6de7a43766e8fe607b79eab3d2adadc49be1d89c49270f179989b5ad80f5719",
+      "a2_candidate_sha256": "ec70684eeead756b71ac2643a36d56af6548645621349458f217b3b7397dc1dc",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/workspace_graph/expected_projection/borrowed_leaf.rs"
+    },
+    {
+      "path": "src/workspace_graph/identity_resolution.rs",
+      "original_before_sha256": "413a71132e9c87cd41f5f7d79b6ca41f679b553d0a086a0251cbd5ce8cf3b6e4",
+      "a2_candidate_sha256": "2ab876f8146b3eb19a950a4003bb7c3489a9f9963d7a6496d2019dc9246968dc",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/workspace_graph/identity_resolution.rs"
+    },
+    {
+      "path": "src/workspace_graph/identity_resolution/base.rs",
+      "original_before_sha256": "ff96b0f932f5a16c8dd342a35883b0e41f81a65ca2c1bd0a8528e3a33b3911d7",
+      "a2_candidate_sha256": "df72b8d175f024de245d0412e8521e6617fc34ce4093b7149180c72a68659640",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/workspace_graph/identity_resolution/base.rs"
+    },
+    {
+      "path": "src/workspace_graph/identity_resolution/base/tests.rs",
+      "original_before_sha256": "ffd2b78f4522f5801de60279768af8a8ee4c95d9a546e0bdac11aeec65a4d09a",
+      "a2_candidate_sha256": "4f3cae3be273fd16ca867d2419ebd4f4a829f3ea144b13b16283ca2058be5b4f",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/src/workspace_graph/identity_resolution/base/tests.rs"
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "original_before_sha256": "f551556ae32ac5359ee5987f636f21efd19949edc76836469f8ab1817a977faf",
+      "a2_candidate_sha256": "04609de95f7f5d88c97a83e2c79fa6836e2ad1c65baa8e3cb3f3308e2ae6ba7d",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/tests/hir_module_boundaries.rs"
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "original_before_sha256": "e6e8aeb3beb22719215bf789af1db6d82582281018922d00e56f44baa36bb2e5",
+      "a2_candidate_sha256": "36a9c327cc23cd17f930d0b288e80307b9ac84b90a2b99371f1afa8d6d16eb60",
+      "whole_before_archive": "/Volumes/Semaprax/provenance/847-compose-37c771b08-20261017/shipping37-to-a2/preimages/tests/workspace/semantic_graph/source_inventory.rs"
+    }
+  ],
+  "all_existing_full_preimages_sha_and_git_bytes_equal": true
+}

@@ -1,0 +1,26 @@
+{
+  "status": "PASS_SOURCE_ONLY_ENDPOINTS_UNQUALIFIED",
+  "source_snapshot": "57f8758749efe32ebadf99149223dd8a8abba0f2",
+  "source_cut_full_inverses": 8,
+  "immutable99_DB2_831_542_metadata_untouched": true,
+  "rustfmt_parsed": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "src/source_reflows_merge.rs",
+    "src/source_reflows_merge/current344.rs",
+    "src/source_reflows_merge/main7f8_source_inputs.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "src/source_reflows_merge/final_ready_inputs.rs"
+  ],
+  "raw3_new_helper_count_each": 1,
+  "043_required_and_maximum": 1,
+  "native_lines": 1500,
+  "lib_and_workspace_registration": "both direct sibling modules present",
+  "831_chain": "final -> fixed831ready -> exact original831lineinverse -> DB2admitted6568",
+  "542_chain": "exact full5420ded ->27 zero-based half-open inverses ->full0bebed1a; not sequence function",
+  "actual_purity_input_changed": false,
+  "funded_adapter_added": false,
+  "cargo_rustc_or_runtime": false,
+  "authority_generations": 0
+}

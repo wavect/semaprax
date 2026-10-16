@@ -22,6 +22,8 @@ fn assert_digest(source: &str, expected: &serde_json::Value) {
 }
 
 pub(crate) fn project(source: &str, current: &str) -> String {
+    let outer = super::final_ready_inputs::current344_input(source, current);
+    let current = outer.as_str();
     assert_eq!(DATA.len(), DATA_LENGTH, "fixed bridge metadata length");
     assert_eq!(
         <[u8; 32]>::from(Sha256::digest(DATA.as_bytes())),
@@ -66,6 +68,7 @@ mod tests {
     use super::*;
     #[test]
     fn complete_direct_reader_preimages_refuse_stale_truncated_and_historical_inputs() {
+        super::super::final_ready_inputs::controls();
         let sources = [
             (
                 "src/cleanup_plan.rs",

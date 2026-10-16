@@ -1,0 +1,24 @@
+{
+  "status": "NO_NEW_TEST_BODY_TYPECHECK_AND_RUNTIME_PENDING",
+  "selectors": [
+    {
+      "binary": "lib",
+      "selector": "project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound",
+      "source": "src/project/incremental.rs",
+      "role": "existing cache whole-source owner invokes immutable99 and outer controls"
+    },
+    {
+      "binary": "lib",
+      "selector": "source_reflows_merge::current344::tests::complete_direct_reader_preimages_refuse_stale_truncated_and_historical_inputs",
+      "source": "src/source_reflows_merge/current344.rs",
+      "role": "existing exact-source owner now invokes allthree outer controls"
+    },
+    {
+      "binary": "workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "source": "tests/workspace/semantic_graph.rs",
+      "role": "actual44-piece projection remains purity input; only historicalfacade consumes separate3rd domain"
+    }
+  ],
+  "required_existing_scope": "retain caller source_followups,canonical arena854/row46 and current344old controls from minimumregression; oldimmutablechecks remain active; do not repeatwhole258 automatically"
+}

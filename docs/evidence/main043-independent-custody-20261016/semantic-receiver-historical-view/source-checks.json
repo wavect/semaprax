@@ -1,0 +1,18 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "raw_source_head": "57f8758749efe32ebadf99149223dd8a8abba0f2",
+  "historical_source_head": "a82e00cc83f99b16249181c45710d962598577db",
+  "whole_historical_equality": true,
+  "hostile_controls": [
+    "missing",
+    "extra",
+    "duplicate",
+    "tampered",
+    "forged_previous"
+  ],
+  "current_helper_sha256": "add8ccc32ef06ee92ffe70dfea9210646b7bc7385a303f9dcc4f57e47ccd0d80",
+  "original_verifier_sha256": "b8b72537f880da2655f102002275dbe0c5a7eb0aee72982eae017204d15266c7",
+  "raw_audits_unchanged": true,
+  "rust_or_common_authority_executed": false,
+  "before_extended_verifier_sha256": "873f9a7bc7bc3ab0665813b549da7f4ecb179e32530ab81215eea1175c340172"
+}

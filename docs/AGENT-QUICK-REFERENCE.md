@@ -1302,6 +1302,7 @@ Use `u8_from_i64(value)` then `char_from_u8(byte)` for byte conversion; use
 | Some(1), None|`SPX-T203`, `SPX-T202`|Option<i64>::Some { value: 1 }, Option<i64>::None {}|
 | s.len() on string|SPX-T203|string_len(s); only classes have methods|
 | str_as_bytes/nested string_as_str|`SPX-T263`, `SPX-T266`|Named String: str_as_bytes(string_as_str(text)); bind loop-carried slices beforehand|
+| Bytes allocation capacity: loop/cycle, per-value or full-path bound|SPX-T267|Follow the diagnostic's named limit; reduce complete allocation/input-read demand or per-value capacity. Keep Bytes allocation/copy and allocating calls out of ordinary while/cycles; nonallocating updates may fill a live owner where equivalent. Drops do not refund cumulative limits. Separate finite scratch/fused routes need their own proof/profile and qualification; help grants no admission. [Bytes](OWNED-BOUNDED-BYTE-BUFFER-V1.md)|
 | direct output repeats per path / is loop-reachable|SPX-T269|Build bounded output; publish once outside loops/cycles; default stdout+stderr ≤65536 bytes; v28 direct appends ≤1 MiB|
 | string_as_str("literal")|SPX-T266|let s = "literal"; string_as_str(s)|
 | payload/generic ==|SPX-T207|Match; == only payload-free/nongeneric variants|

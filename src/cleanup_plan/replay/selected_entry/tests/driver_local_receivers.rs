@@ -1,7 +1,7 @@
 //! The duplicated driver entry uses the same paid profile/owner twins.
 //! These are direct receiving controls, not source admission or whole781 proof.
 use super::*;
-use crate::test_allocation_observer::measure;
+use crate::test_allocation_observer::{current_metrics, measure};
 
 const FORM: ReportForm = ReportForm::new("SPX-T781", "driver selected report");
 fn fixture() -> ResolvedProgram {
@@ -79,12 +79,20 @@ fn duplicated_driver_profile_and_owner_keep_raw_oracle_and_transfer_one_paid_rep
                 let mut current = prepared(anchor);
                 let backing = current.report_backing();
                 let ledger = current.budget.physical.as_deref().unwrap() as *const _;
-                let (error, receiving) = measure(|| {
-                    run(&context, &foreign, &mut current.budget, lexical, false).unwrap_err()
-                });
-                assert!(!receiving.invalid);
+                // Keep the complete construction-through-Drop observation active.
+                // A second measure() would reset its registry and is rejected;
+                // fixed counter snapshots measure this allocation-free interval.
+                let receiving_before = current_metrics();
+                let error =
+                    run(&context, &foreign, &mut current.budget, lexical, false).unwrap_err();
+                let receiving_after = current_metrics();
+                assert!(!receiving_before.invalid && !receiving_after.invalid);
                 assert_eq!(
-                    receiving.allocations, 0,
+                    receiving_after
+                        .allocations
+                        .checked_sub(receiving_before.allocations)
+                        .expect("allocation counters never decrease"),
+                    0,
                     "no dynamic Diagnostic at this boundary"
                 );
                 let expression_facts::errors::EngineError::Structural(receipt) = error else {

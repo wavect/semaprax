@@ -193,7 +193,9 @@ fn boundary_complete_paid_driver_keeps_source_and_first_refusal() {
         (scalar, "family.scalar.main", false),
     ] {
         let fixture = crate::workspace_graph::SourceRecordReplayFixture::new(source);
-        fixture.with_context(|source| {
+        // Complete driver controls need the real prepared provider directory;
+        // the legacy callback deliberately keeps retained compositions closed.
+        fixture.with_prepared_context(|source| {
             let f = source
                 .functions()
                 .iter()

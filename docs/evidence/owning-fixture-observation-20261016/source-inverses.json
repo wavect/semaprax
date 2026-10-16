@@ -1,0 +1,36 @@
+{
+  "base": "a82e00cc83f99b16249181c45710d962598577db",
+  "status": "SOURCE_ONLY_UNEXECUTED_FIXTURE_REPAIRS",
+  "rows": [
+    {
+      "source": "src/cleanup_plan/replay/selected_entry/tests/driver_local_receivers.rs",
+      "before_sha256": "5e9118fbdb2b1f581aabdf3b71b1ab0624394b2d8abdc22ce030376a687f1590",
+      "after_sha256": "8d67bdd8f098f68ac9d8b8ac38e4f3f78cf7dc5691365d3f178c23e381d4fa63",
+      "before_file": "src__cleanup_plan__replay__selected_entry__tests__driver_local_receivers.rs.before.txt",
+      "before_assertion_count": 24,
+      "after_assertion_count": 24,
+      "before_budget_constructor_count": 0,
+      "after_budget_constructor_count": 0
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records/tests/receiving_boundary.rs",
+      "before_sha256": "4608b7b926adbc833e993a9acbbc079bb78994ebf5e11090bff2379c4388d14f",
+      "after_sha256": "f24a8916b32716e60d7b797a8a2a9bfce2af8833b4ae98c09d08a64643a94c0b",
+      "before_file": "src__cleanup_plan__replay__flat_records__tests__receiving_boundary.rs.before.txt",
+      "before_assertion_count": 21,
+      "after_assertion_count": 21,
+      "before_budget_constructor_count": 10,
+      "after_budget_constructor_count": 10
+    },
+    {
+      "source": "src/cleanup_plan/replay/flat_records/tests/receiving_certificate.rs",
+      "before_sha256": "7ad045e2dd1554164563a0dcd9549de04cf753f7e39ed2b73f9b4afcfc2ff983",
+      "after_sha256": "a23adcfb34714d13a14fb551fcdab7785cddbe92295e63bbd954963c57b72c48",
+      "before_file": "src__cleanup_plan__replay__flat_records__tests__receiving_certificate.rs.before.txt",
+      "before_assertion_count": 24,
+      "after_assertion_count": 24,
+      "before_budget_constructor_count": 10,
+      "after_budget_constructor_count": 10
+    }
+  ]
+}

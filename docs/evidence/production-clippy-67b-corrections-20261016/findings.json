@@ -1,0 +1,119 @@
+{
+  "status": "19_OBSERVED_FINDINGS_SOURCE_CORRECTED_EXECUTION_PENDING",
+  "findings": [
+    {
+      "diagnostic": "unused imports: `ResolvedMatchPattern` and `ResolvedRecordMatchFieldPattern`",
+      "source": "src/cleanup/inventory_builder/typed/traversal.rs",
+      "original_line": 4,
+      "original_column": 69
+    },
+    {
+      "diagnostic": "unused import: `key_bytes`",
+      "source": "src/cleanup/inventory_builder/typed.rs",
+      "original_line": 74,
+      "original_column": 5
+    },
+    {
+      "diagnostic": "unused import: `Diagnostic`",
+      "source": "src/cleanup_plan/replay/inventory_coverage/paid.rs",
+      "original_line": 5,
+      "original_column": 63
+    },
+    {
+      "diagnostic": "unused import: `admit_initial`",
+      "source": "src/cleanup_plan/replay/inventory_coverage/paid.rs",
+      "original_line": 43,
+      "original_column": 16
+    },
+    {
+      "diagnostic": "unnecessary closure used to substitute value for `Option::None`",
+      "source": "src/cleanup/inventory_builder/typed/selected.rs",
+      "original_line": 18,
+      "original_column": 25
+    },
+    {
+      "diagnostic": "unnecessary closure used to substitute value for `Option::None`",
+      "source": "src/cleanup/inventory_builder/typed/selected.rs",
+      "original_line": 83,
+      "original_column": 18
+    },
+    {
+      "diagnostic": "unnecessary closure used to substitute value for `Option::None`",
+      "source": "src/cleanup/inventory_builder/typed/traversal.rs",
+      "original_line": 294,
+      "original_column": 36
+    },
+    {
+      "diagnostic": "unnecessary closure used to substitute value for `Option::None`",
+      "source": "src/cleanup/inventory_builder/typed/traversal.rs",
+      "original_line": 302,
+      "original_column": 37
+    },
+    {
+      "diagnostic": "unnecessary closure used to substitute value for `Option::None`",
+      "source": "src/cleanup/inventory_builder/typed/traversal.rs",
+      "original_line": 349,
+      "original_column": 36
+    },
+    {
+      "diagnostic": "unnecessary closure used to substitute value for `Option::None`",
+      "source": "src/cleanup/inventory_builder/typed/traversal.rs",
+      "original_line": 359,
+      "original_column": 37
+    },
+    {
+      "diagnostic": "unnecessary closure used to substitute value for `Option::None`",
+      "source": "src/cleanup/inventory_builder/typed.rs",
+      "original_line": 298,
+      "original_column": 20
+    },
+    {
+      "diagnostic": "usage of `size_of::<T>()` to obtain the size of `T` in bits",
+      "source": "src/cleanup_plan/replay/final_output.rs",
+      "original_line": 178,
+      "original_column": 7
+    },
+    {
+      "diagnostic": "this loop could be written as a `for` loop",
+      "source": "src/cleanup_plan/replay.rs",
+      "original_line": 2922,
+      "original_column": 5
+    },
+    {
+      "diagnostic": "this `if` statement can be collapsed",
+      "source": "src/cleanup_plan/replay.rs",
+      "original_line": 2985,
+      "original_column": 5
+    },
+    {
+      "diagnostic": "this `if` can be collapsed into the outer `match`",
+      "source": "src/cleanup_plan/replay/sequence_vector.rs",
+      "original_line": 158,
+      "original_column": 25
+    },
+    {
+      "diagnostic": "this `if` can be collapsed into the outer `match`",
+      "source": "src/cleanup_plan/replay/sequence_vector.rs",
+      "original_line": 167,
+      "original_column": 61
+    },
+    {
+      "diagnostic": "this `if` statement can be collapsed",
+      "source": "src/cleanup_plan/replay.rs",
+      "original_line": 3007,
+      "original_column": 9
+    },
+    {
+      "diagnostic": "this `if` has identical blocks",
+      "source": "src/cleanup_plan/replay.rs",
+      "original_line": 3147,
+      "original_column": 39
+    },
+    {
+      "diagnostic": "this `if` has identical blocks",
+      "source": "src/cleanup_plan/replay.rs",
+      "original_line": 3151,
+      "original_column": 58
+    }
+  ]
+}

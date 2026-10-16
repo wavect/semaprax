@@ -8,6 +8,8 @@
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
 
+- Correct all 19 observed 67b production Clippy findings without weakening checks: retain test-only macro access, lazy terminal error formation, ordered funded branches and the exact eight-usize receiving layout. Runtime qualification remains pending.
+
 - Reconcile Main8a finished-path capacity, arbitrary final-suffix transfer and borrowed nominal context with lexical paid receiving; preserve original work-before-optional-payment priority and complete Main controls. Qualification and net application cost remain pending.
 
 - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.

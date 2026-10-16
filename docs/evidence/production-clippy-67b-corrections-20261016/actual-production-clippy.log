@@ -1,0 +1,337 @@
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+error: unused imports: `ResolvedMatchPattern` and `ResolvedRecordMatchFieldPattern`
+ --> src/cleanup/inventory_builder/typed/traversal.rs:4:69
+  |
+4 |     OwnershipMode, ResolvedBinding, ResolvedExpr, ResolvedExprKind, ResolvedMatchPattern,
+  |                                                                     ^^^^^^^^^^^^^^^^^^^^
+5 |     ResolvedRecordMatchFieldPattern, ResolvedStatement, ResolvedType,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `-D unused-imports` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(unused_imports)]`
+
+error: unused import: `key_bytes`
+  --> src/cleanup/inventory_builder/typed.rs:74:5
+   |
+74 | use key_bytes;
+   |     ^^^^^^^^^
+
+error: unused import: `Diagnostic`
+ --> src/cleanup_plan/replay/inventory_coverage/paid.rs:5:63
+  |
+5 |     collect_supplemental, inventory_storage_id, replay_error, Diagnostic, ReplayBudget,
+  |                                                               ^^^^^^^^^^
+
+error: unused import: `admit_initial`
+  --> src/cleanup_plan/replay/inventory_coverage/paid.rs:43:16
+   |
+43 | pub(super) use admit_initial;
+   |                ^^^^^^^^^^^^^
+
+error: unnecessary closure used to substitute value for `Option::None`
+  --> src/cleanup/inventory_builder/typed/selected.rs:18:25
+   |
+18 |               let bytes = value.clone_payload_bytes().ok_or_else(|| {
+   |  _________________________^
+19 | |                 InventoryFailure(Kind::Finite(Reason::SelectedInventoryCloneBackingOverflow))
+20 | |             })?;
+   | |______________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#unnecessary_lazy_evaluations
+   = note: `-D clippy::unnecessary-lazy-evaluations` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::unnecessary_lazy_evaluations)]`
+help: use `ok_or` instead
+   |
+18 ~             let bytes = value.clone_payload_bytes().ok_or({
+19 +                 InventoryFailure(Kind::Finite(Reason::SelectedInventoryCloneBackingOverflow))
+20 ~             })?;
+   |
+
+error: unnecessary closure used to substitute value for `Option::None`
+  --> src/cleanup/inventory_builder/typed/selected.rs:83:18
+   |
+83 |           let id = crate::cleanup::primitive_leaf_lifecycle_identity(ty).ok_or_else(|| {
+   |  __________________^
+84 | |             InventoryFailure(Kind::Finite(
+85 | |                 Reason::SelectedInventoryHasNoPrimitiveLifecycle,
+86 | |             ))
+87 | |         })?;
+   | |__________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#unnecessary_lazy_evaluations
+help: use `ok_or` instead
+   |
+83 ~         let id = crate::cleanup::primitive_leaf_lifecycle_identity(ty).ok_or({
+84 +             InventoryFailure(Kind::Finite(
+85 +                 Reason::SelectedInventoryHasNoPrimitiveLifecycle,
+86 +             ))
+87 ~         })?;
+   |
+
+error: unnecessary closure used to substitute value for `Option::None`
+   --> src/cleanup/inventory_builder/typed/traversal.rs:294:36
+    |
+294 |                       let declared = self
+    |  ____________________________________^
+295 | |                         .program
+296 | |                         .declarations()
+297 | |                         .record_fields(record)
+298 | |                         .ok_or_else(|| {
+299 | |                             InventoryFailure(Kind::Finite(Reason::RecordPatternHasNoFieldInventory))
+300 | |                         })?;
+    | |__________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#unnecessary_lazy_evaluations
+help: use `ok_or` instead
+    |
+298 ~                         .ok_or({
+299 +                             InventoryFailure(Kind::Finite(Reason::RecordPatternHasNoFieldInventory))
+300 ~                         })?;
+    |
+
+error: unnecessary closure used to substitute value for `Option::None`
+   --> src/cleanup/inventory_builder/typed/traversal.rs:302:37
+    |
+302 |                           let field = fields
+    |  _____________________________________^
+303 | |                             .iter()
+304 | |                             .find(|field| field.field == declaration.id)
+305 | |                             .ok_or_else(|| {
+...   |
+308 | |                                 ))
+309 | |                             })?;
+    | |______________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#unnecessary_lazy_evaluations
+help: use `ok_or` instead
+    |
+305 ~                             .ok_or({
+306 +                                 InventoryFailure(Kind::Finite(
+307 +                                     Reason::RecordPatternFieldInventoryIsIncomplete,
+308 +                                 ))
+309 ~                             })?;
+    |
+
+error: unnecessary closure used to substitute value for `Option::None`
+   --> src/cleanup/inventory_builder/typed/traversal.rs:349:36
+    |
+349 |                       let declared = self
+    |  ____________________________________^
+350 | |                         .program
+351 | |                         .declarations()
+352 | |                         .record_fields(record)
+...   |
+356 | |                             ))
+357 | |                         })?;
+    | |__________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#unnecessary_lazy_evaluations
+help: use `ok_or` instead
+    |
+353 ~                         .ok_or({
+354 +                             InventoryFailure(Kind::Finite(
+355 +                                 Reason::NestedRecordPatternHasNoFieldInventory,
+356 +                             ))
+357 ~                         })?;
+    |
+
+error: unnecessary closure used to substitute value for `Option::None`
+   --> src/cleanup/inventory_builder/typed/traversal.rs:359:37
+    |
+359 |                           let field = fields
+    |  _____________________________________^
+360 | |                             .iter()
+361 | |                             .find(|field| field.field == declaration.id)
+362 | |                             .ok_or_else(|| {
+...   |
+365 | |                                 ))
+366 | |                             })?;
+    | |______________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#unnecessary_lazy_evaluations
+help: use `ok_or` instead
+    |
+362 ~                             .ok_or({
+363 +                                 InventoryFailure(Kind::Finite(
+364 +                                     Reason::NestedRecordPatternFieldInventoryIsIncomplete,
+365 +                                 ))
+366 ~                             })?;
+    |
+
+error: unnecessary closure used to substitute value for `Option::None`
+   --> src/cleanup/inventory_builder/typed.rs:298:20
+    |
+298 |           let slot = self
+    |  ____________________^
+299 | |             .slots
+300 | |             .iter()
+301 | |             .find(|slot| slot.id == storage)
+...   |
+305 | |                 ))
+306 | |             })?;
+    | |______________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#unnecessary_lazy_evaluations
+help: use `ok_or` instead
+    |
+302 ~             .ok_or({
+303 +                 InventoryFailure(Kind::Finite(
+304 +                     Reason::ConditionalEntryReferencesUnknownStorage,
+305 +                 ))
+306 ~             })?;
+    |
+
+error: usage of `size_of::<T>()` to obtain the size of `T` in bits
+   --> src/cleanup_plan/replay/final_output.rs:178:7
+    |
+178 |     + 8 * size_of::<usize>()
+    |       ^^^^^^^^^^^^^^^^^^^^^^ help: consider using: `usize::BITS as usize`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_bits
+    = note: `-D clippy::manual-bits` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::manual_bits)]`
+
+error: this loop could be written as a `for` loop
+    --> src/cleanup_plan/replay.rs:2922:5
+     |
+2922 |     while let Some(path) = paths.next() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `for path in paths`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#while_let_on_iterator
+     = note: `-D clippy::while-let-on-iterator` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::while_let_on_iterator)]`
+
+error: this `if` statement can be collapsed
+    --> src/cleanup_plan/replay.rs:2985:5
+     |
+2985 | /     if single {
+2986 | |         if first {
+2987 | |             sequence_vector::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged);
+2988 | |         }
+2989 | |     }
+     | |_____^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#collapsible_if
+     = note: `-D clippy::collapsible-if` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::collapsible_if)]`
+help: collapse nested if block
+     |
+2985 ~     if single
+2986 ~         && first {
+2987 |             sequence_vector::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged);
+2988 ~         }
+     |
+
+error: this `if` can be collapsed into the outer `match`
+    --> src/cleanup_plan/replay/sequence_vector.rs:158:25
+     |
+ 158 | /                         if expected == capacity {
+ 159 | |                             match capacity.checked_mul(std::mem::size_of::<ExprSkeletonPath>()) {
+ 160 | |                                 Some(bytes) => {
+ 161 | |                                     match $minimum.checked_mul($crate::cleanup_plan::replay::sequence_vector::SWAP_CONTROLS) {
+...    |
+ 183 | |                         }
+     | |_________________________^
+     |
+    ::: src/cleanup_plan/replay.rs:2987:13
+     |
+2987 |               sequence_vector::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged);
+     |               ------------------------------------------------------------------------------------ in this macro invocation
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#collapsible_match
+     = note: `-D clippy::collapsible-match` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::collapsible_match)]`
+     = note: this error originates in the macro `sequence_vector::reuse` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: collapse nested if block
+     |
+ 158 ~                         if expected == capacity => {
+ 159 |                             match capacity.checked_mul(std::mem::size_of::<ExprSkeletonPath>()) {
+ ...
+ 182 |                             }
+ 183 ~                         }
+     |
+
+error: this `if` can be collapsed into the outer `match`
+    --> src/cleanup_plan/replay/sequence_vector.rs:167:61
+     |
+ 167 | / ...                   if bytes >= min_saved {
+ 168 | | ...                       $crate::cleanup_plan::replay::sequence_vector::transfer!(
+ 169 | | ...                           $prefixes, $suffixes, $work, $share, $precharged, frame_bytes);
+ 170 | | ...                   }
+     | |_______________________^
+     |
+    ::: src/cleanup_plan/replay.rs:2987:13
+     |
+2987 |               sequence_vector::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged);
+     |               ------------------------------------------------------------------------------------ in this macro invocation
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#collapsible_match
+     = note: this error originates in the macro `sequence_vector::reuse` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: collapse nested if block
+     |
+ 167 ~                                                             if bytes >= min_saved => {
+ 168 |                                                                 $crate::cleanup_plan::replay::sequence_vector::transfer!(
+ 169 |                                                                     $prefixes, $suffixes, $work, $share, $precharged, frame_bytes);
+ 170 ~                                                             }
+     |
+
+error: this `if` statement can be collapsed
+    --> src/cleanup_plan/replay.rs:3007:9
+     |
+3007 | /         if !precharged {
+3008 | |             if share_prefix {
+3009 | |                 work.share_prefix_tail(&mut prefix.observations)?;
+3010 | |             }
+3011 | |         }
+     | |_________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#collapsible_if
+help: collapse nested if block
+     |
+3007 ~         if !precharged
+3008 ~             && share_prefix {
+3009 |                 work.share_prefix_tail(&mut prefix.observations)?;
+3010 ~             }
+     |
+
+error: this `if` has identical blocks
+    --> src/cleanup_plan/replay.rs:3147:39
+     |
+3147 |               if work.budget.selected() {
+     |  _______________________________________^
+3148 | |                 false
+3149 | |             } else if len < final_output::FINAL_MINIMUM_ITEMS {
+     | |_____________^
+     |
+note: same as this
+    --> src/cleanup_plan/replay.rs:3149:63
+     |
+3149 |               } else if len < final_output::FINAL_MINIMUM_ITEMS {
+     |  _______________________________________________________________^
+3150 | |                 false
+3151 | |             } else if last.observations.prefix.is_some() {
+     | |_____________^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#if_same_then_else
+     = note: `-D clippy::if-same-then-else` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::if_same_then_else)]`
+
+error: this `if` has identical blocks
+    --> src/cleanup_plan/replay.rs:3151:58
+     |
+3151 |               } else if last.observations.prefix.is_some() {
+     |  __________________________________________________________^
+3152 | |                 true
+3153 | |             } else if capacity == len {
+     | |_____________^
+     |
+note: same as this
+    --> src/cleanup_plan/replay.rs:3153:39
+     |
+3153 |               } else if capacity == len {
+     |  _______________________________________^
+3154 | |                 true
+3155 | |             } else {
+     | |_____________^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#if_same_then_else
+
+error: could not compile `semaprax` (lib) due to 19 previous errors

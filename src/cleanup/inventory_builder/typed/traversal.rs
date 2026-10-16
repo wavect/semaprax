@@ -1,8 +1,7 @@
 use super::{receiving, reserve, reserve_legacy, InventoryBuilder, InventoryFailure, Kind, Reason};
 use crate::cleanup::CleanupStorageOrigin;
 use crate::hir::{
-    OwnershipMode, ResolvedBinding, ResolvedExpr, ResolvedExprKind, ResolvedMatchPattern,
-    ResolvedRecordMatchFieldPattern, ResolvedStatement, ResolvedType,
+    OwnershipMode, ResolvedBinding, ResolvedExpr, ResolvedExprKind, ResolvedStatement, ResolvedType,
 };
 impl InventoryBuilder<'_> {
     pub(super) fn collect_expression(
@@ -291,22 +290,18 @@ impl InventoryBuilder<'_> {
                     }
                 }
                 Item::Pattern(ResolvedMatchPattern::Record { record, fields, .. }) => {
-                    let declared = self
-                        .program
-                        .declarations()
-                        .record_fields(record)
-                        .ok_or_else(|| {
-                            InventoryFailure(Kind::Finite(Reason::RecordPatternHasNoFieldInventory))
-                        })?;
+                    let Some(declared) = self.program.declarations().record_fields(record) else {
+                        return Err(InventoryFailure(Kind::Finite(
+                            Reason::RecordPatternHasNoFieldInventory,
+                        )));
+                    };
                     for declaration in declared.iter().rev() {
-                        let field = fields
-                            .iter()
-                            .find(|field| field.field == declaration.id)
-                            .ok_or_else(|| {
-                                InventoryFailure(Kind::Finite(
-                                    Reason::RecordPatternFieldInventoryIsIncomplete,
-                                ))
-                            })?;
+                        let Some(field) = fields.iter().find(|field| field.field == declaration.id)
+                        else {
+                            return Err(InventoryFailure(Kind::Finite(
+                                Reason::RecordPatternFieldInventoryIsIncomplete,
+                            )));
+                        };
                         reserve(&self.ledger, &mut pending, 1)?;
                         pending.push(Item::RecordField(&field.pattern));
                     }
@@ -346,24 +341,18 @@ impl InventoryBuilder<'_> {
                     fields,
                     ..
                 }) => {
-                    let declared = self
-                        .program
-                        .declarations()
-                        .record_fields(record)
-                        .ok_or_else(|| {
-                            InventoryFailure(Kind::Finite(
-                                Reason::NestedRecordPatternHasNoFieldInventory,
-                            ))
-                        })?;
+                    let Some(declared) = self.program.declarations().record_fields(record) else {
+                        return Err(InventoryFailure(Kind::Finite(
+                            Reason::NestedRecordPatternHasNoFieldInventory,
+                        )));
+                    };
                     for declaration in declared.iter().rev() {
-                        let field = fields
-                            .iter()
-                            .find(|field| field.field == declaration.id)
-                            .ok_or_else(|| {
-                                InventoryFailure(Kind::Finite(
-                                    Reason::NestedRecordPatternFieldInventoryIsIncomplete,
-                                ))
-                            })?;
+                        let Some(field) = fields.iter().find(|field| field.field == declaration.id)
+                        else {
+                            return Err(InventoryFailure(Kind::Finite(
+                                Reason::NestedRecordPatternFieldInventoryIsIncomplete,
+                            )));
+                        };
                         reserve(&self.ledger, &mut pending, 1)?;
                         pending.push(Item::RecordField(&field.pattern));
                     }

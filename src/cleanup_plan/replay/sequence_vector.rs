@@ -154,8 +154,7 @@ macro_rules! reuse {
             if $minimum <= MAX_REPLAY_PATHS {
                 let capacity = $prefixes.capacity();
                 match $minimum.checked_next_power_of_two() {
-                    Some(expected) => {
-                        if expected == capacity {
+                    Some(expected) if expected == capacity => {
                             match capacity.checked_mul(std::mem::size_of::<ExprSkeletonPath>()) {
                                 Some(bytes) => {
                                     match $minimum.checked_mul($crate::cleanup_plan::replay::sequence_vector::SWAP_CONTROLS) {
@@ -163,13 +162,11 @@ macro_rules! reuse {
                                             match swap_bytes.checked_add($crate::cleanup_plan::replay::sequence_vector::FRAME) {
                                                 Some(frame_bytes) => {
                                                     match frame_bytes.checked_add($crate::cleanup_plan::replay::sequence_vector::QUERY) {
-                                                        Some(min_saved) => {
-                                                            if bytes >= min_saved {
-                                                                $crate::cleanup_plan::replay::sequence_vector::transfer!(
-                                                                    $prefixes, $suffixes, $work, $share, $precharged, frame_bytes);
-                                                            }
+                                                        Some(min_saved) if bytes >= min_saved => {
+                                                            $crate::cleanup_plan::replay::sequence_vector::transfer!(
+                                                                $prefixes, $suffixes, $work, $share, $precharged, frame_bytes);
                                                         }
-                                                        None => {}
+                                                        _ => {}
                                                     }
                                                 }
                                                 None => {}
@@ -180,9 +177,8 @@ macro_rules! reuse {
                                 }
                                 None => {}
                             }
-                        }
                     }
-                    None => {}
+                    _ => {}
                 }
             }
         }

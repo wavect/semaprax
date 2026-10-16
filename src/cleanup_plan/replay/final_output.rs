@@ -175,7 +175,7 @@ pub(super) const FINAL_HEADER_CONTROLS: usize = size_of::<Result<(), Diagnostic>
     + size_of::<&mut ReplayBudget>()
     + size_of::<&ResolvedFunction>()
     + size_of::<&str>()
-    + 8 * size_of::<usize>()
+    + size_of::<[usize; 8]>()
     + 6 * size_of::<&Vec<std::rc::Rc<SkeletonObservation>>>()
     + 4 * size_of::<&ReplayBudget>()
     + 2 * size_of::<&Option<std::rc::Rc<super::skeleton_work::ObservationDag>>>()

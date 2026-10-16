@@ -15,9 +15,11 @@ impl InventoryBuilder<'_> {
     ) -> Result<T, InventoryFailure> {
         receiving!(&self.ledger, T, super::receiving::REASON_OR_PHYSICAL, 1);
         {
-            let bytes = value.clone_payload_bytes().ok_or_else(|| {
-                InventoryFailure(Kind::Finite(Reason::SelectedInventoryCloneBackingOverflow))
-            })?;
+            let Some(bytes) = value.clone_payload_bytes() else {
+                return Err(InventoryFailure(Kind::Finite(
+                    Reason::SelectedInventoryCloneBackingOverflow,
+                )));
+            };
             self.charge(bytes)?;
             self.ledger
                 .borrow_mut()
@@ -80,11 +82,11 @@ impl InventoryBuilder<'_> {
         if !primitive_drop!(ty) {
             return Ok(FieldLivenessShape::NoDrop);
         }
-        let id = crate::cleanup::primitive_leaf_lifecycle_identity(ty).ok_or_else(|| {
-            InventoryFailure(Kind::Finite(
+        let Some(id) = crate::cleanup::primitive_leaf_lifecycle_identity(ty) else {
+            return Err(InventoryFailure(Kind::Finite(
                 Reason::SelectedInventoryHasNoPrimitiveLifecycle,
-            ))
-        })?;
+            )));
+        };
         self.selected_lifecycle_shape(id, storage, projection)
     }
     fn selected_vector_shape(

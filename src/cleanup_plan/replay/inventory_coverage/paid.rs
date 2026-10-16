@@ -2,8 +2,8 @@
 //! supplemental checker are still the exact original owning Diagnostic route;
 //! they are explicit #781 residuals, not relabelled budget provenance.
 use super::{
-    collect_supplemental, inventory_storage_id, replay_error, Diagnostic, ReplayBudget,
-    ReplayContext, ResolvedFunction,
+    collect_supplemental, inventory_storage_id, replay_error, ReplayBudget, ReplayContext,
+    ResolvedFunction,
 };
 use crate::cleanup_plan::replay::expression_facts::errors::EngineError;
 // This lexical frontier introduces no preflight helper or forwarding Result.
@@ -40,6 +40,7 @@ macro_rules! admit_initial {
         }
     }};
 }
+#[cfg(test)]
 pub(super) use admit_initial;
 pub(in crate::cleanup_plan::replay) fn validate_inventory_coverage(
     program: &dyn ReplayContext,

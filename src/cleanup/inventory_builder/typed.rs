@@ -71,7 +71,6 @@ macro_rules! key_bytes {
         }
     }};
 }
-use key_bytes;
 /// Same actual two fields destructured from the invocation ReplayBudget. This
 /// API creates no accounting owner or allowance and cannot accept a Diagnostic;
 /// Ledger below is only a synchronous pair of borrows into those existing fields.
@@ -295,15 +294,11 @@ impl InventoryBuilder<'_> {
             receiving::REASON,
             1
         );
-        let slot = self
-            .slots
-            .iter()
-            .find(|slot| slot.id == storage)
-            .ok_or_else(|| {
-                InventoryFailure(Kind::Finite(
-                    Reason::ConditionalEntryReferencesUnknownStorage,
-                ))
-            })?;
+        let Some(slot) = self.slots.iter().find(|slot| slot.id == storage) else {
+            return Err(InventoryFailure(Kind::Finite(
+                Reason::ConditionalEntryReferencesUnknownStorage,
+            )));
+        };
         let FieldLivenessShape::Variant { declaration, cases } = &slot.shape else {
             return Ok(None);
         };

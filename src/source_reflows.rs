@@ -28,6 +28,9 @@ mod semantic_receivers;
 #[path = "source_reflows/semantic_receivers_mainb80.rs"]
 mod semantic_receivers_mainb80;
 
+#[path = "source_reflows/semantic_receivers_main7c6.rs"]
+mod semantic_receivers_main7c6;
+
 fn records() -> &'static [serde_json::Value] {
     RECORDS
         .get_or_init(|| serde_json::from_str(REPAIRS).unwrap())

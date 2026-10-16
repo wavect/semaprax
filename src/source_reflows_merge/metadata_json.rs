@@ -241,4 +241,16 @@ fn fixed_metadata_bytes_and_exact_source_membership_remain_complete() {
         assert_eq!(keys, fixture.keys());
         assert_eq!(project(fixture, "\0", "unchanged"), "unchanged");
     }
+    // Final fixed tables use the same authenticated reader; no payload embed.
+    for fixture in super::final_custody::ALL {
+        let spec = fixture.spec();
+        let payload = super::runtime_json::final_custody(*fixture);
+        assert_eq!(payload.len(), spec.length);
+        assert_eq!(<[u8; 32]>::from(Sha256::digest(payload.as_bytes())), spec.sha256);
+        let rows: serde_json::Value = serde_json::from_str(&payload).unwrap();
+        let mut keys = rows.as_array().unwrap().iter()
+            .filter_map(|row| row["source"].as_str()).collect::<Vec<_>>();
+        keys.sort();
+        assert_eq!(keys, fixture.keys());
+    }
 }

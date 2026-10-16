@@ -47,6 +47,12 @@ pub(super) fn metadata(fixture: super::metadata_json::Fixture) -> String {
     read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
         .expect("complete authenticated immutable source metadata")
 }
+// Fixed final sibling only; the original one-descriptor reader is unchanged.
+pub(super) fn final_custody(fixture: super::final_custody::Fixture) -> String {
+    let spec = fixture.spec();
+    read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
+        .expect("complete authenticated final source custody")
+}
 pub(super) fn load(fixture: Fixture) -> String {
     let spec = fixture.spec();
     read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)

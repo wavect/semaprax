@@ -7392,3 +7392,5 @@ are authored. Qualification is pending; Catalog corpus and limits are unchanged.
   forwarding through lexical receiving in the existing certificate permit,
   retain full prior algorithms and ordinary dynamic fallback, and add four
   unexecuted whole-query/certificate controls. Remaining #781 families stay open.
+
+- Join source-only selected receiving, canonical arenas, fixed JSON transport and Main residual construction with independent complete historical views. Original fixtures and guards remain; memory, cost and application outcomes await the next qualification.

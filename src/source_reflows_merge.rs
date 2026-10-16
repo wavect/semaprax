@@ -1,10 +1,12 @@
 //! Complete physical-input successors for the immutable CI and Source36 views.
 //! This test-only projection owns no compiler authority and grants no admission.
 use sha2::{Digest, Sha256};
-#[path = "source_reflows_merge/runtime_json.rs"]
-mod runtime_json;
+#[path = "source_reflows_merge/final_custody.rs"]
+mod final_custody;
 #[path = "source_reflows_merge/metadata_json.rs"]
 mod metadata_json;
+#[path = "source_reflows_merge/runtime_json.rs"]
+mod runtime_json;
 // The final compositor authenticates its raw view at this independent owner front.
 pub(crate) fn boxed849_input(source: &str, current: &str) -> String {
     let compile_fixed = compile_fixture_input(source, current);
@@ -13,18 +15,13 @@ pub(crate) fn boxed849_input(source: &str, current: &str) -> String {
     let current = qualified.as_str();
     let next = metadata_json::project(metadata_json::Fixture::M01, source, current);
     let current = next.as_str();
-    let joined = metadata_json::project(metadata_json::Fixture::M02,
-        source,
-        current,
-    );
+    let joined = metadata_json::project(metadata_json::Fixture::M02, source, current);
     let current = joined.as_str();
-    metadata_json::project(metadata_json::Fixture::M03,
-        source,
-        current,
-    )
+    metadata_json::project(metadata_json::Fixture::M03, source, current)
 }
 pub(crate) fn boxed849_previous(source: &str, current: &str) -> String {
-    metadata_json::project(metadata_json::Fixture::M04,
+    metadata_json::project(
+        metadata_json::Fixture::M04,
         source,
         &boxed849_input(source, current),
     )
@@ -50,7 +47,10 @@ pub(crate) fn main531_previous(source: &str, current: &str) -> String {
     metadata_json::project(metadata_json::Fixture::M09, source, current)
 }
 pub(crate) fn main531_input(source: &str, current: &str) -> String {
-    let fixed = main531_child_input("src/cleanup_plan/replay/path_join/main_single_groups/mod.rs", current);
+    let fixed = main531_child_input(
+        "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+        current,
+    );
     let current = fixed.as_str();
     metadata_json::project(metadata_json::Fixture::M10, source, current)
 }
@@ -107,10 +107,7 @@ pub(crate) fn main8fb_input(source: &str, current: &str) -> String {
     if source == "src/source_verify/declaration.rs" {
         let joined = future_main8fb_input(source, current);
         let current = joined.as_str();
-        return metadata_json::project(metadata_json::Fixture::M21,
-            source,
-            current,
-        );
+        return metadata_json::project(metadata_json::Fixture::M21, source, current);
     }
     main696_input(source, current)
 }
@@ -665,10 +662,7 @@ pub(crate) fn main83_retry_fixture_input(source: &str, current: &str) -> String 
 fn main83_physical_input(source: &str, current: &str) -> String {
     let joined = before_storage_oracle_join(source, current);
     let current = joined.as_str();
-    metadata_json::project(metadata_json::Fixture::M25,
-        source,
-        current,
-    )
+    metadata_json::project(metadata_json::Fixture::M25, source, current)
 }
 
 // Full post-compiler-fix inputs precede the immutable MAIN83 and older domains.
@@ -679,27 +673,22 @@ fn before_storage_oracle_join(source: &str, current: &str) -> String {
     let current = qualified.as_str();
     let next = metadata_json::project(metadata_json::Fixture::M01, source, current);
     let current = next.as_str();
-    let integrated = metadata_json::project(metadata_json::Fixture::M26,
-        source,
-        current,
-    );
+    let integrated = metadata_json::project(metadata_json::Fixture::M26, source, current);
     let current = integrated.as_str();
-    let previous = metadata_json::project(metadata_json::Fixture::M27,
-        source,
-        current,
-    );
+    let previous = metadata_json::project(metadata_json::Fixture::M27, source, current);
     let current = previous.as_str();
-    metadata_json::project(metadata_json::Fixture::M28,
-        source,
-        current,
-    )
+    metadata_json::project(metadata_json::Fixture::M28, source, current)
 }
 
 // Independent complete Main and pre-Main source domains.
 pub(crate) fn main_b80_input(source: &str, current: &str) -> String {
     let merged = main_dd0_previous(source, current);
     let current = merged.as_str();
-    if matches!(source, "src/cleanup_plan/replay/compact_stage/before.rs" | "src/cleanup_plan/replay/compact_stage/lexical_before.rs") {
+    if matches!(
+        source,
+        "src/cleanup_plan/replay/compact_stage/before.rs"
+            | "src/cleanup_plan/replay/compact_stage/lexical_before.rs"
+    ) {
         return metadata_json::project(metadata_json::Fixture::M29, source, current);
     }
     let latest = session_reference_input(source, current);
@@ -733,11 +722,13 @@ fn reference_family_input(source: &str, current: &str) -> String {
 
 // A later compositor uses this normalization-only front BEFORE its raw table.
 pub(crate) fn bulk848_arm_input(source: &str, current: &str) -> String {
-    metadata_json::normalize(source, current)
+    final_custody::normalize(source, current)
 }
 
 // Main's compiled test corpus keeps every original source-domain check.
 fn main_dd0_previous(source: &str, current: &str) -> String {
+    let final_view = final_custody::input(final_custody::Fixture::Common, source, current);
+    let current = final_view.as_str();
     let metadata = metadata_json::previous(source, current);
     let current = metadata.as_str();
     let pair = runtime_json::pair_previous(source, current);
@@ -747,11 +738,18 @@ fn main_dd0_previous(source: &str, current: &str) -> String {
 
 // New owner and inherited domains remain independent; all old tables stay exact.
 pub(crate) fn arena854_input(source: &str, current: &str) -> String {
-    let receiving = project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/canonical-intern-arena-854-receiving-20261016/current-to-9db.json")), source, current);
+    let final_view = final_custody::input(final_custody::Fixture::Arena, source, current);
+    let current = final_view.as_str();
+    let receiving = final_custody::project(final_custody::Fixture::ArenaReceiving, source, current);
     let current = receiving.as_str();
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/canonical-intern-arena-854-joined-20261016/current-to-ab13.json")), source, current)
+    final_custody::project(final_custody::Fixture::ArenaJoined, source, current)
 }
 pub(crate) fn arena854_previous(source: &str, current: &str) -> String {
     let component = arena854_input(source, current);
-    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/canonical-intern-arena-854-next-20261016/current-to-3c388.json")), source, &component)
+    final_custody::project(final_custody::Fixture::ArenaPrevious, source, &component)
+}
+
+// The complete twelve-row Main receiver has an independent scoped input.
+pub(crate) fn main7c6_input(source: &str, current: &str) -> String {
+    final_custody::input(final_custody::Fixture::Main7c6, source, current)
 }

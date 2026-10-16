@@ -1,0 +1,1021 @@
+{
+  "mode": "SOURCE_ONLY_NOT_RUST_QUALIFICATION",
+  "refs": {
+    "common": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+    "arena426": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+    "main7c6": "7c6a2a801f70525f31a2cd49fe64b59ab32f75f8",
+    "receiving781": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+    "receiving855": "af768222e477634f0cd603b4581306e0002b3247"
+  },
+  "scopes": {
+    "common": "complete modified preexisting c755 namespace",
+    "arena426": "complete modified preexisting426 namespace",
+    "main7c6": "ONLY12 Main receiver source paths; existing feature differences remain under independent common/arena histories",
+    "receiving781": "complete modified preexisting09fb namespace",
+    "receiving855": "ONLY10 component preexisting inputs, not a whole Main branch equivalence"
+  },
+  "protected_component_files": [
+    {
+      "source": "docs/evidence/structural-leaf-paid-receiving-781-next-20261016/HANDOFF.md",
+      "ref": "c7c02a4f86b1ca35b5de7e68f8a7cf9265c23829",
+      "sha256": "502e9041ece3814d7fde320b06e1e6f91a9d808e7d7202fcf26b5013c462c66c"
+    },
+    {
+      "source": "docs/evidence/structural-leaf-paid-receiving-781-next-20261016/before/CHANGELOG.md",
+      "ref": "c7c02a4f86b1ca35b5de7e68f8a7cf9265c23829",
+      "sha256": "073b766f55de946e82c3d4967fafcb7ee5b3938c3f3e443f41914173ae1b3d12"
+    },
+    {
+      "source": "docs/evidence/structural-leaf-paid-receiving-781-next-20261016/before/docs/ARCHITECTURE.md",
+      "ref": "c7c02a4f86b1ca35b5de7e68f8a7cf9265c23829",
+      "sha256": "2ef1138ebfee78ff7dcc323912e41b5c8e628ed983ae5a7c630bbe0ce2204ffb"
+    },
+    {
+      "source": "docs/evidence/structural-leaf-paid-receiving-781-next-20261016/before/docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "ref": "c7c02a4f86b1ca35b5de7e68f8a7cf9265c23829",
+      "sha256": "d386e08dbebaaaa329834c9eb663627feab7e6b16b02e88a8dae23ea8604005f"
+    },
+    {
+      "source": "docs/evidence/structural-leaf-paid-receiving-781-next-20261016/before/src/cleanup_plan/renewal_profile.rs",
+      "ref": "c7c02a4f86b1ca35b5de7e68f8a7cf9265c23829",
+      "sha256": "46f3c87a7d1bd762ea86895c8dada6d980331f1e6cf13e63820a49c254219008"
+    },
+    {
+      "source": "docs/evidence/structural-leaf-paid-receiving-781-next-20261016/before/src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "ref": "c7c02a4f86b1ca35b5de7e68f8a7cf9265c23829",
+      "sha256": "9929e58521c52246bd8467c0ad7da5844ba9ef2bcaabf9d0b7fc09bda4a7066f"
+    },
+    {
+      "source": "docs/evidence/structural-leaf-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/flat_records.rs",
+      "ref": "c7c02a4f86b1ca35b5de7e68f8a7cf9265c23829",
+      "sha256": "fa3b9c6fe087b845d64d9ad8ca518b67f92a33827b4615f4c826d9518abbf660"
+    },
+    {
+      "source": "docs/evidence/structural-leaf-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/flat_records/tests.rs",
+      "ref": "c7c02a4f86b1ca35b5de7e68f8a7cf9265c23829",
+      "sha256": "fc953c5e95a5d1e285369610da6b0e1443235460f8d1f050f3e7c7bbbf60bf30"
+    },
+    {
+      "source": "docs/evidence/structural-leaf-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/leaf_index.rs",
+      "ref": "c7c02a4f86b1ca35b5de7e68f8a7cf9265c23829",
+      "sha256": "17a6913340db634eb8fde149d23738ce68cf2ba1ec5ea10150084bc7defe2335"
+    },
+    {
+      "source": "docs/evidence/structural-leaf-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/lexical_replay.rs",
+      "ref": "c7c02a4f86b1ca35b5de7e68f8a7cf9265c23829",
+      "sha256": "658f2ab6f189d4b084077b7948863566aaf31b8a319921764b35c9cf408d32f4"
+    },
+    {
+      "source": "docs/evidence/structural-leaf-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/scalar_replay.rs",
+      "ref": "c7c02a4f86b1ca35b5de7e68f8a7cf9265c23829",
+      "sha256": "1c5b9043a557876df42b2734dfac7cfcc20076b210f341779c6a579e7fb85083"
+    },
+    {
+      "source": "docs/evidence/structural-leaf-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/selected_context/child.rs",
+      "ref": "c7c02a4f86b1ca35b5de7e68f8a7cf9265c23829",
+      "sha256": "8bb723f948595f9788bd1507b52c4b1c1e21f2b7519fd8d0ccefe69cf7b785ec"
+    },
+    {
+      "source": "docs/evidence/structural-leaf-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/structural_maps.rs",
+      "ref": "c7c02a4f86b1ca35b5de7e68f8a7cf9265c23829",
+      "sha256": "f8c2b1f1de241caafbd30692fe172fb4e2afb58189252d4334878071d95b87a8"
+    },
+    {
+      "source": "docs/evidence/structural-leaf-paid-receiving-781-next-20261016/pending-selectors.json",
+      "ref": "c7c02a4f86b1ca35b5de7e68f8a7cf9265c23829",
+      "sha256": "937257ef2cda3c8fc7affdeeb0b96a0d01131c321e6bc40902eb1c70a18bc996"
+    },
+    {
+      "source": "docs/evidence/structural-leaf-paid-receiving-781-next-20261016/source-inverses.json",
+      "ref": "c7c02a4f86b1ca35b5de7e68f8a7cf9265c23829",
+      "sha256": "876a06165ed8cb1c09c628bf8c31c8f00cdc85d438543146259d01325eb4278b"
+    },
+    {
+      "source": "docs/evidence/structural-leaf-paid-receiving-781-next-20261016/verify-source.py",
+      "ref": "c7c02a4f86b1ca35b5de7e68f8a7cf9265c23829",
+      "sha256": "80d526c44458053589edf97809d2f58e9939da7514309c517ae806cf36cec3c4"
+    },
+    {
+      "source": "docs/evidence/status-scalar-paid-receiving-781-next-20261016/HANDOFF.md",
+      "ref": "836150d170dfdd6a9318459773066816ded5ff02",
+      "sha256": "ceff5f1175e4e09541c25eec083eea55739eb59dd3fefa49a15d556d9942582f"
+    },
+    {
+      "source": "docs/evidence/status-scalar-paid-receiving-781-next-20261016/before/CHANGELOG.md",
+      "ref": "836150d170dfdd6a9318459773066816ded5ff02",
+      "sha256": "4f61d15bfa02047c1aaa191cf73ba0df3af0ee82a6c3e5634dabe937b35c4d2a"
+    },
+    {
+      "source": "docs/evidence/status-scalar-paid-receiving-781-next-20261016/before/docs/ARCHITECTURE.md",
+      "ref": "836150d170dfdd6a9318459773066816ded5ff02",
+      "sha256": "b6a41cafc61ac81b707f8f90223b47f1884d612e25b4834357eb5a3a9ad747a4"
+    },
+    {
+      "source": "docs/evidence/status-scalar-paid-receiving-781-next-20261016/before/docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "ref": "836150d170dfdd6a9318459773066816ded5ff02",
+      "sha256": "f7e176a54db51061c13f2a46258ab6afa95b11c178f63cc959ac0d3989151544"
+    },
+    {
+      "source": "docs/evidence/status-scalar-paid-receiving-781-next-20261016/before/src/cleanup_plan/renewal_profile.rs",
+      "ref": "836150d170dfdd6a9318459773066816ded5ff02",
+      "sha256": "d7b42294cacc18d201d925b7166701c99c9fe2f191eeaf7f0b25155b683b2003"
+    },
+    {
+      "source": "docs/evidence/status-scalar-paid-receiving-781-next-20261016/before/src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "ref": "836150d170dfdd6a9318459773066816ded5ff02",
+      "sha256": "1309ba57a9865e10b9154b335ffa66ae02d39806e35e43276f71f921d827ac77"
+    },
+    {
+      "source": "docs/evidence/status-scalar-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/flat_records/tests.rs",
+      "ref": "836150d170dfdd6a9318459773066816ded5ff02",
+      "sha256": "d3e46c317a224b70ea81c29f07e2924bbb298a221ccfcc7b51e80c31b7f37c18"
+    },
+    {
+      "source": "docs/evidence/status-scalar-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/lexical_replay.rs",
+      "ref": "836150d170dfdd6a9318459773066816ded5ff02",
+      "sha256": "7d62adc0802cc598f1fcfdbb5b5681d40d884fd9f49e55bfb1913ff51dfdaed9"
+    },
+    {
+      "source": "docs/evidence/status-scalar-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/scalar_replay.rs",
+      "ref": "836150d170dfdd6a9318459773066816ded5ff02",
+      "sha256": "3addad9475b7effecf096d833429ae2334c25e3c2eece227b8a519de0e547a27"
+    },
+    {
+      "source": "docs/evidence/status-scalar-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/scalar_replay/records.rs",
+      "ref": "836150d170dfdd6a9318459773066816ded5ff02",
+      "sha256": "d0a7ecff13b07ac0c5197fb5d590de2a734c45c4ebd02ab66eb8bcb1479ad09b"
+    },
+    {
+      "source": "docs/evidence/status-scalar-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/selected_profile/paid_children.rs",
+      "ref": "836150d170dfdd6a9318459773066816ded5ff02",
+      "sha256": "9b959ccb9a045733478f24d14927c41f79af6a50a3d2c1c6382ef4753e223216"
+    },
+    {
+      "source": "docs/evidence/status-scalar-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/semantic_refusal.rs",
+      "ref": "836150d170dfdd6a9318459773066816ded5ff02",
+      "sha256": "fc1a6f41a225e0936ede78ff9923eb0eea1e93ce5c8e37fbde9709e6ee78c823"
+    },
+    {
+      "source": "docs/evidence/status-scalar-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/status_construction.rs",
+      "ref": "836150d170dfdd6a9318459773066816ded5ff02",
+      "sha256": "d72a80e34d5165cb87e307d9c0b0f3c4ec951656bb2a7515719635a43265c036"
+    },
+    {
+      "source": "docs/evidence/status-scalar-paid-receiving-781-next-20261016/pending-selectors.json",
+      "ref": "836150d170dfdd6a9318459773066816ded5ff02",
+      "sha256": "659fe88d08d9257479377bcf6fe4bf93b3611d4896c71f478495f02a677ce766"
+    },
+    {
+      "source": "docs/evidence/status-scalar-paid-receiving-781-next-20261016/source-inverses.json",
+      "ref": "836150d170dfdd6a9318459773066816ded5ff02",
+      "sha256": "70a50f2fdfddb48d7b1f89ec7c77fc578c6d2e981f273f6459ecaca36c99ef08"
+    },
+    {
+      "source": "docs/evidence/status-scalar-paid-receiving-781-next-20261016/verify-source.py",
+      "ref": "836150d170dfdd6a9318459773066816ded5ff02",
+      "sha256": "4cbf4b9f0f266159aa6e8c208590663e21dd8d3510eb07a123f559b910f747af"
+    },
+    {
+      "source": "docs/evidence/certificate-precision-paid-receiving-781-next-20261016/HANDOFF.md",
+      "ref": "428bc7802576ba3c6548608857594d0ce8d7391a",
+      "sha256": "3b8eb0eb134711a25d9699add7f721e8d5e2d5ce5e0c36674d1fe7bfda3fa527"
+    },
+    {
+      "source": "docs/evidence/certificate-precision-paid-receiving-781-next-20261016/before/CHANGELOG.md",
+      "ref": "428bc7802576ba3c6548608857594d0ce8d7391a",
+      "sha256": "19c04b0c0b27c41bd2fbeaf5e6117d4a34b4e31e1e621a10fd8d86c7eecddc96"
+    },
+    {
+      "source": "docs/evidence/certificate-precision-paid-receiving-781-next-20261016/before/docs/ARCHITECTURE.md",
+      "ref": "428bc7802576ba3c6548608857594d0ce8d7391a",
+      "sha256": "3cba888c53b9844ba1d1f6fffe99986784765b4ebb7b53bee9c97a5dfb84734d"
+    },
+    {
+      "source": "docs/evidence/certificate-precision-paid-receiving-781-next-20261016/before/docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "ref": "428bc7802576ba3c6548608857594d0ce8d7391a",
+      "sha256": "b247808024f99ce10ead50eb16b0b3dca52a177c1930904e9e7bd0be892533f7"
+    },
+    {
+      "source": "docs/evidence/certificate-precision-paid-receiving-781-next-20261016/before/src/cleanup_plan/renewal_profile.rs",
+      "ref": "428bc7802576ba3c6548608857594d0ce8d7391a",
+      "sha256": "853b6f818f275532cbbe72b0b7e227ffb31216c0cf1cc13e64aab76501a5c8a7"
+    },
+    {
+      "source": "docs/evidence/certificate-precision-paid-receiving-781-next-20261016/before/src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "ref": "428bc7802576ba3c6548608857594d0ce8d7391a",
+      "sha256": "fb411839333c77b5ff28571d8678573fb48c19b83740a49629d41d6d91b93ef7"
+    },
+    {
+      "source": "docs/evidence/certificate-precision-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/flat_records/tests.rs",
+      "ref": "428bc7802576ba3c6548608857594d0ce8d7391a",
+      "sha256": "2cc0d5e75f144afc8e070889fe758fc44227a25b1e544643d4206f09d69c6ca3"
+    },
+    {
+      "source": "docs/evidence/certificate-precision-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/lexical_boundary.rs",
+      "ref": "428bc7802576ba3c6548608857594d0ce8d7391a",
+      "sha256": "5eee6a4cfaccc5cff4ab3ea39acaa772a472949ebfe16c8ab586ff346f6dc023"
+    },
+    {
+      "source": "docs/evidence/certificate-precision-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/lexical_cert.rs",
+      "ref": "428bc7802576ba3c6548608857594d0ce8d7391a",
+      "sha256": "09a4b64ce78b4dbc7ba77240152e84dd0960b0d1739a163bca1da12640d60d48"
+    },
+    {
+      "source": "docs/evidence/certificate-precision-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/lexical_replay.rs",
+      "ref": "428bc7802576ba3c6548608857594d0ce8d7391a",
+      "sha256": "20f3ac7b93632ed62b84a296924888ab6b66c4f2829822545bb1304823fbfcb7"
+    },
+    {
+      "source": "docs/evidence/certificate-precision-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/scalar_replay.rs",
+      "ref": "428bc7802576ba3c6548608857594d0ce8d7391a",
+      "sha256": "8f4f1121c1509109d9410b263fec31e7f6c001e786ef0aa4fff7a507093dbcde"
+    },
+    {
+      "source": "docs/evidence/certificate-precision-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/scalar_replay/paid_nodes.rs",
+      "ref": "428bc7802576ba3c6548608857594d0ce8d7391a",
+      "sha256": "220e5d317b34d9ceea9aede0331a9a18fe14509650c4d37132bd9d50ec09a892"
+    },
+    {
+      "source": "docs/evidence/certificate-precision-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/scalar_replay/records/paid.rs",
+      "ref": "428bc7802576ba3c6548608857594d0ce8d7391a",
+      "sha256": "8479c7e314934230ea831695bd821e017f3b7a6182f38ddda039db29f81263c5"
+    },
+    {
+      "source": "docs/evidence/certificate-precision-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/selected_context/child.rs",
+      "ref": "428bc7802576ba3c6548608857594d0ce8d7391a",
+      "sha256": "8af014bc1f52d1f8cfe526cff4c2da095509cc3d900e3d54f7dea0bef80dc033"
+    },
+    {
+      "source": "docs/evidence/certificate-precision-paid-receiving-781-next-20261016/pending-selectors.json",
+      "ref": "428bc7802576ba3c6548608857594d0ce8d7391a",
+      "sha256": "b61b7a3579cea2545345ea9708349d95348c95523ac609ad7effb4d8ecff1894"
+    },
+    {
+      "source": "docs/evidence/certificate-precision-paid-receiving-781-next-20261016/source-inverses.json",
+      "ref": "428bc7802576ba3c6548608857594d0ce8d7391a",
+      "sha256": "51824224b22d2834e5a9386789a2176a8756a00db2db4bdcaa67d6afa5ee6005"
+    },
+    {
+      "source": "docs/evidence/certificate-precision-paid-receiving-781-next-20261016/verify-source.py",
+      "ref": "428bc7802576ba3c6548608857594d0ce8d7391a",
+      "sha256": "c9024940f8f1cf1a973ade0ca96290443ddc76028c8e571d9518c73cd25b733c"
+    },
+    {
+      "source": "docs/evidence/boundary-chain-paid-receiving-781-next-20261016/HANDOFF.md",
+      "ref": "3ef05f1c0c15f6f39019d3ed9794b1ee25941734",
+      "sha256": "ea637bd703131be5e7029386eb1cab0e6f0d22ee2917a25fbe8f089f9b51d6be"
+    },
+    {
+      "source": "docs/evidence/boundary-chain-paid-receiving-781-next-20261016/before/CHANGELOG.md",
+      "ref": "3ef05f1c0c15f6f39019d3ed9794b1ee25941734",
+      "sha256": "6eb271283ba6e56b542a68fc170b7a1f21a209f421eecd9d8016b02d302dc334"
+    },
+    {
+      "source": "docs/evidence/boundary-chain-paid-receiving-781-next-20261016/before/docs/ARCHITECTURE.md",
+      "ref": "3ef05f1c0c15f6f39019d3ed9794b1ee25941734",
+      "sha256": "001a22d7e33a4e21add428212b82c7bc33dcb24eec4624340872769070639048"
+    },
+    {
+      "source": "docs/evidence/boundary-chain-paid-receiving-781-next-20261016/before/docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "ref": "3ef05f1c0c15f6f39019d3ed9794b1ee25941734",
+      "sha256": "90cb305f766b114e4ae72592b7c7b942fbf80867e42d4db017cb895df5f64406"
+    },
+    {
+      "source": "docs/evidence/boundary-chain-paid-receiving-781-next-20261016/before/src/cleanup_plan/renewal_profile.rs",
+      "ref": "3ef05f1c0c15f6f39019d3ed9794b1ee25941734",
+      "sha256": "7156a1086ea275c0b0152748c3a2e560a621d573fca079ae9f307fdf9ddd02cc"
+    },
+    {
+      "source": "docs/evidence/boundary-chain-paid-receiving-781-next-20261016/before/src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "ref": "3ef05f1c0c15f6f39019d3ed9794b1ee25941734",
+      "sha256": "a546c97cd7a497810a6375ac7c0cf64e8ad185c86045b2b4747df958ab128fa6"
+    },
+    {
+      "source": "docs/evidence/boundary-chain-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/flat_records/tests.rs",
+      "ref": "3ef05f1c0c15f6f39019d3ed9794b1ee25941734",
+      "sha256": "60e43a8eb59fa1085c07302901f603ff38a4dfa87045395cd601b7010b645226"
+    },
+    {
+      "source": "docs/evidence/boundary-chain-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/lexical_boundary.rs",
+      "ref": "3ef05f1c0c15f6f39019d3ed9794b1ee25941734",
+      "sha256": "bf2899c8981268c59d079630c084eaa3f788b8f7c41044c2c67a88c5e74aaf9a"
+    },
+    {
+      "source": "docs/evidence/boundary-chain-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/lexical_cert.rs",
+      "ref": "3ef05f1c0c15f6f39019d3ed9794b1ee25941734",
+      "sha256": "2e9c3437b953e3a9e19e744bc730ed2bf2a940a9d1b12edf98f4ceec8d55cbdf"
+    },
+    {
+      "source": "docs/evidence/boundary-chain-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/lexical_cert/paid.rs",
+      "ref": "3ef05f1c0c15f6f39019d3ed9794b1ee25941734",
+      "sha256": "ce0da5c1fc00927f6f4ace6267f6746cc856c74a30eb239df67d39ca12841743"
+    },
+    {
+      "source": "docs/evidence/boundary-chain-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/lexical_cert/paid/storage.rs",
+      "ref": "3ef05f1c0c15f6f39019d3ed9794b1ee25941734",
+      "sha256": "7dd3b733d080cad28cb7403ea39b868d5320707032400ed49d2662f0888fc30f"
+    },
+    {
+      "source": "docs/evidence/boundary-chain-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/lexical_replay.rs",
+      "ref": "3ef05f1c0c15f6f39019d3ed9794b1ee25941734",
+      "sha256": "ec85c83a11d2ac0fe19cfd1c60f1cb8711276cc04086ab30f31180c374729c69"
+    },
+    {
+      "source": "docs/evidence/boundary-chain-paid-receiving-781-next-20261016/pending-selectors.json",
+      "ref": "3ef05f1c0c15f6f39019d3ed9794b1ee25941734",
+      "sha256": "760e012d23f24f613b72005e2ba5a522d5ef40230486f983612c41d64c8b159d"
+    },
+    {
+      "source": "docs/evidence/boundary-chain-paid-receiving-781-next-20261016/source-inverses.json",
+      "ref": "3ef05f1c0c15f6f39019d3ed9794b1ee25941734",
+      "sha256": "2990ed29f6ab4f610e43a7adbb5ffe25e5d8de01b0910ac99e6c1d029d01fa72"
+    },
+    {
+      "source": "docs/evidence/boundary-chain-paid-receiving-781-next-20261016/verify-source.py",
+      "ref": "3ef05f1c0c15f6f39019d3ed9794b1ee25941734",
+      "sha256": "d98c6ffa4ad68f3221c39cd3d439f7c1776da5e7bf2e7bfdd914906e9b91565c"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/HANDOFF.md",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "d6c8430947e57d7ed3feaad527e50eecdd2f39e4d426b2d9dbb84de67045cc43"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/before/CHANGELOG.md",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "e5e2571d1c97373887f531a59376a20410cd987e2f3c39d66ac90e62aa7d9934"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/before/docs/ARCHITECTURE.md",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "57205cfff652e616c0fc0f0455b91abb690c2e749d92fa6fa393f73fee2c680b"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/before/docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "e70ec5d5a39afd1abc51c06ecc2d1dff1ecdc6675215bc89eb7ca7c217654ac0"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/before/src/cleanup_plan/renewal_profile.rs",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "3296f6f3fd875082cbb1718b621648aea9ff366ed107254b9b4450968e99e59f"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/before/src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "2cea04a66d231c582de2a16383986cf9746748189c6d96194e0776f048395777"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay.rs",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "e20762a8c39c22f697ad721d3ea7df4fffca681497fca5425b3e5448899f8425"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/flat_records/tests.rs",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "b80a96d7dd0a3414876f266a8da9d2f1919ea47c4ff37179e3502a533d3fce15"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/lexical_cert.rs",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "147da5a3182e717f3e9971d032511714da8154e724c24aba70c2e17ecff789a6"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/before/src/cleanup_plan/replay/lexical_cert/paid.rs",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "b55bbdec2dbbc581711b5bf729fa378216067ba4d35f182c790a7ec93c25dc9d"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/original-query-inputs.json",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "fbde89747d028e1ebf39059434f975e292532bb7386fd5acd3932c46b566c1ef"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/original-query-inputs/src/cleanup/inventory_builder/selected.rs",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "6b124bec80c967ce3b90abb0131a51d5e4cd63dbee2d8c44db2a32dc9b583f28"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/original-query-inputs/src/cleanup/inventory_builder/selected/flat_record.rs",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "832887e5c6ee5d5f6230baba723b4392f6c5d99a728acaf17e347d016366c4e3"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/original-query-inputs/src/cleanup/inventory_builder/selected/vector.rs",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "d99a56bf53d9f2c20432de957d92c87c627786e71d523a720ed605089c8cd76f"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/original-query-inputs/src/cleanup/inventory_builder/selected_inline.rs",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "893b87ae8ec16924a3a6e7980d4fea6480bf5926e5ffb9003d35938ea973a3c3"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/original-query-inputs/src/cleanup_plan/replay/nested_shape.rs",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "7214d1a49f1884e374770c73e8ca484522529e3f161f94e0ef23fbcd8d6eea74"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/pending-selectors.json",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "f152fb516bce1872c793d923e4cf5552989573098b2e5068c7a87b238435e579"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/source-inverses.json",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "8d4fa86e0387748905885788bcc1127f96cf6cf106d287d25f66ffce3487ad23"
+    },
+    {
+      "source": "docs/evidence/lexical-type-drop-paid-receiving-781-next-20261016/verify-source.py",
+      "ref": "09fb561dd055ae02ae57ceab6d216d7a184ee99f",
+      "sha256": "0ecf0de9da375fe2ee5379e2dc03f3d2966e0be60e92ebdee8f1ebbe5c7331d3"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-next-20261016/README.md",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "06547ea74d1de5526f1d4ef508f38cfb3e958b4b4776cb9e930eb94bd87e6e78"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-next-20261016/RECEIVING-INVENTORY.md",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "f11d163e317cdc590c87a51ff37757cdf8bf5c1b5e6da746f71212cef9ce02e5"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-next-20261016/current-to-3c388.json",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "f288d2814efb39d94bfb364f02da1343f436cfffc26485ec474b1181b062ee6b"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-next-20261016/new-owners.json",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "38c2bea1cebee26b0f1feec8b9c3b46e7321609233231924bddb10d8ed116d4d"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-next-20261016/pending-selectors.json",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "e5bc07049a18b889c97570d608c70b92b632bde5511990794bcbebdc986a290d"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-next-20261016/src__cleanup_plan__replay__factored.rs.before.txt",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "52c33a5e0fb60cdbf449dc3875115a77b49869f3d25c516f15301ab723a589d9"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-next-20261016/src__cleanup_plan__replay__factored__canonical_shared.rs.before.txt",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "f2f041a29fab395c239651b18265ce47eeee4d828cffa2be1ec40f2de0629df3"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-next-20261016/src__cleanup_plan__replay__factored__canonical_shared__inline_weighted.rs.before.txt",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "ba2cbe772ecabcd29f519778201f842609f045294ef514ead976b737ec157b50"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-next-20261016/verify-source.py",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "06707ac5e769c8025ece28559e5a74ae87d28c55224b8ea5c81d6e5a1ccc8acf"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/README.md",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "c12241b606f4b47042498057c77295b5dbd66ec58893600dcc9d3493264f97ca"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/authority-source-proof.json",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "185f58b33f7a06ac29238de700d9865575461debaf4b75d6a4acdd2e7386eb7a"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/before/CHANGELOG.md",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "c223b4cbf84d8cb34c0d5e14a337f9c4d9ed864b7abd8ed4d82df1e4034c229f"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "b7c024aea9a5c24ba251b2064574fce2d2b935e00cb226ea05a08c5ebf6b928c"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/before/docs/ARCHITECTURE.md",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "a021319e5597b801b8e77dc7894d12ea491c9c19b394113ac8560f2a81738b3d"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/before/src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "ca051407d15a34b50cf3854f40687af3c313149a762aec21d1f34a0b57e5d7c8"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/before/src/source_reflows_merge.rs",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "83bff59513863555cb8d976dad6ae5c7fe729e21cf3a578bcb80eb9ad9bbb280"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/before/tests/hir_module_boundaries.rs",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "4863bbae2e22193a7ad5a946f206f12da2cd9b75cdf210f430ebb6714ed76f10"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/before/tests/workspace/semantic_graph.rs",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "8fb7dfdffa4bfdc4a0a9a3b35aa6a81b549015379b8768e309358306307a2232"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/before/tests/workspace/semantic_graph/source_inventory.rs",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "b125d9997123f0dd17ba14df69e27b61e61c7f55413a64eb1b08ee2dad9d7952"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/current-to-ab13.json",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "1e52e2925979246f93a38cfecfa95e117b19b7612235528a62d64a0f1d6c6109"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/generate-authority.py",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "c5dfca5df2e3dbcb8494b18498db4ee4b96340b1879abb2d57f4d5f5a9d96a09"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/hir.json",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "414b4cb399f7bfb6036be742c247fee95056c085eb2702e63a570fb06dc17a70"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/new-owners.json",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "553a714e16caca6acab7f82693e48637e40c902ef727f61eaa65b815027e72b1"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/pending-selectors.json",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "67682ae38d4e1fc7d4ba4f556c2554f10e8d1f93009ff6307bcf6bc486acd207"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/projection.json",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "5f4d2f6a0b2ce1c971dc3aa63f40bcd37e4807bcd520a550fb7aad70fd0bf8dd"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/source-proof.json",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "28462401d9a5bac63d83fad388056dbaa1df50a107305c9757a8036c6b9cc1a4"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/verify-authority.py",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "07621bda9fc9cc14f56ea514a4edb94e61d685a4e9b66fb29e42287dbaff380a"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-joined-20261016/verify-source.py",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "e6288da32903a3d6ccfdf8ce1f49c7b098b15648895771fdc3e3142a647503e5"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/README.md",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "991ab70e20a6fa83166128f195171de37b40e2bb2998f0fa9d698294f5a2e2f8"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/RECEIVING-CORRESPONDENCE.md",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "872dfef172ff3ce2801e074fc2f9d4a7737c2d1eeed806da6eb633625ae41981"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/authority-source-proof.json",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "5c2bdd11aa0231171f3de86473eba330da85609432fce5621d3d3a1e0b064c73"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/before/CHANGELOG.md",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "4c86b969ba9170282024794c9a67fc30d113d1efaf4546a7f712fcba61127b19"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/before/src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "a23aa455ec70bee8489c68acd22bf2c00a28989964f568901f345a025018c54d"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/before/src/cleanup_plan/replay/factored/canonical_shared/arena_source.rs",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "a0aa20c6ff791bd9e01afacf1a4c0c8fd0a9eed20a70c714d007d40c0a687fb7"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/before/src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "e281aef0de1072556e62e540526aea611c316aab812b0fc9fb0d5199d65999a7"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/before/src/source_reflows_merge.rs",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "4477a7601b7e3cb8659c907856a6888b0c23540ebcf37d06a1b26b81fe89af72"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/before/tests/hir_module_boundaries.rs",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "302e47151ccee6c4562e681fda24ea1b381f3c82eaf1c0249b7101ebbabb867d"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/before/tests/workspace/semantic_graph.rs",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "4c92e2bb79e4e2bd96af617120bd3f495a680e7cfccfcb7928992e50c3b3cded"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/current-to-9db.json",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "857ea629eb91c00e92876ad57421ee0f6f8767d7e792f6b0da870fb83bf2c78c"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/generate-authority.py",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "c5dfca5df2e3dbcb8494b18498db4ee4b96340b1879abb2d57f4d5f5a9d96a09"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/hir.json",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "ceda0d7971c782744f301e3f2af41d44811142c369675dab220fbcbf3e3d85d2"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/new-owners.json",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "44607534b960c73f2a1a6386701638f22be6a22eb5bcc1550dea4f2628f96a39"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/pending-selectors.json",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "67682ae38d4e1fc7d4ba4f556c2554f10e8d1f93009ff6307bcf6bc486acd207"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/projection.json",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "be41200967ad298eb2b6e7d869b81a42efa3bf62412b14aa2ce89a0fe67a6ff8"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/source-proof.json",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "857cbdb92af194738fdc6f92981ea627252c670cb2552df9b42f28a02afe0787"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/verify-authority.py",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "e0ecfff5c47f79149317632bfe37c9f08c0ffdb2f9bbc6ba1b41ffabb4a19d20"
+    },
+    {
+      "source": "docs/evidence/canonical-intern-arena-854-receiving-20261016/verify-source.py",
+      "ref": "426e57b3c56cab9708815ba14fbf1e35a4f35b74",
+      "sha256": "f4796ab643b98e7d0c61bd18f772c52fae94491ef1fe77829db12ca257b57494"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/HANDOFF.md",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "624d264d3f0deefbf5afc7a6ae44aad378b37b216b1fb9638928bdba2b42ea23"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/arm-contract.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "f951f36eb22a17741b9e5b6340aa427affa8b6eaaa1ece41a87fffcfdd781bb0"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/authority-source-proof.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "d151fbe4e2d583ece1c4d66c985b7891027ca270c213477c9acddc14cb5901a5"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/before/CHANGELOG.md.txt",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "c67ab31ce7168a296d776c052bd9ec48f6e99cf927b83160e89b7ab1d6ce3cac"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs.txt",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "00b9db54acededcca310f11e80510570fde37e4a573d789c7b30bf014baa99f7"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/before/docs/ARCHITECTURE.md.txt",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "2ef1138ebfee78ff7dcc323912e41b5c8e628ed983ae5a7c630bbe0ce2204ffb"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/before/src/source_reflows_merge.rs.txt",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "907ec2f88c499eb8478eb79be3cc7fb31bee03c252810bb307084085e55a8088"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/before/src/source_reflows_merge/runtime_json.rs.txt",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "5eff71a7e49b61dbd6493a10f175be55804815502277b787d02e974b1180758d"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/before/src/source_reflows_merge/runtime_json/tests.rs.txt",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "cbe9336a17fa49c7555a905b61bcb4d8405301a12d168c78f25d76ef68cbd649"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/before/tests/hir_module_boundaries.rs.txt",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "9a28ba3937a7529384bf969dcc63b5ff598e32ce27a86dfee2307354211feebb"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/before/tests/workspace/semantic_graph.rs.txt",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "2e682e40aa451425c60e152e2ab98dd3a46372923297560e38f54f6fb2dca5f1"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/before/tests/workspace/semantic_graph/source_inventory.rs.txt",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "c5fb44af09db8c9c1b8407c886e9bc138f699b6f85cf449a329725e472595358"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/current-to-0c.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "d38175675dd06114ce9bc4f064a9f3886595fb562e72685f68ac88b7f4b455f3"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/fixture-inventory.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "9d82520614f50e590ab71b5b29ba4ce2fc9ec631515e4618b80ef8b1f069d80f"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/generate-authority.py",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "c5dfca5df2e3dbcb8494b18498db4ee4b96340b1879abb2d57f4d5f5a9d96a09"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/hir.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "8b5b9313faa819edb6d4451a23a7f5d0a714969c446cee5eedd11c014e0dae48"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/new-owners.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "dfaa41881bc32a749269bc4860fc17c8625551d284facea04b862cf022930288"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/pending-selectors.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "368199b3c94ad608dfaae269bd980a73f66211ddea4f88850733a56c45e86244"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/prepare-arm-overlay.py",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "d40d86ebf2d2bfe6b934766b87299445fefc390b6813bf25a2b9a4c6c005506d"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/projection.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "e3771b9bed94b3af77868e8c119e008e7657348df7b0ccdcee28c376af45a7ad"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/source-proof.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "b81e9a95c0e98433469d32511241ff15f8572b6579d3465eef0f059ca399ed8f"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/verify-authority.py",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "29067a9f81df1a3b2441a458be5ed8d3c593540b17569885c550a1eafd41525d"
+    },
+    {
+      "source": "docs/evidence/bulk-transport-pair-848-next-20261016/verify-source.py",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "e15d80b9041b2d56dbac3c7da8dc8ecb402cd8b6c321f1750ff72985f94c97da"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/HANDOFF.md",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "328022fb667094d5be7a3a363a9aec0870bd521a172b32c5c40557a790a8d940"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/arm-contract.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "886051a0dea52735c15933fe68968600e84208f5af84896962bb6d606a0da596"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/authority-source-proof.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "e853e28d8165faf0e763a3f626712ea6a7598887d454164a55ca2acf115830f4"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/before/CHANGELOG.md.txt",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "e9fafa10a1e8989e8808047cbb1fc287aaf6ce6a8383b70acf1f88582f492cd3"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs.txt",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "2788008a5ca2a50f284df9c2cf537a0074485a95269936b6d31f5345961f26e1"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/before/docs/ARCHITECTURE.md.txt",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "339ef7091e5e83450c97923d38362ae735e8c6f271a9d66c681c948c61994d09"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/before/src/source_reflows_merge.rs.txt",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "d4828007abe21d9f4980c429f1be58d151fc08b466273ad504bbc01809da2633"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/before/src/source_reflows_merge/runtime_json.rs.txt",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "aa8c43a32ba0d86f5829bee2264b9753edeb6d1fb410bd5aa040d9bdd45f95fe"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/before/src/source_reflows_merge/runtime_json/tests.rs.txt",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "bb01844c0b2ed252211706b6989d74e719d617f1833165645d12c6e78a36b64a"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/before/tests/hir_module_boundaries.rs.txt",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "fa73a6ba5e5e0062ecd4793b58e33cd302b6b2380c4561a77737533926e35cd6"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/before/tests/workspace/semantic_graph.rs.txt",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "12934ea467a9e54b5e2778742941e9be1d58de731bdada7c2fe7d8e47375afec"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/before/tests/workspace/semantic_graph/source_inventory.rs.txt",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "e98114e9e8f5bc36606fec878313eb81cf55a68bc3f098e24d2ddecd6d579204"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/current-to-e204.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "92890b8ffbfd7549ee10b4357975df854965d7986541116f507a521358860aa1"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/fixture-inventory.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "ee5bb0ab8fd607461ff4acc7d9a08e303d4a01beebd015ed2069f82c0b0c0874"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/generate-authority.py",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "c5dfca5df2e3dbcb8494b18498db4ee4b96340b1879abb2d57f4d5f5a9d96a09"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/hir.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "6af71d5a6cbc0aec0b460a2fa13166112af282ae1cf835c410ee0aa46e1ea25f"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/new-owners.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "000f9681035b3ccf2f321cb70e45c3e7ff23982c2b385b5920dbbe823da6f088"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/pending-selectors.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "654c88e19a12ef97b4b3238be771dd72d2740445dc08e49995bcf8b073727102"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/prepare-arm-overlay.py",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "d40d86ebf2d2bfe6b934766b87299445fefc390b6813bf25a2b9a4c6c005506d"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/projection.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "e3771b9bed94b3af77868e8c119e008e7657348df7b0ccdcee28c376af45a7ad"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/replacement-map.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "0b80bb928882d54cc5b052eafed054263e683487ca9dccad2982fc2d45b43786"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/source-proof.json",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "359937a573ef6d0d66f0f1a0d6b7e48b4c67eb74e703671444d1b5d05b07fad4"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/verify-authority.py",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "61d29a0bf2ef418a60bf855bbb489a10b5d5d8d612895596e0b5060df2c74a28"
+    },
+    {
+      "source": "docs/evidence/fixed-metadata-runtime-848-next-20261016/verify-source.py",
+      "ref": "c75520f013a2dd420450c9b232c1bc11d65d974f",
+      "sha256": "f58c834a71f4e5e205cffdb423b52704f352dff92df813836886e9af4220d0c6"
+    },
+    {
+      "source": "docs/evidence/residual-constructor-frontier-855-next-20261016/HANDOFF.md",
+      "ref": "af768222e477634f0cd603b4581306e0002b3247",
+      "sha256": "0a0bad13e38465affd34983d4b2b0209ccfa3ab20421a037dd436e0af0165f58"
+    },
+    {
+      "source": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/CHANGELOG.md.txt",
+      "ref": "af768222e477634f0cd603b4581306e0002b3247",
+      "sha256": "bfd7e223bcac9f58e5099e13268ebc13733e77644ea0604586f25549a4e832d0"
+    },
+    {
+      "source": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/hir_traversal.rs.txt",
+      "ref": "af768222e477634f0cd603b4581306e0002b3247",
+      "sha256": "d83fadb84d064ab5649a70edf68e2d91d9e957f3226e36b0b602ae88e122698a"
+    },
+    {
+      "source": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/docs/ARCHITECTURE.md.txt",
+      "ref": "af768222e477634f0cd603b4581306e0002b3247",
+      "sha256": "755982db2c907e969961822a7368990c0572e1d22d96453c6e9daa7adbf21e80"
+    },
+    {
+      "source": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/src/hir.rs.txt",
+      "ref": "af768222e477634f0cd603b4581306e0002b3247",
+      "sha256": "897bb10c195fcbc116cffaf86c3501d918770080a64c0112f86d147fadbb0faf"
+    },
+    {
+      "source": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/src/hir/cache_codec.rs.txt",
+      "ref": "af768222e477634f0cd603b4581306e0002b3247",
+      "sha256": "f526e7ce58a74d120008538ffac6b116cdccf92790cad20d9c9e703e750991f5"
+    },
+    {
+      "source": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/src/hir/expr_nodes.rs.txt",
+      "ref": "af768222e477634f0cd603b4581306e0002b3247",
+      "sha256": "ec971d9022e44d280dadce22ccabff5696b885f6a7ab2ca5db3bee7eefc85e34"
+    },
+    {
+      "source": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/src/hir/monomorphize.rs.txt",
+      "ref": "af768222e477634f0cd603b4581306e0002b3247",
+      "sha256": "9e9b5d0015644d0bca2f0a8900e635a54f6b395a36b746b4f5e26065d1dc8b44"
+    },
+    {
+      "source": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/src/hir/resolve_program.rs.txt",
+      "ref": "af768222e477634f0cd603b4581306e0002b3247",
+      "sha256": "619b7c58f9fb1289e5d6360f3183df068f9f4f933e5b6c62ecebae85d71a161e"
+    },
+    {
+      "source": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/src/loan_plan/children_tests.rs.txt",
+      "ref": "af768222e477634f0cd603b4581306e0002b3247",
+      "sha256": "17a1160e11f3b5fed6e350df645194a3f91b139099915059e5ed84c25a98c6af"
+    },
+    {
+      "source": "docs/evidence/residual-constructor-frontier-855-next-20261016/before/src/loan_plan/tests.rs.txt",
+      "ref": "af768222e477634f0cd603b4581306e0002b3247",
+      "sha256": "48aae16376097e85bd0f984ab07ed5e400e33c239d45c80abca2ec0146ac1960"
+    },
+    {
+      "source": "docs/evidence/residual-constructor-frontier-855-next-20261016/current-to-main7c6.json",
+      "ref": "af768222e477634f0cd603b4581306e0002b3247",
+      "sha256": "89401b896b844a729f66065b9ff7946f89dc7a10ffec98da03c1cad579ae0b42"
+    },
+    {
+      "source": "docs/evidence/residual-constructor-frontier-855-next-20261016/new-owners.json",
+      "ref": "af768222e477634f0cd603b4581306e0002b3247",
+      "sha256": "523502bca711d339b7d6366aece9aaf2139ce7a47441259518a20ee8c649528f"
+    },
+    {
+      "source": "docs/evidence/residual-constructor-frontier-855-next-20261016/pending-selectors.json",
+      "ref": "af768222e477634f0cd603b4581306e0002b3247",
+      "sha256": "0684ae444e76e87568c5f0bd8c88f76ff575eb0f68bbfa4762de8a1c9872820e"
+    },
+    {
+      "source": "docs/evidence/residual-constructor-frontier-855-next-20261016/source-proof.json",
+      "ref": "af768222e477634f0cd603b4581306e0002b3247",
+      "sha256": "8e2f732bf5f20afc79b992572fbd29189f09f7176701f66b291e8ac829176444"
+    },
+    {
+      "source": "docs/evidence/residual-constructor-frontier-855-next-20261016/verify-source.py",
+      "ref": "af768222e477634f0cd603b4581306e0002b3247",
+      "sha256": "af79650d84bd3d7066d4ec7ca99281dbbb64c00f0c94235fbe192782949fe7ca"
+    }
+  ],
+  "main_aliases": {
+    "docs/evidence/main7c6-hir-source-custody-20261016/receiver-inverse12.json": "docs/evidence/receiver-source-custody-v1/inverse.json",
+    "docs/evidence/main7c6-hir-source-custody-20261016/compact-inverse7.json": "docs/evidence/compact-staged-observations-v1/inverse.json"
+  },
+  "capsules": {
+    "common": {
+      "path": "current-to-common.json",
+      "sha256": "7232bac3d0b9e238b1b76bb7750739caa6acd361a16bcebcae463648bf21176e",
+      "rows": 51
+    },
+    "arena426": {
+      "path": "current-to-arena426.json",
+      "sha256": "dcdea065aace9fafb37e6dc015d7dcd33de5e507aed90f2299bec9f50180430a",
+      "rows": 63
+    },
+    "main7c6": {
+      "path": "current-to-main7c6.json",
+      "sha256": "8915b923e7455562c51b2f4cde2786e2fa87f363cb73226fc58206f13b11b6fc",
+      "rows": 12
+    },
+    "receiving781": {
+      "path": "current-to-receiving781.json",
+      "sha256": "fada177f24d8b7ef4df338c051770e42e75b05bb508e66e99759e63be24aa056",
+      "rows": 48
+    },
+    "receiving855": {
+      "path": "current-to-receiving855.json",
+      "sha256": "eddfff0c37c7f54910dacbb6ae24aae280986bcd51052472a5ca6542f2f6a20b",
+      "rows": 10
+    }
+  },
+  "runtime_new_fixed_tables": 6,
+  "reader_cap_unchanged": 5081115,
+  "original90_files": 90,
+  "original90_bytes": 93641932,
+  "extra_fixed36_bytes": 2612409,
+  "fixture_inventory": "docs/evidence/bulk-transport-pair-848-next-20261016/fixture-inventory.json"
+}

@@ -6,6 +6,8 @@ use crate::bounded_output::{
 use crate::test_allocation_observer::measure;
 #[path = "before_funded.rs"]
 mod before;
+#[path = "observation_parity.rs"]
+mod observation_parity;
 const OLD_HIR_SELECTION_CONTROLS: usize = std::mem::size_of::<Result<(), Diagnostic>>()
     + std::mem::size_of::<&mut ReplayBudget>() + std::mem::size_of::<&ResolvedFunction>() + std::mem::size_of::<&str>()
     + 2 * std::mem::size_of::<usize>() // price and length
@@ -90,7 +92,13 @@ fn assert_expr_paths_equal(actual: &[ExprSkeletonPath], expected: &[ExprSkeleton
             residual: old_residual,
             continuation: old_continuation,
         } = expected;
-        assert_eq!(observations, old_observations);
+        if observations.prefix.is_none() && old_observations.prefix.is_none() {
+            assert_eq!(observations, old_observations);
+        } else {
+            // Both complete drivers independently synthesize a new Cat root;
+            // root address equality is not a cross-driver semantic oracle.
+            observation_parity::assert_equal(observations, old_observations);
+        }
         assert_eq!(owned_source, old_owned_source);
         assert_eq!(failed, old_failed);
         assert_eq!(residual, old_residual);
@@ -134,6 +142,8 @@ fn dag_seed(
 fn lexical_vector_transfer_keeps_complete_fields_work_and_reports_all_shapes() {
     let program = path_array_main8a::fixture_program();
     let function = &program.functions[0];
+    let mut transfers = [false; 6 * 3 * 4];
+    let mut transfer_index = 0;
     let (((), allocation), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {
         measure(|| {
             for count in [0, 1, 8, 17, 64, 128] {
@@ -166,10 +176,8 @@ fn lexical_vector_transfer_keeps_complete_fields_work_and_reports_all_shapes() {
                             work.budget.skeleton_remaining,
                             old_work.budget.skeleton_remaining
                         );
-                        eprintln!(
-                            "vector count={count} fanout={fanout} stopped={stopped} moved={}",
-                            actual.as_ptr() == pointer
-                        );
+                        transfers[transfer_index] = actual.as_ptr() == pointer;
+                        transfer_index += 1;
                         drop((actual, expected, suffixes, old_suffixes));
                         drop((work, old_work));
                         drop((current, old));
@@ -178,10 +186,23 @@ fn lexical_vector_transfer_keeps_complete_fields_work_and_reports_all_shapes() {
             }
         })
     });
+    assert_eq!(transfer_index, transfers.len());
+    let mut transfer_index = 0;
+    for count in [0, 1, 8, 17, 64, 128] {
+        for fanout in [0, 1, 2] {
+            for stopped in [0, 1, 2, 3] {
+                eprintln!(
+                    "vector count={count} fanout={fanout} stopped={stopped} moved={}",
+                    transfers[transfer_index]
+                );
+                transfer_index += 1;
+            }
+        }
+    }
+    eprintln!("whole vector parity reserved={paid} heap={allocation:?}");
     assert!(!refused && first.is_none());
     assert!(!allocation.invalid && allocation.live == 0);
     assert_eq!(allocation.allocated, allocation.freed);
-    eprintln!("whole vector parity reserved={paid} heap={allocation:?}");
 
     // Genuine DAG suffix and target prefixes, both with live tails. This is
     // an admitted general transfer witness, not parity through the fallback.
@@ -218,7 +239,7 @@ fn lexical_vector_transfer_keeps_complete_fields_work_and_reports_all_shapes() {
             );
             assert_eq!(actual.capacity(), capacity);
             assert_eq!(skeleton_materializations() - before, old_materializations);
-            assert_expr_paths_equal(&actual, &expected);
+            assert_eq!(actual.len(), expected.len());
             assert_eq!(work.budget.skeleton_spent, old_work.budget.skeleton_spent);
             assert_eq!(
                 work.budget.skeleton_remaining,
@@ -233,6 +254,52 @@ fn lexical_vector_transfer_keeps_complete_fields_work_and_reports_all_shapes() {
     assert!(!dag_allocation.invalid && dag_allocation.live == 0);
     assert_eq!(dag_allocation.allocated, dag_allocation.freed);
     eprintln!("general DAG vector reserved={paid} heap={dag_allocation:?}");
+
+    // Full DAG values are compared outside the allocation observer: both
+    // independent drivers allocate their own new concatenation roots. Keep the
+    // measured construction-through-Drop/pointer/work controls above intact.
+    observation_parity::verify_contract(&function.body.id, &program.functions[1].body.id);
+    let ((), refused, _, first) = with_limit_usage_refusal(usize::MAX, || {
+        let mut old = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+        let mut current = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+        let mut old_work = SkeletonWork::new(&program, function, &mut old);
+        let mut work = SkeletonWork::new(&program, function, &mut current);
+        let old_inputs = dag_seed(128, &mut old_work).unwrap();
+        let inputs = dag_seed(128, &mut work).unwrap();
+        let old_suffixes = dag_seed(1, &mut old_work).unwrap();
+        let suffixes = dag_seed(1, &mut work).unwrap();
+        assert!(
+            inputs[0].observations.prefix.is_some() && suffixes[0].observations.prefix.is_some()
+        );
+        assert!(
+            !inputs[0].observations.items.is_empty() && !suffixes[0].observations.items.is_empty()
+        );
+        let pointer = inputs.as_ptr();
+        let capacity = inputs.capacity();
+        let before = skeleton_materializations();
+        let expected =
+            before::sequence_skeleton_paths(old_inputs, &old_suffixes, &mut old_work).unwrap();
+        let old_materializations = skeleton_materializations() - before;
+        let before = skeleton_materializations();
+        let actual = sequence_skeleton_paths(inputs, &suffixes, &mut work).unwrap();
+        assert_eq!(
+            actual.as_ptr(),
+            pointer,
+            "general DAG route retains the actual input vector"
+        );
+        assert_eq!(actual.capacity(), capacity);
+        assert_eq!(skeleton_materializations() - before, old_materializations);
+        assert_expr_paths_equal(&actual, &expected);
+        assert_eq!(work.budget.skeleton_spent, old_work.budget.skeleton_spent);
+        assert_eq!(
+            work.budget.skeleton_remaining,
+            old_work.budget.skeleton_remaining
+        );
+        drop((actual, expected, suffixes, old_suffixes));
+        drop((work, old_work));
+        drop((current, old));
+    });
+    assert!(!refused && first.is_none());
 
     // Separate actual whole owners include their input construction and budget
     // Drop. Small, stopped and wide cases are reported even when unfavorable.
@@ -285,7 +352,7 @@ fn lexical_vector_first_work_keeps_six_fields_before_selection_floor_and_real_li
     let function = &program.functions[0];
     for (stopped, dag) in [(0, false), (2, false), (0, true), (2, true)] {
         let run = |old, limit, work_limit, floor_offset: Option<usize>| {
-            let mut caller = ReplayBudget::unobserved();
+            let mut caller = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
             let mut work = SkeletonWork::new(&program, function, &mut caller);
             // Immutable inputs are independently made outside this protocol
             // observer; the separate whole-owner gate above includes all seeds.

@@ -150,25 +150,28 @@ fn final_fanout_keeps_complete_paths_and_reports_small_wide_transfer_costs() {
             eprintln!("final fanout={fanout} tail={tail} old/current reserved={old_paid}/{paid} heap={old_allocation:?}/{allocation:?} capacities={}/{}", expected.2, actual.2);
             // The complete observation values, including Rc identity semantics,
             // are compared separately, outside the measured summary allocation.
-            let mut old = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
-            let mut current = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
-            let mut old_work = SkeletonWork::new(&program, function, &mut old);
-            let mut work = SkeletonWork::new(&program, function, &mut current);
-            let (prefixes, suffixes, _) = inputs(&mut old_work, fanout, tail).unwrap();
-            let expected = sequence(true, prefixes, &suffixes, &mut old_work).unwrap();
-            let (prefixes, suffixes, pointer) = inputs(&mut work, fanout, tail).unwrap();
-            let actual = sequence(false, prefixes, &suffixes, &mut work).unwrap();
-            if fanout > 1 && tail >= super::FINAL_MINIMUM_ITEMS {
-                assert_eq!(
-                    actual.last().unwrap().observations.items.as_ptr() as usize,
-                    pointer,
-                    "actual final output keeps the original paid flat backing"
-                );
-            }
-            same_paths(&actual, &expected);
-            drop((actual, expected, suffixes));
-            drop((old_work, work));
-            drop((old, current));
+            let ((), refused, _, first) = with_limit_usage_refusal(usize::MAX, || {
+                let mut old = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+                let mut current = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+                let mut old_work = SkeletonWork::new(&program, function, &mut old);
+                let mut work = SkeletonWork::new(&program, function, &mut current);
+                let (prefixes, suffixes, _) = inputs(&mut old_work, fanout, tail).unwrap();
+                let expected = sequence(true, prefixes, &suffixes, &mut old_work).unwrap();
+                let (prefixes, suffixes, pointer) = inputs(&mut work, fanout, tail).unwrap();
+                let actual = sequence(false, prefixes, &suffixes, &mut work).unwrap();
+                if fanout > 1 && tail >= super::FINAL_MINIMUM_ITEMS {
+                    assert_eq!(
+                        actual.last().unwrap().observations.items.as_ptr() as usize,
+                        pointer,
+                        "actual final output keeps the original paid flat backing"
+                    );
+                }
+                same_paths(&actual, &expected);
+                drop((actual, expected, suffixes));
+                drop((old_work, work));
+                drop((old, current));
+            });
+            assert!(!refused && first.is_none());
         }
     }
     // These genuine stopped prefixes retain all fields and publish exactly
@@ -206,7 +209,7 @@ fn final_fanout_original_work_wins_competing_split_and_header_floors() {
     // The immutable caller and seeds are independently constructed before the
     // observation account. No setup scratch is mislabeled receiving savings.
     let run = |old, work_limit, floor_offset: Option<usize>| {
-        let mut caller = ReplayBudget::unobserved();
+        let mut caller = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
         let mut work = SkeletonWork::new(&program, function, &mut caller);
         let (prefixes, suffixes, _) = inputs(&mut work, 3, super::FINAL_MINIMUM_ITEMS + 3).unwrap();
         let observed = with_limit_usage_refusal_site(LIMIT, || {

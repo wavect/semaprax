@@ -1,0 +1,109 @@
+{
+  "base": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+  "rows": [
+    {
+      "path": "CHANGELOG.md",
+      "before_sha256": "cd198737640dfe03101aed225180793bb47f8e7061825dad65d24cb9d27a1f28",
+      "after_sha256": "f5555e8d498aa5b82f4c5e9cd097b9eb921f9aaa598224e7e47613c8c1e540d5",
+      "before_archive": "before/0.txt",
+      "edits": [
+        {
+          "old": "<!-- Source-only #833: invocation-owned identifier census scratch reuse across\n     distinct cold callers; full old receiver retained; qualification pending. -->\n# Changelog\n\n- Execute the paid cleanup branch clone/push producer inline in its existing enumerator, removing actual Vec Result and forwarding receivers while retaining every nested charge and complete old controls; focused execution and application savings remain pending.\n\n",
+          "new": "<!-- Source-only #833: invocation-owned identifier census scratch reuse across\n     distinct cold callers; full old receiver retained; qualification pending. -->\n# Changelog\n\n- Add bounded V6 checked task/profile pages with repeated complete prerequisites, exact imported declaration rows and deterministic continuation; preserve V5 cards and scaffold capsules, explicitly refuse unverified stdin JSON composition, and leave executable qualification and agent-cost improvement unclaimed.\n\n- Execute the paid cleanup branch clone/push producer inline in its existing enumerator, removing actual Vec Result and forwarding receivers while retaining every nested charge and complete old controls; focused execution and application savings remain pending.\n\n"
+        }
+      ]
+    },
+    {
+      "path": "crates/semaprax-toolchain/tests/cli_help_surface_v1.rs",
+      "before_sha256": "a18657e70c3724b67f7ef3d407d246d0f201b0cf2d39431dd9ab0eac72f1b58e",
+      "after_sha256": "8537d3df379a938b0bb0afb3b061350734852dd2ad7458e7071baa1b73c219b5",
+      "before_archive": "before/1.txt",
+      "edits": [
+        {
+          "old": "    std::fs::remove_dir(malformed_dir).unwrap();\n    std::fs::remove_dir(global_dir).unwrap();\n}\n",
+          "new": "    std::fs::remove_dir(malformed_dir).unwrap();\n    std::fs::remove_dir(global_dir).unwrap();\n}\n\n#[path = \"../../../tests/cli_help_surface_v1/task_pages.rs\"]\nmod task_pages;\n"
+        }
+      ]
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "before_sha256": "f4dbf8b15efe20a1a49f59eaebff90ffea670eff213bc7b7de6fdf6799eb3ccf",
+      "after_sha256": "c714a7b2d94cc464f0341c9d593cfa4f07e965ded6dd53759fa1104b222d2130",
+      "before_archive": "before/2.txt",
+      "edits": [
+        {
+          "old": "`source_execution.rs` owns single-file build, run, and diagnostics.\n`diagnostic/writer.rs` borrows caller output for shared JSON/human rendering; the CLI report path owns its stream lock. Active bounded JSON retains the complete legacy renderer and its logical quote order. Neither writer nor stream lock certifies prepaid report/output storage.\n`help_dispatch.rs` prints the global and scoped `cli::help` surfaces.\nThe `source_execution.rs` module\u2019s `fused_profile` child dispatches the explicit source-only profile before\nordinary checking. Public `fused_source` parses once and lends a private full\nselected owner to each target; it accepts no caller HIR or grant.\n",
+          "new": "`source_execution.rs` owns single-file build, run, and diagnostics.\n`diagnostic/writer.rs` borrows caller output for shared JSON/human rendering; the CLI report path owns its stream lock. Active bounded JSON retains the complete legacy renderer and its logical quote order. Neither writer nor stream lock certifies prepaid report/output storage.\n`help_dispatch.rs` prints the global and scoped `cli::help` surfaces.\n`cli/help/authoring/tasks.rs` owns V6 fixed task/profile pages over an embedded scaffold-derived descriptor and the existing library catalog. Its test child rederives complete manifest/source/import bindings; help itself performs no host I/O or source compilation. The old V5 cards and v2-v8 scaffold capsules retain their owners and bytes.\nThe `source_execution.rs` module\u2019s `fused_profile` child dispatches the explicit source-only profile before\nordinary checking. Public `fused_source` parses once and lends a private full\nselected owner to each target; it accepts no caller HIR or grant.\n"
+        }
+      ]
+    },
+    {
+      "path": "docs/SUMMARY.md",
+      "before_sha256": "46880b00a4c4c58936023462604e887846b4481176a195a24792b5fca4c4f8ea",
+      "after_sha256": "47b26a7d71cb164de79e23091c5052a0228544fdc23d35fa1979b1f20ccf88a5",
+      "before_archive": "before/3.txt",
+      "edits": [
+        {
+          "old": "- [Capability-aware CLI recovery](CLI-HELP-V3.md)\n- [Guided CLI help](CLI-HELP-V4.md)\n- [Bounded authoring help](CLI-HELP-V5.md)\n- [Documentation projection](DOC-PROJECTION-V1.md)\n- [Unified CLI: review, verify, agent, query, package, add, fetch](UNIFIED-CLI-V1.md)\n- [Human diagnostic locations](HUMAN-DIAGNOSTICS-V1.md)\n",
+          "new": "- [Capability-aware CLI recovery](CLI-HELP-V3.md)\n- [Guided CLI help](CLI-HELP-V4.md)\n- [Bounded authoring help](CLI-HELP-V5.md)\n- [Checked task/profile help](CLI-HELP-V6.md)\n- [Documentation projection](DOC-PROJECTION-V1.md)\n- [Unified CLI: review, verify, agent, query, package, add, fetch](UNIFIED-CLI-V1.md)\n- [Human diagnostic locations](HUMAN-DIAGNOSTICS-V1.md)\n"
+        }
+      ]
+    },
+    {
+      "path": "src/cli/help/authoring.rs",
+      "before_sha256": "797522b061dcdbe56d92ea444d6d7f4d9392fd3f72e5e62c9c6b8157a6d3cf6c",
+      "after_sha256": "b71e914399e1f316e573bfa4022d699ce20ce982aabf01cb053ad62c67f49b72",
+      "before_archive": "before/4.txt",
+      "edits": [
+        {
+          "old": "use std::fmt::Write as _;\n\nmod discovery;\n\nconst MAX_BYTES: usize = 2_048;\nconst ROUTES: &str = \"Authoring routes (complete):\\n  author:vec-constructor typed Vec construction\\n  author:lexical-exits break/continue/return\\n  author:stdin-json v27 bounded native stream command\\n  author:stream-data-v2           v29 private record/Vec stream command\\n  author:owned-data v30 private owned-leaf collections\\n  author:collection-records v31 nested records containing Vec\\n  author:nested-outcomes v32 typed nested success/error carriers\\n  author:file-text native UTF-8 file command\\n  author:selected-file native file\\n  author:selected-file-resource v34\\n  author:source-web single-source web build\\n  author:literal-format literal String rendering\\n  author:string-take named String owner transfer\\n  author:static-utf8              borrowed UTF-8\\n  author:string-from-utf8         strict bytes-to-String\\n  author:copy-record-vec Copy-record Vec\\n  author:update-field scalar slot update\\n  author:record-sort-keys stable field sort\\n  author:unique-by field duplicate check\\n  author:record-field-views record/Vec field reads\\n  author:record-traversal scoped borrowed rows and optional indices\\n  author:byte-traversal named immutable byte-slice traversal\\n  author:json-codec checked source JSON codec derivation\\n  author:json-identifier-views one identifier as a token view\\n  author:json-request-views bounded identifier and record arrays\\n  author:json-stream-request-views bounded native stream request view\\n  author:json-owned-request bounded owning request collections\\n  author:json-utf8-owned-request bounded UTF-8 string values\\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\\n  author:json-collection-response nested collection encoder\\n  author:json-nested-request finite nested request decoder\\n  author:json-stream-nested-request finite nested stdin decoder\\n  author:json-nested-response finite nested borrowed encoder\\n  author:json-request-response typed request/response composition boundaries\\nCard search: help language author:find:<word>:0\\nLibrary-only search: help language find:<word>:0\\n\";\n\n#[cfg(test)]\npub(super) fn assert_guide_contract() {\n",
+          "new": "use std::fmt::Write as _;\n\nmod discovery;\nmod tasks;\n\nconst MAX_BYTES: usize = 2_048;\nconst ROUTES: &str = \"Authoring routes (complete):\\n  author:vec-constructor typed Vec construction\\n  author:lexical-exits break/continue/return\\n  author:stdin-json v27 bounded native stream command\\n  author:stream-data-v2           v29 private record/Vec stream command\\n  author:owned-data v30 private owned-leaf collections\\n  author:collection-records v31 nested records containing Vec\\n  author:nested-outcomes v32 typed nested success/error carriers\\n  author:file-text native UTF-8 file command\\n  author:selected-file native file\\n  author:selected-file-resource v34\\n  author:source-web single-source web build\\n  author:literal-format literal String rendering\\n  author:string-take named String owner transfer\\n  author:static-utf8              borrowed UTF-8\\n  author:string-from-utf8         strict bytes-to-String\\n  author:copy-record-vec Copy-record Vec\\n  author:update-field scalar slot update\\n  author:record-sort-keys stable field sort\\n  author:unique-by field duplicate check\\n  author:record-field-views record/Vec field reads\\n  author:record-traversal scoped borrowed rows and optional indices\\n  author:byte-traversal named immutable byte-slice traversal\\n  author:json-codec checked source JSON codec derivation\\n  author:json-identifier-views one identifier as a token view\\n  author:json-request-views bounded identifier and record arrays\\n  author:json-stream-request-views bounded native stream request view\\n  author:json-owned-request bounded owning request collections\\n  author:json-utf8-owned-request bounded UTF-8 string values\\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\\n  author:json-collection-response nested collection encoder\\n  author:json-nested-request finite nested request decoder\\n  author:json-stream-nested-request finite nested stdin decoder\\n  author:json-nested-response finite nested borrowed encoder\\n  author:json-request-response typed request/response composition boundaries\\n  author:tasks checked task pages\\nCard search: help language author:find:<word>:0\\nLibrary-only search: help language find:<word>:0\\n\";\n\n#[cfg(test)]\npub(super) fn assert_guide_contract() {\n"
+        },
+        {
+          "old": "pub(super) fn lookup(query: &str) -> Result<String, String> {\n    if query.starts_with(\"author:find:\") {\n        return discovery::search(query, MAX_BYTES);\n    }\n    match query {\n        \"author:routes\" => Ok(ROUTES.to_owned()),\n",
+          "new": "pub(super) fn lookup(query: &str) -> Result<String, String> {\n    if query.starts_with(\"author:find:\") {\n        return discovery::search(query, MAX_BYTES);\n    }\n    if query == \"author:tasks\" || query.starts_with(\"author:task:\") {\n        return tasks::lookup(query, MAX_BYTES);\n    }\n    match query {\n        \"author:routes\" => Ok(ROUTES.to_owned()),\n"
+        }
+      ]
+    },
+    {
+      "path": "tests/cli_help_surface_v1.rs",
+      "before_sha256": "a2d41c4978b49604e431fc2a69450124178a21a832f28336e9dda89a35209b7a",
+      "after_sha256": "badcfdde9b0084ca2a2a302d0c2958de2a4bead41ce07dc64494ebc11760c486",
+      "before_archive": "before/5.txt",
+      "edits": [
+        {
+          "old": "        std::fs::remove_dir(directory).unwrap();\n    }\n}\n",
+          "new": "        std::fs::remove_dir(directory).unwrap();\n    }\n}\n\n#[path = \"cli_help_surface_v1/task_pages.rs\"]\nmod task_pages;\n"
+        }
+      ]
+    },
+    {
+      "path": "tests/project/standard_library.rs",
+      "before_sha256": "2d5ac3f1a98ba4d4acd5aee38961c2bdbb0ab935553436887933197339dbcece",
+      "after_sha256": "0e5d02afba9d12ce61316b7d85cac2aa118b5e27ac0a17e9b92f4acc5e4343fe",
+      "before_archive": "before/6.txt",
+      "edits": [
+        {
+          "old": "\n#[test]\nfn committed_catalogs_match_the_sources() {\n    let (human, agent) = render_catalogs();\n    let regenerate = \"regenerate with `cargo test --locked -p semaprax --test project -- --ignored standard_library::regenerate_catalogs`\";\n    assert_eq!(\n",
+          "new": "\n#[test]\nfn committed_catalogs_match_the_sources() {\n    catalog::assert_task_descriptor();\n    let (human, agent) = render_catalogs();\n    let regenerate = \"regenerate with `cargo test --locked -p semaprax --test project -- --ignored standard_library::regenerate_catalogs`\";\n    assert_eq!(\n"
+        }
+      ]
+    },
+    {
+      "path": "tests/project/standard_library/catalog.rs",
+      "before_sha256": "bac427882cb57dc275dd3dc607fb8b77d2b60ed1acdf1ea5169434b6ec4f742b",
+      "after_sha256": "392a9061d7802960f8beab8332e5d8fe5199b12a73011f372697a44ab09111f8",
+      "before_archive": "before/7.txt",
+      "edits": [
+        {
+          "old": "}\n\npub(super) fn write_catalogs_if_changed(human: &str, agent: &str) {\n    for (name, contents) in [(HUMAN_CATALOG, human), (AGENT_CATALOG, agent)] {\n        let path = root().join(name);\n        if std::fs::read(&path).ok().as_deref() != Some(contents.as_bytes()) {\n",
+          "new": "}\n\npub(super) fn write_catalogs_if_changed(human: &str, agent: &str) {\n    let path = root().join(\"src/cli/help/authoring/tasks/catalog.json\");\n    let descriptor = format!(\n        \"{}\\n\",\n        serde_json::to_string_pretty(&task_descriptor::descriptors()).unwrap()\n    );\n    if std::fs::read(&path).ok().as_deref() != Some(descriptor.as_bytes()) {\n        std::fs::write(path, descriptor).unwrap();\n    }\n\n    for (name, contents) in [(HUMAN_CATALOG, human), (AGENT_CATALOG, agent)] {\n        let path = root().join(name);\n        if std::fs::read(&path).ok().as_deref() != Some(contents.as_bytes()) {\n"
+        },
+        {
+          "old": "        }\n    }\n}\n",
+          "new": "        }\n    }\n}\n\n#[path = \"../../../src/cli/help/authoring/tasks/derive.rs\"]\nmod task_descriptor;\n\npub(super) fn assert_task_descriptor() {\n    let current = include_str!(\"../../../src/cli/help/authoring/tasks/catalog.json\");\n    assert_eq!(\n        current,\n        format!(\n            \"{}\\n\",\n            serde_json::to_string_pretty(&task_descriptor::descriptors()).unwrap()\n        ),\n        \"task descriptor is stale; regenerate through standard_library::regenerate_catalogs\"\n    );\n}\n"
+        }
+      ]
+    }
+  ]
+}

@@ -1190,6 +1190,7 @@ use catalog::render_catalogs;
 
 #[test]
 fn committed_catalogs_match_the_sources() {
+    catalog::assert_task_descriptor();
     let (human, agent) = render_catalogs();
     let regenerate = "regenerate with `cargo test --locked -p semaprax --test project -- --ignored standard_library::regenerate_catalogs`";
     assert_eq!(

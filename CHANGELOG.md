@@ -3,6 +3,8 @@
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
 
+- Add bounded V6 checked task/profile pages with repeated complete prerequisites, exact imported declaration rows and deterministic continuation; preserve V5 cards and scaffold capsules, explicitly refuse unverified stdin JSON composition, and leave executable qualification and agent-cost improvement unclaimed.
+
 - Move the validated singleton ownership state and its conditional variants through unchanged normalization, removing absent clones while preserving join validation, work, scheduling and the complete old receiver; focused numerical qualification remains pending.
 
 - Report the first native-provider builder reservation and caller in outward C++ package diagnostic help, preserving primary diagnostics, all limits, and complete verification.

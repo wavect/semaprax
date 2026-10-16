@@ -1,0 +1,42 @@
+{
+  "source_only": true,
+  "executed": false,
+  "new_or_changed_owners": [
+    {
+      "package": "semaprax",
+      "harness": "bin:semaprax",
+      "selector": "cli_driver::cli::help::authoring::tasks::tests::task_descriptors_equal_actual_checked_scaffolds_and_exact_import_inventory"
+    },
+    {
+      "package": "semaprax",
+      "harness": "bin:semaprax",
+      "selector": "cli_driver::cli::help::authoring::tasks::tests::task_pages_repeat_whole_prerequisites_and_cover_every_import_deterministically"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:cli_help_surface_v1",
+      "selector": "task_pages::profile_task_pages_are_bounded_exact_complete_and_inert"
+    },
+    {
+      "package": "semaprax-toolchain",
+      "harness": "test:cli_help_surface_v1",
+      "selector": "task_pages::profile_task_pages_are_bounded_exact_complete_and_inert"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:project",
+      "selector": "standard_library::committed_catalogs_match_the_sources"
+    }
+  ],
+  "retained_contracts": [
+    "standalone_help_is_exact_capability_aware_and_inert",
+    "standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert",
+    "cli_authoring_card_search_is_bounded_exact_and_inert",
+    "full_help_is_exact_capability_aware_and_inert",
+    "full_scoped_help_is_exhaustive_exact_capability_aware_and_inert",
+    "documentation_catalog_and_metadata_are_complete",
+    "scaffold::current_guidance_capsule_preserves_legacy_sources_and_replays_all_templates",
+    "scaffold_cli::public_cli_current_guidance_is_exact_replayable_and_inert"
+  ],
+  "all_statuses": "PENDING_NOT_EXECUTED"
+}

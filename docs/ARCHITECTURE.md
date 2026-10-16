@@ -488,6 +488,7 @@ bounded source, Project, and prepared Rust API context routes;
 `source_execution.rs` owns single-file build, run, and diagnostics.
 `diagnostic/writer.rs` borrows caller output for shared JSON/human rendering; the CLI report path owns its stream lock. Active bounded JSON retains the complete legacy renderer and its logical quote order. Neither writer nor stream lock certifies prepaid report/output storage.
 `help_dispatch.rs` prints the global and scoped `cli::help` surfaces.
+`cli/help/authoring/tasks.rs` owns V6 fixed task/profile pages over an embedded scaffold-derived descriptor and the existing library catalog. Its test child rederives complete manifest/source/import bindings; help itself performs no host I/O or source compilation. The old V5 cards and v2-v8 scaffold capsules retain their owners and bytes.
 The `source_execution.rs` module’s `fused_profile` child dispatches the explicit source-only profile before
 ordinary checking. Public `fused_source` parses once and lends a private full
 selected owner to each target; it accepts no caller HIR or grant.

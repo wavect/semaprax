@@ -102,10 +102,34 @@ pub(super) fn render_catalogs() -> (String, String) {
 }
 
 pub(super) fn write_catalogs_if_changed(human: &str, agent: &str) {
+    let path = root().join("src/cli/help/authoring/tasks/catalog.json");
+    let descriptor = format!(
+        "{}\n",
+        serde_json::to_string_pretty(&task_descriptor::descriptors()).unwrap()
+    );
+    if std::fs::read(&path).ok().as_deref() != Some(descriptor.as_bytes()) {
+        std::fs::write(path, descriptor).unwrap();
+    }
+
     for (name, contents) in [(HUMAN_CATALOG, human), (AGENT_CATALOG, agent)] {
         let path = root().join(name);
         if std::fs::read(&path).ok().as_deref() != Some(contents.as_bytes()) {
             std::fs::write(path, contents).unwrap();
         }
     }
+}
+
+#[path = "../../../src/cli/help/authoring/tasks/derive.rs"]
+mod task_descriptor;
+
+pub(super) fn assert_task_descriptor() {
+    let current = include_str!("../../../src/cli/help/authoring/tasks/catalog.json");
+    assert_eq!(
+        current,
+        format!(
+            "{}\n",
+            serde_json::to_string_pretty(&task_descriptor::descriptors()).unwrap()
+        ),
+        "task descriptor is stale; regenerate through standard_library::regenerate_catalogs"
+    );
 }

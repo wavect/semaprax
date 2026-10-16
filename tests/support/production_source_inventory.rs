@@ -44,9 +44,16 @@ fn registration_is_test_only(
             assert_eq!(root, "src/lib.rs");
             false
         }
+        "bin" => {
+            assert_eq!(root, "src/main.rs");
+            assert_eq!(chain["package"].as_str().unwrap(), "semaprax");
+            false
+        }
         "test" => {
             // An ordinary Cargo test harness is compiled with cfg(test).
-            assert!(root.starts_with("tests/") && root.ends_with(".rs"));
+            assert!((root.starts_with("tests/") && root.ends_with(".rs"))
+                || (root == "crates/semaprax-toolchain/tests/cli_help_surface_v1.rs"
+                    && chain["package"].as_str().unwrap() == "semaprax-toolchain"));
             assert!(sources.contains_key("Cargo.toml"));
             true
         }

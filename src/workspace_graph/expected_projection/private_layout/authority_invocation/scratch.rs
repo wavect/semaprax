@@ -411,4 +411,5 @@ fn required(bytes: usize) -> Result<(), Vec<Diagnostic>> {
     }
 }
 #[cfg(test)]
+#[path = "scratch/tests.rs"]
 mod tests;

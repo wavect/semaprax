@@ -1,6 +1,6 @@
 """Actual raw13 audit plus explicit physical private-source replay; no Rust execution."""
 from pathlib import Path
-import argparse,hashlib,json,os,re,subprocess,tempfile
+import argparse,hashlib,json,os,re,subprocess,tempfile,sys
 p=argparse.ArgumentParser();p.add_argument('--repo',type=Path,default=Path(__file__).resolve().parents[3]);p.add_argument('--write-endpoints',action='store_true');a=p.parse_args();R=a.repo.resolve();D=Path(__file__).resolve().parent;PRIVATE='96a49042bf7b204635f8ddef360254948fb63b49';P='docs/evidence/skeleton-constructor-funding-856-20261016';sha=lambda b:hashlib.sha256(b).hexdigest()
 def git(ref,path):return subprocess.check_output(['git','show',ref+':'+path],cwd=R)
 def endpoint(path,value):
@@ -18,7 +18,10 @@ for f in guards:
 for f in promoted:assert(R/f).read_bytes()==git(PRIVATE,f),('promoted production module drift',f)
 unchanged=['src/cleanup_plan/replay/sequence_prefix.rs','src/cleanup_plan/replay/sequence_prefix/before.rs','src/cleanup_plan/replay/sequence_prefix/main_current.rs','src/cleanup_plan/replay/sequence_prefix/main24/helper.rs','src/cleanup_plan/replay/sequence_prefix/main_c11/helper.rs','src/cleanup_plan/replay/allocation.rs','src/cleanup_plan/replay/physical_budget.rs','src/cleanup_plan/replay.rs','src/bounded_output.rs','src/bounded_output/checked_string.rs','src/hir/nodes/instance_key.rs','src/cleanup_plan/replay/skeleton_work/oracle_entry.rs']
 files=set(metadata)|set(manifest['preexisting_paths'])|set(promoted)|set(guards)|set(unchanged)|{'src/hir/lexical_exit/owner_funded.rs','src/hir/funded.rs'}
-allowed={'CHANGELOG.md',*guards,'src/bounded_output.rs','src/bounded_output/checked_string.rs','src/hir/nodes/instance_key.rs'};bindings=[];privateviews={}
+reviewed_additional={'docs/ARCHITECTURE.md': {'commit': 'd96247b3cb69282c3d1b835b2428779e8bde82c7', 'sha256': 'c4b012d163ec1e8623a51d57ad4ee561c4246aec837a2f6ae87a604407c1a042'}, 'src/cleanup_plan/replay/physical_budget.rs': {'commit': 'd96247b3cb69282c3d1b835b2428779e8bde82c7', 'sha256': '95c57d360e5a501cb73d400f8991d6f51e139fc1adeb5b4fb8c62e831b4f7dda'}}
+for f,row in reviewed_additional.items():
+ actual=(R/f).read_bytes();assert actual==git(row['commit'],f) and sha(actual)==row['sha256'],('reviewed joined input drift',f)
+allowed={'CHANGELOG.md',*guards,'src/bounded_output.rs','src/bounded_output/checked_string.rs','src/hir/nodes/instance_key.rs',*reviewed_additional};bindings=[];privateviews={}
 for f in sorted(files-set(metadata)):
  actual=(R/f).read_bytes();private=git(PRIVATE,f)
  if actual!=private:
@@ -33,7 +36,7 @@ with tempfile.TemporaryDirectory(prefix='main8a-856-private-source-',dir='/Volum
  for f in sorted(files):
   out=stage/f;out.parent.mkdir(parents=True,exist_ok=True);out.write_bytes(privateviews.get(f,(R/f).read_bytes()))
  gitdir=subprocess.check_output(['git','rev-parse','--absolute-git-dir'],cwd=R,text=True).strip();env={**os.environ,'GIT_DIR':gitdir,'GIT_WORK_TREE':str(stage),'PYTHONDONTWRITEBYTECODE':'1','TMPDIR':'/Volumes/Semaprax/runtime-tmp'}
- result=subprocess.check_output(['python3',str(stage/P/'verify-source.py'),'--repo',str(stage)],cwd=stage,env=env)
+ result=subprocess.check_output([sys.executable,str(stage/P/'verify-source.py'),'--repo',str(stage)],cwd=stage,env=env)
  proof=json.loads(result);assert proof['status']=='SOURCE_ONLY_CONSTRUCTOR_FUNDING_CUSTODY_PASS'
 endpoint(D/'joined856-source-proof.json',dict(status='PASS_JOINED856_SOURCE_ONLY',actual_raw_guards=3,actual_promoted_modules=13,explicit_private_views=[r['source']for r in bindings],unchanged_private_verifier_result=proof,physical_projection_only=True,rust_executed=False))
 print(json.dumps(dict(status='PASS_JOINED856_SOURCE_ONLY',actual_raw_promoted_modules=13,explicit_private_views=len(bindings),rust_executed=False)))

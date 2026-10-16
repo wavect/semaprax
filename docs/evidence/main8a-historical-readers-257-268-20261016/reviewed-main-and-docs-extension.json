@@ -1,0 +1,19 @@
+{
+  "status": "SOURCE_ONLY_FINITE_REVIEWED_PRIVATE_VIEW_EXTENSION",
+  "before_sha256": "05d082d85dea6a45609449776396675fb138abe4a7faa7375464fe227ab1d397",
+  "current_sha256": "4300369bbd0f4b1cfa70e7fe42458c350dd8ae0ac31552e8d18c37dbf0df694e",
+  "additional_exact_current_sources": {
+    "docs/ARCHITECTURE.md": {
+      "commit": "d96247b3cb69282c3d1b835b2428779e8bde82c7",
+      "sha256": "c4b012d163ec1e8623a51d57ad4ee561c4246aec837a2f6ae87a604407c1a042"
+    },
+    "src/cleanup_plan/replay/physical_budget.rs": {
+      "commit": "d96247b3cb69282c3d1b835b2428779e8bde82c7",
+      "sha256": "95c57d360e5a501cb73d400f8991d6f51e139fc1adeb5b4fb8c62e831b4f7dda"
+    }
+  },
+  "physical_budget_change_from_private856": "incoming main nonrecursive cursor correction; existing shipping authentication module retained",
+  "actual13_promoted_bytes_still_checked_first": true,
+  "old_private_verifier_and_packet_unchanged": true,
+  "runtime_qualification_required": true
+}

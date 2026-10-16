@@ -1,0 +1,9 @@
+{
+  "mode": "SOURCE_ONLY_EXACT_FINITE_REGISTRY_EXTENSION",
+  "before_sha256": "21b7ad2ab97eae6e96d52fe4e2482c3102b399fcc944abe48fc6c72a88491d66",
+  "after_sha256": "ebbe738169da805d2ed9ce789aa48632dd981c038b33cda7ba3e716ce42d481b",
+  "before": "allowed_registry=False\nfor predecessor in [before,joined,boundary_joined]:",
+  "after": "record_joined=json.loads(subprocess.check_output(['git','show','d96247b3cb69282c3d1b835b2428779e8bde82c7:'+allowed],cwd=R))\nallowed_registry=False\nfor predecessor in [before,joined,boundary_joined,record_joined]:",
+  "additional_whole_predecessor": "d96247b3cb69282c3d1b835b2428779e8bde82c7",
+  "all_three_previous_predecessors_and_original_assertions_preserved": true
+}

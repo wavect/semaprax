@@ -1,0 +1,29 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "source_reflows_merge::runtime_json::tests::maina3_parts_cover_every_fixed_key_once_under_the_original_reader_cap",
+    "sourcepath": "src/source_reflows_merge/runtime_json/tests.rs",
+    "role": "existing source_reflows_merge test-only metadata",
+    "status": "pending actual compiled execution",
+    "new": true
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "source_reflows_merge::runtime_json::tests::maina3_known_part_source_refuses_gaps_duplicates_and_foreign_rows",
+    "sourcepath": "src/source_reflows_merge/runtime_json/tests.rs",
+    "role": "existing source_reflows_merge test-only metadata",
+    "status": "pending actual compiled execution",
+    "new": true
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "source_reflows_merge::runtime_json::tests::fixed_projection_json_transport_refuses_hostile_io_before_parsing",
+    "sourcepath": "src/source_reflows_merge/runtime_json/tests.rs",
+    "role": "existing source_reflows_merge test-only metadata",
+    "status": "pending actual compiled execution",
+    "new": false
+  }
+]

@@ -180,3 +180,49 @@ fn fixed_projection_json_transport_refuses_hostile_io_before_parsing() {
         Err(Failure::Read)
     );
 }
+
+#[test]
+fn maina3_parts_cover_every_fixed_key_once_under_the_original_reader_cap() {
+    use super::super::maina3_custody::Input;
+    for fixture in [
+        Input::Previous16c,
+        Input::Maina3,
+        Input::Alias1ae,
+        Input::MainE47,
+    ] {
+        let mut opened = std::collections::BTreeSet::new();
+        let mut complete = Vec::new();
+        for source in fixture.keys() {
+            let spec = fixture.spec(source);
+            assert!(spec.length <= OUTPUT_CAP);
+            if !opened.insert(spec.path) {
+                continue;
+            }
+            let text = maina3_input(fixture, source);
+            assert_eq!(text.len(), spec.length);
+            let rows: serde_json::Value = serde_json::from_str(&text).unwrap();
+            for row in rows.as_array().unwrap() {
+                let key = row["source"].as_str().unwrap();
+                assert!(fixture.keys().binary_search(&key).is_ok());
+                assert_eq!(fixture.spec(key).path, spec.path);
+                complete.push(key.to_owned());
+            }
+        }
+        complete.sort();
+        assert_eq!(complete, fixture.keys());
+    }
+}
+
+#[test]
+fn maina3_known_part_source_refuses_gaps_duplicates_and_foreign_rows() {
+    for payload in [
+        "[]",
+        r#"[{"source":"foreign"}]"#,
+        r#"[{"source":"known"},{"source":"known"}]"#,
+        "{}",
+        "not json",
+    ] {
+        assert!(std::panic::catch_unwind(|| maina3_part_source(payload, "known")).is_err());
+    }
+    maina3_part_source(r#"[{"source":"known"}]"#, "known");
+}

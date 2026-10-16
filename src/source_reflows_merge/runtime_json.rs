@@ -149,10 +149,24 @@ pub(super) fn maina3_metadata(fixture: super::maina3_custody::Fixture) -> String
     read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
         .expect("complete authenticated a3 immutable metadata")
 }
-pub(super) fn maina3_input(fixture: super::maina3_custody::Input) -> String {
-    let spec = fixture.spec();
-    read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
-        .expect("complete authenticated a3 input capsule")
+pub(super) fn maina3_input(fixture: super::maina3_custody::Input, source: &str) -> String {
+    let spec = fixture.spec(source);
+    let payload = read_fixture(std::path::Path::new(spec.path), spec.length, spec.sha256)
+        .expect("complete authenticated a3 input capsule");
+    maina3_part_source(&payload, source);
+    payload
+}
+fn maina3_part_source(payload: &str, source: &str) {
+    let rows: serde_json::Value = serde_json::from_str(payload).expect("fixed a3 part rows");
+    assert_eq!(
+        rows.as_array()
+            .unwrap()
+            .iter()
+            .filter(|row| row["source"] == source)
+            .count(),
+        1,
+        "exact known a3 source in selected bounded part"
+    );
 }
 
 // Full incoming arrays use the same sealed reader; metadata never authorizes live work.

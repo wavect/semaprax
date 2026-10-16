@@ -1,0 +1,88 @@
+{
+  "logical_table_bytes": 6881300,
+  "logical_rows": 335,
+  "logical_sha256": "6c5459b9a92feeed5826deae69495a62300a1bc9d7c60fe628c56506714673e0",
+  "parts": [
+    {
+      "table": "current-to-Previous16c.json",
+      "first": ".github/workflows/ci.yml",
+      "last": "src/source_verify/iterative/enter/enter_before_components.rs",
+      "rows": 240,
+      "length": 5066614,
+      "sha256": "eea4e831fea424f623bef75341480532e277efb3a830810a2342de2dfc04cfc5"
+    },
+    {
+      "table": "current-to-Previous16c-part-001.json",
+      "first": "src/source_verify/iterative/enter/enter_before_extended.rs",
+      "last": "tests/workspace/semantic_graph/source_inventory.rs",
+      "rows": 95,
+      "length": 1814689,
+      "sha256": "95bf60d33264335e4e65c33b7607c6f142253c0bab9b8a82a3ed8362641a5ed9"
+    }
+  ],
+  "whole_rows_and_logical_bytes_exact": true,
+  "all_source_keys_route_to_their_exact_part": true,
+  "exact_cap_boundary": true,
+  "hostile_refusals": [
+    "gap-index",
+    "reordered-parts",
+    "duplicate-part",
+    "missing-part",
+    "forged-sha",
+    "forged-length",
+    "forged-boundary",
+    "foreign-path",
+    "foreign-domain",
+    "missing-row",
+    "duplicate-row",
+    "foreign-row",
+    "missing-file",
+    "trailing-byte",
+    "one-row-over-cap"
+  ],
+  "status": "PASS_SOURCE_ONLY_BOUNDED_PARTS",
+  "unchanged_reader_cap_and_all_old_rust_tests": true,
+  "all_six_protected_originals": [
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/joined-refresh-receipt.json",
+      "sha256": "f3920088bb54cfda16ee855545dfb9187aa8aafd58098fca280f7b54ff3c9de5"
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/postpin-refresh-receipt.json",
+      "sha256": "5088e83afe9a725a6a49c003811ae349733534f812423a6e2bc6fa969666ff56"
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/generate-authority.py",
+      "sha256": "0c4b31857cdb8a4f645d61c6f0d2453c33c6adddb8c6f26d9c37b56620841590"
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/verify-source.py",
+      "sha256": "a90027caccbfbf183f08cdc6d4bd25ea5580403e0d1525099aa6342e020160c5"
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/verify-authority.py",
+      "sha256": "1c2b444782db8cdf4b189d05ce05f4799ab9c1c220941cb8d3369b35b25fcd0b"
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/prepare-arm-overlay.py",
+      "sha256": "d40d86ebf2d2bfe6b934766b87299445fefc390b6813bf25a2b9a4c6c005506d"
+    }
+  ],
+  "common_refresh": false,
+  "rust_executed": false,
+  "scope": "Exact failed88cc partial logical table; later joined-head payloads must be regenerated and requalified",
+  "files": [
+    {
+      "path": "docs/evidence/joined-batch-custody-20261016/table-parts.py",
+      "sha256": "f603d652b54ac95b85e20a148a28cdf530f6c541583abf1fc761a4a5d450a3cc"
+    },
+    {
+      "path": "docs/evidence/joined-batch-custody-20261016/verify-source-parts.py",
+      "sha256": "e5563fee42e8743294947420298f7258282b5447bb294e42a8366efcaa703983"
+    },
+    {
+      "path": "docs/evidence/bounded-custody-parts-20261017/controls.py",
+      "sha256": "83dae6a731687dd67bcaa0bd1c58ffee8ae5f41e359af847f7e4f1b80e27f766"
+    }
+  ]
+}

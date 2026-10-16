@@ -1,3 +1,6 @@
+- Split oversized joined custody metadata only at whole ordered rows, keeping
+  the original sealed-reader cap and assertions. Fixed source dispatch opens one
+  authenticated part; source controls preserve the complete logical table.
 - Preserve complete raw Main043 guards when several additive include runs share
   a physical line. Tokenized insertion checks retain all original bytes, limits,
   and old controls; hostile edits and whole-source restoration are source-tested.

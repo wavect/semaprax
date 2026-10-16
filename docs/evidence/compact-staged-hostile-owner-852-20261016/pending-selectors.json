@@ -1,0 +1,14 @@
+{
+  "status": "SOURCE_AUTHORED_UNEXECUTED",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::oracle_order::tests::compact_staged_receiving_keeps_floor_and_foreign_owner_first_refusal",
+      "reasons": [
+        "OPT852 actual compact receiving floor/foreign first-refusal and complete-old staged comparison"
+      ]
+    }
+  ],
+  "no_new_role": true
+}

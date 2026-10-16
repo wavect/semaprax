@@ -1,0 +1,16 @@
+{
+  "status": "SOURCE_ONLY_PASS_UNEXECUTED",
+  "base": "55e805c2f6e23dda58ce4c72223914ed511b117b",
+  "complete_before_git_archive_inverse": true,
+  "only_existing_test_child_changed": true,
+  "old_all_bytes_prefix_retained": true,
+  "new_literal_owner": "cleanup_plan::replay::factored::oracle_order::tests::compact_staged_receiving_keeps_floor_and_foreign_owner_first_refusal",
+  "source_path": "src/cleanup_plan/replay/factored/oracle_order/tests.rs",
+  "before_sha256": "c46342d7c901468838d2b5d594050c693526affead95167c0e9416ef6ab458fd",
+  "current_sha256": "ec36940cc34413a5f4876cacaaff0c35f3e27fdc7b7ff2aaf6a735ea54bf8cf0",
+  "literal_child_functions": 4,
+  "source_lines": 454,
+  "parser_sha256": "8774afeeb957dabcde7eee44a29c1a91aec2572d7740413a0dbebf473ec7da6f",
+  "global_source_front_and_authority": "Deferred to parent later pin/test seal; no protected table rewritten",
+  "Cargo_or_tests": false
+}

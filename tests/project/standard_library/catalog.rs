@@ -105,7 +105,10 @@ pub(super) fn write_catalogs_if_changed(human: &str, agent: &str) {
     let path = root().join("src/cli/help/authoring/tasks/catalog.json");
     let descriptor = format!(
         "{}\n",
-        serde_json::to_string_pretty(&task_descriptor::descriptors()).unwrap()
+        serde_json::to_string_pretty(&task_descriptor::descriptors_from_catalog(
+            &serde_json::from_str(agent).unwrap()
+        ))
+        .unwrap()
     );
     if std::fs::read(&path).ok().as_deref() != Some(descriptor.as_bytes()) {
         std::fs::write(path, descriptor).unwrap();

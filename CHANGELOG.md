@@ -9,6 +9,7 @@
 # Changelog
 
 - Preserve Main043 as an independent complete 75-input live source-audit domain and 14-control historical helper, alongside the unchanged nine a82e tables and five-proof helper. Keep incoming CI diagnostics and all original snapshots; joined Rust qualification remains pending.
+- Add bounded exact-profile JSON task guidance from the paired ShiftSim specimen, including existing full-host assembly, native pure tests, complete input/dependency inventories and exact signatures. Existing task pages remain; ordinary admission and execution qualification are pending, with no measured agent-cost claim.
 
 - Correct all 19 observed 67b production Clippy findings without weakening checks: retain test-only macro access, lazy terminal error formation, ordered funded branches and the exact eight-usize receiving layout. Runtime qualification remains pending.
 - Port Main44 sequencing capacity to the lexical first active output work frontier with prepaid complete query controls, while retaining its complete independent implementation and original source domains. Report paid no-saving probes without refunds; combined execution qualification remains pending.

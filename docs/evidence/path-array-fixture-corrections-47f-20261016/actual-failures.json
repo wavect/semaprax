@@ -1,0 +1,20 @@
+[
+  {
+    "index": 2,
+    "source_log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-02.log",
+    "archive": "docs/evidence/path-array-fixture-corrections-47f-20261016/actual-failed-47f/owning-selected-02.log",
+    "sha256": "84c073200afaed5f0ab2aa42efd2bde51a0cb146c428931c345c3d13351dbf8a"
+  },
+  {
+    "index": 30,
+    "source_log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-30.log",
+    "archive": "docs/evidence/path-array-fixture-corrections-47f-20261016/actual-failed-47f/owning-selected-30.log",
+    "sha256": "0ba13b52e042d82df94031b8e9e832112954e525924898d56fe9f1413bc40cf3"
+  },
+  {
+    "index": 31,
+    "source_log": "/Volumes/Semaprax/lane-prompts/final-47f-72-qualification-20261016/owning-selected-31.log",
+    "archive": "docs/evidence/path-array-fixture-corrections-47f-20261016/actual-failed-47f/owning-selected-31.log",
+    "sha256": "cd1cfd6a28b2734d0b1589447246772cf9637ca1ae27f6c6901b9a768d5d49dd"
+  }
+]

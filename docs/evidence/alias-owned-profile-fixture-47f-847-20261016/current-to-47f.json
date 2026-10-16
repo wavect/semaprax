@@ -1,0 +1,19 @@
+[
+  {
+    "source": "src/workspace_graph/function_alias/before_core/tests.rs",
+    "checkpoint_revision": "47f80b0f7a06fde9b2388439a9c0bfe998a05af1",
+    "archive": "docs/evidence/alias-owned-profile-fixture-47f-847-20261016/before-tests.rs.txt",
+    "current_sha256": "f5e945c4bfbe403b871f7fd5c4bf959c8f4d2810adb88d18221780694561704d",
+    "original_sha256": "aff28f8a817d3af2ada129b063115ba1d6897250b9890b28ce7d193ac295c33b",
+    "edits": [
+      {
+        "new": "    let build = || {\n        let canonical =\n            |text: &str, path: &str| crate::format::canonical(&crate::parse(text, path).unwrap());\n        // The payload instantiates Vec<T>; select its existing owned-data\n        // Project admission rather than the intentionally scalar-only default.\n        let owned_manifest = MANIFEST.replacen(\n            \"version = \\\"1.0.0\\\"\\n\",\n            \"version = \\\"1.0.0\\\"\\nprofile = \\\"owned-data-api.v1\\\"\\n\",\n            1,\n        );\n        let manifest = ProjectManifest::parse(&owned_manifest).unwrap();\n        let sources = vec![\n            SemanticWorkspaceSource::new(\n                \"src/app.spx\".to_owned(),\n",
+        "old": "    let build = || {\n        let canonical =\n            |text: &str, path: &str| crate::format::canonical(&crate::parse(text, path).unwrap());\n        let manifest = ProjectManifest::parse(MANIFEST).unwrap();\n        let sources = vec![\n            SemanticWorkspaceSource::new(\n                \"src/app.spx\".to_owned(),\n"
+      },
+      {
+        "new": "    eprintln!(\"847 actual borrowed Project parity entries={current_borrowed} graph={} image={} graph_bytes={} image_bytes={}\",\n        current.semantic_graph_digest(), current_image.image_digest(), current.semantic_graph().len(), current_image.to_json().len());\n    drop((old_image, current_image, old, current));\n\n    // Replay the complete original scalar fixture only AFTER both measured\n    // positive builds. This cannot warm their actual Project acquisition path.\n    let canonical =\n        |text: &str, path: &str| crate::format::canonical(&crate::parse(text, path).unwrap());\n    let scalar_manifest = ProjectManifest::parse(MANIFEST).unwrap();\n    let scalar_sources = vec![\n        SemanticWorkspaceSource::new(\"src/app.spx\".to_owned(), canonical(APP, \"src/app.spx\")),\n        SemanticWorkspaceSource::new(\n            \"src/provider.spx\".to_owned(),\n            canonical(APP_PROVIDER, \"src/provider.spx\"),\n        ),\n        SemanticWorkspaceSource::new(\n            \"src/tests.spx\".to_owned(),\n            canonical(TESTS, \"src/tests.spx\"),\n        ),\n    ];\n    let errors = crate::project::rebuild_owned_revision(scalar_manifest, scalar_sources)\n        .err()\n        .expect(\"the original scalar profile must keep rejecting generic templates\");\n    assert_eq!(errors.len(), 1);\n    let expected = crate::diagnostic::Diagnostic::io(\n        \"SPX-W115\",\n        \"Public Scalar Export Profile v1 does not admit generic function templates or instances\",\n    );\n    assert_eq!(errors[0].code, expected.code);\n    assert_eq!(errors[0].severity, expected.severity);\n    assert_eq!(errors[0].message, expected.message);\n    assert_eq!(errors[0].path, expected.path);\n    assert_eq!(errors[0].span, expected.span);\n    assert_eq!(errors[0].help, expected.help);\n}\n",
+        "old": "    eprintln!(\"847 actual borrowed Project parity entries={current_borrowed} graph={} image={} graph_bytes={} image_bytes={}\",\n        current.semantic_graph_digest(), current_image.image_digest(), current.semantic_graph().len(), current_image.to_json().len());\n    drop((old_image, current_image, old, current));\n}\n"
+      }
+    ]
+  }
+]

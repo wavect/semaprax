@@ -102,7 +102,12 @@ fn actual50_fixture_input(source: &str, current: &str) -> String {
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/actual50-fixture-and-facade-corrections-20261016/current-to-183.json")), source, current)
 }
 fn fitting759_input(source: &str, current: &str) -> String {
+    let pinned = pin47_input(source, current);
+    let current = pinned.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/task722-held-fitting759-join-20261016/current-to-0e7b.json")), source, current)
+}
+fn pin47_input(source: &str, current: &str) -> String {
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/actual47f-pin-fixture-successor-20261016/current-to-47f.json")), source, current)
 }
 fn project(rows: &str, source: &str, current: &str) -> String {
     let rows: serde_json::Value = serde_json::from_str(rows).expect("fixed merge projections");

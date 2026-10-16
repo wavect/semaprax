@@ -734,7 +734,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
     );
     let validation = production_source_inventory::production(
         validation_raw,
-        include_str!("../docs/evidence/task722-held-fitting759-join-20261016/hir.json"),
+        include_str!("../docs/evidence/actual47f-pin-fixture-successor-20261016/hir.json"),
     );
     for forbidden in [
         "struct Resolver",

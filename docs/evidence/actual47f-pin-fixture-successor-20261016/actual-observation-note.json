@@ -1,0 +1,18 @@
+{
+  "source_subject": "47f80b0f7a06fde9b2388439a9c0bfe998a05af1",
+  "actual_runtime72": {
+    "PASS": 56,
+    "FAIL": 16
+  },
+  "both_scoped_clippy_exit_codes": [
+    0,
+    0
+  ],
+  "actual_managed_capture_amount": 1106063,
+  "actual_browser_capture_amount": 3477789,
+  "all_actual_producer_and_capture_hashes": "actual-inputs-plan.json; parent-published complete archives retained separately",
+  "new21_consumer_execution": "NOT_RUN",
+  "CLI_probes": 806,
+  "CLI_probes_are_not_Rust_test_PASS": true,
+  "old_strict831_and850_and_application_failures": "OPEN_AND_PRESERVED"
+}

@@ -232,6 +232,20 @@ fn a_rehashed_non_builder_budget_mutation_cannot_pass_the_historical_bridge() {
         );
         assert!(std::panic::catch_unwind(|| current_digest(&changed)).is_err());
     }
+    for captured in ACTUAL47 {
+        let graph = captured.strip_suffix('\n').unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();
+        let sites = parsed["budget"]["used_call_sites"].as_u64().unwrap();
+        let field = format!("\"used_call_sites\":{sites}");
+        assert_eq!(graph.matches(&field).count(), 1);
+        let changed = graph.replacen(&field, &format!("\"used_call_sites\":{}", sites + 1), 1);
+        let changed = changed.replacen(
+            &format!("\"graph_digest\":{}", parsed["graph_digest"]),
+            &format!("\"graph_digest\":\"{}\"", graph_digest(&changed)),
+            1,
+        );
+        assert!(std::panic::catch_unwind(|| final_digest(&changed)).is_err());
+    }
 }
 #[test]
 fn complete_prior_browser_contract_has_only_registration_and_call_adapter_changes() {
@@ -265,4 +279,84 @@ mod custody;
 mod main2600;
 pub(super) fn main_digest(graph: &str) -> String {
     main2600::digest(graph)
+}
+
+// Actual source-bound47f capture; every older digest receiver stays independent.
+const ACTUAL47: [&str; 2] = [
+    include_str!("../../../docs/evidence/actual47f-pin-fixture-successor-20261016/actual-browser/calculator-baseline.json"),
+    include_str!("../../../docs/evidence/actual47f-pin-fixture-successor-20261016/actual-browser/calculator-renamed.json"),
+];
+const OBSERVED364D: [&str; 2] = [
+    include_str!("../../../docs/evidence/actual47f-pin-fixture-successor-20261016/observed364d/calculator-baseline.json"),
+    include_str!("../../../docs/evidence/actual47f-pin-fixture-successor-20261016/observed364d/calculator-renamed.json"),
+];
+const OBSERVED2D: [&str; 2] = [
+    include_str!("../../../docs/evidence/actual47f-pin-fixture-successor-20261016/observed2d4b/calculator-baseline.json"),
+    include_str!("../../../docs/evidence/actual47f-pin-fixture-successor-20261016/observed2d4b/calculator-renamed.json"),
+];
+const OBSERVED8BB: [&str; 2] = [
+    include_str!("../../../docs/evidence/actual47f-pin-fixture-successor-20261016/observed8bb/calculator-baseline.json"),
+    include_str!("../../../docs/evidence/actual47f-pin-fixture-successor-20261016/observed8bb/calculator-renamed.json"),
+];
+const MAIN2600: [&str; 2] = [
+    include_str!("../../../docs/evidence/browser-graph-pins-2600e49eb/current-hosted-calculator-baseline.json"),
+    include_str!("../../../docs/evidence/browser-graph-pins-2600e49eb/current-hosted-calculator-renamed.json"),
+];
+
+pub(super) fn final_digest(graph: &str) -> String {
+    let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();
+    assert_eq!(graph_digest(graph), parsed["graph_digest"]);
+    assert_eq!(parsed["budget"]["used_builder_bytes"], 3477789);
+    let index = ACTUAL47
+        .iter()
+        .position(|wire| {
+            let value: serde_json::Value = serde_json::from_str(wire).unwrap();
+            value["workspace_revision"] == parsed["workspace_revision"]
+        })
+        .expect("exact actual baseline or renamed graph");
+    assert_eq!(
+        graph,
+        ACTUAL47[index].strip_suffix('\n').unwrap(),
+        "complete actual47f wire"
+    );
+    let actual = format!(
+        "\"used_builder_bytes\":{}",
+        parsed["budget"]["used_builder_bytes"]
+    );
+    let digest_field = format!("\"graph_digest\":{}", parsed["graph_digest"]);
+    let mut main = None;
+    for (ordinal, previous) in [
+        MAIN2600[index],
+        CURRENT[index],
+        OBSERVED364D[index],
+        OBSERVED2D[index],
+        OBSERVED8BB[index],
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let previous = previous.strip_suffix('\n').unwrap();
+        let prior: serde_json::Value = serde_json::from_str(previous).unwrap();
+        assert_eq!(graph_digest(previous), prior["graph_digest"]);
+        assert_eq!(graph.matches(&actual).count(), 1);
+        let restored = graph.replacen(
+            &actual,
+            &format!(
+                "\"used_builder_bytes\":{}",
+                prior["budget"]["used_builder_bytes"]
+            ),
+            1,
+        );
+        assert_eq!(restored.matches(&digest_field).count(), 1);
+        let restored = restored.replacen(
+            &digest_field,
+            &format!("\"graph_digest\":{}", prior["graph_digest"]),
+            1,
+        );
+        assert_eq!(restored, previous, "entire independently retained wire");
+        if ordinal == 0 {
+            main = Some(restored);
+        }
+    }
+    main_digest(&main.unwrap())
 }

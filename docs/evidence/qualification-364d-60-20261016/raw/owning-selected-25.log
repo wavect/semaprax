@@ -1,0 +1,15 @@
+
+running 1 test
+test workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core ... 
+thread 'workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core' (12787992) panicked at src/workspace_graph/constructor_failure/../function_alias/before_core/tests.rs:137:76:
+called `Result::unwrap()` on an `Err` value: [Diagnostic { code: "SPX-G172", severity: Error, message: "workspace scalar provider module `alias.current` may not declare `main`", path: Some("src/app.spx"), span: Some(Span { start: 290, end: 428, line: 7, column: 1 }), help: Some("`entry` in semaprax.toml must name the module that declares `main`; every other listed source is a provider module and declares no `main`") }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9233 filtered out; finished in 1.13s
+

@@ -1,0 +1,14 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_reports_whole_immediate_costs_and_exact_short_zero_drop ... unified-closure root=1 old=true reserved=15086 physical=Metrics { allocations: 19, reallocations: 2, allocated: 2261, freed: 2261, live: 0, highwater: 1669, invalid: false }
+unified-closure root=1 old=false reserved=14414 physical=Metrics { allocations: 19, reallocations: 2, allocated: 2261, freed: 2261, live: 0, highwater: 1669, invalid: false }
+unified-closure root=4 old=true reserved=15462 physical=Metrics { allocations: 22, reallocations: 4, allocated: 2429, freed: 2429, live: 0, highwater: 1789, invalid: false }
+unified-closure root=4 old=false reserved=14790 physical=Metrics { allocations: 22, reallocations: 4, allocated: 2429, freed: 2429, live: 0, highwater: 1789, invalid: false }
+unified-closure root=5 old=true reserved=17462 physical=Metrics { allocations: 26, reallocations: 5, allocated: 2813, freed: 2813, live: 0, highwater: 2093, invalid: false }
+unified-closure root=5 old=false reserved=16790 physical=Metrics { allocations: 26, reallocations: 5, allocated: 2813, freed: 2813, live: 0, highwater: 2093, invalid: false }
+unified-closure root=0 old=true reserved=12486 physical=Metrics { allocations: 12, reallocations: 0, allocated: 1461, freed: 1461, live: 0, highwater: 1461, invalid: false }
+unified-closure root=0 old=false reserved=11814 physical=Metrics { allocations: 12, reallocations: 0, allocated: 1461, freed: 1461, live: 0, highwater: 1461, invalid: false }
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9233 filtered out; finished in 0.02s
+

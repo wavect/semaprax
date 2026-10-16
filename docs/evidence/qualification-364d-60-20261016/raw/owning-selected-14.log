@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_empty_bitmap_and_alias_cached_queries_keep_work_without_receiving_allocation_or_debit ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9233 filtered out; finished in 0.01s
+

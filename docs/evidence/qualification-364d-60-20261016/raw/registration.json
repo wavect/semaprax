@@ -1,0 +1,3460 @@
+{
+  "status": "SOURCE_REGISTERED_UNEXECUTED_PARENT_FINAL_HEAD",
+  "source_head": "364d824194cd1df76b5c273aa0fb9cbafb602e29",
+  "source_tree": "3935f7ee8f8ebdb86a6e04a2ed7c42e7bcfa6d65",
+  "repository": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "selected": 60,
+  "resolved": 60,
+  "issues": [],
+  "rows": [
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/receiver_tests.rs",
+      "line": 40,
+      "name": "whole_original_and_boxed_replay_keep_success_work_and_hostile_diagnostic",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 137,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 15,
+          "module": "receiver_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "b988e44e6a1b1c4fb5a8353ae1377717b4613bc1982ac1e5a056099439008dda",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::receiver_tests::whole_original_and_boxed_replay_keep_success_work_and_hostile_diagnostic",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; correctness",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "correctness"
+      ],
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-34.log",
+        "log_sha256": "ddf8d5ab515d417809983e3115f222fe69ccfd35ece08a9b8fc0434617b863e7",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/receiver_tests.rs",
+      "line": 85,
+      "name": "complete_current_replay_has_exact_and_one_short_physical_limits_with_last_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 137,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 15,
+          "module": "receiver_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "b988e44e6a1b1c4fb5a8353ae1377717b4613bc1982ac1e5a056099439008dda",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::receiver_tests::complete_current_replay_has_exact_and_one_short_physical_limits_with_last_drop",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; correctness",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "correctness"
+      ],
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-35.log",
+        "log_sha256": "cd9cfbfd8d3f0789969788612902eea6bb432282937f535fc2d9c5dd1117ac60",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/tests.rs",
+      "line": 105,
+      "name": "boxed_prefix_keeps_every_history_union_and_control_disagreement",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 137,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 719,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "6a00500ce95449c9d08ebba90cdaef85c7ce0d4e5a69769bedcdde62502725eb",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::tests::boxed_prefix_keeps_every_history_union_and_control_disagreement",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; correctness",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "correctness"
+      ],
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-37.log",
+        "log_sha256": "b6a5aec73e6b7cd0b531f52d3088d2f8b434afa70d6dc3f632488a16e252a567",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs",
+      "line": 148,
+      "name": "duplicate_zero_auth_keeps_complete_main_diagnostic_and_first_receipt_at_sticky_floor",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 137,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 12,
+          "module": "boxed_states",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+          "line": 189,
+          "module": "receiving_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"boxed_states/receiving_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "8a4b4e790189d0980e3025051db5fe531adf61a72866b7ace874ef245fdca148",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::duplicate_zero_auth_keeps_complete_main_diagnostic_and_first_receipt_at_sticky_floor",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; correctness",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "correctness"
+      ],
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-71.log",
+        "log_sha256": "50f6a466ffdd41906c9446efdf2526f8d77245913b3a30c1e4e71ca291125a37",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs",
+      "line": 197,
+      "name": "foreign_function_budget_and_scope_poison_only_original_owner_and_never_restore_entry",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 137,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 12,
+          "module": "boxed_states",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+          "line": 189,
+          "module": "receiving_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"boxed_states/receiving_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "8a4b4e790189d0980e3025051db5fe531adf61a72866b7ace874ef245fdca148",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::foreign_function_budget_and_scope_poison_only_original_owner_and_never_restore_entry",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; correctness",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "correctness"
+      ],
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-72.log",
+        "log_sha256": "1ea63132efaa32d03828ab66e79bb6f1c17e732ffdbbaf6f90df2af453cafeb6",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "tests/native/string_settlement/codec_allocation/codec808_frontier.rs",
+      "line": 139,
+      "name": "primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 5607,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"workspace_graph/tests.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/workspace_graph/tests.rs",
+          "line": 2,
+          "module": "codec808_frontier",
+          "attributes": [
+            "#[path = \"../../tests/native/string_settlement/codec_allocation/codec808_frontier.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "1f90201ed8422af0608dcabba619638bd9618ab00be82eb1a42701bbabb79a9b",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; unchanged_application_or_cap_recovery",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "unchanged_application_or_cap_recovery"
+      ],
+      "prior_actual_failure": {
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016/owning-selected-05.log",
+        "log_sha256": "9293b7ae25a5a6fa941c9fef724d102d5d452ab6743ca504ffad665d19efcc82"
+      },
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-11.log",
+        "log_sha256": "6f4bf96457a7620fa713cae3bcc437be601fb7ac0e9a4bc3a712ff79176df931",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+      "line": 290,
+      "name": "application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "crates/semaprax-toolchain/tests/cli_new_project_v1.rs",
+          "line": 2,
+          "module": "application_starter",
+          "attributes": [
+            "#[path = \"cli_new_project_v1/application_starter.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "e01a02fb235f02b43f8ea37fcb088e61ff72ea5c0b82c87bed187f328e559d53",
+      "ignored": false,
+      "harness": "semaprax-toolchain::cli_new_project_v1",
+      "kind": "test:cli_new_project_v1",
+      "selector": "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; unchanged_application_or_cap_recovery",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "unchanged_application_or_cap_recovery"
+      ],
+      "prior_actual_failure": {
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016/owning-selected-06.log",
+        "log_sha256": "1743b4e26340ef6ff4120c35d9039ccb58aa5db1c59ca6c5561bf4dda0f363f1"
+      },
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-16.log",
+        "log_sha256": "79c28130f6ca5df804530eb3cb4b8dd7a00890a228de27a5f997cbb21fb4c5f1",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "tests/project/standard_library/application_json/owned/shiftsim_typed_records.rs",
+      "line": 134,
+      "name": "unfactored_schedule_retains_original_source_and_factored_admission",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/project.rs",
+          "line": 207,
+          "module": "standard_library",
+          "attributes": [
+            "#[path = \"project/standard_library.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library.rs",
+          "line": 19,
+          "module": "application_json",
+          "attributes": [
+            "#[path = \"standard_library/application_json.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library/application_json.rs",
+          "line": 17,
+          "module": "owned",
+          "attributes": [
+            "#[path = \"application_json/owned.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library/application_json/owned.rs",
+          "line": 12,
+          "module": "shiftsim_typed_records",
+          "attributes": [
+            "#[path = \"owned/shiftsim_typed_records.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "30e0ec893b8c5a65d11a05f98cfbe741381870ba8f6402f52af2687911d6b999",
+      "ignored": false,
+      "harness": "semaprax::project",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::unfactored_schedule_retains_original_source_and_factored_admission",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; unchanged_application_or_cap_recovery",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "unchanged_application_or_cap_recovery"
+      ],
+      "prior_actual_failure": {
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016/owning-selected-07.log",
+        "log_sha256": "1b87a19586272cee41f3aab563a28a26ae0a28443b544cef7d7d63e4491bee5c"
+      },
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-17.log",
+        "log_sha256": "e5caff8ba90dfd4be673c9ce560bb4f24ed09bad40ace091300dd9d48a5b231f",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "tests/project/standard_library/application_json/owned/catalog_scoped_records.rs",
+      "line": 134,
+      "name": "typed_catalog_derives_codecs_and_preserves_all_23_functional_cases",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/project.rs",
+          "line": 207,
+          "module": "standard_library",
+          "attributes": [
+            "#[path = \"project/standard_library.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library.rs",
+          "line": 19,
+          "module": "application_json",
+          "attributes": [
+            "#[path = \"standard_library/application_json.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library/application_json.rs",
+          "line": 17,
+          "module": "owned",
+          "attributes": [
+            "#[path = \"application_json/owned.rs\"]"
+          ]
+        },
+        {
+          "source_path": "tests/project/standard_library/application_json/owned.rs",
+          "line": 8,
+          "module": "catalog_scoped_records",
+          "attributes": [
+            "#[path = \"owned/catalog_scoped_records.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "fc5048241b7937f487d12cb934f591730185ab905b63c2f5713d1374648f5d9d",
+      "ignored": false,
+      "harness": "semaprax::project",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::owned::catalog_scoped_records::typed_catalog_derives_codecs_and_preserves_all_23_functional_cases",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; unchanged_application_or_cap_recovery",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "unchanged_application_or_cap_recovery"
+      ],
+      "prior_actual_failure": {
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016/owning-selected-08.log",
+        "log_sha256": "fb255ced3aa44f3f11220db890ea4191b87b13f98ff333a402dc0d8be6a540d1"
+      },
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-40.log",
+        "log_sha256": "48886d0ee20c00852720b9603914ed44b450abf905c5006f3872a8c73ba3576e",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "src/workspace_graph/tests/builder_limits.rs",
+      "line": 582,
+      "name": "catalog_normalizer_compact_core_fits_production_builder_cap",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 5607,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"workspace_graph/tests.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/workspace_graph/tests.rs",
+          "line": 7,
+          "module": "builder_limits",
+          "attributes": [
+            "#[path = \"tests/builder_limits.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "c1f40dbe6d396e0bac776028d029b7d3cc938293857a86750aa9f4a03e3a17ed",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; unchanged_application_or_cap_recovery",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "unchanged_application_or_cap_recovery"
+      ],
+      "prior_actual_failure": {
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016/owning-selected-09.log",
+        "log_sha256": "01730cb47e2a4b020f4d012076591ce945fc740477d20017a503059b82f2083b"
+      },
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-43.log",
+        "log_sha256": "f5b8d13db1ce7ec1c2bbc7d6634cb8937a3348c1aad7ff771c9c6a99f78a9cf6",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "src/workspace_graph/tests.rs",
+      "line": 1984,
+      "name": "callable_limit_exact_advances_and_one_over_is_g171",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 5607,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"workspace_graph/tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "563d66569e1de4b8a5d9932442ec2e387158496c22a443defbe0e15a1cce58d5",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::callable_limit_exact_advances_and_one_over_is_g171",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; unchanged_application_or_cap_recovery",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "unchanged_application_or_cap_recovery"
+      ],
+      "prior_actual_failure": {
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016/owning-selected-10.log",
+        "log_sha256": "7fb7679d6756f5f702428a86e6174e19217b391c4f247679d2e6ff6cf37fdad9"
+      },
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-66.log",
+        "log_sha256": "20daac0a5bbf7b1ed86e76a5c35d945c07a7965bb14c17544f2738928b4c3a8d",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/renewal_profile/ordinary/consuming/tests.rs",
+      "line": 11,
+      "name": "phase_presence_keeps_full_current_directories_and_every_consuming_entry",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 30,
+          "module": "renewal_profile",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/renewal_profile.rs",
+          "line": 5,
+          "module": "ordinary",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/renewal_profile/ordinary/mod.rs",
+          "line": 3,
+          "module": "consuming",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/renewal_profile/ordinary/consuming.rs",
+          "line": 8,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "2d59fe6bb8e60380c426e3c07fdbfe165a7ba59745fd0b706d3653a6074ea13d",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::consuming::tests::phase_presence_keeps_full_current_directories_and_every_consuming_entry",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; fixture_correction",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "fixture_correction"
+      ],
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-65.log",
+        "log_sha256": "192d1e5942e978577b77c221c70c9432fa27bdebe732310e080b370953052a9d",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "line": 40,
+      "name": "inline_targets_complete_immediate_receiver_keeps_states_signatures_and_every_work_frontier",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 1282,
+          "module": "receiving_layer_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "969a66f6a53585c67165c9b7eba481cc8528bf93e7e8e9a797b47c99352199a7",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_complete_immediate_receiver_keeps_states_signatures_and_every_work_frontier",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; existing_831_independent_work_or_strict_cost_owner",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "existing_831_independent_work_or_strict_cost_owner"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "line": 140,
+      "name": "inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 1282,
+          "module": "receiving_layer_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "969a66f6a53585c67165c9b7eba481cc8528bf93e7e8e9a797b47c99352199a7",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; existing_831_independent_work_or_strict_cost_owner",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "existing_831_independent_work_or_strict_cost_owner"
+      ],
+      "prior_actual_failure": {
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016/owning-selected-13.log",
+        "log_sha256": "83a219478cec06b72eea81c49dce1583ce5b90ec6870fa932bb065ee280e9591"
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/empty_closure_tests.rs",
+      "line": 22,
+      "name": "direct_empty_bitmap_and_alias_cached_queries_keep_work_without_receiving_allocation_or_debit",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 31,
+          "module": "empty_closure_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "aacbac80783e6b9ca04ce6d63e9924a9bb5d296afd3791861eab4872f414ca69",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_empty_bitmap_and_alias_cached_queries_keep_work_without_receiving_allocation_or_debit",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; pending_bitmap_direct_or_independent_old_control",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "pending_bitmap_direct_or_independent_old_control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/empty_closure_tests.rs",
+      "line": 77,
+      "name": "direct_nonempty_cached_query_borrows_original_rc_and_keeps_all_semantic_work_failures",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 31,
+          "module": "empty_closure_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "aacbac80783e6b9ca04ce6d63e9924a9bb5d296afd3791861eab4872f414ca69",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_nonempty_cached_query_borrows_original_rc_and_keeps_all_semantic_work_failures",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; pending_bitmap_direct_or_independent_old_control",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "pending_bitmap_direct_or_independent_old_control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/empty_closure_tests.rs",
+      "line": 233,
+      "name": "direct_whole_empty_owner_costs_and_all_short_frontiers_cover_new_bitmap_backing_and_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 31,
+          "module": "empty_closure_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "aacbac80783e6b9ca04ce6d63e9924a9bb5d296afd3791861eab4872f414ca69",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_whole_empty_owner_costs_and_all_short_frontiers_cover_new_bitmap_backing_and_drop",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; pending_bitmap_direct_or_independent_old_control",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "pending_bitmap_direct_or_independent_old_control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/empty_closure_tests.rs",
+      "line": 264,
+      "name": "direct_overflow_is_not_empty_and_the_same_paid_status_owner_can_receive_empty_afterward",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 31,
+          "module": "empty_closure_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "aacbac80783e6b9ca04ce6d63e9924a9bb5d296afd3791861eab4872f414ca69",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_overflow_is_not_empty_and_the_same_paid_status_owner_can_receive_empty_afterward",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; pending_bitmap_direct_or_independent_old_control",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "pending_bitmap_direct_or_independent_old_control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/empty_closure_tests.rs",
+      "line": 295,
+      "name": "direct_primed_foreign_inputs_and_nested_scope_never_query_foreign_payer_or_restore_memo",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 31,
+          "module": "empty_closure_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "aacbac80783e6b9ca04ce6d63e9924a9bb5d296afd3791861eab4872f414ca69",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::empty_closure_tests::direct_primed_foreign_inputs_and_nested_scope_never_query_foreign_payer_or_restore_memo",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; pending_bitmap_direct_or_independent_old_control",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "pending_bitmap_direct_or_independent_old_control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/before_empty/cached_tests.rs",
+      "line": 9,
+      "name": "held_cached_closure_keeps_original_one_work_unit_and_same_result_without_auth_debit",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 15,
+          "module": "before_empty",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared/before_empty.rs",
+          "line": 821,
+          "module": "cached_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"before_empty/cached_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "7ada0dcfbad0a9d791d0f2e5fa3b29c1b6b0a1017d5dc628162c76f621c2bb36",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::before_empty::cached_tests::held_cached_closure_keeps_original_one_work_unit_and_same_result_without_auth_debit",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; pending_bitmap_direct_or_independent_old_control",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "pending_bitmap_direct_or_independent_old_control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight/tests.rs",
+      "line": 10,
+      "name": "actual_paid_map_moves_without_allocation_and_preserves_max_zero_routes_and_last_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 1289,
+          "module": "main_unit_weight",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight.rs",
+          "line": 21,
+          "module": "unit_weight",
+          "attributes": [
+            "#[path = \"main_unit_weight/unit_weight.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight.rs",
+          "line": 33,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"unit_weight/tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "f29c5ebc24a437d42ba5f44663bca8b751d0da382741af474a3aca6c3f43b2e8",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight::tests::actual_paid_map_moves_without_allocation_and_preserves_max_zero_routes_and_last_drop",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Preserve independent Main five controls plus changed full graph/Image alias assertion",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Preserve independent Main five controls plus changed full graph/Image alias assertion"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight/tests.rs",
+      "line": 66,
+      "name": "work_refusal_and_preexisting_financial_refusal_cannot_publish_a_map",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 1289,
+          "module": "main_unit_weight",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight.rs",
+          "line": 21,
+          "module": "unit_weight",
+          "attributes": [
+            "#[path = \"main_unit_weight/unit_weight.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight.rs",
+          "line": 33,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"unit_weight/tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "f29c5ebc24a437d42ba5f44663bca8b751d0da382741af474a3aca6c3f43b2e8",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight::tests::work_refusal_and_preexisting_financial_refusal_cannot_publish_a_map",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Preserve independent Main five controls plus changed full graph/Image alias assertion",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Preserve independent Main five controls plus changed full graph/Image alias assertion"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs",
+      "line": 22,
+      "name": "unit_weight_and_every_fallback_keep_full_prechange_ids_signatures_work_and_errors",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 1289,
+          "module": "main_unit_weight",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight.rs",
+          "line": 24,
+          "module": "unit_weight_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"main_unit_weight/unit_weight_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "0be72c82ceb41ccf8636721d95a1f6560c5239d48b4c0adc93ebf3326b3acf29",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight_tests::unit_weight_and_every_fallback_keep_full_prechange_ids_signatures_work_and_errors",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Preserve independent Main five controls plus changed full graph/Image alias assertion",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Preserve independent Main five controls plus changed full graph/Image alias assertion"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs",
+      "line": 60,
+      "name": "whole_receiver_spends_less_backing_and_keeps_exact_short_and_zero_limits",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 1289,
+          "module": "main_unit_weight",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight.rs",
+          "line": 24,
+          "module": "unit_weight_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"main_unit_weight/unit_weight_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "0be72c82ceb41ccf8636721d95a1f6560c5239d48b4c0adc93ebf3326b3acf29",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight_tests::whole_receiver_spends_less_backing_and_keeps_exact_short_and_zero_limits",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Preserve independent Main five controls plus changed full graph/Image alias assertion",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Preserve independent Main five controls plus changed full graph/Image alias assertion"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs",
+      "line": 122,
+      "name": "complete_previous_successor_producer_and_whole_current_module_remain_bound",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 1289,
+          "module": "main_unit_weight",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight.rs",
+          "line": 24,
+          "module": "unit_weight_tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"main_unit_weight/unit_weight_tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "0be72c82ceb41ccf8636721d95a1f6560c5239d48b4c0adc93ebf3326b3acf29",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight_tests::complete_previous_successor_producer_and_whole_current_module_remain_bound",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Preserve independent Main five controls plus changed full graph/Image alias assertion",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Preserve independent Main five controls plus changed full graph/Image alias assertion"
+      ]
+    },
+    {
+      "source_path": "src/workspace_graph/function_alias/before_core/tests.rs",
+      "line": 98,
+      "name": "actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 19,
+          "module": "constructor_failure",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph/constructor_failure.rs",
+          "line": 92,
+          "module": "typed",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph/constructor_failure/typed.rs",
+          "line": 148,
+          "module": "before_function_alias_core",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"../function_alias/before_core.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/workspace_graph/function_alias/before_core.rs",
+          "line": 359,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"before_core/tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "c0b19ee7a50b904fd21ee18f36941f9365500fa6fd138d01659b4f39e18bb7a0",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_borrowed_alias_project_keeps_complete_sources_graph_and_image_of_old_core",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Preserve independent Main five controls plus changed full graph/Image alias assertion",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Preserve independent Main five controls plus changed full graph/Image alias assertion"
+      ],
+      "prior_actual_failure": {
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016/owning-selected-25.log",
+        "log_sha256": "62372e172b36da6985ba10641f1c7cbf9f82aabeb79d326c6ebb2b4c68550f34"
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+      "line": 41,
+      "name": "singleton_direct_group_keeps_complete_old_success_work_and_hostile_diagnostic",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 137,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 955,
+          "module": "singleton_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "79810d95fa864955dc08d7883b8c4b83f205837499fb07385bec9b80b6e954a6",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::singleton_direct_group_keeps_complete_old_success_work_and_hostile_diagnostic",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; New singleton complete old/current semantic/work/cost/source control",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "New singleton complete old/current semantic/work/cost/source control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+      "line": 109,
+      "name": "singleton_whole_replay_reports_real_costs_and_exact_short_zero_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 137,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 955,
+          "module": "singleton_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "79810d95fa864955dc08d7883b8c4b83f205837499fb07385bec9b80b6e954a6",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::singleton_whole_replay_reports_real_costs_and_exact_short_zero_drop",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; New singleton complete old/current semantic/work/cost/source control",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "New singleton complete old/current semantic/work/cost/source control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+      "line": 166,
+      "name": "complete_immediate_old_and_unchanged_multistate_body_stay_source_bound",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 137,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 955,
+          "module": "singleton_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "79810d95fa864955dc08d7883b8c4b83f205837499fb07385bec9b80b6e954a6",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::singleton_tests::complete_immediate_old_and_unchanged_multistate_body_stay_source_bound",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; New singleton complete old/current semantic/work/cost/source control",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "New singleton complete old/current semantic/work/cost/source control"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+      "line": 416,
+      "name": "complete_original_receivers_and_all_new_source_owners_remain_authenticated",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 37,
+          "module": "compact_nodes",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/compact_nodes.rs",
+          "line": 88,
+          "module": "before",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"compact_nodes/before/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs",
+          "line": 818,
+          "module": "tests",
+          "attributes": [
+            "#[path = \"../tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "426cfc4c1ac2c23fc0ecbe8ab3a2879f20a06a0ec35d6b8aa85200ca130d20fd",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::complete_original_receivers_and_all_new_source_owners_remain_authenticated",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Affected complete source-domain/authority or corrected actual source/fixture failure",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-02.log",
+        "log_sha256": "adc542b43335fe59c6059c743fd84669156ac6f961d708360899b8b2f7a513b4",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+      "line": 536,
+      "name": "immediate_parent_831_and_compact_storage_have_independent_complete_source_domains",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 37,
+          "module": "compact_nodes",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/compact_nodes.rs",
+          "line": 88,
+          "module": "before",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"compact_nodes/before/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs",
+          "line": 818,
+          "module": "tests",
+          "attributes": [
+            "#[path = \"../tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "426cfc4c1ac2c23fc0ecbe8ab3a2879f20a06a0ec35d6b8aa85200ca130d20fd",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::immediate_parent_831_and_compact_storage_have_independent_complete_source_domains",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Affected complete source-domain/authority or corrected actual source/fixture failure",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-03.log",
+        "log_sha256": "4110d034f9c04ba1946e4f1c3dac1c24a0c1950050776a185c9d6e772cf25385",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs",
+      "line": 87,
+      "name": "ordered_amortized_checkpoint_full_sources_and_inverses_are_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 40,
+          "module": "ordered_weights",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs",
+          "line": 360,
+          "module": "amortized_source",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "addd5d1825377a0eed8f57348fae259dbb156beea659f0f02f8c5b23738c9812",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::amortized_source::ordered_amortized_checkpoint_full_sources_and_inverses_are_exact",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Affected complete source-domain/authority or corrected actual source/fixture failure",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-04.log",
+        "log_sha256": "4370c64c0786091b289e412d9a14d598c23daeece8224b8aebe8829da0435c97",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "line": 3,
+      "name": "complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 7351,
+          "module": "live_oracle",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/live_oracle.rs",
+          "line": 29,
+          "module": "source_custody",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/live_oracle/source_custody.rs",
+          "line": 10,
+          "module": "a",
+          "attributes": []
+        }
+      ],
+      "sha256": "328a65d7a3add4e6fd84b10f9e04d76cb1f03ac9ae8bffe36a2fb17bbb19a104",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Affected complete source-domain/authority or corrected actual source/fixture failure",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-05.log",
+        "log_sha256": "ec0c2f69e6421c2569bfe9cbd36ec487b542d54612a5b615a4ec3ccb9802e7d3",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "line": 3,
+      "name": "complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 7351,
+          "module": "live_oracle",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/live_oracle.rs",
+          "line": 29,
+          "module": "source_custody",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/live_oracle/source_custody.rs",
+          "line": 11,
+          "module": "b",
+          "attributes": []
+        }
+      ],
+      "sha256": "7f7f0c6c5249591091a7fe7ddc6242631ceb63f6b005034036e24e5ea5ba5c50",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::b::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Affected complete source-domain/authority or corrected actual source/fixture failure",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-06.log",
+        "log_sha256": "791cee6822c7fcff4ea01801b6c5f36ffffd809b98a6307503439be7eae20190",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "src/source_reflows_merge/runtime_json/tests.rs",
+      "line": 30,
+      "name": "fixed_projection_json_transport_refuses_hostile_io_before_parsing",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 20,
+          "module": "source_reflows_merge",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/source_reflows_merge.rs",
+          "line": 5,
+          "module": "runtime_json",
+          "attributes": [
+            "#[path = \"source_reflows_merge/runtime_json.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/source_reflows_merge/runtime_json.rs",
+          "line": 88,
+          "module": "tests",
+          "attributes": [
+            "#[path = \"runtime_json/tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "cbe9336a17fa49c7555a905b61bcb4d8405301a12d168c78f25d76ef68cbd649",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_reflows_merge::runtime_json::tests::fixed_projection_json_transport_refuses_hostile_io_before_parsing",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Affected complete source-domain/authority or corrected actual source/fixture failure",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-07.log",
+        "log_sha256": "b1cbd2e619b0054d4793267f12d677063c3cf3eb37cc8c3ab0bab36e5c49f7dd",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/source.rs",
+      "line": 7,
+      "name": "inline_weighted_complete_source_inverses_and_immediate_receiver_are_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 51,
+          "module": "inline_weighted",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs",
+          "line": 69,
+          "module": "source",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "fd9f63384d7e7df100077a36753ec8bc06b063a2746c98cceec0f2866d9f6418",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::inline_weighted::source::inline_weighted_complete_source_inverses_and_immediate_receiver_are_exact",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Affected complete source-domain/authority or corrected actual source/fixture failure",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-21.log",
+        "log_sha256": "c408c4e54e390ac6af2cfb8460eade27e1ee3f32f7e40f7ebfb1a556af342210",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "line": 182,
+      "name": "complete_immediate_receiver_helpers_and_all_seven_original_controls_remain_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 1282,
+          "module": "receiving_layer_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "969a66f6a53585c67165c9b7eba481cc8528bf93e7e8e9a797b47c99352199a7",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::complete_immediate_receiver_helpers_and_all_seven_original_controls_remain_exact",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Affected complete source-domain/authority or corrected actual source/fixture failure",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-28.log",
+        "log_sha256": "0f8e19fd4fbe1477c34d6426219436abe76f9a5674e95b8a276c6a817543d287",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "tests/hir_module_boundaries.rs",
+      "line": 2,
+      "name": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [],
+      "sha256": "1951adbe509206df4b3e044b9faf9684da64f259629dcc0dc6f7416daf9b224e",
+      "ignored": false,
+      "harness": "semaprax::hir_module_boundaries",
+      "kind": "test:hir_module_boundaries",
+      "selector": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Affected complete source-domain/authority or corrected actual source/fixture failure",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-29.log",
+        "log_sha256": "4e2d18e1066fbb4acea8f2dfcc96d3edab7a54325ce8c1969c58944379d84df5",
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "tests/workspace/semantic_graph.rs",
+      "line": 358,
+      "name": "expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "tests/workspace.rs",
+          "line": 68,
+          "module": "semantic_graph",
+          "attributes": [
+            "#[path = \"workspace/semantic_graph.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "9789231f7734dc523d9297279c6d47e241500b36389b8d67eb15e727a40cfd03",
+      "ignored": false,
+      "harness": "semaprax::workspace",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Affected complete source-domain/authority or corrected actual source/fixture failure",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "prior_actual_failure": {
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016/owning-selected-38.log",
+        "log_sha256": "c72bb1cb44028245892acbe1c3049057b107ad89aadf94b2d31ebf786409e3a9"
+      },
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-30.log",
+        "log_sha256": "65b3a005c2199b1cb91d53d13f0a32fe4deb7343849ec60fd9d9f6318dcb4ff2",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "src/workspace_graph/source_schema/static_text/primitive/helpers/tests.rs",
+      "line": 1064,
+      "name": "a_large_comment_keeps_ordinary_imports_admitted_without_authorizing_a_selected_helper",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 534,
+          "module": "workspace_graph",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph.rs",
+          "line": 48,
+          "module": "source_schema",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph/source_schema.rs",
+          "line": 7,
+          "module": "static_text",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph/source_schema/static_text.rs",
+          "line": 5,
+          "module": "primitive",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph/source_schema/static_text/primitive.rs",
+          "line": 4,
+          "module": "helpers",
+          "attributes": []
+        },
+        {
+          "source_path": "src/workspace_graph/source_schema/static_text/primitive/helpers.rs",
+          "line": 560,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "0eed9586c40986ce1f2792c98b716f1abf6841cdb2777f1714a2af6843f6d799",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "workspace_graph::source_schema::static_text::primitive::helpers::tests::a_large_comment_keeps_ordinary_imports_admitted_without_authorizing_a_selected_helper",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Affected complete source-domain/authority or corrected actual source/fixture failure",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Affected complete source-domain/authority or corrected actual source/fixture failure"
+      ],
+      "historical_8bb_prior_actual": {
+        "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-67.log",
+        "log_sha256": "e3e0ac9a62f0e3a7214c8b3ec67fcbba2acbdeb3b06bbf022fd08354bb3a2e0d",
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs",
+      "line": 3,
+      "name": "merged_current_ci_reflow_and_presence512_complete_inputs_remain_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 7351,
+          "module": "live_oracle",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/live_oracle.rs",
+          "line": 29,
+          "module": "source_custody",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/live_oracle/source_custody.rs",
+          "line": 14,
+          "module": "presence_tests",
+          "attributes": []
+        }
+      ],
+      "sha256": "0f634bae3a57dff7216527c6cfc4a9391db9532a09000dc41389edd68f1ae3f1",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::presence_tests::merged_current_ci_reflow_and_presence512_complete_inputs_remain_exact",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Final joined complete source-presence inventory",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Final joined complete source-presence inventory"
+      ]
+    },
+    {
+      "source_path": "tests/module_size.rs",
+      "line": 114,
+      "name": "no_module_exceeds_its_recorded_size",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [],
+      "sha256": "f4db65da11156807050b9e929231c0c2df885256690a8416c6064d31e1b2e14b",
+      "ignored": false,
+      "harness": "semaprax::module_size",
+      "kind": "test:module_size",
+      "selector": "no_module_exceeds_its_recorded_size",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Actual changed Rust roots/children and module budgets",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Actual changed Rust roots/children and module budgets"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+      "line": 124,
+      "name": "complete_builder_and_comparison_receivers_keep_work_and_later_semantic_diagnostics",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 37,
+          "module": "compact_nodes",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/compact_nodes.rs",
+          "line": 88,
+          "module": "before",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"compact_nodes/before/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs",
+          "line": 818,
+          "module": "tests",
+          "attributes": [
+            "#[path = \"../tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "426cfc4c1ac2c23fc0ecbe8ab3a2879f20a06a0ec35d6b8aa85200ca130d20fd",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::complete_builder_and_comparison_receivers_keep_work_and_later_semantic_diagnostics",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Current canonical bitmap changes actual complete844 comparison receiver, retain semantic+whole physical owners",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Current canonical bitmap changes actual complete844 comparison receiver, retain semantic+whole physical owners"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+      "line": 490,
+      "name": "complete_build_comparison_and_canonical_receivers_report_physical_costs_through_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 37,
+          "module": "compact_nodes",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/compact_nodes.rs",
+          "line": 88,
+          "module": "before",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"compact_nodes/before/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs",
+          "line": 818,
+          "module": "tests",
+          "attributes": [
+            "#[path = \"../tests.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "426cfc4c1ac2c23fc0ecbe8ab3a2879f20a06a0ec35d6b8aa85200ca130d20fd",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::complete_build_comparison_and_canonical_receivers_report_physical_costs_through_drop",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Current canonical bitmap changes actual complete844 comparison receiver, retain semantic+whole physical owners",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Current canonical bitmap changes actual complete844 comparison receiver, retain semantic+whole physical owners"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/branch_clone/tests.rs",
+      "line": 30,
+      "name": "full_plan_enumerator_keeps_every_original_path_work_and_materialization",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 3,
+          "module": "branch_clone",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/branch_clone.rs",
+          "line": 113,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "1ceebb30aefeb84f0b3be9a2ff916c247a8017ecbe1a33d58f36bd556094c757",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::tests::full_plan_enumerator_keeps_every_original_path_work_and_materialization",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Actual latestMAIN9a8ee branch_clone production route: direct new semantic/work, physical/Drop or complete-original-source control; pending final MAIN2600 registration",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Actual latestMAIN9a8ee branch_clone production route: direct new semantic/work, physical/Drop or complete-original-source control; pending final MAIN2600 registration"
+      ],
+      "prior_actual_failure": {
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016/owning-selected-44.log",
+        "log_sha256": "4f889c31b2063974558134d53e4df0e45df00ac866df30752a45121fdb37a727"
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/branch_clone/tests.rs",
+      "line": 63,
+      "name": "clone_and_push_keep_capacity_contents_work_and_drop_with_less_backing",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 3,
+          "module": "branch_clone",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/branch_clone.rs",
+          "line": 113,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "1ceebb30aefeb84f0b3be9a2ff916c247a8017ecbe1a33d58f36bd556094c757",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::tests::clone_and_push_keep_capacity_contents_work_and_drop_with_less_backing",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Actual latestMAIN9a8ee branch_clone production route: direct new semantic/work, physical/Drop or complete-original-source control; pending final MAIN2600 registration",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Actual latestMAIN9a8ee branch_clone production route: direct new semantic/work, physical/Drop or complete-original-source control; pending final MAIN2600 registration"
+      ],
+      "prior_actual_failure": {
+        "exit_code": 101,
+        "log": "/Volumes/Semaprax/lane-prompts/final-2d4b-50-qualification-20261016/owning-selected-45.log",
+        "log_sha256": "01c303f19b284f862dcf74f407b7ba150173d5bafe4093963815519f9abe64d6"
+      }
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/branch_clone/tests.rs",
+      "line": 154,
+      "name": "whole_original_enumerator_and_clone_push_helpers_remain_byte_exact",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 3,
+          "module": "branch_clone",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/branch_clone.rs",
+          "line": 113,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "1ceebb30aefeb84f0b3be9a2ff916c247a8017ecbe1a33d58f36bd556094c757",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::tests::whole_original_enumerator_and_clone_push_helpers_remain_byte_exact",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Actual latestMAIN9a8ee branch_clone production route: direct new semantic/work, physical/Drop or complete-original-source control; pending final MAIN2600 registration",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Actual latestMAIN9a8ee branch_clone production route: direct new semantic/work, physical/Drop or complete-original-source control; pending final MAIN2600 registration"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/branch_clone/funded_tests.rs",
+      "line": 103,
+      "name": "fused_clone_push_pays_real_receivers_and_keeps_exact_short_zero_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 3,
+          "module": "branch_clone",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/branch_clone.rs",
+          "line": 111,
+          "module": "funded_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "d893c4f2ba3ce7d8a4a538f70f61a248f3bb74a9ab3484d43ac869c96e4c9a83",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::funded_tests::fused_clone_push_pays_real_receivers_and_keeps_exact_short_zero_drop",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Shipping funded fused clone+push actual owner/control/Drop or full original work-refusal ordering; Main3 historical controls retained independently at original literal names",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Shipping funded fused clone+push actual owner/control/Drop or full original work-refusal ordering; Main3 historical controls retained independently at original literal names"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/branch_clone/funded_tests.rs",
+      "line": 134,
+      "name": "fused_clone_keeps_original_push_work_refusal_before_capacity_payment",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 3,
+          "module": "branch_clone",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/branch_clone.rs",
+          "line": 111,
+          "module": "funded_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "d893c4f2ba3ce7d8a4a538f70f61a248f3bb74a9ab3484d43ac869c96e4c9a83",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::funded_tests::fused_clone_keeps_original_push_work_refusal_before_capacity_payment",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Shipping funded fused clone+push actual owner/control/Drop or full original work-refusal ordering; Main3 historical controls retained independently at original literal names",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Shipping funded fused clone+push actual owner/control/Drop or full original work-refusal ordering; Main3 historical controls retained independently at original literal names"
+      ]
+    },
+    {
+      "source_path": "tests/project_product_acceptance_ci_contract.rs",
+      "line": 179,
+      "name": "macos_native_jobs_pair_the_driver_with_the_explicit_builder_sdk",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [],
+      "sha256": "c0148ae13a8e5879513dc54972e3c64de6f6d52594682d6a8e99e296bab951cd",
+      "ignored": false,
+      "harness": "semaprax::project_product_acceptance_ci_contract",
+      "kind": "test:project_product_acceptance_ci_contract",
+      "selector": "macos_native_jobs_pair_the_driver_with_the_explicit_builder_sdk",
+      "reason": "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly; Lateeb13 actualCI/SDKdriver source contract; readsworkflow/platformsource only, noSDK/fullprofile execution",
+      "current_batch_selection_reasons": [
+        "Affected by the next closure/branch receiving implementation batch; current2d4b outcome retained distinctly",
+        "Lateeb13 actualCI/SDKdriver source contract; readsworkflow/platformsource only, noSDK/fullprofile execution"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs",
+      "line": 41,
+      "name": "whole_replay_preserves_success_work_and_the_older_independent_receiver",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 137,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 959,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 10,
+          "module": "grouping",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs",
+          "line": 107,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f3bc4ad754d4c33ca7508aac28412c6409469ebafe425392454ab43676e72dbb",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::tests::whole_replay_preserves_success_work_and_the_older_independent_receiver",
+      "reason": "New independently compiled literal Main group control; no prior execution at this namespace",
+      "current_batch_selection_reasons": [
+        "New independently compiled literal Main group control; no prior execution at this namespace"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs",
+      "line": 72,
+      "name": "the_complete_group_receiver_keeps_hostile_transition_diagnostics_and_work",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 137,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 959,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 10,
+          "module": "grouping",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs",
+          "line": 107,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f3bc4ad754d4c33ca7508aac28412c6409469ebafe425392454ab43676e72dbb",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::tests::the_complete_group_receiver_keeps_hostile_transition_diagnostics_and_work",
+      "reason": "New independently compiled literal Main group control; no prior execution at this namespace",
+      "current_batch_selection_reasons": [
+        "New independently compiled literal Main group control; no prior execution at this namespace"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping/tests.rs",
+      "line": 112,
+      "name": "full_replay_removes_backing_with_zero_exact_short_limits_and_complete_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 137,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 959,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 10,
+          "module": "grouping",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs",
+          "line": 107,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "f3bc4ad754d4c33ca7508aac28412c6409469ebafe425392454ab43676e72dbb",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::tests::full_replay_removes_backing_with_zero_exact_short_limits_and_complete_drop",
+      "reason": "New independently compiled literal Main group control; no prior execution at this namespace",
+      "current_batch_selection_reasons": [
+        "New independently compiled literal Main group control; no prior execution at this namespace"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs",
+      "line": 36,
+      "name": "whole_previous_producer_and_both_complete_key_constructors_stay_bound",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 137,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 959,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 10,
+          "module": "grouping",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs",
+          "line": 105,
+          "module": "source_custody",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "05a6c4b858a441edd8693d5cc46d12b7262f78705ddc822df7c3020413501b42",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::source_custody::whole_previous_producer_and_both_complete_key_constructors_stay_bound",
+      "reason": "New independently compiled literal Main group control; no prior execution at this namespace",
+      "current_batch_selection_reasons": [
+        "New independently compiled literal Main group control; no prior execution at this namespace"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs",
+      "line": 69,
+      "name": "the_entire_older_receiver_test_only_adds_the_certified_source_inverse",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 137,
+          "module": "path_join",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join.rs",
+          "line": 959,
+          "module": "main_single_groups",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"path_join/main_single_groups/mod.rs\"]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/mod.rs",
+          "line": 10,
+          "module": "grouping",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/path_join/main_single_groups/grouping.rs",
+          "line": 105,
+          "module": "source_custody",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "05a6c4b858a441edd8693d5cc46d12b7262f78705ddc822df7c3020413501b42",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::main_single_groups::grouping::source_custody::the_entire_older_receiver_test_only_adds_the_certified_source_inverse",
+      "reason": "New independently compiled literal Main group control; no prior execution at this namespace",
+      "current_batch_selection_reasons": [
+        "New independently compiled literal Main group control; no prior execution at this namespace"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/unit_receiving_tests.rs",
+      "line": 10,
+      "name": "unified_closure_slot_keeps_complete_immediate_ids_work_and_all_six_failure_fields",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 47,
+          "module": "unit_receiving_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "8c4026175e6ed2ec76c5cdfe6bceeb0baa6596cb37a37ef6899aa927d0b40139",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_keeps_complete_immediate_ids_work_and_all_six_failure_fields",
+      "reason": "Actual source-ready831 unified closure receiving protocol control; pending execution",
+      "current_batch_selection_reasons": [
+        "Actual source-ready831 unified closure receiving protocol control; pending execution"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/unit_receiving_tests.rs",
+      "line": 83,
+      "name": "unified_closure_slot_reports_whole_immediate_costs_and_exact_short_zero_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 47,
+          "module": "unit_receiving_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "8c4026175e6ed2ec76c5cdfe6bceeb0baa6596cb37a37ef6899aa927d0b40139",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_reports_whole_immediate_costs_and_exact_short_zero_drop",
+      "reason": "Actual source-ready831 unified closure receiving protocol control; pending execution",
+      "current_batch_selection_reasons": [
+        "Actual source-ready831 unified closure receiving protocol control; pending execution"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/factored/canonical_shared/unit_receiving_tests.rs",
+      "line": 112,
+      "name": "unified_closure_slot_keeps_full_immediate_sources_and_old_receiver_bodies_bound",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 103,
+          "module": "factored",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored.rs",
+          "line": 36,
+          "module": "canonical_shared",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "line": 47,
+          "module": "unit_receiving_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "8c4026175e6ed2ec76c5cdfe6bceeb0baa6596cb37a37ef6899aa927d0b40139",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::unit_receiving_tests::unified_closure_slot_keeps_full_immediate_sources_and_old_receiver_bodies_bound",
+      "reason": "Actual source-ready831 unified closure receiving protocol control; pending execution",
+      "current_batch_selection_reasons": [
+        "Actual source-ready831 unified closure receiving protocol control; pending execution"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/branch_clone/inline_tests.rs",
+      "line": 54,
+      "name": "inline_branch_keeps_complete_paths_work_and_all_six_refusal_fields",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 3,
+          "module": "branch_clone",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/branch_clone.rs",
+          "line": 116,
+          "module": "inline_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "1d994ae4d485f50f3787b6596027267894f5858f5cb6626fa7b08c68755acc6a",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::inline_tests::inline_branch_keeps_complete_paths_work_and_all_six_refusal_fields",
+      "reason": "Actual source-ready inline branch producer protocol control; pending execution",
+      "current_batch_selection_reasons": [
+        "Actual source-ready inline branch producer protocol control; pending execution"
+      ]
+    },
+    {
+      "source_path": "src/cleanup_plan/replay/branch_clone/inline_tests.rs",
+      "line": 107,
+      "name": "inline_whole_enumerator_reports_cost_and_exact_short_zero_complete_drop",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 120,
+          "module": "cleanup_plan",
+          "attributes": [
+            "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/cleanup_plan.rs",
+          "line": 32,
+          "module": "replay",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay.rs",
+          "line": 3,
+          "module": "branch_clone",
+          "attributes": []
+        },
+        {
+          "source_path": "src/cleanup_plan/replay/branch_clone.rs",
+          "line": 116,
+          "module": "inline_tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "1d994ae4d485f50f3787b6596027267894f5858f5cb6626fa7b08c68755acc6a",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::inline_tests::inline_whole_enumerator_reports_cost_and_exact_short_zero_complete_drop",
+      "reason": "Actual source-ready inline branch producer protocol control; pending execution",
+      "current_batch_selection_reasons": [
+        "Actual source-ready inline branch producer protocol control; pending execution"
+      ]
+    }
+  ],
+  "prior_failed_bodies": 11,
+  "parser_source": "/Volumes/Semaprax/provenance/qualification-registration-module-path-20261014.py",
+  "parser_sha256": "8774afeeb957dabcde7eee44a29c1a91aec2572d7740413a0dbebf473ec7da6f",
+  "parser_span_protocol": "Original definitions through before first parse; override R only; original enumeration through before failp unchanged",
+  "selection_sha256": "82b879d4129091a0bb4082a252231ced5731909de5dbf6fa977875c3c63a3ea5",
+  "discovery_performed": false,
+  "execution_performed": false
+}

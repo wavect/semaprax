@@ -761,7 +761,15 @@ fn main_dd0_previous(source: &str, current: &str) -> String {
 
 // New owner and inherited domains remain independent; all old tables stay exact.
 pub(crate) fn arena854_input(source: &str, current: &str) -> String {
-    let next = project(include_str!("../docs/evidence/arena854-borrowed-query-zip-20261016/current-to-2d87.json"), source, current);
+    // The incoming Main join supersedes this one complete pre-merge root.
+    // Authenticate and restore that exact raw input before the unchanged zip
+    // inverse; main65 below independently checks the original current source.
+    let query_input = if source == "src/cleanup_plan/replay/factored/canonical_shared.rs" {
+        current344::project(source, current)
+    } else {
+        current.to_owned()
+    };
+    let next = project(include_str!("../docs/evidence/arena854-borrowed-query-zip-20261016/current-to-2d87.json"), source, &query_input);
     let main65 = main65_previous(source, current);
     // The complete16c overlay may already remove this same source delta.
     // Authenticate raw bytes above, then accept only raw or that exact old view.

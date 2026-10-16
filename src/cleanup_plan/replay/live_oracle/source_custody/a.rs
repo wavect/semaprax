@@ -689,7 +689,10 @@ impl<'a> Canonicalizer<'a> {
     }
     {
         let mut current =
-            include_str!("../../factored/borrowed_canonical/dictionary/keys.rs").to_owned();
+            crate::source_reflows_merge::current344::project(
+                "src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs",
+                include_str!("../../factored/borrowed_canonical/dictionary/keys.rs"),
+            );
         undo(
             &mut current,
             r#"        function: &ResolvedFunction,

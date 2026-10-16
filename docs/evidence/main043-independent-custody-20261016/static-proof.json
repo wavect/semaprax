@@ -210,7 +210,7 @@
     {
       "table": 0,
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_sha256": "d7903b9971bf5a389b32fd390aeb8e600f7f7c3933f27641361f0c99f9896eb1",
+      "current_sha256": "68c0e2cf69c3d08a42b5e8d93e9ee395ffc9f90186805fedb8ee6803b78f1161",
       "incoming_sha256": "3cc384e9243b4686748e517e2b1e02bc9ef0ea61dd032a6a026e841e82068f2b",
       "original_sha256": "bb72229bff1d33b7e6f03887a4022003465f077710cd643d75be9afcf4577961"
     },
@@ -287,7 +287,7 @@
     {
       "table": 1,
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_sha256": "d7903b9971bf5a389b32fd390aeb8e600f7f7c3933f27641361f0c99f9896eb1",
+      "current_sha256": "68c0e2cf69c3d08a42b5e8d93e9ee395ffc9f90186805fedb8ee6803b78f1161",
       "incoming_sha256": "3cc384e9243b4686748e517e2b1e02bc9ef0ea61dd032a6a026e841e82068f2b",
       "original_sha256": "4cc35f98927317e03348e7cb2508fec59d99b697def2b35f620fcac0060735a6"
     },
@@ -301,7 +301,7 @@
     {
       "table": 2,
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_sha256": "d7903b9971bf5a389b32fd390aeb8e600f7f7c3933f27641361f0c99f9896eb1",
+      "current_sha256": "68c0e2cf69c3d08a42b5e8d93e9ee395ffc9f90186805fedb8ee6803b78f1161",
       "incoming_sha256": "3cc384e9243b4686748e517e2b1e02bc9ef0ea61dd032a6a026e841e82068f2b",
       "original_sha256": "6fdc5bc7b641042627d06cd4f5274460171dc3cf4a25d1fdeb2203d797b285e2"
     },
@@ -364,7 +364,7 @@
     {
       "table": 2,
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "current_sha256": "f883f54b827e4f5a2d016f29aeb81e9886763903b8ac4959325c43b13491263e",
+      "current_sha256": "28d9dc920640d190d483a5d70f7d4d764d1893f549e96c9c2fa6858e68aae3a7",
       "incoming_sha256": "1cd423cdab9473ed591145366c339f9519892e06593d287c28b799f7e359c660",
       "original_sha256": "952c39e4f1a57a8a705acc02c06753ecf6ea67c52f2b2841699e1f4992300ccc"
     },
@@ -441,7 +441,7 @@
     {
       "table": 3,
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_sha256": "d7903b9971bf5a389b32fd390aeb8e600f7f7c3933f27641361f0c99f9896eb1",
+      "current_sha256": "68c0e2cf69c3d08a42b5e8d93e9ee395ffc9f90186805fedb8ee6803b78f1161",
       "incoming_sha256": "3cc384e9243b4686748e517e2b1e02bc9ef0ea61dd032a6a026e841e82068f2b",
       "original_sha256": "49c78bc2b79880849076544e19874e744374f238ee0c0f49e38a7d5c3bb47316"
     },
@@ -518,7 +518,7 @@
     {
       "table": 5,
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_sha256": "d7903b9971bf5a389b32fd390aeb8e600f7f7c3933f27641361f0c99f9896eb1",
+      "current_sha256": "68c0e2cf69c3d08a42b5e8d93e9ee395ffc9f90186805fedb8ee6803b78f1161",
       "incoming_sha256": "3cc384e9243b4686748e517e2b1e02bc9ef0ea61dd032a6a026e841e82068f2b",
       "original_sha256": "ffca787b9ed74a134e02ed5af5dcfe62a137815b59360a130d4c2c3149d6f807"
     },
@@ -539,7 +539,7 @@
     {
       "table": 6,
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_sha256": "d7903b9971bf5a389b32fd390aeb8e600f7f7c3933f27641361f0c99f9896eb1",
+      "current_sha256": "68c0e2cf69c3d08a42b5e8d93e9ee395ffc9f90186805fedb8ee6803b78f1161",
       "incoming_sha256": "3cc384e9243b4686748e517e2b1e02bc9ef0ea61dd032a6a026e841e82068f2b",
       "original_sha256": "844628e0b1a3f3dafd563a7a9ef3396f513e664dc63e7d70237912736d6558ea"
     },
@@ -560,7 +560,7 @@
     {
       "table": 7,
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_sha256": "d7903b9971bf5a389b32fd390aeb8e600f7f7c3933f27641361f0c99f9896eb1",
+      "current_sha256": "68c0e2cf69c3d08a42b5e8d93e9ee395ffc9f90186805fedb8ee6803b78f1161",
       "incoming_sha256": "3cc384e9243b4686748e517e2b1e02bc9ef0ea61dd032a6a026e841e82068f2b",
       "original_sha256": "bce662240d9e1666a3485a673419fe54a2e440880f74f9f9c8468f3c429f40fe"
     },
@@ -644,7 +644,7 @@
     {
       "table": 7,
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "current_sha256": "f883f54b827e4f5a2d016f29aeb81e9886763903b8ac4959325c43b13491263e",
+      "current_sha256": "28d9dc920640d190d483a5d70f7d4d764d1893f549e96c9c2fa6858e68aae3a7",
       "incoming_sha256": "1cd423cdab9473ed591145366c339f9519892e06593d287c28b799f7e359c660",
       "original_sha256": "0014f97da6597fb226e335159837994d6fd89b6f3e2852f4dc6180c2afefc835"
     },
@@ -700,7 +700,7 @@
     {
       "table": 8,
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_sha256": "d7903b9971bf5a389b32fd390aeb8e600f7f7c3933f27641361f0c99f9896eb1",
+      "current_sha256": "68c0e2cf69c3d08a42b5e8d93e9ee395ffc9f90186805fedb8ee6803b78f1161",
       "incoming_sha256": "3cc384e9243b4686748e517e2b1e02bc9ef0ea61dd032a6a026e841e82068f2b",
       "original_sha256": "485f5b066ebe1e2edb3a42c9bcdfeb6d6f310d2691736eaf63777a02ac803676"
     },

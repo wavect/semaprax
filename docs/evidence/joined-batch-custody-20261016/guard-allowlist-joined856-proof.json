@@ -1,0 +1,16 @@
+{
+  "status": "SOURCE_PREPARATION_ONLY",
+  "before_sha256": "9899a35f2174de6dba314101a8dc7b897c7b8f50360d2d4251d80426813fb575",
+  "after_sha256": "f92337eca404e195e22435736a4a3d44acee53c8cd855c590214ce942a8e5a13",
+  "reason": "Real joined856 workspace adds seven promoted source modules beyond the privateMain8a six-path optional inventory; all observed promoted additions are now mandatory with exact multiplicity. Full original guard restoration and nine hostile controls remain required.",
+  "missing_promoted_paths_added": [
+    "src/hir/function_value/funded.rs",
+    "src/hir/funded.rs",
+    "src/hir/iterator_loop/renewal/funded.rs",
+    "src/hir/lexical_exit/owner_funded.rs",
+    "src/hir/vec_loop_renewal/consuming/funded.rs",
+    "src/hir/vec_loop_renewal/funded.rs",
+    "src/loop_calls/byte_writer/resolved/funded.rs"
+  ],
+  "runtime_qualification": false
+}

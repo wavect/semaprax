@@ -1,0 +1,38 @@
+[
+  {
+    "path": "CHANGELOG.md",
+    "before_sha256": "8e58fb789e944d0a0e28dc406dc19794b2d008f645b75e6c03ee15b201c2e715",
+    "after_sha256": "d8a3cb632563920c6aaccfad669f2a02c49a7cb3c4eb5f4b6cfeae2e8aef7176",
+    "archive": "CHANGELOG.md.before.txt"
+  },
+  {
+    "path": "docs/ARCHITECTURE.md",
+    "before_sha256": "c4a3584b30ddef71c0dcb48efa20aeb2e362cd5f31a7fba07a937cfdc85801ba",
+    "after_sha256": "2d7166ddfeb4162379fb1ee78c0c674f9d96d87b74b24742c0840d9775f51bf0",
+    "archive": "docs__ARCHITECTURE.md.before.txt"
+  },
+  {
+    "path": "src/cleanup_plan/replay.rs",
+    "before_sha256": "dac39269facef6a40d86f7ce669ff3d8a20064a232624eb8eb28c00649d123fe",
+    "after_sha256": "0fc6f4818235487e7d9f1ce2b2326f1321ca4faf4107e441df73a4c9a4ee6ce3",
+    "archive": "src__cleanup_plan__replay.rs.before.txt"
+  },
+  {
+    "path": "tests/hir_module_boundaries.rs",
+    "before_sha256": "b7eb36b600c271564172c95c37100c5597da67d37e555f72a8a72ae8825fc3b9",
+    "after_sha256": "8e7ce9607f3154dda654db044a7d7507c01174d818f8b086b0509ced11382179",
+    "archive": "tests__hir_module_boundaries.rs.before.txt"
+  },
+  {
+    "path": "tests/workspace/semantic_graph/source_inventory.rs",
+    "before_sha256": "ba8bbc94b94636409dc7f27ffee0f7f1ffa9d50fe66341566aea3afe0468bb37",
+    "after_sha256": "27ef815b8384cd14bfc7db35ed29cdd03689637a28bf7aacbd0b523d91f177d2",
+    "archive": "tests__workspace__semantic_graph__source_inventory.rs.before.txt"
+  },
+  {
+    "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "before_sha256": "2cc7f60e1e29613c64afcde45471cedc8a2bd1a8637bee4cea95a6ae5ce0ffa6",
+    "after_sha256": "d8aa6602d631a9f2812664731f13f06ffd12809e89e4474a39d72b6f0a15a59f",
+    "archive": "crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.before.txt"
+  }
+]

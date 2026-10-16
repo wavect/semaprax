@@ -1,0 +1,14 @@
+{
+  "scope": "End mutable Work borrow before moving Budget; preserve intended work/budget/suffix/live cleanup order and all assertions",
+  "source": "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs",
+  "base": "0c768a551d618fca0cd35d1aea1b67ef1f248270",
+  "before_sha256": "3546628ba58180f048d230b7f723f2f7ab04cce635fb4c6b452d1bab3d339018",
+  "after_sha256": "3a9766f90634e5843161e61fba311d1949350a269b6b06d965ac7db9370df8da",
+  "replacement": {
+    "before": "            drop((work, budget, suffixes, live));",
+    "after": "            drop(work);\n            drop((budget, suffixes, live));"
+  },
+  "actual_errors": 1,
+  "executed_test_bodies": 0,
+  "rust_qualification": "PENDING"
+}

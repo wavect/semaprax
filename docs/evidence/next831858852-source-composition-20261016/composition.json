@@ -792,7 +792,7 @@
         },
         {
           "path": "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs",
-          "current_sha256": "3546628ba58180f048d230b7f723f2f7ab04cce635fb4c6b452d1bab3d339018",
+          "current_sha256": "3a9766f90634e5843161e61fba311d1949350a269b6b06d965ac7db9370df8da",
           "private_sha256": "f119587abd226a601f72ba4246ba93159ccbd5ad2f203ba34cf97ee2a5bed861",
           "edits": [
             {
@@ -801,7 +801,12 @@
               "private": "    let minimum = path_array::count!(work, true, 9, \"isolated sequencing count\");\n"
             },
             {
-              "start": 472,
+              "start": 469,
+              "current": "            drop(work);\n            drop((budget, suffixes, live));\n",
+              "private": "            drop((work, budget, suffixes, live));\n"
+            },
+            {
+              "start": 473,
               "current": "        let actual = run(false).err().expect(\"optimized receiver must refuse\");\n        let expected = run(true).err().expect(\"original receiver must refuse\");\n",
               "private": "        let actual = run(false).unwrap_err();\n        let expected = run(true).unwrap_err();\n"
             }

@@ -1,0 +1,62 @@
+{
+  "status": "PASS_SOURCE_ONLY_INCLUDE_INSERTION_CONTROLS",
+  "source_head": "a0979a370d6abc2d7d4dd1938eac42d797abf7c3",
+  "allowed_ref": "ef3c5b3c117fd01f3121ec0199d0566cbfb5202f",
+  "positive_cases": 9,
+  "hostile_refusals": [
+    "replacement",
+    "deletion",
+    "reorder",
+    "plain-whitespace-insert",
+    "plain-whitespace-delete",
+    "plain-whitespace-replace",
+    "crlf-rewrite",
+    "old-macro-spacing",
+    "non-macro-addition",
+    "partial-macro",
+    "wrong-separator",
+    "duplicate-fragment",
+    "unicode-change"
+  ],
+  "actual_raw_hostile_refusals": 18,
+  "actual_maximum_refusals": 3,
+  "old_parser_actual_failures": 3,
+  "raw_proofs": [
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "current_sha256": "4035569ab4338dbf174988b6cda7b7c649857be3262cbc1524ea4af38f3203a9",
+      "original_sha256": "959eaf830896619186a6c75d707a8bd1e41d123563f7bb04ced26ea947f4de78",
+      "runs": 6,
+      "inserted_includes": 89,
+      "whole_restoration": true
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "current_sha256": "4fcef1a7ffb231ff1b42995db0b4b85326c5fc44f91880e09a9a85c4effcc2c7",
+      "original_sha256": "7cee73c09e4a61b24480a7abf756c3fdf228d15a0f341a3cd0bc387b39fd6375",
+      "runs": 7,
+      "inserted_includes": 124,
+      "whole_restoration": true
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "current_sha256": "905fb0a415c55487d695934712f4dfa185c1b097ab1c8dcd6b9413a9c1dad6ff",
+      "original_sha256": "4ce9be9127d201c440ba2725ff5e38cfbd89c9fd70f6809da0da82b4891c180c",
+      "runs": 5,
+      "inserted_includes": 94,
+      "whole_restoration": true
+    }
+  ],
+  "unchanged_original_controls": {
+    "status": "PASS_SOURCE_ONLY_GUARD_EXTENSIONS",
+    "old_full_guards_preserved": 3,
+    "missing_duplicate_foreign_refused": 9,
+    "raw_sources_projected": false,
+    "rust_executed": false
+  },
+  "authority_writes": "isolated temporary unit fixture only; no checkout/common refresh",
+  "rust_executed": false,
+  "candidate_script_sha256": "ccfb62c8b30e5564446ddc6eb2a31f5a7502e5ed43d3d5077a8c0105c42ef95a",
+  "controls_sha256": "be9e2fdb3327ffb73a598577837c40bcf7f938be29335ac3f9ee357a9a1ec211",
+  "original_script_sha256": "cc54e0b46653ace6fbd06cd3835db79099e3f784adfd3860d03beeb11c6e179b"
+}

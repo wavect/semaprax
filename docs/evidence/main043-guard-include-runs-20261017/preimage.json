@@ -1,0 +1,7 @@
+{
+  "base": "a0979a370d6abc2d7d4dd1938eac42d797abf7c3",
+  "path": "docs/evidence/main043-independent-custody-20261016/guard-extensions.py",
+  "before_sha256": "cc54e0b46653ace6fbd06cd3835db79099e3f784adfd3860d03beeb11c6e179b",
+  "after_sha256": "ccfb62c8b30e5564446ddc6eb2a31f5a7502e5ed43d3d5077a8c0105c42ef95a",
+  "unchanged_verify_guard_and_controls_sha256": "0784e17f1ffd8c8b821d61df0f1bcedf570934ec8c1f409666aeddbf78fe9bd8"
+}

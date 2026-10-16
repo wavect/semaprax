@@ -1,3 +1,6 @@
+- Preserve complete raw Main043 guards when several additive include runs share
+  a physical line. Tokenized insertion checks retain all original bytes, limits,
+  and old controls; hostile edits and whole-source restoration are source-tested.
 - Repair the complete first production Clippy cohort for private #847. Keep
   compatibility receivers test-compiled, narrow source-verifier visibility, and
   fund the diagnostic-prefix/body-owner context before formation. Focused

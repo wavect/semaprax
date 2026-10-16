@@ -3,6 +3,11 @@
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
 
+- Source-only #781 followup routes the duplicated paid lexical/scalar driver
+  profile and member guards through their existing prepaid receipt twins.
+  Complete old drivers and report/ledger/Drop controls remain; transitive dynamic
+  Session diagnostics remain open and qualification is pending.
+
 - Select the existing paid borrowed-alias producer on the first ordinary uncached core attempt, preserving cache/invariant fallbacks and the complete old/current Project source, graph and Image parity gate. The previous compact-only gate left successful small Projects on the owning fallback; qualification is pending.
 
 - Source-only #851 admits exact capacity-witness control layouts before eligibility/length receivers and reserves optional String backing separately; preserve the complete Main receiver and all three original controls independently, with truthful paid-control spend on later backing refusal. Output, primary fields, sticky/floor behavior and limits remain; focused qualification is pending.

@@ -1,0 +1,16 @@
+{
+  "status": "SOURCE_ONLY_NO_EXECUTION",
+  "new_owners": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_entry::tests::driver_local_receivers::duplicated_driver_profile_and_owner_keep_raw_oracle_and_transfer_one_paid_report"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_entry::tests::driver_local_receivers::duplicated_driver_complete_legacy_bodies_and_current_sources_stay_exact"
+    }
+  ],
+  "supporting_existing_unchanged": "selected_entry/tests/{paid,setup,recovering,session_errors} retain all original zero/short/carrier/first-receipt/Drop assertions; no current PASS claimed"
+}

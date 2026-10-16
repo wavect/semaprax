@@ -440,6 +440,13 @@ collection declarations with no runtime carrier authority. Both reject every
 transitive executable use, including uncalled functions; [Declared Text
 Collections v1](DECLARED-TEXT-COLLECTIONS-V1.md) owns that explicit boundary.
 
+`source_verify/declaration/record_shape` owns the ordinary owned-Bytes record
+shape diagnostic and exact six-field diagnostic dependency used by error-only
+recovery. Real parameter bindings retain their original type and ownership;
+only a dependent match shape is unavailable after the same declaration refusal.
+Independent body expressions, parameter modes, lexical pattern checks and valid
+record patterns continue through their existing owners.
+
 `ast/type_properties.rs` owns primitive type formatting and classification.
 The reserved mutable callable type has independent source and retained-HIR
 admission guards in `source_verify/declared_type.rs`, `source_verify/closure.rs`

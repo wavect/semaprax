@@ -26,6 +26,9 @@ mod declarations;
 mod functions;
 pub(super) mod fusion;
 mod identity;
+pub(super) mod record_shape;
+#[cfg(test)]
+mod record_shape_before;
 
 pub(crate) fn verify(program: &dyn ProgramSource) -> Vec<Diagnostic> {
     verify_selected(program, None, None)

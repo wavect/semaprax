@@ -249,8 +249,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             .values()
             .filter(|binding| binding.borrow_origin.is_some())
             .count();
-        let recovery =
+        let mut recovery =
             recovery::Recovery::signature(program, current, &variables, types, diagnostics);
+        declaration::record_shape::seed(
+            &mut recovery, program, current, &variables, types, diagnostics,
+        );
         Self {
             program,
             current,

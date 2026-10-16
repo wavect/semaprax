@@ -38,6 +38,17 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             _ => unreachable!("match continuation has a non-match expression"),
         };
         let mut scrutinee_value = self.values.pop().unwrap_or(None);
+        // A real value/ownership check still ran. Only its rejected declaration
+        // shape is unavailable to dependent pattern resolution.
+        if scrutinee_value.as_ref().is_some_and(|value| {
+            self.recovery.view(scrutinee).is_some_and(|view| {
+                crate::source_verify::declaration::record_shape::origin(
+                    self.program, self.types, &value.ty, self.diagnostics,
+                ) == Some(view.origin)
+            })
+        }) {
+            scrutinee_value = None;
+        }
         let scrutinee_diagnostics = self.diagnostics.len();
         if let Some(value) = &scrutinee_value {
             reject_native_unit_value(self.program, scrutinee, value, self.diagnostics);

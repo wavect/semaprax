@@ -1,0 +1,41 @@
+{
+  "status": "SOURCE_ONLY_EXACT_ADDITIVE_UNION",
+  "parent": "9b0702639",
+  "candidate": "4563697fde3177b749d5368cdf57541ccb6a5170",
+  "rows": [
+    {
+      "guard": "tests/hir_module_boundaries.rs",
+      "added_tokens": {
+        "../src/source_verify/declaration/record_shape.rs": 1,
+        "../src/source_verify/declaration/record_shape_before.rs": 1
+      },
+      "all_prior_guard_bytes_preserved": true,
+      "private_guard_exact_additive_fragment": "include_str!(\"../src/source_verify/declaration/record_shape.rs\"), include_str!(\"../src/source_verify/declaration/record_shape_before.rs\"), ",
+      "private_fragment_offset": 330,
+      "line_count": 897
+    },
+    {
+      "guard": "tests/workspace/semantic_graph/source_inventory.rs",
+      "added_tokens": {
+        "../../src/source_verify/declaration/record_shape.rs": 1,
+        "../../src/source_verify/declaration/record_shape_before.rs": 1
+      },
+      "all_prior_guard_bytes_preserved": true,
+      "private_guard_exact_additive_fragment": "include_str!(\"../../src/source_verify/declaration/record_shape.rs\"), include_str!(\"../../src/source_verify/declaration/record_shape_before.rs\"), ",
+      "private_fragment_offset": 553,
+      "line_count": 777
+    },
+    {
+      "guard": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "added_tokens": {
+        "../../../../../src/source_verify/declaration/record_shape.rs": 1,
+        "../../../../../src/source_verify/declaration/record_shape_before.rs": 1
+      },
+      "all_prior_guard_bytes_preserved": true,
+      "private_guard_exact_additive_fragment": " include_str!(\"../../../../../src/source_verify/declaration/record_shape.rs\"), include_str!(\"../../../../../src/source_verify/declaration/record_shape_before.rs\"),",
+      "private_fragment_offset": 294,
+      "line_count": 1500
+    }
+  ],
+  "changelog_all_sides_retained": 1
+}

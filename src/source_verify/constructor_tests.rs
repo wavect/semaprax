@@ -395,6 +395,8 @@ fn complete_saved_pass_sources_and_all_children_remain_joined_and_within_caps() 
         include_str!("../prelude/base_schema.rs"),
         include_str!("../prelude/base_original.rs"),
         include_str!("declaration.rs"),
+        include_str!("declaration/record_shape.rs"),
+        include_str!("declaration/record_shape_before.rs"),
         include_str!("declaration/functions.rs"),
         include_str!("declaration/functions/signature_refusal.rs"),
         include_str!("declaration/functions/signature_refusal/tests.rs"),

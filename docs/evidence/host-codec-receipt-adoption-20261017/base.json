@@ -1,0 +1,22 @@
+{
+  "base": "37c771b08aa807365433d1beb23dcf138c216977",
+  "preimages": [
+    {
+      "path": "benchmarks/compiler_input_capture.py",
+      "archive": "before/benchmarks__compiler_input_capture.py",
+      "sha256": "903cc3559da25fe56353070a964e8c42b21f5e552505bcd5c30034ddef20b1a9"
+    },
+    {
+      "path": "benchmarks/cli-tokens-v1/codex_campaign.py",
+      "archive": "before/benchmarks__cli-tokens-v1__codex_campaign.py",
+      "sha256": "7f64ea081d6815ebea9c91bfb3e09c125466309c4d8601c31788b7a94a8f2ec7"
+    },
+    {
+      "path": "benchmarks/webapp-tokens-v2/codex_campaign.py",
+      "archive": "before/benchmarks__webapp-tokens-v2__codex_campaign.py",
+      "sha256": "006aa13077cdcb6916d40a20565d84dd12d95686d8f27646eea95a2eb1894ff3"
+    }
+  ],
+  "initial_attempt": "initial-main7f-f3/base.json",
+  "qualification": "actual shipping37 source, no copied prerequisite overlay"
+}

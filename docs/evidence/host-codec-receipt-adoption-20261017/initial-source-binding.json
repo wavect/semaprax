@@ -1,0 +1,13 @@
+{
+  "base": "1af9e5eda3f47ab3af843ed0406e28c8e7df3e6e",
+  "files": {
+    "base.json": "b2cc32eac75c3273097518176b54bbf0e2043fab97d94b59e2378fe8ae605f9c",
+    "before/benchmarks__cli-tokens-v1__codex_campaign.py": "04a4c54c5213f4631798016f3fc00636f3e644a1e673d7a00fcee8ac319633c3",
+    "before/benchmarks__compiler_input_capture.py": "903cc3559da25fe56353070a964e8c42b21f5e552505bcd5c30034ddef20b1a9",
+    "before/benchmarks__webapp-tokens-v2__codex_campaign.py": "fe9ed592b543468a7c90e572603b001f89d7b21797eba5889731eebb7f9ff8d3",
+    "compiler_retained_receipt.py": "544083b010d06c95c5538ea3044fd872820041ce0124c63a955c8da227b97bb6",
+    "offline-prerequisite-failure.log": "83a9c00f7a7bb56bd5b806ed4e90f1a5bd0b71c57ded447f51d611e60cb81d7e",
+    "source.patch": "fe6fbbd4052df7cfe25991955ab99cddecc79a003e98ccf777ed796ec20e0126",
+    "test_compiler_retained_receipt.py": "65c1d1905942610b6780459ccd780d38f02e07a2485874cdf7afc7912cc89be1"
+  }
+}

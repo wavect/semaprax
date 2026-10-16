@@ -83,6 +83,7 @@ HARNESS_SOURCE_FILES = (
     "benchmarks/authored_source_recount.py",
     "benchmarks/compiler_output_provenance.py",
     "benchmarks/compiler_input_capture.py",
+    "benchmarks/compiler_retained_receipt.py",
     "benchmarks/webapp-tokens-v2/typescript_bootstrap.py",
     "benchmarks/webapp-tokens-v2/dependency_bundle.py",
     "benchmarks/live_campaign_common.py",

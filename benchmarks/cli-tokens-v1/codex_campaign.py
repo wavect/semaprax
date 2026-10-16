@@ -55,6 +55,7 @@ HARNESS_SOURCE_FILES = (
     "benchmarks/live_campaign_common.py",
     "benchmarks/campaign_resources.py",
     "benchmarks/compiler_input_capture.py",
+    "benchmarks/compiler_retained_receipt.py",
     "benchmarks/compiler_output_provenance.py",
 )
 PRICE_USD_PER_MTOK = {

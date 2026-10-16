@@ -164,11 +164,12 @@ def _read_message_at(directory_fd: int, name: str, limit: int = MAX_MESSAGE_BYTE
 class Broker:
     """Only bounded no-follow candidate reads and exclusive evidence writes."""
     def __init__(self, candidate: Path, mailbox: Path, evidence: Path, compiler: dict[str, str],
-                 workspace: Path | None = None):
+                 workspace: Path | None = None, retained_receipts_enabled: bool = False):
         self.candidate = Path(os.path.abspath(candidate))
         self.workspace = Path(os.path.abspath(workspace if workspace is not None else candidate.parent))
         self.candidate_relative = self.candidate.relative_to(self.workspace)
         self.mailbox, self.evidence, self.compiler = mailbox, evidence, compiler
+        self.retained_receipts_enabled = retained_receipts_enabled
         self.stop = threading.Event()
         self.thread = threading.Thread(target=self._watch, daemon=True)
         self.request_receipts: list[dict[str, str]] = []
@@ -230,6 +231,11 @@ class Broker:
                 if not isinstance(argv, list) or not all(isinstance(arg, str) for arg in argv) or not isinstance(cwd, str):
                     raise ValueError("capture invocation shape is invalid")
                 values = _options(argv)
+                receipt_mode = False
+                if values is None and self.retained_receipts_enabled:
+                    import compiler_retained_receipt as retained
+                    values = retained.options(argv)
+                    receipt_mode = values is not None
                 if values is None:
                     raise ValueError("capture invocation is not supported codec grammar")
                 response.update({"argv": argv, "cwd": cwd})
@@ -240,7 +246,8 @@ class Broker:
                     os.close(candidate_fd)
                 response["selected_inputs"] = self._capture(selected, directory / "before")
                 response["status"] = "selected_inputs_retained"
-                self.starts[identifier] = {"argv": argv, "cwd": cwd, "values": values}
+                self.starts[identifier] = {"argv": argv, "cwd": cwd, "values": values,
+                    "receipt_mode": receipt_mode, "selected_inputs": response["selected_inputs"]}
             elif operation == "finish":
                 start = request.get("start")
                 if not isinstance(start, str) or start not in self.starts:
@@ -251,10 +258,16 @@ class Broker:
                     raise ValueError("capture completion exit code must be a process status")
                 response.update({"start": start, "exit_code_proxy_reported": code,
                     "compiler_status_independently_observed": False, "status": "completion_reported"})
+                if invocation["receipt_mode"]:
+                    response["compiler_retained_receipt_requested"] = True
                 if code == 0:
                     output = Path(invocation["cwd"]) / invocation["values"]["--output"]
                     response["declared_output_bytes"] = self._capture([_under(self.candidate, output)], directory / "after")
                     response["output_execution_authentication"] = None
+                    if invocation["receipt_mode"]:
+                        response["compiler_receipt_observation"] = request.get("compiler_receipt_observation")
+                        response["compiler_retained_receipt_adoption"] = self._adopt_receipt(
+                            identifier, invocation, response, directory)
             elif operation == "measurement":
                 wait = request.get("capture_wait_ns_proxy_reported")
                 error = request.get("capture_error")
@@ -282,6 +295,25 @@ class Broker:
         self.request_receipts.append({"path": identifier + "/receipt.json",
             "sha256": provenance.digest(directory / "receipt.json")})
         return response
+
+    def _adopt_receipt(self, identifier: str, invocation: dict, response: dict, directory: Path) -> dict:
+        import compiler_retained_receipt as retained
+        snapshot = response["declared_output_bytes"]
+        if len(snapshot["files"]) != 1:
+            raise ValueError("compiler receipt must be one retained output artifact")
+        file = snapshot["files"][0]
+        fd = os.open(self.evidence, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            raw = provenance._snapshot_read(fd, identifier + "/after/inputs/" + file["path"], MAX_SELECTION_BYTES)
+        finally:
+            os.close(fd)
+        if len(raw) != file["bytes"] or hashlib.sha256(raw).hexdigest() != file["sha256"]:
+            raise ValueError("retained compiler artifact differs from captured output")
+        report = retained.validate(raw, invocation["argv"], invocation["cwd"], self.compiler,
+            response["compiler_receipt_observation"], invocation["selected_inputs"]["files"])
+        path = directory / "compiler-receipt-adoption.json"
+        _json(path, report, MAX_SELECTION_BYTES)
+        return {"path": identifier + "/compiler-receipt-adoption.json", "sha256": provenance.digest(path)}
 
     def _watch(self) -> None:
         while True:
@@ -381,6 +413,8 @@ def retained_file_inventories(summary: dict[str, Any], metadata: dict[str, Any] 
                     raise ValueError("declared output has no retained original input request")
                 else:
                     starts.remove(receipt["start"])
+                if key == "declared_output_bytes" and receipt.get("compiler_retained_receipt_requested") is True:
+                    kind = "compiler_receipt_artifact"
                 snapshot = receipt[key]
                 relative = provenance._relative(Path(snapshot["receipt"]).relative_to(evidence).as_posix(), "retained snapshot")
                 expected = request + ("/before/snapshot.json" if key == "selected_inputs" else "/after/snapshot.json")
@@ -407,6 +441,22 @@ def retained_file_inventories(summary: dict[str, Any], metadata: dict[str, Any] 
                     "request_receipt_sha256": binding["sha256"],
                     "kind": kind, "snapshot_receipt": relative, "snapshot_sha256": snapshot["sha256"],
                     "files": measured, "full_file_proxy_tokens": sum(counts) if metadata is not None else None})
+                if kind == "compiler_receipt_artifact":
+                    import compiler_retained_receipt as retained
+                    adoption = receipt.get("compiler_retained_receipt_adoption")
+                    if adoption is None:
+                        observed = {"status": "adoption_failed", "error": receipt.get("capture_error", "missing compiler receipt binding"),
+                            "input_closure_complete": False, "exact_compiler_input_binding": False, "ratio_eligible": False}
+                    else:
+                        expected = request + "/compiler-receipt-adoption.json"
+                        if adoption.get("path") != expected:
+                            raise ValueError("compiler adoption report escapes its request")
+                        raw_report = provenance._snapshot_read(root_fd, expected, MAX_SELECTION_BYTES)
+                        if hashlib.sha256(raw_report).hexdigest() != adoption["sha256"]:
+                            raise ValueError("compiler adoption report differs from runner binding")
+                        observed = retained.measure(source, json.loads(raw_report), metadata)
+                        observed["adoption_report_sha256"] = adoption["sha256"]
+                    result.setdefault("compiler_receipts", []).append(observed)
     finally:
         os.close(root_fd)
     if not result["inventories"]:
@@ -435,7 +485,16 @@ def _captured_compiler(candidate: Path, workspace: Path, artifacts: Path,
     tools = evidence / "tools"
     tools.mkdir()
     tool_hashes = {}
-    for name in ("compiler_input_capture.py", "compiler_output_provenance.py"):
+    optional = "compiler_retained_receipt.py"
+    snapshot = settings.get("harness_source_snapshot")
+    if snapshot is not None and not isinstance(snapshot, dict):
+        raise ValueError("compiler capture harness snapshot is malformed")
+    inventories = [settings.get("harness_source_files_sha256"),
+        snapshot.get("files_sha256") if snapshot is not None else None]
+    supplied = [inventory for inventory in inventories if inventory is not None]
+    enabled = any(isinstance(inventory, dict) and "benchmarks/" + optional in inventory for inventory in supplied)
+    names = ("compiler_input_capture.py", "compiler_output_provenance.py") + ((optional,) if enabled else ())
+    for name in names:
         source_path = Path(__file__).with_name(name)
         if source_path.is_symlink() or not source_path.is_file():
             raise ValueError("compiler capture tool must be a regular harness source")
@@ -458,9 +517,9 @@ def _captured_compiler(candidate: Path, workspace: Path, artifacts: Path,
     broker = None
     config = tools / "config.json"
     try:
-        broker = Broker(candidate, mailbox, evidence, compiler, workspace)
+        broker = Broker(candidate, mailbox, evidence, compiler, workspace, retained_receipts_enabled=enabled)
         _json(config, {"candidate": str(Path(os.path.abspath(candidate))), "mailbox": str(mailbox),
-            "evidence": str(evidence.resolve()), "compiler": compiler})
+            "evidence": str(evidence.resolve()), "compiler": compiler, "retained_receipts_enabled": enabled})
         proxy = tools / "semaprax"
         proxy.write_text("#!/bin/sh\nexec " + shlex.quote(sys.executable) + " -I "
             + shlex.quote(str(tools / "compiler_input_capture.py")) + " " + shlex.quote(str(config)) + ' "$@"\n')
@@ -581,9 +640,14 @@ def _measurement(config: dict[str, Any], wait_ns: int, error: str | None, code: 
 def proxy_main(config: dict[str, Any], argv: list[str]) -> int:
     compiler = config["compiler"]
     binary = Path(compiler["real_binary"])
-    if provenance.digest(binary) != compiler["binary_sha256"]:
+    binary_before = provenance.digest(binary)
+    if binary_before != compiler["binary_sha256"]:
         raise ValueError("actual compiler changed after campaign plan")
-    if _options(argv) is None:
+    receipt_mode = False
+    if config.get("retained_receipts_enabled") is True:
+        import compiler_retained_receipt as retained
+        receipt_mode = retained.options(argv) is not None
+    if _options(argv) is None and not receipt_mode:
         os.execv(str(binary), [str(binary), *argv])
         raise AssertionError("exec returned")
     start = None
@@ -603,7 +667,12 @@ def proxy_main(config: dict[str, Any], argv: list[str]) -> int:
     capture_error = None
     if start is not None:
         try:
-            _request(config, {"operation": "finish", "start": start, "exit_code": code})
+            finish = {"operation": "finish", "start": start, "exit_code": code}
+            if receipt_mode:
+                finish["compiler_receipt_observation"] = {"observer": "sandboxed_harness_proxy",
+                    "binary_sha256_before": binary_before, "binary_sha256_after": provenance.digest(binary),
+                    "invocation_sha256": retained.invocation_sha256(str(binary), argv, os.getcwd()), "exit_code": code}
+            _request(config, finish)
         except (OSError, ValueError, KeyError) as error:
             capture_error = str(error)[:1024]
     _measurement(config, time.monotonic_ns() - wait_started, capture_error, code)

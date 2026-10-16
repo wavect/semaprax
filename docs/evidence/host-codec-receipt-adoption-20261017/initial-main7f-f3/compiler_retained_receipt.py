@@ -1,0 +1,200 @@
+"""Strict optional compiler-receipt accounting; no execution or replay authority.
+
+Structural validation is not proof that an agent-writable channel executed the
+claimed compiler. All independent-execution/authorship eligibility remains false.
+"""
+from __future__ import annotations
+import hashlib
+import json
+import os
+from pathlib import Path
+import tomllib
+from typing import Any
+import compiler_output_provenance as provenance
+
+MAX_BYTES = 8 * 1024 * 1024  # existing host capture bound; compiler permits more
+STRING_PROFILES = {'utf8-owned-request.v1', 'stream-utf8-owned-request.v1',
+    'bounded-collection-response.v1', 'bounded-nested-request.v1',
+    'bounded-stream-nested-request.v1', 'bounded-nested-response.v1', 'bounded-nested-response.v2'}
+ARRAY_PROFILES = {'bounded-nested-request.v1', 'bounded-stream-nested-request.v1',
+    'bounded-nested-response.v1', 'bounded-nested-response.v2'}
+PLAIN_PROFILES = {'identifier-views.v1', 'request-views.v1', 'stream-request-views.v1',
+    'owned-request.v1', 'stream-owned-request.v1'}
+
+def invocation_sha256(binary: str, argv: list[str], cwd: str) -> str:
+    result = hashlib.sha256(b'semaprax.compiler-invocation.v1\0')
+    for value in [binary, *argv, cwd]:
+        data = os.fsencode(value)
+        result.update(len(data).to_bytes(8, 'little'));result.update(data)
+    return result.hexdigest()
+
+def options(argv: list[str]) -> dict[str, str] | None:
+    if argv.count('--retained-receipt') != 1:return None
+    args = [arg for arg in argv if arg != '--retained-receipt']
+    if len(args) not in (8, 10, 12, 14) or args[0] != 'json-codec' or not args[1] or args[1].startswith('-'):return None
+    values = {'project': args[1]}
+    for key, value in zip(args[2::2], args[3::2]):
+        if key not in {'--source','--type','--output','--profile','--max-string-bytes','--max-array-items'} or key in values or not value or value.startswith('-'):return None
+        values[key] = value
+    if not {'--source','--type','--output'} <= values.keys():return None
+    profile = values.get('--profile')
+    if profile is not None and profile not in PLAIN_PROFILES | STRING_PROFILES:return None
+    for key, profiles, maximum in [('--max-string-bytes',STRING_PROFILES,64),('--max-array-items',ARRAY_PROFILES,256)]:
+        raw = values.get(key)
+        if profile in profiles:
+            if raw is None or not raw.isascii() or not raw.isdigit() or len(raw)>3 or str(int(raw))!=raw or not 1<=int(raw)<=maximum:return None
+        elif raw is not None:return None
+    return values
+
+def _object(value: Any, keys: list[str]) -> dict:
+    if type(value) is not dict or set(value) != set(keys):raise ValueError('compiler receipt fields differ')
+    return {key:value[key] for key in keys}
+
+def _string(value: Any, maximum: int = MAX_BYTES) -> str:
+    if type(value) is not str or len(value.encode('utf-8'))>maximum:raise ValueError('invalid compiler receipt string')
+    return value
+
+def _integer(value: Any, maximum: int = MAX_BYTES) -> int:
+    if type(value) is not int or not 0<=value<=maximum:raise ValueError('invalid compiler receipt integer')
+    return value
+
+def _digest(data: bytes) -> str:return 'sha256:'+hashlib.sha256(data).hexdigest()
+
+def _hash(value: Any) -> str:
+    if type(value) is not str or not value.startswith('sha256:'):raise ValueError('invalid compiler receipt digest')
+    provenance._hex(value[7:],64,'compiler receipt digest');return value
+
+def _pairs(pairs: list[tuple[str, Any]]) -> dict:
+    result = {}
+    for key,value in pairs:
+        if key in result:raise ValueError('duplicate compiler receipt key')
+        result[key] = value
+    return result
+
+def _decode(raw: bytes) -> dict:
+    if len(raw)>MAX_BYTES:raise ValueError('compiler receipt exceeds existing host capture bound')
+    def reject(value):raise ValueError('nonfinite compiler receipt JSON')
+    try:return json.loads(raw.decode('utf-8'),object_pairs_hook=_pairs,parse_constant=reject)
+    except (RecursionError,UnicodeError) as error:raise ValueError('invalid compiler receipt encoding/nesting') from error
+
+def _files(rows: Any) -> list[dict]:
+    if type(rows) is not list or not 1<=len(rows)<=64:raise ValueError('compiler source inventory exceeds bound')
+    result=[];total=0;previous=None
+    for value in rows:
+        row=_object(value,['path','source','sha256']);path=provenance._relative(row['path'],'compiler source')
+        if previous is not None and path<=previous:raise ValueError('compiler source inventory is not unique sorted')
+        previous=path;source=_string(row['source']);total+=len(source.encode('utf-8'))
+        if total>2*1024*1024 or _hash(row['sha256'])!=_digest(source.encode('utf-8')):raise ValueError('compiler source bytes/digest differ')
+        result.append(row)
+    return result
+
+def _manifest_paths(text: str) -> tuple[list[str],list[str]]:
+    manifest=tomllib.loads(text)
+    modules=manifest.get('modules',manifest)
+    if type(modules) is not dict:raise ValueError('manifest module inventory is invalid')
+    sources=modules.get('sources');dependencies=manifest.get('dependency-sources',{})
+    if type(sources) is not list or not 1<=len(sources)<=64 or type(dependencies) is not dict or len(dependencies)>4:raise ValueError('manifest input inventory differs')
+    sources=[provenance._relative(value,'manifest source') for value in sources]
+    subjects=[provenance._relative(value,'manifest dependency subject') for value in dependencies.values()]
+    if len(set(sources+subjects+['semaprax.toml'])) != len(sources)+len(subjects)+1:raise ValueError('manifest input paths overlap')
+    return sources,subjects
+
+def validate(raw: bytes, argv: list[str], cwd: str, compiler: dict, observation: dict,
+             selected: list[dict]) -> dict:
+    """Validate retained bytes/claims, explicitly without trusting their origin."""
+    values=options(argv)
+    if values is None:raise ValueError('receipt invocation is not the exact additive grammar')
+    expected=invocation_sha256(compiler['real_binary'],argv,cwd)
+    observation=_object(observation,['observer','binary_sha256_before','binary_sha256_after','invocation_sha256','exit_code'])
+    if (observation['observer']!='sandboxed_harness_proxy' or type(observation['exit_code']) is not int
+        or observation['exit_code']!=0 or observation['invocation_sha256']!=expected
+        or observation['binary_sha256_before']!=compiler['binary_sha256']
+        or observation['binary_sha256_after']!=compiler['binary_sha256']):raise ValueError('compiler invocation/status/binary binding differs')
+    provenance._hex(compiler['binary_sha256'],64,'configured compiler binary')
+    receipt=_object(_decode(raw),['schema','compiler_package_version','compiler_binary_sha256','repeat_kind',
+        'independent_execution','publication_policy','held_inputs','derivations','bundle'])
+    if (receipt['schema']!='semaprax.json-codec-retained-receipt.v1' or receipt['compiler_binary_sha256'] is not None
+        or receipt['independent_execution'] is not False or receipt['repeat_kind']!='same-process.same-retained-revision.v1'
+        or receipt['publication_policy']!='explicit-new-artifact.no-overwrite.v1'):raise ValueError('compiler receipt truth/compatibility labels differ')
+    _string(receipt['compiler_package_version'],64)
+    inputs=receipt['held_inputs']
+    if type(inputs) is not list or not 2<=len(inputs)<=69:raise ValueError('compiler held inventory exceeds bound')
+    held=[];total=0
+    for value in inputs:
+        row=_object(value,['role','path','bytes','sha256','source']);provenance._relative(row['path'],'held input')
+        source=_string(row['source']);data=source.encode('utf-8');total+=len(data)
+        if _integer(row['bytes'],16*1024*1024)!=len(data) or _hash(row['sha256'])!=_digest(data) or total>16*1024*1024:raise ValueError('compiler original bytes/digest differ')
+        held.append(row)
+    declared,subjects=_manifest_paths(held[0]['source'])
+    expected_inputs=[('manifest','semaprax.toml')]+[('declared_source',p) for p in declared]+[('dependency_subject',p) for p in subjects]
+    if [(row['role'],row['path']) for row in held]!=expected_inputs:raise ValueError('compiler held closure differs from complete manifest inventory')
+    if values['--source'] not in declared:raise ValueError('receipt schema is not a declared original source')
+    if len(selected)!=2:raise ValueError('receipt requires retained selected original pair')
+    root=Path(selected[0]['path']).parent
+    for row,logical in zip(selected,['semaprax.toml',values['--source']]):
+        expected_row=next(value for value in held if value['path']==logical)
+        if row['path']!=(root/logical).as_posix() or row['bytes']!=expected_row['bytes'] or row['sha256']!=expected_row['sha256'][7:]:raise ValueError('receipt differs from before-selected original bytes')
+    bundle=_object(receipt['bundle'],['schema','authored_project_revision','candidate_project_revision','candidate_workspace_revision','manifest','authored_sources','candidate_sources','entries'])
+    if bundle['schema']!='semaprax.json-codec-bundle.v1':raise ValueError('inner compiler bundle schema differs')
+    for key in ['authored_project_revision','candidate_project_revision','candidate_workspace_revision']:_string(bundle[key],256)
+    if _manifest_paths(_string(bundle['manifest']))!=(declared,subjects):raise ValueError('candidate manifest inventory differs')
+    authored=_files(bundle['authored_sources']);candidate=_files(bundle['candidate_sources'])
+    if [row['path'] for row in authored]!=[row['path'] for row in candidate]:raise ValueError('candidate source closure differs')
+    originals={row['path']:row for row in authored};outputs={row['path']:row for row in candidate}
+    for row in held[1:1+len(declared)]:
+        if row['path'] not in originals or originals[row['path']]['source']!=row['source']:raise ValueError('resolved original source differs from held original')
+    if type(bundle['entries']) is not list or len(bundle['entries'])!=1:raise ValueError('single invocation requires one exact entry')
+    entry=_object(bundle['entries'][0],['source_path','record_id','profile','max_string_bytes','max_array_items','authored_sha256','candidate_sha256','generated_declarations'])
+    if (entry['source_path']!=values['--source'] or entry['record_id']!=values['--type']
+        or entry['profile']!=values.get('--profile','flat-scalars.v1')
+        or entry['max_string_bytes']!=(int(values['--max-string-bytes']) if '--max-string-bytes' in values else None)
+        or entry['max_array_items']!=(int(values['--max-array-items']) if '--max-array-items' in values else None)
+        or entry['authored_sha256']!=originals[entry['source_path']]['sha256']
+        or entry['candidate_sha256']!=outputs[entry['source_path']]['sha256']):raise ValueError('compiler selection/output binding differs')
+    for key in ['max_string_bytes','max_array_items']:
+        if entry[key] is not None:_integer(entry[key],256)
+    ids=entry['generated_declarations']
+    if type(ids) is not list or len(ids)>4096 or any(type(value)is not str for value in ids) or ids!=sorted(set(ids)):raise ValueError('compiler generated identity inventory differs')
+    # Reconstruct the documented Rust struct field order, not arbitrary incoming object order.
+    bundle['authored_sources']=authored;bundle['candidate_sources']=candidate;bundle['entries']=[entry]
+    encoded=json.dumps(bundle,ensure_ascii=False,separators=(',',':')).encode('utf-8')
+    if type(receipt['derivations']) is not list or len(receipt['derivations'])!=2:raise ValueError('two compiler derivation records are required')
+    for ordinal,value in enumerate(receipt['derivations'],1):
+        row=_object(value,['ordinal','project_revision','bundle_bytes','bundle_sha256'])
+        if (_integer(row['ordinal'],2)!=ordinal or row['project_revision']!=bundle['authored_project_revision']
+            or _integer(row['bundle_bytes'])!=len(encoded) or _hash(row['bundle_sha256'])!=_digest(encoded)):raise ValueError('compiler repeat bytes/revision binding differs')
+    def inventory(kind,rows):
+        return {'kind':kind,'files':[{'path':row['path'],'bytes':len(row['source'].encode('utf-8')),'sha256':row['sha256'][7:]} for row in rows]}
+    return {'schema':'semaprax.compiler-retained-receipt-observation.v1','status':'structurally_valid_compiler_report',
+        'receipt_sha256':hashlib.sha256(raw).hexdigest(),'compiler_package_version_reported':receipt['compiler_package_version'],
+        'compiler_binary_sha256_proxy_observed':compiler['binary_sha256'],'invocation_sha256':expected,
+        'exit_code_proxy_observed':0,'execution_independently_authenticated':False,
+        'compiler_reported_held_input_closure_complete':True,'compiler_reported_same_revision_repeat_sha256':_digest(encoded),
+        'semantic_replay_performed_by_host':False,'input_closure_complete':False,'exact_compiler_input_binding':False,
+        'independent_execution_proof':None,'generated_source_classification':None,'authored_token_subtraction':None,
+        'ratio_eligible':False,'actual_billed_usd':None,'fixed_context_tokens':None,
+        'inventories':[inventory('compiler_reported_original_held_inputs',held),inventory('compiler_reported_resolved_original_sources',authored),inventory('compiler_reported_full_mixed_candidate_sources',candidate)]}
+
+def measure(raw: bytes, observation: dict, metadata: dict | None) -> dict:
+    """Tokenize each complete retained inventory separately, never subtract."""
+    import copy
+    import live_campaign_common as common
+    if hashlib.sha256(raw).hexdigest()!=observation['receipt_sha256']:raise ValueError('compiler receipt bytes differ from adopted artifact')
+    receipt=_decode(raw);result=copy.deepcopy(observation)
+    groups=[receipt['held_inputs'],receipt['bundle']['authored_sources'],receipt['bundle']['candidate_sources']]
+    if len(result['inventories'])!=len(groups):raise ValueError('compiler observation inventory differs')
+    if metadata is not None:common.require_authored_source_tokenizer({'authored_source_tokenizer':metadata})
+    for inventory,rows in zip(result['inventories'],groups):
+        if len(inventory['files'])!=len(rows):raise ValueError('compiler observation rows differ')
+        texts=[]
+        for file,row in zip(inventory['files'],rows):
+            source=_string(row['source']);data=source.encode('utf-8')
+            if file!={'path':row['path'],'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()}:raise ValueError('compiler observed original/output bytes differ')
+            texts.append({'path':file['path'],'content':source})
+        counts=common.tokenize_texts(texts,metadata) if metadata is not None else [None]*len(texts)
+        if len(counts)!=len(texts) or (metadata is not None and any(type(c)is not int or c<0 for c in counts)):raise ValueError('invalid compiler receipt tokenizer counts')
+        for file,count in zip(inventory['files'],counts):file['tokens']=count
+        inventory['full_file_proxy_tokens']=sum(counts) if metadata is not None else None
+    result['tokenizer']=metadata
+    result['token_measurement_status']='unmeasured' if metadata is None else 'measured_legacy_proxy'
+    return result

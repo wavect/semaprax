@@ -92,3 +92,91 @@ fn foreign_truncated_duplicate_reordered_and_forged_main_domains_fail_closed() {
     }
     assert!(std::panic::catch_unwind(|| project("foreign", "foreign")).is_err());
 }
+
+
+// Distinct from followupReceiverMAIN: the old043 self-source proof expects
+// stage457d, not frozen MAIN68c9. Only historical source equality uses this.
+fn main043_receiver_restore(row: &serde_json::Value, source: &str, current: &str) -> String {
+    assert_eq!(row.as_object().unwrap().len(), 7);
+    assert_eq!(source, "src/source_reflows/semantic_receivers.rs");
+    assert_eq!(row["source"], source);
+    assert!(current.len() <= 65_536);
+    assert_eq!(digest(current), row["current_sha256"]);
+    assert_eq!(current, row["current"].as_str().unwrap());
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/evidence/main043-semantic-acquisition-20261017");
+    assert_eq!(current, std::fs::read_to_string(root.join("current.rs.txt")).unwrap());
+    let previous = std::fs::read_to_string(root.join("prior-stage.rs.txt")).unwrap();
+    assert_eq!(digest(&previous), row["previous_sha256"]);
+    let edits = row["inverse"].as_array().unwrap();
+    assert!(!edits.is_empty() && edits.len() <= 32);
+    let mut lines: Vec<&str> = current.split_inclusive('\n').collect();
+    let mut last = lines.len();
+    for edit in edits.iter().rev() {
+        assert_eq!(edit.as_object().unwrap().len(), 4);
+        let a = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+        let z = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+        assert!(a <= z && z <= last && z <= lines.len());
+        assert_eq!(lines[a..z].concat(), edit["current"].as_str().unwrap());
+        lines.splice(a..z, edit["previous"].as_str().unwrap().split_inclusive('\n'));
+        last = a;
+    }
+    let restored = lines.concat();
+    assert_eq!(digest(&restored), row["previous_sha256"]);
+    assert_eq!(restored, row["previous"].as_str().unwrap());
+    assert_eq!(restored, previous);
+    restored
+}
+fn main043_receiver_record() -> serde_json::Value {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let raw = std::fs::read_to_string(root.join("docs/evidence/main043-semantic-acquisition-20261017/current-to-043-stage.json")).unwrap();
+    assert!(raw.len() <= 131_072);
+    assert_eq!(digest(&raw), "63bd9f8a4f8d19369a78798a41278e5b96ab0732361598656884efd6af159ff9");
+    serde_json::from_str(&raw).unwrap()
+}
+#[test]
+fn main043_receiver_complete_stage_and_original_historical_inverse_are_retained() {
+    let source = "src/source_reflows/semantic_receivers.rs";
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let raw = std::fs::read_to_string(root.join(source)).unwrap();
+    let row = main043_receiver_record();
+    let current = main043_receiver_restore(&row, source, &raw);
+    let packet = root.join("docs/evidence/main043-independent-custody-20261016/semantic-receiver-historical-view");
+    let old = std::fs::read_to_string(packet.join("current-to-main043.json")).unwrap();
+    assert_eq!(digest(&old), "1aa0092ae0b2503a0fc398efe2dd3454f9940d052f6c3e9cf5861c57e9d05b5d");
+    let old: serde_json::Value = serde_json::from_str(&old).unwrap();
+    // Original whole-stage assertions and line inverse, independently checked.
+    let historical = |old: &serde_json::Value| {
+    assert_eq!(old["source"], source);
+    assert_eq!(digest(&current), old["current_sha256"]);
+    assert_eq!(current, old["current"].as_str().unwrap());
+    assert!(current.len() <= 65_536);
+    let edits = old["inverse"].as_array().unwrap();
+    assert!(edits.len() <= 32);
+    let mut lines: Vec<&str> = current.split_inclusive('\n').collect();
+    let mut last = lines.len();
+    for edit in edits.iter().rev() {
+        let a = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+        let z = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+        assert!(a <= z && z <= last && z <= lines.len());
+        assert_eq!(lines[a..z].concat(), edit["current"].as_str().unwrap());
+        lines.splice(a..z, edit["previous"].as_str().unwrap().split_inclusive('\n'));
+        last = a;
+    }
+    let restored = lines.concat();
+    assert_eq!(digest(&restored), old["historical_sha256"]);
+    restored
+    };
+    let restored = historical(&old);
+    let mut forged_old = old.clone(); forged_old["historical_sha256"] = serde_json::Value::String("0".repeat(64));
+    assert!(std::panic::catch_unwind(|| historical(&forged_old)).is_err());
+    assert_eq!(digest(&restored), "651d174d04fad97da5c08ad215a869fd395a7d691d4a78dc901a99e814fc8252");
+    assert_eq!(restored, std::fs::read_to_string(packet.join("main043-semantic_receivers.rs.txt")).unwrap());
+    for bad in [String::new(), format!("{raw} "), format!("{raw}{raw}"), current, "foreign".to_owned()] {
+        assert!(std::panic::catch_unwind(|| main043_receiver_restore(&row, source, &bad)).is_err());
+    }
+    assert!(std::panic::catch_unwind(|| main043_receiver_restore(&row, "foreign", &raw)).is_err());
+    let mut forged = row.clone(); forged["previous_sha256"] = serde_json::Value::String("0".repeat(64));
+    assert!(std::panic::catch_unwind(|| main043_receiver_restore(&forged, source, &raw)).is_err());
+    let mut altered = row.clone(); altered["inverse"][0]["previous"] = serde_json::Value::String("foreign".to_owned());
+    assert!(std::panic::catch_unwind(|| main043_receiver_restore(&altered, source, &raw)).is_err());
+}

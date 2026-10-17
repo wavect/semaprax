@@ -5,7 +5,14 @@ DATA_SHA = '1aa0092ae0b2503a0fc398efe2dd3454f9940d052f6c3e9cf5861c57e9d05b5d'
 OLD_SHA = '651d174d04fad97da5c08ad215a869fd395a7d691d4a78dc901a99e814fc8252'
 SOURCE = "src/source_reflows/semantic_receivers.rs"
 def sha(s):return hashlib.sha256(s.encode()).hexdigest()
+
+# Exact additional acquisition only; every original043 guard below is retained.
+_outer=Path(__file__).parent/'semantic-receiver-outer.py'
+assert sha(_outer.read_text())=='5ee9c8fc3272a4110bf2516b263d37697f98ea301190989645b02f0333983db4'
+import runpy
+_acquire=runpy.run_path(str(_outer))['project']
 def restore(row,current):
+ current=_acquire(current)
  assert row['source']==SOURCE and sha(current)==row['current_sha256']
  assert current==row['current'] and len(current.encode())<=65536
  edits=row['inverse'];assert len(edits)<=32

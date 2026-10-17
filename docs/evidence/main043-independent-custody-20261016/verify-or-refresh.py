@@ -19,7 +19,7 @@ for i,o in enumerate(owners):
  assert read(f'{D}/incoming/table-{i}.json')==git(M,o['table'])
  assert read(f'{D}/incoming/owners/owner-{i}.rs.txt')==git(M,o['owner'])
 # The raw receiver has legitimate followups; only this equality uses a closed historical view.
-assert sha(read(D+'/semantic-receiver-view.py'))=='add8ccc32ef06ee92ffe70dfea9210646b7bc7385a303f9dcc4f57e47ccd0d80','historical receiver view source drift'
+assert sha(read(D+'/semantic-receiver-view.py'))=='79b1f3f8fd8ed42ad8baa5552f468ad7b884be1e51272dcf8e5a94fc5e373823','historical receiver view source drift'
 receiver_view=runpy.run_path(str(R/D/'semantic-receiver-view.py'))
 assert receiver_view['historical'](R,read('src/source_reflows/semantic_receivers.rs'))==git(A,'src/source_reflows/semantic_receivers.rs')
 # Preserve the complete reviewed CI equality through a distinct closed historical view.

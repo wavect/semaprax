@@ -1,0 +1,28 @@
+{
+  "status": "SOURCE_ONLY_TARGETED_CHECKS_PASS_RUST_UNEXECUTED",
+  "base": "aba40624537c8fa5f121aec3954de82d9714eedc",
+  "source": "src/source_reflows/semantic_receivers.rs",
+  "raw_sha256": "d19607ffcbca7e4d676a774eb2f21d81293430f6c5985a7afd6409d9bb7589df",
+  "old043_input_sha256": "457d115f41607edd272dbf214714a0df276dfa75fb8a86a2cb313586c5bc495c",
+  "old043_row_unchanged_sha256": "1aa0092ae0b2503a0fc398efe2dd3454f9940d052f6c3e9cf5861c57e9d05b5d",
+  "existing_nine_MAIN_domains_unchanged": true,
+  "all_original_Rust_helper_bytes_unchanged_prefix": true,
+  "Rust_lines": 182,
+  "pending_Rust_selector": "source_reflows_merge::main67107_inputs::main043_receiver_complete_stage_and_original_historical_inverse_are_retained",
+  "ROOT_written": false,
+  "Cargo_or_compiler_or_common_refresh_executed": false,
+  "files": {
+    "README.md": "9bd9327c6a2e6f6ce3841c24c9b0cf76621099c47bfe1c7937e80d8a756e38e2",
+    "current-to-043-stage.json": "63bd9f8a4f8d19369a78798a41278e5b96ab0732361598656884efd6af159ff9",
+    "current.rs.txt": "d19607ffcbca7e4d676a774eb2f21d81293430f6c5985a7afd6409d9bb7589df",
+    "docs__evidence__main043-independent-custody-20261016__guard-extension-recipe-edits.json.before": "2563bc0777f3e6bf462d979d955502b4255e4185886752e5fff5b4e6a39c1a7c",
+    "docs__evidence__main043-independent-custody-20261016__semantic-receiver-view.py.before": "add8ccc32ef06ee92ffe70dfea9210646b7bc7385a303f9dcc4f57e47ccd0d80",
+    "docs__evidence__main043-independent-custody-20261016__verify-or-refresh.py.before": "c2dece1bcd69cdcc66abe6be3c39230d6485bb8735641349c6c09bd9e153228f",
+    "main67107_inputs.rs.before": "c20c668e4305905b1d2de08f20b09caf0c9d1850dbef7e8bf9ea95a1fee85f4e",
+    "prior-stage.rs.txt": "457d115f41607edd272dbf214714a0df276dfa75fb8a86a2cb313586c5bc495c",
+    "rust-source-inverse.json": "e8d59901faf2bcd6e54d52b1083816ced4b592896193a2b174fe9018c15f0d39",
+    "source-controls.json": "0097984ffb20c8f639481c44376e4791970bfee5ceff08a11647472d31d75499",
+    "source-inverses.json": "fdce86238140aa77f35bcb7cc871254c20c65622d23a104c99e9a989749d047c",
+    "verify-acquisition.py": "e9c1e5a7125d5938b55e4a8aeedf4323023e8ec3aab17f7509876aba38ec0215"
+  }
+}

@@ -252,7 +252,15 @@ existing fallible flat-vector physical owner, bounded search and sorted shifts.
 The unobserved route retains tree Many. Both actual successor families acquire
 new helper/return/iterator layouts before formation; sorted output retains the
 same immutable sharing, arenas, compact nodes and cold Memo. No budget ceiling
-changes. `successor_targets.rs` remains the complete old One/tree-Many type for
+changes. Selected replay uses the owned outer label tree with inline One targets. The
+Groups label transport is retained only as an independently compiled immediate
+control: its additional receiving banks exceeded the removed tree cost in the
+observed singleton case. Distinct children still use the paid flat producer;
+empty and repeated-single-child routes retain the exact preceding tree producer.
+`before_selected_route.rs` retains the whole immediate canonical receiver and
+all its original Groups banks. This repair is source-only; renewed qualification
+and physical comparisons remain pending.
+`successor_targets.rs` remains the complete old One/tree-Many type for
 independent controls. `before_paid_many.rs` and its terminal/comparison children
 retain the complete immediate receiver and actual production comparison caller;
 all old helpers/tests remain source-bound and all children join the three raw

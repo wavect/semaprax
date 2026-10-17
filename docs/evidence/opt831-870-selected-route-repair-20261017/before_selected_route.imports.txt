@@ -1,0 +1,9 @@
+//! Whole immediate 0f9 canonical receiver; selected Groups route remains independent.
+use super::{
+    physical_clone, replay_error, AllocationPayer, Automaton, BTreeMap, Diagnostic,
+    Label, Rc, ReplayBudget, ResolvedFunction, Weighted, app_census, arena_tests,
+    borrowed_labels, closure_receiving, empty_closure, empty_memo, empty_signature,
+    intern_arena, lexical_child_scratch, ordered_alias, ordered_weights, paid_many,
+    selected_labels, tests,
+};
+use super::inline_weighted::SmallWeighted;

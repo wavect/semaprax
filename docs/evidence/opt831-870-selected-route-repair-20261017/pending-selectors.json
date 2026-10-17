@@ -1,0 +1,17 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::factored::canonical_shared::paid_route_tests::selected_tree_fallback_has_exact_immediate_small_bills_work_and_whole_drop"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::factored::canonical_shared::paid_route_tests::selected_removed_group_owners_keep_complete_old_work_and_real_receipt_frontiers"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::factored::canonical_shared::paid_route_tests::selected_group_removal_retains_whole_immediate_body_and_unchanged_selected_tariffs"
+  }
+]

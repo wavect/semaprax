@@ -88,4 +88,4 @@ metadata/allocator boundary injection and independently opted-account controls
 remain required. Replay the parent's unchanged owning application rows under
 64 MiB with exact final receipts; row03's ordinary flat growth site is not a
 measurement of the full HIR stage. Row07 is a distinct constructor site.
-`scripts/quality.sh full` remains pending the parent's authorized grouped gates.
+Only affected exact owners and scoped production Clippy remain pending the parent's grouped qualification; no full suite or full quality gate is authorized.

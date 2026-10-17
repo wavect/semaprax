@@ -84,7 +84,10 @@ fn renamed_vec_and_box_payloads_lend_provider_fields_through_actual_owner_and_hi
             });
             let diagnostics = match old_result {
                 Err(crate::hir::identity_resolution::Failure::Source(diagnostics)) => diagnostics,
-                other => panic!("historical owning intrinsic-name limitation changed: {other:?}"),
+                other => panic!(
+                    "historical owning intrinsic-name limitation changed: {:?}",
+                    other.as_ref().map(|_| ())
+                ),
             };
             super::owned_growth_tests::assert_old_alias_refusal(&old, &diagnostics);
             // Additional whole-payload-authenticated provider/binding oracle;
@@ -206,14 +209,30 @@ fn malformed_provider_cannot_gain_borrowing_through_a_renamed_import() {
         let registry = LayoutRegistry::new(&programs, &authored);
         let mut owner = Receiver::acquire().unwrap();
         for current in [false, true] {
-            let result = if current {
-                construct_transient(&programs[0], &authored, &programs, &registry, None, &mut owner)
+            let diagnostic = if current {
+                match construct_transient(
+                    &programs[0],
+                    &authored,
+                    &programs,
+                    &registry,
+                    None,
+                    &mut owner,
+                ) {
+                    Err(Failure::One(diagnostic)) => diagnostic,
+                    _ => panic!("original generic malformed provider did not retain its early refusal"),
+                }
             } else {
-                super::super::before_alias::construct_using(&programs[0], &authored, &programs, &registry, None, &mut owner)
-            };
-            let diagnostic = match result {
-                Err(Failure::One(diagnostic)) => diagnostic,
-                _ => panic!("original generic malformed provider did not retain its early refusal"),
+                match super::super::before_alias::construct_using(
+                    &programs[0],
+                    &authored,
+                    &programs,
+                    &registry,
+                    None,
+                    &mut owner,
+                ) {
+                    Err(Failure::One(diagnostic)) => diagnostic,
+                    _ => panic!("original generic malformed provider did not retain its early refusal"),
+                }
             };
             assert_eq!(diagnostic.code, "SPX-G172");
             assert_eq!(diagnostic.severity, crate::diagnostic::Severity::Error);

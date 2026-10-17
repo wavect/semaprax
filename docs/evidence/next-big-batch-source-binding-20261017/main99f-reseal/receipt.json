@@ -1,0 +1,70 @@
+{
+  "status": "SOURCE_ONLY_RESEALED",
+  "before_source_head": "c46aa26a087ae1465c98de644dadd1082c85e895",
+  "current_head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+  "changed_subjects": [
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "before": {
+        "length": 158336,
+        "sha256": "1593db2b5b16f88c509952eddf075e1b574a8c6352382bff4ca19e2478ea7517",
+        "archive": "/Volumes/Semaprax/provenance/next-big-batch-final-coupling-20261017/main99f-resealed-a55df/1593db2b5b16f88c509952eddf075e1b574a8c6352382bff4ca19e2478ea7517.before.txt"
+      },
+      "after": {
+        "length": 159374,
+        "sha256": "700318b054f35e3dbf69cf25d7a83cd3bf65d04f5674327bcbbd5af02bbdec66"
+      }
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "before": {
+        "length": 99902,
+        "sha256": "46e5fbd03a01ef804e351ffe5c4ee15d61336f7ca0ab1a612839baa723f85d15",
+        "archive": "/Volumes/Semaprax/provenance/next-big-batch-final-coupling-20261017/main99f-resealed-a55df/46e5fbd03a01ef804e351ffe5c4ee15d61336f7ca0ab1a612839baa723f85d15.before.txt"
+      },
+      "after": {
+        "length": 100796,
+        "sha256": "e3dad40652ba74ba2737e21b493ffb48787eb576974609f62f3f62ad690f443b"
+      }
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before": {
+        "length": 57429,
+        "sha256": "cc447e531dd73420f6507303cc986888a302ff90b53d3843487dab796b125458",
+        "archive": "/Volumes/Semaprax/provenance/next-big-batch-final-coupling-20261017/main99f-resealed-a55df/cc447e531dd73420f6507303cc986888a302ff90b53d3843487dab796b125458.before.txt"
+      },
+      "after": {
+        "length": 57423,
+        "sha256": "b4d8c484c115ff71427e873d8b97470048b85106f7d54043299cb00b0e987f6d"
+      }
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "before": {
+        "length": 97691,
+        "sha256": "f42216ee8017033d39f6f29648613ddb4056483041ac6ed302b3db09623c3359",
+        "archive": "/Volumes/Semaprax/provenance/next-big-batch-final-coupling-20261017/main99f-resealed-a55df/f42216ee8017033d39f6f29648613ddb4056483041ac6ed302b3db09623c3359.before.txt"
+      },
+      "after": {
+        "length": 98621,
+        "sha256": "4cf1b2596f589f53fe4dec8ac692738eecd04e7e3909c846a1c762d04717834c"
+      }
+    }
+  ],
+  "packet_before": "078c486149cbb63d10942f5dd943606b13d7dbbbb885b09abc8898aaadf900a2",
+  "packet_after": "7da7c03cee1c8232577d85e4b34a671ec5af4c32617d1385f4ec6e7226b3c0d9",
+  "reader_before": "6ff939e908f7428d3b766954fad95ffc3f9912f06f03b02bd4f0d7a404326ce2",
+  "reader_after": "f51b7d60ffff5b9403650cd0dfbe42f4dc1994dc8ae05738973ce3a2456a1c7b",
+  "exact_packet_fields_changed": [
+    "current_length",
+    "current_sha256"
+  ],
+  "exact_reader_literals_changed": [
+    "MAIN99F_PACKET_LENGTH",
+    "MAIN99F_PACKET_SHA"
+  ],
+  "incoming_all454_unchanged": true,
+  "whole_inverse_verified": true,
+  "cargo_tests_binders_executed": false
+}

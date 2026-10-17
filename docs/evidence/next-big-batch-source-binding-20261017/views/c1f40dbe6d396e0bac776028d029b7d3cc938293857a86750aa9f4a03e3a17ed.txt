@@ -1,0 +1,853 @@
+use super::*;
+
+// Render fixture bindings before construction and receipts only after it.
+// Neither formatting participates in the watched ledger or can grant authority.
+fn print_operation_sources(profile: &str, sources: &[WorkspaceSource]) {
+    eprintln!(
+        "validation-operation-profile profile={profile} cap={MAX_BUILDER_BYTES} sources={}",
+        sources.len()
+    );
+    for source in sources {
+        let digest = Sha256::digest(source.source.as_bytes());
+        eprintln!(
+            "validation-operation-source profile={profile} path={} bytes={} sha256={:x}",
+            source.path,
+            source.source.len(),
+            crate::digest_hex::LowerHex(digest)
+        );
+    }
+}
+fn print_operation_receipt(profile: &str) {
+    let trace = crate::bounded_output::stage_debits::take_completed();
+    eprintln!(
+        "validation-operation-receipt profile={profile} cap={MAX_BUILDER_BYTES} trace={trace:?}"
+    );
+}
+
+fn minimum_successful_builder_limit(sources: &[WorkspaceSource]) -> usize {
+    assert!(build_owned_with_builder_limit(sources.to_vec(), MAX_BUILDER_BYTES).is_ok());
+    let mut low = 0usize;
+    let mut high = MAX_BUILDER_BYTES;
+    while low < high {
+        let middle = low + (high - low) / 2;
+        if build_owned_with_builder_limit(sources.to_vec(), middle).is_ok() {
+            high = middle;
+        } else {
+            low = middle + 1;
+        }
+    }
+    low
+}
+
+#[test]
+#[should_panic(
+    expected = "private Workspace Semantic Graph builder limit cannot exceed the production maximum"
+)]
+fn private_builder_limit_cannot_widen_the_production_cap() {
+    let _ = build_owned_with_builder_limit(Vec::new(), MAX_BUILDER_BYTES + 1);
+}
+
+fn assert_exact_builder_limit_error(error: &[Diagnostic], limit: usize) {
+    assert_eq!(error[0].code, "SPX-G171");
+    assert_eq!(
+        error[0].message,
+        format!("Workspace Semantic Graph `builder_bytes` exceeds {limit}")
+    );
+}
+
+#[test]
+fn all_four_generic_materializations_have_an_exact_minimum_builder_limit() {
+    let app = canonical_source(
+        "generic-limit/app.spx",
+        r#"
+module generic_limit.app;
+@id("generic.limit.first") fn first<T, U>(left: T, right: U) -> T { left }
+@id("generic.limit.main") fn main() -> i64 {
+    let ii = first<i64, i64>(1, 2);
+    let ib = first<i64, bool>(ii, true);
+    let bi = first<bool, i64>(false, ib);
+    if first<bool, bool>(bi, true) { ib } else { 0 }
+}
+"#,
+    );
+    let leaf = canonical_source(
+        "generic-limit/leaf.spx",
+        "module generic_limit.leaf;\n@id(\"generic.limit.leaf\") fn leaf() -> i64 { 0 }\n",
+    );
+    let sources = vec![app, leaf];
+    let minimum = minimum_successful_builder_limit(&sources);
+    assert!(minimum > 0);
+    let first = build_owned_with_builder_limit(sources.clone(), minimum).unwrap();
+    let second = build_owned_with_builder_limit(sources.clone(), minimum).unwrap();
+    assert_eq!(first.edges, second.edges);
+    assert_eq!(first.hir.declarations, second.hir.declarations);
+
+    let error = match build_owned_with_builder_limit(sources, minimum - 1) {
+        Ok(_) => panic!("minimum minus one must fail"),
+        Err(error) => error,
+    };
+    assert_exact_builder_limit_error(&error, minimum - 1);
+}
+
+fn stub_charge_provider(statements: usize) -> WorkspaceSource {
+    let mut provider =
+        String::from("\nmodule stub.provider;\n@id(\"stub.wide\") fn wide(seed: i64) -> i64 {\n");
+    for index in 0..statements {
+        provider.push_str(&format!(
+            "let step_{index} = seed + {index} * 3 - {index} / 2;\n"
+        ));
+    }
+    provider.push_str("seed\n}\n");
+    canonical_source("stub/provider.spx", &provider)
+}
+
+fn stub_charge_prebound(sources: &[WorkspaceSource], module: &str) -> usize {
+    let programs = parsed_sources(sources);
+    let authored = index_authored(&programs).expect("fixture identities are unique");
+    let subject = programs
+        .iter()
+        .find(|program| program.module == module)
+        .expect("fixture declares the subject module");
+    synthetic_builder_bytes(subject, &authored, &programs)
+        .expect("fixture stays inside the builder budget")
+        .raw_clone_and_hir
+}
+
+/// A consumer projects an imported function as a stub: the rewritten
+/// signature, no contract, and the return type's default body. Growing the
+/// provider's body must therefore not grow the consumer's pre-bound at the
+/// resolved-structure rate, only by the transient clone the projection makes
+/// and discards. Charging the imported body as resolved structure made every
+/// importing module a second full copy of its provider.
+#[test]
+fn imported_function_bodies_are_not_charged_as_resolved_structure() {
+    let consumer = canonical_source(
+        "stub/consumer.spx",
+        r#"
+module stub.consumer;
+use function @id("stub.wide") from stub.provider as wide;
+@id("stub.main") fn main() -> i64 { wide(1) }
+"#,
+    );
+    let small = vec![stub_charge_provider(4), consumer.clone()];
+    let large = vec![stub_charge_provider(64), consumer];
+
+    let definition_growth = stub_charge_prebound(&large, "stub.provider")
+        - stub_charge_prebound(&small, "stub.provider");
+    let import_growth = stub_charge_prebound(&large, "stub.consumer")
+        - stub_charge_prebound(&small, "stub.consumer");
+    assert!(definition_growth > 0);
+    assert!(
+        import_growth * 8 < definition_growth,
+        "an imported body must not be charged as resolved structure: \
+         definition grew by {definition_growth}, the importer by {import_growth}"
+    );
+}
+
+#[test]
+fn late_module_work_has_an_exact_combined_minimum_builder_limit() {
+    let provider = canonical_source(
+        "late/a_provider.spx",
+        r#"
+module late.provider;
+@id("late.value") fn value() -> i64 { 1 }
+"#,
+    );
+    let minimal = canonical_source(
+        "late/z_consumer.spx",
+        r#"
+module late.consumer;
+@id("late.main") fn main() -> i64 { 0 }
+"#,
+    );
+    let mut consumer = String::from(
+        r#"
+module late.consumer;
+use function @id("late.value") from late.provider as value;
+@id("late.main") fn main() -> i64 {
+"#,
+    );
+    for index in 0..96 {
+        consumer.push_str(&format!("let value_{index} = value();\n"));
+    }
+    consumer.push_str("0\n}\n");
+    let consumer = canonical_source("late/z_consumer.spx", &consumer);
+
+    let base = vec![provider.clone(), minimal];
+    let combined = vec![provider, consumer];
+    let base_minimum = minimum_successful_builder_limit(&base);
+    let combined_minimum = minimum_successful_builder_limit(&combined);
+    assert!(base_minimum < combined_minimum);
+    assert!(build_owned_with_builder_limit(base, combined_minimum - 1).is_ok());
+
+    let exact = build_owned_with_builder_limit(combined.clone(), combined_minimum).unwrap();
+    let replay = build_owned_with_builder_limit(combined.clone(), combined_minimum).unwrap();
+    assert_eq!(exact.edges, replay.edges);
+    assert_eq!(exact.hir.declarations, replay.hir.declarations);
+    let error = match build_owned_with_builder_limit(combined, combined_minimum - 1) {
+        Ok(_) => panic!("late module must consume the final builder byte"),
+        Err(error) => error,
+    };
+    assert_exact_builder_limit_error(&error, combined_minimum - 1);
+}
+
+fn identity_scale_workspace(
+    module_pad: usize,
+    functions: usize,
+    body: usize,
+) -> Vec<WorkspaceSource> {
+    let module = format!("scale{}", "e".repeat(module_pad));
+    let mut library = format!("\nmodule {module};\n");
+    for index in 0..functions {
+        library.push_str(&format!(
+            "@id(\"{module}.step{index:03}\")\nfn step{index:03}(seed: i64) -> i64 {{\n"
+        ));
+        for statement in 0..body {
+            library.push_str(&format!("let hold_{statement} = seed + {statement};\n"));
+        }
+        library.push_str(&format!("seed + {index}\n}}\n"));
+    }
+    let entry = format!(
+        "\nmodule {module}.entry;\nuse function @id(\"{module}.step000\") from {module} as step000;\n@id(\"{module}.entry.main\")\nfn main() -> i64 {{ step000(0) }}\n"
+    );
+    vec![
+        canonical_source("scale/library.spx", &library),
+        canonical_source("scale/entry.spx", &entry),
+    ]
+}
+
+/// Issue #83. `std.data.json.doc` was admitted at 12,216 source bytes and
+/// refused at 12,292, so every further standard-library slice was blocked.
+/// Padding the six `std.data.json.*` packages until `SPX-G171` fires moved
+/// their admitted totals from 12.3-14.2 KB to 19.7-22.1 KB. This fixture is
+/// less identity-dense than a `std` package, so it is pinned at its own
+/// ceiling: twenty-one kilobytes must fit, where the previous factor stopped
+/// this shape at 19.4 KB.
+#[test]
+fn a_twenty_one_kilobyte_workspace_fits_the_production_builder_budget() {
+    let sources = identity_scale_workspace(0, 310, 0);
+    let bytes: usize = sources.iter().map(|source| source.source.len()).sum();
+    assert!(
+        bytes >= 21 * 1024,
+        "fixture must exceed twenty-one kilobytes, got {bytes}"
+    );
+    if let Err(error) = build_owned_with_builder_limit(sources, MAX_BUILDER_BYTES) {
+        panic!("the unchanged twenty-one-kilobyte fixture exceeds its builder budget: {error:?}");
+    }
+}
+
+/// Issue #83. The pre-bound stays a refusal, not an advisory: a workspace the
+/// resolver cannot fit is still reported as `SPX-G171` before it is linked,
+/// and before any other workspace counter is exhausted.
+#[test]
+fn the_builder_pre_bound_still_refuses_an_oversized_workspace() {
+    let sources = identity_scale_workspace(0, 64, 128);
+    let error = match build_owned_with_builder_limit(sources, MAX_BUILDER_BYTES) {
+        Ok(_) => panic!("an oversized workspace must be refused"),
+        Err(error) => error,
+    };
+    assert_exact_builder_limit_error(&error, MAX_BUILDER_BYTES);
+}
+
+fn traversal_source(binder: &str, item: &str) -> WorkspaceSource {
+    let body = if binder == "for" {
+        format!("for {item} in values {{\nsum = sum + 1;\nsum\n}}\n")
+    } else {
+        format!("let {item} = values;\n")
+    };
+    canonical_source(
+        "stub/traverse.spx",
+        &format!(
+            "\nmodule stub.traverse;\n\
+             @id(\"stub.traverse.total\") fn total(seed: i64) -> i64 {{\n\
+             let values = seed;\n\
+             let mut sum = 0;\n\
+             {body}\
+             sum\n}}\n"
+        ),
+    )
+}
+
+/// Issue #86. A bounded `for` names its item binding, so the pre-bound must
+/// charge that name exactly as it charges a `let` of the same name. Before
+/// this, the AST-side cost walk special-cased only `while` and reached
+/// `Statement::name`, which panics for every statement that is not a `let` or
+/// an assignment: a workspace project containing a `for` could not be checked
+/// at all. Comparing the two *deltas* pins the charge without freezing how
+/// many times a string is counted.
+#[test]
+fn a_for_item_binding_is_charged_exactly_like_a_let_binding() {
+    let widened = |binder| {
+        let short = stub_charge_prebound(&[traversal_source(binder, "i")], "stub.traverse");
+        let long = stub_charge_prebound(
+            &[traversal_source(binder, "collected_reading_item")],
+            "stub.traverse",
+        );
+        long - short
+    };
+    let charged = widened("for");
+    assert!(charged > 0, "a for item binding must be charged");
+    assert_eq!(charged, widened("let"));
+}
+
+/// Tune only the fixture size, never the production bound. Select the largest
+/// count whose actual pre-core charges and unchanged legacy first reservation
+/// fit the enclosing owner. Runtime assertions must still prove the later core
+/// overflow, one nested attempt and two ordinary attempts.
+fn core_retry_fixture() -> Vec<WorkspaceSource> {
+    let sources = |count| {
+        vec![
+            stub_charge_provider(count),
+            canonical_source(
+                "stub/consumer.spx",
+                "module stub.consumer; use function @id(\"stub.wide\") from stub.provider as wide; @id(\"stub.consumer.main\") fn main() -> i64 { wide(0) }",
+            ),
+        ]
+    };
+    let fits = |count| {
+        let mut candidate = sources(count);
+        candidate.sort_by(|left, right| left.path.cmp(&right.path));
+        let programs = parsed_sources(&candidate);
+        let authored = index_authored(&programs).unwrap();
+        let Ok(legacy) =
+            expected_projection::retention_prebound_mode(&programs, &authored, false, 0)
+        else {
+            return false;
+        };
+        // The fixed fixture has only ordinary modules, no frontend or native
+        // law branch. Run their actual pre-core formatter and registry owners:
+        // the enclosing ledger keeps these debits before entering core.
+        let (actual, refused, pre_core) =
+            crate::bounded_output::with_limit_usage(MAX_BUILDER_BYTES, || {
+                let mut programs = Vec::with_capacity(candidate.len());
+                let mut canonical_bytes = 0usize;
+                for source in &candidate {
+                    let (program, comments) =
+                        crate::parse_with_comments(&source.source, Path::new(&source.path))
+                            .unwrap();
+                    crate::static_protocol::validate(&program).unwrap();
+                    let remaining = MAX_BUILDER_BYTES.saturating_sub(canonical_bytes);
+                    let (canonical, overflowed) =
+                        crate::bounded_output::with_limit(remaining, || {
+                            format::comments::canonical_with_comments(&program, &comments)
+                        });
+                    if overflowed {
+                        return None;
+                    }
+                    assert_eq!(canonical, source.source);
+                    canonical_bytes = canonical_bytes.checked_add(canonical.len()).unwrap();
+                    programs.push(program);
+                }
+                crate::static_protocol::validate_workspace(&programs).unwrap();
+                let _pruned = dependency_pruning::prune(&mut programs, &candidate);
+                let modules = index_modules(&programs).unwrap();
+                let authored = index_authored(&programs).unwrap();
+                validate_synthetic_main_id_collisions(&programs, &authored).unwrap();
+                let registry = expected_projection::private_layout::registry::LayoutRegistry::new(
+                    &programs, &authored,
+                );
+                import_validation::validate_uses_with_registry(
+                    &programs,
+                    &modules,
+                    &authored,
+                    Some(&registry),
+                )
+                .unwrap();
+                let _depths = validate_dependency_dag(&programs).unwrap();
+                let initial = expected_projection::cached_exact::initial_with_registry(
+                    &programs,
+                    &authored,
+                    true,
+                    expected_projection::cached_exact::Retention::Parsed,
+                    Some(&registry),
+                )
+                .ok()?;
+                Some((initial, registry.receipt()))
+            });
+        let Some((initial, registry)) = actual else {
+            return false;
+        };
+        !refused
+            && initial.0 == legacy.0
+            && initial.3 == 1
+            && pre_core
+                .checked_add(registry)
+                .and_then(|paid| paid.checked_add(initial.0))
+                .is_some_and(|paid| paid <= MAX_BUILDER_BYTES)
+    };
+    assert!(fits(1));
+    assert!(!fits(1024));
+    let (mut low, mut high) = (1, 1024);
+    while low + 1 < high {
+        let middle = low + (high - low) / 2;
+        if fits(middle) {
+            low = middle;
+        } else {
+            high = middle;
+        }
+    }
+    sources(low)
+}
+
+#[test]
+fn identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal() {
+    // Preserve the complete earlier fixture before changing only admissibility.
+    let current = crate::source_reflows_merge::main83_retry_fixture_input("src/workspace_graph/tests/builder_limits.rs", include_str!("builder_limits.rs"));
+    let start = current
+        .find("/// Tune only the fixture size, never the production bound.")
+        .unwrap();
+    let end = start
+        + current[start..]
+            .find("\n#[test]\nfn identity_prebound_production_core_retry")
+            .unwrap();
+    let mut restored = current[start..end].to_owned();
+    let inverse: serde_json::Value = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/canonical-preparation-stage-829/retry-precharge-fixture/exact-inverse.json"
+    )))
+    .unwrap();
+    for splice in inverse["splices"].as_array().unwrap().iter().rev() {
+        let at = splice["start"].as_u64().unwrap() as usize;
+        let after = splice["after"].as_str().unwrap();
+        assert_eq!(restored.get(at..at + after.len()), Some(after));
+        restored.replace_range(at..at + after.len(), splice["before"].as_str().unwrap());
+    }
+    let original = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/canonical-preparation-stage-829/retry-precharge-fixture/complete-fixture.before.txt"));
+    use sha2::{Digest, Sha256};
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))
+        ),
+        "4c8f8a2cac574013d6acb485d7af2c86699fb3b5b09be532c90786c6ec7add24"
+    );
+    assert_eq!(restored, original);
+    let sources = core_retry_fixture();
+    let programs = parsed_sources(&sources);
+    let authored = index_authored(&programs).unwrap();
+    let original =
+        expected_projection::retention_prebound_mode(&programs, &authored, false, 0).unwrap();
+    let tight =
+        expected_projection::retention_prebound_mode(&programs, &authored, true, 2).unwrap();
+    assert!(original.1 <= MAX_BUILDER_BYTES && tight.1 < original.1);
+
+    // Capture the actual producer's ordered source/registry reservation before
+    // interpreting a legacy standalone forecast as a completed debit.
+    let mut ordered = sources.clone();
+    ordered.sort_by(|left, right| left.path.cmp(&right.path));
+    let ordered_programs = parsed_sources(&ordered);
+    let ordered_authored = index_authored(&ordered_programs).unwrap();
+    let ordered_modules = index_modules(&ordered_programs).unwrap();
+    let registry = expected_projection::private_layout::registry::LayoutRegistry::new(
+        &ordered_programs,
+        &ordered_authored,
+    );
+    import_validation::validate_uses_with_registry(
+        &ordered_programs,
+        &ordered_modules,
+        &ordered_authored,
+        Some(&registry),
+    )
+    .unwrap();
+    let actual_initial = expected_projection::cached_exact::initial_with_registry(
+        &ordered_programs,
+        &ordered_authored,
+        true,
+        expected_projection::cached_exact::Retention::Parsed,
+        Some(&registry),
+    )
+    .unwrap();
+    let registry_receipt = registry.receipt();
+    crate::bounded_output::stage_debits::take_completed();
+    CORE_BUILD_ATTEMPTS.with(|attempts| attempts.set(0));
+    let (nested, nested_overflow, nested_debit, first_refusal) =
+        crate::bounded_output::with_limit_usage_refusal(MAX_BUILDER_BYTES, || {
+            let before = crate::bounded_output::active_remaining();
+            let result = build_owned_with_builder_limit(sources.clone(), MAX_BUILDER_BYTES);
+            eprintln!(
+                "identity-retry-parent before={before:?} after={:?}",
+                crate::bounded_output::active_remaining()
+            );
+            result
+        });
+    let trace = crate::bounded_output::stage_debits::take_completed();
+    eprintln!("identity-retry-contract legacy={original:?} tight={tight:?} actual_initial={actual_initial:?} registry_receipt={registry_receipt} nested_overflow={nested_overflow} nested_debit={nested_debit} first_refusal={first_refusal:?} trace={trace:?}");
+    let errors = nested
+        .err()
+        .expect("enclosing budget must not be reset for retry");
+    assert_eq!(errors[0].code, "SPX-G171");
+    assert_eq!(CORE_BUILD_ATTEMPTS.with(Cell::get), 1);
+    assert!(nested_debit >= original.0,
+        "failed phase debit remains required: legacy={original:?}, actual_initial={actual_initial:?}, registry={registry_receipt}, debit={nested_debit}, first={first_refusal:?}, trace={trace:?}");
+
+    CORE_BUILD_ATTEMPTS.with(|attempts| attempts.set(0));
+    let built = build_owned_with_builder_limit(sources.clone(), MAX_BUILDER_BYTES).unwrap();
+    assert_eq!(CORE_BUILD_ATTEMPTS.with(Cell::get), 2);
+    assert!(
+        built.usage.builder_bytes >= original.0,
+        "failed first phase is not refunded"
+    );
+    assert!(built.usage.builder_bytes <= MAX_BUILDER_BYTES);
+    let repeated = build_owned_with_builder_limit(sources.clone(), MAX_BUILDER_BYTES).unwrap();
+    assert_eq!(built.usage.builder_bytes, repeated.usage.builder_bytes);
+    assert_eq!(built.edges, repeated.edges);
+
+    CORE_BUILD_ATTEMPTS.with(|attempts| attempts.set(0));
+    let explicit = build_owned_with_builder_limit(sources, MAX_BUILDER_BYTES - 1);
+    assert_exact_builder_limit_error(
+        &explicit.err().expect("explicit smaller cap stays exact"),
+        MAX_BUILDER_BYTES - 1,
+    );
+    assert_eq!(CORE_BUILD_ATTEMPTS.with(Cell::get), 1);
+}
+
+#[test]
+fn retained_output_carrier_charges_only_selected_entries_and_loan_plans() {
+    // The input carrier stays live until the move has completed. Its existing
+    // charge belongs to resolution; this helper reserves the new retained
+    // carrier and only the loan plans which move into it.
+    let input = || vec![1usize, 2, 3, 4];
+    let (legacy, overflowed, debit) = crate::bounded_output::with_limit_usage(38, || {
+        filter_owned_vec_accounted(input(), 7, |item| Ok(*item), |item| item % 2 == 0, false)
+    });
+    assert!(!overflowed);
+    assert_eq!(legacy.unwrap(), vec![2, 4]);
+    assert_eq!(
+        debit, 38,
+        "legacy attempts retain their established receipt"
+    );
+
+    let (retained, overflowed, debit) = crate::bounded_output::with_limit_usage(20, || {
+        filter_owned_vec_accounted(input(), 7, |item| Ok(*item), |item| item % 2 == 0, true)
+    });
+    assert!(!overflowed);
+    assert_eq!(retained.unwrap(), vec![2, 4]);
+    assert_eq!(debit, 20, "two entries plus their retained loan plans");
+}
+
+#[test]
+fn retained_output_reuses_only_complete_exact_carriers_and_charges_all_sidecars() {
+    let input = || vec![1usize, 2, 3, 4];
+    let original = input();
+    assert_eq!(original.capacity(), original.len());
+    let pointer = original.as_ptr();
+    let (retained, overflow, debit) = crate::bounded_output::with_limit_usage(10, || {
+        filter_owned_vec_accounted(original, 7, |item| Ok(*item), |_| true, true)
+    });
+    let retained = retained.unwrap();
+    assert!(!overflow);
+    assert_eq!(debit, 10, "every sidecar remains charged");
+    assert_eq!(retained, input());
+    assert_eq!(retained.as_ptr(), pointer, "no second physical carrier");
+    let (refused, overflow, _) = crate::bounded_output::with_limit_usage(9, || {
+        filter_owned_vec_accounted(input(), 7, |item| Ok(*item), |_| true, true)
+    });
+    assert_eq!(refused.unwrap_err()[0].code, "SPX-G171");
+    assert!(overflow);
+
+    let original = input();
+    let pointer = original.as_ptr();
+    let (retained, overflow, debit) =
+        crate::bounded_output::with_limit_usage(0, || filter_owned_vec(original, |_| true, true));
+    let retained = retained.unwrap();
+    assert_eq!(retained.as_ptr(), pointer);
+    assert!(!overflow);
+    assert_eq!(debit, 0);
+    for final_retry in [false, true] {
+        let mut excess = Vec::with_capacity(8);
+        excess.extend(input());
+        let pointer = excess.as_ptr();
+        let (retained, overflow, debit) = crate::bounded_output::with_limit_usage(38, || {
+            filter_owned_vec_accounted(excess, 7, |item| Ok(*item), |_| true, final_retry)
+        });
+        let retained = retained.unwrap();
+        assert!(!overflow);
+        assert_eq!(
+            debit, 38,
+            "excess carriers and earlier attempts keep their receipt"
+        );
+        assert_eq!(retained, input());
+        if final_retry {
+            assert_eq!(retained.capacity(), 4);
+            assert_ne!(
+                retained.as_ptr(),
+                pointer,
+                "compact while the old carrier is live"
+            );
+        }
+    }
+}
+
+#[test]
+fn catalog_normalizer_compact_core_fits_production_builder_cap() {
+    let _epsilon_app_census = crate::cleanup_plan::EpsilonAppCensus::normalizer();
+    let manifest = crate::project::ProjectManifest::parse(include_str!(
+        "../../../examples/catalog-normalizer-project/semaprax.toml"
+    ))
+    .unwrap();
+    let mut sources = manifest
+        .sources()
+        .iter()
+        .map(|path| WorkspaceSource {
+            path: path.clone(),
+            source: match path.as_str() {
+                "src/app.spx" => {
+                    include_str!("../../../examples/catalog-normalizer-project/src/app.spx")
+                }
+                "src/batch.spx" => {
+                    include_str!("../../../examples/catalog-normalizer-project/src/batch.spx")
+                }
+                "src/enrichment.spx" => {
+                    include_str!("../../../examples/catalog-normalizer-project/src/enrichment.spx")
+                }
+                "src/limits.spx" => {
+                    include_str!("../../../examples/catalog-normalizer-project/src/limits.spx")
+                }
+                "src/record.spx" => {
+                    include_str!("../../../examples/catalog-normalizer-project/src/record.spx")
+                }
+                "src/tests.spx" => {
+                    include_str!("../../../examples/catalog-normalizer-project/src/tests.spx")
+                }
+                other => panic!("unexpected catalog source {other}"),
+            }
+            .to_owned(),
+        })
+        .collect::<Vec<_>>();
+    sources.extend([
+        WorkspaceSource {
+            path: "dependencies/std.data.json.dec/0.1.0/dec.spx".to_owned(),
+            source: include_str!("../../../std/data-json-dec/src/dec.spx").to_owned(),
+        },
+        WorkspaceSource {
+            path: "dependencies/std.data.json.doc/0.1.0/doc.spx".to_owned(),
+            source: include_str!("../../../std/data-json-doc/src/doc.spx").to_owned(),
+        },
+        WorkspaceSource {
+            path: "dependencies/std.io/0.1.0/io.spx".to_owned(),
+            source: include_str!("../../../std/io/src/io.spx").to_owned(),
+        },
+    ]);
+    sources.extend([
+        WorkspaceSource {
+            path: "dependencies/std.data.ndjson/0.1.0/ndjson.spx".to_owned(),
+            source: include_str!("../../../std/data-ndjson/src/ndjson.spx").to_owned(),
+        },
+        WorkspaceSource {
+            path: "dependencies/std.io.lines/0.1.0/lines.spx".to_owned(),
+            source: include_str!("../../../std/io-lines/src/lines.spx").to_owned(),
+        },
+        WorkspaceSource {
+            path: "dependencies/std.data.json.utf8/0.1.0/utf8.spx".to_owned(),
+            source: include_str!("../../../std/data-json-utf8/src/utf8.spx").to_owned(),
+        },
+    ]);
+    sources.sort_by(|left, right| left.path.cmp(&right.path));
+    print_operation_sources("catalog-normalizer-compact-original", &sources);
+    crate::bounded_output::stage_debits::take_completed();
+    let result = build_owned_with_builder_limit(sources.clone(), MAX_BUILDER_BYTES);
+    print_operation_receipt("catalog-normalizer-compact-original");
+    let built = result.unwrap_or_else(|errors| {
+            let programs = parsed_sources(&sources);
+            let authored = index_authored(&programs).unwrap();
+            let module_paths = index_modules(&programs).unwrap();
+            let depths = validate_dependency_dag(&programs).unwrap();
+            let layouts = expected_projection::private_layout::registry::LayoutRegistry::new(&programs, &authored);
+            let forecast = expected_projection::uncached_output_peak_prebound(&programs, &authored);
+            let layout = expected_projection::uncached_peak::uncached_output_layout(&programs, &authored).unwrap();
+            let (core, overflow, debit) = crate::bounded_output::with_limit_usage(
+                MAX_BUILDER_BYTES,
+                || build_resolved_core(&programs, &module_paths, &depths, &authored, None, None, &layouts, Some(&layout.order[..programs.len()])),
+            );
+            panic!("catalog compact core exceeds cap: {errors:?}; forecast={forecast:?}; live debit={debit}, overflow={overflow}, core_ok={}", core.is_ok());
+        });
+    assert_eq!(built.hir.modules.len(), 12);
+    assert!(built
+        .hir
+        .modules
+        .windows(2)
+        .all(|pair| pair[0].path < pair[1].path));
+    assert!(built
+        .hir
+        .module_paths
+        .contains_key("catalog_normalizer.app"));
+    assert!(built.hir.module_paths.contains_key("std.data.json.dec"));
+    assert!(built.hir.module_paths.contains_key("std.data.json.doc"));
+    assert!(built.hir.module_paths.contains_key("std.io"));
+    assert!(built.hir.module_paths.contains_key("std.data.ndjson"));
+    assert!(built.hir.module_paths.contains_key("std.io.lines"));
+    assert!(built.hir.module_paths.contains_key("std.data.json.utf8"));
+    assert!(built.usage.builder_bytes <= MAX_BUILDER_BYTES);
+}
+
+/// Issue #241. Both `builder_bytes` bounds refuse with the same code, the same
+/// message, and the same budget, so the message alone cannot tell an author
+/// whether the static admission pre-charge or live graph construction ran out.
+/// A workspace whose forecast alone exceeds the budget meets the pre-charge
+/// and never reaches the builder; a workspace whose forecast fits reaches the
+/// builder and can still exhaust the budget there. The message stays
+/// byte-identical, because nested workspace routes remap a `builder_bytes`
+/// refusal by comparing it exactly, so the attribution rides on `help`.
+#[test]
+fn builder_budget_refusal_names_the_bound_that_fired_and_its_dominant_module() {
+    let precharge =
+        build_owned_with_builder_limit(identity_scale_workspace(0, 64, 128), MAX_BUILDER_BYTES)
+            .err()
+            .expect("an oversized workspace must be refused");
+    assert_exact_builder_limit_error(&precharge, MAX_BUILDER_BYTES);
+    let help = precharge[0]
+        .help
+        .as_deref()
+        .expect("a builder budget refusal names the bound that fired");
+    assert!(
+        help.starts_with("the static admission pre-charge refused before the graph builder ran"),
+        "{help}"
+    );
+    assert!(
+        help.contains("while forecasting module `scale/library.spx` on its own"),
+        "{help}"
+    );
+    assert!(
+        help.contains(&format!("does not fit the {MAX_BUILDER_BYTES}-byte budget")),
+        "{help}"
+    );
+
+    let live = build_owned_with_builder_limit(core_retry_fixture(), MAX_BUILDER_BYTES - 1)
+        .err()
+        .expect("the retry fixture cannot fit one byte below the production cap");
+    assert_exact_builder_limit_error(&live, MAX_BUILDER_BYTES - 1);
+    let help = live[0]
+        .help
+        .as_deref()
+        .expect("a builder budget refusal names the bound that fired");
+    assert!(
+        help.starts_with(
+            "live graph construction, not the static admission pre-charge, exceeded the budget"
+        ),
+        "{help}"
+    );
+    assert!(
+        help.contains(&format!("and fit within {}", MAX_BUILDER_BYTES - 1)),
+        "{help}"
+    );
+}
+
+#[test]
+fn import_free_edge_replay_does_not_materialize_unused_paths() {
+    let sources = vec![
+        canonical_source(
+            "app.spx",
+            "module isolated.app;\n@id(\"isolated.main\") fn main() -> i64 { let value = 3; value + 4 }\n",
+        ),
+        canonical_source(
+            "lib.spx",
+            "module isolated.lib;\n@id(\"isolated.answer\") fn answer() -> i64 { 42 }\n",
+        ),
+    ];
+    let programs = parsed_sources(&sources);
+    let authored = index_authored(&programs).unwrap();
+    let paths = index_modules(&programs).unwrap();
+    for program in &programs {
+        let synthetic = synthetic_program(program, &authored, &programs).unwrap();
+        let resolved = hir::resolve(&synthetic).unwrap();
+        let (result, overflow, consumed) = crate::bounded_output::with_limit_usage(0, || {
+            let mut edges = Vec::new();
+            collect_expected_edges(program, &programs, &paths, &authored, &mut edges)?;
+            assert!(edges.is_empty());
+            verify_resolved_call_edges(program, &resolved, &authored)
+        });
+        assert!(result.is_ok(), "{result:?}");
+        assert!(!overflow);
+        assert_eq!(consumed, 0);
+    }
+    let mut built = build_owned(sources).unwrap();
+    assert!(built.edges.is_empty());
+    for kind in ["type_reference", "call"] {
+        // An empty import domain must not suppress the complete projection
+        // comparison: a forged edge is still extra evidence and fails closed.
+        built.edges = vec![WorkspaceEdge {
+            caller_path: "app.spx".to_owned(),
+            caller: "isolated.main".to_owned(),
+            target_path: "lib.spx".to_owned(),
+            target: "isolated.answer".to_owned(),
+            kind,
+            site: "body",
+            expression: "forged.expression".to_owned(),
+            ast_path: "body".to_owned(),
+            alias: "forged".to_owned(),
+            ordinal: 0,
+        }];
+        let errors = validate_retained_facts(&programs, &built.hir.modules, &built.edges)
+            .expect_err("an import-free module cannot authorize an injected edge");
+        assert_eq!(errors[0].code, "SPX-G173");
+        assert_eq!(
+            errors[0].message,
+            if kind == "type_reference" {
+                "workspace explicit type-reference facts disagree with retained HIR"
+            } else {
+                "emitted workspace call edges disagree with authenticated AST/HIR occurrences"
+            }
+        );
+    }
+}
+
+#[test]
+fn pattern_source_workspace_fits_unchanged_builder_budget() {
+    let sources: Vec<WorkspaceSource> = [
+        (
+            "src/examples.spx",
+            include_str!("../../../std/pattern/src/examples.spx"),
+        ),
+        (
+            "src/pattern.spx",
+            include_str!("../../../std/pattern/src/pattern.spx"),
+        ),
+        (
+            "src/tests.spx",
+            include_str!("../../../std/pattern/src/tests.spx"),
+        ),
+    ]
+    .into_iter()
+    .map(|(path, source)| WorkspaceSource {
+        path: path.to_owned(),
+        source: source.to_owned(),
+    })
+    .collect();
+    print_operation_sources("pattern-original", &sources);
+    crate::bounded_output::stage_debits::take_completed();
+    let result = build_owned(sources);
+    print_operation_receipt("pattern-original");
+    let built = result.unwrap_or_else(|errors| panic!("{errors:?}"));
+    assert_eq!(built.hir.modules.len(), 3);
+    assert!(built.usage.builder_bytes <= MAX_BUILDER_BYTES);
+    assert!(built.hir.module_paths.contains_key("std.pattern"));
+}
+
+#[path = "edge_proof_storage.rs"]
+mod edge_proof_storage;
+
+/// The identical authenticated Project check used before the owning backend
+/// conformance run. No backend compilation, alternate source, raised cap, or
+/// inference from a requested byte count participates in this attribution.
+#[test]
+fn decoded_fingerprint_project_check_records_final_attempt_attribution() {
+    use crate::bounded_output::stage_debits::{take_completed, take_last_completed};
+    take_completed();
+    take_last_completed();
+    let manifest =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("std/data-json-dec/semaprax.toml");
+    let result = crate::project::with_authenticated_project(&manifest, |snapshot| snapshot.check());
+    let maximum = take_completed();
+    let last = take_last_completed();
+    eprintln!("decoded-fingerprint-attribution cap={MAX_BUILDER_BYTES} maximum={maximum:?} final={last:?} result={result:?}");
+    if let Err(diagnostics) = result {
+        assert!(!diagnostics.is_empty());
+        assert_eq!(diagnostics[0].code, "SPX-G171");
+        let trace = last.expect("actual refused core attempt");
+        let refusal = trace
+            .first_operation_refusal
+            .expect("original first-refusal write");
+        assert!(refusal.requested > 0);
+        assert!(trace.sum() == trace.consumed && trace.consumed <= MAX_BUILDER_BYTES);
+    }
+}

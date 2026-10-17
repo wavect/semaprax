@@ -1,0 +1,181 @@
+{
+  "schema": "semaprax.reviewed-final-source-coupling-spec.v1",
+  "semantic_head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+  "root_pin_head": "f1b24eda3f98e19c294f50eff388f642eabc7ccb",
+  "tables": [
+    {
+      "name": "ROOT42",
+      "path": "docs/evidence/earned-managed-pin42-source-coupling-20261017/inputs.json",
+      "format": "accepted",
+      "head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+      "length": 34641,
+      "sha256": "27ec261cbc4f2b00a6ff0be7084f8c1a8c76e42523043b180f49701f8540abd2",
+      "rows": 42,
+      "acquire_current": false
+    },
+    {
+      "name": "FUTURE57",
+      "path": "docs/evidence/future831-f247-final-source-binding-20261017/current-inputs.json",
+      "format": "accepted",
+      "head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+      "length": 46861,
+      "sha256": "41cdb5d63b4b405b85f71b563326f6eb500971c7a59a64420acb226c7c448b69",
+      "rows": 57,
+      "acquire_current": false
+    },
+    {
+      "name": "C883",
+      "path": "docs/evidence/main-c883-next-source-merge-20261017/main-inputs.json",
+      "format": "main",
+      "head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+      "length": 119129,
+      "sha256": "83ac5f029587334507d16b67b075e1382b7cfa3df0ae4e704e1fe7fc3c6c019d",
+      "rows": 240,
+      "acquire_current": false
+    },
+    {
+      "name": "MAIN1e",
+      "path": "docs/evidence/main-1e-next-source-merge-20261017/main-inputs.json",
+      "format": "main",
+      "head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+      "length": 10780,
+      "sha256": "d322aa4ae642d4d0176b174d4a076ec7cdc9240cfc38bf256bd402c23d9312a3",
+      "rows": 22,
+      "acquire_current": false
+    },
+    {
+      "name": "F247",
+      "path": "docs/evidence/future831-f247-final-source-binding-20261017/main-f247-inputs.json",
+      "format": "main",
+      "head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+      "length": 218113,
+      "sha256": "6f23ce8906ae025b4bc263885b423c999219a659618f401144e89b95bcadf8de",
+      "rows": 408,
+      "acquire_current": false
+    },
+    {
+      "name": "MAIN99f",
+      "path": "docs/evidence/main99f-full-controller-acquisition-20261017/inputs.json",
+      "format": "main",
+      "head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+      "length": 228105,
+      "sha256": "7da7c03cee1c8232577d85e4b34a671ec5af4c32617d1385f4ec6e7226b3c0d9",
+      "rows": 454,
+      "acquire_current": true
+    }
+  ],
+  "fallback_heads": [
+    "19520781744566c17d02ba1d12cdb82bc2933ff5",
+    "c46aa26a087ae1465c98de644dadd1082c85e895",
+    "9ad00e8d04eb64fb6cba987ae5c9eabd496deca0",
+    "f1b24eda3f98e19c294f50eff388f642eabc7ccb",
+    "ef788f8237beeb16dcc1cfa9346fc1dbb6f69a4d",
+    "5f5808c6cf89a29388f25056baee2e7bd5f0dd08",
+    "2f4c75a442e3c74647c3ef88a1392a25cd5538c3",
+    "00f0d9fec4a173bedf4d66e058eda39faf438a78",
+    "c883c2d3fff04a3e7afbb4afd5e0cae99ef91af4",
+    "1ebcc54ae864278d8900846deaa7103efdd7f8d8"
+  ],
+  "additional_current_sources": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "src/bounded_output/stage_debits/route_debits.rs",
+    "src/cleanup_plan/replay.rs",
+    "src/cleanup_plan/replay/branch_clone.rs",
+    "src/cleanup_plan/replay/branch_clone/direct.rs",
+    "src/cleanup_plan/replay/branch_clone/direct/before.rs",
+    "src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+    "src/cleanup_plan/replay/branch_clone/production_capacity.rs",
+    "src/cleanup_plan/replay/compact_stage.rs",
+    "src/cleanup_plan/replay/compact_stage/main_f247_source_custody.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/before_comparison.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs",
+    "src/cleanup_plan/replay/skeleton_work.rs",
+    "src/cleanup_plan/replay/skeleton_work/dag_storage/tests/tail_moves.rs",
+    "src/cleanup_plan/replay/skeleton_work/dag_storage/tests/tail_moves/old.rs",
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs",
+    "src/source_reflows.rs",
+    "src/source_reflows/main99f_controllers.rs",
+    "src/source_reflows/main_f247_controllers.rs",
+    "src/source_reflows/semantic_receivers.rs",
+    "src/source_reflows_merge.rs",
+    "src/source_reflows_merge/main67107_inputs.rs",
+    "src/source_reflows_merge/main99f_inputs.rs",
+    "src/source_reflows_merge/main_c883_inputs.rs",
+    "src/workspace_graph/initial_report/build.rs",
+    "src/workspace_graph/static_text/scalar_helpers.rs",
+    "src/workspace_graph/static_text/scalar_helpers/capture_directory/tests.rs",
+    "src/workspace_graph/tests.rs",
+    "src/workspace_graph/tests/builder_limits.rs",
+    "src/workspace_graph/tests/core_attempt_trace.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/wasm/scalar_browser_ci_contract.rs",
+    "tests/wasm/scalar_browser_ci_contract/before_3e66.rs",
+    "tests/wasm/scalar_browser_ci_contract/incoming_main3e66.rs",
+    "tests/workspace/semantic_change/reporting.rs",
+    "tests/workspace/semantic_graph.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "tests/workspace/semantic_structural_change/reporting.rs"
+  ],
+  "self_binding_exclusions": [
+    "src/source_reflows_merge/next_big_batch_inputs.rs"
+  ],
+  "source_cap": 9730253,
+  "approved_named_caps": [
+    9730253
+  ],
+  "template_sha256": "619a38fff43779052b35622d6a7de5d6437beefda6c32cd152664ba94b393a66",
+  "working_delta": {
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
+      "length": 159374,
+      "sha256": "700318b054f35e3dbf69cf25d7a83cd3bf65d04f5674327bcbbd5af02bbdec66"
+    },
+    "docs/evidence/main99f-full-controller-acquisition-20261017/inputs.json": {
+      "length": 228105,
+      "sha256": "7da7c03cee1c8232577d85e4b34a671ec5af4c32617d1385f4ec6e7226b3c0d9"
+    },
+    "docs/evidence/next-big-batch-source-binding-20261017/current-projection-inputs.tsv": {
+      "length": 26040,
+      "sha256": "bf9d90d2e54bd7fc117b8f885f94fba383d74207e8833a62c8c3eaa7adeeb190"
+    },
+    "src/source_reflows_merge.rs": {
+      "length": 46762,
+      "sha256": "747662b4765bb176e4f02ed80fc66ee13580e5946ea4ea927b7208cf26536293"
+    },
+    "src/source_reflows_merge/main67107_inputs.rs": {
+      "length": 95026,
+      "sha256": "ca49b653a5909c4b044e90d2c0689df2108ba4e33af7605cbec129171d287c74"
+    },
+    "src/source_reflows_merge/main99f_inputs.rs": {
+      "length": 35280,
+      "sha256": "f51b7d60ffff5b9403650cd0dfbe42f4dc1994dc8ae05738973ce3a2456a1c7b"
+    },
+    "src/source_reflows_merge/main_c883_inputs.rs": {
+      "length": 18655,
+      "sha256": "21d58810c57d7e6a4535f8910b4c1c4e83da194b3ba4ff4120c925f1926119b8"
+    },
+    "tests/hir_module_boundaries.rs": {
+      "length": 100796,
+      "sha256": "e3dad40652ba74ba2737e21b493ffb48787eb576974609f62f3f62ad690f443b"
+    },
+    "tests/workspace/semantic_graph.rs": {
+      "length": 57423,
+      "sha256": "b4d8c484c115ff71427e873d8b97470048b85106f7d54043299cb00b0e987f6d"
+    },
+    "tests/workspace/semantic_graph/source_inventory.rs": {
+      "length": 98621,
+      "sha256": "4cf1b2596f589f53fe4dec8ac692738eecd04e7e3909c846a1c762d04717834c"
+    }
+  }
+}

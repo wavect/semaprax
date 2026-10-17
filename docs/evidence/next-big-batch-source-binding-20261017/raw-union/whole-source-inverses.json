@@ -1,0 +1,178 @@
+{
+  "status": "SOURCE_ONLY_RAW3_AND_ORDERED_TABLE_NOT_APPLIED",
+  "head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+  "root": "9ad00e8d04eb64fb6cba987ae5c9eabd496deca0",
+  "new_modules": [
+    "src/cleanup_plan/replay/branch_clone/direct.rs",
+    "src/cleanup_plan/replay/branch_clone/direct/before.rs",
+    "src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+    "src/cleanup_plan/replay/compact_stage/main_f247_source_custody.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/before_comparison.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs",
+    "src/source_reflows/main99f_controllers.rs",
+    "src/source_reflows/main_f247_controllers.rs",
+    "src/source_reflows_merge/main99f_inputs.rs",
+    "src/source_reflows_merge/next_big_batch_inputs.rs",
+    "src/workspace_graph/tests/core_attempt_trace.rs",
+    "tests/wasm/scalar_browser_ci_contract/before_3e66.rs",
+    "tests/wasm/scalar_browser_ci_contract/incoming_main3e66.rs"
+  ],
+  "rows": [
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "before": {
+        "length": 99902,
+        "sha256": "46e5fbd03a01ef804e351ffe5c4ee15d61336f7ca0ab1a612839baa723f85d15"
+      },
+      "after": {
+        "length": 100796,
+        "sha256": "e3dad40652ba74ba2737e21b493ffb48787eb576974609f62f3f62ad690f443b"
+      },
+      "edits": [
+        {
+          "before": "include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared.rs\")",
+          "after": "include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/direct.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/direct/before.rs\"), include_str!(\"../src/cleanup_plan/replay/branch_clone/direct/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/ordinary_plan_history/before_comparison.rs\"), include_str!(\"../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs\"), include_str!(\"../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs\"), include_str!(\"../src/source_reflows/main99f_controllers.rs\"), include_str!(\"../src/source_reflows_merge/main99f_inputs.rs\"), include_str!(\"../src/source_reflows_merge/next_big_batch_inputs.rs\"), include_str!(\"../src/workspace_graph/tests/core_attempt_trace.rs\"), include_str!(\"../tests/wasm/scalar_browser_ci_contract/before_3e66.rs\"), include_str!(\"../tests/wasm/scalar_browser_ci_contract/incoming_main3e66.rs\")",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "before": {
+        "length": 97691,
+        "sha256": "f42216ee8017033d39f6f29648613ddb4056483041ac6ed302b3db09623c3359"
+      },
+      "after": {
+        "length": 98621,
+        "sha256": "4cf1b2596f589f53fe4dec8ac692738eecd04e7e3909c846a1c762d04717834c"
+      },
+      "edits": [
+        {
+          "before": "include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared.rs\")",
+          "after": "include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/direct.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/direct/before.rs\"), include_str!(\"../../src/cleanup_plan/replay/branch_clone/direct/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/ordinary_plan_history/before_comparison.rs\"), include_str!(\"../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs\"), include_str!(\"../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs\"), include_str!(\"../../src/source_reflows/main99f_controllers.rs\"), include_str!(\"../../src/source_reflows_merge/main99f_inputs.rs\"), include_str!(\"../../src/source_reflows_merge/next_big_batch_inputs.rs\"), include_str!(\"../../src/workspace_graph/tests/core_attempt_trace.rs\"), include_str!(\"../../tests/wasm/scalar_browser_ci_contract/before_3e66.rs\"), include_str!(\"../../tests/wasm/scalar_browser_ci_contract/incoming_main3e66.rs\")",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "before": {
+        "length": 158336,
+        "sha256": "1593db2b5b16f88c509952eddf075e1b574a8c6352382bff4ca19e2478ea7517"
+      },
+      "after": {
+        "length": 159374,
+        "sha256": "700318b054f35e3dbf69cf25d7a83cd3bf65d04f5674327bcbbd5af02bbdec66"
+      },
+      "edits": [
+        {
+          "before": "include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared.rs\")",
+          "after": "include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/direct.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/direct/before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/branch_clone/direct/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/ordinary_plan_history/before_comparison.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs\"), include_str!(\"../../../../../src/source_reflows/main99f_controllers.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main99f_inputs.rs\"), include_str!(\"../../../../../src/source_reflows_merge/next_big_batch_inputs.rs\"), include_str!(\"../../../../../src/workspace_graph/tests/core_attempt_trace.rs\"), include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/before_3e66.rs\"), include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/incoming_main3e66.rs\")",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "source": "tests/workspace/semantic_graph.rs",
+      "before": {
+        "length": 57429,
+        "sha256": "cc447e531dd73420f6507303cc986888a302ff90b53d3843487dab796b125458"
+      },
+      "after": {
+        "length": 57423,
+        "sha256": "b4d8c484c115ff71427e873d8b97470048b85106f7d54043299cb00b0e987f6d"
+      },
+      "edits": [
+        {
+          "before": "docs/evidence/future831-f247-final-source-binding-20261017/current-projection-inputs.tsv",
+          "after": "docs/evidence/next-big-batch-source-binding-20261017/current-projection-inputs.tsv",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "table": {
+    "path": "docs/evidence/next-big-batch-source-binding-20261017/current-projection-inputs.tsv",
+    "length": 26040,
+    "sha256": "bf9d90d2e54bd7fc117b8f885f94fba383d74207e8833a62c8c3eaa7adeeb190",
+    "prior_path": "docs/evidence/future831-f247-final-source-binding-20261017/current-projection-inputs.tsv",
+    "prior_length": 25386,
+    "prior_sha256": "2313237e3cd870841a2f5364a42676b2ed88544610ed062c6bbbab5799398d2c",
+    "retained_lines": 414,
+    "ordered_additions": [
+      "src/cleanup_plan/replay/branch_clone/direct.rs",
+      "src/cleanup_plan/replay/branch_clone/direct/before.rs",
+      "src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+      "src/cleanup_plan/replay/ordinary_plan_history/before_comparison.rs",
+      "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+      "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs",
+      "src/source_reflows/main99f_controllers.rs",
+      "src/source_reflows_merge/main99f_inputs.rs",
+      "src/source_reflows_merge/next_big_batch_inputs.rs",
+      "src/workspace_graph/tests/core_attempt_trace.rs",
+      "tests/wasm/scalar_browser_ci_contract/before_3e66.rs",
+      "tests/wasm/scalar_browser_ci_contract/incoming_main3e66.rs"
+    ],
+    "insertions": [
+      {
+        "at": 24,
+        "path": "src/cleanup_plan/replay/branch_clone/direct.rs"
+      },
+      {
+        "at": 25,
+        "path": "src/cleanup_plan/replay/branch_clone/direct/before.rs"
+      },
+      {
+        "at": 26,
+        "path": "src/cleanup_plan/replay/branch_clone/direct/tests.rs"
+      },
+      {
+        "at": 27,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/before_comparison.rs"
+      },
+      {
+        "at": 28,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs"
+      },
+      {
+        "at": 29,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs"
+      },
+      {
+        "at": 30,
+        "path": "src/source_reflows/main99f_controllers.rs"
+      },
+      {
+        "at": 31,
+        "path": "src/source_reflows_merge/main99f_inputs.rs"
+      },
+      {
+        "at": 32,
+        "path": "src/source_reflows_merge/next_big_batch_inputs.rs"
+      },
+      {
+        "at": 33,
+        "path": "src/workspace_graph/tests/core_attempt_trace.rs"
+      },
+      {
+        "at": 34,
+        "path": "tests/wasm/scalar_browser_ci_contract/before_3e66.rs"
+      },
+      {
+        "at": 35,
+        "path": "tests/wasm/scalar_browser_ci_contract/incoming_main3e66.rs"
+      }
+    ],
+    "rows": 426
+  },
+  "old_occurrences_and_tables_unchanged": true,
+  "repository_writes": false
+}

@@ -1,0 +1,9 @@
+{
+  "status": "SOURCE_ONLY_STRICT_TEMP_RECIPE_PARENTHESIS_FIX",
+  "before_sha256": "ef69fc52d55d8736caa01f821fc5c479290820e94b294fd128aa187fcaeffc26",
+  "after_sha256": "7d58f8bda6b48db6367d3a85dd3227904921f8f5fc1e4308b63c468fbe222d03",
+  "before": "new_read='_next_public_previous()'",
+  "after": "new_read='(_next_public_previous())'",
+  "whole_inverse": true,
+  "reason": "Preserve assert(...) token separation in exact old verify_recipe read substitution; first58 attempt stopped NameError before controls."
+}

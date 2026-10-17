@@ -22,8 +22,8 @@ def held(path,length):
 original=held(D/'verify-or-refresh.before.py',9518)
 assert len(original)==9518 and sha(original)=='7c2eb0ca8ff31f89b3744d69089bb62c57c8114495ddc4ec78862c32f8b4392a'
 assert original.decode().count(SEMANTIC_HELPER_SHA)==1
-helper=R/'docs/evidence/main043-definition-accepted-generation-20261017/definition_payload.py';raw=held(helper,3228)
-assert len(raw)==3228 and sha(raw)=='59e731713eea180fec3a07c7eb818633591ed948cf4462c5796dcd1810ec36f3'
+helper=R/'docs/evidence/next-big-batch-source-binding-20261017/definition_adapter.py';raw=held(helper,1766)
+assert len(raw)==1766 and sha(raw)=='ab6e2d1c227dee30da804701dd3d5f54c57c853c08ce423f98359a8420cf2731'
 m=types.ModuleType('fixed_main043_definition_payload')
 m.__file__=str(helper)
 exec(compile(raw,str(helper),'exec'),m.__dict__)
@@ -32,10 +32,11 @@ new=" payload=_definition_payload(R,row,read)"
 source=original.decode();assert source.count(old)==1
 current=source.replace(old,new,1)
 assert current.replace(new,old,1).encode()==original
-guard_helper=R/'docs/evidence/earned-managed-pin42-source-coupling-20261017/guard_payload.py';guard_raw=held(guard_helper,2978)
-assert sha(guard_raw)=='71b1cf1c20c2aa0d534dccfc9701a1ebe465f4e56b1f5d0eb7a344d6e1b1560f'
-g=types.ModuleType('accepted_main043_strict_guard');g.__file__=str(guard_helper)
+guard_helper=R/'docs/evidence/next-big-batch-source-binding-20261017/guard_payload.py';guard_raw=held(guard_helper,18420)
+assert sha(guard_raw)=='1641b57088ed77b78631be8843c0f074ea09e04f591811b129ddea709bbc11f9'
+g=types.ModuleType('accepted_main043_strict_guard');g.__file__=str(guard_helper);g._AUTHENTICATED_PROGRAM=guard_raw
 exec(compile(guard_raw,str(guard_helper),'exec'),g.__dict__)
+m._next_raw_source=g.source
 guard_old="runpy.run_path(str(R/D/'guard-extensions.py'))"
 guard_new="_accepted_guard_extensions(R)"
 assert current.count(guard_old)==2

@@ -1,0 +1,36 @@
+{
+  "state": "UNEXECUTED_FINITE_SOURCE_BINDER",
+  "source_head": "c3ca7f9b54f101b585ff239eb00a964a2848de3d",
+  "changed_physical": {
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": [
+      155342,
+      "2f60338ca315635e7d533ba6cbdeadda40d8b2e3d66a7398c7521d4b44f5f845"
+    ],
+    "src/cleanup_plan/replay.rs": [
+      321092,
+      "30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c"
+    ],
+    "tests/hir_module_boundaries.rs": [
+      97256,
+      "f25b784eba1a2ea26a07b260b2ddff67b6dd90c0a6402fd143dc42ca68847d4e"
+    ],
+    "tests/workspace/semantic_graph/source_inventory.rs": [
+      90364,
+      "59e5b98593c2c2d443d1479e7c89564551d515ca921f7abab2cc8f5d579c8c21"
+    ],
+    "src/source_reflows/incoming67107_semantic_receivers.rs": [
+      32535,
+      "70136f31e90d3055f8622183540e6bcaf83c7ac29409dd0ac51715c89c9c6ee3"
+    ]
+  },
+  "all_other_physical_rows_unchanged": 169,
+  "preserved": "complete previousmanifest, originalstrictbinder, completepreviousnamespace module",
+  "caps_unchanged": [
+    9464242,
+    9382389
+  ],
+  "whole_old_raw_guards_and_counts_preserved": true,
+  "new_required_maximum": 1,
+  "native_lines": 1500,
+  "Rust_execution": false
+}

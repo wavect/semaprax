@@ -527,7 +527,7 @@ fn singleton_concat_current(path: &::std::path::Path, relative: &str, length: us
     if length != 28835 || expected != "f4fd89c5c28b47d826968d935f51dac66a49e8fd859bfa519e98013913a3923a" { return Err("foreign-singleton-concat-row"); }
     let raw = custody_file(path, 28861, "76fd94cd723677369a17540d5bf447e1b66fa08dffb14a754d53cf2c81180b32")?;
     let before = singleton_concat_restore(&raw)?;
-    let archive = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/evidence/source-custody-452-singleton-needle-20261017/borrowed_labels.before.rs.txt");
+    let archive = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/evidence/source-custody-452-singleton-needle-20261017/borrowed_labels.before.txt");
     if before != custody_file(&archive, length, expected)? { return Err("singleton-concat-whole-archive"); }
     Ok(before)
 }

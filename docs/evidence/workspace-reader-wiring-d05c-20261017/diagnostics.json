@@ -1,0 +1,55 @@
+[
+  {
+    "reason": "compiler-message",
+    "package_id": "path+file:///Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang#semaprax@0.9.0",
+    "manifest_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/Cargo.toml",
+    "target": {
+      "kind": [
+        "test"
+      ],
+      "crate_types": [
+        "bin"
+      ],
+      "name": "workspace",
+      "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/tests/workspace.rs",
+      "edition": "2021",
+      "doc": false,
+      "doctest": false,
+      "test": true
+    },
+    "message": {
+      "rendered": "error[E0433]: cannot find `main67107_inputs` in `super`\n   --> tests/workspace/../../src/source_reflows_merge/final_ready_inputs.rs:220:24\n    |\n220 |     let outer = super::main67107_inputs::project(\"canonical870\", current);\n    |                        ^^^^^^^^^^^^^^^^ could not find `main67107_inputs` in `super`\n\n",
+      "$message_type": "diagnostic",
+      "children": [],
+      "level": "error",
+      "message": "cannot find `main67107_inputs` in `super`",
+      "spans": [
+        {
+          "byte_end": 7756,
+          "byte_start": 7740,
+          "column_end": 40,
+          "column_start": 24,
+          "expansion": null,
+          "file_name": "tests/workspace/../../src/source_reflows_merge/final_ready_inputs.rs",
+          "is_primary": true,
+          "label": "could not find `main67107_inputs` in `super`",
+          "line_end": 220,
+          "line_start": 220,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 40,
+              "highlight_start": 24,
+              "text": "    let outer = super::main67107_inputs::project(\"canonical870\", current);"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      }
+    }
+  }
+]

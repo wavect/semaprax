@@ -1,0 +1,13 @@
+{
+  "source_head_before": "d05c354dcb3470daf46308a6fd46dc9c493693e3",
+  "source": "tests/workspace/semantic_graph.rs",
+  "before_sha256": "f925599a4c20fef93c1214a73d560d8328e6c0ab9d1c05eb10f7f476b34beada",
+  "after_sha256": "e789b8f08df0bbfa589f6663bdd98ad34d63e3e1b7c53a13ce1ac83b7eb20a3b",
+  "old": "#[path = \"../../src/source_reflows_merge/final_ready_inputs.rs\"]\nmod final_ready_inputs;",
+  "new": "// Keep the shared source reader and its authenticated outer adapter together.\n#[path = \"../../src/source_reflows_merge/main67107_inputs.rs\"]\nmod main67107_inputs;\n#[path = \"../../src/source_reflows_merge/final_ready_inputs.rs\"]\nmod final_ready_inputs;",
+  "only_change": "Include unchanged authenticated sibling adapter alongside shared source reader in existing workspace harness",
+  "source_only_no_execution": true,
+  "production_changed": false,
+  "historical_assertions_changed": false,
+  "new_harness": false
+}

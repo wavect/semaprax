@@ -1,7 +1,7 @@
 """Distinct joined source-only refresh. Historical receipts and algorithms remain immutable."""
 from pathlib import Path
 import argparse,difflib,hashlib,json,os,re,subprocess,sys
-p=argparse.ArgumentParser();p.add_argument('--apply',action='store_true');p.add_argument('--expected-head',required=True);a=p.parse_args();assert a.apply
+p=argparse.ArgumentParser();p.add_argument('--apply',action='store_true');p.add_argument('--expected-head',required=True);p.add_argument('--memoize-source-masks',action='store_true');a=p.parse_args();assert a.apply
 R=Path(__file__).resolve().parents[3];D=R/'docs/evidence/a3-e47-final-custody-20261016';O=Path(__file__).resolve().parent
 import runpy
 parts=runpy.run_path(str(O/'table-parts.py'))
@@ -78,15 +78,21 @@ for f in owners:
  for q in guards:assert f in (R/q).read_text(),(q,f)
 write(D/'new-owners.json',[dict(source=f,sha256=sha((R/f).read_bytes()),lines=len((R/f).read_bytes().splitlines()))for f in owners])
 contract.update(changed_preexisting=domains[0]['keys'],final_normalizer_sha256=sha(normalizer.read_bytes()),joined_batch_source_commit=g('rev-parse','HEAD').decode().strip(),execution='NONE_SOURCE_ONLY');write(D/'arm-contract.json',contract)
+def source_command(entry,script,args):
+ if not a.memoize_source_masks:return [sys.executable,str(script),*args]
+ cache=R/'docs/evidence/bounded-source-mask-cache-20261017/refresh-entry.py'
+ stats=Path(os.environ['TMPDIR'])/('source-mask-'+a.expected_head+'-'+entry+'-'+str(os.getpid())+'.json')
+ assert not stats.exists()
+ return [sys.executable,str(cache),'--repo',str(R),'--head',a.expected_head,'--entry',entry,'--stats',str(stats),'--',*args]
 # All Rust source writes are complete. Generate authority exactly once, then run untouched source proof owners.
-subprocess.run([sys.executable,str(D/'generate-authority.py'),'--repo',str(R),'--out',str(D)],cwd=R,check=True)
+subprocess.run(source_command('authority-generate',D/'generate-authority.py',['--repo',str(R),'--out',str(D)]),cwd=R,check=True)
 source=subprocess.check_output([sys.executable,str(O/'verify-source-parts.py'),'--repo',str(R)],cwd=R);(D/'source-proof.json').write_bytes(source);(O/'source-proof.json').write_bytes(source)
 # The original verifier's full-role/source function remains the unchanged
 # authenticator. Its old main conflated new raw-custody roots with semantic
 # boundary membership, so current predicates run through the explicit domain.
 B=R/'docs/evidence/source-boundary-domains-20261016'
-subprocess.run([sys.executable,str(B/'generate-boundary.py'),'--repo',str(R),'--full-dir',str(D),'--out',str(B)],cwd=R,check=True)
-authority=subprocess.check_output([sys.executable,str(B/'verify-boundary.py'),'--repo',str(R),'--full-dir',str(D),'--scope-dir',str(B)],cwd=R);(O/'authority-proof.json').write_bytes(authority)
+subprocess.run(source_command('boundary-generate',B/'generate-boundary.py',['--repo',str(R),'--full-dir',str(D),'--out',str(B)]),cwd=R,check=True)
+authority=subprocess.check_output(source_command('boundary-verify',B/'verify-boundary.py',['--repo',str(R),'--full-dir',str(D),'--scope-dir',str(B)]),cwd=R);(O/'authority-proof.json').write_bytes(authority)
 for f,digest in protected.items():assert sha((R/f).read_bytes())==digest,('protected baseline changed',f)
 # Main043/Main44 remain bound after final descriptor writes.
 subprocess.run([sys.executable,str(R/'docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py'),'--repo',str(R)],cwd=R,check=True)

@@ -1,0 +1,212 @@
+{
+  "rows": [
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/hir.json",
+      "current_length": 2016499,
+      "current_sha256": "8bfe1853eedf589fe400ab6960733bb218a9ff5d879d25a67cac0e7dc1851b03",
+      "before_length": 2016499,
+      "before_sha256": "1ed6438e58a6d661ace4d2c869acdb382df5641a77c77b93bda0f1a9f13ce221",
+      "before_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/docs__evidence__a3-e47-final-custody-20261016__hir.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 2016499,
+          "remove_sha256": "8bfe1853eedf589fe400ab6960733bb218a9ff5d879d25a67cac0e7dc1851b03",
+          "insert_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/docs__evidence__a3-e47-final-custody-20261016__hir.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/new-owners.json",
+      "current_length": 33508,
+      "current_sha256": "d625654080e001c21592ea191c35faac5ec18bec6288c35d84d8169628b45a71",
+      "before_length": 33508,
+      "before_sha256": "565838ec3dfb0103e949202229b4c162687417eacb3c334d15a400128d2fb514",
+      "before_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/docs__evidence__a3-e47-final-custody-20261016__new-owners.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 33508,
+          "remove_sha256": "d625654080e001c21592ea191c35faac5ec18bec6288c35d84d8169628b45a71",
+          "insert_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/docs__evidence__a3-e47-final-custody-20261016__new-owners.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/projection.json",
+      "current_length": 2320272,
+      "current_sha256": "dc13e623c160fdb5b552f1aa2015bd66ba79e59e26c2efee8ad80ab5789796af",
+      "before_length": 2320272,
+      "before_sha256": "712df54e7e009f0b1c5136123f17f54435ed4dc1af511e2428ec7edc68bb5094",
+      "before_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/docs__evidence__a3-e47-final-custody-20261016__projection.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 2320272,
+          "remove_sha256": "dc13e623c160fdb5b552f1aa2015bd66ba79e59e26c2efee8ad80ab5789796af",
+          "insert_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/docs__evidence__a3-e47-final-custody-20261016__projection.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-plan-final-ingress-20261017/binding-receipt.json",
+      "current_length": 420,
+      "current_sha256": "b8f4e1f376f21c4082da866c784fb0fd6ec68e4271f39ea5c89b224e23558d4e",
+      "before_length": 420,
+      "before_sha256": "4dbbc1103d5990029c1510b5210f272177cab16376a364e64cfed492fb68e823",
+      "before_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__binding-receipt.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 420,
+          "remove_sha256": "b8f4e1f376f21c4082da866c784fb0fd6ec68e4271f39ea5c89b224e23558d4e",
+          "insert_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__binding-receipt.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-plan-final-ingress-20261017/current-inputs.json",
+      "current_length": 92131,
+      "current_sha256": "33c4bfaec201c15f2317c0960b934e3b3b6bcea8bb9f46255daef96501a80f7f",
+      "before_length": 92126,
+      "before_sha256": "93ffaf0fbd92fb1f6b52ba0b28e073ed686422fea2d548138888674ea0315cc9",
+      "before_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__current-inputs.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 92131,
+          "remove_sha256": "33c4bfaec201c15f2317c0960b934e3b3b6bcea8bb9f46255daef96501a80f7f",
+          "insert_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__current-inputs.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-plan-final-ingress-20261017/current-manifest.json",
+      "current_length": 1850,
+      "current_sha256": "17596e3e88d5bee31fa39bdc1d42c945fe1c7656725165d55ca7bd9f4486b3f6",
+      "before_length": 1850,
+      "before_sha256": "940986f3990ccc95b70a01b785ad06e986f8d285cc454ccc9b13b0b6fdf73cc0",
+      "before_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__current-manifest.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 1850,
+          "remove_sha256": "17596e3e88d5bee31fa39bdc1d42c945fe1c7656725165d55ca7bd9f4486b3f6",
+          "insert_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__current-manifest.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/boundary-source-proof.json",
+      "current_length": 2718,
+      "current_sha256": "55eefb15eed1ed420dde73c5388e3ee5ffe05d1b04dacd85706516057b5ae032",
+      "before_length": 2718,
+      "before_sha256": "0ac1ffab54d1102c859ffa9d064f963c8af6497c56047359622ba4ddbfb9a87a",
+      "before_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/docs__evidence__source-boundary-domains-20261016__boundary-source-proof.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 2718,
+          "remove_sha256": "55eefb15eed1ed420dde73c5388e3ee5ffe05d1b04dacd85706516057b5ae032",
+          "insert_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/docs__evidence__source-boundary-domains-20261016__boundary-source-proof.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/current-domains.json",
+      "current_length": 233338,
+      "current_sha256": "23149e4852d27743751df9758d85e66af6e5b92ed9267bfdb4ac2b2c699be940",
+      "before_length": 233338,
+      "before_sha256": "624aa7350d24fed86aed85744a0c15a774c18c0897860003c5b1865cd337a1fa",
+      "before_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/docs__evidence__source-boundary-domains-20261016__current-domains.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 233338,
+          "remove_sha256": "23149e4852d27743751df9758d85e66af6e5b92ed9267bfdb4ac2b2c699be940",
+          "insert_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/docs__evidence__source-boundary-domains-20261016__current-domains.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/workspace21-final-bindings-20261017/inputs.json",
+      "current_length": 33305,
+      "current_sha256": "4048fb07babb11bb598fd66a6dab73929e04ed132d39283a3b35ceee52e27356",
+      "before_length": 33305,
+      "before_sha256": "4048fb07babb11bb598fd66a6dab73929e04ed132d39283a3b35ceee52e27356",
+      "before_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/docs__evidence__workspace21-final-bindings-20261017__inputs.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 33305,
+          "remove_sha256": "4048fb07babb11bb598fd66a6dab73929e04ed132d39283a3b35ceee52e27356",
+          "insert_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/docs__evidence__workspace21-final-bindings-20261017__inputs.json"
+        }
+      ]
+    },
+    {
+      "path": "src/source_reflows_merge/main67107_inputs.rs",
+      "current_length": 75802,
+      "current_sha256": "59f5aa1cb6f7f6ff59e5955c59ed7ac06230571c72daf2a56aed0cf6a721101e",
+      "before_length": 75797,
+      "before_sha256": "e94748caccb9e642f67d04e05c0dcd3612b0350fcced644a240e50c01f82c2a8",
+      "before_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/src__source_reflows_merge__main67107_inputs.rs",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 75802,
+          "remove_sha256": "59f5aa1cb6f7f6ff59e5955c59ed7ac06230571c72daf2a56aed0cf6a721101e",
+          "insert_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/src__source_reflows_merge__main67107_inputs.rs"
+        }
+      ]
+    },
+    {
+      "path": "src/source_reflows_merge/ordinary_plan_inputs.rs",
+      "current_length": 18588,
+      "current_sha256": "f268f11144e5566afc03243adf982a35b313538a58cc39b16374ac5638aceb99",
+      "before_length": 18588,
+      "before_sha256": "12d219b21fb7eeeb55e7ef55cb5ce1ee40b18390af3ed2aebdafeb7fcab40a35",
+      "before_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/src__source_reflows_merge__ordinary_plan_inputs.rs",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 18588,
+          "remove_sha256": "f268f11144e5566afc03243adf982a35b313538a58cc39b16374ac5638aceb99",
+          "insert_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/before/src__source_reflows_merge__ordinary_plan_inputs.rs"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/main09013-source-namespaces-v1/input-domains.json",
+      "current_length": 241192,
+      "current_sha256": "d402fbe5ba954cfddc311af85ee500c7c4859fe192134a239e8575e2a8c10594",
+      "before_length": 241192,
+      "before_sha256": "f124958415022894126b6ceb47c5b5d1d7d2920ff2e90d88240a4bc383d103a5",
+      "before_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/frozen174/input-domains.before.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 241192,
+          "remove_sha256": "d402fbe5ba954cfddc311af85ee500c7c4859fe192134a239e8575e2a8c10594",
+          "insert_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/frozen174/input-domains.before.json"
+        }
+      ]
+    },
+    {
+      "path": "src/source_reflows/incoming090_semantic_receivers.rs",
+      "current_length": 48349,
+      "current_sha256": "4a578810adb15031cc9dccd320ae955acba3f4cbfab7bb1c3bded0f35f15db73",
+      "before_length": 48349,
+      "before_sha256": "05901e3c9a4050c9ce6a47481293a79ff956a228cfa664f9a3056fc721e40af6",
+      "before_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/frozen174/incoming090_semantic_receivers.before.rs.txt",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 48349,
+          "remove_sha256": "4a578810adb15031cc9dccd320ae955acba3f4cbfab7bb1c3bded0f35f15db73",
+          "insert_archive": "docs/evidence/compile3-second-borrow-bindings-20261017/frozen174/incoming090_semantic_receivers.before.rs.txt"
+        }
+      ]
+    }
+  ]
+}

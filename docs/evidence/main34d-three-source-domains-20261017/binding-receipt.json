@@ -1,9 +1,9 @@
 {
   "status": "BOUND_SOURCE_ONLY_UNQUALIFIED_UNTIL_FINAL_REGISTERED_BUILD",
-  "inputs_observed_head": "0284cc13d3254207bf7486ff49c2eb2aec0c052c",
+  "inputs_observed_head": "754f5c5c3c25facf8ea6e68ac14ce0492a3857ff",
   "main_head": "34d53510a3374537874c89a0e46be4d68ad9fe61",
-  "manifest_sha256": "afe8e4b0d028c9404c4d4368ef2343d10b1057dea1ffddb2221fdf5f1b48d9e0",
-  "manifest_bytes": 51348,
+  "manifest_sha256": "f5623c127ce38016a46bc6c7a60db31967d95ff6a237c8de5c1de81b8420c4e0",
+  "manifest_bytes": 51371,
   "unique_inputs": 49,
   "domain_counts": [
     [
@@ -22,7 +22,7 @@
       10
     ]
   ],
-  "archive_writes": 22,
+  "archive_writes": 23,
   "all_original_MAIN_tables_and_archive_hashes_verified": true,
   "original_domain_order_and_duplicate_source_rows_unchanged": true,
   "whole_source_inverse": "One closed whole-input replacement, with complete current/predecessor preimages and both full lengths/SHA256. No old table/assertion retargeting.",

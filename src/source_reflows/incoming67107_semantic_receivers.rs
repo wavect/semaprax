@@ -346,8 +346,8 @@ fn complete_followup_receivers_keep_all_original_source_bytes() {
 // Three incoming MAIN source-only domains. This small runtime manifest, sealed by compiled length and SHA, binds
 // complete current and MAIN inputs; no source, authority, or production text is
 // changed. Whole source payloads remain bounded runtime files, not large embeds.
-const MAIN34D_MANIFEST_LEN: usize = 51348;
-const MAIN34D_MANIFEST_SHA: &str = "afe8e4b0d028c9404c4d4368ef2343d10b1057dea1ffddb2221fdf5f1b48d9e0";
+const MAIN34D_MANIFEST_LEN: usize = 51371;
+const MAIN34D_MANIFEST_SHA: &str = "f5623c127ce38016a46bc6c7a60db31967d95ff6a237c8de5c1de81b8420c4e0";
 // Separate NEWMAIN-only admitted source-proof input: held-status sources.json.
 // The unrelated runtime_json335 cap remains exactly5,081,115 and is untouched.
 const MAIN34D_CAP: usize = 9_317_546;

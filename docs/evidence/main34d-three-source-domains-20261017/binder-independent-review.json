@@ -1,0 +1,22 @@
+{
+  "status": "ACCEPT_SOURCE_ONLY_AFTER_CONCRETE_ARCHIVE_FIX",
+  "commits": [
+    "31b7ca932bb2047b9ee83566d416023539389e28",
+    "0d33333c67a19008924df99542e58f66c9671483"
+  ],
+  "binder_sha256": "ad701b482c3cb42b5acff52ac99c0228553c3040e470cde79df425db0996b474",
+  "original_finding_preserved": "31b-finding.json",
+  "review": "AllfourimmutableMETA merge snapshots comparedexact492Gitbytes, wholeMAINarchivebytesstillindependent; onlygeneratedMETA differingfromsnapshot queuesfreshSHA-addressedcurrentpreimage. Originaloldbinder7032B and31bbinder7726B+priorinverse exactGitpreimages retained. OldMAIN tables/readers/caps/Rustcode unchanged.",
+  "fixed_archive_behavior": "lstatregular-only rejects live/broken symlink/nonregular; existingexactvalidregulararchive reusedwithoutwriting; newarchive usesexclusiveO_EXCL|O_NOFOLLOW and fdwrite. No overwritepathafterrace.",
+  "actual_isolated_python_controls": {
+    "author_positive": 5,
+    "author_negative": 6,
+    "independent_old_broken_symlink_queue_and_write": "refused",
+    "independent_existing_valid_reuse": "same mtime/inode",
+    "independent_link_raced_after_absent_admission": "realexclusiveopen refused, outsidetargetstillabsent"
+  },
+  "scope": "Allactivecontrolfiles exclusivelyin TemporaryDirectory under /Volumes/Semaprax/runtime-tmp. Noactualbinder/endpoint/common/Rust/Cargo/runtime/ROOTwrites.",
+  "dependency_audit": "Codeinspection: changedcurrentMETA storedundernewRELcontentaddress, whichisnotamong49originalMAINinputpaths; alloldinputmetadata writes unchanged. Parentactualbindings/fixedpoint remainpending.",
+  "new_selectors": [],
+  "limits": "Noactualsourcebinding/commongeneration or applicationPASS. Parentmustinvokeactualbinding thencommon andreadonlyfixedpointchecks."
+}

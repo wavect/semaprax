@@ -1,0 +1,56 @@
+{
+  "scope": "Specific frozen compiler source qualification; NOT whole batch PASS or live benchmark evidence",
+  "source_head": "c8740045e33126a4375aadd1dc524a25be9245fc",
+  "source_tree": "989569fe0b267b914ede26395722b39b2663cdd7",
+  "all_five_focused_build_commands": {
+    "exit_codes": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "receipt_sha256": "597f575ef291d1522e609079218e5713780ccf5ae52b5df6a7df740051f55371",
+    "wall_seconds": 759.665093209
+  },
+  "focused_runtime": {
+    "core247": {
+      "pass": 194,
+      "fail": 53
+    },
+    "supplement100": {
+      "pass": 79,
+      "fail": 21
+    },
+    "conditional_parity2": {
+      "pass": 0,
+      "fail": 2
+    },
+    "static_count_mismatches": [],
+    "all_owning_checks_853": 4,
+    "all_owning_checks_855": 15,
+    "all_owning_checks_860": 18
+  },
+  "clippy": {
+    "exit": 0,
+    "scope": "production semaprax lib/bin only, -D warnings",
+    "receipt_sha256": "5300d99e5b325e7bcdc47215f8ce1070578b0387472a725a56f83cd4f864ded4",
+    "peak_group_rss_bytes": 5754159104
+  },
+  "subsequent_hot_library_build": {
+    "exit": 0,
+    "wall_seconds": 3.421419291989878,
+    "artifacts": 212,
+    "all_artifacts_fresh": true,
+    "receipt_sha256": "ea32d519e24bbd5a9320fc3506cfc2ce2743158516ee7809a26d13bf40376308"
+  },
+  "measurement_limit": "First check-profile Clippy reports actual StaleDepFingerprint/StaleDependency rebuild reasons. No home-path switch occurred. A subsequent production-library build reused all212 emitted artifacts. This is one observed sequence, not a universal speedup or historical-cause proof.",
+  "pin_capture": "Both managed10 and browser2 actual producers completed; managed readonly plan REFUSED output-size differences after builder bill crossed 7-to-6 decimal digits. No pin edits or producer-consumer PASS claim. Follow-up #872 remains open.",
+  "no_live_campaign_run": true,
+  "files": {
+    "initial-build-environment.json": "6d0a520aae627d1961f9af9564771d90ee10389eff9c869ebbfef56e365c97e9",
+    "hot-lib-result.json": "ea32d519e24bbd5a9320fc3506cfc2ce2743158516ee7809a26d13bf40376308",
+    "issue-owning-results.json": "ffb3c4c63cadd5245b29801b66af1184ecf4f33868803a1bfb73089b010a1bfb",
+    "clippy-result.json": "5300d99e5b325e7bcdc47215f8ce1070578b0387472a725a56f83cd4f864ded4"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "original_path": "docs/evidence/main21-exit-region-integration-20261017/check-source.py",
+  "original_length": 6167,
+  "original_sha256": "6191503c3d362261055ae169a0ffe08786f6b6feaf3cd8cdac310b1fca8bea24",
+  "projected_length": 6187,
+  "projected_sha256": "79257042ed4f40548895a28d340b50874da0333c5ea65b4ad679eda2feb367cb",
+  "inverse": [
+    {
+      "after": "p='src/source_reflows/incoming67107_semantic_receivers.rs';value=_main21_legacy_bytes(p).decode()",
+      "before": "p='src/source_reflows/incoming67107_semantic_receivers.rs';value=(R/p).read_text()"
+    },
+    {
+      "after": "assert p.read_bytes()==_main21_legacy_bytes(rel)==git(O,rel)",
+      "before": "assert p.read_bytes()==(R/rel).read_bytes()==git(O,rel)"
+    },
+    {
+      "after": "  raw=_main21_row_raw(row,path);view=(R/row['archive']).read_bytes()",
+      "before": "  raw=(R/path).read_bytes();view=(R/row['archive']).read_bytes()"
+    },
+    {
+      "after": " raw=_main21_inverse_raw(row);assert sha(raw)==row['after_sha256']",
+      "before": " raw=(R/row['path']).read_bytes();assert sha(raw)==row['after_sha256']"
+    }
+  ]
+}

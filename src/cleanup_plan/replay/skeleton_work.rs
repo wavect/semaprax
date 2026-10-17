@@ -227,14 +227,20 @@ impl<'a, 'b> SkeletonWork<'a, 'b> {
                     FundedError<Diagnostic>,
                 >,
             >()
-            + 2 * std::mem::size_of::<(&mut ReplayBudget, &ResolvedFunction)>()
+            + 2 * std::mem::size_of::<(&mut ReplayBudget, &ResolvedFunction, &crate::bounded_output::classifier_string::ClassifierLedger)>()
+            + std::mem::size_of::<crate::bounded_output::classifier_string::ClassifierLedger>()
             + 10 * std::mem::size_of::<&mut dyn FnMut(usize) -> Result<(), Diagnostic>>();
         budget.reserve_array::<u8>(
             function,
             controls,
             "ordinary skeleton constructor receivers",
         )?;
+        let ledger = crate::bounded_output::classifier_string::ClassifierLedger::capture();
         let mut reserve = |bytes| {
+            if !ledger.current() {
+                return Err(budget.budget_refusal(function,
+                    "ordinary replay setup payer is outside its current invocation", ""));
+            }
             budget.reserve_bytes(function, bytes, "ordinary skeleton constructor inventory")
         };
         macro_rules! inventory {
@@ -271,7 +277,7 @@ impl<'a, 'b> SkeletonWork<'a, 'b> {
         let string_condition_reads = inventory!(
             crate::string_ops::conditions::function_reads_funded(function, &mut reserve)
         );
-        let requires = inventory!(crate::hir::lexical_exit::requires_funded(
+        let requires = inventory!(crate::hir::lexical_exit::requires_with_funded_cursor(
             function,
             &mut reserve
         ));
@@ -338,6 +344,32 @@ impl<'a, 'b> SkeletonWork<'a, 'b> {
             } else {
                 None
             },
+        })
+    }
+
+    #[cfg(test)]
+    fn ordinary_with_index(
+        program: &'a dyn crate::cleanup::ReplayContext,
+        function: &'a ResolvedFunction,
+        budget: &'b mut ReplayBudget,
+        index: Option<&'b crate::loop_calls::byte_writer::ModuleIndex<'a>>,
+    ) -> Result<Self, Diagnostic> {
+        let prepared = ordinary_entry::prepare(program, function, budget, index.is_some())?;
+        Ok(Self {
+            function,
+            budget,
+            continuations: None,
+            active_copy_region: None,
+            dag_scratch: None,
+            ordinary_scratch: None,
+            next_ordinary_dag: 0,
+            held_renewals: None,
+            ordinary_index: index,
+            ordinary_program: Some(program),
+            renewal_bindings: prepared.renewals,
+            string_owner_moves: prepared.moves,
+            string_condition_reads: prepared.reads,
+            owner: prepared.owner,
         })
     }
 
@@ -1097,4 +1129,246 @@ fn with_saved_extensions<T>(operation: impl FnOnce() -> T) -> T {
     }
     let _reset = Reset(SAVED_EXTENSIONS.with(|cell| cell.replace(true)));
     operation()
+}
+
+#[cfg(test)]
+/// Entry inventories use the same finite byte payer as subsequent replay.
+/// The original semantic helper ceilings and ordinary work events stay intact;
+/// this receiver introduces neither another account nor a helper work quota.
+mod ordinary_entry {
+    use super::*;
+    use crate::bounded_output::classifier_string::ClassifierLedger;
+    use crate::hir::funded::FundedError;
+
+    // Match the original owning field order for partial construction and Drop.
+    pub(super) struct Prepared<'a> {
+        pub(super) renewals: crate::cleanup_plan::renewal_profile::RenewalBindings<'a>,
+        pub(super) moves: BTreeSet<ExpressionId>,
+        pub(super) reads: BTreeSet<ExpressionId>,
+        pub(super) owner: Option<crate::hir::FunctionExecutionId>,
+    }
+
+    pub(super) fn prepare<'a>(
+        program: &'a dyn crate::cleanup::ReplayContext,
+        function: &'a ResolvedFunction,
+        budget: &mut ReplayBudget,
+        indexed: bool,
+    ) -> Result<Prepared<'a>, Diagnostic> {
+        let ledger = ClassifierLedger::capture();
+        let result = {
+            let mut pay = |bytes| {
+                if !ledger.current() {
+                    return Err(budget.budget_refusal(
+                        function,
+                        "ordinary replay setup payer is outside its current invocation",
+                        "",
+                    ));
+                }
+                budget.reserve_bytes(function, bytes, "ordinary replay setup backing")
+            };
+            let receiving = std::mem::size_of::<Prepared<'_>>()
+                + std::mem::size_of::<Result<Prepared<'_>, FundedError<Diagnostic>>>()
+                + std::mem::size_of::<ClassifierLedger>()
+                + std::mem::size_of_val(&pay);
+            (|| {
+                crate::hir::funded::charge(&mut pay, receiving)?;
+                Ok(Prepared {
+                    renewals: if indexed {
+                        crate::cleanup_plan::renewal_profile::RenewalBindings::empty()
+                    } else {
+                        crate::cleanup_plan::renewal_profile::bindings_funded(
+                            program, function, &mut pay,
+                        )?
+                    },
+                    moves: crate::literal_format::checked_moving_string_operands_funded(
+                        function, &mut pay,
+                    )?,
+                    reads: crate::string_ops::conditions::function_reads_funded(
+                        function, &mut pay,
+                    )?,
+                    owner: if crate::hir::lexical_exit::requires_with_funded_cursor(
+                        function, &mut pay,
+                    )? {
+                        crate::hir::lexical_exit::owner_funded(program, function, &mut pay)?.ok()
+                    } else {
+                        None
+                    },
+                })
+            })()
+        };
+        match result {
+            Ok(prepared) => Ok(prepared),
+            Err(FundedError::Refused(error)) => Err(error),
+            Err(
+                FundedError::Layout(reason)
+                | FundedError::Census(reason)
+                | FundedError::Unfunded(reason),
+            ) => Err(budget.budget_refusal(function, reason, "")),
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        const SUBJECTS: [&str; 3] = [
+            "module setup.scalar; @id(\"f\") fn f()->i64 {0} @id(\"main\") fn main()->i64 {0}",
+            r#"module setup.strings;
+@id("f") fn f(text:string)->i64 {
+ let mut owner=text; let mut count=0;
+ while string_len(owner)>0 && string_len(owner)<4 {
+  owner=string_concat(owner,"x"); count=count+1; 0
+ }
+ return count;
+}
+@id("main") fn main()->i64 {0}
+"#,
+            r#"module setup.renewals;
+@id("f") fn f()->i64 {
+ let mut bytes=bytes_zeroed(2usize);
+ let mut values=vec_with_capacity<i64>(1usize); let mut n=0usize;
+ while n<1usize {
+  bytes=bytes_set(bytes,n,65u8); values=vec_push<i64>(values,1); n=n+1usize; 0
+ }
+ if byte_len(bytes_as_slice(bytes))==2usize && vec_len<i64>(values)==1usize {7}else{0}
+}
+@id("main") fn main()->i64 {0}
+"#,
+        ];
+
+        #[test]
+        fn complete_entry_keeps_every_inventory_work_and_physical_refusal() {
+            for (subject, source) in SUBJECTS.into_iter().enumerate() {
+                let parsed = crate::check(source, "ordinary-setup.spx").unwrap();
+                let canonical = crate::format::canonical(&parsed);
+                let parsed = crate::check(&canonical, "ordinary-setup.spx").unwrap();
+                assert_eq!(crate::format::canonical(&parsed), canonical);
+                let program = crate::hir::resolve(&parsed).unwrap();
+                let function = program
+                    .functions
+                    .iter()
+                    .find(|f| f.id.as_str() == "f")
+                    .unwrap();
+                let index = crate::loop_calls::byte_writer::ModuleIndex::new(&program).unwrap();
+                let mut ids = Vec::new();
+                crate::hir::function_value::walk(function, |expression| {
+                    ids.push(expression.id.clone());
+                });
+                for indexed in [false, true] {
+                    let index = indexed.then_some(&index);
+                    // The entire original constructor remains the independent
+                    // unobserved reference, outside the measured finite account.
+                    let mut old_budget = ReplayBudget::unobserved();
+                    let expected =
+                        SkeletonWork::with_index(&program, function, &mut old_budget, index)
+                            .unwrap();
+                    if subject == 1 {
+                        assert!(!expected.string_owner_moves.is_empty());
+                        assert!(!expected.string_condition_reads.is_empty());
+                        assert!(expected.owner.is_some());
+                    }
+                    if subject == 2 && !indexed {
+                        assert!(ids
+                            .iter()
+                            .any(|id| expected.renewal_bindings.get(id).is_some()));
+                    }
+                    let observe = |available, floor| {
+                        crate::bounded_output::with_limit_usage_refusal(available + floor, || {
+                            assert!(crate::bounded_output::set_active_floor(floor));
+                            crate::test_allocation_observer::measure(|| {
+                                let mut budget =
+                                    ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+                                let result = (|| {
+                                    let work = SkeletonWork::with_index(
+                                        &program,
+                                        function,
+                                        &mut budget,
+                                        index,
+                                    )?;
+                                    assert_eq!(
+                                        work.string_owner_moves,
+                                        expected.string_owner_moves
+                                    );
+                                    assert_eq!(
+                                        work.string_condition_reads,
+                                        expected.string_condition_reads
+                                    );
+                                    assert_eq!(work.owner, expected.owner);
+                                    for id in &ids {
+                                        assert_eq!(
+                                            work.renewal_bindings.get(id),
+                                            expected.renewal_bindings.get(id)
+                                        );
+                                    }
+                                    assert_eq!(work.budget.remaining, MAX_REPLAY_WORK_UNITS);
+                                    assert_eq!(
+                                        work.budget.skeleton_remaining,
+                                        MAX_REPLAY_WORK_UNITS
+                                    );
+                                    drop(work);
+                                    Ok::<_, Diagnostic>(())
+                                })();
+                                let success = result.is_ok();
+                                if !success {
+                                    assert!(budget
+                                        .reserve_bytes(function, 0, "sticky setup")
+                                        .is_err());
+                                }
+                                drop(result);
+                                drop(budget);
+                                success
+                            })
+                        })
+                    };
+                    let ((ok, allocation), refused, exact, first) = observe(usize::MAX, 0);
+                    assert!(ok && !refused && first.is_none() && exact > 0);
+                    assert!(!allocation.invalid && allocation.live == 0);
+                    assert_eq!(allocation.allocated, allocation.freed);
+                    assert!(allocation.allocated <= exact);
+                    for floor in [0, 37] {
+                        for available in [0, exact - 1, exact] {
+                            let ((ok, allocation), refused, used, receipt) =
+                                observe(available, floor);
+                            assert_eq!(ok, available == exact);
+                            assert_eq!(refused, available != exact);
+                            assert_eq!(receipt.is_some(), available != exact);
+                            if let Some(receipt) = receipt {
+                                assert_eq!(receipt.floor, floor);
+                            }
+                            assert!(used <= available);
+                            assert!(!allocation.invalid && allocation.live == 0);
+                            assert_eq!(allocation.allocated, allocation.freed);
+                            assert!(allocation.allocated <= used);
+                            if available == 0 {
+                                assert_eq!(allocation.allocated, 0);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+#[cfg(test)]
+mod incoming_constructor_control {
+    use super::*;
+    #[test]
+    fn main_complete_prepared_receiver_matches_joined_actual_inventories() {
+        let program = crate::hir::resolve(&crate::check("module joined.setup; @id(\"main\") fn main()->i64 {return 0;}", "joined-setup.spx").unwrap()).unwrap();
+        let function = &program.functions[0];
+        crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {
+            let mut old_budget = ReplayBudget::new();
+            let before = SkeletonWork::ordinary_with_index(&program, function, &mut old_budget, None).unwrap();
+            let mut current_budget = ReplayBudget::new();
+            let current = SkeletonWork::with_index(&program, function, &mut current_budget, None).unwrap();
+            assert_eq!(current.string_owner_moves, before.string_owner_moves);
+            assert_eq!(current.string_condition_reads, before.string_condition_reads);
+            assert_eq!(current.owner, before.owner);
+            crate::hir::function_value::walk(function, |expression| {
+                assert_eq!(current.renewal_bindings.get(&expression.id), before.renewal_bindings.get(&expression.id));
+            });
+        });
+    }
 }

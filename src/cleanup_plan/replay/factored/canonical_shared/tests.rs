@@ -602,3 +602,255 @@ mod targets {
         }
     }
 }
+
+mod successor_labels {
+    use super::super::{targets, borrowed_labels as labels, SharedWeighted};
+    use super::super::super::compact_nodes::{Node, Many};
+    use super::*;
+
+    fn function() -> ResolvedFunction {
+        fixture()
+    }
+
+    fn subject(width: usize, overflow: bool) -> (Automaton, BTreeMap<usize, u64>) {
+        let mut keys = (0..width)
+            .map(|index| {
+                Label::Observation(Rc::new(SkeletonObservation::Boolean {
+                    expression: ExpressionId::from_owned(format!("labels.é.{index}")),
+                    value: index % 2 == 0,
+                }))
+            })
+            .collect::<Vec<_>>();
+        if width != 0 {
+            for terminal in [
+                SkeletonTerminal::Success,
+                SkeletonTerminal::Failure,
+                SkeletonTerminal::LoopLatch,
+            ] {
+                keys.push(Label::End(terminal));
+            }
+        }
+        let nodes = (0..4)
+            .map(|node| Node::Many(Box::new(Many {
+                moves: keys
+                    .iter()
+                    .rev()
+                    .enumerate()
+                    .map(|(index, key)| {
+                        (key.clone(), if overflow { 0 } else { (index + node) % 5 })
+                    })
+                    .collect(),
+                epsilon: Vec::new(),
+            })))
+            .collect();
+        let weights = [
+            (0, if overflow { u64::MAX } else { 0 }),
+            (1, 2),
+            (2, 3),
+            (3, 5),
+        ]
+        .into_iter()
+        .collect();
+        (Automaton { nodes }, weights)
+    }
+
+    // Complete prior outer producer, with only self.automaton made a parameter.
+    #[allow(clippy::type_complexity)]
+    fn before_labels(
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+        automaton: &Automaton,
+        closed: &BTreeMap<usize, u64>,
+        accepted: u64,
+    ) -> Result<Option<(u64, Vec<(Label, SharedWeighted)>)>, Diagnostic> {
+        let mut successors = BTreeMap::<Label, targets::Targets>::new();
+        for (node, weight) in closed {
+            let moves = automaton.nodes[*node].moves();
+            budget.charge(
+                function,
+                moves.len().saturating_add(1),
+                "factored skeleton subset construction",
+            )?;
+            for (label, child) in moves {
+                if !successors.contains_key(label) {
+                    budget.reserve_btree_node::<Label, targets::Targets>(
+                        function,
+                        "factored successor label node",
+                    )?;
+                }
+                let targets = successors
+                    .entry(label.clone())
+                    .or_insert_with(|| targets::Targets::new(budget.pays_allocations()));
+                if !targets.add(function, budget, *child, *weight)? {
+                    return Ok(None);
+                }
+            }
+        }
+        budget.reserve_array::<(Label, SharedWeighted)>(
+            function,
+            successors.len(),
+            "factored successor vector",
+        )?;
+        let mut result = Vec::with_capacity(successors.len());
+        for (label, targets) in successors {
+            result.push((label, targets.share(function, budget)?));
+        }
+        Ok(Some((accepted, result)))
+    }
+
+    #[test]
+    fn complete_outer_labels_preserve_order_weights_zero_empty_and_overflow() {
+        let function = function();
+        for width in [0, 1, 2, 8, 64] {
+            for overflow in [false, true] {
+                let (automaton, closed) = subject(width, overflow);
+                let mut old = ReplayBudget::new();
+                let mut new = ReplayBudget::new();
+                let expected = before_labels(&function, &mut old, &automaton, &closed, 57).unwrap();
+                let actual =
+                    labels::successors(&function, &mut new, &automaton, &closed, 57).unwrap();
+                assert_eq!(actual, expected);
+                if let Some((accepted, labels)) = actual {
+                    assert_eq!(accepted, 57);
+                    assert_eq!(labels.len(), if width == 0 { 0 } else { width + 3 });
+                    assert!(labels.windows(2).all(|pair| pair[0].0 < pair[1].0));
+                } else {
+                    assert!(overflow && width != 0);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn complete_paid_outer_storage_keeps_last_drop_and_physical_boundaries() {
+        let function = function();
+        let (automaton, closed) = subject(64, false);
+        let observe = |old, available, floor| {
+            crate::bounded_output::with_limit_usage_refusal(available + floor, || {
+                assert!(crate::bounded_output::set_active_floor(floor));
+                crate::test_allocation_observer::measure(|| {
+                    let mut budget = ReplayBudget::new();
+                    let result = if old {
+                        before_labels(&function, &mut budget, &automaton, &closed, 57)
+                    } else {
+                        labels::successors(&function, &mut budget, &automaton, &closed, 57)
+                    };
+                    let success = result.is_ok();
+                    if let Ok(Some((accepted, labels))) = &result {
+                        assert_eq!(*accepted, 57);
+                        assert_eq!(labels.len(), 67);
+                        for (_, weights) in labels {
+                            assert_eq!(weights.iter().map(|(_, weight)| weight).sum::<u64>(), 10);
+                        }
+                    }
+                    drop(result);
+                    if !success {
+                        assert!(budget.reserve_bytes(&function, 0, "sticky labels").is_err());
+                    }
+                    drop(budget);
+                    success
+                })
+            })
+        };
+        let ((old_ok, old), refused, before, receipt) = observe(true, usize::MAX, 0);
+        assert!(old_ok && !refused && receipt.is_none());
+        let ((new_ok, new), refused, exact, receipt) = observe(false, usize::MAX, 0);
+        assert!(new_ok && !refused && receipt.is_none());
+        assert!(exact < before && new.allocated < old.allocated);
+        for allocation in [old, new] {
+            assert!(!allocation.invalid && allocation.live == 0);
+            assert_eq!(allocation.allocated, allocation.freed);
+        }
+        assert!(new.allocated <= exact && old.allocated <= before);
+        for floor in [0, 37] {
+            for available in [0, exact - 1, exact] {
+                let ((ok, allocation), refused, spent, receipt) = observe(false, available, floor);
+                assert_eq!(ok, available == exact);
+                assert_eq!(refused, !ok);
+                assert_eq!(receipt.is_some(), !ok);
+                if let Some(receipt) = receipt {
+                    assert_eq!(receipt.floor, floor);
+                }
+                assert!(spent <= available && allocation.allocated <= spent);
+                assert!(!allocation.invalid && allocation.live == 0);
+                assert_eq!(allocation.allocated, allocation.freed);
+                if available == 0 {
+                    assert_eq!(allocation.allocated, 0);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn outer_label_work_refusal_precedes_publication() {
+        let function = function();
+        let (automaton, closed) = subject(8, false);
+        let mut budget = ReplayBudget::new();
+        budget.remaining = 0;
+        assert!(labels::successors(&function, &mut budget, &automaton, &closed, 57).is_err());
+    }
+
+    #[test]
+    fn complete_outer_label_sources_and_original_producer_remain_exact() {
+        use sha2::{Digest, Sha256};
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let evidence = root.join("docs/evidence/factored-flat-labels-v1");
+        let proof: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(evidence.join("sources.json")).unwrap())
+                .unwrap();
+        let digest = |text: &str| {
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
+            )
+        };
+        assert_eq!(proof["predecessors"].as_array().unwrap().len(), 4);
+        for record in proof["predecessors"].as_array().unwrap() {
+            let before =
+                std::fs::read_to_string(evidence.join(record["archive"].as_str().unwrap()))
+                    .unwrap();
+            let current =
+                std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
+            assert_eq!(digest(&before), record["before_sha256"]);
+            assert_eq!(digest(&current), record["after_sha256"]);
+            let restore = |input: &str| -> Option<String> {
+                let mut output = input.to_owned();
+                for edit in record["inverse"].as_array().unwrap() {
+                    let after = edit["after"].as_str().unwrap();
+                    if output.matches(after).count() != 1 {
+                        return None;
+                    }
+                    output = output.replacen(after, edit["before"].as_str().unwrap(), 1);
+                }
+                Some(output)
+            };
+            assert_eq!(restore(&current).as_deref(), Some(before.as_str()));
+            assert_ne!(
+                restore(&(current.clone() + "\n")).as_deref(),
+                Some(before.as_str())
+            );
+            let mut changed = current.clone();
+            changed.replace_range(..1, "!");
+            assert_ne!(restore(&changed).as_deref(), Some(before.as_str()));
+        }
+        for record in proof["new_files"].as_array().unwrap() {
+            let current =
+                std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
+            assert_eq!(digest(&current), record["sha256"]);
+            assert_ne!(digest(&(current + "\n")), record["sha256"]);
+        }
+        let before = std::fs::read_to_string(
+            evidence.join("src__cleanup_plan__replay__factored__canonical_shared.rs.before.txt"),
+        )
+        .unwrap();
+        let start = before
+            .find("        let mut successors = BTreeMap::<Label, targets::Targets>::new();\n")
+            .unwrap();
+        let end = start
+            + before[start..]
+                .find("\n    }\n\n    pub(super) fn id(")
+                .unwrap();
+        let old_body = before[start..end].replace("self.automaton", "automaton");
+        assert_eq!(include_str!("tests.rs").matches(&old_body).count(), 1);
+    }
+}

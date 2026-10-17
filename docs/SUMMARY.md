@@ -1153,3 +1153,5 @@ Audience: all documentation readers.
 - [Checked-cache eligibility in bounded attempts](evidence/checked-cache-attempt-fit-v1/README.md)
 - [Later source-reader custody](evidence/source-reader-followups-20261016/README.md)
 - [Loan-plan entry stack phases](evidence/loan-plan-entry-stack-v1/README.md)
+- [Fund ordinary replay setup](evidence/ordinary-replay-setup-v1/README.md)
+- [Direct successor label storage](evidence/factored-flat-labels-v1/README.md)

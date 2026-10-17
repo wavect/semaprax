@@ -340,7 +340,8 @@ fn order(
 const SORT_CALL: usize = 2 * size_of::<&mut [SkeletonPath]>()
     + 2 * size_of::<&ResolvedFunction>()
     + 2 * size_of::<&mut ReplayBudget>()
-    + 8 * size_of::<usize>()
+    // Eight scalar receiver bytes, type-only: no runtime array is constructed.
+    + size_of::<[usize; 8]>()
     + 4 * size_of::<bool>()
     + 2 * size_of::<std::iter::Rev<std::ops::Range<usize>>>()
     + size_of::<Result<(), Diagnostic>>();

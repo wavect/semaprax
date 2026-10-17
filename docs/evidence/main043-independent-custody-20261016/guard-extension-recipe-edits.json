@@ -34,5 +34,9 @@
   {
     "before": "526555fb178acc8632958104c9e989cf247869fead6b92635fdcc13b16106bfc",
     "after": "c74044bffcb310f3ae26ce6be49f38aa7d62f36ee694bd0f3703ef8e19471345"
+  },
+  {
+    "before": "reviewed_ci=runpy.run_path(str(R/D/'reviewed-ci-view.py'))",
+    "after": "assert sha(read(D+'/reviewed-ci-cc4596-view.py'))=='f57c07c79ba37d16f0063494971dbc3983908b53f10b135ff8da69effd237b95','cc4596 CI outer view source drift'\nreviewed_ci=runpy.run_path(str(R/D/'reviewed-ci-cc4596-view.py'))"
   }
 ]

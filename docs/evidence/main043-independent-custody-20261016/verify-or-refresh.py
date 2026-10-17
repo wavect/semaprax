@@ -24,7 +24,8 @@ receiver_view=runpy.run_path(str(R/D/'semantic-receiver-view.py'))
 assert receiver_view['historical'](R,read('src/source_reflows/semantic_receivers.rs'))==git(A,'src/source_reflows/semantic_receivers.rs')
 # Preserve the complete reviewed CI equality through a distinct closed historical view.
 assert sha(read(D+'/reviewed-ci-view.py'))=='65bebec36af234e9860777e986ad4563ca24db02ce7a6266403168a241df770f','reviewed CI view source drift'
-reviewed_ci=runpy.run_path(str(R/D/'reviewed-ci-view.py'))
+assert sha(read(D+'/reviewed-ci-cc4596-view.py'))=='f57c07c79ba37d16f0063494971dbc3983908b53f10b135ff8da69effd237b95','cc4596 CI outer view source drift'
+reviewed_ci=runpy.run_path(str(R/D/'reviewed-ci-cc4596-view.py'))
 for path in ['.github/workflows/ci.yml','scripts/ci-low-stack-trace.py','scripts/tests/test_ci_low_stack_trace.py']:
  assert reviewed_ci['historical'](R,path,read(path))==git('b4523cc7c46de19287a1675a3482416d860d4976',path),('reviewed latest-main CI bytes',path)
 for path in (R/D/'incoming/archives').rglob('*'):

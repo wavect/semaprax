@@ -1,0 +1,16 @@
+[
+  {
+    "source": "src/hir/function_value.rs",
+    "current_sha256": "25b6ed470ac8b334e509e44bd2934caa87ab9b018d08816bdcef425aa2e21c3c",
+    "prior_sha256": "cdefe6b45c542119ebf08750df353cb70d605373eb693bcffa29fdc0602f477a",
+    "new": "mod funded;\npub(crate) use funded::walk_funded_paying;\n#[cfg(test)]\npub(crate) use funded::walk_funded;",
+    "old": "#[cfg(test)]\nmod funded;\n#[cfg(test)]\npub(crate) use funded::{walk_funded, walk_funded_paying};"
+  },
+  {
+    "source": "src/hir/lexical_exit.rs",
+    "current_sha256": "4fcfdef9e15555a8356841b45746e23650e5811f115fe3f40c1c43914aa9d9a9",
+    "prior_sha256": "b99458953d0fdbe9d93c5ea35881cf8628bd402d759fb6f705007ca6e861c89b",
+    "new": "mod owner_funded;\npub(crate) use owner_funded::{owner_funded, requires_funded, OwnerVerdict};",
+    "old": "#[cfg(test)]\nmod owner_funded;\n#[cfg(test)]\npub(crate) use owner_funded::{owner_funded, requires_funded, OwnerVerdict};"
+  }
+]

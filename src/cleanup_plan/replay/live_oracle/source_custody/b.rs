@@ -108,7 +108,7 @@ pub(crate) use oracle::matches as general_matches;
         );
     }
     {
-        let mut current = include_str!("../../../../hir/lexical_exit.rs").to_owned();
+        let mut current = super::current_view::before_production_promotion("src/hir/lexical_exit.rs", include_str!("../../../../hir/lexical_exit.rs"));
         undo(&mut current,"pub(crate) use selected_child::{requires_inline,validate_owner_inline};","pub(crate) use selected_child::requires_inline;");
         undo(&mut current,"mod latch;\nmod latch_inline;\npub(crate) use latch_inline::validate_latch_inline;","mod latch;");
         undo(&mut current,"mod walk;\nmod selected_child;\npub(crate) use selected_child::requires_inline;","mod walk;");

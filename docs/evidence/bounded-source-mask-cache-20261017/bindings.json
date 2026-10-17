@@ -1,0 +1,44 @@
+{
+  "source_basis": "0db9543ae20eb4e56dba08c339f806c2ff8b5c58",
+  "scripts": [
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/generate-authority.py",
+      "sha256": "0c4b31857cdb8a4f645d61c6f0d2453c33c6adddb8c6f26d9c37b56620841590",
+      "bytes": 9592
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/verify-authority.py",
+      "sha256": "1c2b444782db8cdf4b189d05ce05f4799ab9c1c220941cb8d3369b35b25fcd0b",
+      "bytes": 5683
+    },
+    {
+      "path": "docs/evidence/production-source-authority-partition-20261016/original-module-parser-prefix.py",
+      "sha256": "87a903ce0f9927d3d90063fdd686b50b5302e2ac10cfea324918f7c030b28599",
+      "bytes": 3299
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/boundary_tools.py",
+      "sha256": "718beb6f09628fa0798fb267ba1b2978527d46ae64f8aa3acb85b6e48de499d3",
+      "bytes": 9454
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/generate-boundary.py",
+      "sha256": "992030af1981b04cac8e2d16095543b31d7214a5d91e7d9fc2d6370531c5ea40",
+      "bytes": 823
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/verify-boundary.py",
+      "sha256": "51aa7fdbef549db0b7d8908637d00a42ba31a0045d488bab50b1132429115ada",
+      "bytes": 1029
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/verify-preservation.py",
+      "sha256": "4a9c20631ad9418c1b377785bce365b2a8df8ac14ef47868e4067bf91fcc5a6f",
+      "bytes": 2223
+    }
+  ],
+  "cache_limit_maximum_bytes": 4194304,
+  "slots": 32,
+  "workingtree_read_caching": false,
+  "qualification_status": "NEXT_CANDIDATE_FULL_MANIFEST_PARITY_PENDING"
+}

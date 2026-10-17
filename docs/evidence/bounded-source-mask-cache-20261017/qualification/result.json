@@ -1,0 +1,167 @@
+{
+  "status": "COMPLETE_OUTPUT_BYTE_PARITY_AND_ORIGINAL_BOUNDARY_NEGATIVES_PASS",
+  "head": "aaebda72db0eeb611e610ef07ed5e35ee3ee2096",
+  "original_historical_authority_failure_preserved": "AssertionError: ('projection', ['use super::*;', 'ACTIVE'])",
+  "outputs": {
+    "boundary-source-proof.json": "74243f5b03a42f9096628274365202d53e9e851227461ea05e114cf8cfe525f1",
+    "hir.json": "371d5a69fa93d3c0fe4c19c840998c27ea8f4cd47109280a999cf67c26074b43",
+    "projection.json": "b308146b699e1337190c2a7f4a1213f9346de3c07732f8a259957cd79dc55fac",
+    "current-domains.json": "e9b05608e9b1725e0f1d5cfbf194e46f828f9ce4ecc0c8cf2e6d3cfe9771da65",
+    "preservation-proof.json": "d6d183bde57c9fa460c738a9d3945e2559ca5a3fb1a9c3e6f3aa6d2c642e3267"
+  },
+  "original_scripts_unchanged": true,
+  "phases": [
+    {
+      "phase": "authority-generate",
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/provenance/pure-mask-memoizer-next-20261017/entry.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017",
+        "--head",
+        "aaebda72db0eeb611e610ef07ed5e35ee3ee2096",
+        "--entry",
+        "authority-generate",
+        "--stats",
+        "/Volumes/Semaprax/provenance/pure-mask-full-qualification-aaeb-20261017/authority-generate.stats.json",
+        "--",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017",
+        "--out",
+        "/Volumes/Semaprax/provenance/pure-mask-full-qualification-aaeb-20261017/fast-full"
+      ],
+      "exit": 0,
+      "expected_exit": 0,
+      "elapsed_seconds": 21.43213395899511,
+      "sampled_tree_peak_rss_bytes": 82493440,
+      "stop_reason": null
+    },
+    {
+      "phase": "boundary-generate",
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/provenance/pure-mask-memoizer-next-20261017/entry.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017",
+        "--head",
+        "aaebda72db0eeb611e610ef07ed5e35ee3ee2096",
+        "--entry",
+        "boundary-generate",
+        "--stats",
+        "/Volumes/Semaprax/provenance/pure-mask-full-qualification-aaeb-20261017/boundary-generate.stats.json",
+        "--",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017",
+        "--full-dir",
+        "/Volumes/Semaprax/provenance/pure-mask-full-qualification-aaeb-20261017/fast-full",
+        "--out",
+        "/Volumes/Semaprax/provenance/pure-mask-full-qualification-aaeb-20261017/fast-boundary"
+      ],
+      "exit": 0,
+      "expected_exit": 0,
+      "elapsed_seconds": 22.486662749986863,
+      "sampled_tree_peak_rss_bytes": 87867392,
+      "stop_reason": null
+    },
+    {
+      "phase": "boundary-verify",
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/provenance/pure-mask-memoizer-next-20261017/entry.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017",
+        "--head",
+        "aaebda72db0eeb611e610ef07ed5e35ee3ee2096",
+        "--entry",
+        "boundary-verify",
+        "--stats",
+        "/Volumes/Semaprax/provenance/pure-mask-full-qualification-aaeb-20261017/boundary-verify.stats.json",
+        "--",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017",
+        "--full-dir",
+        "/Volumes/Semaprax/provenance/pure-mask-full-qualification-aaeb-20261017/fast-full",
+        "--scope-dir",
+        "/Volumes/Semaprax/provenance/pure-mask-full-qualification-aaeb-20261017/fast-boundary"
+      ],
+      "exit": 0,
+      "expected_exit": 0,
+      "elapsed_seconds": 22.532075666007586,
+      "sampled_tree_peak_rss_bytes": 86310912,
+      "stop_reason": null
+    },
+    {
+      "phase": "preservation-verify",
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/provenance/pure-mask-memoizer-next-20261017/entry.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017",
+        "--head",
+        "aaebda72db0eeb611e610ef07ed5e35ee3ee2096",
+        "--entry",
+        "preservation-verify",
+        "--stats",
+        "/Volumes/Semaprax/provenance/pure-mask-full-qualification-aaeb-20261017/preservation-verify.stats.json",
+        "--",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017"
+      ],
+      "exit": 0,
+      "expected_exit": 0,
+      "elapsed_seconds": 1.0240237500111107,
+      "sampled_tree_peak_rss_bytes": 1327104,
+      "stop_reason": null
+    },
+    {
+      "phase": "authority-original-failure",
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017/docs/evidence/a3-e47-final-custody-20261016/verify-authority.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017"
+      ],
+      "exit": 1,
+      "expected_exit": 1,
+      "elapsed_seconds": 1.0320062499959022,
+      "sampled_tree_peak_rss_bytes": 1425408,
+      "stop_reason": null
+    },
+    {
+      "phase": "authority-cached-failure",
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/provenance/pure-mask-memoizer-next-20261017/entry.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017",
+        "--head",
+        "aaebda72db0eeb611e610ef07ed5e35ee3ee2096",
+        "--entry",
+        "authority-verify",
+        "--stats",
+        "/Volumes/Semaprax/provenance/pure-mask-full-qualification-aaeb-20261017/authority-verify.stats.json",
+        "--",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017"
+      ],
+      "exit": 1,
+      "expected_exit": 1,
+      "elapsed_seconds": 1.033956291998038,
+      "sampled_tree_peak_rss_bytes": 1425408,
+      "stop_reason": null
+    }
+  ],
+  "speedup_measured": false,
+  "baseline_old_slow_log_has_no_paired_timing": true,
+  "time_l_maximum_resident_bytes": {
+    "authority-generate": 81805312,
+    "boundary-generate": 314032128,
+    "boundary-verify": 333037568,
+    "preservation-verify": 36175872,
+    "authority-original-failure": 217071616,
+    "authority-cached-failure": 220233728
+  },
+  "minimum_observed_system_free_percent": 78,
+  "shipping_root_final_head": "aaebda72db0eeb611e610ef07ed5e35ee3ee2096",
+  "shipping_root_clean": true
+}

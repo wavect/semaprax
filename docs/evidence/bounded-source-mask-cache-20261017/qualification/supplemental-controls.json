@@ -1,0 +1,15 @@
+{
+  "same_path_same_length_fresh_read_drift_observed": true,
+  "complete_mask_values_equal": true,
+  "original_full_verifier_three_negatives_per_domain": {
+    "hir": {
+      "original_three_static_negatives_refused": true,
+      "complete_hostile_block_sha256": "dadeedcb685582c2cfeb944bc619bcc21fd43dda6bb3e15b258fa3e636ada6d7"
+    },
+    "projection": {
+      "original_three_static_negatives_refused": true,
+      "complete_hostile_block_sha256": "dadeedcb685582c2cfeb944bc619bcc21fd43dda6bb3e15b258fa3e636ada6d7"
+    }
+  },
+  "root_source_unchanged": true
+}

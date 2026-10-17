@@ -487,3 +487,176 @@ fn real_generic_probe_receiving_frontier_exact_short_zero_floor_is_sticky_and_dr
         assert_eq!((again_refused,again_paid,again_receipt,again_site),(refused,paid,Some(receipt),site));
     }
 }
+
+thread_local! { static PLAN_COPIES: Cell<usize> = const { Cell::new(0) }; }
+pub(super) fn note_plan_copy() {
+    PLAN_COPIES.with(|count| count.set(count.get() + 1));
+}
+
+mod main_capacity {
+use super::*;
+use crate::cleanup_plan::replay::plan_skeleton_paths;
+
+#[test]
+fn next_fork_capacity_keeps_every_full_arithmetic_path_and_original_work() {
+    let mut source = String::from("module next_fork; @id(\"f\") fn f(x:i64)->i64 {");
+    for index in 0..96 {
+        let input = if index == 0 {
+            "x".to_owned()
+        } else {
+            format!("x{}", index - 1)
+        };
+        source.push_str(&format!("let x{index}={input}+1;"));
+    }
+    source.push_str("x95} @id(\"main\") fn main()->i64 {f(0)}");
+    let checked = crate::check(&source, "next-fork.spx").unwrap();
+    let canonical = crate::format::canonical(&checked);
+    let checked = crate::check(&canonical, "next-fork.spx").unwrap();
+    assert_eq!(crate::format::canonical(&checked), canonical);
+    let program = crate::hir::resolve(&checked).unwrap();
+    let before_copies = PLAN_COPIES.with(Cell::get);
+    let (((), allocation), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {
+        measure(|| {
+            for function in &program.functions {
+                let mut old = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+                let mut current = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+                let before = skeleton_materializations();
+                let expected =
+                    with_original(|| compact_stage::original_paths(function, &mut old)).unwrap();
+                let old_count = skeleton_materializations() - before;
+                let before = skeleton_materializations();
+                let actual = plan_skeleton_paths(function, &mut current).unwrap();
+                assert_eq!(skeleton_materializations() - before, old_count);
+                assert!(compact_stage::paths_match(&actual, &expected));
+                assert_eq!(current.remaining, old.remaining);
+                assert_eq!(current.skeleton_remaining, old.skeleton_remaining);
+                drop(actual);
+                drop(expected);
+                drop(current);
+                drop(old);
+            }
+        })
+    });
+    assert!(PLAN_COPIES.with(Cell::get) > before_copies);
+    assert!(!refused && first.is_none());
+    assert!(!allocation.invalid && allocation.live == 0);
+    assert_eq!(allocation.allocated, allocation.freed);
+    assert!(allocation.allocated <= paid);
+}
+
+#[test]
+fn next_fork_clone_keeps_future_capacity_and_exact_refusal_frontiers() {
+    let program = program();
+    let function = &program.functions[0];
+    let mut plan = function.cleanup_plan.clone();
+    for block in &mut plan.blocks[..3] {
+        block.transitions.clear();
+    }
+    plan.blocks[0].terminator = CleanupTerminator::Goto(EdgeId(0));
+    plan.edges[0].to = BlockId(1);
+    plan.blocks[1].terminator = CleanupTerminator::Branch(vec![EdgeId(1), EdgeId(2)]);
+    plan.edges[1].to = BlockId(2);
+    plan.edges[2].to = BlockId(2);
+    plan.blocks[2].terminator = CleanupTerminator::Exit(plan.exits[0].id);
+    plan.exits[0].continuation = ExitContinuation::ReturnUnit;
+    for width in [42usize, 64, 128] {
+        let values: Vec<_> = (0..width)
+            .map(|_| {
+                Rc::new(SkeletonObservation::Boolean {
+                    expression: crate::hir::ExpressionId::from_owned("next.capacity".to_owned()),
+                    value: true,
+                })
+            })
+            .collect();
+        let next = Rc::clone(&values[0]);
+        assert_eq!(plan_capacity(&plan, BlockId(0), width), Some(width + 3));
+        let observe = |current, limit| {
+            with_limit_usage_refusal(limit, || {
+                measure(|| {
+                    let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+                    let before = skeleton_materializations();
+                    let result = (|| {
+                        let mut copy = if current {
+                            for_plan_push(
+                                &mut budget,
+                                function,
+                                &values,
+                                "next fork clone",
+                                &plan,
+                                BlockId(0),
+                            )?
+                        } else {
+                            for_push(&mut budget, function, &values, "next fork clone")?
+                        };
+                        let capacity = copy.capacity();
+                        if current {
+                            assert_eq!(capacity, width + 3);
+                        }
+                        for at in 0..3 {
+                            if at == 2 {
+                                assert!(can_take(TakeCandidate {
+                                    values: &copy,
+                                    remaining_edges: 0,
+                                    edge_count: 2,
+                                    budget: &budget,
+                                    plan: &plan,
+                                    target: BlockId(2),
+                                }));
+                            }
+                            skeleton_push(
+                                &mut budget,
+                                function,
+                                &mut copy,
+                                Rc::clone(&next),
+                                "future push",
+                            )?;
+                            assert_eq!(copy.capacity(), capacity);
+                        }
+                        assert!(copy[..width]
+                            .iter()
+                            .zip(&values)
+                            .all(|(left, right)| Rc::ptr_eq(left, right)));
+                        assert!(copy[width..].iter().all(|value| Rc::ptr_eq(value, &next)));
+                        drop(copy);
+                        Ok::<_, Diagnostic>(())
+                    })();
+                    let state = (
+                        result.is_ok(),
+                        budget.remaining,
+                        budget.skeleton_remaining,
+                        skeleton_materializations() - before,
+                    );
+                    drop(result);
+                    drop(budget);
+                    state
+                })
+            })
+        };
+        let ((old, old_heap), refused, old_paid, first) = observe(false, usize::MAX);
+        assert!(!refused && first.is_none() && old.0);
+        let ((current, heap), refused, exact, first) = observe(true, usize::MAX);
+        assert!(!refused && first.is_none());
+        assert_eq!(current, old);
+        assert!(exact < old_paid && heap.allocated < old_heap.allocated);
+        for (metrics, paid) in [(old_heap, old_paid), (heap, exact)] {
+            assert!(!metrics.invalid && metrics.live == 0);
+            assert_eq!(metrics.allocated, metrics.freed);
+            assert!(metrics.allocated <= paid);
+        }
+        for limit in [0, exact - 1, exact] {
+            let ((state, metrics), refused, paid, first) = observe(true, limit);
+            assert_eq!(state.0, limit == exact);
+            assert_eq!(refused, limit != exact);
+            assert_eq!(first.is_some(), limit != exact);
+            assert!(!metrics.invalid && metrics.live == 0);
+            assert_eq!(metrics.allocated, metrics.freed);
+            assert!(metrics.allocated <= paid);
+        }
+    }
+    plan.blocks[2].terminator = CleanupTerminator::Branch(vec![EdgeId(1), EdgeId(2)]);
+    assert_eq!(plan_capacity(&plan, BlockId(0), 128), None);
+    plan.blocks[0].terminator = CleanupTerminator::Goto(EdgeId(u32::MAX));
+    assert_eq!(plan_capacity(&plan, BlockId(0), 128), None);
+}
+
+}

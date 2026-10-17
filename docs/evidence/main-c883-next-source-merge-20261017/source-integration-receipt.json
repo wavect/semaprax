@@ -1,0 +1,38 @@
+{
+  "status": "SOURCE_ONLY_MERGE_NOT_RUNTIME_QUALIFICATION",
+  "parents": {
+    "next": "2f4c75a442e3c74647c3ef88a1392a25cd5538c3",
+    "main": "c883c2d3fff04a3e7afbb4afd5e0cae99ef91af4"
+  },
+  "conflicts": {
+    "all": 21,
+    "json": 14,
+    "rust": 5,
+    "prose": 2
+  },
+  "source_snapshot_rows": 24,
+  "main_acquisition_rows": 240,
+  "main_appended_test_bodies": 7,
+  "main_controller_only_original_body_edits": "30 explicit read acquisition expressions",
+  "complete_next_frozen_conflict_packets_preserved": 14,
+  "additional_next_capture_and_slot_packets_preserved": 3,
+  "current_owned_inputs": 31,
+  "current_broad_inputs": 405,
+  "source_parser": "rustfmt --edition2024 --emitstdout --configskip_children=true (no repo writes)",
+  "module_size_violations": [],
+  "replay_lines": 7941,
+  "certified_status_publication": "freeze after complete row/proof validation, existing typed freeze fee; attempt.complete retained",
+  "main_capacity_observation": "only actual successful bounded-copy Vec construction+extend/push when copy_capacitySome; never TAKE/probe/fallback",
+  "main_arithmetic_owner": "whole original body in explicit current-root enumerator scope; original96 arithmetic and PLAN_COPIES assertion retained",
+  "original_main_plan_producer": "450-line independently compiled complete enumerator retained; successor comparison added",
+  "final_source_binding": "PENDING memo80 and parent codecomplete; new outer complete-current ingress required after subsequent source changes",
+  "external_full_packet_archive_manifest_sha256": "ef006b96101eb05057935942a3075e000b16d880410d66430b88db6f18e367a1",
+  "cargo": false,
+  "common": false,
+  "runtime_tests": false,
+  "gain_or_fit_or_issue_closure_claim": false,
+  "certified_active_publication_owner": "cleanup_plan::replay::expression_facts::receiving::retained::case_certified::counter_tests::certified_active_wide_rows_publish_the_held_membership_index_and_keep_sticky_frontiers",
+  "certified_active_publication_coverage": "real HIR >=256 rows, actual StatusCases/Facts/Active receiver, lookupSome, complete keys twice, wholeDrop, derived byte/work frontiers and stable consumed-receipt retry",
+  "embedded_current_source_bytes": 2422619,
+  "historical_large_tables_embedded": false
+}

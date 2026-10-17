@@ -805,7 +805,7 @@ pub(in crate::cleanup_plan::replay) fn validate_status_sources_held_prefix<'hir>
             }
         }
     }
-    drop(prefix_owner);
+    prefix_owner.freeze(function, budget)?;
     budget.reserve_bytes(function, CONTROL_BYTES, "retained status full controls")?;
     Ok(StatusSources {
         function,

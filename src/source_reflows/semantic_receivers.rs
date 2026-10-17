@@ -728,3 +728,6 @@ fn restore(record: &serde_json::Value, current: &str) -> String {
 
 #[path = "incoming090_semantic_receivers.rs"]
 pub(super) mod incoming_main090;
+
+#[path = "main_c883_receivers.rs"]
+mod main_c883;

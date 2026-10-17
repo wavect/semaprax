@@ -242,6 +242,135 @@ pub(super) fn can_take(input: TakeCandidate<'_>) -> bool {
     false
 }
 
+/// The existing clone, using a smaller backing only when its entire continuation
+/// through the next fork and that fork's final terminal path will fit.
+#[cfg(test)]
+#[track_caller]
+pub(super) fn for_plan_push<T: Clone + ClonePayload>(
+    budget: &mut ReplayBudget,
+    function: &ResolvedFunction,
+    values: &Vec<T>,
+    phase: &str,
+    plan: &crate::cleanup_plan::CleanupPlan,
+    target: BlockId,
+) -> Result<Vec<T>, Diagnostic> {
+    #[cfg(test)]
+    if tests::original_selected() {
+        return for_push(budget, function, values, phase);
+    }
+    if budget.payer != AllocationPayer::ActiveBuilder || budget.selected() {
+        return for_push(budget, function, values, phase);
+    }
+    let capacity = plan_capacity(plan, target, values.len());
+    let original = values
+        .len()
+        .checked_add(1)
+        .and_then(|required| physical_storage::replay_growth_capacity(values.len(), required));
+    let (Some(capacity), Some(original)) = (capacity, original) else {
+        return for_push(budget, function, values, phase);
+    };
+    if !original
+        .checked_sub(capacity)
+        .and_then(|spare| spare.checked_mul(std::mem::size_of::<T>()))
+        .is_some_and(|saved| saved >= PLAN_PROBE_BYTES)
+    {
+        return for_push(budget, function, values, phase);
+    }
+    // Retain the complete clone census and its independently funded work.
+    // The extra probe state is paid in addition to every real backing byte.
+    budget.charge_skeleton(function, 1, phase)?;
+    budget.reserve_array::<u8>(function, PLAN_PROBE_BYTES, phase)?;
+    budget.reserve_clone(function, values, phase)?;
+    budget.reserve_array::<T>(function, capacity - values.len(), phase)?;
+    note_skeleton_materialization();
+    let mut result = Vec::with_capacity(capacity);
+    result.extend(values.iter().cloned());
+    #[cfg(test)]
+    tests::note_plan_copy();
+    Ok(result)
+}
+
+#[cfg(test)]
+struct PlanCapacityProbe<'a> {
+    plan: &'a crate::cleanup_plan::CleanupPlan,
+    next: BlockId,
+    remaining: usize,
+    pushes: usize,
+    final_path: bool,
+    block: Option<&'a crate::cleanup_plan::CleanupBlock>,
+    edge: Option<&'a crate::cleanup_plan::CleanupEdge>,
+    exit: Option<&'a crate::cleanup_plan::ExitTarget>,
+}
+// Complete probe state, caller/callee input headers and result slots, checked
+// arithmetic results, clone-capacity operands, borrowed receivers and booleans.
+#[cfg(test)]
+pub(super) const PLAN_PROBE_BYTES: usize = std::mem::size_of::<PlanCapacityProbe<'static>>()
+    + 2 * std::mem::size_of::<(&crate::cleanup_plan::CleanupPlan, BlockId, usize)>()
+    + 2 * std::mem::size_of::<Option<usize>>()
+    + 4 * std::mem::size_of::<Option<usize>>()
+    + 4 * std::mem::size_of::<usize>()
+    + 3 * std::mem::size_of::<&crate::cleanup_plan::CleanupBlock>()
+    + 2 * std::mem::size_of::<bool>();
+
+#[cfg(test)]
+pub(super) fn plan_capacity(
+    plan: &crate::cleanup_plan::CleanupPlan,
+    target: BlockId,
+    prefix: usize,
+) -> Option<usize> {
+    let mut probe = PlanCapacityProbe {
+        plan,
+        next: target,
+        remaining: prefix,
+        pushes: 0,
+        final_path: false,
+        block: None,
+        edge: None,
+        exit: None,
+    };
+    // This bounded, read-only shape test can only select the old clone route
+    // on exhaustion. It introduces no program admission limit or work account.
+    while probe.remaining != 0 {
+        probe.remaining -= 1;
+        probe.block = probe.plan.blocks.get(probe.next.0 as usize);
+        let block = probe.block?;
+        // Count ignored transitions too: every transition emits at most one
+        // top-level observation in the unchanged plan enumerator.
+        probe.pushes = probe.pushes.checked_add(block.transitions.len())?;
+        match &block.terminator {
+            CleanupTerminator::Goto(edge) => {
+                probe.pushes = probe.pushes.checked_add(1)?;
+                probe.edge = probe.plan.edges.get(edge.0 as usize);
+                probe.next = probe.edge?.to;
+            }
+            CleanupTerminator::Branch(edges) => {
+                if probe.final_path || edges.len() < 2 {
+                    return None;
+                }
+                // Earlier forks clone the source unchanged. Reserve its final
+                // branch observation and complete terminal suffix, so the old
+                // final-prefix transfer still fits without growing this backing.
+                probe.pushes = probe.pushes.checked_add(1)?;
+                probe.edge = probe.plan.edges.get(edges.last()?.0 as usize);
+                probe.next = probe.edge?.to;
+                probe.final_path = true;
+            }
+            CleanupTerminator::Exit(exit) => {
+                probe.exit = probe.plan.exits.get(exit.0 as usize);
+                return match probe.exit?.continuation {
+                    ExitContinuation::CommitResult { .. }
+                    | ExitContinuation::ReturnUnit
+                    | ExitContinuation::ReturnFailure { .. } => {
+                        prefix.checked_add(1)?.checked_add(probe.pushes)
+                    }
+                    _ => None,
+                };
+            }
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 pub(super) fn note_take() {
     tests::note_take();

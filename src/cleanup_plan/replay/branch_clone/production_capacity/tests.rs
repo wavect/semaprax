@@ -261,3 +261,40 @@ fn production_fused_earlier_bank_and_original_take_frontiers_keep_six_fields_fir
         }
     }
 }
+
+#[test]
+fn current_fused_enumerator_matches_complete_main_c883_arithmetic_control() {
+    let mut source = String::from("module main_c883; @id(\"f\") fn f(x:i64)->i64 {");
+    for index in 0..96 {
+        let input = if index == 0 { "x".to_owned() } else { format!("x{}", index - 1) };
+        source.push_str(&format!("let x{index}={input}+1;"));
+    }
+    source.push_str("x95} @id(\"main\") fn main()->i64 {f(0)}");
+    let parsed = crate::check(&source, "main-c883.spx").unwrap();
+    let canonical = crate::format::canonical(&parsed);
+    let parsed = crate::check(&canonical, "main-c883.spx").unwrap();
+    assert_eq!(crate::format::canonical(&parsed), canonical);
+    let program = crate::hir::resolve(&parsed).unwrap();
+    let (((), allocation), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || measure(|| {
+        for function in &program.functions {
+            let mut main = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+            let mut current = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+            let begin = skeleton_materializations();
+            let expected = main_c883::plan_skeleton_paths(function, &mut main).unwrap();
+            let events = skeleton_materializations() - begin;
+            let begin = skeleton_materializations();
+            let actual = crate::cleanup_plan::replay::plan_skeleton_paths(function, &mut current).unwrap();
+            assert_eq!(actual, expected);
+            assert_eq!(skeleton_materializations() - begin, events);
+            assert_eq!(current.remaining, main.remaining);
+            assert_eq!(current.skeleton_remaining, main.skeleton_remaining);
+            drop((actual, expected));
+            drop(current);
+            drop(main);
+        }
+    }));
+    assert!(!refused && first.is_none());
+    assert!(!allocation.invalid && allocation.live == 0);
+    assert_eq!(allocation.allocated, allocation.freed);
+    assert!(allocation.allocated <= paid);
+}

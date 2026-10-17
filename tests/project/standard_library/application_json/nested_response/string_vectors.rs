@@ -304,8 +304,8 @@ fn primitive_string_response_actual_item_and_byte_plus_one_refuse_before_publica
                 r#"
 @id("consumer.main") fn main()->i64{{
 let value=Report{{config:Config{{label:"",retry:0usize}},rows:words(),ok:true}};
-let required=encoded_len(value);let result=encode(value,131072usize);
-let valid=match own result{{Encoded::Encoded{{text:t}}=>required<18446744073709551615usize,Encoded::Refused{{required:n}}=>false,}};
+let required=encoded_len(value);let outcome=encode(value,131072usize);
+let valid=match own outcome{{Encoded::Encoded{{text:t}}=>required<18446744073709551615usize,Encoded::Refused{{required:n}}=>false,}};
 if valid=={} && (valid || required==18446744073709551615usize){{724}}else{{0}}
 }}
 "#,
@@ -602,6 +602,10 @@ fn primitive_string_fixture_owners_keep_all_original_values_cases_and_assertions
     let before = "values=vec_push<string>(values,string_from_utf8(array_as_slice({})));values";
     assert_eq!(restored.matches(after).count(), 1);
     restored = restored.replace(after, before);
+    let after = "let required=encoded_len(value);let outcome=encode(value,131072usize);\nlet valid=match own outcome";
+    let before = "let required=encoded_len(value);let result=encode(value,131072usize);\nlet valid=match own result";
+    assert_eq!(restored.matches(after).count(), 1);
+    restored = restored.replace(after, before);
     assert_eq!(restored, original);
 }
 
@@ -620,4 +624,13 @@ fn primitive_string_fixture_named_byte_owner_passes_and_temporary_keeps_t266() {
         .unwrap_err()
         .iter()
         .any(|diagnostic| diagnostic.code == "SPX-T266"));
+}
+
+#[test]
+fn primitive_string_fixture_reserved_result_keeps_s109_and_t201() {
+    let source = "module fixture_reserved; @id(\"main\") fn main()->i64 {let result=724; result}";
+    let diagnostics = semaprax::check(source, "fixture-reserved.spx").unwrap_err();
+    for code in ["SPX-S109", "SPX-T201"] {
+        assert!(diagnostics.iter().any(|diagnostic| diagnostic.code == code));
+    }
 }

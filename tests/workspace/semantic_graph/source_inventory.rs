@@ -99,6 +99,8 @@ include_str!("../../tests/hir_module_boundaries.rs"),
         include_str!(
             "../../src/workspace_graph/expected_projection/private_layout/function_runtime.rs"
         ),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs"),
     ) };
 }
 // Complete private-layout source inventory; original includes and literal bytes retained.
@@ -216,6 +218,27 @@ macro_rules! semantic_graph_private_layout_source_inventory {
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/status_before_prefix.rs"),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/component_before_prefix.rs"),
 semantic_graph_private_layout_owned_source_inventory!(core),
+        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/unit_weight.rs"),
+        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/unit_weight/tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/unit_weight_tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_array/completed_tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_array/final_before.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_array/sequence.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_array/sequence/before.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_array/sequence/tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/grouping.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/grouping/source_custody.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/grouping/tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/sequence_prefix.rs"),
+        include_str!("../../src/cleanup_plan/replay/sequence_prefix/before.rs"),
+        include_str!("../../src/cleanup_plan/replay/sequence_prefix/before_wrapper.rs"),
+        include_str!("../../src/cleanup_plan/replay/sequence_prefix/before_wrapper_tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/sequence_prefix/tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/sequence_vector.rs"),
+        include_str!("../../src/cleanup_plan/replay/sequence_vector/before.rs"),
+        include_str!("../../src/cleanup_plan/replay/sequence_vector/tests.rs"),
+        include_str!("../../src/loan_plan/paid_live/funded_before.rs"),
+        include_str!("../../src/loan_plan/paid_live/original.rs"),
         include_str!("semantic_graph/source_inventory.rs")
     ) };
 }
@@ -774,4 +797,44 @@ macro_rules! semantic_graph_projection_child_source_inventory {
             include_str!("../../src/workspace_graph/expected_projection/type_rewrite/receiving.rs")
         )
     };
+}
+
+// Current complete owning closure, independently checked against filesystem
+// module discovery. The broader raw union retains every historical input.
+const SEMANTIC_GRAPH_PRIVATE_LAYOUT_ROOT: &str =
+    "src/workspace_graph/expected_projection/private_layout.rs";
+macro_rules! semantic_graph_private_layout_module_source_inventory {
+    () => { audit_source_join!(
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/capacity_before.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/capacity_tests.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/capacity_tests/owner_controls.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/registry/storage.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/registry/before_retained.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/registry/retained_tests.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/registry.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/before_registry.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/sorting.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/ledger.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/registry/tests.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/names.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/shape.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/roots.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/owner_index.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/owner_index/tests.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/authority.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/authority_invocation.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/authority_invocation/tests.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/authority_tests.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/authority_view.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/authority_oracle.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/authority_view_tests.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/tests.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/function_tests.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/function_runtime.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs"),
+    ) };
 }

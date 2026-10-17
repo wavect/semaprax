@@ -481,7 +481,16 @@ fn identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refu
         "failed phase debit remains required: legacy={original:?}, actual_initial={actual_initial:?}, registry={registry_receipt}, debit={nested_debit}, first={first_refusal:?}, trace={trace:?}");
 
     CORE_BUILD_ATTEMPTS.with(|attempts| attempts.set(0));
-    let built = build_owned_with_builder_limit(sources.clone(), MAX_BUILDER_BYTES).unwrap();
+    crate::cleanup_plan::take_replay_work_refusal();
+    let built_result = build_owned_with_builder_limit(sources.clone(), MAX_BUILDER_BYTES);
+    if let Some(refusal) = crate::cleanup_plan::take_replay_work_refusal() {
+        eprintln!("identity-retry-work-refusal caller={} requested={} remaining={} statuses={} first_status_bytes={} payer={}",
+            refusal.caller, refusal.requested, refusal.remaining, refusal.status_sources,
+            refusal.first_status_bytes, refusal.payer);
+    } else {
+        eprintln!("identity-retry-work-refusal none");
+    }
+    let built = built_result.unwrap();
     assert_eq!(CORE_BUILD_ATTEMPTS.with(Cell::get), 2);
     assert!(
         built.usage.builder_bytes >= original.0,

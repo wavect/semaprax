@@ -102,6 +102,16 @@
 - Reconcile Main8a finished-path capacity, arbitrary final-suffix transfer and borrowed nominal context with lexical paid receiving; preserve original work-before-optional-payment priority and complete Main controls. Qualification and net application cost remain pending.
 
 - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.
+- Retain the paid status insertion index for authenticated ordinary membership queries, requiring full-key equality and preserving original caps, fallback receivers, and complete source controls.
+
+- Audit the complete private-layout module for projection purity while preserving every broader source input and rejecting missing owned or external module files.
+
+- Reduce ordinary retained status-directory comparison work with a funded private insertion index; retain complete-key AVL results, existing caps and refusal controls.
+
+- Capture a test-only replay work-refusal site in the unchanged production-core retry regression, retaining all limits, diagnostics, fixture selection and assertions.
+
+- Bound continuing-branch clone capacity through the next fork and final terminal suffix, retaining the complete clone census and old fallback; rename a reserved fixture local while preserving its values and assertions.
+
 - Bind primitive String-vector fixture byte arrays to named owners before borrowing, preserving every original value, output limit, backend and rejection assertion.
 
 - Transfer already funded final-branch observation backing when a bounded terminal-chain probe proves it can hold every remaining observation, preserving original clone work, fallback receivers and source controls.

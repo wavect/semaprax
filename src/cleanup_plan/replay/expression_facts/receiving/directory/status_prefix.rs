@@ -1,7 +1,7 @@
 //! Status-only insertion over the exact held immutable key set. No lookup authority.
 use super::{
-    Diagnostic, Directory, NIL, Node, Ordering, Probe, ReplayBudget, ResolvedFunction,
-    StatusSourceId, VISIT_UNITS, overflow,
+    AllocationPayer, Diagnostic, Directory, NIL, Node, Ordering, Probe, ReplayBudget, ResolvedFunction,
+    StatusLane, StatusSourceId, VISIT_UNITS, overflow,
 };
 use crate::bounded_output::classifier_string::ClassifierLedger;
 use std::cell::Cell;
@@ -330,6 +330,7 @@ pub(in crate::cleanup_plan::replay::expression_facts::receiving) struct HeldPref
     directory: &'directory mut Directory<&'hir StatusSourceId>,
     owner: Owner<'hir>,
     prefix: usize,
+    index: Option<StatusIndex>,
 }
 struct HeldSearch {
     probe: Probe,
@@ -357,13 +358,20 @@ impl<'hir> Directory<&'hir StatusSourceId> {
                 + size_of::<Result<HeldPrefix<'_, '_>, Diagnostic>>(),
             self.phase,
         )?;
-        // Directory borrow, existing owner, and prefix initialization.
-        budget.charge(function, 3, self.phase)?;
+        // Existing bindings plus the storage-index selector and empty header.
+        budget.charge(function, 16, self.phase)?;
         let owner = Owner::new(function, self, budget)?;
         Ok(HeldPrefix {
             directory: self,
             owner,
             prefix: 0,
+            index: (!budget.selected()
+                && matches!(
+                    budget.payer,
+                    AllocationPayer::ActiveBuilder | AllocationPayer::LegacyUnobserved
+                )
+                && function.cleanup_plan.status_sources.len() >= 256)
+                .then(StatusIndex::default),
         })
     }
 
@@ -464,6 +472,10 @@ impl<'hir> HeldPrefix<'_, 'hir> {
                 .authenticate(self.directory, function, key, budget)?;
             self.directory.authenticate(function, budget)?;
             budget.charge(function, 1, phase)?;
+            budget.charge(function, 1, phase)?;
+            if self.index.is_some() {
+                return self.insert_indexed(function, key, budget);
+            }
             if self.directory.nodes.is_empty() {
                 budget.reserve_bytes(function, size_of::<usize>(), phase)?;
                 budget.charge(function, 2, phase)?;
@@ -523,5 +535,490 @@ impl<'hir> HeldPrefix<'_, 'hir> {
                 Err(error)
             }
         }
+    }
+}
+
+// Private construction coordinates; the held AVL retains every complete key.
+pub(super) struct IndexNode {
+    pub(super) byte: usize,
+    pub(super) mask: u16,
+    pub(super) zero: usize,
+    pub(super) one: usize,
+}
+#[derive(Clone, Copy)]
+struct IndexStep {
+    node: usize,
+    one: bool,
+    before: usize,
+    after: usize,
+}
+#[derive(Default)]
+struct StatusIndex {
+    nodes: Vec<IndexNode>,
+    path: Vec<IndexStep>,
+    root: Option<usize>,
+}
+struct IndexSearch {
+    probe: Probe,
+    at: usize,
+    parent: usize,
+    parent_one: bool,
+    new_one: bool,
+    before: usize,
+    after: usize,
+    byte: usize,
+    mask: u16,
+    symbol: u16,
+    direction: bool,
+    common: usize,
+    candidate: usize,
+    position: usize,
+    step: IndexStep,
+}
+// Complete caller/callee headers, receipt, returned Result and simultaneous
+// scalar/borrowed comparison receivers. All bit-reader state lives in Search.
+const INDEX_SEARCH_BYTES: usize = 2 * size_of::<IndexSearch>()
+    + size_of::<Result<IndexSearch, Diagnostic>>()
+    + 2 * size_of::<(
+        &mut StatusIndex,
+        &Directory<&StatusSourceId>,
+        &ResolvedFunction,
+        &StatusSourceId,
+        usize,
+        &mut ReplayBudget,
+    )>()
+    + size_of::<&str>()
+    + 3 * size_of::<usize>()
+    + 3 * size_of::<u16>()
+    + 3 * size_of::<&StatusSourceId>();
+const INDEX_BIT_UNITS: usize = 12;
+// Real bytes have a leading marker bit (256); the end symbol is the complete
+// lane discriminator. Thus prefixes, embedded NUL and UTF-8 retain full Ord.
+// Each node stores the byte coordinate and mask directly, without decoding a
+// packed bit ordinal or parsing any identifier syntax.
+// An exhaustive mapping keeps the indexed alphabet closed when lanes evolve.
+macro_rules! index_lane {
+    ($lane:expr) => {
+        match $lane {
+            StatusLane::OwnerAdmission => 0u8,
+            StatusLane::OperationFailure => 1u8,
+            StatusLane::AllocationFailure => 2u8,
+            StatusLane::ContractFalse => 3u8,
+        }
+    };
+}
+macro_rules! index_bit {
+    ($search:ident, $key:ident) => {{
+        $search.symbol = if $search.byte < $key.expression.as_str().len() {
+            256 | $key.expression.as_str().as_bytes()[$search.byte] as u16
+        } else if $search.byte == $key.expression.as_str().len() {
+            index_lane!($key.lane) as u16
+        } else {
+            0
+        };
+        $search.direction = $search.symbol & $search.mask != 0;
+        $search.direction
+    }};
+}
+impl StatusIndex {
+    fn seed(
+        &mut self,
+        index: usize,
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+        phase: &'static str,
+    ) -> Result<(), Diagnostic> {
+        budget.reserve_bytes(
+            function,
+            2 * size_of::<(
+                &mut StatusIndex,
+                usize,
+                &ResolvedFunction,
+                &mut ReplayBudget,
+                &str,
+            )>() + size_of::<IndexNode>()
+                + size_of::<Result<(), Diagnostic>>(),
+            phase,
+        )?;
+        budget.reserve_vec(function, &mut self.nodes, 1, phase)?;
+        budget.charge(function, 7, phase)?;
+        self.nodes.push(IndexNode {
+            byte: NIL,
+            mask: 0,
+            zero: index,
+            one: NIL,
+        });
+        self.root = Some(0);
+        Ok(())
+    }
+    fn probe(
+        &mut self,
+        directory: &Directory<&StatusSourceId>,
+        function: &ResolvedFunction,
+        key: &StatusSourceId,
+        prefix: usize,
+        budget: &mut ReplayBudget,
+    ) -> Result<IndexSearch, Diagnostic> {
+        let phase = directory.phase;
+        budget.reserve_bytes(function, INDEX_SEARCH_BYTES, phase)?;
+        budget.charge(function, 24, phase)?;
+        let mut search = IndexSearch {
+            probe: Probe {
+                found: false,
+                parent: NIL,
+                before: NIL,
+                after: NIL,
+                side: Ordering::Equal,
+            },
+            at: self
+                .root
+                .expect("held status index seeded with the first AVL key"),
+            parent: NIL,
+            parent_one: false,
+            new_one: false,
+            before: NIL,
+            after: NIL,
+            byte: 0,
+            mask: 0,
+            symbol: 0,
+            direction: false,
+            common: 0,
+            candidate: NIL,
+            position: 0,
+            step: IndexStep {
+                node: NIL,
+                one: false,
+                before: NIL,
+                after: NIL,
+            },
+        };
+        self.path.clear();
+        // Preserve the visited construction path, reusing its fully paid backing.
+        // It supplies the insertion parent and ordered bounds after one full-key
+        // comparison, so no second pass reads query bytes.
+        loop {
+            budget.charge(function, VISIT_UNITS + 2, phase)?;
+            search.byte = self.nodes[search.at].byte;
+            search.mask = self.nodes[search.at].mask;
+            if search.byte == NIL {
+                break;
+            }
+            budget.charge(function, INDEX_BIT_UNITS + 9, phase)?;
+            search.step.node = search.at;
+            search.step.one = index_bit!(search, key);
+            search.step.before = search.before;
+            search.step.after = search.after;
+            budget.reserve_vec(function, &mut self.path, 1, phase)?;
+            self.path.push(search.step);
+            if search.step.one {
+                search.before = self.nodes[search.at].zero;
+                search.at = self.nodes[search.at].one;
+            } else {
+                search.after = self.nodes[search.at].one;
+                search.at = self.nodes[search.at].zero;
+            }
+        }
+        budget.charge(function, 3, phase)?;
+        search.candidate = self.nodes[search.at].zero;
+        (search.probe.side, search.common) = compare(
+            function,
+            key,
+            directory.nodes[search.candidate].key,
+            prefix,
+            budget,
+            phase,
+        )?;
+        if search.probe.side == Ordering::Equal {
+            budget.charge(function, 1, phase)?;
+            search.probe.found = true;
+            return Ok(search);
+        }
+        // The complete comparison supplies the exact first differing expression
+        // byte, prefix boundary, or lane. The mask is its highest differing bit.
+        budget.charge(function, 24, phase)?;
+        search.byte = search.common;
+        search.mask = if search.common
+            < key.expression.as_str().len().min(
+                directory.nodes[search.candidate]
+                    .key
+                    .expression
+                    .as_str()
+                    .len(),
+            ) {
+            128u16
+                >> (key.expression.as_str().as_bytes()[search.common]
+                    ^ directory.nodes[search.candidate]
+                        .key
+                        .expression
+                        .as_str()
+                        .as_bytes()[search.common])
+                    .leading_zeros()
+        } else if key.expression.as_str().len()
+            != directory.nodes[search.candidate]
+                .key
+                .expression
+                .as_str()
+                .len()
+        {
+            256
+        } else {
+            128u16
+                >> (index_lane!(key.lane) ^ index_lane!(directory.nodes[search.candidate].key.lane))
+                    .leading_zeros()
+        };
+        budget.charge(function, 1, phase)?;
+        search.position = self.path.len();
+        // Byte coordinates increase down a path; masks decrease within a byte.
+        while search.position != 0 {
+            budget.charge(function, VISIT_UNITS + 9, phase)?;
+            search.candidate = self.path[search.position - 1].node;
+            if self.nodes[search.candidate].byte < search.byte
+                || (self.nodes[search.candidate].byte == search.byte
+                    && self.nodes[search.candidate].mask > search.mask)
+            {
+                break;
+            }
+            search.position -= 1;
+        }
+        budget.charge(function, 12, phase)?;
+        if search.position < self.path.len() {
+            search.at = self.path[search.position].node;
+            search.before = self.path[search.position].before;
+            search.after = self.path[search.position].after;
+        }
+        if search.position != 0 {
+            search.parent = self.path[search.position - 1].node;
+            search.parent_one = self.path[search.position - 1].one;
+        }
+        budget.charge(function, INDEX_BIT_UNITS + 4, phase)?;
+        search.new_one = index_bit!(search, key);
+        if search.new_one {
+            search.before = search.at;
+        } else {
+            search.after = search.at;
+        }
+        // Extremal leaves supply the exact full-order AVL neighbours.
+        while search.before != NIL {
+            budget.charge(function, VISIT_UNITS + 2, phase)?;
+            if self.nodes[search.before].byte == NIL {
+                search.probe.before = self.nodes[search.before].zero;
+                break;
+            }
+            search.before = self.nodes[search.before].one;
+        }
+        while search.after != NIL {
+            budget.charge(function, VISIT_UNITS + 2, phase)?;
+            if self.nodes[search.after].byte == NIL {
+                search.probe.after = self.nodes[search.after].zero;
+                break;
+            }
+            search.after = self.nodes[search.after].zero;
+        }
+        budget.charge(function, 6, phase)?;
+        if search.probe.before != NIL && directory.nodes[search.probe.before].right == NIL {
+            search.probe.parent = search.probe.before;
+            search.probe.side = Ordering::Greater;
+        } else {
+            search.probe.parent = search.probe.after;
+            search.probe.side = Ordering::Less;
+        }
+        Ok(search)
+    }
+    fn commit(
+        &mut self,
+        search: &IndexSearch,
+        index: usize,
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+        phase: &'static str,
+    ) -> Result<(), Diagnostic> {
+        budget.reserve_bytes(
+            function,
+            2 * size_of::<(
+                &mut StatusIndex,
+                &IndexSearch,
+                usize,
+                &ResolvedFunction,
+                &mut ReplayBudget,
+                &str,
+            )>() + 2 * size_of::<IndexNode>()
+                + size_of::<Result<(), Diagnostic>>()
+                + 2 * size_of::<usize>(),
+            phase,
+        )?;
+        budget.reserve_vec(function, &mut self.nodes, 2, phase)?;
+        budget.charge(function, 18, phase)?;
+        let leaf = self.nodes.len();
+        let branch = leaf + 1;
+        self.nodes.push(IndexNode {
+            byte: NIL,
+            mask: 0,
+            zero: index,
+            one: NIL,
+        });
+        self.nodes.push(IndexNode {
+            byte: search.byte,
+            mask: search.mask,
+            zero: if search.new_one { search.at } else { leaf },
+            one: if search.new_one { leaf } else { search.at },
+        });
+        if search.parent == NIL {
+            self.root = Some(branch);
+        } else if search.parent_one {
+            self.nodes[search.parent].one = branch;
+        } else {
+            self.nodes[search.parent].zero = branch;
+        }
+        Ok(())
+    }
+}
+
+impl<'hir> HeldPrefix<'_, 'hir> {
+    fn insert_indexed(
+        &mut self,
+        function: &ResolvedFunction,
+        key: &'hir StatusSourceId,
+        budget: &mut ReplayBudget,
+    ) -> Result<bool, Diagnostic> {
+        let phase = self.directory.phase;
+        budget.reserve_bytes(
+            function,
+            2 * size_of::<(
+                &mut HeldPrefix<'_, '_>,
+                &ResolvedFunction,
+                &StatusSourceId,
+                &mut ReplayBudget,
+            )>() + size_of::<&str>()
+                + 3 * size_of::<usize>()
+                + 2 * size_of::<Result<bool, Diagnostic>>()
+                + size_of::<Node<&StatusSourceId>>()
+                + size_of::<bool>(),
+            phase,
+        )?;
+        budget.charge(function, 2, phase)?;
+        if self.directory.nodes.is_empty() {
+            budget.charge(function, 3, phase)?;
+            let prefix = key.expression.as_str().len();
+            let inserted = self.directory.insert(function, key, budget)?;
+            if inserted {
+                self.index
+                    .as_mut()
+                    .unwrap()
+                    .seed(0, function, budget, phase)?;
+                self.prefix = prefix;
+            }
+            return Ok(inserted);
+        }
+        let prefix = self.common_prefix(function, key, budget)?;
+        let search =
+            self.index
+                .as_mut()
+                .unwrap()
+                .probe(self.directory, function, key, prefix, budget)?;
+        if search.probe.found {
+            return Ok(false);
+        }
+        self.directory.grow(function, budget)?;
+        budget.charge(function, VISIT_UNITS, phase)?;
+        let index = self.directory.nodes.len();
+        self.directory.nodes.push(Node {
+            key,
+            left: NIL,
+            right: NIL,
+            parent: search.probe.parent,
+            next: search.probe.after,
+            height: 1,
+        });
+        if search.probe.before == NIL {
+            self.directory.first = index;
+        } else {
+            self.directory.nodes[search.probe.before].next = index;
+        }
+        if search.probe.parent == NIL {
+            self.directory.root = index;
+        } else if search.probe.side == Ordering::Less {
+            self.directory.nodes[search.probe.parent].left = index;
+        } else {
+            self.directory.nodes[search.probe.parent].right = index;
+        }
+        let parent = search.probe.parent;
+        self.index
+            .as_mut()
+            .unwrap()
+            .commit(&search, index, function, budget, phase)?;
+        self.directory.rebalance(parent, function, budget)?;
+        budget.charge(function, 1, phase)?;
+        self.prefix = prefix;
+        Ok(true)
+    }
+}
+
+// Published only after every source row and producer has passed the original
+// receiving checks. Keys remain immutable in the owning AVL directory.
+pub(super) struct FrozenStatusIndex {
+    pub(super) nodes: Vec<IndexNode>,
+    pub(super) root: usize,
+    pub(super) function: *const ResolvedFunction,
+    pub(super) budget: *const ReplayBudget,
+    pub(super) ledger: ClassifierLedger,
+    pub(super) keys: usize,
+    pub(super) len: usize,
+    pub(super) failed: Cell<bool>,
+}
+impl HeldPrefix<'_, '_> {
+    pub(in crate::cleanup_plan::replay::expression_facts::receiving) fn freeze(
+        self,
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+    ) -> Result<(), Diagnostic> {
+        if self.owner.first.get().is_some()
+            || !std::ptr::eq(self.owner.function, function)
+            || !std::ptr::eq(self.owner.budget, budget)
+            || !std::ptr::eq(self.owner.directory, self.directory)
+            || !self.owner.ledger.current()
+        {
+            return Err(Diagnostic::io("SPX-H006", String::new()));
+        }
+        self.directory.authenticate(function, budget)?;
+        // Complete consumed/receiving builder, fixed publication controls,
+        // initialized snapshot and separately allocated Box backing and pointer.
+        budget.reserve_bytes(
+            function,
+            2 * size_of::<Self>()
+                + 2 * size_of::<FrozenStatusIndex>()
+                + size_of::<Result<(), Diagnostic>>()
+                + 2 * size_of::<Option<Box<FrozenStatusIndex>>>()
+                + size_of::<(&ResolvedFunction, &mut ReplayBudget)>(),
+            self.directory.phase,
+        )?;
+        budget.charge(function, 24, self.directory.phase)?;
+        if self.owner.next.get() != function.cleanup_plan.status_sources.len()
+            || self.directory.nodes.len() != function.cleanup_plan.status_sources.len()
+        {
+            return Err(replay_error(
+                function,
+                "status index publication requires every current row",
+            ));
+        }
+        // Retention requires an actual ACTIVE invocation. The unobserved,
+        // leased oracle and selected physical routes retain their old lookup.
+        if !matches!(budget.payer, AllocationPayer::ActiveBuilder) {
+            return Ok(());
+        }
+        let Some(index) = self.index else {
+            return Ok(());
+        };
+        let frozen = FrozenStatusIndex {
+            nodes: index.nodes,
+            root: index.root.expect("complete nonempty status index"),
+            function,
+            budget,
+            ledger: ClassifierLedger::capture(),
+            keys: self.directory.nodes.as_ptr() as usize,
+            len: self.directory.nodes.len(),
+            failed: Cell::new(false),
+        };
+        self.directory.lookup = Some(Box::new(frozen));
+        Ok(())
     }
 }

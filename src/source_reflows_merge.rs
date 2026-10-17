@@ -1031,3 +1031,6 @@ mod ordinary_plan_inputs;
 pub(crate) fn ordinary_plan_history_root_checkpoint(current: &str, compiled_before: &str) -> String {
     ordinary_plan_inputs::original_root_checkpoint(current, compiled_before)
 }
+
+#[path = "source_reflows_merge/main_c883_inputs.rs"]
+pub(crate) mod main_c883_inputs;

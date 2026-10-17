@@ -1168,3 +1168,11 @@ Audience: all documentation readers.
 - [Final branch prefix transfer](evidence/last-branch-prefix-v1/README.md)
 
 - [Named byte owners in String-vector fixtures](evidence/string-fixture-owners-v1/README.md)
+
+- [Plan branch continuation capacity](evidence/plan-branch-capacity-v1/README.md)
+
+- [Replay work refusal capture](evidence/replay-work-refusal-v1/README.md)
+
+- [Held status identity insertion index evidence](evidence/status-identity-index-v1/README.md)
+
+- [Complete projection source-audit scopes](evidence/projection-audit-scope-v1/README.md)

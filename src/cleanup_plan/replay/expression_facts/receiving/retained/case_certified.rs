@@ -139,7 +139,7 @@ pub(in crate::cleanup_plan::replay) fn validate_status_sources_certified<'hir>(
                 budget.charge(function, 1, "status case row ordinal increment")?;
                 ordinal += 1;
             }
-            drop(prefix_owner);
+            prefix_owner.freeze(function, budget)?;
             budget.reserve_bytes(function, CONTROL_BYTES, "retained status full controls")?;
             attempt.complete(function, budget)?;
             return Ok(StatusSources {

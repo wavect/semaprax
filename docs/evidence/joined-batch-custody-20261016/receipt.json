@@ -1,8 +1,8 @@
 {
   "status": "PASS_JOINED_SOURCE_AND_EXPLICIT_BOUNDARIES_ONLY",
-  "source_commit": "ddad53d1ae9b7dadd12f7b05be4732196749508f",
+  "source_commit": "bb4c4fb75970b4c48a714256e4be0435e6f80272",
   "domain_counts": {
-    "Previous16c": 383,
+    "Previous16c": 387,
     "Maina3": 30,
     "Alias1ae": 2,
     "MainE47": 2
@@ -85,6 +85,7 @@
     "src/cleanup_plan/replay/flat_records/tests/receiving_families.rs",
     "src/cleanup_plan/replay/flat_records/tests/receiving_path_boundary.rs",
     "src/cleanup_plan/replay/flat_records/tests/receiving_status_scalar.rs",
+    "src/cleanup_plan/replay/lexical_cert/paid/chains_tests.rs",
     "src/cleanup_plan/replay/lexical_skeleton.rs",
     "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
     "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
@@ -96,6 +97,7 @@
     "src/cleanup_plan/replay/physical_budget/setup.rs",
     "src/cleanup_plan/replay/physical_clone.rs",
     "src/cleanup_plan/replay/physical_storage.rs",
+    "src/cleanup_plan/replay/physical_storage/zero_tests.rs",
     "src/cleanup_plan/replay/schema.rs",
     "src/cleanup_plan/replay/schema/paid_summary/original_receiver.rs",
     "src/cleanup_plan/replay/schema/paid_summary/tests.rs",
@@ -103,8 +105,10 @@
     "src/cleanup_plan/replay/sequence_prefix.rs",
     "src/cleanup_plan/replay/sequence_prefix/main24/before_wrapper_tests.rs",
     "src/cleanup_plan/replay/sequence_prefix/main24/tests.rs",
+    "src/cleanup_plan/replay/sequence_prefix/main8a/wrapper_context.rs",
     "src/cleanup_plan/replay/sequence_prefix/main_c11/before_wrapper_tests.rs",
     "src/cleanup_plan/replay/sequence_prefix/main_c11/tests.rs",
+    "src/cleanup_plan/replay/sequence_prefix/main_c11/wrapper_context.rs",
     "src/cleanup_plan/replay/sequence_prefix/tests.rs",
     "src/cleanup_plan/replay/skeleton_work.rs",
     "src/cleanup_plan/replay/skeleton_work/ordinary_dag.rs",
@@ -342,8 +346,8 @@
   "new_owners": 173,
   "completed_authority_generations": 1,
   "pre856_generation_interrupted_before_output": true,
-  "source_proof_sha256": "87caeb0823cd6e52fbd87fe4488f36ae514174897b2f73c5d84ca3c550daa315",
-  "authority_proof_sha256": "681387bdd6fe1e84a082dcc16a5efa5a28302cf3353eafd2e955ea4b9197ba47",
+  "source_proof_sha256": "fafd6ca16e7290e14b9a546b48c56d5e4491be6b97b21522602455b7d4fea04a",
+  "authority_proof_sha256": "cdc5a6c4785c7b4c996a987b8f2b4076196598bc0fd05fd176ec61db65582e1a",
   "guard_sha256": {
     "tests/hir_module_boundaries.rs": "5090d08b52cb9650af5fc2c2a28739a9783c3d43c7a0f25037ce032b04f51137",
     "tests/workspace/semantic_graph/source_inventory.rs": "aa4e1844d2e867c519bd24fdb560535c9f07b7daa790e343c1b4b04e978d0989",
@@ -352,7 +356,7 @@
   "all_six_original_static_negatives_refused": true,
   "complete_original_source_role_authentication": true,
   "original_global_verifier_main_executed": false,
-  "explicit_boundary_proof": "/Volumes/Semaprax/worktrees/next-semantic-integration-851-20261017/docs/evidence/source-boundary-domains-20261016/boundary-source-proof.json",
+  "explicit_boundary_proof": "/Volumes/Semaprax/worktrees/semantic162-source-coupling-20261017/docs/evidence/source-boundary-domains-20261016/boundary-source-proof.json",
   "rust_executed": false,
   "qualification": "PENDING"
 }

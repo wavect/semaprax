@@ -101,6 +101,7 @@
       "src/cleanup_plan/replay/flat_records/tests/receiving_path_boundary.rs",
       "src/cleanup_plan/replay/flat_records/tests/receiving_status_scalar.rs",
       "src/cleanup_plan/replay/inventory_coverage.rs",
+      "src/cleanup_plan/replay/lexical_cert/paid/chains_tests.rs",
       "src/cleanup_plan/replay/lexical_replay.rs",
       "src/cleanup_plan/replay/lexical_skeleton.rs",
       "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
@@ -115,6 +116,7 @@
       "src/cleanup_plan/replay/physical_budget/setup.rs",
       "src/cleanup_plan/replay/physical_clone.rs",
       "src/cleanup_plan/replay/physical_storage.rs",
+      "src/cleanup_plan/replay/physical_storage/zero_tests.rs",
       "src/cleanup_plan/replay/scalar_replay.rs",
       "src/cleanup_plan/replay/schema.rs",
       "src/cleanup_plan/replay/schema/paid_summary/original_receiver.rs",
@@ -125,8 +127,10 @@
       "src/cleanup_plan/replay/sequence_prefix/main24/before_wrapper_tests.rs",
       "src/cleanup_plan/replay/sequence_prefix/main24/tests.rs",
       "src/cleanup_plan/replay/sequence_prefix/main8a/helper.rs",
+      "src/cleanup_plan/replay/sequence_prefix/main8a/wrapper_context.rs",
       "src/cleanup_plan/replay/sequence_prefix/main_c11/before_wrapper_tests.rs",
       "src/cleanup_plan/replay/sequence_prefix/main_c11/tests.rs",
+      "src/cleanup_plan/replay/sequence_prefix/main_c11/wrapper_context.rs",
       "src/cleanup_plan/replay/sequence_prefix/tests.rs",
       "src/cleanup_plan/replay/skeleton_work.rs",
       "src/cleanup_plan/replay/skeleton_work/ordinary_dag.rs",
@@ -393,17 +397,17 @@
         "table": "current-to-Previous16c.json",
         "first": ".github/workflows/ci.yml",
         "last": "src/source_verify/declaration/fusion.rs",
-        "rows": 268,
-        "length": 5066382,
-        "sha256": "bd71b62a8b17babeac50a28e59e00889ca338e343ad1a718722f686f5b109f51"
+        "rows": 272,
+        "length": 5073072,
+        "sha256": "da9de8b7a4e4e668c9bf3d7cefcd86df80002094818bafee701496790723b036"
       },
       {
         "table": "current-to-Previous16c-part-001.json",
         "first": "src/source_verify/declaration/old.rs",
         "last": "tests/workspace/semantic_graph/source_inventory.rs",
         "rows": 115,
-        "length": 2851494,
-        "sha256": "75ddc067c3bc3d7d577ad063d0ad02edd2783eb80e4b5dfe2a25294a1471af25"
+        "length": 2870546,
+        "sha256": "6d568be8a40868be2a6c55832b6e59819e1b8d9b12f7120dac7573a0780d5e39"
       }
     ]
   },

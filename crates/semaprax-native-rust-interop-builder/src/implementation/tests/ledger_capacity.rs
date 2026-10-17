@@ -117,6 +117,14 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     // frame machinery they describe, so bind the root and the resolver files.
     assert_eq!(audit_source_join!("", "α", "\0", "\r\n", "β"), "α\0\r\nβ");
     let hir_resolver = hir_resolver_source_inventory!();
+    // Check actual receiving placement; the independent sentinel stays literal.
+    let relocated_prefix = concat!(
+        include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/factored/moderate_tests.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/factored/moderate_tests/before.rs"),
+    );
+    assert!(hir_resolver.starts_with(relocated_prefix), "all relocated subjects must enter the actual native resolver inventory");
+    assert!(!hir_resolver[relocated_prefix.len()..].starts_with(relocated_prefix), "duplicate native inventory prefix");
     let hir_validator = hir_validator_source_inventory!();
     let hir_validator = [hir_validator.as_str(), scope_projection::TEXT].concat();
     let verifier = verifier_source_inventory!();

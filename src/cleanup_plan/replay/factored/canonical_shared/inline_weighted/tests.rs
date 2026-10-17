@@ -148,8 +148,8 @@ fn inline_weighted_real_allocations_debit_peak_and_drop_include_many_header_and_
             assert_eq!(metrics.live, 0);
             assert_eq!(metrics.allocated, metrics.freed);
         }
-        if width == 1 { assert!(current_metrics.allocations < old_metrics.allocations); }
         eprintln!("inline-weighted width={width} old={old}/{old_metrics:?} current={current}/{current_metrics:?}");
+        if width == 1 { assert!(current_metrics.allocations < old_metrics.allocations); }
         let admission = ReplayBudget::with_physical(&function, 1 << 24).unwrap().physical.as_ref().unwrap().charged();
         for bytes in [admission, admission + current - 1, admission + current] {
             let (result, metrics) = probe(&function, &graph, sink, root, bytes, false);

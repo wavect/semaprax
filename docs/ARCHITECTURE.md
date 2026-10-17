@@ -1085,7 +1085,12 @@ teardown. `expected_projection/borrowed_imports/typed/alias.rs` owns the ordered
 import walk. The original full wrapper classifier still admits the shape;
 unsupported declarations retain the owning fallback and ordinary diagnostics. The actual core selects this
 transient route only for retained-output uncached construction without a
-frontend; it cannot publish a checked cache key. Existing semantic replay and
+frontend; it cannot publish a checked cache key. A shared, prepaid allocation-free
+identity-family prefilter selects the original producer in both frontend modes
+when no imported identity can denote a retained Vec/Box wrapper. Positive family
+matches still run the full unchanged classifier and provider checks. This avoids
+an all-owned transient directory; it does not establish cache parity for actual
+retained wrappers or grant authority from a name. Existing semantic replay and
 final owning products retain their original boundaries.
 `expected_projection/borrowed_imports/receiving.rs` owns the actual core import
 walk, retaining the full standalone producer as an independent receiver. Its

@@ -4039,25 +4039,15 @@ fn build_resolved_core_current(
         }
         let synthetic = staged!(
             SyntheticModule,
-            (if frontend.is_none() {
-                constructor_failure::typed::construct_transient_alias_core(
-                    program,
-                    authored,
-                    programs,
-                    layouts,
-                    &mut core_proofs,
-                    receiver.as_mut().expect("live constructor receiver"),
-                )
-            } else {
-                constructor_failure::typed::construct_transient_core(
-                    program,
-                    authored,
-                    programs,
-                    layouts,
-                    &mut core_proofs,
-                    receiver.as_mut().expect("live constructor receiver"),
-                )
-            })
+            constructor_failure::typed::construct_selected_core(
+                program,
+                authored,
+                programs,
+                layouts,
+                &mut core_proofs,
+                frontend.is_none(),
+                receiver.as_mut().expect("live constructor receiver"),
+            )
             .map_err(|failure| receiver
                 .take()
                 .expect("first constructor error exits core")

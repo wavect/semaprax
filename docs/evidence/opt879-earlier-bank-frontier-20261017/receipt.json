@@ -1,0 +1,28 @@
+{
+  "status": "SOURCE_CANDIDATE_INDEPENDENT_REVIEW_PENDING_UNEXECUTED",
+  "base": "630d83fb59afffc3093eb6301bed35a101ff95af",
+  "original_frontier_restored_real_event": true,
+  "old_prices_helpers_producer_and_tests_unchanged": true,
+  "newtest_prefix_unchanged": true,
+  "same_zeroarg_price_expression_restored_exactly": true,
+  "no_second_reserve_ABI": true,
+  "whole_inverses_pass": true,
+  "new_selector": "cleanup_plan::replay::branch_clone::production_capacity::tests::production_fused_earlier_bank_and_original_take_frontiers_keep_six_fields_first_receipt_and_whole_drop",
+  "pending": [
+    "independentreview",
+    "raw3/MAIN043/sourceingress",
+    "compilation/runtime",
+    "direct incominghelper funding"
+  ],
+  "files": {
+    "02.after.txt": "8b68420c1908290011039b4a5a1180e5bdfd8fc78fd048c6367c20a29c86218d",
+    "01.before.txt": "074c820b8d78de890ddaaeeb75050f4597a7edf9bb481e3e007f9f988d285a2d",
+    "whole-source-inverses.json": "44b8de89d87597ac4d685f67953ebd40469fc7d0f14c4b046348572aecfe4c1f",
+    "pending-selectors.json": "b1e809d7109b34647f92899d20a9b45907c0a7df0173f131f17ea0aa4b305de5",
+    "README.md": "a2323e74e32df330ab11722d155983042d932523f2d5f6d261915ad86be3293b",
+    "01.after.txt": "6a0d37ce6eac26d3a3813cbb8b3e504e391ae7a5ec09f29e4413cd8fefed6a40",
+    "02.before.txt": "281e1bb1772a26b4f49861cc3ac66c6bff6c6529dc0b582cf5af1a30e1eb42ad",
+    "00.after.txt": "bf0dd7e74dc7b881b57c5666f7f268611898f58a226cee5320921f58d2fc3310",
+    "00.before.txt": "27b044951de802a494bc2262b9d9a6ddb5312a2ea5c2f7f9e9a0c2f68929bf03"
+  }
+}

@@ -14,8 +14,8 @@ impl Decision {
     const NONE: Self = Self { take: false, copy_capacity: None };
 }
 
-// This is added to the SAME existing TAKE payment before TakeCandidate or any
-// of the new roles forms. The complete old price is retained without credits.
+// Added to the earlier same-invocation branch-inline payment, before clone work
+// and the unchanged TAKE payment. No new reserve ABI or old-price credit exists.
 pub(in crate::cleanup_plan::replay) const ADDITIONAL_CONTROLS: usize =
     2 * size_of::<Decision>() // actual returned value and caller-retained receiver
     + 4 * size_of::<Option<usize>>() // terminal Some/receiver and caller field/match
@@ -24,6 +24,27 @@ pub(in crate::cleanup_plan::replay) const ADDITIONAL_CONTROLS: usize =
     + 2 * size_of::<&[EdgeId]>() // as_slice return and slice-pattern receiver
     + 4 * size_of::<&EdgeId>() // Goto/Branch bindings and common selected-edge receive
     + 10 * size_of::<bool>(); // fork/cache, branch/exit/fit/copy predicates and receives
+// Same zero-argument ABI and complete literal old pricing expression; no
+// forwarding call/Result is introduced. The earlier reserve retains this bank
+// on the same budget/function/invocation until the actual probe is entered.
+pub(in crate::cleanup_plan::replay) fn production_inline_controls<T: Clone>() -> usize {
+    size_of::<Result<(), Diagnostic>>() // caller payment result
+        + 4 * size_of::<Result<(), Diagnostic>>() // clone/push work, clone census, conversion
+        + 2 * size_of::<Result<(), Diagnostic>>() // backing wrapper and nested byte payment
+        + size_of::<Result<usize, Diagnostic>>() // checked array size conversion
+        + size_of::<Option<usize>>()
+        + 2 * size_of::<Vec<T>>() // initializer and the enumerator's named branch
+        + size_of::<&mut ReplayBudget>() + size_of::<&ResolvedFunction>()
+        + size_of::<&Vec<T>>() // direct clone census argument
+        + 2 * size_of::<&str>()
+        + 2 * size_of::<usize>()
+        + 2 * size_of::<bool>()
+        + 2 * size_of::<&mut Vec<T>>() + size_of::<&[T]>()
+        + 2 * size_of::<std::slice::Iter<'_, T>>()
+        + 2 * size_of::<std::iter::Cloned<std::slice::Iter<'_, T>>>()
+        + ADDITIONAL_CONTROLS
+}
+
 // A copy is selected only when its genuinely absent pointer backing exceeds
 // this whole added production price. This is not a refund or a direct fee.
 const COPY_SLOTS: usize = ADDITIONAL_CONTROLS / size_of::<std::rc::Rc<SkeletonObservation>>() + 1;

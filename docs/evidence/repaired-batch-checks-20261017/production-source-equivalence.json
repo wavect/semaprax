@@ -1,0 +1,12 @@
+{
+  "clippy_source": "6fb88632f73ea8aed713c5e22156c2d838cce7c5",
+  "audited_source_before_freeze": "546dd5be8e169da85d784bf75f1748dd45f512ac",
+  "changed_rust_paths_after_clippy": [
+    "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/workspace_graph/forecast_observation.rs",
+    "src/source_reflows_merge/maina3_custody.rs"
+  ],
+  "only_compiled_rust_change": "cfg(test) source_reflows_merge helper; original root declaration unchanged",
+  "src_lib_sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de",
+  "production_Rust_changed": false,
+  "qualification": "Actual Clippy remains6fb; this is source equivalence only. Runtime and app results remain pending."
+}

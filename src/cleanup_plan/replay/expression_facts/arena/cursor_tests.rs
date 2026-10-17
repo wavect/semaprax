@@ -159,7 +159,7 @@ fn complete_original_capacity_entry_and_producer_are_byte_bound() {
             .unwrap(),
         &arena_old[arena_old.find("pub(super) fn build<").unwrap()..]
     );
-    let arena_now = include_str!("../arena.rs");
+    let arena_now = ci_str!("../arena.rs");
     let registration = "\n#[cfg(test)]\n#[path = \"arena/cursor_tests.rs\"]\nmod cursor_tests;\n#[cfg(test)]\n#[path = \"arena/producer_before_cursor.rs\"]\nmod producer_before_cursor;\n\n#[cfg(test)]\n#[path = \"arena/before_cursor.rs\"]\nmod before_cursor;\n";
     assert_eq!(arena_now.matches(registration).count(), 1);
     assert_eq!(

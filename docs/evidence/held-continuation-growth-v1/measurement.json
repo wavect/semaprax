@@ -1,0 +1,14 @@
+{
+  "frame_bytes": 136,
+  "old_capacity": 516,
+  "held_capacity": 2,
+  "old_allocated": 70694,
+  "held_allocated": 790,
+  "old_charged": 70694,
+  "held_charged": 1303,
+  "old_live_after_drop": 0,
+  "held_live_after_drop": 0,
+  "scope": "actual complete Frame/Storage with explicit HIR/payload adapters; actual System/ReplayBudget/BO, same fixed vs held factory lifetime; not whole HIR or RSS",
+  "compile_peak_KiB": 147120,
+  "run_peak_KiB": 32
+}

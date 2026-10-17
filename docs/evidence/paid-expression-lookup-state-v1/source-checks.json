@@ -1,0 +1,15 @@
+{
+  "runs": [
+    {
+      "suite": "source-reflows",
+      "compile_peak_KiB": 137472,
+      "run_peak_KiB": 128560
+    },
+    {
+      "suite": "oracle-a",
+      "compile_peak_KiB": 191296,
+      "run_peak_KiB": 7824
+    }
+  ],
+  "scope": "Full current SourceReflows suite and complete actual original Oracle-a owning body in separate binaries. Oracle binary stages the same full framework with test annotations disabled to avoid re-running independent owning tests; no assertions removed. Whole-input and predecessor digest/archive checks unchanged."
+}

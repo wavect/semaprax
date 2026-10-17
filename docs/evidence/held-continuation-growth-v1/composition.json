@@ -1,0 +1,26 @@
+[
+  {
+    "packet": "docs/evidence/compact-staged-observations-v1/inverse.json",
+    "composed_records": 1
+  },
+  {
+    "packet": "docs/evidence/receiver-source-custody-v1/inverse.json",
+    "composed_records": 1
+  },
+  {
+    "packet": "docs/evidence/source-reader-followups-20261016/sources.json",
+    "composed_records": 1
+  },
+  {
+    "packet": "docs/evidence/moderate-factored-v1/sources.json",
+    "composed_records": 2
+  },
+  {
+    "packet": "docs/evidence/ordinary-replay-setup-v1/sources.json",
+    "composed_records": 4
+  },
+  {
+    "packet": "docs/evidence/held-status-prefix-v1/sources.json",
+    "composed_records": 3
+  }
+]

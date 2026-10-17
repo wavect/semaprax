@@ -1,0 +1,87 @@
+{
+  "runs": [
+    {
+      "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+      "suite": "old",
+      "compile_peak_KiB": 134080,
+      "run_peak_KiB": 2400
+    },
+    {
+      "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+      "suite": "held",
+      "compile_peak_KiB": 187728,
+      "run_peak_KiB": 58368
+    },
+    {
+      "compiler": "/opt/homebrew/bin/rustc",
+      "suite": "old",
+      "compile_peak_KiB": 185360,
+      "run_peak_KiB": 2368
+    },
+    {
+      "compiler": "/opt/homebrew/bin/rustc",
+      "suite": "held",
+      "compile_peak_KiB": 161280,
+      "run_peak_KiB": 58240
+    }
+  ],
+  "actual_budget_methods": [
+    [
+      "new",
+      "c74b7b8d432b7a45522f38600b82298a204135fe698aa0b5c96543862644c71e"
+    ],
+    [
+      "pays_allocations",
+      "87d404a48eb46529292ca2d6aa3fc0b214a7ed0f10d47c2141595cdd26d30743"
+    ],
+    [
+      "pays_builder",
+      "c764db6e70a3f5e91b12028a34ea9bf9d32807745c12633dff75c044e38ef57e"
+    ],
+    [
+      "builder_refused",
+      "e73896c5c3a2026335d3fd358cd2fcce6d0ba0a5e345099908f1c224275a1f5b"
+    ],
+    [
+      "reserve_builder",
+      "46f78e434993be298d783cc5239b2c722880aec59873a9c845aa75f41f5534d1"
+    ],
+    [
+      "prepare_builder",
+      "a5469e109e166c7559605ec39bfd750dbc19234326fe0c659040fd2f4edd03b8"
+    ],
+    [
+      "charge_oracle_work",
+      "ac3a73942aa72a8c2cd50751d328831ed882f342b24d4a56b0ccce42c79802b5"
+    ],
+    [
+      "reserve_bytes",
+      "3c8df31c3d4c1ba258b10cbdff12911f3d6043b2e190fea8e8d61acaf9122205"
+    ],
+    [
+      "reserve_array",
+      "14faa789dd0d90f24999ce222254be90512e68248cc55a825878bb3fd4862a7b"
+    ],
+    [
+      "reserve_vec",
+      "aee238a7fc76f97ae308ee8980def57e9fec31904bb2514b2595c81879b89705"
+    ],
+    [
+      "budget_refusal",
+      "5fa55b02ffb7556e68cbb977b083fe2cdb98a4ddf7648d10a0285341a1d3edc9"
+    ],
+    [
+      "charge",
+      "120b687a4f764cde0681414e77b9cd3924c538d78ac34f87bc5e7f21bc3579db"
+    ],
+    [
+      "charge_skeleton",
+      "69c9967f1573836654605cad52083697edbbd2de103518376e79c4ce6e114f07"
+    ]
+  ],
+  "scope": "actual whole Directory/status_prefix modules and complete old owning controls with fixture-only replacement; actual paying/work/refusal ReplayBudget methods; real BO/Diagnostic/System/physical storage. HIR fixture and non-status key types explicit adapters. Whole compiler and wide production fixture pending CI.",
+  "source_sha256": {
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs": "9f9c495e16fe9af39e773c6ef5413bc8eff8363b21d5771620f7bd91eec746b1",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs": "c0b4fc2e1cab84091d6de095ed1e4514ced3e80c9eaa0ab22b6f19526275adc4"
+  }
+}

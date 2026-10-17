@@ -1,0 +1,14 @@
+{
+  "queries": 520,
+  "old_charged": 1138803,
+  "receiving_charged": 225163,
+  "old_work": 712585,
+  "receiving_work": 716745,
+  "old_allocated": 523,
+  "receiving_allocated": 523,
+  "old_live_after_drop": 0,
+  "receiving_live_after_drop": 0,
+  "compile_peak_KiB": 149328,
+  "run_peak_KiB": 32,
+  "scope": "complete old/current production lookup methods with balanced-Arena/HIR/payload fixture adapters; actual BO/budget/Diagnostic/System; inputs/arena constructed outside observation. Cumulative lookup bill, not whole HIR/application fit or RSS."
+}

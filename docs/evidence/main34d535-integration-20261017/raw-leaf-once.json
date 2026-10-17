@@ -1,0 +1,59 @@
+{
+  "state": "SOURCE_ONLY_RAW3_ONCE",
+  "leaf": "tests/wasm/scalar_browser_ci_contract/before_671.rs",
+  "leaf_sha256": "0f4e6a07c1f0487eb3163781bd60bdefc7daa4bbcee6b6deee255b9c911ab66d",
+  "records": [
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "before_sha256": "18d3f4fd180eaee6fb419fbdb215dd5faa37530f10c39e0624a5645cad0594b0",
+      "after_sha256": "f85ee55535c7185a5b97e7ee3886e46ee7cc11adc07d98111d39aad681d1af43",
+      "archive": "tests__hir_module_boundaries.rs.before-main34d-leaf.txt",
+      "inverse": [
+        {
+          "after": "include_str!(\"../src/source_reflows_merge/main67107_inputs.rs\"),include_str!(\"../tests/wasm/scalar_browser_ci_contract/before_671.rs\")",
+          "before": "include_str!(\"../src/source_reflows_merge/main67107_inputs.rs\")"
+        }
+      ],
+      "required": 1,
+      "maximum": 1
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "before_sha256": "0e19bed63f99aa9c4236add774c55ebf38d006b26303eeb0337c172c4756edcc",
+      "after_sha256": "2811c3fee99f7d5015a247a0035820525dce06edeadc09b998bc1b72bf7ca471",
+      "archive": "tests__workspace__semantic_graph__source_inventory.rs.before-main34d-leaf.txt",
+      "inverse": [
+        {
+          "after": "include_str!(\"../../src/source_reflows_merge/main67107_inputs.rs\"),include_str!(\"../../tests/wasm/scalar_browser_ci_contract/before_671.rs\")",
+          "before": "include_str!(\"../../src/source_reflows_merge/main67107_inputs.rs\")"
+        }
+      ],
+      "required": 1,
+      "maximum": 1
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "before_sha256": "07641bd8b3f203f2b642e437468b5c852174b572482d33423f6b8611d99f3a6e",
+      "after_sha256": "7c91658b8a2def6389360dcf466dd018e08da47783a307aaa4639401c34c9dbc",
+      "archive": "crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.before-main34d-leaf.txt",
+      "inverse": [
+        {
+          "after": "include_str!(\"../../../../../src/source_reflows_merge/main67107_inputs.rs\"),include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/before_671.rs\")",
+          "before": "include_str!(\"../../../../../src/source_reflows_merge/main67107_inputs.rs\")"
+        }
+      ],
+      "required": 1,
+      "maximum": 1
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json",
+      "before_sha256": "ecae1100e2dfbdc5b1b19e291e4a3cfe6c64444daa8dfa4520a41fea120e1a7e",
+      "after_sha256": "a252ab640a80d4dd59ce395a88cfdff3aa0b4655754779045b5da339327fe36b",
+      "archive": "docs__evidence__main043-independent-custody-20261016__guard-extension-allowed.json.before-main34d-leaf.txt",
+      "only_added_leaf": "tests/wasm/scalar_browser_ci_contract/before_671.rs",
+      "six_required_and_maximum_additions": 1
+    }
+  ],
+  "common_source_bindings_pending": true,
+  "initial_refusal": "Definition-file relative prefix was wrong for the macro call-site model. Exact first-file preimage restored before final explicit three-prefix preflight and edit."
+}

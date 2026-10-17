@@ -82,6 +82,7 @@ pub(super) fn drift_controls(graph: &str) {
 #[test]
 fn next_actual_wires_run_both_complete_independent_receiver_trees() {
     let runner = include_str!("../../../platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs");
+    let runner = super::custody::main671_input("platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs", runner);
     let expected = [
         "sha256:489f02ed298c2d35433d6c9f811ccc26c50ce90117b3976a862b40aff11129b8",
         "sha256:ccb0ec81a00f3890ec2fe87af8d0f801970a1a397eeb55fe115e83dab02188ba",

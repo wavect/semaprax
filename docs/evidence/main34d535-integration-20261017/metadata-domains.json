@@ -1,0 +1,39 @@
+{
+  "state": "MERGE_IN_PROGRESS_SOURCE_DOMAIN_COMPOSITION_PENDING",
+  "ours_head": "49219d230734e000e2884b5b4fb71e61cdf0eb0b",
+  "main_head": "34d53510a3374537874c89a0e46be4d68ad9fe61",
+  "tables": [
+    {
+      "path": "docs/evidence/compact-staged-observations-v1/inverse.json",
+      "ours_sha256": "ef2d603d1d9190002b8e6b0c44fe6e1fb2bfb940e9497bf14db3026d3bf133ae",
+      "main34d_sha256": "f4ded55dd9a9bdb829b312fc937164b4ac8935d77a35f0740869b8d5e2d63c19",
+      "resolved": "exact original OURS domain; MAIN full domain retained separately",
+      "ours_rows": 7,
+      "main_rows": 7
+    },
+    {
+      "path": "docs/evidence/ordinary-replay-setup-v1/sources.json",
+      "ours_sha256": "fca8ff3e71b5167c1350ba46ce12dee935e987183a55a016c5297ebdc06fad3b",
+      "main34d_sha256": "5f43b9301289b6ce516b62121ec279920cb6a6bbec11edd45f1dd97aad4fa043",
+      "resolved": "exact original OURS domain; MAIN full domain retained separately",
+      "ours_rows": 34,
+      "main_rows": 34
+    },
+    {
+      "path": "docs/evidence/prefix-certified-expression-lookup/exact-source-inverses.json",
+      "ours_sha256": "86770dca8d0e0efdb49729626f9a7b7186b1d9d7b3e92c0acd856e2913b37682",
+      "main34d_sha256": "c3766c72457aa8f837d5479f8d1e12c4ea8605ccbf9524fd9eb265091f33084d",
+      "resolved": "exact original OURS domain; MAIN full domain retained separately",
+      "ours_rows": 3,
+      "main_rows": 3
+    },
+    {
+      "path": "docs/evidence/receiver-source-custody-v1/inverse.json",
+      "ours_sha256": "17758338cdb03f1a294fb75d923ccc515c814aa3d257521f41ef8593a7d9da1b",
+      "main34d_sha256": "9165a502eeec5eaf656379a57af6cfd1925c215974eecc477e3410ca56e2c348",
+      "resolved": "exact original OURS domain; MAIN full domain retained separately",
+      "ours_rows": 5,
+      "main_rows": 12
+    }
+  ]
+}

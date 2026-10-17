@@ -46,7 +46,11 @@ impl<'hir> Storage<'hir> {
         if self.frames.is_some() {
             let frames = self.frames.as_mut().unwrap();
             if frames.capacity() == 0 {
-                *frames = fresh(function, budget)?;
+                *frames = if self.receiving_owner.is_some() {
+                    fresh_receiving(function, budget)?
+                } else {
+                    fresh(function, budget)?
+                };
             } else {
                 budget.reserve_bytes(function, 0, "typed HIR continuation stack")?;
             }
@@ -82,7 +86,11 @@ impl<'hir> Storage<'hir> {
             nested.slots = replacement;
         }
         if nested.slots[depth].is_none() {
-            nested.slots[depth] = Some(fresh(function, budget)?);
+            nested.slots[depth] = Some(if self.receiving_owner.is_some() {
+                fresh_receiving(function, budget)?
+            } else {
+                fresh(function, budget)?
+            });
         } else {
             budget.reserve_bytes(function, 0, "typed HIR continuation stack")?;
         }
@@ -339,3 +347,72 @@ pub(super) enum Frame<'a> {
 
 #[cfg(test)]
 mod tests;
+
+// A current invocation-held receiver acquires only the backing it reaches.
+// Legacy and independent oracle receivers retain the complete fixed layout.
+fn fresh_receiving<'hir>(
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<Vec<Frame<'hir>>, Diagnostic> {
+    budget.reserve_bytes(
+        function,
+        2 * std::mem::size_of::<Vec<Frame<'hir>>>()
+            + std::mem::size_of::<Result<Vec<Frame<'hir>>, Diagnostic>>()
+            + std::mem::size_of::<bool>(),
+        "held continuation initial controls",
+    )?;
+    let mut frames = Vec::new();
+    reserve_push(&mut frames, function, budget)?;
+    Ok(frames)
+}
+
+/// Grow only before the runner publishes its next frame. Capacity is storage;
+/// the original 516-frame bound continues to supply traversal authority.
+pub(super) fn reserve_push(
+    frames: &mut Vec<Frame<'_>>,
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<(), Diagnostic> {
+    if frames.len() >= FRAME_CAPACITY {
+        return Err(replay_error(
+            function,
+            "typed-HIR skeleton traversal exceeds the admitted depth",
+        ));
+    }
+    budget.reserve_bytes(function, 0, "held continuation growth")?;
+    if frames.len() < frames.capacity() {
+        return Ok(());
+    }
+    // Only the invocation-held paying constructor produces a smaller buffer.
+    // A missing legacy slot is never turned into a new funded path here.
+    if !budget.pays_allocations() {
+        return Err(replay_error(
+            function,
+            "typed-HIR skeleton traversal exceeds the admitted depth",
+        ));
+    }
+    // Actual old/new Vec controls, the result, target and retained/moved frame.
+    budget.reserve_bytes(
+        function,
+        2 * std::mem::size_of::<Vec<Frame<'_>>>()
+            + std::mem::size_of::<Result<(), Diagnostic>>()
+            + std::mem::size_of::<usize>()
+            + std::mem::size_of::<Frame<'_>>(),
+        "held continuation replacement controls",
+    )?;
+    // Eight setup steps and a read/move for every retained live frame.
+    budget.charge(
+        function,
+        8 + 2 * frames.len(),
+        "held continuation relocation",
+    )?;
+    let target = frames
+        .capacity()
+        .saturating_mul(2)
+        .clamp((frames.len() + 1).max(2), FRAME_CAPACITY);
+    budget.reserve_array::<Frame<'_>>(function, target, "held continuation replacement backing")?;
+    let mut replacement = Vec::with_capacity(target);
+    replacement.append(frames);
+    *frames = replacement;
+    Ok(())
+}

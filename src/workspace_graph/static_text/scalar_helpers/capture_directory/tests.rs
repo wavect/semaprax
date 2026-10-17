@@ -513,7 +513,9 @@ fn real_utf8_provider_matches_original_capture_without_literal_inventory() {
 
 #[test]
 fn optional_source_work_selection_preserves_the_complete_prior_capture_body() {
-    let current = include_str!("../../scalar_helpers.rs");
+    let current = crate::source_reflows::helper_digest_capture_predecessor(include_str!(
+        "../../scalar_helpers.rs"
+    ));
     let original = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/optional-helper-source-work-v1/scalar_helpers.before.rs.txt"
@@ -531,4 +533,236 @@ fn optional_source_work_selection_preserves_the_complete_prior_capture_body() {
     assert_eq!(restored.matches(anchor).count(), 1);
     restored = restored.replacen(anchor, &format!("{debit}{anchor}"), 1);
     assert_eq!(restored, original);
+}
+
+#[test]
+fn optional_digest_work_declines_short_shared_limits_without_publishing_partial_hashes() {
+    let programs = programs(&source(1));
+    let resolved = crate::hir::resolve(&programs[0]).unwrap();
+    let function = resolved
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == "helpers.f0000")
+        .unwrap();
+    let revision = [19; 32];
+    let mut units = 0usize;
+    let expected = super::super::body_digest::typed_attempt_metered(
+        function,
+        &revision,
+        Some(&mut |n| {
+            units += n;
+            Some(())
+        }),
+    )
+    .0
+    .unwrap();
+    assert!(units > 1);
+    for available in [0, 1, units - 1, units, units + 17] {
+        let ((digest, remaining, observed), refused, paid) =
+            crate::bounded_output::with_limit_usage(super::super::DIGEST_RECEIVER_BYTES, || {
+                let mut work = available;
+                let (digest, observed) = crate::test_allocation_observer::measure(|| {
+                    super::super::reserve_builder_structure(super::super::DIGEST_RECEIVER_BYTES).unwrap();
+                    super::super::capture_digest(function, &revision, &mut work).unwrap()
+                });
+                (digest, work, observed)
+            });
+        assert!(!refused);
+        assert_eq!(paid, super::super::DIGEST_RECEIVER_BYTES);
+        assert_eq!(
+            observed,
+            crate::test_allocation_observer::Metrics::default()
+        );
+        if available >= units {
+            assert_eq!(digest, Some(expected));
+            assert_eq!(remaining, available - units);
+        } else {
+            assert_eq!(digest, None);
+            assert!(remaining <= available);
+        }
+    }
+    // Acquisition precedes the hash callback and keeps the sticky byte refusal.
+    let mut work = units;
+    let (result, refused, _, first) = crate::bounded_output::with_limit_usage_refusal(
+        super::super::DIGEST_RECEIVER_BYTES - 1,
+        || {
+            super::super::reserve_builder_structure(super::super::DIGEST_RECEIVER_BYTES)?;
+            super::super::capture_digest(function, &revision, &mut work)
+        },
+    );
+    assert!(result.is_err() && refused);
+    assert_eq!(result.as_ref().unwrap_err(), &super::super::capacity());
+    assert_eq!(result.unwrap_err()[0].code, "SPX-G171");
+    assert_eq!(work, units);
+    assert_eq!(
+        first.unwrap().requested,
+        super::super::DIGEST_RECEIVER_BYTES
+    );
+}
+
+#[test]
+fn optional_digest_keeps_unsupported_body_and_internal_ceiling_g410_refusals() {
+    let programs = programs(&source(1));
+    let resolved = crate::hir::resolve(&programs[0]).unwrap();
+    let function = resolved
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == "helpers.f0000")
+        .unwrap();
+    let mut unsupported = function.clone();
+    unsupported.body.kind = crate::hir::ResolvedExprKind::Upcast {
+        source: Box::new(function.body.clone()),
+    };
+    let mut internal = function.clone();
+    internal.name = "x".repeat(1_048_576);
+    for candidate in [&unsupported, &internal] {
+        let mut work = usize::MAX;
+        super::super::reserve_builder_structure(super::super::DIGEST_RECEIVER_BYTES).unwrap();
+        let result = super::super::capture_digest(candidate, &[19; 32], &mut work);
+        let errors = result.unwrap_err();
+        assert_eq!(errors, super::super::fail());
+        assert_eq!(errors[0].code, "SPX-G410");
+        assert!(work < usize::MAX);
+    }
+}
+
+#[test]
+fn prepaid_digest_bank_denies_before_work_and_keeps_sticky_first_refusal() {
+    let programs = programs(&source(1));
+    let resolved = crate::hir::resolve(&programs[0]).unwrap();
+    let function = resolved.functions.iter().find(|f| f.id.as_str() == "helpers.f0000").unwrap();
+    let revision = [19; 32];
+    let header = super::super::DIGEST_PAYMENT_HEADER_BYTES;
+    let receiver = super::super::DIGEST_RECEIVER_BYTES;
+    let mut work = usize::MAX;
+    let (((), first_errors, retry_errors), refused, used, first) =
+        crate::bounded_output::with_limit_usage_refusal(header + receiver - 1, || {
+            // This is the same order as the production Inventory bank and its
+            // later caller: the payment frame exists only after its own bank.
+            super::super::reserve_builder_structure(header).unwrap();
+            let first = (|| {
+                super::super::reserve_builder_structure(receiver)?;
+                super::super::capture_digest(function, &revision, &mut work)
+            })().unwrap_err();
+            assert_eq!(work, usize::MAX);
+            let remaining = crate::bounded_output::active_remaining();
+            let retry = (|| {
+                super::super::reserve_builder_structure(receiver)?;
+                super::super::capture_digest(function, &revision, &mut work)
+            })().unwrap_err();
+            assert_eq!(work, usize::MAX);
+            assert_eq!(crate::bounded_output::active_remaining(), remaining);
+            ((), first, retry)
+        });
+    assert!(refused);
+    assert_eq!(used, header);
+    assert_eq!(first.unwrap().requested, receiver);
+    assert_eq!(first_errors[0].code, "SPX-G171");
+    assert_eq!(first_errors, super::super::capacity());
+    assert_eq!(retry_errors, super::super::capacity());
+    assert_eq!(retry_errors, first_errors);
+}
+
+#[test]
+fn full_capture_keeps_six_byte_frontiers_protected_floor_and_allocation_free_drop() {
+    for count in [1, 8] {
+        let text = source(count);
+        let programs = programs(&text);
+        let resolved = crate::hir::resolve(&programs[0]).unwrap();
+        let authored = index_authored(&programs).unwrap();
+        let sources = [WorkspaceSource { path: "helpers.spx".into(), source: text }];
+        let (reference, refused, _) = crate::bounded_output::with_limit_usage(usize::MAX, || {
+            legacy::capture(&programs[0], &resolved, &programs, &authored, Some(&sources)).unwrap().unwrap()
+        });
+        assert!(!refused);
+        let ((units, measured), refused, needed) = crate::bounded_output::with_limit_usage(usize::MAX, || {
+            crate::test_allocation_observer::measure(|| {
+                let inventory = capture(&programs[0], &resolved, &programs, &authored, Some(&sources)).unwrap().unwrap();
+                equal(&inventory, &reference);
+                let units = inventory.capture_work;
+                let before_drop = crate::test_allocation_observer::current_metrics();
+                drop(inventory);
+                let after_drop = crate::test_allocation_observer::current_metrics();
+                assert_eq!(after_drop.allocated, before_drop.allocated);
+                assert_eq!(after_drop.live, 0);
+                units
+            })
+        });
+        assert!(!refused && needed > 1 && units > 0);
+        assert!(!measured.invalid);
+        assert_eq!(measured.live, 0);
+        assert_eq!(measured.allocated, measured.freed);
+        for limit in [0, 1, needed - 1, needed, needed + 1, usize::MAX] {
+            let ((published, observed), refused, used, first) =
+                crate::bounded_output::with_limit_usage_refusal(limit, || {
+                    crate::test_allocation_observer::measure(|| {
+                        let result = capture(&programs[0], &resolved, &programs, &authored, Some(&sources));
+                        if limit >= needed {
+                            let inventory = result.unwrap().unwrap();
+                            equal(&inventory, &reference);
+                            assert_eq!(inventory.capture_work, units);
+                            let before_drop = crate::test_allocation_observer::current_metrics();
+                            drop(inventory);
+                            assert_eq!(crate::test_allocation_observer::current_metrics().allocated, before_drop.allocated);
+                            true
+                        } else {
+                            let errors = result.err().unwrap();
+                            assert_eq!(errors[0].code, "SPX-G171");
+                            assert_eq!(errors, super::super::capacity());
+                            drop(errors);
+                            false
+                        }
+                    })
+                });
+            assert_eq!(published, limit >= needed);
+            assert_eq!(refused, !published);
+            assert!(!observed.invalid);
+            assert_eq!(observed.live, 0);
+            assert_eq!(observed.allocated, observed.freed);
+            if published {
+                assert_eq!(used, needed);
+                assert!(first.is_none());
+                assert_eq!(observed, measured);
+            } else {
+                assert!(used <= limit);
+                assert!(first.is_some());
+            }
+        }
+        let floor = 17;
+        let (((), observed), refused, used, first) =
+            crate::bounded_output::with_limit_usage_refusal(needed + floor, || {
+                assert!(crate::bounded_output::set_active_floor(floor));
+                crate::test_allocation_observer::measure(|| {
+                    let inventory = capture(&programs[0], &resolved, &programs, &authored, Some(&sources)).unwrap().unwrap();
+                    equal(&inventory, &reference);
+                    assert_eq!(inventory.capture_work, units);
+                    assert_eq!(crate::bounded_output::active_remaining(), Some(floor));
+                    let before_drop = crate::test_allocation_observer::current_metrics();
+                    drop(inventory);
+                    assert_eq!(crate::test_allocation_observer::current_metrics().allocated, before_drop.allocated);
+                    assert_eq!(crate::bounded_output::active_remaining(), Some(floor));
+                })
+            });
+        assert!(!refused && first.is_none());
+        assert_eq!(used, needed);
+        assert_eq!(observed, measured);
+        // The existing optional reservation API preserves a floor without
+        // selecting sticky physical refusal when the request itself still fits.
+        let (((), observed), refused, used, first) =
+            crate::bounded_output::with_limit_usage_refusal(needed, || {
+                assert!(crate::bounded_output::set_active_floor(1));
+                crate::test_allocation_observer::measure(|| {
+                    let errors = capture(&programs[0], &resolved, &programs, &authored, Some(&sources)).err().unwrap();
+                    assert_eq!(errors[0].code, "SPX-G171");
+                    assert_eq!(errors, super::super::capacity());
+                    drop(errors);
+                    assert!(crate::bounded_output::active_remaining().unwrap() >= 1);
+                })
+            });
+        assert!(!refused && first.is_none());
+        assert!(used < needed);
+        assert!(!observed.invalid);
+        assert_eq!(observed.live, 0);
+        assert_eq!(observed.allocated, observed.freed);
+    }
 }

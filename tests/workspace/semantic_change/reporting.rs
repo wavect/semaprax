@@ -100,6 +100,8 @@ fn assert_complete_report_equality(
 // Keep the record local: imported nominal expression types are conservatively
 // classified as v74 when the per-module type directory cannot authenticate them.
 // Scalar call arguments preserve values; local Copy extraction selects v13.
+// Exercise the existing Graph v13 Copy-pattern family alongside the original
+// Copy-field fixture, whose admitted schema is checked separately below.
 fn admitted_provider(source: &str, record: &str, increment: bool) -> String {
     let body = if increment {
         "{ value.value + 1 }"
@@ -178,6 +180,125 @@ fn admitted_fixture(label: &str) -> Fixture {
 }
 
 #[test]
+fn unsupported_base_schema_keeps_grammar_refusal_and_full_legacy_report() {
+    let fixture = Fixture::new("typed-original-unsupported");
+    set_unsupported_base_schema(&fixture);
+    let before = inventory(&fixture.root);
+    let old = semantic_workspace_change::generate(&fixture.root, &fixture.proposal)
+        .err()
+        .expect("explicit unsupported base schema must refuse");
+    let current = semantic_workspace_change::reporting::generate(&fixture.root, &fixture.proposal)
+        .err()
+        .expect("explicit unsupported base schema must refuse");
+    assert_eq!(old[0].code, "SPX-G181");
+    assert_eq!(
+        old[0].message,
+        "Semantic Workspace change base source Graph schema is unsupported"
+    );
+    assert_complete_report_equality(current.reported().unwrap(), old.as_slice());
+    assert_eq!(inventory(&fixture.root), before);
+}
+
+/// Keep every original source and proposal byte except one explicit schema
+/// value. This exercises the actual v1 protocol boundary, not a field-read
+/// shape that the ordinary fixture already admits.
+fn set_unsupported_base_schema(fixture: &Fixture) {
+    let proposal = std::fs::read_to_string(&fixture.proposal).unwrap();
+    let marker = "\"base_source_graph_schema\":\"";
+    let start = proposal.find(marker).unwrap() + marker.len();
+    let end = start + proposal[start..].find('"').unwrap();
+    let old = &proposal[start..end];
+    assert!(matches!(
+        old,
+        "semaprax.graph.v10"
+            | "semaprax.graph.v11"
+            | "semaprax.graph.v12"
+            | "semaprax.graph.v13"
+            | "semaprax.graph.v14"
+    ));
+    let unsupported = "semaprax.graph.v15";
+    let mut changed = proposal.clone();
+    changed.replace_range(start..end, unsupported);
+    serde_json::from_str::<serde_json::Value>(&changed).unwrap();
+    let mut restored = changed.clone();
+    restored.replace_range(start..start + unsupported.len(), old);
+    assert_eq!(restored, proposal);
+    std::fs::write(&fixture.proposal, changed).unwrap();
+}
+
+#[test]
+fn full_original_copy_record_fixture_keeps_all_legacy_artifacts_and_read_only_behavior() {
+    let fixture = Fixture::new("typed-original-admitted");
+    let before = inventory(&fixture.root);
+    let graph = workspace_graph::snapshot(&fixture.root, "change.entry").unwrap();
+    for module in graph.modules() {
+        assert!(
+            matches!(
+                module.source_graph_schema(),
+                "semaprax.graph.v10"
+                    | "semaprax.graph.v11"
+                    | "semaprax.graph.v12"
+                    | "semaprax.graph.v13"
+                    | "semaprax.graph.v14"
+            ),
+            "actual original fixture schema {}",
+            module.source_graph_schema()
+        );
+    }
+    let old = semantic_workspace_change::generate(&fixture.root, &fixture.proposal).unwrap();
+    let current =
+        semantic_workspace_change::reporting::generate(&fixture.root, &fixture.proposal).unwrap();
+    for (label, old, current) in [
+        (
+            "proposal_digest",
+            old.proposal_digest(),
+            current.proposal_digest(),
+        ),
+        (
+            "candidate_manifest_digest",
+            old.candidate_manifest_digest(),
+            current.candidate_manifest_digest(),
+        ),
+        ("preview", old.preview(), current.preview()),
+        (
+            "preview_digest",
+            old.preview_digest(),
+            current.preview_digest(),
+        ),
+        ("context", old.context(), current.context()),
+        (
+            "context_digest",
+            old.context_digest(),
+            current.context_digest(),
+        ),
+        ("impact", old.impact(), current.impact()),
+        (
+            "impact_digest",
+            old.impact_digest(),
+            current.impact_digest(),
+        ),
+        ("review", old.review(), current.review()),
+        (
+            "review_digest",
+            old.review_digest(),
+            current.review_digest(),
+        ),
+        ("evidence", old.evidence(), current.evidence()),
+        (
+            "evidence_digest",
+            old.evidence_digest(),
+            current.evidence_digest(),
+        ),
+    ] {
+        assert_eq!(old, current, "{label}");
+    }
+    assert_eq!(inventory(&fixture.root), before);
+}
+
+// Complete historical incorrect-refusal assertion retained for independent
+// test compilation. The admitted Copy positive and explicit schema negative
+// above are the current executable expectations; no catch-any-panic waiver.
+#[allow(dead_code)]
 fn full_original_projected_record_fixture_keeps_unsupported_graph_refusal_and_legacy_report() {
     let fixture = Fixture::new("typed-original-unsupported");
     let before = inventory(&fixture.root);

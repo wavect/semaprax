@@ -261,3 +261,5 @@ pub(crate) use factored_sources::{
     joined_labels as complete_outer_label_sources_and_original_producer_remain_exact,
     joined_predecessors as complete_predecessors_and_new_target_sources_are_bound,
 };
+
+pub(crate) use semantic_receivers::helper_digest_capture_predecessor;

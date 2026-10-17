@@ -1,0 +1,48 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs",
+    "new_or_renamed_literal_test_functions": [
+      "complete_isolated_paths_keep_every_field_backing_work_and_drop",
+      "isolated_transfer_exact_short_zero_floor_and_work_refusal_remain_sticky",
+      "all_other_merge_modes_and_unbounded_spare_capacity_keep_the_original_route"
+    ],
+    "status": "UNREGISTERED_UNEXECUTED_NOT_FINALSOURCE",
+    "shipping_isolated_paths_activation": "PENDING"
+  },
+  {
+    "path": "src/source_reflows/semantic_receivers.rs",
+    "new_or_renamed_literal_test_functions": [
+      "optional_helper_digest_preserves_complete_predecessors_and_all_old_controls",
+      "isolated_lexical_path_reuse_preserves_complete_merger_and_all_prior_controls"
+    ],
+    "status": "UNREGISTERED_UNEXECUTED_NOT_FINALSOURCE",
+    "shipping_isolated_paths_activation": "not_claimed"
+  },
+  {
+    "path": "src/workspace_graph/static_text/scalar_helpers/capture_directory/tests.rs",
+    "new_or_renamed_literal_test_functions": [
+      "optional_digest_work_declines_short_shared_limits_without_publishing_partial_hashes",
+      "optional_digest_keeps_unsupported_body_and_internal_ceiling_g410_refusals"
+    ],
+    "status": "UNREGISTERED_UNEXECUTED_NOT_FINALSOURCE",
+    "shipping_isolated_paths_activation": "not_claimed"
+  },
+  {
+    "path": "tests/workspace/semantic_change/reporting.rs",
+    "new_or_renamed_literal_test_functions": [
+      "unsupported_base_schema_keeps_grammar_refusal_and_full_legacy_report",
+      "full_original_copy_record_fixture_keeps_all_legacy_artifacts_and_read_only_behavior"
+    ],
+    "status": "UNREGISTERED_UNEXECUTED_NOT_FINALSOURCE",
+    "shipping_isolated_paths_activation": "not_claimed"
+  },
+  {
+    "path": "tests/workspace/semantic_structural_change/reporting.rs",
+    "new_or_renamed_literal_test_functions": [
+      "unsupported_base_schema_keeps_canonical_refusal_and_full_legacy_report",
+      "full_original_copy_record_fixture_keeps_all_legacy_artifacts_and_read_only_behavior"
+    ],
+    "status": "UNREGISTERED_UNEXECUTED_NOT_FINALSOURCE",
+    "shipping_isolated_paths_activation": "not_claimed"
+  }
+]

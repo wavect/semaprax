@@ -1,0 +1,27 @@
+[
+  {
+    "case": "skip-receiving-fee",
+    "compile_peak_KiB": 198208,
+    "actual_assertion_log": "/Volumes/Semaprax/tmp/ci-38383508340/isolated-skeleton-paths/negative-skip-receiving-fee/run.log"
+  },
+  {
+    "case": "skip-original-work",
+    "compile_peak_KiB": 190432,
+    "actual_assertion_log": "/Volumes/Semaprax/tmp/ci-38383508340/isolated-skeleton-paths/negative-skip-original-work/run.log"
+  },
+  {
+    "case": "admit-active-copy",
+    "compile_peak_KiB": 187488,
+    "actual_assertion_log": "/Volumes/Semaprax/tmp/ci-38383508340/isolated-skeleton-paths/negative-admit-active-copy/run.log"
+  },
+  {
+    "case": "admit-nonlexical",
+    "compile_peak_KiB": 180928,
+    "actual_assertion_log": "/Volumes/Semaprax/tmp/ci-38383508340/isolated-skeleton-paths/negative-admit-nonlexical/run.log"
+  },
+  {
+    "case": "retain-excess-spare",
+    "compile_peak_KiB": 194016,
+    "actual_assertion_log": "/Volumes/Semaprax/tmp/ci-38383508340/isolated-skeleton-paths/negative-retain-excess-spare/run.log"
+  }
+]

@@ -5089,6 +5089,21 @@ the new probe state before selection. Unknown shapes keep the old capacity.
 and the distinction between focused checks and full fixture qualification.
 
 
+`cleanup_plan/replay/skeleton_work/isolated_paths.rs` owns the ordinary
+ActiveBuilder transfer eligibility for lexical paths outside Copy regions. The
+original merger keeps each such path separate. The receiver pays its new frame
+census after the unchanged work charge and retains the incoming bounded-capacity
+vector; every other route keeps the full original merger. Complete predecessor
+custody and focused versus hosted qualification are recorded in
+[the isolated-path packet](evidence/isolated-skeleton-paths-v1/README.md).
+
+This future integration retains that incoming route under `cfg(test)` only.
+Production still uses the complete current `skeleton_work/merge_keys.rs`
+receiver. Activation awaits a complete query census paid before formation and
+qualification of the unchanged strict small-input controls; the incoming late
+payment is not a production admission. No current-head saving is established.
+
+
 Ordinary cleanup replay DAG constructors in
 `cleanup_plan/replay/skeleton_work/ordinary_dag/frontier.rs` retain an immutable
 checked pending bound per node and prepay a reusable Work-owned destruction

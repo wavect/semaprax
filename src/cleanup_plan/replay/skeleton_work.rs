@@ -6,6 +6,8 @@
 //! pointer checks add explicit work, and new ordinary DAG storage is prepaid.
 use super::*;
 mod dag_storage;
+#[cfg(test)]
+mod isolated_paths;
 pub(super) mod merge_keys;
 #[cfg(test)]
 mod merge_keys_before;

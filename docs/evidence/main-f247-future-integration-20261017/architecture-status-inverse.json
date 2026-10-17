@@ -1,0 +1,7 @@
+{
+  "path": "docs/ARCHITECTURE.md",
+  "before_sha256": "7aec14b2513baceb6d64d9446da72776ab969dc13d4ce4582e9b91cb55b45e4e",
+  "current_sha256": "c0c5e41f6f9413f043d92e1784861ce005e3c6edc87e159bbb0504f11c073fe3",
+  "only_inserted_note": "\nThis future integration retains that incoming route under `cfg(test)` only.\nProduction still uses the complete current `skeleton_work/merge_keys.rs`\nreceiver. Activation awaits a complete query census paid before formation and\nqualification of the unchanged strict small-input controls; the incoming late\npayment is not a production admission. No current-head saving is established.\n",
+  "whole_before_file": "architecture.auto-merged.before.txt"
+}

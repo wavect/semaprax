@@ -1,11 +1,11 @@
 {
   "status": "SOURCE_ONLY_NOT_COMPILED_NOT_EXECUTED",
-  "base": "809eee10c",
+  "base": "7d98508b2",
   "files": [
     {
       "path": "docs/evidence/ordinary-singleton-successors-20261017/README.md",
-      "size": 6017,
-      "sha256": "ecccbd94012ecacfc9e8dc8502af0a734f862d2d9966548b9ba4e829bee48f93"
+      "size": 6318,
+      "sha256": "967ac5abc6645cf3ba38dcfd522c09bd042cfbc68544e8518e446598cababeac"
     },
     {
       "path": "docs/evidence/ordinary-singleton-successors-20261017/before/src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
@@ -30,7 +30,7 @@
     {
       "path": "docs/evidence/ordinary-singleton-successors-20261017/bind-singleton-endpoints.py",
       "size": 2044,
-      "sha256": "72d4b13654b8bbb1912e3d6b0a9f04cefbe75d707f087f623552db45ba18c262"
+      "sha256": "fb830593f4ccc544d8d54774a68ad5f823f9c96d2aa42dc75051cd6a74ec3978"
     },
     {
       "path": "docs/evidence/ordinary-singleton-successors-20261017/check-source.py",
@@ -39,8 +39,8 @@
     },
     {
       "path": "docs/evidence/ordinary-singleton-successors-20261017/full-source-inverses.json",
-      "size": 91759,
-      "sha256": "942dfa14ad3dcecd116886cb0702b3f8a2a508c794922287d1017a140753bbbd"
+      "size": 91763,
+      "sha256": "c5c697fa7c4b62af60c28ce96e5c169084c2f734e04f1f422263c12439720069"
     },
     {
       "path": "docs/evidence/ordinary-singleton-successors-20261017/full-source-inverses.json.020f-before.txt",
@@ -68,14 +68,19 @@
       "sha256": "197dbf1f99f595abda555780884a932d323274129c149346c085403401ea0d0f"
     },
     {
+      "path": "docs/evidence/ordinary-singleton-successors-20261017/receipt.json.7d-before.txt",
+      "size": 4544,
+      "sha256": "1b0902154748f2ce329240ab0f6ada80db8eaf01b72aa3d1a3174f33086d6bc3"
+    },
+    {
       "path": "docs/evidence/ordinary-singleton-successors-20261017/receipt.json.809-before.txt",
       "size": 4146,
       "sha256": "acd971f8c6175b5cb58fa392cf39867e75586b51c9d0663021a81cf7a4d797e7"
     },
     {
       "path": "docs/evidence/ordinary-singleton-successors-20261017/source-acquisition.json",
-      "size": 42243,
-      "sha256": "41327f4c8e236917741b66131247a526792aa641f027ddd342fc3bce72f47ba2"
+      "size": 42247,
+      "sha256": "e5a1c1e0946aab3a63896abe4fbc9d35b81be51ab76d5d50ad55af4649b35dad"
     },
     {
       "path": "docs/evidence/ordinary-singleton-successors-20261017/source-acquisition.json.020f-before.txt",
@@ -94,13 +99,13 @@
     },
     {
       "path": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
-      "size": 28647,
-      "sha256": "2b906eb09774155f0f8af2f944fc8e1676d1100d63cd53dd97e467e315c173e8"
+      "size": 28651,
+      "sha256": "77eea947e5f1fd72351e549fe0b70790a87d0fa056c14f715bce3743b2172168"
     },
     {
       "path": "src/source_reflows_merge/main67107_inputs.rs",
       "size": 28987,
-      "sha256": "28e8451120ed3de1fe88a0daa01b26c96ffb3cc50f7e8530e92cf24acbd8d83e"
+      "sha256": "28dcbe4cb21ba40576761a39df09527df0ab10d9b71f8dd40c2b733391a5de5b"
     }
   ],
   "companion_packet": "docs/evidence/alias-fixtures-c874-20261017",

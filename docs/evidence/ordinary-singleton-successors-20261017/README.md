@@ -81,3 +81,5 @@ and final phase accounting remain pending. Original discovery frontiers are
 cumulative evidence, not proof that this optimization alone makes an app fit.
 
 The source-custody canonical archive is acquired using the unchanged existing no-follow bounded regular reader at fixed63,023bytes and fullSHA, before publication. The old2MiB readercap remains unchanged. The shared helper also receives the separately documented alias-fixtures-c874 packet; combine both packets from this commit.
+
+Final scalar/expect map: two static expectation-message borrows; checked_add self and rhs u64, expect returned u64 and named weight receiver u64 (four), plus its separate returned Option/self Option. These actual slots are paid explicitly. This raises the ordinary fee; there is no offset or refund.

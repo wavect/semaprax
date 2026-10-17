@@ -5,7 +5,7 @@ from pathlib import Path
 import hashlib,json,importlib,sys
 D=Path(__file__).resolve().parent;R=D.parents[2]
 sha=lambda b:hashlib.sha256(b).hexdigest()
-DATA_SHA="41327f4c8e236917741b66131247a526792aa641f027ddd342fc3bce72f47ba2"
+DATA_SHA="e5a1c1e0946aab3a63896abe4fbc9d35b81be51ab76d5d50ad55af4649b35dad"
 ORIGINAL_SHA="d07eb7b76220b90ef37778a9998251ac46ad32bed32ac2f2232adc7988012a8f"
 def _singleton_canonical_stage(repo,raw):
  data=(D/'source-acquisition.json').read_bytes();assert sha(data)==DATA_SHA

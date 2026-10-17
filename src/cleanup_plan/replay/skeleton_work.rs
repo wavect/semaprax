@@ -9,6 +9,7 @@ mod dag_storage;
 #[cfg(test)]
 mod oracle_entry;
 mod ordinary_dag;
+pub(super) mod prefix_fusion;
 
 #[cfg(test)]
 mod constructor_funding_tests {

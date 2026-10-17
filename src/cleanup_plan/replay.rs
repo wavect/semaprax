@@ -3071,15 +3071,9 @@ fn sequence_skeleton_paths(
         };
         // Lexical remainder of the original first clone: no second charge and
         // no newly forwarded Result<Observations, Diagnostic>.
-        work.budget
-            .reserve_clone(work.function, &prefix.observations, "skeleton prefix clone")?;
-        note_skeleton_materialization();
-        let observations = prefix.observations.clone();
-        let observations = work.extend_owned_observations(
-            observations,
-            &first_suffix.observations,
-            "skeleton suffix clone",
-        )?;
+        let observations = skeleton_work::prefix_fusion::after_work!(
+            work, prefix.observations, first_suffix.observations
+        );
         let owned_source = work.clone_owned(
             &first_suffix.owned_source,
             "sequenced skeleton owned-source clone",
@@ -3103,13 +3097,10 @@ fn sequence_skeleton_paths(
             "sequenced skeleton path",
         );
         for suffix in earlier.iter() {
-            let observations =
-                work.clone_observations(&prefix.observations, "skeleton prefix clone")?;
-            let observations = work.extend_owned_observations(
-                observations,
-                &suffix.observations,
-                "skeleton suffix clone",
-            )?;
+            work.charge(1, "skeleton prefix clone")?;
+            let observations = skeleton_work::prefix_fusion::after_work!(
+                work, prefix.observations, suffix.observations
+            );
             let owned_source = work.clone_owned(
                 &suffix.owned_source,
                 "sequenced skeleton owned-source clone",

@@ -1,0 +1,33 @@
+{
+  "schema": "semaprax.source-only-inverses.v1",
+  "base": "fade6f4df00808a4f9b763fff22cd5f3898683f4",
+  "status": "NONREADY: eligibility probe funding unresolved; do not integrate as qualified",
+  "files": [
+    {
+      "path": "src/cleanup_plan/replay.rs",
+      "before_sha256": "0cf35a330c89ec7ae532f3ac39ecc4cb0b056cb9538966962ac04851c3a611bc",
+      "after_sha256": "215dbc6f14dc73771c91a84ba3fbb76157b41de2a609fbf5379187718bc05899",
+      "inverse": [
+        {
+          "before": "            let observations =\n                work.clone_observations(&prefix.observations, \"skeleton prefix clone\")?;\n            let observations = work.extend_owned_observations(\n                observations,\n                &suffix.observations,\n                \"skeleton suffix clone\",\n            )?;\n",
+          "after": "            work.charge(1, \"skeleton prefix clone\")?;\n            let observations = skeleton_work::prefix_fusion::after_work!(\n                work, prefix.observations, suffix.observations\n            );\n"
+        },
+        {
+          "before": "        work.budget\n            .reserve_clone(work.function, &prefix.observations, \"skeleton prefix clone\")?;\n        note_skeleton_materialization();\n        let observations = prefix.observations.clone();\n        let observations = work.extend_owned_observations(\n            observations,\n            &first_suffix.observations,\n            \"skeleton suffix clone\",\n        )?;\n",
+          "after": "        let observations = skeleton_work::prefix_fusion::after_work!(\n            work, prefix.observations, first_suffix.observations\n        );\n"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work.rs",
+      "before_sha256": "07a74198e5a441b7a406cdbde8c0d321ef283c82bbd2d6f810039196cc42fb7f",
+      "after_sha256": "6d558fc460605a47508400dbe54939ba2969e42db99ac4759dd475e6434d3710",
+      "inverse": [
+        {
+          "before": "",
+          "after": "pub(super) mod prefix_fusion;\n"
+        }
+      ]
+    }
+  ]
+}

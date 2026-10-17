@@ -366,7 +366,7 @@ fn singleton_successor_expected_input(source: &str, expected: &str, current: &st
     if source != "src/cleanup_plan/replay/factored/canonical_shared.rs" { return current.to_owned(); }
     let data = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/ordinary-singleton-successors-20261017/source-acquisition.json"));
     assert!(data.len() <= 262_144);
-    assert_eq!(digest(data), "c59266c9839c024cd5839e825835ea06406a5748ddd7a67d16a21a93b22f3c7e");
+    assert_eq!(digest(data), "41327f4c8e236917741b66131247a526792aa641f027ddd342fc3bce72f47ba2");
     let rows: serde_json::Value = serde_json::from_str(data).unwrap();
     let row = &rows.as_array().unwrap()[0];
     assert_eq!(rows.as_array().unwrap().len(), 2);

@@ -223,7 +223,10 @@ pub(super) fn ordinary_receiving() -> usize {
         + 2 * size_of::<Result<Option<Successors>, Diagnostic>>()
         + size_of::<Option<Successors>>()
         + 2 * size_of::<ordered_weights::Iter<'static>>()
-        + size_of::<Option<(&usize, &u64)>>() + size_of::<(&usize, &u64)>()
+        + size_of::<&ordered_weights::OrderedWeights>()
+        + size_of::<&mut ordered_weights::Iter<'static>>()
+        + 2 * size_of::<Option<(&usize, &u64)>>()
+        + 2 * size_of::<(&usize, &u64)>() + size_of::<&str>()
         + 2 * size_of::<&[(Label, usize)]>()
         + size_of::<&(Label, usize)>() + size_of::<(&Label, &usize)>()
         + 2 * size_of::<Vec<(Label, SharedWeighted)>>()
@@ -336,14 +339,18 @@ fn direct_singleton_complete_weights_labels_work_cuts_and_fallback_keep_old_rece
                 let (function, graph, closed) = direct_fixture(width,nodes,weight);
                 let full = if nodes==1 && width<=1 { if width==0 {2} else {9} } else {128};
                 for work in 0..=full {
-                    let mut old = ReplayBudget::unobserved();old.remaining=work;
-                    let expected = successors(&function,&mut old,&graph,&closed,weight);
+                    let ((expected, old_remaining),_,_,_) = with_limit_usage_refusal(1<<25, || {
+                        let mut old=ReplayBudget::new();old.remaining=work;
+                        old.reserve_bytes(&function,receiving::<ordered_weights::OrderedWeights>(),"direct test old caller receiving").unwrap();
+                        let result=successors(&function,&mut old,&graph,&closed,weight);
+                        (result,old.remaining)
+                    });
                     with_limit_usage_refusal(1<<25, || {
                         let mut budget=ReplayBudget::new();budget.remaining=work+4;
                         budget.reserve_bytes(&function,ordinary_receiving(),"direct test actual caller receiving").unwrap();
                         let actual=ordinary_successors(&function,&mut budget,&graph,&closed,weight);
                         same_successors(&actual,&expected);
-                        assert_eq!(budget.remaining,old.remaining);
+                        assert_eq!(budget.remaining,old_remaining);
                         if actual.is_err() {
                             let remaining=budget.remaining;
                             let bytes=crate::bounded_output::active_remaining();
@@ -472,5 +479,28 @@ fn direct_singleton_every_terminal_and_immutable_observation_keep_complete_label
                 drop(actual);
             });
         }
+    }
+}
+
+
+#[test]
+fn direct_singleton_new_selection_zero_through_three_keeps_six_fields_and_sticky_cut() {
+    let (function,graph,closed)=direct_fixture(1,1,1);
+    for work in 0..4 {
+        crate::bounded_output::with_limit_usage_refusal(1<<25, || {
+            let mut budget=ReplayBudget::new();budget.remaining=work;
+            budget.reserve_bytes(&function,ordinary_receiving(),"direct test actual caller receiving").unwrap();
+            let actual=ordinary_successors(&function,&mut budget,&graph,&closed,1);
+            let expected=Err(Diagnostic::io("SPX-H006",format!(
+                "cleanup plan for function `{}` failed independent replay: cleanup replay work budget exhausted during factored direct singleton selection",function.id)));
+            same_successors(&actual,&expected);
+            assert!(budget.refusal_spent);assert_eq!(budget.remaining,0);
+            let bytes=crate::bounded_output::active_remaining();
+            let retry=ordinary_successors(&function,&mut budget,&graph,&closed,1);
+            assert!(retry.is_err());assert_eq!(budget.remaining,0);
+            assert_eq!(crate::bounded_output::active_remaining(),bytes);
+            // Keep the originally selected six-field value live across retry.
+            same_successors(&actual,&expected);drop(retry);drop(actual);
+        });
     }
 }

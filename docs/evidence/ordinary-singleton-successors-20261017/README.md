@@ -25,7 +25,7 @@ falls back. Canonical state/signature construction and arithmetic are unchanged.
 
 The actual caller prepays ordinary_receiving before forming its new call. It
 names both argument tuples, returned/received Result<Option<Successors>> and
-Option, closed iterators and next/borrowed tuple, movement slices/references,
+Option, closed iterator returns, iter self borrow, next mutable self borrow, next return/expect receiver Options, expect return/destructure tuples and static expectation text, movement slices/references,
 Vec/Rc/publication tuple, checked-weight Option/u64/usize/boolean and four
 reserve/charge preflight result/argument families. There is no aggregate
 allowance, refunded Directory fee or copied label payload. The helper starts
@@ -43,12 +43,12 @@ new fee or work. Original caps/work limits/error priority/physical Drop remain.
 
 ## Controls and complete source custody
 
-Seven new controls live in existing lib modules: complete weights/labels and
-every work cut; every byte cut through exact debit with success/refusal,
+Eight new controls live in existing lib modules: complete weights/labels and
+every original-subsequence work cut after the additional four selector units; every byte cut through exact debit with success/refusal,
 allocated/peak/paid/wholeDrop comparison; foreign owner/zero/sticky refusal;
 actual Canonicalizer IDs/signatures/states; full original producer prefix;
 every terminal plus immutable observation Rc identity; closed source-stage
-positive/hostile checks. The independent old receiver remains whole. The tests
+positive/hostile checks. The additional actual selector first refusal at work0..3 has its own full six-field expected diagnostic and sticky/retained-first-value control. Original-subsequence parity uses real ActiveBuilder old/new budgets, not the different unobserved refusal state. No complete old/current work equality is claimed. The independent old receiver remains whole. The tests
 are authored, not executed. Rustfmt was used for syntax parsing only.
 
 Three full before images and finite complete inverses are retained. The

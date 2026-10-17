@@ -1,0 +1,80 @@
+{
+  "status": "SOURCE_CANDIDATE_UNCOMPILED_UNEXECUTED_UNREGISTERED",
+  "base": "ef788f8237beeb16dcc1cfa9346fc1dbb6f69a4d",
+  "predecessor_census_commit": "106d3aa09",
+  "files": [
+    {
+      "path": "src/cleanup_plan/replay/ordinary_plan_history.rs",
+      "length": 12792,
+      "lines": 317,
+      "sha256": "7ae691ec5edac3a2d792a5fecc4d230aca458be52436d8fefd7e288eb0038905"
+    },
+    {
+      "path": "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs",
+      "length": 8126,
+      "lines": 214,
+      "sha256": "7b593a07f36c1f3cd6d80ff40584a68523902617574755feb34cfe175f38124e"
+    },
+    {
+      "path": "src/bounded_output/stage_debits/route_debits.rs",
+      "length": 20254,
+      "lines": 506,
+      "sha256": "eb6459312ec8e9b90783a6fd5b8020e284501b94dd9d50b2a1a833afa6550f65"
+    },
+    {
+      "path": "src/cleanup_plan/replay/ordinary_plan_history/before_comparison.rs",
+      "length": 10346,
+      "lines": 318,
+      "sha256": "e00b63474866f90d3bb537cd7587c2cb8751b384c9224782bf873860476534b7"
+    },
+    {
+      "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+      "length": 14406,
+      "lines": 286,
+      "sha256": "060a02079a37e91733aa536157658c04a05260ff535cf8aca5d230122587a755"
+    },
+    {
+      "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs",
+      "length": 10217,
+      "lines": 183,
+      "sha256": "71799ccdf2ae789380b520a26796c52b6baf828cd372eb2edc0edbbc7d7156d5"
+    },
+    {
+      "path": "docs/ORDINARY-PLAN-COMPARISON-OWNER-V1.md",
+      "length": 4595,
+      "lines": 68,
+      "sha256": "b82ff0db89548201841100a81d6d000bcb01b944957e04566a1550a9f6f89f6d"
+    }
+  ],
+  "proof_files": [
+    {
+      "path": "docs/evidence/opt880-comparison-owner-v1/before-inputs.json",
+      "sha256": "ce9edb54448de489863a568f2509d6859f0262bfb1430a55d7a77eab0f25660e"
+    },
+    {
+      "path": "docs/evidence/opt880-comparison-owner-v1/census-whole-inverses.json",
+      "sha256": "595213608055b164666dfc6fd8a3e0546ab96baac3e3cb84df83edf05a8834e1"
+    },
+    {
+      "path": "docs/evidence/opt880-comparison-owner-v1/comparison-whole-inverses.json",
+      "sha256": "4a915e99484ebbd0cc643608a6f1e14eda1767e262e6d04f998caae96dc229e2"
+    },
+    {
+      "path": "docs/evidence/opt880-comparison-owner-v1/pending-selectors.json",
+      "sha256": "dc7a8b5b6992a8918ed4474549390d8d94da8c9d653f5a2f53b5841b9e5f8da0"
+    },
+    {
+      "path": "docs/evidence/opt880-comparison-owner-v1/typed-role-ledger.json",
+      "sha256": "b7ac71a9eda3758be15547eb4402efcca46740029d8e1161d89b058352ad9596"
+    }
+  ],
+  "not_run": [
+    "Cargo",
+    "rustc",
+    "tests",
+    "fullgates",
+    "graphbuild",
+    "sourcebindinggeneration",
+    "application/benchmark"
+  ]
+}

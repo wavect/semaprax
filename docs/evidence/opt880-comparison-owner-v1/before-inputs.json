@@ -1,0 +1,20 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/ordinary_plan_history.rs",
+    "before_archive": "docs/evidence/opt880-comparison-owner-v1/src__cleanup_plan__replay__ordinary_plan_history.rs.before.txt",
+    "before_length": 22708,
+    "before_sha256": "d5e04c498ebdf3c725faa28a6b41440a6ebd2f2aa208a43445effb254a58cdb7"
+  },
+  {
+    "path": "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs",
+    "before_archive": "docs/evidence/opt880-comparison-owner-v1/src__cleanup_plan__replay__ordinary_plan_history__frontier_tests.rs.before.txt",
+    "before_length": 8107,
+    "before_sha256": "ffef6a5cfa6ad40ec9517466227b422d853a87f6415596ea8c622d40153550b2"
+  },
+  {
+    "path": "src/bounded_output/stage_debits/route_debits.rs",
+    "before_archive": "docs/evidence/opt880-comparison-owner-v1/src__bounded_output__stage_debits__route_debits.rs.before.txt",
+    "before_length": 15565,
+    "before_sha256": "192778d58063fdda21c98469627340fb80ac78baea1c60dc8a0900247af3dba8"
+  }
+]

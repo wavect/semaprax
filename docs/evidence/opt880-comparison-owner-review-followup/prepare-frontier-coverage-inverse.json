@@ -1,0 +1,11 @@
+{
+  "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs",
+  "predecessor": "1c813657a",
+  "before_archive": "tests.1c813.before.rs.txt",
+  "before_sha256": "1ff7ffdbc4bcd7af1c373da252cbdd8b57fc72b8a007e991ac4b892b8d811b6c",
+  "after_sha256": "8bab706f06ddf65a9f439c4dfaa5e1c1d2d828c5af8e9df446686f15e6d58ab5",
+  "old": "for phase in [\"ordinary plan history cursor backing\",",
+  "new": "for phase in [\"ordinary plan history left cursor prepare\", \"ordinary plan history right cursor prepare\", \"ordinary plan history cursor backing\",",
+  "inverse_verified": true,
+  "status": "SOURCE_ONLY_UNEXECUTED"
+}

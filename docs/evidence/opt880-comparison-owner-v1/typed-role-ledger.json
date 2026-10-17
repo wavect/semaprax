@@ -1,0 +1,31 @@
+{
+  "status": "DECLARED_TYPED_SOURCE_LEDGER_REQUIRES_INDEPENDENT_REVIEW_AND_RUNTIME",
+  "entry": "Same compare-entry call ABI replaces old operand; existing root COMPARE_CALL_CONTROLS remains before call. Owner is created only after the new static bank succeeds.",
+  "eliminated": [
+    "order function actual/formal/Result<Ordering> frame at both sift sites",
+    "sift function actual/formal/Result<()> frame at both heap loops",
+    "repeated COMPARE_CONTROLS aggregates inside those deleted function activations",
+    "local mismatch closure"
+  ],
+  "retained": [
+    "complete immediate before_comparison tariffs/body",
+    "all Cursor.prepare/next calls and PREPARE_CALL/NEXT_CALL per actual invocation",
+    "all real cursor backing acquisitions",
+    "HIR_QUERY_CONTROLS/CURSOR_STORAGE/CURSOR_CALL",
+    "same work phases/order/units and builder caps"
+  ],
+  "bank_source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+  "payment_sites": {
+    "work_charge": 4,
+    "later_paid_macro": 6,
+    "direct_HIR_reserve_bytes": 3,
+    "cursor_backing_generic_site": 1
+  },
+  "source_proofs": {
+    "whole_immediate_comparator_exact": true,
+    "parent_Cursor_impl_exact": true,
+    "old_and_new_work_phase_multisets_exact": true
+  },
+  "physical_tradeoff": "Larger single owner bank on small inputs; no paid-once exemption for surviving calls, no net-gain assertion",
+  "scope": "Owner has only cursors, integer indexes, enum continuations and Ordering; no payload/function/budget reference escapes the compare invocation."
+}

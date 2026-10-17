@@ -1,0 +1,79 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_COMPILATION_OR_TEST_EXECUTION",
+  "predecessor": "4e029a127",
+  "files": [
+    {
+      "path": "docs/evidence/opt880-comparison-owner-review-followup/comparison_owner.before.rs.txt",
+      "bytes": 14406,
+      "sha256": "060a02079a37e91733aa536157658c04a05260ff535cf8aca5d230122587a755"
+    },
+    {
+      "path": "docs/evidence/opt880-comparison-owner-review-followup/contract.before.md.txt",
+      "bytes": 4595,
+      "sha256": "b82ff0db89548201841100a81d6d000bcb01b944957e04566a1550a9f6f89f6d"
+    },
+    {
+      "path": "docs/evidence/opt880-comparison-owner-review-followup/initial-edit.json",
+      "bytes": 308,
+      "sha256": "c79303dfd77009c447e3dc89f174a365335001f923b4b2ee6a913649000b24aa"
+    },
+    {
+      "path": "docs/evidence/opt880-comparison-owner-review-followup/review-role-map.json",
+      "bytes": 892,
+      "sha256": "dad6a5a3452765adebac38e03ee2d7a3a52ceb37f0ee4d4ad264b529c0e1de50"
+    },
+    {
+      "path": "docs/evidence/opt880-comparison-owner-review-followup/route_debits.before.rs.txt",
+      "bytes": 20254,
+      "sha256": "eb6459312ec8e9b90783a6fd5b8020e284501b94dd9d50b2a1a833afa6550f65"
+    },
+    {
+      "path": "docs/evidence/opt880-comparison-owner-review-followup/tests.before.rs.txt",
+      "bytes": 10217,
+      "sha256": "71799ccdf2ae789380b520a26796c52b6baf828cd372eb2edc0edbbc7d7156d5"
+    },
+    {
+      "path": "docs/evidence/opt880-comparison-owner-review-followup/whole-inverses.json",
+      "bytes": 17247,
+      "sha256": "c9bc67c29c760c61ed84a27b5adfbe08d8d2d1d2aa813bed3a339ff539c08137"
+    },
+    {
+      "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+      "bytes": 15025,
+      "sha256": "35b9565f8dbe7dc67164bc87540f4f49e9bf46e3dae7bb791dd3ba1b31c0ef78"
+    },
+    {
+      "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs",
+      "bytes": 12197,
+      "sha256": "1ff7ffdbc4bcd7af1c373da252cbdd8b57fc72b8a007e991ac4b892b8d811b6c"
+    },
+    {
+      "path": "src/bounded_output/stage_debits/route_debits.rs",
+      "bytes": 20458,
+      "sha256": "8e490c2a4854f4908ee0ffddf1a3799b77f81c71ab3b9e5a5ee2a3215f8bd4c3"
+    },
+    {
+      "path": "docs/ORDINARY-PLAN-COMPARISON-OWNER-V1.md",
+      "bytes": 5998,
+      "sha256": "90868e3369b2ceb043cd5784092e5151078bf41190159745ff2e8276be1b3310"
+    }
+  ],
+  "pure_checks": [
+    "four full inverse reconstructions",
+    "whole independent comparator unchanged",
+    "whole original Cursor/root unchanged",
+    "work charge literal order unchanged",
+    "original PREPARE_CALL/NEXT_CALL tariffs exact"
+  ],
+  "pending": [
+    "independent source acceptance",
+    "all Rust compilation and runtime",
+    "new raw3/043/current binding registration",
+    "actual application measurements"
+  ],
+  "no_claims": [
+    "gain",
+    "fit",
+    "closure"
+  ]
+}

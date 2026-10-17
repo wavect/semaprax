@@ -1,0 +1,36 @@
+{
+  "status": "UNREGISTERED_UNEXECUTED",
+  "new": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::retained_comparator_matches_complete_immediate_work_cuts_sort_and_six_field_failures",
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::retained_comparator_actual_owner_exact_short_zero_floor_sticky_and_full_drop",
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::complete_immediate_comparator_tariffs_and_cursor_bodies_remain_independent_and_exact",
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "bounded_output::stage_debits::route_debits::comparison_aggregate_census_keeps_8769_calls_and_marks_arithmetic_overflow_without_event_buffer",
+      "source": "src/bounded_output/stage_debits/route_debits.rs"
+    }
+  ],
+  "also_required": "All12 original PLAN owners, original selected/Oracle/exclusion/source guards and actual codec/native/catalog owners; parent consolidates selection",
+  "new_physical_modules": [
+    "src/cleanup_plan/replay/ordinary_plan_history/before_comparison.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs"
+  ],
+  "source_binding_generation": "NOT_PERFORMED"
+}

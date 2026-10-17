@@ -1,0 +1,104 @@
+{
+  "status": "SOURCE_ONLY_FIXED_DEFINITION_GENERATION_NO_REFRESH",
+  "base": "f811df28beb74d1cfb4cf37c376b8a812c72b0ed",
+  "old_definition_table_unchanged": true,
+  "Rust_changes": 0,
+  "files": [
+    {
+      "path": "docs/evidence/main043-definition-generation-20261017/README.md",
+      "length": 3771,
+      "sha256": "45547894677df3b3a64cbca0253721324ef292e389a926f297adbd442187847b"
+    },
+    {
+      "path": "docs/evidence/main043-definition-generation-20261017/bind-current.before.py",
+      "length": 3566,
+      "sha256": "a429e3765aea5440184a665555159262d1bdf6ba2a12f1c1dde1d1505bd71cba"
+    },
+    {
+      "path": "docs/evidence/main043-definition-generation-20261017/check-source.py",
+      "length": 5692,
+      "sha256": "272bf7b708bbd7f567a004ca9c2f5348f421f33ceeea6dd0459bd1eef776c10d"
+    },
+    {
+      "path": "docs/evidence/main043-definition-generation-20261017/definition-bindings.before.json",
+      "length": 2304,
+      "sha256": "b80ca7af53b4a8270853412e81b51811f8f0f351a81f2d6d212a85b96f75345d"
+    },
+    {
+      "path": "docs/evidence/main043-definition-generation-20261017/definition-seal.json",
+      "length": 3712,
+      "sha256": "3c8b99fb381a110edfd712cf21dc60bccff81db875d3bac3d258eb37199100b8"
+    },
+    {
+      "path": "docs/evidence/main043-definition-generation-20261017/definition_payload.py",
+      "length": 3098,
+      "sha256": "c844897ef8211256cc17a51192c171512b1b0d9e0846ce5737eba82aae046265"
+    },
+    {
+      "path": "docs/evidence/main043-definition-generation-20261017/full-source-inverses.json",
+      "length": 26094,
+      "sha256": "58a27fed2eddce4b3f58be60566a3d94dc609478055aa2bfc00e2bcdcf4c4008"
+    },
+    {
+      "path": "docs/evidence/main043-definition-generation-20261017/guard-extension-recipe-edits.before.json",
+      "length": 4854,
+      "sha256": "0b4d0d046b8fda5aae93ab90c48265e691ec3239169e97a2b6a87c12c6204d10"
+    },
+    {
+      "path": "docs/evidence/main043-definition-generation-20261017/semantic_receivers.c874.rs.txt",
+      "length": 6160,
+      "sha256": "4bc99dc2b93442b83cb679e3c0e108f3b50121d90e8aee4ceed01296e7ec33b5"
+    },
+    {
+      "path": "docs/evidence/main043-definition-generation-20261017/semantic_receivers.current.rs.txt",
+      "length": 7516,
+      "sha256": "c9f6aa0c11bc43b46331a94f07ced0bb7f9b1aa974f61a72e6addf7f23b2bdb6"
+    },
+    {
+      "path": "docs/evidence/main043-definition-generation-20261017/source-controls.json",
+      "length": 402,
+      "sha256": "ccfab7f951211ddae39fa29c206aa6bc23f92e1f6801b6c35c91c246a42e2164"
+    },
+    {
+      "path": "docs/evidence/main043-definition-generation-20261017/verify-or-refresh.before.py",
+      "length": 9518,
+      "sha256": "7c2eb0ca8ff31f89b3744d69089bb62c57c8114495ddc4ec78862c32f8b4392a"
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py",
+      "length": 1890,
+      "sha256": "d649251e0ea9c9e605d0dab15b77b59edbb431c911465076a66ff62c6c8ceabb"
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-recipe-edits.json",
+      "length": 16510,
+      "sha256": "2da6adb0117598c3ad703b5ed5c9aa8f8929e2b595c4737bc3a127da0e914b46"
+    },
+    {
+      "path": "docs/evidence/main043-newmain-acquisition-20261017/bind-current.py",
+      "length": 4177,
+      "sha256": "7b65d1e6224cdda1eb45638abe806ea7fc3b85d2e130724d253492507d995b6d"
+    }
+  ],
+  "source_controls": {
+    "status": "PURE_SOURCE_PASS_NO_REFRESH_OR_RUST",
+    "whole_old_verifier_retained": true,
+    "old_definition_row_and_table_unchanged": true,
+    "original_definition_loop_passes_on_restored_full6160bytes": true,
+    "actual_current7516_separately_authenticated": true,
+    "three_actual_raw_scopes_authenticated": true,
+    "guard_recipe_full_reconstruction": true,
+    "foreign_controls": 27,
+    "common_refresh_executed": false
+  },
+  "binder_fragment_controls": {
+    "unchanged_positive": 1,
+    "changed_helper_refusal": 1
+  },
+  "common_refresh_executed": false,
+  "pending": [
+    "Independent source review",
+    "Actual parent existing common refresh",
+    "Final current binding/owning qualification"
+  ]
+}

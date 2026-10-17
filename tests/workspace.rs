@@ -102,3 +102,12 @@ mod universal_semantic_workflow_cli;
 
 #[path = "workspace/pin_capture.rs"]
 mod pin_capture;
+
+// Preserve the same complete source acquisition in this independent harness.
+#[path = "../src/source_reflows_merge/main_e177_final_inputs.rs"]
+pub(crate) mod main_e177_final_inputs;
+#[path = "../src/source_reflows_merge/next_big_batch_inputs.rs"]
+pub(crate) mod next_big_batch_inputs;
+mod source_reflows_merge {
+    pub(crate) use crate::{main_e177_final_inputs, next_big_batch_inputs};
+}

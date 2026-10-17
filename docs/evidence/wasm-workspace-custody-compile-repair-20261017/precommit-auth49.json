@@ -1,0 +1,57 @@
+{
+  "status": "PASS_SOURCE_ONLY_POSTBIND_REAUTHENTICATION",
+  "head": "0f9fb3766f0413694e4a12447538f7c7bb99627f",
+  "dirty_paths": [
+    " M docs/evidence/accepted-final6-source-binding-20261017/check-source.py",
+    " M docs/evidence/accepted-strict-guard-generation-20261017/check-source.py",
+    " M docs/evidence/main-e177-final-source-binding-20261017/current-inputs.json",
+    " M docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py",
+    " M docs/evidence/main-e177-full-controller-acquisition-20261017/inputs.json",
+    " M docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py",
+    " M src/source_reflows_merge/main_e177_final_inputs.rs",
+    " M src/source_reflows_merge/main_e177_inputs.rs",
+    " M tests/wasm.rs",
+    " M tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+    " M tests/workspace.rs",
+    "?? docs/evidence/main-e177-final-source-binding-20261017/current/fab80045970181284db79747a6f605a0be77c270c13d34fdf2860a23d4493e92.txt",
+    "?? docs/evidence/wasm-workspace-custody-compile-repair-20261017/before/docs__evidence__accepted-final6-source-binding-20261017__check-source.py.txt",
+    "?? docs/evidence/wasm-workspace-custody-compile-repair-20261017/before/docs__evidence__accepted-strict-guard-generation-20261017__check-source.py.txt",
+    "?? docs/evidence/wasm-workspace-custody-compile-repair-20261017/before/docs__evidence__main-e177-final-source-binding-20261017__current-inputs.json.txt",
+    "?? docs/evidence/wasm-workspace-custody-compile-repair-20261017/before/docs__evidence__main-e177-final-source-binding-20261017__guard_payload.py.txt",
+    "?? docs/evidence/wasm-workspace-custody-compile-repair-20261017/before/docs__evidence__main-e177-full-controller-acquisition-20261017__inputs.json.txt",
+    "?? docs/evidence/wasm-workspace-custody-compile-repair-20261017/before/docs__evidence__main043-independent-custody-20261016__verify-or-refresh.py.txt",
+    "?? docs/evidence/wasm-workspace-custody-compile-repair-20261017/before/src__source_reflows_merge__main_e177_final_inputs.rs.txt",
+    "?? docs/evidence/wasm-workspace-custody-compile-repair-20261017/before/src__source_reflows_merge__main_e177_inputs.rs.txt",
+    "?? docs/evidence/wasm-workspace-custody-compile-repair-20261017/before/tests__wasm.rs.txt",
+    "?? docs/evidence/wasm-workspace-custody-compile-repair-20261017/before/tests__wasm__scalar_browser_ci_contract__browser_custody.rs.txt",
+    "?? docs/evidence/wasm-workspace-custody-compile-repair-20261017/before/tests__workspace.rs.txt",
+    "?? docs/evidence/wasm-workspace-custody-compile-repair-20261017/binding-inverses.json",
+    "?? docs/evidence/wasm-workspace-custody-compile-repair-20261017/whole-source-inverses.json"
+  ],
+  "current_rows": 49,
+  "incoming_namespace_current_rows": 471,
+  "whole_immutable_incoming_archives": 471,
+  "old_table_anchors": 2,
+  "new_raw_modules": 36,
+  "ordered_table_rows": 441,
+  "pins": {
+    "docs/evidence/main-e177-final-source-binding-20261017/current-inputs.json": [
+      33454,
+      "31786680b1b3670ff61f8031dd618d66b6f83a228e24022b4e3c3c9881320f60"
+    ],
+    "docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py": [
+      19974,
+      "b00eedd6a4aa651b02141cbff8d2e1a33ffe8f594406058b61b764f733b5194f"
+    ],
+    "docs/evidence/main-e177-full-controller-acquisition-20261017/inputs.json": [
+      237694,
+      "77863eae5848b0a166e6d71393ecec786d4992bc4163b3f644766d901a18dc29"
+    ],
+    "src/source_reflows_merge/main_e177_final_inputs.rs": [
+      14776,
+      "1046dea2e2c467170c0f5a798ad434953661f4f9c0e6e5e89ffb085a267ebd3e"
+    ]
+  },
+  "Cargo": false,
+  "Rust_executed": false
+}

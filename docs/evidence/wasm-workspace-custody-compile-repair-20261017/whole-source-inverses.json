@@ -1,0 +1,59 @@
+{
+  "base": "0f9fb3766f0413694e4a12447538f7c7bb99627f",
+  "status": "SOURCE_ONLY_NO_CARGO",
+  "rows": [
+    {
+      "source": "tests/wasm.rs",
+      "before": {
+        "length": 1525,
+        "sha256": "23b752cdc690d7b07484dc14002452de6eb24fc431c013974f035bbb02b081a1",
+        "archive": "docs/evidence/wasm-workspace-custody-compile-repair-20261017/before/tests__wasm.rs.txt"
+      },
+      "after": {
+        "length": 1816,
+        "sha256": "3ae546b6266a5cf2e2f921076ccbca2d0feefea4f7a81bf3b4169396af8ae861"
+      },
+      "edit": {
+        "before": "",
+        "after": "\n// Share the exact current-source custody receiver with the library test crate.\nuse semaprax::digest_hex;\n#[path = \"../src/source_reflows_merge/main_e177_final_inputs.rs\"]\npub(crate) mod main_e177_final_inputs;\nmod source_reflows_merge {\n    pub(crate) use crate::main_e177_final_inputs;\n}\n",
+        "offset": 1525,
+        "count": 1
+      }
+    },
+    {
+      "source": "tests/workspace.rs",
+      "before": {
+        "length": 4266,
+        "sha256": "cb397e1262d175a6f2b69a8a89594eeaa83591bbd18e2acf19cf4a27abcf8cfe",
+        "archive": "docs/evidence/wasm-workspace-custody-compile-repair-20261017/before/tests__workspace.rs.txt"
+      },
+      "after": {
+        "length": 4657,
+        "sha256": "b08e6a6ac41aea9919c08f4de0eeb8b7ec8802de278c3b6ef68c79af79604692"
+      },
+      "edit": {
+        "before": "",
+        "after": "\n// Preserve the same complete source acquisition in this independent harness.\n#[path = \"../src/source_reflows_merge/main_e177_final_inputs.rs\"]\npub(crate) mod main_e177_final_inputs;\n#[path = \"../src/source_reflows_merge/next_big_batch_inputs.rs\"]\npub(crate) mod next_big_batch_inputs;\nmod source_reflows_merge {\n    pub(crate) use crate::{main_e177_final_inputs, next_big_batch_inputs};\n}\n",
+        "offset": 4266,
+        "count": 1
+      }
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+      "before": {
+        "length": 14949,
+        "sha256": "0a527de09f72a142be138e7c4d3499c121e09fa1884f01a05ebc4992a725f985",
+        "archive": "docs/evidence/wasm-workspace-custody-compile-repair-20261017/before/tests__wasm__scalar_browser_ci_contract__browser_custody.rs.txt"
+      },
+      "after": {
+        "length": 14949,
+        "sha256": "f601f003c61c7a0ea41d57f63bd9a83947a5c2f269f115fe10e60c431b8abbdd"
+      },
+      "edit": {
+        "before": "pub(super) fn before_e47_input(",
+        "after": "pub(crate) fn before_e47_input(",
+        "count": 1
+      }
+    }
+  ]
+}

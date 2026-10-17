@@ -36,3 +36,11 @@ mod text_exports_v1;
 mod usize_multiplication_v1;
 #[path = "wasm/web_package.rs"]
 mod web_package;
+
+// Share the exact current-source custody receiver with the library test crate.
+use semaprax::digest_hex;
+#[path = "../src/source_reflows_merge/main_e177_final_inputs.rs"]
+pub(crate) mod main_e177_final_inputs;
+mod source_reflows_merge {
+    pub(crate) use crate::main_e177_final_inputs;
+}

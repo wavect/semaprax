@@ -1,0 +1,86 @@
+[
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs",
+    "current_sha256": "434640ce68332a1d96840ae10b8e4a500799a567f6d75cc903a6e272196a24b2",
+    "input_sha256": "d3e1bd0b288ffd3f6adc0079340b49146ab39b74a526b6a1129cc641fbe4c537",
+    "input_archive": "docs/evidence/fade-custody-size-ownedgrowth-20261017/src__workspace_graph__expected_projection__borrowed_imports__typed__alias.rs.input",
+    "edits": [
+      {
+        "new": "pub(super) mod owned_growth_tests;\n",
+        "old": "mod owned_growth_tests;\n"
+      },
+      {
+        "new": "    }\n    // Direct callers receive the same preselection as the actual core route:\n    // invariant transforms get the complete owning imported-function producer.\n    owner.reserve(\n        std::mem::size_of::<bool>() + std::mem::size_of::<std::slice::Iter<'_, Program>>(),\n    )?;\n    owner.reserve(\n        std::mem::size_of::<std::slice::Iter<'_, TypeDeclaration>>()\n            + std::mem::size_of::<Option<&TypeDeclaration>>()\n            + std::mem::size_of::<&[Expr]>()\n            + std::mem::size_of::<bool>(),\n    )?;\n    let mut owning_invariants = program\n        .types\n        .iter()\n        .any(|declaration| !declaration.invariants().is_empty());\n    for candidate in programs {\n        owner.reserve(\n            std::mem::size_of::<std::slice::Iter<'_, TypeDeclaration>>()\n                + std::mem::size_of::<Option<&TypeDeclaration>>()\n                + std::mem::size_of::<&[Expr]>()\n                + std::mem::size_of::<bool>(),\n        )?;\n        if candidate\n            .types\n            .iter()\n            .any(|declaration| !declaration.invariants().is_empty())\n        {\n            owning_invariants = true;\n            break;\n        }\n",
+        "old": ""
+      },
+      {
+        "new": "        // Raw byte-helper proof memo/cursors have ordinary payload subjects.\n        // A Bytes-returning alias must retain the complete owning producer.\n        if retain_body && !owning_invariants && original.return_type != Type::Bytes {\n",
+        "old": "        if retain_body && import.alias == original.name {\n"
+      },
+      {
+        "new": "\n#[cfg(test)]\n#[path = \"alias/rename_tests.rs\"]\nmod rename_tests;\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs",
+    "current_sha256": "fdd92e3f7dd1a2064a727f478bdc15f217c5c93edc9d4bb32d0d901d510ec1da",
+    "input_sha256": "1cf6e9ba50b29043f0ee92a6a6aa1b58bb06f1f7d738cda8e0ac5b9a71ce7f6c",
+    "input_archive": "docs/evidence/fade-custody-size-ownedgrowth-20261017/src__workspace_graph__expected_projection__borrowed_imports__typed__alias__tests.rs.input",
+    "edits": [
+      {
+        "new": "pub(super) const LIMIT: usize = 32 * 1024 * 1024;\npub(super) const PROVIDER: &str = include_str!(concat!(\n",
+        "old": "const LIMIT: usize = 32 * 1024 * 1024;\nconst PROVIDER: &str = include_str!(concat!(\n"
+      },
+      {
+        "new": "pub(super) const CALLER: &str = r#\"module alias.current;\n",
+        "old": "const CALLER: &str = r#\"module alias.current;\n"
+      },
+      {
+        "new": "pub(super) fn sources(caller: &str) -> [Program; 2] {\n",
+        "old": "fn sources(caller: &str) -> [Program; 2] {\n"
+      },
+      {
+        "new": "pub(super) fn linked<T>(f: impl FnOnce() -> T) -> T {\n",
+        "old": "fn linked<T>(f: impl FnOnce() -> T) -> T {\n"
+      },
+      {
+        "new": "            Err(crate::hir::identity_resolution::before_function_alias::NominalReceiverFailure::SourceStop(error))=>panic!(\"adapted old receiver source refusal: {error:?}\"),\n",
+        "old": ""
+      },
+      {
+        "new": "fn actual_identity_owner_lends_one_frozen_inventory_through_source_and_hir() {\n    let programs = sources(CALLER);\n    let authored = index_authored(&programs).unwrap();\n    let ((), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n        let registry = LayoutRegistry::new(&programs, &authored);\n        let mut receiver = Receiver::acquire().unwrap();\n        let old = super::super::before_alias::construct_using(\n            &programs[0],\n            &authored,\n            &programs,\n            &registry,\n            None,\n            &mut receiver,\n        )\n        .unwrap();\n        let view = construct_transient(\n            &programs[0],\n            &authored,\n            &programs,\n            &registry,\n            None,\n            &mut receiver,\n        )\n        .unwrap();\n        let layout = registry.get(&programs[0], &authored, &programs).unwrap();\n        let expected = linked(|| {\n            crate::hir::identity_resolution::before_function_alias::resolve_source_nominal(\n                &old,\n                layout.presentation(&programs[0], &old).unwrap(),\n                |bytes| crate::workspace_graph::reserve_builder_structure(bytes),\n            )\n        })\n        .unwrap()\n        .0;\n        let mut owner =\n            crate::bounded_output::identity_reservation::IdentityReservation::acquire().unwrap();\n        let mut invocation = crate::hir::prelude_bundle::Invocation::new();\n        let actual = linked(|| {\n            crate::hir::identity_resolution::resolve_source_checked_previous_with_owner(\n                &view,\n                None,\n                None,\n                None,\n                layout.presentation(&programs[0], &view).unwrap(),\n                &mut invocation,\n                &mut owner,\n            )\n        })\n        .unwrap()\n        .0;\n        assert_eq!(actual, expected);\n        crate::hir::validate(&actual).unwrap();\n        drop((\n            actual, expected, invocation, owner, layout, view, old, receiver,\n        ));\n        drop(registry);\n    });\n    assert!(!refused && first.is_none());\n}\n#[test]\n",
+        "old": ""
+      },
+      {
+        "new": "    use super::super::name_equal::construct_transient;\n    for caller in [\n",
+        "old": "    for caller in [\n"
+      },
+      {
+        "new": "    use super::super::name_equal::construct_transient;\n    let provider=format!(\"{PROVIDER}\\n@id(\\\"alias.row\\\") record Row {{ @id(\\\"alias.row.value\\\") value:i64, }}\\n@id(\\\"alias.plain\\\") fn plain(value:Row)->Row {{value}}\\n\");\n",
+        "old": "    let provider=format!(\"{PROVIDER}\\n@id(\\\"alias.row\\\") record Row {{ @id(\\\"alias.row.value\\\") value:i64, }}\\n@id(\\\"alias.plain\\\") fn plain(value:Row)->Row {{value}}\\n\");\n"
+      },
+      {
+        "new": "\n#[test]\nfn bytes_returning_alias_keeps_the_complete_owning_producer() {\n    let programs = [\n        crate::parse(\n            r#\"module alias.bytes;\nuse function @id(\"helper.leaf\") from helper.bytes as write_byte;\n@id(\"alias.bytes.main\") fn main()->i64 {0}\"#,\n            \"byte-caller.spx\",\n        )\n        .unwrap(),\n        crate::parse(\n            include_str!(concat!(\n                env!(\"CARGO_MANIFEST_DIR\"),\n                \"/tests/owned_data/byte_helper_renewal.spx\"\n            )),\n            \"byte-provider.spx\",\n        )\n        .unwrap(),\n    ];\n    let authored = index_authored(&programs).unwrap();\n    let ((), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n        let registry = LayoutRegistry::new(&programs, &authored);\n        let mut owner = Receiver::acquire().unwrap();\n        let old = super::super::before_alias::construct_using(\n            &programs[0],\n            &authored,\n            &programs,\n            &registry,\n            None,\n            &mut owner,\n        )\n        .unwrap();\n        let current = construct_transient(\n            &programs[0],\n            &authored,\n            &programs,\n            &registry,\n            None,\n            &mut owner,\n        )\n        .unwrap();\n        assert_eq!(\n            current.functions().iter().collect::<Vec<_>>(),\n            old.functions().iter().collect::<Vec<_>>()\n        );\n        let cell = current\n            .function_refs()\n            .get(programs[0].functions.len())\n            .unwrap();\n        assert_eq!(cell.name(), \"write_byte\");\n        assert!(!cell.has_stored_alias());\n        assert!(!std::ptr::eq(\n            cell.payload(),\n            authored[\"helper.leaf\"].function.unwrap()\n        ));\n        assert!(matches!(\n            current.functions.entries[0],\n            crate::ast::program_source::function_alias::FunctionEntry::Owned(_)\n        ));\n        drop((current, old, owner));\n        drop(registry);\n    });\n    assert!(!refused && first.is_none());\n}\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs",
+    "current_sha256": "106d28c2bac98e252eb77c23b921f7a9af3e77d4ee334e6231dca5fc6a0e0d4e",
+    "input_sha256": "a75c86aeb4a3e36f43e6ab963f6ff5357b8f9694c34250df32627a6ac513975b",
+    "input_archive": "docs/evidence/fade-custody-size-ownedgrowth-20261017/src__workspace_graph__expected_projection__borrowed_imports__typed__alias__owned_growth_tests.rs.input",
+    "edits": [
+      {
+        "new": "    let caller = if caller == IMPORTS {\n        // Imports-only text is deliberately not admitted source. Preserve its\n        // original complete parser refusal before constructing an AST-only\n        // synthetic-main input, outside both old/current observation windows.\n        let diagnostic = crate::parse(IMPORTS, \"caller.spx\").unwrap_err();\n        assert_eq!(diagnostic.code, \"SPX-P101\");\n        assert_eq!(diagnostic.severity, crate::diagnostic::Severity::Error);\n        assert_eq!(\n            diagnostic.message,\n            \"a module must declare at least one function\"\n        );\n        assert_eq!(diagnostic.path.as_deref(), Some(\"caller.spx\"));\n        assert_eq!(\n            diagnostic\n                .span\n                .as_ref()\n                .map(|span| (span.start, span.end, span.line, span.column)),\n            Some((IMPORTS.len(), IMPORTS.len(), 5, 1))\n        );\n        assert_eq!(diagnostic.help, None);\n        let source =\n            format!(\"{IMPORTS}@id(\\\"directory.fixture-anchor\\\") fn fixture_anchor()->i64 {{0}}\");\n        let mut program = crate::parse(&source, \"caller.spx\").unwrap();\n        let anchors = std::mem::take(&mut program.functions);\n        assert_eq!(anchors.len(), 1);\n        assert_eq!(anchors[0].stable_id, \"directory.fixture-anchor\");\n        assert_eq!(anchors[0].name, \"fixture_anchor\");\n        drop(anchors);\n        assert!(program.functions.is_empty());\n        assert_eq!(program.functions.capacity(), 0);\n        // Program has no retained function index/directory. index_authored and\n        // LayoutRegistry are built by callers only after this removal.\n        program\n    } else {\n        crate::parse(caller, \"caller.spx\").unwrap()\n    };\n    [caller, crate::parse(PROVIDER, \"provider.spx\").unwrap()]\n",
+        "old": "    [\n        crate::parse(caller, \"caller.spx\").unwrap(),\n        crate::parse(PROVIDER, \"provider.spx\").unwrap(),\n    ]\n"
+      },
+      {
+        "new": "    let tests = crate::source_reflows_merge::maina3_847_input(\"src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs\", include_str!(\"tests.rs\")).replace(\n",
+        "old": "    let tests = include_str!(\"tests.rs\").replace(\n"
+      }
+    ]
+  }
+]

@@ -1,5 +1,4 @@
 //! Bounded target-neutral shared-loan proof attachment.
-
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ast::{BinaryOp, Span};

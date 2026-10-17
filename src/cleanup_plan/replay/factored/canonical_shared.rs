@@ -3,7 +3,7 @@
 //! payloads. Label order, route weights, signature algebra and work debits keep
 //! the complete original receiver in canonical_before.rs as an independent control.
 use super::{
-    physical_clone, replay_error, Automaton, BTreeMap, Diagnostic, Label, Rc, ReplayBudget,
+    physical_clone, replay_error, AllocationPayer, Automaton, BTreeMap, Diagnostic, Label, Rc, ReplayBudget,
     ResolvedFunction, Weighted,
 };
 

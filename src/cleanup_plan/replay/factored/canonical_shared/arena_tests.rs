@@ -1118,6 +1118,8 @@ fn selected_generation_foreign_function_budget_and_scope_never_revive_bound_rece
 fn selected_generation_retains_complete_immediate_methods_and_original_arena_gate() {
     let original=include_str!("../../../../../docs/evidence/selected-successor-generation-20261017/before/src/cleanup_plan/replay/factored/canonical_shared.rs");
     let current=include_str!("../canonical_shared.rs");
+    let acquired=crate::source_reflows_merge::main67107_inputs::canonical_import_input("src/cleanup_plan/replay/factored/canonical_shared.rs",current);
+    let current=acquired.as_str();
     let restored=current.replace("                AllocationPayer::SelectedReservation => {}\n","")
         .replace("            AllocationPayer::SelectedReservation => {}\n","");
     assert_eq!(restored,original);

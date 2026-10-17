@@ -1,0 +1,6 @@
+
+running 1 test
+test source_reflows::factored_sources::closure92_labels_front_preserves_whole_retained_table_and_refuses_foreign_rows ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9749 filtered out; finished in 0.06s
+

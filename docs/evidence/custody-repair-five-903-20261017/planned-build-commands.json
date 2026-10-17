@@ -1,0 +1,18 @@
+[
+  [
+    "/Volumes/Semaprax/internal-cache-offload-20261016/cargo-home/bin/rustup",
+    "run",
+    "1.97.1",
+    "cargo",
+    "test",
+    "--locked",
+    "--offline",
+    "-p",
+    "semaprax",
+    "--lib",
+    "--no-run",
+    "--jobs",
+    "1",
+    "--message-format=json"
+  ]
+]

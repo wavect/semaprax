@@ -1,0 +1,77 @@
+{
+  "status": "DRAFT_REPAIR_AUTHOR_READY_AWAITING_PARENT_REVIEW_AND_FIXED_FREEZE",
+  "source_subject": null,
+  "source_tree": null,
+  "freeze_required": true,
+  "selected": 5,
+  "literal_roles": [
+    "lib"
+  ],
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs",
+      "sourcepath": "src/source_reflows_merge/main_eb2_inputs.rs",
+      "reasons": [
+        "actual postpin92 failed cfg(test) custody control; retain complete original assertions"
+      ],
+      "prior_851_runtime_failure": {
+        "log": "/Volumes/Semaprax/lane-prompts/postpin-focused92-851f1293c-20261017/owning-selected-06.log",
+        "log_sha256": "a9e887b6d8d2f79c7d85cb82f51381e2eff4f1580697286c77f211efa9e5b899",
+        "source": "851f1293ce4ce0d35107637b9d4f78cb85e6293f"
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::lexical_exit::walk::tests::compact_cursor_complete_before_sources_and_compiled_control_stay_bound",
+      "sourcepath": "src/hir/lexical_exit/walk/tests.rs",
+      "reasons": [
+        "actual postpin92 failed cfg(test) custody control; retain complete original assertions"
+      ],
+      "prior_851_runtime_failure": {
+        "log": "/Volumes/Semaprax/lane-prompts/postpin-focused92-851f1293c-20261017/owning-selected-07.log",
+        "log_sha256": "6a665c1929e27d70749f1e12c688c21206980b1a09f41e15693ea388f46fbb48",
+        "source": "851f1293ce4ce0d35107637b9d4f78cb85e6293f"
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::factored_sources::joined_factored_domains_preserve_complete_receivers_and_refuse_foreign_inputs",
+      "sourcepath": "src/source_reflows/factored_sources.rs",
+      "reasons": [
+        "actual postpin92 failed cfg(test) custody control; retain complete original assertions"
+      ],
+      "prior_851_runtime_failure": {
+        "log": "/Volumes/Semaprax/lane-prompts/postpin-focused92-851f1293c-20261017/owning-selected-19.log",
+        "log_sha256": "7a3fc2d2e455aeb895be22a47e7322beeb3a7ee7ff4e4deacac2c1c5e81e73a3",
+        "source": "851f1293ce4ce0d35107637b9d4f78cb85e6293f"
+      }
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::main7f8_source_inputs::closure92_walk_inputs_preserve_both_original_domains_and_refuse_wrong_stages",
+      "sourcepath": "src/source_reflows_merge/main7f8_source_inputs.rs",
+      "reasons": [
+        "actual authored new helper hostile control for closure92 repair828e953d4"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::factored_sources::closure92_labels_front_preserves_whole_retained_table_and_refuses_foreign_rows",
+      "sourcepath": "src/source_reflows/factored_sources.rs",
+      "reasons": [
+        "actual authored new helper hostile control for closure92 repair828e953d4"
+      ]
+    }
+  ],
+  "pending": [
+    "Parent reviews/cherry-picks three cfg(test) helper fixes then freezes actual final clean ROOT.",
+    "Bind fresh registration/lib artifact only after final fixedHEAD; no original851 evidence relabel."
+  ],
+  "repair_source_checkpoint": "828e953d44b4ff11b54d916a7a2360f5bade1a27"
+}

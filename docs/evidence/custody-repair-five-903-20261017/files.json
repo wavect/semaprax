@@ -1,0 +1,18 @@
+{
+  "README.md": "2e56160424ed5838e656ead61a87cb03b59551a94832322f8a128c7f9e613886",
+  "admission55-override.json": "d2840e0499757104c9037dfc0b6328273fdc4997b7226122478111f767a67df4",
+  "expected-counts.json": "0ade91147df6dfc5dc6dbd170f5dfbd60f171c7729cc9b3a6a3b69ab1c6fa55b",
+  "guardian-before-admission55.txt": "5477e4fc6d89aba14abefbb225fe06b2f47ff86e5515fa0491cdf9640f6f722a",
+  "guardian.py": "015bac4716b7e1256f685f952abcab5d463d46b956de5f5bbf96a9feb47f34d6",
+  "logs/owning-selected-00.log": "08708588acb0fdc9e66c00ce461c32e12a86f00fd1eaf8fa820b46ace90ffd02",
+  "logs/owning-selected-01.log": "ad0b52ea89344da5c5bfa9fdb111a7617056db3cc3b41c665382b062e76ad5fe",
+  "logs/owning-selected-02.log": "1d13a1731f5a29f0bd8018893bc8e2dc4740c3f75b18d50e23f7caacd1d600f3",
+  "logs/owning-selected-03.log": "0b2023e5f4c019f897dd8f1d25065afcb262de63e435237d6df522fcd453a770",
+  "logs/owning-selected-04.log": "bdc041f8b1e1d98e6afbe833a17bac6097e276f85e67969e2971fa41d06ea5d0",
+  "owning-build-result.json": "56b3d60cbd9462f91d561b089c63d8bac2c42ca661c2a382350a934bb5b779ab",
+  "owning-selected-results.json": "d9187033e2d5b29d8338f21fed084d1aa609a6358afaaab553c5c0210b631483",
+  "planned-build-commands.json": "93b7f0b6d688dcdae820bdc92143d106295d921aaead5738a1e6da122f185078",
+  "preparation-receipt.json": "76a3c6eb29a93277bfc8303def06b3409668204c1efdcf4905470248d3006107",
+  "registration.json": "0ba5d8e40cda7b8e38bced6318db9b150b727bcbd165372261597a3e4a218777",
+  "selection.json": "740dc4e6c4483729fd1c8b0b01febe8f2d18863c89b6739afd98fb56ef74777c"
+}

@@ -1,0 +1,31 @@
+{
+  "scope": "one semaprax lib-test repair build and five exact owners",
+  "authorization": "User explicitly requested a more generous RAM threshold; only one Cargo job, observed previous owning build peak5356781568bytes",
+  "before_sha256": "5477e4fc6d89aba14abefbb225fe06b2f47ff86e5515fa0491cdf9640f6f722a",
+  "after_sha256": "015bac4716b7e1256f685f952abcab5d463d46b956de5f5bbf96a9feb47f34d6",
+  "literal_edits": [
+    [
+      "unchanged original60-admit/30-stop body.",
+      "single-job55-admit/30-stop policy; original full body retained."
+    ],
+    [
+      "unchanged original build guardian60-admit30-stop;",
+      "user-authorized single-job55-admit30-stop;"
+    ],
+    [
+      "admission_free<60",
+      "admission_free<55"
+    ],
+    [
+      "minimum_admission_free_percent=60",
+      "minimum_admission_free_percent=55"
+    ]
+  ],
+  "whole_before_recovered_exactly": true,
+  "minimum_admission_free_percent": 55,
+  "process_group_rss_cap_gib": 8,
+  "stop_free_percent": 30,
+  "original_refused60_log_retained": true,
+  "no_wall_time_comparison_claim": true,
+  "retained_refused_attempt_round": "/Volumes/Semaprax/lane-prompts/custody-repair5-9037153cb-20261017"
+}

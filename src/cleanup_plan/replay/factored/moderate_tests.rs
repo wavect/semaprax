@@ -266,6 +266,10 @@ fn joined_checked(data: &str, path: &str, current: &str) -> Option<String> {
     Some(restored)
 }
 fn joined_input(path: &str, current: &str) -> String {
+    let checkpoint = joined_checkpoint_input(path, current);
+    crate::source_reflows_merge::main7f8_source_inputs::moderate_452_input("moderate-original", path, &checkpoint)
+}
+fn joined_checkpoint_input(path: &str, current: &str) -> String {
     joined_checked(&joined_data(), path, current)
         .expect("complete joined-to-incoming source domain")
 }

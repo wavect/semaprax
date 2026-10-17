@@ -1,0 +1,19 @@
+{
+  "status": "SOURCE_ONLY",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::moderate_tests::original_selector_and_whole_source_receivers_remain_bound",
+      "sourcepath": "src/cleanup_plan/replay/factored/moderate_tests.rs",
+      "reason": "actual452row198"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::main7f8_source_inputs::moderate_452_complete_metadata_inputs_preserve_original_clauses_and_refuse_wrong_stages",
+      "sourcepath": "src/source_reflows_merge/main7f8_source_inputs.rs",
+      "reason": "newexacttwostagehostiles"
+    }
+  ]
+}

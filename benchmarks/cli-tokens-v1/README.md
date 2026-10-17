@@ -191,3 +191,17 @@ all-attempt cost divided by accepted-task denominators are unchanged.
 
 Offline owning checks: `python3 -m unittest discover -s benchmarks -p 'test_metric_accounting.py'`. These synthetic checks do not run campaigns,
 invoke providers, establish accepted samples or reconcile account billing.
+
+Future read-only Codex recounts also retain outer CLI `turn.completed` counts
+and completed exec item categories separately from reconciled model requests.
+Item categories can include messages and reasoning; their total is not tool
+calls. The explicit uncached-input complement is raw input minus cache reads,
+including any cache-write subset; it is not task-only net input. Task-only net
+input and fixed harness context remain unavailable. Additional per-accepted-task
+metrics include failed attempts and remain null when a measurement or accepted
+denominator is missing. These additive fields do not revise saved reports.
+
+The LogLens adapter remains `codex-matched-loglens-v1` on the existing
+`codex exec` route. Its input-retention proxy has no independent execution proof.
+The opt-in shared-runtime #869 collector is not a dependency or a substitute
+label for this route, and no LogLens result establishes trusted codec execution.

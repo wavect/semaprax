@@ -2,7 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from codex_report import acceptance_times, recount, summarize
+from codex_report import acceptance_times, completed_items, input_slices, recount, summarize
 
 
 def row(arm, number, status='accepted', cost=1):
@@ -13,6 +13,53 @@ def row(arm, number, status='accepted', cost=1):
 
 
 class ReportTests(unittest.TestCase):
+    def test_uncached_complement_is_not_task_only_net_or_double_counted_cache_write(self):
+        self.assertEqual(input_slices({'input_tokens':100,'cached_input_tokens':30,
+            'cache_write_input_tokens':20}), {
+            'uncached_input_tokens_excluding_cache_reads':70,'task_only_net_input_tokens':None})
+        for raw,cached in [(100,None),(None,0),(100,101),(True,0),(100,-1)]:
+            self.assertIsNone(input_slices({'input_tokens':raw,'cached_input_tokens':cached})[
+                'uncached_input_tokens_excluding_cache_reads'])
+
+    def test_outer_turns_and_item_categories_keep_failures_and_unknowns(self):
+        first,failed = row('semaprax',1),row('semaprax',2,'failed')
+        first.update(outer_cli_turns=1,uncached_input_tokens_excluding_cache_reads=70,
+                     exec_completed_item_counts={'agent_message':2,'command_execution':3})
+        failed.update(outer_cli_turns=2,uncached_input_tokens_excluding_cache_reads=40,
+                      exec_completed_item_counts={'command_execution':4})
+        data={'campaign':{'trial_order':['semaprax','semaprax']}}
+        arm=summarize(data,[first,failed])['arms']['semaprax']
+        self.assertEqual(arm['additional_metrics_per_accepted_task_including_failures'][
+            'outer_cli_turns'],3)
+        self.assertEqual(arm['additional_metrics_per_accepted_task_including_failures'][
+            'uncached_input_tokens_excluding_cache_reads'],110)
+        self.assertEqual(arm['exec_completed_item_counts_all_attempts'],
+            {'agent_message':2,'command_execution':7})
+        self.assertIsNone(arm['task_only_net_input_tokens'])
+        failed['outer_cli_turns']=None
+        failed['exec_completed_item_counts']=None
+        arm=summarize(data,[first,failed])['arms']['semaprax']
+        self.assertIsNone(arm['additional_metrics_all_attempts']['outer_cli_turns'])
+        self.assertIsNone(arm['exec_completed_item_counts_all_attempts'])
+        self.assertIsNone(completed_items([{'exec_completed_item_counts':{'bad':True}}]))
+
+    def test_exec_turn_counts_survive_a_missing_rollout_without_usage_fabrication(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            stream=root/'exec.jsonl'
+            stream.write_text(json.dumps({'type':'turn.completed','usage':{}})+'\n'+
+                json.dumps({'type':'item.completed','item':{'type':'command_execution'}})+'\n')
+            path=root/'results.json'
+            path.write_text(json.dumps({'campaign':{'trial_order':['semaprax']},'calibration':{},
+                'trials':[{'arm':'semaprax','number':1,'status':'failed','failure':'missing trace',
+                           'transcript':str(stream),'observed':{}}]}))
+            trial=recount(path)['trials'][0]
+            self.assertEqual(trial['outer_cli_turns'],1)
+            self.assertEqual(trial['exec_completed_item_counts'],{'command_execution':1})
+            for key in ('model_requests','raw_input_tokens',
+                        'uncached_input_tokens_excluding_cache_reads','conditional_api_equivalent_usd'):
+                self.assertIsNone(trial[key])
+
     def test_acceptance_subprocess_sum_does_not_claim_full_wall(self):
         receipt = {'acceptance': {'build': {'seconds': 2}, 'candidate_tests': {'seconds': 3},
             'checks': [{'seconds': 4}], 'boundary_checks': [{'seconds': 5}]}}

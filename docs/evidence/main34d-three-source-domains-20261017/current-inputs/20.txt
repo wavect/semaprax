@@ -2782,11 +2782,10 @@ fn validate_typed_control_skeleton_with_index<'hir>(
     let mut expected =
         hir_skeleton_paths_with_index_storage(program, function, budget, helpers, continuations)?;
     // Match the existing received reference, with no new payer/tag/flag carrier.
-    match budget {
-        ReplayBudget {
+    if let ReplayBudget {
             payer: AllocationPayer::ActiveBuilder,
             ..
-        } => {
+        } = budget {
             budget.reserve_bytes(
                 function,
                 ordinary_plan_history::SELECT_CALL_CONTROLS,
@@ -2807,8 +2806,6 @@ fn validate_typed_control_skeleton_with_index<'hir>(
                 )?;
                 return ordinary_plan_history::compare(function, budget, actual, &expected);
             }
-        }
-        _ => {}
     }
     let mut actual = plan_skeleton_paths(function, budget)?;
     expected.sort();
@@ -7118,8 +7115,7 @@ fn plan_skeleton_paths(
                         // Original clone1 is charged above on both true and
                         // false probe paths; this is a bounded implementation
                         // detail of that materialization, not a CPU ledger.
-                        match budget {
-                            ReplayBudget { payer: AllocationPayer::ActiveBuilder, .. } => {
+                        if let ReplayBudget { payer: AllocationPayer::ActiveBuilder, .. } = budget {
                                 budget.reserve_bytes(function, branch_clone::TAKE_CALL_CONTROLS,
                                     "plan final branch probe receiving")?;
                                 if branch_clone::can_take(branch_clone::TakeCandidate {
@@ -7147,8 +7143,6 @@ fn plan_skeleton_paths(
                                         (edge.to, branch), "plan branch state push")?;
                                     continue;
                                 }
-                            }
-                            _ => {}
                         }
                         budget.reserve_clone(
                             function,

@@ -1,0 +1,61 @@
+{
+  "status": "SOURCE_ONLY_WRAPPER_NOT_EXECUTED",
+  "base": "ac1e9f53e995d2844a0d334af70dc1a3836eed62",
+  "namespace_dependency": "7cb45154f8c83011de82b7d45ebd727e7486f0fa and reviewed guarded namespace binder successor",
+  "files": [
+    {
+      "path": "docs/evidence/main21-final-checker-acquisition-20261017/README.md",
+      "length": 3051,
+      "sha256": "16f02bf87d68afc26ddef2992cf4d93b7821cfbfd962521061c9b24514669c3c"
+    },
+    {
+      "path": "docs/evidence/main21-final-checker-acquisition-20261017/check-current.py",
+      "length": 9560,
+      "sha256": "e0732dfca5d40b162b00f9a86ec6409dee747dd07314e6844fa5c39115830c81"
+    },
+    {
+      "path": "docs/evidence/main21-final-checker-acquisition-20261017/check-source.before.py.txt",
+      "length": 6167,
+      "sha256": "6191503c3d362261055ae169a0ffe08786f6b6feaf3cd8cdac310b1fca8bea24"
+    },
+    {
+      "path": "docs/evidence/main21-final-checker-acquisition-20261017/check-source.py",
+      "length": 3830,
+      "sha256": "3f9745b93fecaa3883384518b999a1e8b9e5811f5c77869f314eb8d4cf51e0ae"
+    },
+    {
+      "path": "docs/evidence/main21-final-checker-acquisition-20261017/render-inverse.json",
+      "length": 1114,
+      "sha256": "b3551aec3ffd21ec90315624c920ce8e59765e0aa98c8c3f956c330f131d7249"
+    },
+    {
+      "path": "docs/evidence/main21-final-checker-acquisition-20261017/source-controls.json",
+      "length": 455,
+      "sha256": "9c400692d5881344ec188bec78ef6bebdf824b4231a030e7ff93736ee8acf300"
+    }
+  ],
+  "source_controls": {
+    "status": "PURE_SOURCE_PASS_NOT_RUST_QUALIFIED",
+    "original_checker_sha256": "6191503c3d362261055ae169a0ffe08786f6b6feaf3cd8cdac310b1fca8bea24",
+    "exact_whole_checker_inverse": true,
+    "finite_acquisition_sites": 4,
+    "old_manifest_unchanged": true,
+    "legacy_current_targets": 149,
+    "whole_inverse_targets": 11,
+    "subsequent_raw3_census_byte_exact": true,
+    "negative_controls": 14,
+    "checker_main_executed": false,
+    "binder_executed": false,
+    "Rust_or_Cargo": false
+  },
+  "actual_checker_or_final_binder_execution": false,
+  "old_checker_or_MAIN21_manifest_mutated": false,
+  "old_caps_raised": false,
+  "new_Rust_owners": 0,
+  "pending": [
+    "Parent namespace integration and guarded physical endpoint binding",
+    "Commit current physical inputs and namespace module pins; choose explicit full HEAD",
+    "Execute read-only wrapper with original checker at that exact HEAD",
+    "Final common authority after all source pin writes and focused qualification"
+  ]
+}

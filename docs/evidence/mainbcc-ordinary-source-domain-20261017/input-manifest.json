@@ -22,17 +22,17 @@
     },
     {
       "path": "src/cleanup_plan/replay.rs",
-      "current_len": 317416,
-      "current_sha256": "6db5b0ed361258023e3d7cad058c3de6d737b416b67e98e7113ecb0a993c86c1",
-      "current_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/current-inputs/6db5b0ed361258023e3d7cad058c3de6d737b416b67e98e7113ecb0a993c86c1.txt",
+      "current_len": 321224,
+      "current_sha256": "555fe96fc9153aa2a7843ffd15da85e429bb56b1eef52e98193930f80203618e",
+      "current_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/current-inputs/555fe96fc9153aa2a7843ffd15da85e429bb56b1eef52e98193930f80203618e.txt",
       "main_len": 300830,
       "main_sha256": "f55a89e71e01d7254fd13ae57b9fbe104a08bddc1a3f080140b6d70213c1544d",
       "main_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/main-inputs/01.txt",
       "whole_source_inverse": [
         {
           "at": 0,
-          "remove_len": 317416,
-          "remove_sha256": "6db5b0ed361258023e3d7cad058c3de6d737b416b67e98e7113ecb0a993c86c1",
+          "remove_len": 321224,
+          "remove_sha256": "555fe96fc9153aa2a7843ffd15da85e429bb56b1eef52e98193930f80203618e",
           "insert_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/main-inputs/01.txt"
         }
       ]
@@ -192,17 +192,17 @@
     },
     {
       "path": "src/source_reflows/semantic_receivers.rs",
-      "current_len": 29039,
-      "current_sha256": "ba2ddbf8486039ba24fb0f36a90dea66910e931cbb71115b4d2eab114906430b",
-      "current_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/current-inputs/ba2ddbf8486039ba24fb0f36a90dea66910e931cbb71115b4d2eab114906430b.txt",
+      "current_len": 30256,
+      "current_sha256": "3697d98f51d3d633a280ffd7ee0656c0d45e660e061cee5275ee81189d1ee1a4",
+      "current_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/current-inputs/3697d98f51d3d633a280ffd7ee0656c0d45e660e061cee5275ee81189d1ee1a4.txt",
       "main_len": 29074,
       "main_sha256": "806760673e36ddff23fc45a9c35da3d44910519e253845b07ac7ab1296b6e9b9",
       "main_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/main-inputs/11.txt",
       "whole_source_inverse": [
         {
           "at": 0,
-          "remove_len": 29039,
-          "remove_sha256": "ba2ddbf8486039ba24fb0f36a90dea66910e931cbb71115b4d2eab114906430b",
+          "remove_len": 30256,
+          "remove_sha256": "3697d98f51d3d633a280ffd7ee0656c0d45e660e061cee5275ee81189d1ee1a4",
           "insert_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/main-inputs/11.txt"
         }
       ]

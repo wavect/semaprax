@@ -45,6 +45,6 @@
   },
   {
     "before": "receiver_view=runpy.run_path(str(R/D/'semantic-receiver-view.py'))",
-    "after": "assert sha(read(D+'/semantic-receiver-main34d-view.py'))=='816ab4eadb285b475066b260f8876cae4c155a0041e2b04dbc251c81a6c64a7e','NEWMAIN043 acquisition source drift'\nreceiver_view=runpy.run_path(str(R/D/'semantic-receiver-main34d-view.py'))"
+    "after": "assert sha(read(D+'/semantic-receiver-main34d-view.py'))=='f1c6e5db4d0bdba759834c0b80ee76ef4cdf97d7743afa77395979d96589f9aa','NEWMAIN043 acquisition source drift'\nreceiver_view=runpy.run_path(str(R/D/'semantic-receiver-main34d-view.py'))"
   }
 ]

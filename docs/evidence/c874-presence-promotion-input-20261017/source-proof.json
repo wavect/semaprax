@@ -1,0 +1,11 @@
+{
+  "state": "PASS_SOURCE_ONLY",
+  "actual_raw_sha256": "43ce0a20e3e727960c010da44561b8ec6c0e8353ed48d5067662c955be0ed7cc",
+  "immutable_checkpoint_sha256": "73f72ac12231befb30913d153afa06c36a2f1af4f27336fba3fdf2c80a84bfba",
+  "main7f8_domains": 2,
+  "complete_eb2_old_bridge_and_inverses": 3,
+  "old_tables_unchanged": true,
+  "compiled_input_authentication": "complete literal equality + length + SHA, no runtime filesystem claim",
+  "rust_parse": "PASS",
+  "runtime": "UNEXECUTED"
+}

@@ -1,0 +1,90 @@
+{
+  "status": "SOURCE_ONLY_EXACT_PREDECESSOR_ARCHIVES_VERIFIED",
+  "rows": [
+    {
+      "archive": "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/crates/semaprax-native-rust-interop-platform/tests/unix_authority.rs",
+      "source": "crates/semaprax-native-rust-interop-platform/tests/unix_authority.rs",
+      "predecessor": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+      "sha256": "20b0166a4fecdfbe5776b41c52fe76cbeefa8ec52fc4c47f1e6dd94b0f10fd62"
+    },
+    {
+      "archive": "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/continuation_storage.rs",
+      "source": "src/cleanup_plan/replay/continuation_storage.rs",
+      "predecessor": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+      "sha256": "acc616d33ab36c4e9239db612dd8e5487b53b59eec798d1a68cc35c5a4c60df6"
+    },
+    {
+      "archive": "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/continuation_storage/tests.rs",
+      "source": "src/cleanup_plan/replay/continuation_storage/tests.rs",
+      "predecessor": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+      "sha256": "4c8a91fdf7bc463433703b0c9c1b23985d15a285eca0adb32c5de7dc8f3f339d"
+    },
+    {
+      "archive": "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/expression_facts/arena.rs",
+      "source": "src/cleanup_plan/replay/expression_facts/arena.rs",
+      "predecessor": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+      "sha256": "680eb344e1bf236550eb3ae7725a981fe19898a52192635905771863c01a6d23"
+    },
+    {
+      "archive": "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs",
+      "source": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs",
+      "predecessor": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+      "sha256": "15d63a808395f44526e2d84a152b5ecf14f464083a3ca175fd4d567c3873565d"
+    },
+    {
+      "archive": "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs",
+      "source": "src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs",
+      "predecessor": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+      "sha256": "d08bee98fdfb8b5690fe8b2ec18b951558547d64428fc7c8866eec7325b3b6af"
+    },
+    {
+      "archive": "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+      "predecessor": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+      "sha256": "112b1a3f5e47c5d0c99c476c2374e7eb9dbfdc04d9220a94f6bf73b613ee294e"
+    },
+    {
+      "archive": "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs",
+      "predecessor": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+      "sha256": "a2e17ced737b4df1b95f03e8642ea07f8fd8b75452ba11d08a3500e900d03641"
+    },
+    {
+      "archive": "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+      "predecessor": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+      "sha256": "b55c833abd41243a9e3bca06a953ae48f0e9cc3b82a7709ddf3ddb823c3eff07"
+    },
+    {
+      "archive": "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified.rs",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified.rs",
+      "predecessor": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+      "sha256": "9a95b20d15c428e506f7218da9c894d6a6731619553bf5fe629f5962944c065c"
+    },
+    {
+      "archive": "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs",
+      "predecessor": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+      "sha256": "c431fdb72b09e045460ad85a9774c026fd941832536405128bd2913c9c3d19a6"
+    },
+    {
+      "archive": "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs",
+      "predecessor": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+      "sha256": "660d8ea87e94af5f61a5ddb98439ea97d55706380a70557ab9c453947db0cfb4"
+    },
+    {
+      "archive": "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+      "predecessor": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+      "sha256": "7ca585aab8b3fe7b7941644860af7a6a397695c41fc7b17d5e98a33bc0e3532b"
+    },
+    {
+      "archive": "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/sequence_prefix.rs",
+      "source": "src/cleanup_plan/replay/sequence_prefix.rs",
+      "predecessor": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+      "sha256": "8c95feee390193bce33eea76f4667697c675259f9a6b30ab13ab8b8916e23a8b"
+    }
+  ],
+  "fix": "Commit these exact newly generated ancestor archives before retrying the unchanged dirty-admission guard. No allowlist expansion. No authority generation or Rust test passed in the refused attempt."
+}

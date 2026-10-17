@@ -10,8 +10,8 @@ impl Domain {
     fn spec(self) -> Spec {
         match self {
             // SPECS_BEGIN
-Self::Compact7 => Spec { data: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main8a-historical-readers-257-268-20261016/Compact7.json")), length: 1057998, sha256: [165, 249, 42, 209, 8, 113, 36, 86, 60, 151, 44, 92, 36, 232, 73, 56, 136, 87, 177, 54, 4, 205, 68, 60, 129, 41, 153, 73, 125, 136, 61, 203], rows: 7 },
-Self::Receivers12 => Spec { data: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main8a-historical-readers-257-268-20261016/Receivers12.json")), length: 2096990, sha256: [100, 42, 173, 43, 81, 205, 7, 158, 201, 140, 95, 172, 42, 49, 235, 198, 139, 124, 82, 87, 249, 186, 119, 140, 162, 45, 165, 27, 64, 28, 139, 253], rows: 12 },
+Self::Compact7 => Spec { data: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main8a-historical-readers-257-268-20261016/Compact7.json")), length: 1058305, sha256: [120, 102, 64, 200, 186, 18, 87, 132, 68, 47, 56, 236, 103, 30, 117, 176, 15, 238, 38, 16, 12, 238, 37, 129, 183, 165, 7, 134, 246, 207, 213, 229], rows: 7 },
+Self::Receivers12 => Spec { data: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main8a-historical-readers-257-268-20261016/Receivers12.json")), length: 2097297, sha256: [84, 207, 32, 132, 92, 143, 237, 207, 88, 109, 239, 140, 205, 195, 245, 173, 32, 173, 118, 246, 205, 66, 112, 72, 145, 42, 226, 243, 139, 255, 9, 202], rows: 12 },
             // SPECS_END
         }
     }

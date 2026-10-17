@@ -1,6 +1,6 @@
 {
   "status": "PASS_NEW_UNQUALIFIED_SOURCE_ENDPOINTS_ONLY",
-  "source_head": "546dd5be8e169da85d784bf75f1748dd45f512ac",
+  "source_head": "aba40624537c8fa5f121aec3954de82d9714eedc",
   "source_repo": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
   "output_repo": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
   "projected_index_sha256": "2deb3dad2f22dd89f62610637943219100599b214f0ddae33d9737f4c8e14091",
@@ -50,8 +50,8 @@
     "src/workspace_graph/expected_projection/field_update.rs": "b3e1eea8dd6bf25da2e9a2e928177973070450ffe34f095ed266b21d792fcebc",
     "src/workspace_graph/expected_projection/string_slots.rs": "570d9033ca799f4564b0b2f9e90abd82f063747f45cb8f20a3f23a082db09a5f",
     "src/workspace_graph/identity_resolution.rs": "2ab876f8146b3eb19a950a4003bb7c3489a9f9963d7a6496d2019dc9246968dc",
-    "src/cleanup_plan/replay/factored/canonical_shared.rs": "459b9a2d0f454f608a3e1997b46e76cc09c1ddc098d976b7513f92b16263a839",
-    "tests/workspace/semantic_graph/source_inventory.rs": "98f230cc9dbc484ce6164a25429c28ae1a46b5654bd67e2f0c6243c7bb182228"
+    "src/cleanup_plan/replay/factored/canonical_shared.rs": "bbe5d1ff75b6b3bc811d181275181994027cd83188d6096e5b7716efbec753d3",
+    "tests/workspace/semantic_graph/source_inventory.rs": "0e19bed63f99aa9c4236add774c55ebf38d006b26303eeb0337c172c4756edcc"
   },
   "endpoints": [
     {
@@ -80,8 +80,20 @@
   "whole542_span_inverse": "PASS27_ZERO_BASED_HALF_OPEN",
   "whole542_current": "0ded630242e9a63fa6152daa450753eb9dad71e2666d144e812a4fe22ccede6c",
   "whole542_before": "ed1a28f5f57be809f5ebe5b28999f1d118c019167dd603b91e8b0c248d4e90b6",
-  "whole542_actual_raw": "0ded630242e9a63fa6152daa450753eb9dad71e2666d144e812a4fe22ccede6c",
-  "whole542_needs_distinct_prefix": false,
+  "whole542_actual_raw": "174196e798795f8aa9ccf288398493305ea8e23435ce52ebc260cac6f8f22213",
+  "whole542_needs_distinct_prefix": true,
   "qualification": "NO_CARGO_OR_RUNTIME",
-  "refresh_required_after_all_production_Rust_writes": true
+  "refresh_required_after_all_production_Rust_writes": true,
+  "canonical870_raw_authentication": {
+    "raw_sha256": "bbe5d1ff75b6b3bc811d181275181994027cd83188d6096e5b7716efbec753d3",
+    "stage_sha256": "459b9a2d0f454f608a3e1997b46e76cc09c1ddc098d976b7513f92b16263a839",
+    "stage_binding_sha256": "6523645c1445ceffafe43ff87118f3f2d6f94686a39b444ff6f87cedf7460bc0",
+    "original_canonical_endpoint_is_staged51": true
+  },
+  "main67107_outer_authentication": {
+    "current_raw_sha256": "bbe5d1ff75b6b3bc811d181275181994027cd83188d6096e5b7716efbec753d3",
+    "closed_stage_data_sha256": "bfbacf2777c310ee34ad6acd34352a9c58777ec11d39f2649be584711d72f120",
+    "canonical_order": "actual current -> exact870 -> exact51 -> original831/db2",
+    "all_prior_binders_unchanged": true
+  }
 }

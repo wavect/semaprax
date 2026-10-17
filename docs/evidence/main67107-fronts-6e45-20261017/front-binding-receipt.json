@@ -1,7 +1,7 @@
 {
   "status": "NEW_UNQUALIFIED_MAIN_FRONT_BINDINGS_ONLY",
-  "source_head": "6e45d10e874104ce6e745332f757c6ef1b21da0f",
-  "source_repo": "/Volumes/Semaprax/worktrees/main67107-fronts-6e45-20261017/AI-Lang",
+  "source_head": "aba40624537c8fa5f121aec3954de82d9714eedc",
+  "source_repo": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
   "raw_inputs": {
     "src/byte_ops.rs": "22e3f98ab80d320bed149c19de4ab1394f0dca7b55be3b7080f2745a50186ade",
     "src/cleanup_plan/renewal_profile.rs": "bde7beca5c39e461272e062a2c9137ad75a95cff150e230d0adbe4f4f0f7bf2b",

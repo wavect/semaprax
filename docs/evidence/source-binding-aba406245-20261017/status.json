@@ -1,0 +1,14 @@
+{
+  "status": "PARTIAL_SOURCE_BINDING_NOT_QUALIFIED",
+  "source_head": "aba40624537c8fa5f121aec3954de82d9714eedc",
+  "main_fronts": "PASS_SOURCE_ONLY",
+  "composed_endpoints": "PASS_SOURCE_ONLY",
+  "common_refresh": "REFUSED_EXPECTED_WHOLE_CURRENT_SEMANTIC_RECEIVER_STAGE",
+  "readonly_idempotence": "NOT_RUN_AFTER_REFUSAL",
+  "cargo_runtime_clippy": "NOT_RUN",
+  "files": {
+    "1-main-fronts.json": "e3306b3e4bf9cf8c431715122c6e04ccba7ec6d478fcf66ad8a8bc64137b7c27",
+    "2-composed-endpoints.json": "153324d9cd8d07066fbc2a8be319e1320d67560652f9a14442d5c4f1fdee8200",
+    "3-common.log": "7bf8c303c8663416cc483ccdc41a43f5f02a10a2015f9f80494cef2b87c53c6b"
+  }
+}

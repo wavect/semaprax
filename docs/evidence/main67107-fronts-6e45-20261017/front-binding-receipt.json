@@ -1,7 +1,7 @@
 {
   "status": "NEW_UNQUALIFIED_MAIN_FRONT_BINDINGS_ONLY",
-  "source_head": "86e84ed6084d34be40dd84421b6de1650cc0e1a7",
-  "source_repo": "/Volumes/Semaprax/worktrees/next-large-integration-20261017",
+  "source_head": "a82f826aa9a9da8e1aaed74debf57b89638f3d13",
+  "source_repo": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
   "raw_inputs": {
     "src/byte_ops.rs": "22e3f98ab80d320bed149c19de4ab1394f0dca7b55be3b7080f2745a50186ade",
     "src/cleanup_plan/renewal_profile.rs": "bde7beca5c39e461272e062a2c9137ad75a95cff150e230d0adbe4f4f0f7bf2b",
@@ -37,7 +37,7 @@
     "docs/evidence/moderate-factored-v1/sources.json": "cd4a2d223a0d10598b534e2416e1eb9024903b75ac84bd238cc155204dfdc088",
     "docs/evidence/source-reader-followups-20261016/sources.json": "08d9a996cbf1c0d2582d3ae1175398c46666e28ba47f65f8fd69fdebc3c05115",
     "docs/evidence/compact-child-cursor-v1/sources.json": "c5d56a05dc66e3afe24d2ec2ef73408e4293fbc6ab17ef19f952c0e473a6b910",
-    "src/cleanup_plan/replay/factored/canonical_shared.rs": "014f04e64f90e79480cce6ad9fe5cfbc8ce7f3fa82564e739ab53e131669700c",
+    "src/cleanup_plan/replay/factored/canonical_shared.rs": "22d0dcf599a65ce24039027378d46ea04bae83735dcbc93ba13df6eb99c450e4",
     "src/cleanup_plan/replay/factored/canonical_shared/tests.rs": "fd122ac9ba5101c7bec9046fe6b4f939a964bc362a59948b0774e64417ed3e17",
     "docs/evidence/unit-weight-closure-v1/inverse.json": "c54029793b825b9b2a2a6ddae6c1354d8f6eddfc7ef3c2c559c07fa74443e4ce",
     "docs/evidence/factored-flat-targets-v1/sources.json": "f71b6832ac5d869c1f9f557714724bbbab91033c6b9d13cd11be85f2ed1d7813",
@@ -47,7 +47,7 @@
     "tests/hir_module_boundaries.rs": "dc3bf3b20917a0c523231e405ff329e5950f12b55501bced9ae908fbaf5b8888",
     "tests/workspace/semantic_graph/source_inventory.rs": "42bdd4f76491607cab8538b3006d4b807aca5d138badc1d763c7090cfc53b000",
     "src/source_verify/declaration.rs": "c93ac4c883fe6b10c831a2603c994ea03880986fd0b7a394bfa41ec8a06d88cb",
-    "src/cleanup_plan/replay/branch_clone/tests.rs": "e8163fa7935623b165170be2242d547f3ad89a5c4905f9a90b763ab9b8619e59",
+    "src/cleanup_plan/replay/branch_clone/tests.rs": "46bf0451ef390225f540d031f326100c7f4288cf7e9d50e30ce7ddb68a448e0f",
     "src/cleanup_plan/replay/factored.rs": "343eda3712d0c3b224742d72c34838a327e0c69449c8a94fd7eb81dc5e0134a6",
     "src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs": "01b3e408874930f2aad015d20cf8317fc1507183f92aae740d11985b99d223e1",
     "src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs": "a5f456bd1d6f7fc43c08baf8f192d4c81f6efb036b6d35d8a15f9d785eb06b46",
@@ -116,9 +116,9 @@
     "docs/evidence/ordinary-replay-setup-v1/format-inputs.json": "b0dfadd73eb07d4fafb4010177b3f8e8e6b619b75d9cb7fd9e3b86f68bc5f840",
     "docs/evidence/ordinary-replay-setup-v1/helper-inputs.json": "9e43dba7bb28b6875d20a4084f9ad0a1868d2b093d62e36dcec9439389128a5e",
     "docs/evidence/ordinary-replay-setup-v1/production-cfg.json": "3134c2a1828fd0e20965fa242b7da954222f5bef2421e990e0340449fc768252",
-    "docs/evidence/factored-flat-labels-v1/sources.json": "e4a0b41c76d2d987f7293fb0c1c4b474ea277bbfdc3ea542c969e7533306946d",
+    "docs/evidence/factored-flat-labels-v1/sources.json": "7b738d5e48ad855001b0baf367ab3253819c2b9ba3f5875c7460606e7117d4c0",
     "docs/evidence/factored-flat-labels-v1/test-namespace.json": "e3a5a6530353211086d3b554ceb19fbb82f9be82a2d8149b7220ccf0fce4ae69",
-    "docs/evidence/main67107-production-composition-20261017/receiver-main12.json": "1516826971e983f90824907991063ab2c4bbecfcf9e10ff5f59b6970d4e07cbb"
+    "docs/evidence/main67107-production-composition-20261017/receiver-main12.json": "4b84227dbc5a4e1a497bcd3522769a6729c72a9677b774ac075e336794a18604"
   },
   "no_cargo_or_runtime": true
 }

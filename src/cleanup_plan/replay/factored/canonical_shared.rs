@@ -724,6 +724,7 @@ impl<'a> Canonicalizer<'a> {
                     budget.reserve_bytes(function, borrowed_labels::ordinary_receiving(), "factored direct singleton call receivers")?;
                     return borrowed_labels::ordinary_successors(function, budget, self.automaton, closed, accepted);
                 }
+                AllocationPayer::SelectedReservation => {}
                 AllocationPayer::LegacyUnobserved => {}
                 _ => {
                     budget.reserve_bytes(function, borrowed_labels::receiving::<ordered_weights::OrderedWeights>(), "factored borrowed label call receivers")?;
@@ -950,6 +951,7 @@ impl<'a> Canonicalizer<'a> {
                 budget.reserve_bytes(function, borrowed_labels::ordinary_receiving(), "factored direct singleton call receivers")?;
                 return borrowed_labels::ordinary_successors(function, budget, self.automaton, closed, accepted);
             }
+            AllocationPayer::SelectedReservation => {}
             AllocationPayer::LegacyUnobserved => {}
             _ => {
                 budget.reserve_bytes(function, borrowed_labels::receiving::<ordered_weights::OrderedWeights>(), "factored borrowed label call receivers")?;

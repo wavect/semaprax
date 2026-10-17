@@ -1,0 +1,85 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED_SELECTED_GENERATION_REVISION",
+  "issue": "https://github.com/wavect/semaprax/issues/876",
+  "base": "f6aeccc21d16e50a78d4f44522eaa5b028bd2cc0",
+  "production_insertions": 2,
+  "new_physical_rust_owners": 0,
+  "complete_compiled_prior_methods": 2,
+  "original_arena_assertions_unchanged": true,
+  "source_controls": {
+    "status": "PURE_SOURCE_PASS_NOT_RUST_QUALIFIED",
+    "whole_preimages": 2,
+    "complete_compiled_predecessor_methods": 2,
+    "new_rust_physical_owners": 0,
+    "hostile_stage_refusals": 14,
+    "binder_main_executed": false
+  },
+  "files": [
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "length": 63947,
+      "sha256": "014f04e64f90e79480cce6ad9fe5cfbc8ce7f3fa82564e739ab53e131669700c"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "length": 56738,
+      "sha256": "ba15ecc74f11b3add8df8014ff5e2188da0b8581d00771b7646aa55dc4dab02c"
+    },
+    {
+      "path": "docs/evidence/selected-successor-generation-20261017/README.md",
+      "length": 3832,
+      "sha256": "4d209bcf6f1eff80c24f2c93089008f2614fdec34d7f2e26190d6c3b4c724bb6"
+    },
+    {
+      "path": "docs/evidence/selected-successor-generation-20261017/before/src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "length": 19645,
+      "sha256": "891edcee186f1c7b3fb59bf7d2adf2443c9d230343569865d941b90410b04dd8"
+    },
+    {
+      "path": "docs/evidence/selected-successor-generation-20261017/before/src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "length": 63833,
+      "sha256": "bf9c7cf18aafd539daaac00db9253eff6287a562d76e41dfc91c56bd5bd0337b"
+    },
+    {
+      "path": "docs/evidence/selected-successor-generation-20261017/bind-selected-endpoints.py",
+      "length": 1951,
+      "sha256": "05ad6ee46f9147227d0fece012c7ad118ec43c3e50aaa535d78025e4d46d4b49"
+    },
+    {
+      "path": "docs/evidence/selected-successor-generation-20261017/bind-singleton-endpoints.before.py.txt",
+      "length": 2044,
+      "sha256": "fb830593f4ccc544d8d54774a68ad5f823f9c96d2aa42dc75051cd6a74ec3978"
+    },
+    {
+      "path": "docs/evidence/selected-successor-generation-20261017/check-source.py",
+      "length": 3211,
+      "sha256": "a9d04d14dee039025b2c9cfc9d30213081d2486952072e43aa6f9e53c7c05317"
+    },
+    {
+      "path": "docs/evidence/selected-successor-generation-20261017/full-source-inverses.json",
+      "length": 40083,
+      "sha256": "947c41698347ca27788aae5985e63f19c85d3f7eb3f25fee4374dac9d0d743d1"
+    },
+    {
+      "path": "docs/evidence/selected-successor-generation-20261017/pending-selectors.json",
+      "length": 1974,
+      "sha256": "b8e23465f4f5fa801c7ff267c712d4cd92f57bfa57a940f4f41b46772bc8545b"
+    },
+    {
+      "path": "docs/evidence/selected-successor-generation-20261017/source-controls.json",
+      "length": 208,
+      "sha256": "af03186edd6fd7ce25ec9b280e3e3692685034cac5e255744826033a682c247f"
+    }
+  ],
+  "pending": [
+    "Actual Rust typecheck and4new exact bodies",
+    "Unchanged3shape whole_arena exactwork+reservation inequality owner",
+    "Existingheld/paidMany/Oracle/selectedsession/fullsourceowners",
+    "Actualcodec/catalog/Normalizer unchangedcap owners",
+    "Finalintegrated fullsource acquisition and common endpoint bind"
+  ],
+  "cargo": false,
+  "rust_tests_executed": false,
+  "binder_executed": false,
+  "runtime_gains_claimed": false
+}

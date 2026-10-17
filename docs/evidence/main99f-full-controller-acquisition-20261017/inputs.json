@@ -13,8 +13,8 @@
     },
     {
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_length": 158336,
-      "current_sha256": "1593db2b5b16f88c509952eddf075e1b574a8c6352382bff4ca19e2478ea7517",
+      "current_length": 159374,
+      "current_sha256": "700318b054f35e3dbf69cf25d7a83cd3bf65d04f5674327bcbbd5af02bbdec66",
       "main_length": 105842,
       "main_sha256": "0e077ec3242fdeafaffb74be980d0dac03fb0e8bd27b5bd77484b3e82b21bf15",
       "main_archive": "docs/evidence/main99f-full-controller-acquisition-20261017/incoming/0e077ec3242fdeafaffb74be980d0dac03fb0e8bd27b5bd77484b3e82b21bf15.txt"
@@ -3533,8 +3533,8 @@
     },
     {
       "path": "tests/hir_module_boundaries.rs",
-      "current_length": 99902,
-      "current_sha256": "46e5fbd03a01ef804e351ffe5c4ee15d61336f7ca0ab1a612839baa723f85d15",
+      "current_length": 100796,
+      "current_sha256": "e3dad40652ba74ba2737e21b493ffb48787eb576974609f62f3f62ad690f443b",
       "main_length": 54618,
       "main_sha256": "2a8c92d82704c56d18e15da4912e839be52e96114dbd9d2562fdb67cce303577",
       "main_archive": "docs/evidence/main99f-full-controller-acquisition-20261017/incoming/2a8c92d82704c56d18e15da4912e839be52e96114dbd9d2562fdb67cce303577.txt"
@@ -3605,16 +3605,16 @@
     },
     {
       "path": "tests/workspace/semantic_graph.rs",
-      "current_length": 57429,
-      "current_sha256": "cc447e531dd73420f6507303cc986888a302ff90b53d3843487dab796b125458",
+      "current_length": 57423,
+      "current_sha256": "b4d8c484c115ff71427e873d8b97470048b85106f7d54043299cb00b0e987f6d",
       "main_length": 50241,
       "main_sha256": "f55a9ff27884e16088511f7dea0a7c17eb5d55c08327758ae46d3fd9833650a3",
       "main_archive": "docs/evidence/main99f-full-controller-acquisition-20261017/incoming/f55a9ff27884e16088511f7dea0a7c17eb5d55c08327758ae46d3fd9833650a3.txt"
     },
     {
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "current_length": 97691,
-      "current_sha256": "f42216ee8017033d39f6f29648613ddb4056483041ac6ed302b3db09623c3359",
+      "current_length": 98621,
+      "current_sha256": "4cf1b2596f589f53fe4dec8ac692738eecd04e7e3909c846a1c762d04717834c",
       "main_length": 38742,
       "main_sha256": "75534a389c06ec3f4e28e6504303bf155b51062b46e5a76e2c80a255a5e56aa9",
       "main_archive": "docs/evidence/main99f-full-controller-acquisition-20261017/incoming/75534a389c06ec3f4e28e6504303bf155b51062b46e5a76e2c80a255a5e56aa9.txt"

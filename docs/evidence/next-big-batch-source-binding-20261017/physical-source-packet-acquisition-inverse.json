@@ -1,0 +1,37 @@
+{
+  "status": "SOURCE_ONLY_HELD_PHYSICAL_CURRENT_PACKET",
+  "template_before": "current-inputs.rs.in",
+  "template_before_sha256": "7fb66bdcbd53af7ed2da663e3c7ffb976bdf7e026e047741b51669f5f76f31f9",
+  "template_after": "current-inputs-v2.rs.in",
+  "template_after_sha256": "619a38fff43779052b35622d6a7de5d6437beefda6c32cd152664ba94b393a66",
+  "template_edits": [
+    {
+      "before": "    let packet: serde_json::Value = serde_json::from_str(data).unwrap();",
+      "after": "    let root=Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let physical=held(&root.join(\"@MANIFEST_PHYSICAL@\"),data.len(),&digest(data.as_bytes())).unwrap();\n    assert_eq!(physical,data,\"complete physical and compiled current manifest\");\n    let packet: serde_json::Value = serde_json::from_str(data).unwrap();",
+      "count": 1
+    },
+    {
+      "before": "    let root=Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    for anchor",
+      "after": "    for anchor",
+      "count": 1
+    }
+  ],
+  "whole_template_inverse": true,
+  "preparer_before": "prepare-source-views-v4.py",
+  "preparer_before_sha256": "40a8707ee0b8188891cdb1da7325710cbd48dc1ed56531a01e3bb5c43b5457f8",
+  "preparer_after": "prepare-source-views-v5.py",
+  "preparer_after_sha256": "5cf0012874595cedaf010e7a65c2d6f56670cca35425b92c7794f956aa7112bb",
+  "preparer_edits": [
+    {
+      "before": "D/'current-inputs.rs.in'",
+      "after": "D/'current-inputs-v2.rs.in'",
+      "count": 1
+    },
+    {
+      "before": "'MANIFEST':manifest,'MANIFEST_LEN'",
+      "after": "'MANIFEST':manifest,'MANIFEST_PHYSICAL':manifest,'MANIFEST_LEN'",
+      "count": 1
+    }
+  ],
+  "physical_drift_negative": "No authoritative physical path mutation; held length/SHA enforces refusal before JSON parsing. Existing foreign source controls retained."
+}

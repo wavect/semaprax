@@ -7,6 +7,7 @@ fn digest(bytes: &[u8]) -> String {
     format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
 }
 fn held(path: &Path, length: usize, expected: &str) -> std::io::Result<String> {
+    if let Some(value) = crate::source_reflows_merge::next_big_batch_inputs::file(path, length, expected) { return Ok(value); }
     if let Some(value) = super::main67107_inputs::accepted_expected_file(path, length, expected) { return Ok(value); }
     use std::io::Read;
     let before = std::fs::symlink_metadata(path)?;
@@ -132,7 +133,8 @@ fn read_packet(path: impl AsRef<Path>, packet: serde_json::Value) -> std::io::Re
     let row = rows.iter().find(|row| row["path"] == relative).unwrap();
     let current = held(path, row["current_length"].as_u64().unwrap() as usize, row["current_sha256"].as_str().unwrap())?;
     if let Some(compiled) = compiled(relative) {
-        let compiled = super::main67107_inputs::accepted_expected_value(relative, row["current_sha256"].as_str().unwrap(), compiled);
+        let compiled = crate::source_reflows_merge::next_big_batch_inputs::value(relative, row["current_sha256"].as_str().unwrap(), compiled);
+        let compiled = super::main67107_inputs::accepted_expected_value(relative, row["current_sha256"].as_str().unwrap(), &compiled);
         assert_eq!(current, compiled, "complete physical/compiled main-c883 owner");
     }
     held(&root.join(row["main_archive"].as_str().unwrap()), row["main_length"].as_u64().unwrap() as usize, row["main_sha256"].as_str().unwrap())
@@ -199,7 +201,8 @@ pub(crate) fn read_f247(path: impl AsRef<Path>) -> std::io::Result<String> {
     };
     let current = read(&root.join(relative), row["current_length"].as_u64().unwrap() as usize, row["current_sha256"].as_str().unwrap())?;
     if let Some(compiled) = compiled(relative).or_else(|| super::main67107_inputs::accepted_physical_compiled(relative)) {
-        let compiled = super::main67107_inputs::accepted_expected_value(relative, row["current_sha256"].as_str().unwrap(), compiled);
+        let compiled = crate::source_reflows_merge::next_big_batch_inputs::value(relative, row["current_sha256"].as_str().unwrap(), compiled);
+        let compiled = super::main67107_inputs::accepted_expected_value(relative, row["current_sha256"].as_str().unwrap(), &compiled);
         assert_eq!(current, compiled, "actual complete compiled f247 current owner");
     }
     read(&root.join(row["main_archive"].as_str().unwrap()), row["main_length"].as_u64().unwrap() as usize, row["main_sha256"].as_str().unwrap())
@@ -210,6 +213,7 @@ pub(crate) fn f247_expected(path: &str, supplied: &str) -> String {
     let packet = packet_f247();
     let row = packet["rows"].as_array().unwrap().iter().find(|r| r["path"] == path).unwrap();
     let actual = super::main67107_inputs::main_f247_file_raw(&root.join(path), row["current_length"].as_u64().unwrap() as usize, row["current_sha256"].as_str().unwrap()).unwrap();
+    let supplied = crate::source_reflows_merge::next_big_batch_inputs::value(path, row["current_sha256"].as_str().unwrap(), supplied);
     assert!(supplied == actual || supplied == incoming, "foreign f247 supplied source");
     incoming
 }

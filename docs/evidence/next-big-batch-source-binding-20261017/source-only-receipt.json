@@ -1,0 +1,55 @@
+{
+  "status": "PASS_SOURCE_ONLY_COHERENT_INGRESS_BINDERS_UNEXECUTED",
+  "semantic_head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+  "base_semantic_head": "19520781744566c17d02ba1d12cdb82bc2933ff5",
+  "new_physical_module": "src/source_reflows_merge/next_big_batch_inputs.rs",
+  "new_literal_selector": "source_reflows_merge::next_big_batch_inputs::complete_current_and_parent_views_refuse_foreign_truncated_duplicate_and_wrong_stages",
+  "source_packet": {
+    "rows": 54,
+    "old_whole_views": 261,
+    "length": 112927,
+    "sha256": "336d79ff6cddc852d4750aa304b85a31494ac98c2e015bb52dfb615db7d98fe3",
+    "physical_and_compiled_packet_before_parse": true
+  },
+  "strict_guard": {
+    "length": 18420,
+    "sha256": "1641b57088ed77b78631be8843c0f074ea09e04f591811b129ddea709bbc11f9",
+    "actual_refusals": 58,
+    "source_only": true
+  },
+  "raw_dataflow": [
+    {
+      "carrier": "tests/hir_module_boundaries.rs",
+      "consumer": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+      "span": "3:5",
+      "route": "Actual validation_raw compile-time audit_source_join; all21 full include_str bodies are in the unchanged raw audit argument"
+    },
+    {
+      "carrier": "tests/workspace/semantic_graph/source_inventory.rs",
+      "consumer": "private_layout_inventory_retains_every_full_input_and_every_current_owned_module",
+      "span": "source_inventory.rs:120 -> semantic_graph.rs:1486 -> source_inventory_controls.rs:54-106",
+      "route": "Actual compiled broad macro426 concatenation equals physical TSV426 full source join, then unchanged31 owned-module full-byte closure"
+    },
+    {
+      "carrier": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "consumer": "loan_cfg_source_inventory",
+      "span": "84 -> 741",
+      "route": "Actual compiled audit_source_join includes all21 whole literal module bodies; no historical source-view hook changes these raw arguments"
+    }
+  ],
+  "old_complete_tables_caps_and_assertions_retained": true,
+  "native_carrier_lines": 1500,
+  "frozen174": "Prepared only;174 identical membership;7 explicit changed physical tuples;167 strict dependencies; sole unchanged inherited317943 tuple",
+  "root_writes": false,
+  "cargo": false,
+  "common": false,
+  "actual_binder_execution": false,
+  "rust_test_execution": false,
+  "pending": [
+    "Parent/source review and separate incoming-main integration",
+    "Promote final coherent source to ROOT",
+    "ONE frozen174 then FINAL6 then role metadata execution at exact committed ROOT HEAD",
+    "Reauthenticate all54 source rows/all6 anchors/all21 module pins AFTER binding; stop if any changed, before Cargo",
+    "Fresh source registration/owning qualification; no stale producer admission"
+  ]
+}

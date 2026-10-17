@@ -1,0 +1,95 @@
+{
+  "status": "SOURCE_ONLY_NAMED_HOOKS_NOT_APPLIED",
+  "head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+  "repo": "/Volumes/Semaprax/worktrees/opt831-selected-inline-labels-20261017",
+  "rows": [
+    {
+      "source": "src/source_reflows_merge/main67107_inputs.rs",
+      "before": {
+        "length": 93788,
+        "sha256": "4f836891ce94044be63346740725ab44de933f568f3fa1aeae0d2810a9fae6c3",
+        "archive": "before/src/source_reflows_merge/main67107_inputs.rs.txt"
+      },
+      "after": {
+        "length": 95026,
+        "sha256": "ca49b653a5909c4b044e90d2c0689df2108ba4e33af7605cbec129171d287c74",
+        "archive": "candidate/src/source_reflows_merge/main67107_inputs.rs"
+      },
+      "substitutions": [
+        {
+          "before": "    let actual = factored_core_file_raw(&root.join(source), current[\"length\"].as_u64().unwrap() as usize, current[\"sha256\"].as_str().unwrap()).unwrap();\n    assert_eq!(actual, accepted_compiled(source), \"complete compiled actual source before historical selection\");",
+          "after": "    let actual = crate::source_reflows_merge::next_big_batch_inputs::file(&root.join(source), current[\"length\"].as_u64().unwrap() as usize, current[\"sha256\"].as_str().unwrap())\n        .unwrap_or_else(|| factored_core_file_raw(&root.join(source), current[\"length\"].as_u64().unwrap() as usize, current[\"sha256\"].as_str().unwrap()).unwrap());\n    let compiled = crate::source_reflows_merge::next_big_batch_inputs::value(source, current[\"sha256\"].as_str().unwrap(), accepted_compiled(source));\n    assert_eq!(actual, compiled, \"complete compiled actual source before historical selection\");",
+          "count": 2
+        },
+        {
+          "before": "    let previous = accepted_read(prior);\n    // Whole inverse:",
+          "after": "    let previous = accepted_read(prior);\n    let supplied = crate::source_reflows_merge::next_big_batch_inputs::value(row[\"source\"].as_str().unwrap(), row[\"current\"][\"sha256\"].as_str().unwrap(), supplied);\n    // Whole inverse:",
+          "count": 2
+        },
+        {
+          "before": "pub(crate) use before_future57::main_f247_file_raw;",
+          "after": "pub(crate) fn main_f247_file_raw(path: &::std::path::Path, length: usize, expected: &str) -> Result<String, &'static str> {\n    if let Some(value) = crate::source_reflows_merge::next_big_batch_inputs::file(path, length, expected) { return Ok(value); }\n    before_future57::main_f247_file_raw(path, length, expected)\n}",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "source": "src/source_reflows_merge/main_c883_inputs.rs",
+      "before": {
+        "length": 18104,
+        "sha256": "afdcddf0c698ae1a04e8d7a063e58df3e928456c8b32615732070a22a93502cb",
+        "archive": "before/src/source_reflows_merge/main_c883_inputs.rs.txt"
+      },
+      "after": {
+        "length": 18655,
+        "sha256": "21d58810c57d7e6a4535f8910b4c1c4e83da194b3ba4ff4120c925f1926119b8",
+        "archive": "candidate/src/source_reflows_merge/main_c883_inputs.rs"
+      },
+      "substitutions": [
+        {
+          "before": "    if let Some(value) = super::main67107_inputs::accepted_expected_file(path, length, expected) { return Ok(value); }",
+          "after": "    if let Some(value) = crate::source_reflows_merge::next_big_batch_inputs::file(path, length, expected) { return Ok(value); }\n    if let Some(value) = super::main67107_inputs::accepted_expected_file(path, length, expected) { return Ok(value); }",
+          "count": 1
+        },
+        {
+          "before": "        let compiled = super::main67107_inputs::accepted_expected_value(relative, row[\"current_sha256\"].as_str().unwrap(), compiled);",
+          "after": "        let compiled = crate::source_reflows_merge::next_big_batch_inputs::value(relative, row[\"current_sha256\"].as_str().unwrap(), compiled);\n        let compiled = super::main67107_inputs::accepted_expected_value(relative, row[\"current_sha256\"].as_str().unwrap(), &compiled);",
+          "count": 2
+        },
+        {
+          "before": "    assert!(supplied == actual || supplied == incoming, \"foreign f247 supplied source\");",
+          "after": "    let supplied = crate::source_reflows_merge::next_big_batch_inputs::value(path, row[\"current_sha256\"].as_str().unwrap(), supplied);\n    assert!(supplied == actual || supplied == incoming, \"foreign f247 supplied source\");",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "source": "src/source_reflows_merge.rs",
+      "before": {
+        "length": 46590,
+        "sha256": "3744cd3ea641430a3d18da22cc7839272edf7c87ec0676527d396aa59e6f50cc",
+        "archive": "before/src/source_reflows_merge.rs.txt"
+      },
+      "after": {
+        "length": 46762,
+        "sha256": "747662b4765bb176e4f02ed80fc66ee13580e5946ea4ea927b7208cf26536293",
+        "archive": "candidate/src/source_reflows_merge.rs"
+      },
+      "substitutions": [
+        {
+          "before": "\npub(crate) mod main99f_inputs;",
+          "after": "\npub(crate) mod main99f_inputs;\n\n// Distinct complete final-batch views precede both frozen parent readers.\n#[path = \"source_reflows_merge/next_big_batch_inputs.rs\"]\npub(crate) mod next_big_batch_inputs;",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "whole_inverse_verified": true,
+  "repository_writes": false,
+  "pending": [
+    "final source views manifest and helper",
+    "literal raw3 and strict adapter",
+    "MAIN99f reseal",
+    "independent review and coherent apply"
+  ]
+}

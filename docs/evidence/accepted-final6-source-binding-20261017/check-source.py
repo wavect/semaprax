@@ -22,9 +22,9 @@ new="template=b.read(R/recipe['helper_template'],digest=recipe['helper_template_
 assert raw.decode().count(old)==1
 current=raw.decode().replace(old,new,1)
 assert current.replace(new,old,1).encode()==raw
-helper=R/'docs/evidence/earned-managed-pin42-source-coupling-20261017/guard_payload.py'
-helper_raw=bounded(helper,2978,'71b1cf1c20c2aa0d534dccfc9701a1ebe465f4e56b1f5d0eb7a344d6e1b1560f')
-ns={'__file__':str(helper)};exec(compile(helper_raw,str(helper),'exec'),ns)
+helper=R/'docs/evidence/next-big-batch-source-binding-20261017/guard_payload.py'
+helper_raw=bounded(helper,18420,'1641b57088ed77b78631be8843c0f074ea09e04f591811b129ddea709bbc11f9')
+ns={'__file__':str(helper),'_AUTHENTICATED_PROGRAM':helper_raw};exec(compile(helper_raw,str(helper),'exec'),ns)
 old_guard='guard=runpy.run_path(str(guard_path))'
 new_guard='guard=_accepted_guard_extensions(R)'
 assert current.count(old_guard)==1

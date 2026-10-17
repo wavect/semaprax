@@ -15,12 +15,15 @@ def bounded(path,length,digest):
   assert hashlib.sha256(raw).hexdigest()==digest
   raw.decode('utf8');return raw
  finally:os.close(fd)
-helper=R/'docs/evidence/earned-managed-pin42-source-coupling-20261017/guard_payload.py';helper_raw=bounded(helper,2978,'71b1cf1c20c2aa0d534dccfc9701a1ebe465f4e56b1f5d0eb7a344d6e1b1560f')
-m={'__file__':str(helper)};exec(compile(helper_raw,str(helper),'exec'),m)
+helper=R/'docs/evidence/next-big-batch-source-binding-20261017/guard_payload.py';helper_raw=bounded(helper,18420,'1641b57088ed77b78631be8843c0f074ea09e04f591811b129ddea709bbc11f9')
+m={'__file__':str(helper),'_AUTHENTICATED_PROGRAM':helper_raw};exec(compile(helper_raw,str(helper),'exec'),m)
 new=m['accepted_guard_extensions'](R)
 original_path=R/'docs/evidence/main043-independent-custody-20261016/guard-extensions.py'
 original_raw=bounded(original_path,5113,'ccfb62c8b30e5564446ddc6eb2a31f5a7502e5ed43d3d5077a8c0105c42ef95a')
-old={'__file__':str(original_path)};exec(compile(original_raw,str(original_path),'exec'),old)
+old_source=original_raw.decode();old_read="(D/'verify-or-refresh.py').read_text()";new_read='(_next_public_previous())'
+assert old_source.count(old_read)==1;old_current=old_source.replace(old_read,new_read,1)
+assert old_current.replace(new_read,old_read,1).encode()==original_raw
+old={'__file__':str(original_path),'_next_public_previous':new['public_previous']};exec(compile(old_current,str(original_path),'exec'),old)
 allowed=json.loads((D/'current-allowed.json').read_text());count=0
 old['verify_recipe']()
 def refuses(f):

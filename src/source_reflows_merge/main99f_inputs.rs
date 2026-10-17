@@ -58,8 +58,8 @@ pub(crate) fn main99f_file_raw(path: &::std::path::Path, length: usize, expected
 fn digest(bytes: &[u8]) -> String { format!("{:x}", LowerHex(Sha256::digest(bytes))) }
 fn packet() -> serde_json::Value {
     let data=include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/main99f-full-controller-acquisition-20261017/inputs.json"));
-    assert_eq!(data.len(), 228104); // MAIN99F_PACKET_LENGTH
-    assert_eq!(digest(data.as_bytes()), "078c486149cbb63d10942f5dd943606b13d7dbbbb885b09abc8898aaadf900a2"); // MAIN99F_PACKET_SHA
+    assert_eq!(data.len(), 228105); // MAIN99F_PACKET_LENGTH
+    assert_eq!(digest(data.as_bytes()), "7da7c03cee1c8232577d85e4b34a671ec5af4c32617d1385f4ec6e7226b3c0d9"); // MAIN99F_PACKET_SHA
     let held=main99f_file_raw(&Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/evidence/main99f-full-controller-acquisition-20261017/inputs.json"),
         data.len(), &digest(data.as_bytes())).unwrap();
     assert_eq!(held,data,"whole actual and compiled MAIN99F namespace");

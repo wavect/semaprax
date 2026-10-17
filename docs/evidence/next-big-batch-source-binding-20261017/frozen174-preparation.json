@@ -1,0 +1,47 @@
+{
+  "status": "SOURCE_ONLY_PREPARED_NOT_EXECUTED",
+  "semantic_head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+  "membership": 174,
+  "changed": {
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": [
+      159374,
+      "700318b054f35e3dbf69cf25d7a83cd3bf65d04f5674327bcbbd5af02bbdec66"
+    ],
+    "src/cleanup_plan/replay.rs": [
+      324389,
+      "6cdfce6c20964d62f360cd147d0c6ca8b4d9cb86f671d6d5b5773d8c6e446ae7"
+    ],
+    "src/cleanup_plan/replay/branch_clone.rs": [
+      17112,
+      "4ff120ef24b54cc98d956f3548a76b4a7f0ca9f4393044356f47ea1e51cefbc5"
+    ],
+    "src/cleanup_plan/replay/skeleton_work.rs": [
+      47627,
+      "f86667440e07a2a01e0e8c043966c9df2ecbae3dd6d0a7cc1a991c6ade54e423"
+    ],
+    "src/source_reflows/semantic_receivers.rs": [
+      37053,
+      "58cd8a8d2dcb03fcb88f32537ebd5c5d9b6ac1dd1ed60a6fe75b1336bfaf14a4"
+    ],
+    "tests/hir_module_boundaries.rs": [
+      100796,
+      "e3dad40652ba74ba2737e21b493ffb48787eb576974609f62f3f62ad690f443b"
+    ],
+    "tests/workspace/semantic_graph/source_inventory.rs": [
+      98621,
+      "4cf1b2596f589f53fe4dec8ac692738eecd04e7e3909c846a1c762d04717834c"
+    ]
+  },
+  "strict_dependencies": 167,
+  "strict_cap": 262144,
+  "sole_inherited_larger_tuple_unchanged": true,
+  "original_binder_sha256": "4921dedbcd93d865cafc825f176f5598891864f35c605096185dfb49c6887546",
+  "wrapper_before_sha256": "f46e5f4b4f990f3169426fd09a232909785f9d615524a62379e2735737adf20a",
+  "wrapper_after_sha256": "3ac29c116d0b47cb07fff6beccc13235e0d755422968bb0b4ca5e0ce7896e086",
+  "held_guard_injection": {
+    "before": "namespace={'__file__':str(D.parents[3]/STRICT_HELPER),'__name__':'accepted174_actual_strict_guard'}",
+    "after": "namespace={'__file__':str(D.parents[3]/STRICT_HELPER),'__name__':'accepted174_actual_strict_guard','_AUTHENTICATED_PROGRAM':held[STRICT_HELPER]}",
+    "count": 1
+  },
+  "actual_binding_execution": false
+}

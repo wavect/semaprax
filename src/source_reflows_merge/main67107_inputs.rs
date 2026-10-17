@@ -1081,14 +1081,17 @@ fn accepted_actual(row: &serde_json::Value) -> String {
     let source = row["source"].as_str().unwrap();
     let current = &row["current"];
     let root = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let actual = factored_core_file_raw(&root.join(source), current["length"].as_u64().unwrap() as usize, current["sha256"].as_str().unwrap()).unwrap();
-    assert_eq!(actual, accepted_compiled(source), "complete compiled actual source before historical selection");
+    let actual = crate::source_reflows_merge::next_big_batch_inputs::file(&root.join(source), current["length"].as_u64().unwrap() as usize, current["sha256"].as_str().unwrap())
+        .unwrap_or_else(|| factored_core_file_raw(&root.join(source), current["length"].as_u64().unwrap() as usize, current["sha256"].as_str().unwrap()).unwrap());
+    let compiled = crate::source_reflows_merge::next_big_batch_inputs::value(source, current["sha256"].as_str().unwrap(), accepted_compiled(source));
+    assert_eq!(actual, compiled, "complete compiled actual source before historical selection");
     assert_eq!(actual, accepted_read(current), "complete current archive");
     actual
 }
 fn accepted_select(row: &serde_json::Value, prior: &serde_json::Value, supplied: &str) -> String {
     let actual = accepted_actual(row);
     let previous = accepted_read(prior);
+    let supplied = crate::source_reflows_merge::next_big_batch_inputs::value(row["source"].as_str().unwrap(), row["current"]["sha256"].as_str().unwrap(), supplied);
     // Whole inverse: the complete authenticated current is replaced by the complete
     // independently retained prior. Foreign supplied bytes never acquire a view.
     if supplied == actual || supplied == previous { previous } else { supplied.to_owned() }
@@ -1221,14 +1224,17 @@ fn accepted_actual(row: &serde_json::Value) -> String {
     let source = row["source"].as_str().unwrap();
     let current = &row["current"];
     let root = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let actual = factored_core_file_raw(&root.join(source), current["length"].as_u64().unwrap() as usize, current["sha256"].as_str().unwrap()).unwrap();
-    assert_eq!(actual, accepted_compiled(source), "complete compiled actual source before historical selection");
+    let actual = crate::source_reflows_merge::next_big_batch_inputs::file(&root.join(source), current["length"].as_u64().unwrap() as usize, current["sha256"].as_str().unwrap())
+        .unwrap_or_else(|| factored_core_file_raw(&root.join(source), current["length"].as_u64().unwrap() as usize, current["sha256"].as_str().unwrap()).unwrap());
+    let compiled = crate::source_reflows_merge::next_big_batch_inputs::value(source, current["sha256"].as_str().unwrap(), accepted_compiled(source));
+    assert_eq!(actual, compiled, "complete compiled actual source before historical selection");
     assert_eq!(actual, accepted_read(current), "complete current archive");
     actual
 }
 fn accepted_select(row: &serde_json::Value, prior: &serde_json::Value, supplied: &str) -> String {
     let actual = accepted_actual(row);
     let previous = accepted_read(prior);
+    let supplied = crate::source_reflows_merge::next_big_batch_inputs::value(row["source"].as_str().unwrap(), row["current"]["sha256"].as_str().unwrap(), supplied);
     // Whole inverse: the complete authenticated current is replaced by the complete
     // independently retained prior. Foreign supplied bytes never acquire a view.
     if supplied == actual || supplied == previous { previous } else { supplied.to_owned() }
@@ -1336,4 +1342,7 @@ pub(crate) fn accepted_physical_compiled(source: &str) -> Option<&'static str> {
 
 }
 
-pub(crate) use before_future57::main_f247_file_raw;
+pub(crate) fn main_f247_file_raw(path: &::std::path::Path, length: usize, expected: &str) -> Result<String, &'static str> {
+    if let Some(value) = crate::source_reflows_merge::next_big_batch_inputs::file(path, length, expected) { return Ok(value); }
+    before_future57::main_f247_file_raw(path, length, expected)
+}

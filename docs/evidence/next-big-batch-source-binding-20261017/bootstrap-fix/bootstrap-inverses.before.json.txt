@@ -1,0 +1,123 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED",
+  "rows": [
+    {
+      "source": "docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py",
+      "before": {
+        "length": 2717,
+        "sha256": "8f1da275939c53ce654e8d19369577d3d220403682ff9e7fc889e92cd3abe0d5",
+        "archive": "docs/evidence/next-big-batch-source-binding-20261017/bootstrap-before/docs__evidence__main043-independent-custody-20261016__verify-or-refresh.py.txt"
+      },
+      "after": {
+        "length": 2765,
+        "sha256": "c779efd74280dbf0f872999cffa893976eb3582d89fbfc321fcff5f0dc301950"
+      },
+      "edits": [
+        {
+          "before": "docs/evidence/main043-definition-accepted-generation-20261017/definition_payload.py",
+          "after": "docs/evidence/next-big-batch-source-binding-20261017/definition_adapter.py",
+          "count": 1
+        },
+        {
+          "before": "raw=held(helper,3228)",
+          "after": "raw=held(helper,1766)",
+          "count": 1
+        },
+        {
+          "before": "59e731713eea180fec3a07c7eb818633591ed948cf4462c5796dcd1810ec36f3",
+          "after": "ab6e2d1c227dee30da804701dd3d5f54c57c853c08ce423f98359a8420cf2731",
+          "count": 1
+        },
+        {
+          "before": "docs/evidence/earned-managed-pin42-source-coupling-20261017/guard_payload.py",
+          "after": "docs/evidence/next-big-batch-source-binding-20261017/guard_payload.py",
+          "count": 1
+        },
+        {
+          "before": "guard_raw=held(guard_helper,2978)",
+          "after": "guard_raw=held(guard_helper,18307)",
+          "count": 1
+        },
+        {
+          "before": "71b1cf1c20c2aa0d534dccfc9701a1ebe465f4e56b1f5d0eb7a344d6e1b1560f",
+          "after": "3b4d5afef47c22789f3f83b950aec5036de09725588b869a8da89fbffeb5dc26",
+          "count": 1
+        },
+        {
+          "before": "g=types.ModuleType('accepted_main043_strict_guard');g.__file__=str(guard_helper)",
+          "after": "g=types.ModuleType('accepted_main043_strict_guard');g.__file__=str(guard_helper);g._AUTHENTICATED_PROGRAM=guard_raw",
+          "count": 1
+        },
+        {
+          "before": "exec(compile(guard_raw,str(guard_helper),'exec'),g.__dict__)",
+          "after": "exec(compile(guard_raw,str(guard_helper),'exec'),g.__dict__)\nm._next_raw_source=g.source",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "source": "docs/evidence/accepted-final6-source-binding-20261017/check-source.py",
+      "before": {
+        "length": 2222,
+        "sha256": "5c20a3fe821fc9868095fc7c99ad8cc60680125d81edec2c48b8890cd08a37a8",
+        "archive": "docs/evidence/next-big-batch-source-binding-20261017/bootstrap-before/docs__evidence__accepted-final6-source-binding-20261017__check-source.py.txt"
+      },
+      "after": {
+        "length": 2252,
+        "sha256": "f0c3ae33611f70a6aa5c7c7685b952f8e8c8bfa48a92d21a376ba8c8389decac"
+      },
+      "edits": [
+        {
+          "before": "docs/evidence/earned-managed-pin42-source-coupling-20261017/guard_payload.py",
+          "after": "docs/evidence/next-big-batch-source-binding-20261017/guard_payload.py",
+          "count": 1
+        },
+        {
+          "before": "2978,'71b1cf1c20c2aa0d534dccfc9701a1ebe465f4e56b1f5d0eb7a344d6e1b1560f'",
+          "after": "18307,'3b4d5afef47c22789f3f83b950aec5036de09725588b869a8da89fbffeb5dc26'",
+          "count": 1
+        },
+        {
+          "before": "ns={'__file__':str(helper)};exec",
+          "after": "ns={'__file__':str(helper),'_AUTHENTICATED_PROGRAM':helper_raw};exec",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "source": "docs/evidence/accepted-strict-guard-generation-20261017/check-source.py",
+      "before": {
+        "length": 4047,
+        "sha256": "cfc576bc8b9838bc9439f8870339fd0363556dad64f4c1bee3a9f28477c66fd8",
+        "archive": "docs/evidence/next-big-batch-source-binding-20261017/bootstrap-before/docs__evidence__accepted-strict-guard-generation-20261017__check-source.py.txt"
+      },
+      "after": {
+        "length": 4401,
+        "sha256": "ef69fc52d55d8736caa01f821fc5c479290820e94b294fd128aa187fcaeffc26"
+      },
+      "edits": [
+        {
+          "before": "docs/evidence/earned-managed-pin42-source-coupling-20261017/guard_payload.py",
+          "after": "docs/evidence/next-big-batch-source-binding-20261017/guard_payload.py",
+          "count": 1
+        },
+        {
+          "before": "2978,'71b1cf1c20c2aa0d534dccfc9701a1ebe465f4e56b1f5d0eb7a344d6e1b1560f'",
+          "after": "18307,'3b4d5afef47c22789f3f83b950aec5036de09725588b869a8da89fbffeb5dc26'",
+          "count": 1
+        },
+        {
+          "before": "m={'__file__':str(helper)};exec",
+          "after": "m={'__file__':str(helper),'_AUTHENTICATED_PROGRAM':helper_raw};exec",
+          "count": 1
+        },
+        {
+          "before": "old={'__file__':str(original_path)};exec(compile(original_raw,str(original_path),'exec'),old)",
+          "after": "old_source=original_raw.decode();old_read=\"(D/'verify-or-refresh.py').read_text()\";new_read='_next_public_previous()'\nassert old_source.count(old_read)==1;old_current=old_source.replace(old_read,new_read,1)\nassert old_current.replace(new_read,old_read,1).encode()==original_raw\nold={'__file__':str(original_path),'_next_public_previous':new['public_previous']};exec(compile(old_current,str(original_path),'exec'),old)",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "old_recipe_table_unchanged": true
+}

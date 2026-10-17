@@ -46,6 +46,11 @@ pub(super) fn project(source: &str, current: &str) -> String {
 // Authenticate the entire live module, restore only its exact cfg/export edit,
 // and leave every original inverse and full-source assertion in a/b unchanged.
 pub(super) fn before_production_promotion(source: &str, current: &str) -> String {
+    let acquired;
+    let current = if source == "src/hir/lexical_exit.rs" {
+        acquired = lexical_before_later_promotions(current);
+        acquired.as_str()
+    } else { current };
     let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/fade-custody-promotions-20261017/bindings.json"
@@ -115,4 +120,40 @@ fn production_promotion_views_restore_whole_modules_and_reject_drift() {
                 .is_err()
         );
     }
+}
+
+// Closed compiled-source input before the original two-row promotion domain.
+// Current production exports remain live; old promotion hashes stay unchanged.
+fn lexical_before_later_promotions(current: &str) -> String {
+    const RAW: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/c874-lexical-promotion-input-20261017/lexical-exit.c874-current.rs.txt"));
+    const BEFORE: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/c874-lexical-promotion-input-20261017/lexical-exit.2d87-before.rs.txt"));
+    let sha = |text: &str| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes())));
+    assert_eq!(RAW.len(), 6_956);
+    assert_eq!(sha(RAW), "246cb0df50653502b3cf26ab9348e6db14508dad14c870852a22aab95db1e05d");
+    assert_eq!(current.len(), RAW.len(), "whole later lexical module length");
+    assert_eq!(sha(current), sha(RAW), "whole later lexical module");
+    assert_eq!(current, RAW, "complete compiled-source input");
+    assert_eq!(BEFORE.len(), 6_885);
+    assert_eq!(sha(BEFORE), "4fcfdef9e15555a8356841b45746e23650e5811f115fe3f40c1c43914aa9d9a9");
+    BEFORE.to_owned()
+}
+
+#[test]
+fn lexical_later_promotions_retain_complete_original_input_and_refuse_foreign_stages() {
+    let current = include_str!("../../../../hir/lexical_exit.rs");
+    let before = include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/c874-lexical-promotion-input-20261017/lexical-exit.2d87-before.rs.txt"));
+    assert_eq!(lexical_before_later_promotions(current), before);
+    let prior = include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/fade-custody-promotions-20261017/src__hir__lexical_exit.rs.prior"));
+    assert_eq!(before_production_promotion("src/hir/lexical_exit.rs", current), prior);
+    for bad in [String::new(), current[..current.len()-1].to_owned(), format!("{current}\n"),
+        current.replacen("pub(crate)", "pub(super)", 1), before.to_owned(), prior.to_owned(),
+        include_str!("../../../../hir/function_value.rs").to_owned(), current.replace('\n', "\r\n")] {
+        assert!(std::panic::catch_unwind(|| lexical_before_later_promotions(&bad)).is_err());
+        assert!(std::panic::catch_unwind(|| before_production_promotion("src/hir/lexical_exit.rs", &bad)).is_err());
+    }
+    assert!(std::panic::catch_unwind(|| before_production_promotion("foreign.rs", current)).is_err());
 }

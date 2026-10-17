@@ -1,0 +1,10 @@
+{
+  "state": "PASS_SOURCE_ONLY",
+  "base": "c8740045e33126a4375aadd1dc524a25be9245fc",
+  "whole_old_helper_and_original_tests_recovered": true,
+  "whole_git_before": "2d87a3b8927b25eb8cf039ab307a69d44df229f9",
+  "old_promotion_rows": 2,
+  "whole_original_prior_archives_equal": true,
+  "source_parse": "PASS",
+  "runtime": "UNEXECUTED"
+}

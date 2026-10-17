@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/bounded-source-mask-cache-20261017/refresh-entry.py", line 31, in <module>
+    before=validate_dirty()
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/bounded-source-mask-cache-20261017/refresh-entry.py", line 27, in validate_dirty
+    assert paths<=allowed,('unexpected dirty refresh paths',sorted(paths-allowed))
+           ^^^^^^^^^^^^^^
+AssertionError: ('unexpected dirty refresh paths', ['docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs', 'docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/docs/DEVELOPMENT.md', 'docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup/schema_summary/tests.rs', 'docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs', 'docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/flat_records/tests/receiving_path_boundary.rs', 'docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs', 'docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/hir/resolve_program/tests/reservation_stages.rs', 'docs/evidence/main67107-fronts-6e45-20261017/front-binding-receipt.json'])
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main67107-fronts-6e45-20261017/refresh-composed.py", line 32, in <module>
+    exec(compile(current,str(original),'exec'),{'__file__':str(original),'__name__':'__main__','alias_stage':alias_stage})
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/joined-batch-custody-20261016/refresh.py", line 90, in <module>
+    # The original verifier's full-role/source function remains the unchanged
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/bounded-source-mask-cache-20261017/refresh-entry.py', '--repo', '/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang', '--head', 'dee6f84ffcc88e98fa5346225e1961d69b7ce337', '--entry', 'authority-generate', '--stats', '/Volumes/Semaprax/runtime-tmp/source-mask-dee6f84ffcc88e98fa5346225e1961d69b7ce337-authority-generate-5086.json', '--', '--repo', '/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang', '--out', '/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/a3-e47-final-custody-20261016']' returned non-zero exit status 1.

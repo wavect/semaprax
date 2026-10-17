@@ -1,6 +1,6 @@
 {
   "status": "NEW_UNQUALIFIED_MAIN_FRONT_BINDINGS_ONLY",
-  "source_head": "197e7814c86f144804eaa65ef1143828c4fd39bd",
+  "source_head": "dee6f84ffcc88e98fa5346225e1961d69b7ce337",
   "source_repo": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
   "raw_inputs": {
     "src/byte_ops.rs": "22e3f98ab80d320bed149c19de4ab1394f0dca7b55be3b7080f2745a50186ade",

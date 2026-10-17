@@ -14,6 +14,7 @@
       "benchmarks/live_campaign_common.py",
       "benchmarks/webapp-tokens-v2/codex_campaign.py",
       "benchmarks/webapp-tokens-v2/test_codex_campaign.py",
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs",
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
       "docs/AGENT-AUTHORING-GUIDE.md",
       "docs/AGENT-DIAGNOSTIC-HELP.json",
@@ -22,6 +23,7 @@
       "docs/ARCHITECTURE.md",
       "docs/BORROWED-BYTE-SLICE-FOR-TRAVERSAL-V2.md",
       "docs/CLI-HELP-V6.md",
+      "docs/DEVELOPMENT.md",
       "docs/FACTORED-SINGLETON-TARGETS-V1.md",
       "docs/QUALITY-GATES.md",
       "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
@@ -43,6 +45,7 @@
       "src/byte_ops/funded.rs",
       "src/cleanup.rs",
       "src/cleanup/inventory_builder.rs",
+      "src/cleanup/schema_summary/tests.rs",
       "src/cleanup_plan.rs",
       "src/cleanup_plan/renewal_profile.rs",
       "src/cleanup_plan/renewal_profile/child_refusal.rs",
@@ -59,6 +62,7 @@
       "src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs",
       "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
       "src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs",
       "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
       "src/cleanup_plan/replay/factored/oracle_order/tests.rs",
       "src/cleanup_plan/replay/factored/strategy.rs",
@@ -68,12 +72,14 @@
       "src/cleanup_plan/replay/flat_records/tests/receiving_boundary.rs",
       "src/cleanup_plan/replay/flat_records/tests/receiving_certificate.rs",
       "src/cleanup_plan/replay/flat_records/tests/receiving_families.rs",
+      "src/cleanup_plan/replay/flat_records/tests/receiving_path_boundary.rs",
       "src/cleanup_plan/replay/flat_records/tests/receiving_status_scalar.rs",
       "src/cleanup_plan/replay/inventory_coverage.rs",
       "src/cleanup_plan/replay/lexical_replay.rs",
       "src/cleanup_plan/replay/lexical_skeleton.rs",
       "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
       "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
       "src/cleanup_plan/replay/live_oracle/source_custody/presence.json",
       "src/cleanup_plan/replay/live_oracle/source_custody/presence.rs",
       "src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs",
@@ -168,6 +174,7 @@
       "src/hir/resolve_program/agent_identity/tests.rs",
       "src/hir/resolve_program/agent_identity_original.rs",
       "src/hir/resolve_program/tests.rs",
+      "src/hir/resolve_program/tests/reservation_stages.rs",
       "src/hir/resolve_statement.rs",
       "src/hir/resolve_statement/nested_byte_tests.rs",
       "src/hir/resolve_stdin_stream.rs",
@@ -346,18 +353,18 @@
       {
         "table": "current-to-Previous16c.json",
         "first": ".github/workflows/ci.yml",
-        "last": "src/source_verify/iterative/enter.rs",
-        "rows": 240,
-        "length": 4939109,
-        "sha256": "971eb7c8723177720c67eedbc3494068e27b6bc81c222df9e8d11bfb39f8a580"
+        "last": "src/source_verify/iterative/blocks.rs",
+        "rows": 243,
+        "length": 5006779,
+        "sha256": "de12abc48a7a2bb9c5eafef23c6387df533bd1359e005a0212e6a99aa8e38702"
       },
       {
         "table": "current-to-Previous16c-part-001.json",
-        "first": "src/source_verify/iterative/enter/enter_before_components.rs",
+        "first": "src/source_verify/iterative/calls.rs",
         "last": "tests/workspace/semantic_graph/source_inventory.rs",
-        "rows": 97,
-        "length": 2008526,
-        "sha256": "fa197d8a0af358262ee5dc425dfa7a43f7ef646de6822111ff84fe5637c729c0"
+        "rows": 101,
+        "length": 2374442,
+        "sha256": "86f6df9901f89fcca0b435a7ab727d2ebb1c0857f0ec4e4846d2e02e56c456b0"
       }
     ]
   },
@@ -403,8 +410,8 @@
         "first": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
         "last": "tests/workspace/semantic_graph/source_inventory.rs",
         "rows": 30,
-        "length": 1626004,
-        "sha256": "da941151b186c27cbb2b537835ba8e058f38bb6c7a2f82ee3f35adca0ed3e258"
+        "length": 1630182,
+        "sha256": "e166cf9a270bffe7b83240ab982afb617435f64c858d32dd7b10a680526c912f"
       }
     ]
   },

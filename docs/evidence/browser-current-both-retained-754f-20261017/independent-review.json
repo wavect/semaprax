@@ -1,0 +1,20 @@
+{
+  "candidate_commit": "ff126e8c4bfa18940f60fb265da2c7a0ddb1ce95",
+  "status": "ACCEPT_SOURCE_ONLY",
+  "full_original_before_inverses": 3,
+  "whole_OURS_and_MAIN671_bodies": "unchangedexceptonlyoldMAIN671hostedrunnerread acquisition; newbridgeappend-only",
+  "fresh_live_consumer_calls": "actualrevision.semantic_graph()+explicitbaseline/renamed atbothdigest/drift sites; actualwrapperusesRAWshippingrunner",
+  "raw_role_guard": "exactrole, selfdigest, exactlyoneproject/workspace/graphpin inrole; positiveintegerbill<=unchangedMAX67108864 before restoration",
+  "independent_historical_positive_pairs": 2,
+  "independent_hostile_model_refusals": 20,
+  "both_restorations": "onlyactualbill+verifieddigest replaced, fullpreviouswirebyteequality enforcedbeforeindependentMAIN671+nextactual trees/drifts",
+  "custody": "Onlyfifthexplicitrootconsumerpath added; old5row218tableunchangedSHAe472406e433dd61bd26a852637996981a53b64cf4db9feb054185fb6e752c74a; noglobalPathhook",
+  "new_selector": "wasm::scalar_browser_ci_contract::historical_builder::current_browser_bridge_keeps_both_complete_trees_and_refuses_rehashed_foreign_and_wrong_role",
+  "limits": "NoRust/Cargo/runtime/capture/newpins. PositivebridgealgorithmusesexplicitarchivedMAIN671; actualcurrentpositiveonlyfreshliveproducerowner, executionpendingparentbatch.",
+  "source_proof_sha256": "2d187910100188e71fa7c85c82ef259526a175052808f4e3a49ef1d0cbdc6072",
+  "current_files": {
+    "tests/wasm/scalar_browser_ci_contract/historical_builder.rs": "96a19ecd051bf18608203c561daa8c7242eb74ed2f84d12c6d28dc41113d1686",
+    "tests/wasm/scalar_browser_ci_contract.rs": "64c26c09b6346b47463e95ca9e50ae6c59cd635112608582fc122ec7ed3d6dd5",
+    "tests/wasm/scalar_browser_ci_contract/browser_custody.rs": "0a527de09f72a142be138e7c4d3499c121e09fa1884f01a05ebc4992a725f985"
+  }
+}

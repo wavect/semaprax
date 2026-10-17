@@ -137,6 +137,7 @@ class _Runtime:
         self.sequence = self.transcript_bytes = self.stderr_bytes = 0
         self.buffer = bytearray()
         self.process = None
+        self.group = None
         self.selector = selectors.DefaultSelector()
         try:
             self.wire = (evidence / 'qualification-wire.jsonl').open('xb')
@@ -151,6 +152,7 @@ class _Runtime:
             self.process = subprocess.Popen(list(server_command), cwd=plan.server_cwd,
                 env=dict(plan.server_env), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE, close_fds=True, start_new_session=True)
+            self.group = _acquire_group(self.process)
             os.set_blocking(self.process.stdin.fileno(), False)
             for pipe in (self.process.stdout, self.process.stderr):
                 os.set_blocking(pipe.fileno(), False)
@@ -162,12 +164,15 @@ class _Runtime:
             self.protocol.validate('initialize_result', self.exchange('initialize', params, 20))
             self.send({'method':'initialized'})
             self.initialized = True
-        except BaseException:
+        except BaseException as primary:
             try: self.close()
             except BaseException as cleanup:
-                _write_new(evidence/'qualification-startup-cleanup-refusal.json',encode({
-                    'type':type(cleanup).__name__,'message':str(cleanup),
-                    'selected_primary_preserved':True,'authority_granted':False}))
+                try:
+                    _write_new(evidence/'qualification-startup-cleanup-refusal.json',encode({
+                        'type':type(cleanup).__name__,'message':str(cleanup)[:4096],
+                        'selected_primary_preserved':True,'authority_granted':False}))
+                except BaseException as evidence_error:
+                    primary.add_note('cleanup evidence write failed: '+str(evidence_error)[:4096])
             raise
 
     def _record(self, direction, raw):
@@ -287,7 +292,11 @@ class _Runtime:
         try:
             if self.process is not None:
                 try:
-                    _settle(self.process)
+                    _settle(self.process,self.group)
+                    # Startup may have failed before nonblocking setup. Never
+                    # enter a cleanup read on a potentially blocking pipe.
+                    os.set_blocking(self.process.stdout.fileno(),False)
+                    os.set_blocking(self.process.stderr.fileno(),False)
                     # Do not silently drop a late response/output after a final
                     # result. Only schema-known non-output notifications survive.
                     while True:
@@ -392,18 +401,56 @@ def _collect_plan(path, digest, mode):
     return plan
 
 
-def _settle(process):
+@dataclass(frozen=True)
+class _OwnedGroup:
+    process: object
+    pid: int
+
+
+def _acquire_group(process):
+    # Popen is owned here, single-threaded, and the direct child is unreaped.
+    # An unreaped child PID cannot be reassigned to an unrelated process.
+    _require(process.returncode is None and process.pid > 1
+             and process.pid != os.getpgrp(), 'no unreaped owned group leader')
+    _require(os.getpgid(process.pid) == process.pid, 'child is not its own group leader')
+    return _OwnedGroup(process,process.pid)
+
+
+def _observe_group_absent(pid):
+    # Observation only after reaping: never signal this numeric PG again.
+    deadline = time.monotonic()+2
+    while True:
+        try: os.killpg(pid,0)
+        except ProcessLookupError: return
+        _require(time.monotonic() < deadline,
+                 'residual or reused process group observed; no authority to signal it')
+        time.sleep(.02)
+
+
+def _settle(process, owner=None):
     _require(process.pid > 1 and process.pid != os.getpgrp(), 'foreign process group')
+    if process.returncode is not None:
+        _observe_group_absent(process.pid)
+        return
+    if owner is None:
+        owner = _acquire_group(process)
+    _require(owner.process is process and owner.pid == process.pid, 'foreign group ownership')
     for sig in (signal.SIGTERM, signal.SIGKILL):
-        try: os.killpg(process.pid, sig)
-        except ProcessLookupError: break
+        # Do not poll/wait before this check: those calls can reap the leader.
+        _require(process.returncode is None and os.getpgid(owner.pid) == owner.pid,
+                 'unreaped owned leader continuity lost')
+        try: os.killpg(owner.pid,sig)
+        except ProcessLookupError:
+            process.wait(timeout=2)
+            _observe_group_absent(owner.pid)
+            return
         try: process.wait(timeout=2)
-        except subprocess.TimeoutExpired: continue
-        try: os.killpg(process.pid, 0)
-        except ProcessLookupError: break
-    else:
-        raise AuthorityRefusal('owned producer PG did not settle')
-    process.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            _require(process.returncode is None, 'unexpected reaped child after timeout')
+            continue
+        _observe_group_absent(owner.pid)
+        return
+    raise AuthorityRefusal('owned producer leader did not settle after bounded signals')
 
 
 def _build_probe(plan, store, compiler, evidence):
@@ -428,9 +475,12 @@ def _build_probe(plan, store, compiler, evidence):
     process = subprocess.Popen(args, cwd=evidence, env=env, stdin=subprocess.DEVNULL,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                close_fds=True, start_new_session=True)
-    selector = selectors.DefaultSelector(); outputs = {'stdout':bytearray(),'stderr':bytearray()}
+    selector = None; group = None
+    outputs = {'stdout':bytearray(),'stderr':bytearray()}
     started = time.monotonic(); code = None; primary = None; cleanup_error = None
     try:
+        group = _acquire_group(process)
+        selector = selectors.DefaultSelector()
         for name in outputs:
             pipe = getattr(process,name); os.set_blocking(pipe.fileno(),False)
             selector.register(pipe, selectors.EVENT_READ, name)
@@ -445,10 +495,11 @@ def _build_probe(plan, store, compiler, evidence):
     except BaseException as error:
         primary = error
     finally:
-        try: _settle(process)
+        try: _settle(process,group)
         except BaseException as error: cleanup_error = error
         finally:
-            selector.close(); process.stdout.close(); process.stderr.close()
+            if selector is not None: selector.close()
+            process.stdout.close(); process.stderr.close()
     record = {'schema':'semaprax.actual-fixed-probe-build.v1','command':args,'env':env,
               'source_sha256':PROBE_SOURCE_SHA256,'exit_code':code,
               'elapsed_seconds':time.monotonic()-started,
@@ -561,6 +612,30 @@ def _make_private_directory(path):
     finally: os.close(fd)
 
 
+def _record_primary_refusal(evidence,error,results):
+    try:
+        _write_new(evidence/'qualification-refusal.json',encode({
+            'status':'ACTUAL_ATTEMPT_REFUSED_NO_AUTHORITY','type':type(error).__name__,
+            'message':str(error)[:4096],'completed_observations':results,'authority_granted':False}))
+    except BaseException as evidence_error:
+        error.add_note('primary evidence write failed: '+str(evidence_error)[:4096])
+
+
+def _cleanup_runtime(runtime,evidence,primary,results):
+    try: runtime.close()
+    except BaseException as error:
+        try:
+            _write_new(evidence/'qualification-cleanup-refusal.json',encode({
+                'type':type(error).__name__,'message':str(error)[:4096],
+                'selected_primary_preserved':primary is not None,
+                'completed_observations':results,'authority_granted':False}))
+        except BaseException as evidence_error:
+            if primary is None: raise error from evidence_error
+            primary.add_note('cleanup evidence write failed: '+str(evidence_error)[:4096])
+            return  # The already selected primary is reraised by the caller.
+        if primary is None: raise
+
+
 def run_qualification(contract_path, contract_sha256, *, evidence, store_mode,
                       protected_roots, sandbox_launcher, probe_build_compiler, model, effort):
     """Explicit future probe action. No agent/model turn and no authority grant.
@@ -642,19 +717,12 @@ def run_qualification(contract_path, contract_sha256, *, evidence, store_mode,
                 results.append({'case':case,'actual':_termination_observation(case,outcome)})
         except BaseException as error:
             primary = error
-            _write_new(evidence/'qualification-refusal.json',encode({
-                'status':'ACTUAL_ATTEMPT_REFUSED_NO_AUTHORITY','type':type(error).__name__,
-                'message':str(error),'completed_observations':results,'authority_granted':False}))
+            _record_primary_refusal(evidence,error,results)
             raise
         finally:
             try:
                 if runtime is not None:
-                    try: runtime.close()
-                    except BaseException as error:
-                        if primary is None: raise
-                        _write_new(evidence/'qualification-cleanup-refusal.json',encode({
-                            'type':type(error).__name__,'message':str(error),
-                            'selected_primary_preserved':True,'authority_granted':False}))
+                    _cleanup_runtime(runtime,evidence,primary,results)
             finally: unix.close()
         record = {'schema':'semaprax.darwin-qualification-observations.v1',
             'status':'ACTUAL_CONTROL_OBSERVATIONS_NOT_AUTHORITY', 'store_mode':store_mode,

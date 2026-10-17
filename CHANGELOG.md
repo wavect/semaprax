@@ -1,3 +1,4 @@
+- Source-only #879 funds the direct generic branch-copy ABI at its caller and bounds lexical continuation edges before choosing backing; complete prior producers and unchanged arithmetic/frontier assertions remain compiled. Runtime and cost qualification are pending.
 - Source-only #875 separates the unchanged unadmitted owned-Option residual fixture into an exact T218 control so the admitted owned/Result/scalar history corpus can reach both original comparison algorithms. Qualification is pending.
 - Source-only #859 restores independent body diagnostics after authenticated concrete-record shape refusals; other rejected-storage routes retain their prior early return. Focused qualification is pending.
 <!-- OPT874 source candidate: bind direct selected singleton setup identity and preflight test adapters before payment; preserve complete old producers and failure controls, qualification pending. -->

@@ -403,3 +403,5 @@ mod inline_tests;
 mod before_inline;
 
 pub(in crate::cleanup_plan::replay) mod production_capacity;
+
+pub(in crate::cleanup_plan::replay) mod direct;

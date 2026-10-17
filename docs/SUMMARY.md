@@ -827,6 +827,7 @@ Audience: all documentation readers.
 - [Recovery constructor funding design v1](RECOVERY-CONSTRUCTOR-FUNDING-DESIGN-V1.md)
 - [Referenced edge ownership proof v1](REFERENCED-EDGE-OWNERSHIP-PROOF-V1.md)
 - [Factored continuation receiving v1](REPLAY-FACTORED-CONTINUATION-RECEIVING-V1.md)
+- [Lazy backing for test instrumentation](evidence/lazy-test-instrumentation-v1/README.md)
 - [Direct weighted successor targets](evidence/factored-flat-targets-v1/README.md)
 - [Earlier factored comparison for scalar path products](evidence/moderate-factored-v1/README.md)
 - [Scoped Vec Field Source Forms v1](SCOPED-VEC-FIELD-SOURCE-FORMS-V1.md)

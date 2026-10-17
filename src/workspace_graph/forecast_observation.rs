@@ -15,7 +15,7 @@ struct Record {
     values: [usize; 17],
 }
 struct State {
-    entries: [Option<Record>; SLOTS],
+    entries: Vec<Option<Record>>,
     count: usize,
     oversized_paths: usize,
     forecasts: [usize; 8],
@@ -25,7 +25,7 @@ struct State {
 impl State {
     const fn new() -> Self {
         Self {
-            entries: [None; SLOTS],
+            entries: Vec::new(),
             count: 0,
             oversized_paths: 0,
             forecasts: [0; 8],
@@ -141,8 +141,9 @@ impl Drop for Pass {
         }
     }
 }
-/// The callback runs under unchanged production budgets. Only reporting after
-/// it returns allocates/serializes. Ring truncation is explicitly reported.
+/// Fixed metadata backing is prepared before the callback, which runs under
+/// unchanged production budgets. Reporting serializes only after it returns.
+/// Ring truncation is explicitly reported.
 pub(crate) fn observe<T>(application: &str, operation: impl FnOnce() -> T) -> T {
     struct Restore(bool);
     impl Drop for Restore {
@@ -151,7 +152,16 @@ pub(crate) fn observe<T>(application: &str, operation: impl FnOnce() -> T) -> T 
         }
     }
     assert!(!ACTIVE.with(Cell::get), "forecast observers cannot nest");
-    STATE.with(|s| *s.borrow_mut() = State::new());
+    STATE.with(|s| {
+        let mut state = s.borrow_mut();
+        state.entries.resize(SLOTS, None);
+        state.entries.fill(None);
+        state.count = 0;
+        state.oversized_paths = 0;
+        state.forecasts = [0; 8];
+        state.current_pass = None;
+        state.authority_requests = 0;
+    });
     let guard = Restore(ACTIVE.with(|a| a.replace(true)));
     let result = operation();
     drop(guard);
@@ -208,6 +218,46 @@ pub(crate) fn observe<T>(application: &str, operation: impl FnOnce() -> T) -> T 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn ring_backing_is_lazy_and_prepared_before_application_allocation_observation() {
+        assert_eq!((SLOTS, PATH), (256, 256));
+        assert!(std::mem::size_of::<State>() < std::mem::size_of::<[Option<Record>; SLOTS]>());
+        std::thread::Builder::new()
+            .stack_size(128 * 1024)
+            .spawn(|| {
+                assert!(STATE.with(|state| state.borrow().entries.is_empty()));
+                let (marker, metrics) = observe("lazy-ring", || {
+                    crate::test_allocation_observer::measure(|| {
+                        let bytes = vec![7u8; 17];
+                        std::hint::black_box(&bytes);
+                        record("source", 4, false, [0; 17]);
+                        31
+                    })
+                });
+                assert_eq!(marker, 31);
+                assert!(!metrics.invalid);
+                assert_eq!(
+                    (metrics.allocated, metrics.freed, metrics.live),
+                    (17, 17, 0)
+                );
+                let pointer = STATE.with(|state| {
+                    let state = state.borrow();
+                    assert_eq!(state.entries.len(), SLOTS);
+                    assert_eq!(state.count, 1);
+                    state.entries.as_ptr()
+                });
+                observe("empty-ring", || ());
+                STATE.with(|state| {
+                    let state = state.borrow();
+                    assert_eq!(state.entries.as_ptr(), pointer);
+                    assert_eq!(state.count, 0);
+                    assert!(state.entries.iter().all(Option::is_none));
+                });
+            })
+            .unwrap()
+            .join()
+            .unwrap();
+    }
     #[test]
     fn actual_pass_modes_keep_components_peaks_and_incomplete_totals_distinct() {
         let marker = observe("observer-contract", || {

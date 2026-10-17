@@ -1,10 +1,13 @@
 """Artifact provenance failures must stop before a debugger can execute anything."""
 
 import contextlib
+import ast
+import hashlib
 import io
 import json
 from pathlib import Path
 import runpy
+import struct
 import sys
 import types
 import tempfile
@@ -13,6 +16,131 @@ from unittest.mock import patch
 
 TRACE = runpy.run_path(str(Path(__file__).resolve().parents[1] / "ci-low-stack-trace.py"))
 SELECT = TRACE["select_executable"]
+
+
+class InstrumentationSourceCustody(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(__file__).resolve().parents[2]
+        self.evidence = self.root / "docs/evidence/lazy-test-instrumentation-v1"
+        self.records = json.loads((self.evidence / "sources.json").read_text())
+        self.assertEqual({record["path"] for record in self.records}, {
+            "src/test_allocation_observer.rs", "src/workspace_graph/forecast_observation.rs",
+            "scripts/ci-low-stack-trace.py", "scripts/tests/test_ci_low_stack_trace.py",
+        })
+
+    def test_whole_predecessors_and_tampered_inputs_remain_bound(self):
+        digest = lambda value: hashlib.sha256(value.encode()).hexdigest()
+        for record in self.records:
+            with self.subTest(path=record["path"]):
+                before = (self.evidence / record["archive"]).read_text()
+                current = (self.root / record["path"]).read_text()
+                self.assertEqual(digest(before), record["before_sha256"])
+
+                def restore(value):
+                    if digest(value) != record["after_sha256"]:
+                        raise ValueError("current source drift")
+                    for change in record["inverse"]:
+                        if value.count(change["after"]) != 1:
+                            raise ValueError("nonunique inverse")
+                        value = value.replace(change["after"], change["before"], 1)
+                    return value
+
+                self.assertEqual(restore(current), before)
+                for changed in [current + "\n", "!" + current[1:]]:
+                    with self.assertRaises(ValueError):
+                        restore(changed)
+
+    def test_complete_allocator_callbacks_windows_and_original_python_cases_are_retained(self):
+        originals = {record["path"]: (self.evidence / record["archive"]).read_text()
+                     for record in self.records}
+        path = "src/test_allocation_observer.rs"
+        before, current = originals[path], (self.root / path).read_text()
+        for start, end in [
+            ("    fn allocated(", "\nthread_local!"),
+            ("unsafe impl GlobalAlloc for ObservedSystem", "\nstruct Guard;"),
+            ("struct Guard;", "// Keep instrumentation"),
+            ("fn finish_observation(", "\n#[cfg(test)]\nmod tests"),
+        ]:
+            self.assertEqual(before.split(start, 1)[1].split(end, 1)[0],
+                             current.split(start, 1)[1].split(end, 1)[0])
+        path = "src/workspace_graph/forecast_observation.rs"
+
+        def callbacks(value):
+            lines = value.split("pub(crate) fn record(", 1)[1].split(
+                "pub(crate) fn observe<", 1)[0].rstrip().splitlines()
+            while lines and lines[-1].startswith("///"):
+                lines.pop()
+            return "\n".join(lines)
+
+        self.assertEqual(callbacks(originals[path]), callbacks((self.root / path).read_text()))
+        path = "scripts/tests/test_ci_low_stack_trace.py"
+
+        def cases(value):
+            return {(item.name, method.name) for item in ast.parse(value).body
+                    if isinstance(item, ast.ClassDef) for method in item.body
+                    if isinstance(method, ast.FunctionDef) and method.name.startswith("test_")}
+
+        self.assertTrue(cases(originals[path]).issubset(cases((self.root / path).read_text())))
+        path = "scripts/ci-low-stack-trace.py"
+        old_tree, new_tree = ast.parse(originals[path]), ast.parse((self.root / path).read_text())
+        for name in ["CASE", "FRAME_LAYOUT_CODE"]:
+            values = [next(ast.literal_eval(item.value) for item in tree.body
+                           if isinstance(item, ast.Assign)
+                           and any(isinstance(target, ast.Name) and target.id == name
+                                   for target in item.targets)) for tree in [old_tree, new_tree]]
+            self.assertEqual(values[0], values[1])
+        functions = [next(item for item in tree.body if isinstance(item, ast.FunctionDef)
+                          and item.name == "select_executable") for tree in [old_tree, new_tree]]
+        self.assertEqual(ast.dump(functions[0]), ast.dump(functions[1]))
+
+
+class ElfTlsLayouts(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.path = Path(self.directory.name) / "artifact"
+
+    def artifact(self, entries):
+        header = bytearray(64)
+        header[:7] = b"\x7fELF\x02\x01\x01"
+        struct.pack_into("<Q", header, 32, 64)
+        struct.pack_into("<HH", header, 54, 56, len(entries))
+        self.path.write_bytes(header + b"".join(entries) + b"\x00" * 8)
+
+    def tls(self, *, initialized=8, total=16, alignment=8):
+        entry = bytearray(56)
+        struct.pack_into("<I", entry, 0, 7)
+        struct.pack_into("<Q", entry, 8, 120)
+        struct.pack_into("<QQQ", entry, 32, initialized, total, alignment)
+        return entry
+
+    def test_reads_tls_layout_without_executing_the_file(self):
+        self.artifact([self.tls()])
+        self.assertEqual(TRACE["elf_tls_layout"](self.path),
+                         {"initialized_bytes": 8, "total_bytes": 16, "alignment": 8})
+        self.artifact([bytearray(56)])
+        self.assertIsNone(TRACE["elf_tls_layout"](self.path))
+
+    def test_rejects_invalid_and_duplicate_tls_segments(self):
+        for entries in [[self.tls(initialized=17)], [self.tls(total=7)],
+                        [self.tls(alignment=3)], [self.tls(), self.tls()]]:
+            with self.subTest(entries=len(entries)):
+                self.artifact(entries)
+                with self.assertRaises(ValueError):
+                    TRACE["elf_tls_layout"](self.path)
+
+    def test_rejects_truncation_and_excessive_header_counts(self):
+        for data in [b"", b"\x7fELF\x02\x01\x01", b"x" * 64]:
+            self.path.write_bytes(data)
+            with self.assertRaises(ValueError):
+                TRACE["elf_tls_layout"](self.path)
+        self.artifact([self.tls()])
+        data = bytearray(self.path.read_bytes())
+        for count in [0, 4096, 4097]:
+            struct.pack_into("<H", data, 56, count)
+            self.path.write_bytes(data)
+            with self.assertRaises(ValueError):
+                TRACE["elf_tls_layout"](self.path)
 
 
 class ArtifactProvenance(unittest.TestCase):

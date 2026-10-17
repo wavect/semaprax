@@ -1,0 +1,14 @@
+[
+  {
+    "suite": "source",
+    "peak_KiB": 4496
+  },
+  {
+    "suite": "docs",
+    "peak_KiB": 4480
+  },
+  {
+    "suite": "release",
+    "peak_KiB": 22416
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "runs": [
+    {
+      "compiler": "/opt/homebrew/bin/rustc",
+      "compile_peak_KiB": 154368,
+      "run_peak_KiB": 32
+    },
+    {
+      "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+      "compile_peak_KiB": 145888,
+      "run_peak_KiB": 32
+    }
+  ],
+  "scope": "Complete actual opt-in receipt helper and all3 owning assertions, plus complete real retry-loop receiving record expression with thin scalar/result/site argument adapters. No full productioncore retries qualified by this component."
+}

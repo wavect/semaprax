@@ -1,0 +1,24 @@
+{
+  "docs/evidence/prelude-forecast-286/pin-capture/exact-source-inverses.json": {
+    "path": "tests/wasm/scalar_browser_ci_contract.rs",
+    "archive": "tests__wasm__scalar_browser_ci_contract.rs.before.txt",
+    "sha256": "b1406b424804a8b5716286ce3059c62a28a3c6e739999938929b58de7f2e66c5",
+    "edits": [
+      {
+        "before": "                let revision = snapshot.retain_revision();\n                previous_digests.push(digest_without_checked_value_cursor_budget(\n",
+        "after": "                let revision = snapshot.retain_revision();\n                if let Some(directory) = std::env::var_os(\"SEMAPRAX_PRELUDE_PIN_CAPTURE_DIR\") {\n                    use std::io::Write as _;\n                    let path =\n                        std::path::Path::new(&directory).join(format!(\"calculator-{name}.json\"));\n                    let mut file = std::fs::OpenOptions::new()\n                        .write(true)\n                        .create_new(true)\n                        .open(path)\n                        .expect(\"fresh calculator pin evidence file\");\n                    file.write_all(revision.semantic_graph().as_bytes())\n                        .expect(\"capture complete actual calculator graph\");\n                }\n                previous_digests.push(digest_without_checked_value_cursor_budget(\n"
+      }
+    ]
+  },
+  "docs/evidence/prelude-forecast-actual-pins-a184d-20261015/exact-source-inverses.json": {
+    "path": "src/workspace_graph/type_proof_tests.rs",
+    "archive": "src__workspace_graph__type_proof_tests.rs.before.txt",
+    "sha256": "8cb49f3d81351c3c22e736aa13ca40ad4f1f35962f5278ac80753bcb50353ffc",
+    "edits": [
+      {
+        "before": "sha256:ba3d1b86d584444b3ed9d18bb0dfd2ed7b69a2a68841a40de3ce5cdfc5dc39f9",
+        "after": "sha256:6a37e415054fff636f9d65b44a7a0b8546006ccb5c41af388223103aa35996aa"
+      }
+    ]
+  }
+}

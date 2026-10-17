@@ -35,7 +35,7 @@ The irreversible entry preflights the protected contract and rechecks every
 inventory file's bytes/mode, acquires the cwd by no-follow descriptors, creates
 an exclusive publication directory, selects that held cwd, binds stdin to the
 OS null device, closes extra descriptors and requires pipe stdout/stderr.
-It uses `execve` with a new six-key environment and inline `sandbox-exec -p`
+It uses `execve` with a rebuilt closed environment and inline `sandbox-exec -p`
 source, then the exact compiler argv. Thus it introduces no additional launcher
 child PID or shell. Inline source avoids a mutable per-request profile file.
 It cannot establish ACL/mount/ancestor continuity, protection of the interpreter,
@@ -58,3 +58,11 @@ protected provisioning, actual paired policy/env/loader/no-fork/settlement
 controls pass may a real qualifier construct a live grant and Session admit the
 wrapper route. Current campaign CLI, labels and old receipt algorithms are
 unchanged. Offline controls execute no child, sandbox, runtime, RPC or provider.
+
+The actual child entry requires the versioned user-home provisioning API:
+explicit CODEX_HOME=HOME/.codex and its one protected named config.toml. A seventh
+CODEX_HOME environment key is accepted only after validate_user_home_plan; no
+arbitrary environment extension is allowed. Six-key preparation remains a static
+legacy comparison input; execute_child does not silently fall back to a default
+HOME loader or the original content-addressed-only configuration layout. This
+versioned provisioning composes candidate sources, not an enforcement grant.

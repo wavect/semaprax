@@ -118,10 +118,17 @@ def prepare_transition(plan, argv, input_files, publication_directory, sandbox_l
     _require(output.parent == publication, "output must use dedicated publication directory")
     # Actual exec environment is rebuilt, not merged with runtime overrides.
     env = dict(plan.command_env)
-    _require(set(env) == {'PATH', 'HOME', 'TMPDIR', 'LANG', 'LC_ALL', 'TZ'} and
+    legacy_keys = {'PATH', 'HOME', 'TMPDIR', 'LANG', 'LC_ALL', 'TZ'}
+    _require(set(env) in (legacy_keys, legacy_keys | {'CODEX_HOME'}) and
              env == dict(plan.server_env) and
              all(type(v) is str and '\0' not in v for v in env.values()),
              "closed actual child environment required")
+    if 'CODEX_HOME' in env:
+        try:
+            from compiler_configuration_provisioning import validate_user_home_plan
+        except ImportError as error:
+            raise AuthorityRefusal('versioned named configuration provisioning unavailable') from error
+        validate_user_home_plan(plan)
     _require(env['LANG'] == 'C' and env['LC_ALL'] == 'C' and env['TZ'] == 'UTC',
              "fixed child locale required")
     sandbox_launcher = _path(str(sandbox_launcher))
@@ -244,8 +251,13 @@ def execute_child(contract_path, contract_sha256, argv, input_files,
     interpreter, dependency closure, actual policy inclusion and no-fork lifecycle.
     No boolean, static receipt or caller assertion bypasses that Session gate.
     """
-    from compiler_execution_authority import preflight
-    plan = preflight(Path(contract_path), contract_sha256)
+    try:
+        from compiler_configuration_provisioning import preflight_user_home
+    except ImportError as error:
+        raise AuthorityRefusal('versioned named configuration provisioning unavailable') from error
+    # Actual child entry uses explicit CODEX_HOME and the protected real named
+    # config. Legacy six-key preparation remains only a static comparison input.
+    plan = preflight_user_home(Path(contract_path), contract_sha256)
     transition = prepare_transition(plan, argv, input_files, publication_directory,
                                     sandbox_launcher)
     _exec_transition(transition)

@@ -1171,6 +1171,8 @@
         "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/helpers.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/helpers/before_remaining.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/helpers/regions.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs",
@@ -2013,11 +2015,14 @@
         "src/loop_calls/byte_writer/source_index/tests.rs",
         "src/loop_calls/byte_writer/source_index_original.rs",
         "src/loop_calls/byte_writer/tests.rs",
+        "src/loop_calls/byte_writer/tests/string_slots.rs",
         "src/loop_calls/byte_writer/validation_frontier.rs",
         "src/loop_calls/byte_writer/validation_frontier/ordinary_receiver.rs",
         "src/loop_calls/byte_writer/validation_frontier/storage.rs",
         "src/loop_calls/byte_writer/validation_frontier/tests.rs",
         "src/project/incremental/cold_source_tests/oracle_owner_before.rs",
+        "src/source_reflows/incoming090_semantic_receivers.rs",
+        "src/source_reflows/incoming21_semantic_receivers.rs",
         "src/source_reflows/semantic_receivers.rs",
         "src/source_reflows/semantic_receivers_main44.rs",
         "src/source_reflows/semantic_receivers_main7c6.rs",
@@ -2042,6 +2047,7 @@
         "src/source_reflows_merge/maina3_custody.rs",
         "src/source_reflows_merge/metadata_json.rs",
         "src/source_reflows_merge/opt858_sequence_input.rs",
+        "src/source_reflows_merge/ordinary_plan_inputs.rs",
         "src/source_reflows_merge/prefix_custody.rs",
         "src/source_reflows_merge/release_custody.rs",
         "src/source_reflows_merge/runtime_json.rs",
@@ -2125,6 +2131,7 @@
         "tests/support/production_source_inventory_original.rs",
         "tests/wasm/scalar_browser_ci_contract/actual_67b.rs",
         "tests/wasm/scalar_browser_ci_contract/actual_83ca.rs",
+        "tests/wasm/scalar_browser_ci_contract/before_21abc.rs",
         "tests/wasm/scalar_browser_ci_contract/before_2600.rs",
         "tests/wasm/scalar_browser_ci_contract/before_524.rs",
         "tests/wasm/scalar_browser_ci_contract/before_671.rs",
@@ -2206,6 +2213,7 @@
         "src/cleanup_plan/replay/expression_facts/receiving/directory.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/helpers.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/helpers/regions.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/remaining.rs",
@@ -2583,6 +2591,8 @@
         "src/cleanup_plan/replay/lexical_hir.rs",
         "src/cleanup_plan/replay/ordinary_inventory.rs",
         "src/cleanup_plan/replay/ordinary_inventory/storage.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/producer.rs",
         "src/cleanup_plan/replay/ordinary_status.rs",
         "src/cleanup_plan/replay/ordinary_status/allocation.rs",
         "src/cleanup_plan/replay/path_join.rs",
@@ -2632,9 +2642,9 @@
         "src/source_verify/function_map.rs",
         "src/source_verify/funding.rs"
       ],
-      "full_manifest_sha256": "5de91ae66ee0199e1529ba79c18a23880b1b5607c938b4147f34bb864aeeed4c",
-      "full_raw_sha256": "dace6b30a11d9c4425d7e65040818d837e82948dc2bc47d28bf554172b661a55",
-      "full_authenticated_production_sha256": "f36bfe1fe0407057cc79bfb52f8ee297f92bbd2eab6235cdcb9338a59b678d4a"
+      "full_manifest_sha256": "9030f53b34be1bd2133dbb7c51bc967238efd0d63f3b007047a93e3c421a28a2",
+      "full_raw_sha256": "6ee857183153fdd08d262fb4a32863b70fc9293e2bec2be299b2f2659720e359",
+      "full_authenticated_production_sha256": "9f75f6942790a01dfe27b96e7d6622b030a3e49518eb7dd453d28a805afce5d2"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -2894,6 +2904,8 @@
         "src/hir/ids/instance_match.rs",
         "src/hir/ids/instance_match/tests.rs",
         "src/hir/nodes/instance_key.rs",
+        "src/source_reflows/incoming090_semantic_receivers.rs",
+        "src/source_reflows/incoming21_semantic_receivers.rs",
         "src/source_reflows/semantic_receivers.rs",
         "src/source_reflows/semantic_receivers_mainb80.rs",
         "src/source_verify/hints/before_capacity_witness.rs",
@@ -3114,6 +3126,7 @@
         "src/cleanup_plan/replay/expression_facts/receiving/directory.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/helpers.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/helpers/regions.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/remaining.rs",
@@ -3171,6 +3184,8 @@
         "src/cleanup_plan/replay/ordinary_inventory.rs",
         "src/cleanup_plan/replay/ordinary_inventory/storage.rs",
         "src/cleanup_plan/replay/ordinary_inventory/substitute.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/producer.rs",
         "src/cleanup_plan/replay/ordinary_renewals.rs",
         "src/cleanup_plan/replay/ordinary_status.rs",
         "src/cleanup_plan/replay/ordinary_status/allocation.rs",
@@ -3619,9 +3634,9 @@
         "src/source_verify/declaration/identity.rs",
         "src/source_verify/declaration/record_shape.rs"
       ],
-      "full_manifest_sha256": "0a577d38b51608fb69098de696b2bb7fbf3cfe7c70d13f4e3e3ef2613a124957",
-      "full_raw_sha256": "36c62ae5a3015aef80ce520ee62f46c2101a987d3cd0d7a1ce2a63d091f7f725",
-      "full_authenticated_production_sha256": "30a8f5ecd2c1b028315188a5722e04a028bf5bc937532357a51678f5f3dfb529"
+      "full_manifest_sha256": "b89a6da35a9aa23e8f534504eaab0a55c9337ad67e5753f16ea22fa8f25dad42",
+      "full_raw_sha256": "c62ac451e189ac0617ac76b2ec2701b8c1d40763a4f34e5f8b053db5aadcdc77",
+      "full_authenticated_production_sha256": "490ae7c36140e7f1a5e6495aee31e836d191981f3e10fbabe5df906dadf28717"
     }
   }
 }

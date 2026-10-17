@@ -1,6 +1,6 @@
 {
   "status": "NEW_UNQUALIFIED_MAIN_FRONT_BINDINGS_ONLY",
-  "source_head": "0083fd57cf58947d60bfe76b3ec0e6b6a824d244",
+  "source_head": "86e84ed6084d34be40dd84421b6de1650cc0e1a7",
   "source_repo": "/Volumes/Semaprax/worktrees/next-large-integration-20261017",
   "raw_inputs": {
     "src/byte_ops.rs": "22e3f98ab80d320bed149c19de4ab1394f0dca7b55be3b7080f2745a50186ade",
@@ -44,8 +44,8 @@
     "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs": "77eea947e5f1fd72351e549fe0b70790a87d0fa056c14f715bce3743b2172168",
     "src/cleanup_plan/replay.rs": "555fe96fc9153aa2a7843ffd15da85e429bb56b1eef52e98193930f80203618e",
     "src/cleanup_plan/replay/factored/oracle_hook.rs": "0126d25150ca4b96f11995293fc9043d23fc8fff2008485e9560abe5c85cb7ae",
-    "tests/hir_module_boundaries.rs": "c1ef0ebc48df71bc52b830a86f3525ebd8db53fb3ae24b79197384372d5a9be0",
-    "tests/workspace/semantic_graph/source_inventory.rs": "4fd17065b73b1141ebf2e03b6a8d9d0e7c15e86b277c6344785324c21a3c15cb",
+    "tests/hir_module_boundaries.rs": "dc3bf3b20917a0c523231e405ff329e5950f12b55501bced9ae908fbaf5b8888",
+    "tests/workspace/semantic_graph/source_inventory.rs": "42bdd4f76491607cab8538b3006d4b807aca5d138badc1d763c7090cfc53b000",
     "src/source_verify/declaration.rs": "c93ac4c883fe6b10c831a2603c994ea03880986fd0b7a394bfa41ec8a06d88cb",
     "src/cleanup_plan/replay/branch_clone/tests.rs": "e8163fa7935623b165170be2242d547f3ad89a5c4905f9a90b763ab9b8619e59",
     "src/cleanup_plan/replay/factored.rs": "343eda3712d0c3b224742d72c34838a327e0c69449c8a94fd7eb81dc5e0134a6",
@@ -118,7 +118,7 @@
     "docs/evidence/ordinary-replay-setup-v1/production-cfg.json": "3134c2a1828fd0e20965fa242b7da954222f5bef2421e990e0340449fc768252",
     "docs/evidence/factored-flat-labels-v1/sources.json": "e4a0b41c76d2d987f7293fb0c1c4b474ea277bbfdc3ea542c969e7533306946d",
     "docs/evidence/factored-flat-labels-v1/test-namespace.json": "e3a5a6530353211086d3b554ceb19fbb82f9be82a2d8149b7220ccf0fce4ae69",
-    "docs/evidence/main67107-production-composition-20261017/receiver-main12.json": "a11e15035dcd963639edd0483cbf5aab122de94e9a25aebc6e136f5eee6cc213"
+    "docs/evidence/main67107-production-composition-20261017/receiver-main12.json": "1516826971e983f90824907991063ab2c4bbecfcf9e10ff5f59b6970d4e07cbb"
   },
   "no_cargo_or_runtime": true
 }

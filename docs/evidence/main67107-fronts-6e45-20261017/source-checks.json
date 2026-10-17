@@ -1,0 +1,12 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "complete_table_rows": 81,
+  "raw_negative_and_hash_guards": 329,
+  "stage_domains": 9,
+  "whole_MAIN10_and_OURS8_preserved": true,
+  "original_binders_common_and_six_protected_files_unchanged": true,
+  "Alias1ae_exact_current246_to_fd230_to_a75_stage": true,
+  "owned_growth_source_context": "actual frozen246 Git blob, independently byte-equal archived current; private branch retains base fixture until parent joins",
+  "raw3_insert_only_original_byte_restoration": true,
+  "no_Cargo_no_runtime_no_common_refresh": true
+}

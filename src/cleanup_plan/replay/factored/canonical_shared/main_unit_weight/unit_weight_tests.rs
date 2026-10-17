@@ -152,7 +152,7 @@ fn complete_previous_successor_producer_and_whole_current_module_remain_bound() 
     );
     let inverse: serde_json::Value = serde_json::from_str(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/docs/evidence/unit-weight-closure-v1/inverse.json"
+        "/docs/evidence/main67107-production-composition-20261017/unit-ours8.json"
     )))
     .unwrap();
     let mut restored = super::historical_main_source();

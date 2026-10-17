@@ -2,6 +2,7 @@
 //! These snapshots are used only by historical source assertions. Live source
 //! inventories continue to include the current modules and their new children.
 use super::*;
+use super::incoming67107_semantic_receivers::invert_ordinary;
 
 const PROOFS: &str = include_str!("../../docs/evidence/receiver-source-custody-v1/inverse.json");
 static PROOF_RECORDS: OnceLock<serde_json::Value> = OnceLock::new();
@@ -99,7 +100,7 @@ pub(super) fn predecessor(path: &str, current: &str) -> Option<String> {
         .chain(ordinary_helpers())
         .find(|proof| proof["path"] == path)
     {
-        return Some(invert(proof, current));
+        return Some(invert_ordinary(proof, current));
     }
     if let Some(proof) = followups().iter().find(|proof| proof["path"] == path) {
         return Some(invert(proof, current));
@@ -131,17 +132,17 @@ fn ordinary_helper_views_authenticate_every_complete_input() {
             .chain(ordinary_setup())
             .any(|old| old["path"] == path));
         let current = std::fs::read_to_string(root.join(path)).unwrap();
-        let before = invert(proof, &current);
+        let before = invert_ordinary(proof, &current);
         assert_eq!(
             before,
             std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap()
         );
         assert!(contains(path));
         assert_eq!(predecessor(path, &current), Some(before));
-        assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + "\n"))).is_err());
+        assert!(std::panic::catch_unwind(|| invert_ordinary(proof, &(current.clone() + "\n"))).is_err());
         let mut forged = proof.clone();
         forged["before_sha256"] = serde_json::Value::String("0".repeat(64));
-        assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());
+        assert!(std::panic::catch_unwind(|| invert_ordinary(&forged, &current)).is_err());
     }
 }
 
@@ -158,12 +159,12 @@ fn ordinary_setup_complete_sources_and_original_legacy_constructor_remain_exact(
         let path = row["path"].as_str().unwrap();
         assert!(paths.insert(path));
         let current = std::fs::read_to_string(root.join(path)).unwrap();
-        let before = invert(row, &current);
+        let before = invert_ordinary(row, &current);
         assert_eq!(
             before,
             std::fs::read_to_string(evidence.join(row["archive"].as_str().unwrap())).unwrap()
         );
-        assert!(std::panic::catch_unwind(|| invert(row, &(current.clone() + "\n"))).is_err());
+        assert!(std::panic::catch_unwind(|| invert_ordinary(row, &(current.clone() + "\n"))).is_err());
         if path == "src/cleanup_plan/replay/skeleton_work.rs" {
             let start = before.find("        Ok(Self {\n").unwrap();
             let end = before[start..]
@@ -194,7 +195,7 @@ fn ordinary_setup_bridges_preserve_every_complete_original_format_input() {
             .unwrap();
         assert_eq!(proof["before_sha256"], original_format["after_sha256"]);
         let current = std::fs::read_to_string(root.join(path)).unwrap();
-        let before = invert(proof, &current);
+        let before = invert_ordinary(proof, &current);
         assert_eq!(
             before,
             std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap()
@@ -203,7 +204,7 @@ fn ordinary_setup_bridges_preserve_every_complete_original_format_input() {
             digest(&restore(original_format, &before)),
             original_format["before_sha256"]
         );
-        assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + "\n"))).is_err());
+        assert!(std::panic::catch_unwind(|| invert_ordinary(proof, &(current.clone() + "\n"))).is_err());
     }
 }
 

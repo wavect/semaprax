@@ -1,0 +1,22 @@
+{
+  "schema": "semaprax.main67107-outer-stage.v1",
+  "current_binder": "docs/evidence/main67107-fronts-6e45-20261017/bind-composed-endpoints.py",
+  "current_binder_sha256": "d07eb7b76220b90ef37778a9998251ac46ad32bed32ac2f2232adc7988012a8f",
+  "composed_helper": "docs/evidence/main67107-fronts-6e45-20261017/composed_stage.py",
+  "composed_helper_sha256": "d86e9260ffbb3328b7640d8907d45d62eebd7b5d978b0d5e683bd4efff472322",
+  "stages_sha256": "bfbacf2777c310ee34ad6acd34352a9c58777ec11d39f2649be584711d72f120",
+  "original870_binder_unchanged": true,
+  "original51_endpoint_unchanged": true,
+  "invocation_order": [
+    "bind-composed-endpoints.py --repo OUTPUT --source-repo FROZEN --expected-head ACTUAL_HEAD --write",
+    "common refresh configured Alias1ae owner transformed to exact a75 stage, not actual raw owner"
+  ],
+  "qualification": "SOURCE_ONLY_NO_RUNTIME",
+  "base_source_head": "6e45d10e874104ce6e745332f757c6ef1b21da0f",
+  "front_binding_entry": "docs/evidence/main67107-fronts-6e45-20261017/bind-main-fronts.py",
+  "front_binding_entry_sha256": "7fe43d4cf71a2aa2748c313ae3184f0fda76fa0a18924f216ca94c22d4c54d98",
+  "common_refresh_entry": "docs/evidence/main67107-fronts-6e45-20261017/refresh-composed.py",
+  "common_refresh_entry_sha256": "0eb6089a2e43947872588b246e6a1d3160bb77967bb9aa5525fcc8589d140c7b",
+  "Alias1ae_order": "actual246/T283 -> exactfd230/6e45 -> exacta75 -> immutable two-row Alias1ae",
+  "actual_owned_tests_source_head": "246978fb7e0f1c95a007d560be781f337991f6c9"
+}

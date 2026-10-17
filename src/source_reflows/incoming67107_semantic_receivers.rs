@@ -72,7 +72,7 @@ fn digest(source: &str) -> String {
     )
 }
 
-fn invert(proof: &serde_json::Value, current: &str) -> String {
+pub(super) fn invert_ordinary(proof: &serde_json::Value, current: &str) -> String {
     let path = proof["path"].as_str().unwrap();
     assert_eq!(
         digest(current),
@@ -95,6 +95,19 @@ fn invert(proof: &serde_json::Value, current: &str) -> String {
         "receiver predecessor drifted: {path}"
     );
     restored
+}
+
+fn receiver_input(path: &str, current: &str) -> String {
+    let domain = match path {
+        "src/cleanup_plan/replay/selected_entry/tests/session_errors/source.rs" => "liveSessionMAIN",
+        "src/hir/nominal_payload/legacy/source_tests.rs" => "liveNominalMAIN",
+        _ => return current.to_owned(),
+    };
+    crate::source_reflows_merge::main67107_inputs::project(domain, current)
+}
+fn invert(proof: &serde_json::Value, current: &str) -> String {
+    let view = receiver_input(proof["path"].as_str().unwrap(), current);
+    invert_ordinary(proof, &view)
 }
 
 pub(super) fn predecessor(path: &str, current: &str) -> Option<String> {
@@ -235,6 +248,7 @@ fn every_receiver_inverse_preserves_the_entire_reflow_input_and_archive() {
             .join(archive_root)
             .join(proof["archive"].as_str().unwrap());
         assert_eq!(restored, std::fs::read_to_string(archive).unwrap());
+        let current = receiver_input(path, &current);
         assert_ne!(current, restored);
         // Execute the unchanged formatting inverse and its whole-file digest.
         if let Some(repair) = repair {
@@ -283,6 +297,16 @@ fn allocation_followup_preserves_the_complete_original_format_input() {
     }
 }
 
+fn followup_input(path: &str, current: &str) -> String {
+    let domain = match path {
+        "src/source_reflows/semantic_receivers.rs" => "followupReceiverMAIN",
+        "src/workspace_graph/identity_resolution.rs" => "followupIdentityMAIN",
+        "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs" => "followupCoreMAIN",
+        _ => panic!("foreign MAIN followup source"),
+    };
+    crate::source_reflows_merge::main67107_inputs::project(domain, current)
+}
+
 #[test]
 fn complete_followup_receivers_keep_all_original_source_bytes() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -295,6 +319,7 @@ fn complete_followup_receivers_keep_all_original_source_bytes() {
             std::fs::read_to_string(evidence.join(record["archive"].as_str().unwrap())).unwrap();
         assert_eq!(digest(&original), record["sha256"]);
         let current = std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
+        let current = followup_input(record["path"].as_str().unwrap(), &current);
         let restore = |source: &str| -> Option<String> {
             let mut restored = source.to_owned();
             for edit in record["edits"].as_array().unwrap().iter().rev() {

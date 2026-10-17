@@ -1,0 +1,49 @@
+{
+  "base_source_head": "6e45d10e874104ce6e745332f757c6ef1b21da0f",
+  "subject_state": "complete private candidate; raw inputs in front-binding-receipt.json; ninth stage independently bound actual parent246",
+  "source_only": true,
+  "tables": [
+    {
+      "path": "docs/evidence/ordinary-replay-setup-v1/sources.json",
+      "old_sha256": "c02c1d3090d3eb0aa0a8696701709c25b2896f318ebc54e543d50e302af8af6f",
+      "new_sha256": "fca8ff3e71b5167c1350ba46ce12dee935e987183a55a016c5297ebdc06fad3b",
+      "rows": 34
+    },
+    {
+      "path": "docs/evidence/ordinary-replay-setup-v1/format-inputs.json",
+      "old_sha256": "e4c9596eac3a9c1aadbaa978b550d2c5aa61a3c8cc519be9dc3ef3ff06687d60",
+      "new_sha256": "b0dfadd73eb07d4fafb4010177b3f8e8e6b619b75d9cb7fd9e3b86f68bc5f840",
+      "rows": 6
+    },
+    {
+      "path": "docs/evidence/ordinary-replay-setup-v1/helper-inputs.json",
+      "old_sha256": "2b29b5b373a8037a34b051dcce960dcb726de3294bf003308ded5f7c9da192e0",
+      "new_sha256": "347499fc3e60466e1e1ee04e219aeec04d61cd8e6ae3a165f91d8bb6a04a65ef",
+      "rows": 20
+    },
+    {
+      "path": "docs/evidence/ordinary-replay-setup-v1/production-cfg.json",
+      "old_sha256": "b46c54580999a28d52172498dbab4a4b35f9ace1433b7cd8311c3c3dc085ed43",
+      "new_sha256": "a2433bba5c8d80869a3d30cbf99e72d1ab75570aac06b19f719406b8b20a14ab",
+      "rows": 3
+    },
+    {
+      "path": "docs/evidence/factored-flat-labels-v1/sources.json",
+      "old_sha256": "995a9c0669d9bfeb385857baa8e7ba39e040fc82b5782692cd911cd4e0edcf7c",
+      "new_sha256": "ee4309e37b0523065c48ac67a5eb2e3542c9ac96b31dd38cfec85f5198660d0f",
+      "rows": 4
+    },
+    {
+      "path": "docs/evidence/factored-flat-labels-v1/test-namespace.json",
+      "old_sha256": "c495e87e987fc025aee309479abdf84f8bf249167047bca93c1cf46f4f60b7ca",
+      "new_sha256": "e3a5a6530353211086d3b554ceb19fbb82f9be82a2d8149b7220ccf0fce4ae69",
+      "rows": 2
+    },
+    {
+      "path": "docs/evidence/main67107-production-composition-20261017/receiver-main12.json",
+      "old_sha256": "a0eb2eaed0a49c6c0bf3f20c42674cb5b3bd7639477fa221189a39d92dc95fbc",
+      "new_sha256": "c030284fc8ed0c284e2c02e1ab688ff4d64ae27a84ec5021fb8c442ee22c19a2",
+      "rows": 12
+    }
+  ]
+}

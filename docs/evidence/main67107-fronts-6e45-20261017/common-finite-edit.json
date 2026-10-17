@@ -1,0 +1,6 @@
+{
+  "original_sha256": "c2ab4323780232b8db4c18c66a864ad56409ca7b7329002833639fa27ce9f94d",
+  "before": "  before=old(d['commit'],f);raw=(R/f).read_bytes();archive=D/'before'/d['name']/f\n",
+  "after": "  before=old(d['commit'],f);raw=(R/f).read_bytes()\n  if d['name']=='Alias1ae':raw=alias_stage(R,f,raw)\n  archive=D/'before'/d['name']/f\n",
+  "whole_original_recovery": true
+}

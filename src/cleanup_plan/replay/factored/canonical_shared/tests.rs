@@ -851,6 +851,6 @@ mod successor_labels {
                 .find("\n    }\n\n    pub(super) fn id(")
                 .unwrap();
         let old_body = before[start..end].replace("self.automaton", "automaton");
-        assert_eq!(include_str!("tests.rs").matches(&old_body).count(), 1);
+        assert_eq!(crate::source_reflows_merge::main67107_inputs::project("testsMAIN", include_str!("tests.rs")).matches(&old_body).count(), 1);
     }
 }

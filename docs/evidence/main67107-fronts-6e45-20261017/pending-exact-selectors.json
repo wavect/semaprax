@@ -1,0 +1,133 @@
+{
+  "compiler_registration_and_body_execution_pending": true,
+  "cases": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::main67107_inputs::complete_main_domains_and_both_unit_namespaces_are_preserved",
+      "sourcepath": "src/source_reflows_merge/main67107_inputs.rs",
+      "role": "new source-domain controls",
+      "execution": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::main67107_inputs::foreign_truncated_duplicate_reordered_and_forged_main_domains_fail_closed",
+      "sourcepath": "src/source_reflows_merge/main67107_inputs.rs",
+      "role": "new source-domain controls",
+      "execution": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::final_ready_inputs::canonical870_raw_endpoint_preserves_full51_stage_and_rejects_other_domains",
+      "sourcepath": "src/source_reflows_merge/final_ready_inputs.rs",
+      "role": "changed source acquisition, unchanged original assertions",
+      "execution": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::tests::successor_labels::complete_outer_label_sources_and_original_producer_remain_exact",
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+      "role": "changed source acquisition, unchanged original assertions",
+      "execution": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::main_unit_weight::unit_weight_tests::complete_previous_successor_producer_and_whole_current_module_remain_bound",
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs",
+      "role": "preserved eight-edit namespace",
+      "execution": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::semantic_receivers::ordinary_helper_views_authenticate_every_complete_input",
+      "sourcepath": "src/source_reflows/semantic_receivers.rs",
+      "role": "new ordinary raw channel; complete legacy inverter unchanged",
+      "execution": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::semantic_receivers::ordinary_setup_complete_sources_and_original_legacy_constructor_remain_exact",
+      "sourcepath": "src/source_reflows/semantic_receivers.rs",
+      "role": "new ordinary raw channel; complete legacy inverter unchanged",
+      "execution": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::semantic_receivers::ordinary_setup_bridges_preserve_every_complete_original_format_input",
+      "sourcepath": "src/source_reflows/semantic_receivers.rs",
+      "role": "new ordinary raw channel; complete legacy inverter unchanged",
+      "execution": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::incoming67107_semantic_receivers::ordinary_helper_views_authenticate_every_complete_input",
+      "sourcepath": "src/source_reflows/incoming67107_semantic_receivers.rs",
+      "role": "preserved complete MAIN namespace",
+      "execution": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::incoming67107_semantic_receivers::ordinary_setup_complete_sources_and_original_legacy_constructor_remain_exact",
+      "sourcepath": "src/source_reflows/incoming67107_semantic_receivers.rs",
+      "role": "preserved complete MAIN namespace",
+      "execution": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::incoming67107_semantic_receivers::ordinary_setup_bridges_preserve_every_complete_original_format_input",
+      "sourcepath": "src/source_reflows/incoming67107_semantic_receivers.rs",
+      "role": "preserved complete MAIN namespace",
+      "execution": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::incoming67107_semantic_receivers::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+      "sourcepath": "src/source_reflows/incoming67107_semantic_receivers.rs",
+      "role": "preserved complete MAIN namespace",
+      "execution": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::incoming67107_semantic_receivers::receiver_mutation_and_forged_predecessor_fail_closed",
+      "sourcepath": "src/source_reflows/incoming67107_semantic_receivers.rs",
+      "role": "preserved complete MAIN namespace",
+      "execution": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::incoming67107_semantic_receivers::allocation_followup_preserves_the_complete_original_format_input",
+      "sourcepath": "src/source_reflows/incoming67107_semantic_receivers.rs",
+      "role": "preserved complete MAIN namespace",
+      "execution": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::incoming67107_semantic_receivers::complete_followup_receivers_keep_all_original_source_bytes",
+      "sourcepath": "src/source_reflows/incoming67107_semantic_receivers.rs",
+      "role": "preserved complete MAIN namespace",
+      "execution": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::maina3_custody::alias_root_lazy_domain_retains_complete_sources_and_refuses_drift",
+      "sourcepath": "src/source_reflows_merge/maina3_custody.rs",
+      "role": "changed actual246->fd230 outer acquisition before unchangeda75 proof",
+      "execution": "PENDING after parentT283 join"
+    }
+  ]
+}

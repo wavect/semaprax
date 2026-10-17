@@ -1,0 +1,68 @@
+[
+  {
+    "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "sha256": "07641bd8b3f203f2b642e437468b5c852174b572482d33423f6b8611d99f3a6e",
+    "lines": 1500,
+    "rustfmt_parser_only": true
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs",
+    "sha256": "32fe7f5d3c46cc0d199954141ce2c3b15e119bbe83b2418f51d33fe740a23c0f",
+    "lines": 167,
+    "rustfmt_parser_only": true
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+    "sha256": "d3bb747a4465ebf6616305f66f2f80105738cb67ee2ead2ebe9446106a4e6a41",
+    "lines": 856,
+    "rustfmt_parser_only": true
+  },
+  {
+    "source": "src/source_reflows/incoming67107_semantic_receivers.rs",
+    "sha256": "312fde087005ab31671190994e8eb71cdac95cd32d3b4d1fbc13c3c544f66a21",
+    "lines": 344,
+    "rustfmt_parser_only": true
+  },
+  {
+    "source": "src/source_reflows/semantic_receivers.rs",
+    "sha256": "d19607ffcbca7e4d676a774eb2f21d81293430f6c5985a7afd6409d9bb7589df",
+    "lines": 311,
+    "rustfmt_parser_only": true
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "sha256": "4cceea30220558c75a9bbda1aa31507ee3c9c4fd53a56fef84d41f33410d88cf",
+    "lines": 1021,
+    "rustfmt_parser_only": true
+  },
+  {
+    "source": "src/source_reflows_merge/final_ready_inputs.rs",
+    "sha256": "24888efdbc3d2559f411dbf78ebb463005c9bec307fe7a3f188cfe8ad849d782",
+    "lines": 249,
+    "rustfmt_parser_only": true
+  },
+  {
+    "source": "src/source_reflows_merge/maina3_custody.rs",
+    "sha256": "fcd08c9ddf2b38227446dfb99274639f5f7ab6c6eaa6f94aa4d095fb84f443a2",
+    "lines": 95,
+    "rustfmt_parser_only": true
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "sha256": "18d3f4fd180eaee6fb419fbdb215dd5faa37530f10c39e0624a5645cad0594b0",
+    "lines": 897,
+    "rustfmt_parser_only": true
+  },
+  {
+    "source": "tests/workspace/semantic_graph/source_inventory.rs",
+    "sha256": "0e19bed63f99aa9c4236add774c55ebf38d006b26303eeb0337c172c4756edcc",
+    "lines": 777,
+    "rustfmt_parser_only": true
+  },
+  {
+    "source": "src/source_reflows_merge/main67107_inputs.rs",
+    "sha256": "c20c668e4305905b1d2de08f20b09caf0c9d1850dbef7e8bf9ea95a1fee85f4e",
+    "lines": 94,
+    "rustfmt_parser_only": true
+  }
+]

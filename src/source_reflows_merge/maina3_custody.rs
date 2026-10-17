@@ -52,6 +52,11 @@ pub(super) fn alias_directory_input(source: &str, current: &str) -> String {
         "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs",
     ];
     if KEYS.binary_search(&source).is_err() { return current.to_owned(); }
+    let outer;
+    let current = if source == "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs" {
+        outer = super::main67107_inputs::project("ownedGrowth246fd230", current);
+        outer.as_str()
+    } else { current };
     use sha2::{Digest, Sha256};
     let digest = |text: &str| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes())));
     let data = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/fade-custody-size-ownedgrowth-20261017/alias-root.json"));

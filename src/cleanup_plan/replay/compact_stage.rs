@@ -330,3 +330,6 @@ pub(super) mod source_custody_maina3;
 #[cfg(test)]
 #[path = "compact_stage/source_custody_main44.rs"]
 pub(super) mod source_custody_main44;
+
+#[cfg(test)]
+mod main_f247_source_custody;

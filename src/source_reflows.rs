@@ -263,3 +263,6 @@ pub(crate) use factored_sources::{
 };
 
 pub(crate) use semantic_receivers::helper_digest_capture_predecessor;
+
+#[path = "source_reflows/main_f247_controllers.rs"]
+pub(crate) mod main_f247_controllers;

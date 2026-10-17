@@ -1,0 +1,1416 @@
+use std::{fmt, mem};
+
+#[cfg(test)]
+#[path = "ast/drop_method_original.rs"]
+mod drop_method_original;
+#[path = "ast/drop_method_roots.rs"]
+mod drop_method_roots;
+
+pub(crate) mod program_source;
+
+#[path = "ast/drop_frontier.rs"]
+mod drop_frontier;
+#[cfg(test)]
+#[path = "ast/drop_original.rs"]
+mod drop_original;
+
+#[doc(hidden)]
+pub mod expression_statement;
+#[path = "ast/session_protocol.rs"]
+mod session_protocol;
+#[path = "ast/statement_if.rs"]
+mod statement_if;
+#[doc(hidden)]
+pub mod vec_constructor;
+pub use session_protocol::{
+    SessionProtocolDeclaration, SessionProtocolFollowsClause, SessionProtocolKind,
+    SessionProtocolName, SessionProtocolNext, SessionProtocolTerminal, SessionProtocolTransition,
+};
+pub use statement_if::{BranchTail, LetSyntax, StatementIfSyntax};
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct Span {
+    pub start: usize,
+    pub end: usize,
+    pub line: usize,
+    pub column: usize,
+}
+
+impl Span {
+    pub fn merge(self, other: Span) -> Span {
+        Span {
+            start: self.start,
+            end: other.end,
+            line: self.line,
+            column: self.column,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Type {
+    /// Compiler-only no-normal-completion marker, never authored storage or ABI.
+    Never,
+    I64,
+    I32,
+    Char,
+    U8,
+    /// A target-independent checked unsigned 64-bit semantic integer.
+    Usize,
+    /// One inline Copy byte array with an exact target-independent length.
+    ArrayU8(u32),
+    F32,
+    F64,
+    Bool,
+    String,
+    /// One uniquely owned immutable byte buffer.
+    Bytes,
+    /// A borrowed UTF-8 view. Source functions may receive it only through
+    /// an explicit `borrow str` parameter or an immutable static UTF-8 literal.
+    /// It has no owned form.
+    Str,
+    /// A non-escaping immutable byte view rooted in one external invocation
+    /// input. It is written exactly `Slice<u8>` and has no owned form.
+    SliceU8,
+    /// String Collections v1: the one admitted string-keyed map instantiation,
+    /// written exactly `Map<string, i64>`. Uniquely owned, never `Copy`, and
+    /// admitted only for local bindings.
+    StringMap,
+    /// A noncapturing source-level callable signature. The resolved function
+    /// reference retains its declaration identity separately from this type.
+    /// Affine zero-argument callable with one owned Bytes capture and i64 result.
+    OnceFunction,
+    OnceFunctionI64,
+    /// Affine zero-argument callable with one owned Bytes and two i64 snapshots.
+    OnceFunctionI64Pair,
+    /// Same-thread transactional callback with one persistent i64 state and
+    /// one i64 invocation argument.
+    MutFunctionI64,
+    Function {
+        parameters: Vec<Type>,
+        result: Box<Type>,
+    },
+    Named {
+        name: String,
+        arguments: Vec<Type>,
+    },
+}
+
+mod type_properties;
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum ParamMode {
+    #[default]
+    Value,
+    Own,
+    Borrow,
+    Shared,
+}
+
+/// The explicitly authored ownership mode of a `match` scrutinee.
+///
+/// Plain `match value` remains the default Copy/value form. `Own` and
+/// `Borrow` are source-level syntax only in the frontend tranche; later
+/// semantic lowering must authenticate their ownership rules before use.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum MatchMode {
+    #[default]
+    Value,
+    Own,
+    Borrow,
+}
+
+impl MatchMode {
+    pub fn source_prefix(self) -> &'static str {
+        match self {
+            Self::Value => "",
+            Self::Own => "own ",
+            Self::Borrow => "borrow ",
+        }
+    }
+}
+
+impl ParamMode {
+    pub fn text(self) -> &'static str {
+        match self {
+            ParamMode::Value => "value",
+            ParamMode::Own => "own",
+            ParamMode::Borrow => "borrow",
+            ParamMode::Shared => "shared",
+        }
+    }
+
+    pub fn source_prefix(self) -> &'static str {
+        match self {
+            ParamMode::Value => "",
+            ParamMode::Own => "own ",
+            ParamMode::Borrow => "borrow ",
+            ParamMode::Shared => "shared ",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Program {
+    pub path: String,
+    pub module: String,
+    pub module_uses: Vec<ModuleUse>,
+    pub permits: Vec<String>,
+    pub types: Vec<TypeDeclaration>,
+    pub interfaces: Vec<InterfaceDeclaration>,
+    /// Static method requirements; no runtime dispatch representation.
+    pub protocols: Vec<ProtocolDeclaration>,
+    pub implementations: Vec<ProtocolImplementation>,
+    /// Declared session protocols (issue #297): checked, erased, no
+    /// runtime representation and no authority.
+    pub session_protocols: Vec<SessionProtocolDeclaration>,
+    /// Language-native Agent declarations. Frontend admission fixes all six
+    /// roles and operation kinds before semantic lowering.
+    pub agents: Vec<AgentDeclaration>,
+    pub functions: Vec<Function>,
+}
+
+impl Drop for Program {
+    fn drop(&mut self) {
+        // Accepted source trees may reach the compiler's exact depth limit.
+        // Take every recursive root before field drop glue runs, then replace
+        // each node with a leaf before releasing its children from worklists.
+        let functions = mem::take(&mut self.functions);
+        let mut method_roots = drop_method_roots::MethodRoots::new();
+        let _agents = mem::take(&mut self.agents);
+        let mut types = drop_frontier::Stack::new();
+        let mut expressions = drop_frontier::Stack::new();
+        let mut patterns = drop_frontier::Stack::new();
+        let mut record_patterns = drop_frontier::Stack::new();
+
+        for declaration in mem::take(&mut self.types) {
+            if let Some(parent) = declaration.extends {
+                types.push(parent);
+            }
+            if let Some(invariants) = declaration.invariants {
+                expressions.extend(*invariants);
+            }
+            match declaration.kind {
+                TypeDeclarationKind::Resource { .. } => {}
+                TypeDeclarationKind::Record { fields } => {
+                    types.extend(fields.into_iter().map(|field| field.ty));
+                }
+                TypeDeclarationKind::Variant { cases } => {
+                    types.extend(
+                        cases
+                            .into_iter()
+                            .flat_map(|case| case.fields)
+                            .map(|field| field.ty),
+                    );
+                }
+                TypeDeclarationKind::Class { fields, methods } => {
+                    types.extend(fields.into_iter().map(|field| field.ty));
+                    method_roots.push(methods);
+                }
+            }
+        }
+
+        for interface in mem::take(&mut self.interfaces) {
+            for import in interface.imports {
+                types.extend(import.params.into_iter().map(|param| param.ty));
+            }
+        }
+        for protocol in mem::take(&mut self.protocols) {
+            for method in protocol.methods {
+                types.extend(method.params.into_iter().map(|param| param.ty));
+                types.push(method.return_type);
+            }
+        }
+        for function in functions.into_iter().chain(method_roots.into_iter()) {
+            types.extend(function.params.into_iter().map(|param| param.ty));
+            types.push(function.return_type);
+            if let Some(yields) = function.yields {
+                types.push(yields.request_type);
+                types.push(yields.response_type);
+            }
+            expressions.extend(function.requires);
+            expressions.extend(function.ensures);
+            expressions.push(function.body);
+        }
+
+        while let Some(mut expression) = expressions.pop() {
+            match mem::replace(&mut expression.kind, ExprKind::Int(0)) {
+                ExprKind::VecConstructor { element, value, .. } => {
+                    types.push(element);
+                    expressions.push(*value);
+                }
+                ExprKind::Closure {
+                    params,
+                    return_type,
+                    body,
+                    owning: _,
+                    retained: _,
+                    mutable: _,
+                } => {
+                    types.extend(params.into_iter().map(|param| param.ty));
+                    types.push(return_type);
+                    expressions.push(*body);
+                }
+                ExprKind::Call {
+                    type_arguments,
+                    args,
+                    ..
+                } => {
+                    types.extend(type_arguments);
+                    expressions.extend(args);
+                }
+                ExprKind::SuperMethod { args, .. } => expressions.extend(args),
+                ExprKind::MethodCall {
+                    receiver,
+                    type_arguments,
+                    args,
+                    ..
+                } => {
+                    types.extend(type_arguments);
+                    expressions.push(*receiver);
+                    expressions.extend(args);
+                }
+                ExprKind::Unary { value, .. }
+                | ExprKind::Try { operand: value }
+                | ExprKind::Project { base: value, .. }
+                | ExprKind::Yield { request: value } => expressions.push(*value),
+                ExprKind::LexicalExit { value, .. } => expressions.extend(value.map(|v| *v)),
+                ExprKind::Binary { left, right, .. } => {
+                    expressions.push(*left);
+                    expressions.push(*right);
+                }
+                ExprKind::Block { statements, tail } => {
+                    expressions.push(*tail);
+                    for statement in statements {
+                        match statement {
+                            Statement::Let {
+                                declared, value, ..
+                            } => {
+                                types.extend(declared);
+                                expressions.push(value);
+                            }
+                            Statement::Assign { value, .. } => expressions.push(value),
+                            Statement::Unsafe { body, .. } => expressions.push(*body),
+                            Statement::While {
+                                condition, body, ..
+                            } => {
+                                expressions.push(*condition);
+                                expressions.push(*body);
+                            }
+                            Statement::For { values, body, .. }
+                            | Statement::ForBorrow { values, body, .. }
+                            | Statement::ForOwn { values, body, .. } => {
+                                expressions.push(*values);
+                                expressions.push(*body);
+                            }
+                        }
+                    }
+                }
+                ExprKind::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } => {
+                    expressions.push(*condition);
+                    expressions.push(*then_branch);
+                    expressions.push(*else_branch);
+                }
+                ExprKind::ConstructRecord {
+                    type_arguments,
+                    fields,
+                    ..
+                }
+                | ExprKind::ConstructVariant {
+                    type_arguments,
+                    fields,
+                    ..
+                } => {
+                    types.extend(type_arguments);
+                    expressions.extend(fields.into_iter().map(|field| field.value));
+                }
+                ExprKind::Match {
+                    scrutinee, arms, ..
+                } => {
+                    expressions.push(*scrutinee);
+                    for arm in arms {
+                        patterns.push(arm.pattern);
+                        expressions.extend(arm.guard.map(|guard| *guard));
+                        expressions.push(arm.value);
+                    }
+                }
+                ExprKind::UpdateRecord { base, fields } => {
+                    expressions.push(*base);
+                    expressions.extend(fields.into_iter().map(|field| field.value));
+                }
+                ExprKind::Int(_)
+                | ExprKind::Int32(_)
+                | ExprKind::Char(_)
+                | ExprKind::Uint8(_)
+                | ExprKind::Usize(_)
+                | ExprKind::ArrayU8(_)
+                | ExprKind::RepeatArrayU8 { .. }
+                | ExprKind::Float32(_)
+                | ExprKind::Float64(_)
+                | ExprKind::Bool(_)
+                | ExprKind::String(_)
+                | ExprKind::BorrowedUtf8Literal(_)
+                | ExprKind::Var(_) => {}
+            }
+        }
+
+        while let Some(mut pattern) = patterns.pop() {
+            match mem::replace(
+                &mut pattern,
+                MatchPattern::Wildcard {
+                    span: Span::default(),
+                },
+            ) {
+                MatchPattern::Record { fields, .. } => record_patterns.extend(fields),
+                MatchPattern::Or { alternatives, .. } => patterns.extend(alternatives),
+                MatchPattern::Variant { .. }
+                | MatchPattern::Wildcard { .. }
+                | MatchPattern::Literal { .. }
+                | MatchPattern::Binding { .. } => {}
+            }
+        }
+        while let Some(mut field) = record_patterns.pop() {
+            match mem::replace(
+                &mut field.pattern,
+                RecordMatchFieldPattern::Wildcard {
+                    span: Span::default(),
+                },
+            ) {
+                RecordMatchFieldPattern::Record { fields, .. } => {
+                    record_patterns.extend(fields);
+                }
+                RecordMatchFieldPattern::Binding { .. }
+                | RecordMatchFieldPattern::Wildcard { .. } => {}
+            }
+        }
+
+        while let Some(mut ty) = types.pop() {
+            match mem::replace(&mut ty, Type::I64) {
+                Type::Never => {}
+                Type::Named { arguments, .. } => types.extend(arguments),
+                Type::Function { parameters, result } => {
+                    types.extend(parameters);
+                    types.push(*result);
+                }
+                Type::OnceFunction
+                | Type::OnceFunctionI64
+                | Type::OnceFunctionI64Pair
+                | Type::MutFunctionI64
+                | Type::I64
+                | Type::I32
+                | Type::Char
+                | Type::U8
+                | Type::Usize
+                | Type::ArrayU8(_)
+                | Type::F32
+                | Type::F64
+                | Type::Bool
+                | Type::String
+                | Type::Bytes
+                | Type::Str
+                | Type::SliceU8
+                | Type::StringMap => {}
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AgentTypeRole {
+    Task,
+    State,
+    Observation,
+    Proposal,
+    Outcome,
+    Result,
+}
+
+impl AgentTypeRole {
+    pub const fn source_name(self) -> &'static str {
+        match self {
+            Self::Task => "task",
+            Self::State => "state",
+            Self::Observation => "observation",
+            Self::Proposal => "proposal",
+            Self::Outcome => "outcome",
+            Self::Result => "result",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AgentOperationRole {
+    Initialize,
+    Observe,
+    Propose,
+    Authorize,
+    Execute,
+    Reduce,
+}
+
+impl AgentOperationRole {
+    pub const fn source_name(self) -> &'static str {
+        match self {
+            Self::Initialize => "initialize",
+            Self::Observe => "observe",
+            Self::Propose => "propose",
+            Self::Authorize => "authorize",
+            Self::Execute => "execute",
+            Self::Reduce => "reduce",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AgentOperationKind {
+    Deterministic,
+    Model,
+    Effect,
+}
+
+impl AgentOperationKind {
+    pub const fn source_prefix(self) -> &'static str {
+        match self {
+            Self::Deterministic => "",
+            Self::Model => "model ",
+            Self::Effect => "effect ",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentTypeRoleDeclaration {
+    pub role: AgentTypeRole,
+    pub stable_id: String,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentOperationDeclaration {
+    pub role: AgentOperationRole,
+    pub kind: AgentOperationKind,
+    pub stable_id: String,
+    pub span: Span,
+    /// Exact source-owned entry in Program.functions, never an ID-set filter.
+    pub embedded_function_index: Option<usize>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentDeclaration {
+    pub stable_id: String,
+    pub name: String,
+    pub name_span: Span,
+    pub types: Vec<AgentTypeRoleDeclaration>,
+    pub operations: Vec<AgentOperationDeclaration>,
+    /// Exact canonical JSON for the AgentDefinition v1 `runtime_v1` object.
+    /// Semantic lowering re-admits it through the existing definition compiler.
+    pub runtime_v1_json: String,
+    pub span: Span,
+    pub model_wait: Option<Box<AgentModelWaitBinding>>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentModelWaitBinding {
+    pub helper_id: String,
+    pub span: Span,
+}
+
+impl AgentDeclaration {
+    pub(crate) fn has_execution_metadata(&self) -> bool {
+        self.model_wait.is_some()
+            || self
+                .operations
+                .iter()
+                .any(|op| op.embedded_function_index.is_some())
+    }
+
+    /// Source admission checks only opted-in Agents; legacy role references stay inert.
+    pub(crate) fn validate_execution_metadata(
+        &self,
+        program: &dyn program_source::ProgramSource,
+    ) -> Result<(), &'static str> {
+        if !self.has_execution_metadata() {
+            return Ok(());
+        }
+        for (index, operation) in self.operations.iter().enumerate() {
+            if operation.kind != AgentOperationKind::Deterministic {
+                if operation.embedded_function_index.is_some() {
+                    return Err("model and effect Agent operations cannot carry bodies");
+                }
+                continue;
+            }
+            let mut matches = program
+                .functions()
+                .iter()
+                .filter(|f| f.stable_id == operation.stable_id);
+            let function = matches
+                .next()
+                .ok_or("opted-in Agent deterministic role has no same-module function")?;
+            if matches.next().is_some() {
+                return Err("opted-in Agent function identity is duplicated");
+            }
+            if operation.embedded_function_index.is_some()
+                && (self
+                    .embedded_function_in(operation, program.functions())
+                    .is_none()
+                    || self.operations[..index].iter().any(|prior| {
+                        prior.embedded_function_index == operation.embedded_function_index
+                    }))
+            {
+                return Err("embedded Agent function origin is invalid");
+            }
+            if function.name != operation.role.source_name()
+                || !function.type_parameters.is_empty()
+                || !function.effects.is_empty()
+                || function.yields.is_some()
+                || function.follows.is_some()
+            {
+                return Err(
+                    "opted-in Agent deterministic function is outside the ordinary pure profile",
+                );
+            }
+        }
+        if let Some(binding) = &self.model_wait {
+            if !crate::agent_definition::canonical_identifier(&binding.helper_id)
+                || binding.helper_id == self.stable_id
+                || self.types.iter().any(|r| r.stable_id == binding.helper_id)
+                || self
+                    .operations
+                    .iter()
+                    .any(|r| r.stable_id == binding.helper_id)
+            {
+                return Err("Agent model wait helper identity is invalid or aliases a role");
+            }
+            let mut matches = program
+                .functions()
+                .iter()
+                .filter(|f| f.stable_id == binding.helper_id);
+            let function = matches
+                .next()
+                .ok_or("Agent model wait helper has no same-module function")?;
+            if matches.next().is_some()
+                || !function.explicit_id
+                || !function.type_parameters.is_empty()
+                || program.agents().iter().any(|agent| {
+                    agent.operations.iter().any(|op| {
+                        agent
+                            .embedded_function_in(op, program.functions())
+                            .is_some_and(|f| std::ptr::eq(f, function))
+                    })
+                })
+            {
+                return Err(
+                    "Agent model wait helper must be a unique non-generic top-level explicit function",
+                );
+            }
+        }
+        Ok(())
+    }
+
+    /// A formatter may hide only the actual validated parser-origin entry.
+    pub(crate) fn embedded_function_in<'a>(
+        &self,
+        operation: &AgentOperationDeclaration,
+        functions: program_source::DeclSlices<'a, Function>,
+    ) -> Option<&'a Function> {
+        let function = functions.get(operation.embedded_function_index?)?;
+        self.authenticated_embedded_function(operation, function)
+    }
+    pub fn embedded_function<'a>(
+        &self,
+        operation: &AgentOperationDeclaration,
+        functions: &'a [Function],
+    ) -> Option<&'a Function> {
+        let function = functions.get(operation.embedded_function_index?)?;
+        self.authenticated_embedded_function(operation, function)
+    }
+    fn authenticated_embedded_function<'a>(
+        &self,
+        operation: &AgentOperationDeclaration,
+        function: &'a Function,
+    ) -> Option<&'a Function> {
+        (operation.kind == AgentOperationKind::Deterministic
+            && function.stable_id == operation.stable_id
+            && function.name == operation.role.source_name()
+            && function.span == operation.span
+            && function.span.start >= self.span.start
+            && function.span.end <= self.span.end)
+            .then_some(function)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum ModuleUseKind {
+    Function,
+    Type,
+    /// Static-conformance-only protocol dependency. It never enters runtime HIR.
+    Protocol,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ModuleUse {
+    pub kind: ModuleUseKind,
+    pub persistent_id: String,
+    pub target_module: String,
+    pub alias: String,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TypeDeclaration {
+    pub stable_id: String,
+    pub explicit_id: bool,
+    pub name: String,
+    pub name_span: Span,
+    pub type_parameters: Vec<TypeParameterDeclaration>,
+    pub kind: TypeDeclarationKind,
+    /// Class Inheritance v1: the single named parent of a `class C : P` block.
+    /// `None` for every other declaration and for parentless classes.
+    pub extends: Option<Type>,
+    /// Record Invariants v1: the `requires` clauses after a record's closing
+    /// brace, each a bool expression over the record's fields by bare name.
+    /// `None` for every declaration without invariants; boxed because almost
+    /// no declaration carries any.
+    pub invariants: Option<Box<Vec<Expr>>>,
+    pub span: Span,
+}
+
+impl TypeDeclaration {
+    /// The record invariant clauses, empty when none are declared.
+    pub fn invariants(&self) -> &[Expr] {
+        self.invariants.as_deref().map_or(&[], Vec::as_slice)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TypeParameterDeclaration {
+    pub name: String,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TypeDeclarationKind {
+    Resource {
+        lifecycles: Vec<ResourceLifecycleDeclaration>,
+    },
+    Record {
+        fields: Vec<FieldDeclaration>,
+    },
+    Variant {
+        cases: Vec<VariantCaseDeclaration>,
+    },
+    Class {
+        fields: Vec<FieldDeclaration>,
+        methods: Vec<Function>,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VariantCaseDeclaration {
+    pub stable_id: String,
+    pub explicit_id: bool,
+    pub name: String,
+    pub name_span: Span,
+    pub fields: Vec<FieldDeclaration>,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResourceLifecycleDeclaration {
+    pub stable_id: Option<String>,
+    pub kind: ResourceLifecycleKind,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ResourceLifecycleKind {
+    Trivial,
+    Imported { import_key: String },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InterfaceDeclaration {
+    pub stable_id: String,
+    pub explicit_id: bool,
+    pub name: String,
+    pub name_span: Span,
+    pub permits: Vec<String>,
+    pub imports: Vec<ImportDeclaration>,
+    pub span: Span,
+}
+
+/// Protocol Projection v1: one `protocol` declaration — a named method set
+/// whose signatures are checked to resolve. Distinct from the host-import
+/// `interface` concept; protocols carry no imports, effects, or permits.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProtocolDeclaration {
+    pub stable_id: String,
+    pub explicit_id: bool,
+    pub name: String,
+    pub name_span: Span,
+    pub methods: Vec<ProtocolMethod>,
+    pub span: Span,
+}
+
+/// One body-less method signature inside a protocol. The first parameter is
+/// the receiver and must be typed `Self` or the protocol's own name; the
+/// canonical projection keeps it verbatim.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProtocolMethod {
+    pub stable_id: String,
+    pub explicit_id: bool,
+    pub name: String,
+    pub name_span: Span,
+    pub params: Vec<Param>,
+    pub return_type: Type,
+    pub span: Span,
+}
+
+/// Source-owned static binding from a protocol to ordinary local functions.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProtocolImplementation {
+    pub stable_id: String,
+    pub explicit_id: bool,
+    pub protocol_id: String,
+    pub receiver_id: String,
+    pub members: Vec<ProtocolImplementationMember>,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProtocolImplementationMember {
+    pub method_id: String,
+    pub function_id: String,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ImportDeclaration {
+    pub stable_id: String,
+    pub explicit_id: bool,
+    pub name: String,
+    pub name_span: Span,
+    pub native_rust: bool,
+    /// The short `rust selected fn` form has its scalar signature supplied by
+    /// an admitted prepared index before source verification and lowering.
+    pub index_selected: bool,
+    pub selected_signature: Option<String>,
+    pub selected_index_digest: Option<String>,
+    pub selected_receiver: Option<String>,
+    /// A selected Rust API path. Its Cargo alias is checked against the
+    /// authenticated dependency closure when a binding plan is prepared.
+    pub rust_path: Option<String>,
+    pub params: Vec<Param>,
+    pub result: ImportResult,
+    pub effects: Vec<String>,
+    pub failure: ImportFailure,
+    pub consumes: String,
+    pub consumes_span: Span,
+    pub span: Span,
+}
+
+#[path = "ast/import_result.rs"]
+mod import_result;
+pub use import_result::ImportResult;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ImportFailure {
+    Infallible,
+    Status { domain_id: String },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FieldDeclaration {
+    pub stable_id: String,
+    pub explicit_id: bool,
+    pub name: String,
+    pub name_span: Span,
+    pub ty: Type,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Function {
+    pub stable_id: String,
+    pub explicit_id: bool,
+    pub name: String,
+    pub name_span: Span,
+    pub type_parameters: Vec<TypeParameterDeclaration>,
+    pub params: Vec<Param>,
+    pub return_type: Type,
+    pub effects: Vec<String>,
+    /// Resumable Effects v1 (issue #204): `yields Request -> Response`.
+    /// `None` for every ordinary function. See [`YieldsClause`].
+    pub yields: Option<YieldsClause>,
+    /// Endpoint typestate checking (issue #297 follow-on): `follows session
+    /// protocol "<protocol-id>"`. `None` for every function that does not
+    /// opt in (every function before this feature existed, and almost every
+    /// function afterwards). Boxed because `Function` itself is charged by
+    /// its own fixed footprint at every builder-bytes pre-charge and live
+    /// resolve: an inline clause would bill every function in every checked
+    /// program for this rare opt-in, not only the ones that use it. See
+    /// [`SessionProtocolFollowsClause`].
+    pub follows: Option<Box<SessionProtocolFollowsClause>>,
+    pub requires: Vec<Expr>,
+    pub ensures: Vec<Expr>,
+    pub body: Expr,
+    pub span: Span,
+}
+
+/// Resumable Effects v1 (issue #204): a function's `yields Request ->
+/// Response` clause. `request_type` is what a `yield <expr>` inside the
+/// function's body must produce; `response_type` is what resuming that
+/// suspension supplies, and is the type of the `yield <expr>` expression
+/// itself. See `docs/RESUMABLE-EFFECTS-V1.md`.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct YieldsClause {
+    pub request_type: Type,
+    pub response_type: Type,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Param {
+    pub name: String,
+    pub mode: ParamMode,
+    pub ty: Type,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Expr {
+    pub kind: ExprKind,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClosureParam {
+    pub name: String,
+    pub ty: Type,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ExprKind {
+    /// Source constructor provenance around sequential ordinary Vec calls.
+    VecConstructor {
+        element: Type,
+        count: u32,
+        value: Box<Expr>,
+    },
+    /// Terminal source control flow: no normal value and no authored target.
+    LexicalExit {
+        kind: LexicalExitKind,
+        value: Option<Box<Expr>>,
+    },
+    Closure {
+        params: Vec<ClosureParam>,
+        return_type: Type,
+        body: Box<Expr>,
+        /// SPX-AI-021 bounded owning-capture profile: `true` for
+        /// `own fn() -> R { body }`, which admits zero explicit parameters
+        /// and checks its body as one call transferring exactly one lexical
+        /// owned `Bytes` capture. `false` is the existing Copy-scalar
+        /// snapshot profile (Closures v1/v2), unchanged. See
+        /// `docs/CLOSURES-OWNING-V1.md`.
+        owning: bool,
+        /// A retained affine carrier (`once fn`), distinct from lexical `own fn`.
+        retained: bool,
+        /// A transactional mutable carrier (`mut fn`), distinct from both
+        /// immutable snapshot and consuming affine closures.
+        mutable: bool,
+    },
+    Int(i64),
+    /// An `i32` literal stored as its exact value.
+    Int32(i32),
+    /// A `char` literal stored as its exact Unicode scalar value.
+    Char(u32),
+    /// A `u8` literal stored as its exact value.
+    Uint8(u8),
+    /// A `usize` literal stored as its target-independent unsigned value.
+    Usize(u64),
+    /// An explicit byte inventory. Its length is its exact array type.
+    ArrayU8(Vec<u8>),
+    /// A canonical repeated-byte fixed-array literal.
+    RepeatArrayU8 {
+        value: u8,
+        count: u32,
+    },
+    /// An `f32` literal stored as its exact IEEE-754 bit pattern.
+    Float32(u32),
+    /// An `f64` literal stored as its exact IEEE-754 bit pattern.
+    Float64(u64),
+    Bool(bool),
+    String(String),
+    /// Explicit borrowed UTF-8 spelling; frontend-only until static-root admission.
+    BorrowedUtf8Literal(String),
+    Var(String),
+    Call {
+        name: String,
+        type_arguments: Vec<Type>,
+        args: Vec<Expr>,
+    },
+    /// Method call `receiver.method(args)` lowered to static call of class method.
+    MethodCall {
+        receiver: Box<Expr>,
+        method: String,
+        method_span: Span,
+        type_arguments: Vec<Type>,
+        args: Vec<Expr>,
+    },
+    /// Class Inheritance v1: `super.method(args)` inside a class-method
+    /// override. Resolves statically against the parent chain, skipping the
+    /// enclosing class, with the enclosing method's receiver as `self`.
+    SuperMethod {
+        method: String,
+        method_span: Span,
+        args: Vec<Expr>,
+    },
+    Unary {
+        op: UnaryOp,
+        value: Box<Expr>,
+    },
+    Binary {
+        op: BinaryOp,
+        left: Box<Expr>,
+        right: Box<Expr>,
+    },
+    Block {
+        statements: Vec<Statement>,
+        tail: Box<Expr>,
+    },
+    If {
+        condition: Box<Expr>,
+        then_branch: Box<Expr>,
+        else_branch: Box<Expr>,
+    },
+    ConstructRecord {
+        type_name: String,
+        type_span: Span,
+        type_arguments: Vec<Type>,
+        fields: Vec<FieldInitializer>,
+    },
+    ConstructVariant {
+        type_name: String,
+        type_span: Span,
+        type_arguments: Vec<Type>,
+        case_name: String,
+        case_span: Span,
+        fields: Vec<FieldInitializer>,
+    },
+    Match {
+        mode: MatchMode,
+        scrutinee: Box<Expr>,
+        arms: Vec<MatchArm>,
+    },
+    Try {
+        operand: Box<Expr>,
+    },
+    UpdateRecord {
+        base: Box<Expr>,
+        fields: Vec<FieldInitializer>,
+    },
+    Project {
+        base: Box<Expr>,
+        field: String,
+        field_span: Span,
+    },
+    /// Resumable Effects v1 (issue #204): `yield <expr>`. Admitted only as a
+    /// direct top-level statement or tail expression of a function's own
+    /// body block that declares a `yields` clause; see
+    /// `docs/RESUMABLE-EFFECTS-V1.md`.
+    Yield {
+        request: Box<Expr>,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MatchArm {
+    pub pattern: MatchPattern,
+    /// Refutable Match v1: `pattern if guard => value`. The guard is an
+    /// ordinary bool expression evaluated after the pattern matches and at
+    /// most once; a failing guard falls through to the following arms.
+    pub guard: Option<Box<Expr>>,
+    pub value: Expr,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum MatchPattern {
+    Variant {
+        type_name: String,
+        type_span: Span,
+        case_name: String,
+        case_span: Span,
+        fields: Vec<MatchPatternField>,
+        span: Span,
+    },
+    Record {
+        type_name: String,
+        type_span: Span,
+        fields: Vec<RecordMatchPatternField>,
+        span: Span,
+    },
+    Wildcard {
+        span: Span,
+    },
+    /// Refutable Match v1: one exact scalar literal (`-3`, `7i32`, `9u8`,
+    /// `'x'`, `true`). Floats and strings never parse as patterns.
+    Literal {
+        value: PatternLiteral,
+        span: Span,
+    },
+    /// Refutable Match v1: `a | b` over literal alternatives of one type.
+    /// The parser accepts only literal atoms here; deeper restrictions are
+    /// enforced by the resolvers with stable diagnostics.
+    Or {
+        alternatives: Vec<MatchPattern>,
+        span: Span,
+    },
+    /// Refutable Match v1: irrefutable whole-scrutinee binding (`n => ...`).
+    Binding {
+        name: String,
+        span: Span,
+    },
+}
+
+/// The exact scalar value of a literal pattern. Suffixed typing rules are
+/// identical to expression literals because the lexer produces the same
+/// tokens; sign folding for negative integers happens in the parser.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PatternLiteral {
+    Int(i64),
+    Int32(i32),
+    Uint8(u8),
+    Usize(u64),
+    Char(u32),
+    Bool(bool),
+}
+
+impl PatternLiteral {
+    /// The scrutinee scalar type this literal compares against exactly.
+    pub fn type_text(&self) -> &'static str {
+        match self {
+            Self::Int(_) => "i64",
+            Self::Int32(_) => "i32",
+            Self::Uint8(_) => "u8",
+            Self::Usize(_) => "usize",
+            Self::Char(_) => "char",
+            Self::Bool(_) => "bool",
+        }
+    }
+}
+
+impl MatchPattern {
+    pub fn span(&self) -> Span {
+        match self {
+            Self::Variant { span, .. }
+            | Self::Record { span, .. }
+            | Self::Wildcard { span }
+            | Self::Literal { span, .. }
+            | Self::Or { span, .. }
+            | Self::Binding { span, .. } => *span,
+        }
+    }
+
+    /// An or-pattern whose every alternative is a variant case pattern: the
+    /// or-pattern shape admitted over a variant scrutinee.
+    pub fn is_variant_or(&self) -> bool {
+        matches!(self, Self::Or { alternatives, .. }
+            if !alternatives.is_empty()
+                && alternatives
+                    .iter()
+                    .all(|alternative| matches!(alternative, Self::Variant { .. })))
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecordMatchPatternField {
+    pub name: String,
+    pub name_span: Span,
+    pub pattern: RecordMatchFieldPattern,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RecordMatchFieldPattern {
+    Binding {
+        name: String,
+        span: Span,
+    },
+    Wildcard {
+        span: Span,
+    },
+    Record {
+        type_name: String,
+        type_span: Span,
+        fields: Vec<RecordMatchPatternField>,
+        span: Span,
+    },
+}
+
+impl RecordMatchFieldPattern {
+    pub fn span(&self) -> Span {
+        match self {
+            Self::Binding { span, .. } | Self::Wildcard { span } | Self::Record { span, .. } => {
+                *span
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MatchPatternField {
+    pub name: String,
+    pub name_span: Span,
+    pub binding: String,
+    pub binding_span: Span,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FieldInitializer {
+    pub name: String,
+    pub name_span: Span,
+    pub value: Expr,
+    pub span: Span,
+}
+
+/// Field Mutation v1: the single-level field of a `<binding>.<field> = ...`
+/// assignment target. Nested place chains (`a.b.c = ...`) never parse.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FieldTarget {
+    pub name: String,
+    pub span: Span,
+}
+
+mod lexical_exit;
+pub(crate) use lexical_exit::returns_only;
+pub use lexical_exit::{has_no_normal_completion, LexicalExitKind};
+mod statement;
+pub use statement::{Statement, TraversalIndex};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UnaryOp {
+    Neg,
+    Not,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BinaryOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Rem,
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
+    And,
+    Or,
+}
+
+impl BinaryOp {
+    pub fn precedence(self) -> u8 {
+        match self {
+            BinaryOp::Or => 1,
+            BinaryOp::And => 2,
+            BinaryOp::Eq | BinaryOp::Ne => 3,
+            BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => 4,
+            BinaryOp::Add | BinaryOp::Sub => 5,
+            BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => 6,
+        }
+    }
+
+    pub fn text(self) -> &'static str {
+        match self {
+            BinaryOp::Add => "+",
+            BinaryOp::Sub => "-",
+            BinaryOp::Mul => "*",
+            BinaryOp::Div => "/",
+            BinaryOp::Rem => "%",
+            BinaryOp::Eq => "==",
+            BinaryOp::Ne => "!=",
+            BinaryOp::Lt => "<",
+            BinaryOp::Le => "<=",
+            BinaryOp::Gt => ">",
+            BinaryOp::Ge => ">=",
+            BinaryOp::And => "&&",
+            BinaryOp::Or => "||",
+        }
+    }
+}
+
+impl Expr {
+    /// Presence only: reuse the exhaustive structural visitor, including its
+    /// existing overflow route, without imposing the selective contour bound
+    /// on legacy source. This is not type, ownership or exit-target authority.
+    pub(crate) fn contains_lexical_exit(&self) -> bool {
+        let mut found = false;
+        self.visit_call_nodes(&mut |expression| {
+            found |= matches!(expression.kind, ExprKind::LexicalExit { .. });
+        });
+        found
+    }
+
+    // Keep the full traversal shared across caller closure types. The callback
+    // is borrowed only during this walk and never stored or allocated.
+    fn visit_call_nodes(&self, visit: &mut dyn FnMut(&Expr)) {
+        const FIXED_DEPTH: usize = 513;
+        let mut stack = [None; FIXED_DEPTH];
+        stack[0] = Some((self, 0usize));
+        let mut len = 1usize;
+        let mut overflow = Vec::new();
+        loop {
+            let state = if let Some(state) = overflow.pop() {
+                state
+            } else if len != 0 {
+                len -= 1;
+                stack[len].take().expect("call visitor frame retained")
+            } else {
+                break;
+            };
+            let (expression, next_child) = state;
+            if next_child == 0 {
+                visit(expression);
+            }
+            if let Some(child) = expression.child(next_child) {
+                let parent = (expression, next_child + 1);
+                if overflow.is_empty() && len + 2 <= stack.len() {
+                    stack[len] = Some(parent);
+                    stack[len + 1] = Some((child, 0));
+                    len += 2;
+                } else {
+                    if overflow.is_empty() {
+                        overflow.extend(stack[..len].iter_mut().filter_map(Option::take));
+                        len = 0;
+                    }
+                    overflow.push(parent);
+                    overflow.push((child, 0));
+                }
+            }
+        }
+    }
+
+    pub(crate) fn child(&self, index: usize) -> Option<&Expr> {
+        match &self.kind {
+            ExprKind::LexicalExit { value, .. } => {
+                (index == 0).then_some(value.as_deref()).flatten()
+            }
+            ExprKind::Closure { body, .. } => (index == 0).then_some(body),
+            ExprKind::Call { args, .. } => args.get(index),
+            ExprKind::MethodCall { receiver, args, .. } => (index == 0)
+                .then_some(receiver.as_ref())
+                .or_else(|| args.get(index - 1)),
+            ExprKind::SuperMethod { args, .. } => args.get(index),
+            ExprKind::VecConstructor { value, .. }
+            | ExprKind::Unary { value, .. }
+            | ExprKind::Try { operand: value }
+            | ExprKind::Project { base: value, .. }
+            | ExprKind::Yield { request: value } => (index == 0).then_some(value),
+            ExprKind::Binary { left, right, .. } => {
+                [left.as_ref(), right.as_ref()].get(index).copied()
+            }
+            ExprKind::Block { statements, tail } => {
+                let mut offset = 0;
+                for statement in statements {
+                    let count = statement.child_count();
+                    if index < offset + count {
+                        return statement.child(index - offset);
+                    }
+                    offset += count;
+                }
+                (index == offset).then_some(tail)
+            }
+            ExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => [
+                condition.as_ref(),
+                then_branch.as_ref(),
+                else_branch.as_ref(),
+            ]
+            .get(index)
+            .copied(),
+            ExprKind::ConstructRecord { fields, .. }
+            | ExprKind::ConstructVariant { fields, .. } => {
+                fields.get(index).map(|field| &field.value)
+            }
+            ExprKind::Match {
+                scrutinee, arms, ..
+            } => (index == 0).then_some(scrutinee.as_ref()).or_else(|| {
+                arms.iter()
+                    .flat_map(|arm| {
+                        arm.guard
+                            .iter()
+                            .map(|guard| guard.as_ref())
+                            .chain(std::iter::once(&arm.value))
+                    })
+                    .nth(index - 1)
+            }),
+            ExprKind::UpdateRecord { base, fields } => (index == 0)
+                .then_some(base.as_ref())
+                .or_else(|| fields.get(index - 1).map(|field| &field.value)),
+            ExprKind::Int(_)
+            | ExprKind::Int32(_)
+            | ExprKind::Char(_)
+            | ExprKind::Uint8(_)
+            | ExprKind::Usize(_)
+            | ExprKind::ArrayU8(_)
+            | ExprKind::RepeatArrayU8 { .. }
+            | ExprKind::Float32(_)
+            | ExprKind::Float64(_)
+            | ExprKind::Bool(_)
+            | ExprKind::String(_)
+            | ExprKind::BorrowedUtf8Literal(_)
+            | ExprKind::Var(_) => None,
+        }
+    }
+
+    pub fn visit_calls(&self, visit: &mut impl FnMut(&str, Span)) {
+        self.visit_call_nodes(&mut |expression| {
+            if let ExprKind::Call { name, .. } = &expression.kind {
+                visit(name, expression.span);
+            }
+        });
+    }
+
+    pub fn visit_call_instances(&self, visit: &mut impl FnMut(&str, &[Type], Span)) {
+        self.visit_call_nodes(&mut |expression| {
+            if let ExprKind::Call {
+                name,
+                type_arguments,
+                ..
+            } = &expression.kind
+            {
+                visit(name, type_arguments, expression.span);
+            }
+        });
+    }
+
+    /// Visit every expression node in this subtree, including `self`, in the
+    /// same left-to-right, stack-bounded order as `visit_calls`. Exists for
+    /// callers that need a full node census -- not only call sites -- so a
+    /// full-tree walk is derived from the one traversal this file already
+    /// maintains rather than a second hand-written `ExprKind` match that
+    /// could silently drift from it.
+    pub(crate) fn visit_all_nodes(&self, visit: &mut impl FnMut(&Expr)) {
+        self.visit_call_nodes(&mut |expression| visit(expression));
+    }
+}
+
+#[cfg(test)]
+#[path = "ast/call_visitor_tests.rs"]
+mod call_visitor_tests;
+
+#[cfg(test)]
+#[path = "ast/iterative_program_drop_tests.rs"]
+mod iterative_program_drop_tests;

@@ -109,6 +109,7 @@ use crate::prelude;
 mod factored;
 mod leaf_index;
 use leaf_index::Leaves;
+mod owned_suffix;
 mod path_summary;
 mod skeleton_bound;
 mod skeleton_work;
@@ -180,6 +181,13 @@ const MAX_REPLAY_WORK_UNITS: usize = 32_000_000;
 
 mod allocation;
 use allocation::{AdmissionMode, AllocationPayer};
+
+// Setup identity for the direct selected-budget compatibility receiver only.
+// General Session spending remains multi-function; this is not admission data.
+struct SelectedDirectAnchor {
+    function: *const ResolvedFunction,
+    ledger: crate::bounded_output::classifier_string::ClassifierLedger,
+}
 
 struct ReplayBudget {
     admission: AdmissionMode,
@@ -2783,34 +2791,59 @@ fn validate_typed_control_skeleton_with_index<'hir>(
         hir_skeleton_paths_with_index_storage(program, function, budget, helpers, continuations)?;
     // Match the existing received reference, with no new payer/tag/flag carrier.
     if let ReplayBudget {
-            payer: AllocationPayer::ActiveBuilder,
-            ..
-        } = budget {
+        payer: AllocationPayer::ActiveBuilder,
+        ..
+    } = budget
+    {
+        budget.reserve_bytes(
+            function,
+            ordinary_plan_history::SELECT_CALL_CONTROLS,
+            "ordinary plan history selector call receivers",
+        )?;
+        if ordinary_plan_history::select(function, budget)? {
             budget.reserve_bytes(
                 function,
-                ordinary_plan_history::SELECT_CALL_CONTROLS,
-                "ordinary plan history selector call receivers",
+                ordinary_plan_history::PRODUCE_CALL_CONTROLS,
+                "ordinary plan history producer call receivers",
             )?;
-            if ordinary_plan_history::select(function, budget)? {
-                budget.reserve_bytes(
-                    function,
-                    ordinary_plan_history::PRODUCE_CALL_CONTROLS,
-                    "ordinary plan history producer call receivers",
-                )?;
-                let actual = ordinary_plan_history::produce(function, budget)?;
-                expected.sort();
-                budget.reserve_bytes(
-                    function,
-                    ordinary_plan_history::COMPARE_CALL_CONTROLS,
-                    "ordinary plan history owned comparison call receivers",
-                )?;
-                return ordinary_plan_history::compare(function, budget, actual, &expected);
-            }
+            let actual = ordinary_plan_history::produce(function, budget)?;
+            budget.reserve_bytes(
+                function,
+                skeleton_work::enumerated_prefix::ENTRY_CALL,
+                "enumerated HIR sort entry receivers",
+            )?;
+            skeleton_work::enumerated_prefix::sort(&mut expected, function, budget)?;
+            budget.reserve_bytes(
+                function,
+                ordinary_plan_history::COMPARE_CALL_CONTROLS,
+                "ordinary plan history owned comparison call receivers",
+            )?;
+            return ordinary_plan_history::compare(function, budget, actual, &expected);
+        }
     }
     let mut actual = plan_skeleton_paths(function, budget)?;
-    expected.sort();
-    actual.sort();
-    if actual != expected {
+    if match budget {
+        ReplayBudget {
+            payer: AllocationPayer::ActiveBuilder,
+            admission: AdmissionMode::Ordinary,
+            lent_skeleton: false,
+            ..
+        } => {
+            budget.reserve_bytes(
+                function,
+                2 * skeleton_work::enumerated_prefix::ENTRY_CALL,
+                "enumerated HIR sort and equality entry receivers",
+            )?;
+            skeleton_work::enumerated_prefix::sort(&mut expected, function, budget)?;
+            actual.sort();
+            !skeleton_work::enumerated_prefix::equal(&expected, &actual, function, budget)?
+        }
+        _ => {
+            expected.sort();
+            actual.sort();
+            actual != expected
+        }
+    } {
         if std::env::var_os("SPX_PROBE_SKELETON").is_some() {
             for (index, path) in expected.iter().enumerate() {
                 eprintln!("EXP[{index}] {path:?}");
@@ -2971,6 +3004,7 @@ fn sequence_expression<'hir>(
         return Ok(prefixes);
     }
     let suffixes = expression_skeleton(program, function, expression, work)?;
+    owned_suffix::dispatch!(prefixes, suffixes, work);
     sequence_skeleton_paths(prefixes, &suffixes, work)
 }
 
@@ -2979,6 +3013,10 @@ fn sequence_skeleton_paths(
     suffixes: &[ExprSkeletonPath],
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
+    #[cfg(test)]
+    if skeleton_work::enumerated_prefix::original_selected() {
+        return skeleton_work::enumerated_prefix::old_sequence(prefixes, suffixes, work);
+    }
     #[cfg(test)]
     if path_array_main44::selected() {
         return path_array_main44::current_sequence(prefixes, suffixes, work);
@@ -3093,6 +3131,7 @@ fn sequence_skeleton_paths(
             final_output::FINAL_SPLIT_CONTROLS,
             "HIR final-suffix split controls",
         )?;
+        skeleton_work::enumerated_prefix::share!(work, prefix);
         // Lexical remainder of the original first clone: no second charge and
         // no newly forwarded Result<Observations, Diagnostic>.
         let observations = skeleton_work::prefix_fusion::after_work!(
@@ -7845,3 +7884,27 @@ mod sequence_vector_maina3;
 #[cfg(test)]
 #[path = "replay/path_array/main44/mod.rs"]
 mod path_array_main44;
+
+#[cfg(test)]
+#[allow(dead_code)]
+struct BeforeDirectAnchorBudgetLayout {
+    admission: AdmissionMode,
+    payer: AllocationPayer,
+    remaining: usize,
+    skeleton_remaining: usize,
+    /// Actual successful skeleton debits, including deferred lexical walks.
+    skeleton_spent: usize,
+    /// Ordinary constructors share the temporarily lent skeleton allowance.
+    lent_skeleton: bool,
+    /// Factored replay: merge equal-state skeleton paths (`skeleton_work`).
+    merge_paths: bool,
+    /// Present only for the selected retained lexical replay entry.
+    physical: Option<Box<physical_storage::PhysicalReservation>>,
+    /// Prepaid selected-budget refusal text; consumed without a fresh allocation.
+    refusal_text: Option<String>,
+    refusal_spent: bool,
+    /// One reusable fixed clone census cursor on the ordinary builder path.
+    builder_clone_cursor_paid: bool,
+}
+#[cfg(test)]
+const _: () = assert!(std::mem::size_of::<ReplayBudget>() == std::mem::size_of::<BeforeDirectAnchorBudgetLayout>());

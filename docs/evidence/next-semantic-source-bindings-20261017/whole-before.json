@@ -1,0 +1,80 @@
+[
+  {
+    "source": "docs/evidence/c874-supplement-custody-domains-20261017/paid-inputs.json",
+    "before_archive": "docs/evidence/next-semantic-source-bindings-20261017/whole-before/41f76bf96c83869b57737e1aa9df5a66943ca8c8286984f21ccaf6902931d213",
+    "before_length": 4272,
+    "before_sha256": "41f76bf96c83869b57737e1aa9df5a66943ca8c8286984f21ccaf6902931d213"
+  },
+  {
+    "source": "docs/evidence/main34d-three-source-domains-20261017/binding-receipt.json",
+    "before_archive": "docs/evidence/next-semantic-source-bindings-20261017/whole-before/1d57c595c6cd5c8dadfa6827396aa1592fb60c809bc88674ad092fc898926753",
+    "before_length": 925,
+    "before_sha256": "1d57c595c6cd5c8dadfa6827396aa1592fb60c809bc88674ad092fc898926753"
+  },
+  {
+    "source": "docs/evidence/main34d-three-source-domains-20261017/current-inputs/20.txt",
+    "before_archive": "docs/evidence/next-semantic-source-bindings-20261017/whole-before/30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c",
+    "before_length": 321092,
+    "before_sha256": "30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c"
+  },
+  {
+    "source": "docs/evidence/main34d-three-source-domains-20261017/input-manifest.json",
+    "before_archive": "docs/evidence/next-semantic-source-bindings-20261017/whole-before/b5e8acdbf76b2c33d92afc816be2a017faef729300e805ec823d796521b2761e",
+    "before_length": 51371,
+    "before_sha256": "b5e8acdbf76b2c33d92afc816be2a017faef729300e805ec823d796521b2761e"
+  },
+  {
+    "source": "docs/evidence/main34d-three-source-domains-20261017/source-inverse.json",
+    "before_archive": "docs/evidence/next-semantic-source-bindings-20261017/whole-before/f9c925f84d508ead38810313fe18ca7ce4a13f873b0a2fa6aaa3f514fd03888f",
+    "before_length": 1573,
+    "before_sha256": "f9c925f84d508ead38810313fe18ca7ce4a13f873b0a2fa6aaa3f514fd03888f"
+  },
+  {
+    "source": "docs/evidence/mainbcc-ordinary-source-domain-20261017/full-source-inverse.json",
+    "before_archive": "docs/evidence/next-semantic-source-bindings-20261017/whole-before/64d9640bc8ef095965a389a91fdb61430a115bcade9f32755e975e03cb711c00",
+    "before_length": 1687,
+    "before_sha256": "64d9640bc8ef095965a389a91fdb61430a115bcade9f32755e975e03cb711c00"
+  },
+  {
+    "source": "docs/evidence/mainbcc-ordinary-source-domain-20261017/input-manifest.json",
+    "before_archive": "docs/evidence/next-semantic-source-bindings-20261017/whole-before/62af2dd8ffddc6f59d023578cfedc07324bc41e1973c67db6a9486ed76514c5f",
+    "before_length": 12232,
+    "before_sha256": "62af2dd8ffddc6f59d023578cfedc07324bc41e1973c67db6a9486ed76514c5f"
+  },
+  {
+    "source": "docs/evidence/ordinary-plan-final-ingress-20261017/binding-receipt.json",
+    "before_archive": "docs/evidence/next-semantic-source-bindings-20261017/whole-before/b58c3ea2efd9a6a1f196c76910aaab9daf4240d8e94416b08bf80accf46e5b60",
+    "before_length": 420,
+    "before_sha256": "b58c3ea2efd9a6a1f196c76910aaab9daf4240d8e94416b08bf80accf46e5b60"
+  },
+  {
+    "source": "docs/evidence/ordinary-plan-final-ingress-20261017/current-inputs.json",
+    "before_archive": "docs/evidence/next-semantic-source-bindings-20261017/whole-before/a1f58a2fdf1ede1c16e428e69f5cbadb7dbb91dadffdab971f28b43628fb4464",
+    "before_length": 44151,
+    "before_sha256": "a1f58a2fdf1ede1c16e428e69f5cbadb7dbb91dadffdab971f28b43628fb4464"
+  },
+  {
+    "source": "docs/evidence/ordinary-plan-final-ingress-20261017/current-manifest.json",
+    "before_archive": "docs/evidence/next-semantic-source-bindings-20261017/whole-before/4d516a589f7dd6f5bfda3f8a0e104bf0bcb75ed809efd30614957ce286440dfd",
+    "before_length": 1850,
+    "before_sha256": "4d516a589f7dd6f5bfda3f8a0e104bf0bcb75ed809efd30614957ce286440dfd"
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs",
+    "before_archive": "docs/evidence/next-semantic-source-bindings-20261017/whole-before/294ae60e6f2c4cb18ebd2b817934570235555bff1e9f4a46fc9fab09ecb76b91",
+    "before_length": 15189,
+    "before_sha256": "294ae60e6f2c4cb18ebd2b817934570235555bff1e9f4a46fc9fab09ecb76b91"
+  },
+  {
+    "source": "src/source_reflows/incoming67107_semantic_receivers.rs",
+    "before_archive": "docs/evidence/next-semantic-source-bindings-20261017/whole-before/70136f31e90d3055f8622183540e6bcaf83c7ac29409dd0ac51715c89c9c6ee3",
+    "before_length": 32535,
+    "before_sha256": "70136f31e90d3055f8622183540e6bcaf83c7ac29409dd0ac51715c89c9c6ee3"
+  },
+  {
+    "source": "src/source_reflows_merge/ordinary_plan_inputs.rs",
+    "before_archive": "docs/evidence/next-semantic-source-bindings-20261017/whole-before/07dd9d5c3840aebc8482f2a6b303fde057acdee77b3fd570187e11868209fee5",
+    "before_length": 18588,
+    "before_sha256": "07dd9d5c3840aebc8482f2a6b303fde057acdee77b3fd570187e11868209fee5"
+  }
+]

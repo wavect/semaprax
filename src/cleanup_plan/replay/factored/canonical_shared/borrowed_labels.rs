@@ -219,7 +219,36 @@ const _: () = assert!(size_of::<&AllocationPayer>() + size_of::<bool>()
 // All actual arguments, branch/iterator slots and returned/received headers
 // below are paid by the actual caller before this function is entered.
 pub(super) fn ordinary_receiving() -> usize {
-    2 * size_of::<(&ResolvedFunction, &mut ReplayBudget, &Automaton, &ordered_weights::OrderedWeights, u64)>()
+    crate::bounded_output::classifier_string::ClassifierLedger::current_receiving_controls()
+        // The held-current mismatch may record the first terminal receipt.
+        // These complete existing inventories include its receipt/site/stage
+        // constructors; no old generic producer allowance funds this branch.
+        + crate::bounded_output::classifier_string::ClassifierLedger::insertion_terminal_controls()
+        + crate::bounded_output::classifier_string::ClassifierLedger::storage_terminal_receipt_controls()
+        // Two nested callback captures: caller and receiving function borrow.
+        + 4 * size_of::<&ResolvedFunction>()
+        // Mutable selected-ledger lookup, expect transport, and sticky reject.
+        + 2 * size_of::<&mut Option<Box<physical_storage::PhysicalReservation>>>()
+        + 2 * size_of::<Option<&mut physical_storage::PhysicalReservation>>()
+        + 2 * size_of::<&mut physical_storage::PhysicalReservation>()
+        + 2 * size_of::<&str>()
+        + 2 * size_of::<Option<physical_storage::PhysicalRefusal>>()
+        + size_of::<physical_storage::PhysicalRefusal>()
+        + 2 * size_of::<&Option<crate::cleanup_plan::replay::SelectedDirectAnchor>>()
+        + 2 * size_of::<Option<&crate::cleanup_plan::replay::SelectedDirectAnchor>>()
+        + 2 * size_of::<&Option<Box<physical_storage::PhysicalReservation>>>()
+        + 2 * size_of::<Option<&physical_storage::PhysicalReservation>>()
+        + 2 * size_of::<&physical_storage::PhysicalReservation>()
+        + 2 * size_of::<&crate::cleanup_plan::replay::SelectedDirectAnchor>()
+        + 2 * size_of::<*const ResolvedFunction>()
+        + 2 * size_of::<&AllocationPayer>()
+        + 2 * size_of::<&ResolvedFunction>()
+        + 2 * size_of::<&crate::bounded_output::classifier_string::ClassifierLedger>()
+        + 2 * size_of::<&str>()
+        + 2 * size_of::<String>()
+        + 2 * size_of::<Diagnostic>()
+        + 12 * size_of::<bool>()
+        + 2 * size_of::<(&ResolvedFunction, &mut ReplayBudget, &Automaton, &ordered_weights::OrderedWeights, u64)>()
         + 2 * size_of::<Result<Option<Successors>, Diagnostic>>()
         + size_of::<Option<Successors>>()
         + 2 * size_of::<ordered_weights::Iter<'static>>()
@@ -238,6 +267,70 @@ pub(super) fn ordinary_receiving() -> usize {
 }
 
 pub(super) fn ordinary_successors(
+    function: &ResolvedFunction, budget: &mut ReplayBudget, automaton: &Automaton,
+    closed: &ordered_weights::OrderedWeights, accepted: u64,
+) -> Result<Option<Successors>, Diagnostic> {
+    // The general replay budget intentionally permits multiple functions.
+    // This direct selected compatibility receiver instead authenticates the
+    // exact setup anchor before querying its payer or spending logical work.
+    if matches!(&budget.payer, AllocationPayer::SelectedReservation)
+        && (budget.refusal_spent || budget.physical.as_deref().is_none_or(|physical| {
+            physical.direct_anchor.as_ref().is_none_or(|anchor| {
+                !anchor.ledger.current() || anchor.function != std::ptr::from_ref(function)
+            })
+        })) {
+            budget.refusal_spent = true;
+            budget.physical.as_deref_mut().expect("selected reservation payer").reject();
+            return Err(Diagnostic::io("SPX-H006", String::new()));
+        }
+    // These zero calls retain sticky/function/ledger authentication even for a
+    // singleton sink. A paid refusal is final and never selects the old route.
+    budget.reserve_bytes(function, 0, "factored direct singleton authentication")?;
+    budget.charge(function, 0, "factored direct singleton authentication")?;
+    budget.charge(function, 4, "factored direct singleton selection")?;
+    if closed.len() == 1 {
+        let (node, weight) = closed.iter().next().expect("singleton closed node");
+        let moves = automaton.nodes[*node].moves();
+        if moves.len() <= 1 {
+            // Replay the original requests in their original order. The old
+            // directory/search objects themselves are never formed or paid.
+            budget.charge(function, moves.len() + 1, "factored successor label census")?;
+            if !moves.is_empty() {
+                budget.charge(function, 1, "factored successor label census search")?;
+                budget.charge(function, 1, "factored successor label census shifts")?;
+            }
+            budget.charge(function, moves.len(), "factored successor target headers")?;
+            budget.charge(function, moves.len() + 1, "factored skeleton subset construction")?;
+            if !moves.is_empty() {
+                budget.charge(function, 2, "factored successor label search")?;
+            }
+            let mut result = Vec::new();
+            budget.reserve_vec(function, &mut result, moves.len(), "factored successor vector")?;
+            if let [(label, child)] = moves {
+                // Zero + the actual closure weight has the same non-overflow
+                // rule as Directory::add. No assumed unit weight is substituted.
+                let weight = 0_u64.checked_add(*weight).expect("zero plus u64 cannot overflow");
+                budget.reserve_bytes(function,
+                    2 * size_of::<SmallWeighted>() + size_of::<[(usize, u64); 1]>()
+                        + size_of::<Result<(), Diagnostic>>(),
+                    "factored inline weighted enum and array receiving")?;
+                budget.reserve_bytes(function, physical_clone::rc_backing_bytes::<SmallWeighted>(),
+                    "factored weighted shared header")?;
+                let state = Rc::new(SmallWeighted::One([(*child, weight)]));
+                result.push((label.clone(), state));
+            }
+            return Ok(Some((accepted, result)));
+        }
+    }
+    // Multi-node/multi-movement closures retain the complete old algorithm.
+    // Its additional call/receivers are acquired before forming that call.
+    budget.reserve_bytes(function, receiving::<ordered_weights::OrderedWeights>(),
+        "factored borrowed label fallback call receivers")?;
+    lexical_finish::successors(function, budget, automaton, closed, accepted)
+}
+
+#[cfg(test)]
+pub(super) fn ordinary_successors_before_selected_anchor(
     function: &ResolvedFunction, budget: &mut ReplayBudget, automaton: &Automaton,
     closed: &ordered_weights::OrderedWeights, accepted: u64,
 ) -> Result<Option<Successors>, Diagnostic> {
@@ -287,6 +380,26 @@ pub(super) fn ordinary_successors(
     lexical_finish::successors(function, budget, automaton, closed, accepted)
 }
 
+
+#[cfg(test)]
+pub(super) fn ordinary_receiving_before_selected_anchor() -> usize {
+    2 * size_of::<(&ResolvedFunction, &mut ReplayBudget, &Automaton, &ordered_weights::OrderedWeights, u64)>()
+        + 2 * size_of::<Result<Option<Successors>, Diagnostic>>()
+        + size_of::<Option<Successors>>()
+        + 2 * size_of::<ordered_weights::Iter<'static>>()
+        + size_of::<&ordered_weights::OrderedWeights>()
+        + size_of::<&mut ordered_weights::Iter<'static>>()
+        + 2 * size_of::<Option<(&usize, &u64)>>()
+        + 2 * size_of::<(&usize, &u64)>() + 2 * size_of::<&str>()
+        + 2 * size_of::<&[(Label, usize)]>()
+        + size_of::<&(Label, usize)>() + size_of::<(&Label, &usize)>()
+        + 2 * size_of::<Vec<(Label, SharedWeighted)>>()
+        + 2 * size_of::<SharedWeighted>() + size_of::<(Label, SharedWeighted)>()
+        + 2 * size_of::<Option<u64>>() + 4 * size_of::<u64>()
+        + 3 * size_of::<usize>() + 2 * size_of::<bool>()
+        + 4 * size_of::<Result<(), Diagnostic>>()
+        + 4 * size_of::<(&ResolvedFunction, &mut ReplayBudget, usize, &str)>()
+}
 
 #[cfg(test)]
 fn direct_fixture(width: usize, nodes: usize, weight: u64) -> (ResolvedFunction, Automaton, ordered_weights::OrderedWeights) {
@@ -412,6 +525,8 @@ fn direct_singleton_zero_authentication_foreign_owner_and_sticky_refusal_are_fin
     let (function,graph,closed)=direct_fixture(1,1,3);
     let mut foreign=function.clone();foreign.id=crate::hir::DeclarationId::new("direct.foreign");
     let mut budget=ReplayBudget::with_physical(&function,1<<25).unwrap();
+    // Acquire both actual call boundaries under the held owner before refusal.
+    budget.reserve_bytes(&function, 2 * ordinary_receiving(), "selected direct two-call receiving controls").unwrap();
     let remaining=budget.remaining;
     let error=ordinary_successors(&foreign,&mut budget,&graph,&closed,5).unwrap_err();
     assert_eq!(error.code,"SPX-H006");assert_eq!(budget.remaining,remaining);
@@ -508,3 +623,52 @@ fn direct_singleton_new_selection_zero_through_three_keeps_six_fields_and_sticky
 // The complete original Directory and generic successors above stay executable.
 // Only the ordinary paid fallback selects the lexical finalizer.
 mod lexical_finish;
+
+#[test]
+fn direct_selected_anchor_rejects_same_id_foreign_pointer_and_foreign_scope_before_work() {
+    use crate::bounded_output::with_limit_usage_refusal;
+    let (function, graph, closed) = direct_fixture(1, 1, 3);
+    let same_id_foreign = function.clone();
+    assert_eq!(same_id_foreign.id, function.id);
+    for foreign_scope in [false, true] {
+        let (_, parent_refused, _, _) = with_limit_usage_refusal(usize::MAX, || {
+            let mut budget = ReplayBudget::with_physical(&function, 1 << 25).unwrap();
+            // Both calls are funded in the original scope before entering any
+            // foreign scope or setting sticky refusal; retry queries no payer.
+            budget.reserve_bytes(&function, 2 * ordinary_receiving(), "selected direct two-call receiving controls").unwrap();
+            let remaining = budget.remaining;
+            let charged = budget.physical.as_ref().unwrap().charged();
+            let error = if foreign_scope {
+                let (result, child_refused, _, _) = with_limit_usage_refusal(1 << 25, || {
+                    ordinary_successors(&function, &mut budget, &graph, &closed, 5)
+                });
+                assert!(!child_refused, "foreign enclosing payer was not queried");
+                result.unwrap_err()
+            } else {
+                ordinary_successors(&same_id_foreign, &mut budget, &graph, &closed, 5).unwrap_err()
+            };
+            assert_eq!(error, Diagnostic::io("SPX-H006", String::new()));
+            assert_eq!(budget.remaining, remaining);
+            assert_eq!(budget.physical.as_ref().unwrap().charged(), charged);
+            assert!(budget.refusal_spent);
+            let restored = ordinary_successors(&function, &mut budget, &graph, &closed, 5).unwrap_err();
+            assert_eq!(restored, error);
+            assert_eq!(budget.remaining, remaining);
+            assert_eq!(budget.physical.as_ref().unwrap().charged(), charged);
+        });
+        assert_eq!(parent_refused, foreign_scope, "only a held-scope mismatch poisons its scope");
+    }
+}
+
+#[test]
+fn complete_before_direct_producer_records_foreign_first_acceptance_as_negative() {
+    let (function, graph, closed) = direct_fixture(1, 1, 3);
+    let mut foreign = function.clone();
+    foreign.id = crate::hir::DeclarationId::new("direct.foreign");
+    let mut budget = ReplayBudget::with_physical(&function, 1 << 25).unwrap();
+    let result = ordinary_successors_before_selected_anchor(&foreign, &mut budget, &graph, &closed, 5)
+        .unwrap().unwrap();
+    assert_eq!(result.0, 5);
+    assert_eq!(result.1.len(), 1);
+    assert_eq!(result.1[0].1.as_ref().as_slice(), &[(0, 3)]);
+}

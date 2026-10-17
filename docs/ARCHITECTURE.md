@@ -80,6 +80,15 @@ owns its bounded, sealed historical source acquisition. This ownership map does
 not establish runtime qualification or application savings; see the
 [candidate evidence](evidence/ordinary-plan-history-c8740045-v1/README.md).
 
+`cleanup_plan/replay/skeleton_work/enumerated_prefix` owns the private ordinary
+nonmerging HIR sequence-storage candidate and full-content cursor comparison.
+Its dedicated Seq/Cat constructor uses ordinary free work and the existing
+prepaid iterative destruction frontier. Both flat and immutable PLAN comparison
+routes consume full HIR observation content; marker/pointer identity carries no
+semantic authority. Existing path state and runtime cleanup order stay intact.
+[The source contract](ORDINARY-ENUMERATED-HIR-PREFIX-V1.md) records pending
+executable/physical/application qualification and the unchanged resource limits.
+
 ## System shape
 
 ```text
@@ -1340,6 +1349,16 @@ replay. `cleanup_plan/build/helper_index.rs` owns immutable module construction
 helper-site authority and reserved all-function plan staging. Construction drops
 its borrowed index before attaching plans; validation and replay independently
 reconstruct current HIR authority.
+The source-only OPT878 candidate keeps factored merge grouping in
+`cleanup_plan/replay/skeleton_work/merge_keys.rs`, with paid indices into
+retained groups instead of cloned ownership/commit lookup keys. The complete
+prior merge bodies remain independently compiled test controls.
+`cleanup_plan/replay/owned_suffix.rs` retains the caller-owned original suffix
+vector while thin merged rows lend observation unions and representative
+metadata to sequencing. Its original borrowed sequence route and payment
+bodies remain compiled; exact owner-free-order and cumulative storage
+qualification are pending. This changes no cleanup schema or public support.
+
 `loop_calls/byte_writer/validation_frontier.rs` owns the separate ordered
 cleanup-validation demand phase. Sealed current-member receivers lend stable
 lazy helper/family cells to `cleanup_plan/build/helper_index/validation.rs`;

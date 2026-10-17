@@ -1,0 +1,15 @@
+{
+  "status": "AUTHORED_UNEXECUTED",
+  "checks": [
+    {
+      "harness": "lib",
+      "sourcepath": "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs",
+      "selector": "cleanup_plan::replay::skeleton_work::merge_keys_tests::borrowed_merge_floor_foreign_frontiers_keep_six_fields_sticky_and_complete_drop"
+    },
+    {
+      "harness": "lib",
+      "sourcepath": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+      "selector": "cleanup_plan::replay::owned_suffix::tests::owned_suffix_floor_foreign_frontiers_keep_six_fields_sticky_and_prefix_drop"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+
+running 1 test
+test cleanup_plan::replay::ordinary_plan_history::owned_tests::full_owned_transition_residual_and_scalar_corpus_keeps_flat_predecessor ... 
+thread 'cleanup_plan::replay::ordinary_plan_history::owned_tests::full_owned_transition_residual_and_scalar_corpus_keeps_flat_predecessor' (24568704) panicked at src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs:44:61:
+called `Result::unwrap()` on an `Err` value: [Diagnostic { code: "SPX-T218", severity: Error, message: "`?` with a live resource binding is not supported yet", path: Some("history-owned.spx"), span: Some(Span { start: 1028, end: 1034, line: 30, column: 17 }), help: None }, Diagnostic { code: "SPX-T218", severity: Error, message: "Option `?` accepts only direct `i64` or `bool` source and enclosing payloads", path: Some("history-owned.spx"), span: Some(Span { start: 1028, end: 1034, line: 30, column: 17 }), help: None }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::ordinary_plan_history::owned_tests::full_owned_transition_residual_and_scalar_corpus_keeps_flat_predecessor
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9740 filtered out; finished in 0.06s
+

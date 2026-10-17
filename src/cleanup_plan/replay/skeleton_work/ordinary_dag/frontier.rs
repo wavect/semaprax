@@ -20,7 +20,7 @@ impl ObservationDagKind {
 }
 
 impl SkeletonWork<'_, '_> {
-    pub(super) fn ordinary_frontier(
+    pub(in crate::cleanup_plan::replay::skeleton_work) fn ordinary_frontier(
         &mut self,
         required: usize,
     ) -> Result<Option<Rc<RefCell<dag_storage::DestructionScratch>>>, Diagnostic> {

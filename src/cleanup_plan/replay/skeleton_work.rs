@@ -6,9 +6,15 @@
 //! pointer checks add explicit work, and new ordinary DAG storage is prepaid.
 use super::*;
 mod dag_storage;
+pub(super) mod merge_keys;
+#[cfg(test)]
+mod merge_keys_before;
+#[cfg(test)]
+pub(super) mod merge_keys_tests;
 #[cfg(test)]
 mod oracle_entry;
 mod ordinary_dag;
+pub(super) mod enumerated_prefix;
 pub(super) mod prefix_fusion;
 
 #[cfg(test)]
@@ -674,10 +680,11 @@ type Observation = std::rc::Rc<SkeletonObservation>;
 
 /// The observation sequences of one skeleton path.
 ///
-/// The enumerating replay keeps every path flat: `prefix` stays `None` and
-/// `items` is exactly the former observation vector, with the same clone,
-/// append and charge behavior. Only the factored replay merges paths that
-/// carry identical cleanup state; their sequences then become one shared
+/// Enumerating replay preserves every distinct path. The ordinary-only
+/// `enumerated_prefix` route may store immutable sequence prefixes with
+/// complete-content paid comparison; legacy/Selected/Oracle paths stay flat.
+/// Only factored replay merges paths that carry identical cleanup state;
+/// their sequences then become one shared
 /// `ObservationDag` prefix denoting the set of all merged sequences, followed
 /// by the flat `items` appended afterwards.
 #[derive(Clone, Default)]
@@ -879,8 +886,9 @@ impl std::fmt::Debug for Observations {
     }
 }
 
-/// Flat sequences compare by content; the enumerating comparison sorts only
-/// flat paths. A merged prefix compares by identity.
+/// Legacy flat sequences compare by content. Factored prefixes compare by
+/// identity; ordinary enumerated history never uses this ordering and instead
+/// enters `enumerated_prefix`'s paid complete-content comparator.
 impl PartialEq for Observations {
     fn eq(&self, other: &Self) -> bool {
         self.identity() == other.identity()
@@ -902,7 +910,7 @@ impl Ord for Observations {
 }
 
 impl SkeletonWork<'_, '_> {
-    fn lexical_merge_normal(&self, path: &ExprSkeletonPath) -> bool {
+    pub(in crate::cleanup_plan::replay) fn lexical_merge_normal(&self, path: &ExprSkeletonPath) -> bool {
         self.function.cleanup_plan.lexical_control.is_none()
             || (self.active_copy_region.is_some()
                 && !path.failed
@@ -911,208 +919,7 @@ impl SkeletonWork<'_, '_> {
                 && path.continuation == lexical_skeleton::Continuation::Normal)
     }
 
-    /// Factored replay only: merge paths whose cleanup state is identical
-    /// into one path carrying the union of their observation sequences. Every
-    /// later skeleton step depends only on that state, so the union denotes
-    /// exactly the paths enumeration would produce.
-    pub(super) fn merged_paths(
-        &mut self,
-        paths: Vec<ExprSkeletonPath>,
-    ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
-        if !self.budget.merge_paths || paths.len() < 2 {
-            return Ok(paths);
-        }
-        self.charge(paths.len(), "factored path-state merge")?;
-        type Key = (
-            Option<CleanupPlace>,
-            bool,
-            bool,
-            lexical_skeleton::Continuation,
-        );
-        type Group = (ExprSkeletonPath, Vec<Observations>);
-        let mut order = BTreeMap::<Key, usize>::new();
-        let mut groups = Vec::<Group>::new();
-        for mut path in paths {
-            if !self.lexical_merge_normal(&path) {
-                self.budget
-                    .reserve_vec(self.function, &mut groups, 1, "isolated lexical path")?;
-                groups.push((path, Vec::new()));
-                continue;
-            }
-            let source = self.clone_payload(&path.owned_source, "factored merge source key")?;
-            let key = (
-                source,
-                path.failed,
-                path.residual,
-                path.continuation.clone(),
-            );
-            match order.get(&key).copied() {
-                Some(index) => {
-                    self.budget.reserve_vec(
-                        self.function,
-                        &mut groups[index].1,
-                        1,
-                        "factored merge members",
-                    )?;
-                    groups[index].1.push(path.observations);
-                }
-                None => {
-                    self.budget.reserve_btree_node::<Key, usize>(
-                        self.function,
-                        "factored merge identity index",
-                    )?;
-                    self.budget.reserve_vec(
-                        self.function,
-                        &mut groups,
-                        1,
-                        "factored merge groups",
-                    )?;
-                    self.budget.reserve_array::<Observations>(
-                        self.function,
-                        1,
-                        "factored first merge member",
-                    )?;
-                    let observations = std::mem::take(&mut path.observations);
-                    order.insert(key, groups.len());
-                    groups.push((path, vec![observations]));
-                }
-            }
-        }
-        self.budget.reserve_array::<ExprSkeletonPath>(
-            self.function,
-            groups.len(),
-            "factored merged paths",
-        )?;
-        let mut result = Vec::with_capacity(groups.len());
-        for (mut path, mut members) in groups {
-            if members.len() > 1 {
-                path.observations = if self.budget.selected() {
-                    self.union_observations(members)?
-                } else {
-                    self.ordinary_union(members)?
-                };
-            } else if let Some(observations) = members.pop() {
-                // A singleton keeps its original prefix and Vec backing.
-                path.observations = observations;
-            }
-            result.push(path);
-        }
-        Ok(result)
-    }
 
-    pub(super) fn merged_suffixes<'s>(
-        &mut self,
-        paths: &'s [ExprSkeletonPath],
-    ) -> Result<std::borrow::Cow<'s, [ExprSkeletonPath]>, Diagnostic> {
-        if !self.budget.merge_paths || paths.len() < 2 {
-            return Ok(std::borrow::Cow::Borrowed(paths));
-        }
-        self.budget.reserve_array::<ExprSkeletonPath>(
-            self.function,
-            paths.len(),
-            "factored suffix path copies",
-        )?;
-        let mut owned = Vec::with_capacity(paths.len());
-        for path in paths {
-            owned.push(self.clone_payload(path, "factored suffix path backing")?);
-        }
-        Ok(std::borrow::Cow::Owned(self.merged_paths(owned)?))
-    }
-
-    /// Call states additionally merge only with identical commit lists.
-    pub(super) fn merged_call_states(
-        &mut self,
-        states: Vec<CallSkeletonState>,
-    ) -> Result<Vec<CallSkeletonState>, Diagnostic> {
-        if !self.budget.merge_paths || states.len() < 2 {
-            return Ok(states);
-        }
-        self.charge(states.len(), "factored call-state merge")?;
-        type Key = (
-            Option<CleanupPlace>,
-            bool,
-            bool,
-            lexical_skeleton::Continuation,
-            Vec<(u32, CleanupPlace)>,
-        );
-        type Group = (CallSkeletonState, Vec<Observations>);
-        let mut order = BTreeMap::<Key, usize>::new();
-        let mut groups = Vec::<Group>::new();
-        for (mut path, commits) in states {
-            if !self.lexical_merge_normal(&path)
-                || (self.function.cleanup_plan.lexical_control.is_some() && !commits.is_empty())
-            {
-                self.budget.reserve_vec(
-                    self.function,
-                    &mut groups,
-                    1,
-                    "isolated lexical call state",
-                )?;
-                groups.push(((path, commits), Vec::new()));
-                continue;
-            }
-            let source = self.clone_payload(&path.owned_source, "factored call source key")?;
-            let key_commits = self.clone_payload(&commits, "factored call commit key")?;
-            let key = (
-                source,
-                path.failed,
-                path.residual,
-                path.continuation.clone(),
-                key_commits,
-            );
-            match order.get(&key).copied() {
-                Some(index) => {
-                    self.budget.reserve_vec(
-                        self.function,
-                        &mut groups[index].1,
-                        1,
-                        "factored call merge members",
-                    )?;
-                    groups[index].1.push(path.observations);
-                }
-                None => {
-                    self.budget.reserve_btree_node::<Key, usize>(
-                        self.function,
-                        "factored call identity index",
-                    )?;
-                    self.budget.reserve_vec(
-                        self.function,
-                        &mut groups,
-                        1,
-                        "factored call merge groups",
-                    )?;
-                    self.budget.reserve_array::<Observations>(
-                        self.function,
-                        1,
-                        "factored first call member",
-                    )?;
-                    let observations = std::mem::take(&mut path.observations);
-                    order.insert(key, groups.len());
-                    groups.push(((path, commits), vec![observations]));
-                }
-            }
-        }
-        self.budget.reserve_array::<CallSkeletonState>(
-            self.function,
-            groups.len(),
-            "factored merged call states",
-        )?;
-        let mut result = Vec::with_capacity(groups.len());
-        for ((mut path, commits), mut members) in groups {
-            if members.len() > 1 {
-                path.observations = if self.budget.selected() {
-                    self.union_observations(members)?
-                } else {
-                    self.ordinary_union(members)?
-                };
-            } else if let Some(observations) = members.pop() {
-                // A singleton keeps its original prefix and Vec backing.
-                path.observations = observations;
-            }
-            result.push((path, commits));
-        }
-        Ok(result)
-    }
 }
 
 #[cfg(test)]

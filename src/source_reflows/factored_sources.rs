@@ -533,9 +533,9 @@ fn singleton_concat_restore(current: &str) -> Result<String, &'static str> {
     Ok(before)
 }
 fn singleton_concat_current(path: &::std::path::Path, relative: &str, length: usize, expected: &str) -> Result<String, &'static str> {
-    if relative != "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs" { return custody_file(path, length, expected); }
+    if relative != "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs" { return crate::source_reflows_merge::main67107_inputs::semantic_batch_file(path, length, expected); }
     if length != 28835 || expected != "f4fd89c5c28b47d826968d935f51dac66a49e8fd859bfa519e98013913a3923a" { return Err("foreign-singleton-concat-row"); }
-    let raw = custody_file(path, 28861, "76fd94cd723677369a17540d5bf447e1b66fa08dffb14a754d53cf2c81180b32")?;
+    let raw = crate::source_reflows_merge::main67107_inputs::semantic_batch_file(path, 28861, "76fd94cd723677369a17540d5bf447e1b66fa08dffb14a754d53cf2c81180b32")?;
     let before = singleton_concat_restore(&raw)?;
     let archive = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/evidence/source-custody-452-singleton-needle-20261017/borrowed_labels.before.txt");
     if before != custody_file(&archive, length, expected)? { return Err("singleton-concat-whole-archive"); }
@@ -545,7 +545,7 @@ fn singleton_concat_current(path: &::std::path::Path, relative: &str, length: us
 fn singleton_concat_physical_front_retains_whole_prior_and_refuses_drift() {
     let root = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let path = "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs";
-    let raw = custody_file(&root.join(path), 28861, "76fd94cd723677369a17540d5bf447e1b66fa08dffb14a754d53cf2c81180b32").unwrap();
+    let raw = crate::source_reflows_merge::main67107_inputs::semantic_batch_file(&root.join(path), 28861, "76fd94cd723677369a17540d5bf447e1b66fa08dffb14a754d53cf2c81180b32").unwrap();
     let before = singleton_concat_current(&root.join(path), path, 28835, "f4fd89c5c28b47d826968d935f51dac66a49e8fd859bfa519e98013913a3923a").unwrap();
     assert_eq!(before, singleton_concat_restore(&raw).unwrap());
     for bad in [String::new(), format!("{raw}\n"), format!("{raw}{raw}"), raw[..raw.len()-1].to_owned(), raw.replacen("concat!", "format!", 1)] { assert!(singleton_concat_restore(&bad).is_err()); }

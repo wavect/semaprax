@@ -40,8 +40,50 @@ module history.owned;
 }
 @id("main") fn main()->i64 {0}
 "#;
+// Keep the complete original source above as a separately checked refusal.
+// This declaration has never been admitted; all other owned/residual/scalar
+// functions enter both real history producers without changing their bytes.
+const UNSUPPORTED_OWNED_OPTION: &str = r#"@id("owned_option") fn owned_option(value:own Option<Bytes>)->Option<Bytes> {
+    let payload=value?;
+    Option<Bytes>::Some {value:payload}
+}
+"#;
+
+fn admitted_source() -> String {
+    assert_eq!(SOURCE.matches(UNSUPPORTED_OWNED_OPTION).count(), 1);
+    let blank = UNSUPPORTED_OWNED_OPTION
+        .chars()
+        .map(|character| if character == '\n' { '\n' } else { ' ' })
+        .collect::<String>();
+    let admitted = SOURCE.replacen(UNSUPPORTED_OWNED_OPTION, &blank, 1);
+    assert_eq!(admitted.len(), SOURCE.len());
+    assert_eq!(admitted.replace(&blank, UNSUPPORTED_OWNED_OPTION), SOURCE);
+    admitted
+}
+
+#[test]
+fn original_owned_option_remains_an_exact_unadmitted_residual_control() {
+    let diagnostics = crate::check(SOURCE, "history-owned.spx").unwrap_err();
+    let errors = diagnostics.iter().filter(|diagnostic| diagnostic.severity.is_error()).collect::<Vec<_>>();
+    assert_eq!(errors.len(), 2, "{diagnostics:?}");
+    for (diagnostic, message) in errors.iter().zip([
+        "`?` with a live resource binding is not supported yet",
+        "Option `?` accepts only direct `i64` or `bool` source and enclosing payloads",
+    ]) {
+        assert_eq!(diagnostic.code, "SPX-T218");
+        assert_eq!(diagnostic.severity, crate::diagnostic::Severity::Error);
+        assert_eq!(diagnostic.message, message);
+        assert_eq!(diagnostic.path.as_deref(), Some("history-owned.spx"));
+        assert_eq!(diagnostic.span, Some(crate::ast::Span {
+            start: 1028, end: 1034, line: 30, column: 17,
+        }));
+        assert_eq!(diagnostic.help, None);
+    }
+}
+
 fn program() -> ResolvedProgram {
-    let checked = crate::check(SOURCE, "history-owned.spx").unwrap();
+    let source = admitted_source();
+    let checked = crate::check(&source, "history-owned.spx").unwrap();
     let canonical = crate::format::canonical(&checked);
     let checked = crate::check(&canonical, "history-owned.spx").unwrap();
     assert_eq!(crate::format::canonical(&checked), canonical);

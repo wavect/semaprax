@@ -115,7 +115,9 @@
     "src/cleanup_plan/replay/path_array.rs",
     "src/cleanup_plan/replay/path_array/main8a/mod.rs",
     "src/cleanup_plan/replay/physical_budget.rs",
+    "src/cleanup_plan/replay/physical_budget/setup.rs",
     "src/cleanup_plan/replay/physical_clone.rs",
+    "src/cleanup_plan/replay/physical_storage.rs",
     "src/cleanup_plan/replay/scalar_replay.rs",
     "src/cleanup_plan/replay/schema.rs",
     "src/cleanup_plan/replay/schema/paid_summary/original_receiver.rs",
@@ -130,6 +132,8 @@
     "src/cleanup_plan/replay/sequence_prefix/main_c11/tests.rs",
     "src/cleanup_plan/replay/sequence_prefix/tests.rs",
     "src/cleanup_plan/replay/skeleton_work.rs",
+    "src/cleanup_plan/replay/skeleton_work/ordinary_dag.rs",
+    "src/cleanup_plan/replay/skeleton_work/ordinary_dag/frontier.rs",
     "src/cleanup_plan/replay/supplemental/receiving.rs",
     "src/cleanup_plan/replay/supplemental/receiving/tests.rs",
     "src/cli/help/authoring/tasks.rs",
@@ -391,7 +395,7 @@
   "selected_child_pilot": "runtime unchanged in both arms",
   "execution": "NONE_SOURCE_ONLY",
   "final_normalizer": "src/source_reflows_merge/maina3_custody.rs",
-  "final_normalizer_sha256": "036d01437e58db64739cd65f6e8f30f875103f67e64f9881873ac44b5781d4b3",
+  "final_normalizer_sha256": "96ae01e69f632bebf703cd436dc171d4d2ce5d8262d22355a943bb3fb9d005b8",
   "component_runtime_source": "c75520f013a2dd420450c9b232c1bc11d65d974f",
   "scope": "a3/e47 shipping vector/leaf +847/781 +729; original90 selector only arm difference, fixed36 common runtime",
   "Main_source": "a3cdfa095db21055558099ecef5e051b8472f6a3",
@@ -401,5 +405,5 @@
   "joined_source_commit": "1aaaa78f1def8a7c1e0e25642f8fc4e4e0ffac61",
   "postpin_phase": "postpin-218a-20261016",
   "baseline_source_commit": "218a9583138d78ef5aed9a495a9150dee9b64619",
-  "joined_batch_source_commit": "1409da65fe3bf9a5f59a0f2bf858950de1b05d25"
+  "joined_batch_source_commit": "ddad53d1ae9b7dadd12f7b05be4732196749508f"
 }

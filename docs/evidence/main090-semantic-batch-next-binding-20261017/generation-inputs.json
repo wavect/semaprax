@@ -1,0 +1,35 @@
+{
+  "source_only": true,
+  "prior_manifest": {
+    "length": 241192,
+    "sha256": "f1c0afba8f5e72289291f16d9fd4ee777593f7dc3f2ba4d91d39c57825640b1b"
+  },
+  "changed_physical": {
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": [
+      156404,
+      "bdf614306dd818a9d66a794edf46008c3306ffa2fabcb3acbf4b03060d7db316"
+    ],
+    "src/cleanup_plan/replay.rs": [
+      323567,
+      "807735eb8713ff6e02abd9ea6d3d4aea4fdc53f95bc6b6d1a2a1e51dba605afa"
+    ],
+    "src/cleanup_plan/replay/skeleton_work.rs": [
+      47343,
+      "73ae980d09e4324eb272f1379364cb6ace3cce71a1f8c57de9bfd1a47f482c41"
+    ],
+    "src/source_verify/declaration.rs": [
+      15793,
+      "54bca5bc3be89d2b788655f72cb8671c76b540edd99c126a0862a4f1f22a0a88"
+    ],
+    "tests/hir_module_boundaries.rs": [
+      98174,
+      "5090d08b52cb9650af5fc2c2a28739a9783c3d43c7a0f25037ce032b04f51137"
+    ],
+    "tests/workspace/semantic_graph/source_inventory.rs": [
+      91318,
+      "aa4e1844d2e867c519bd24fdb560535c9f07b7daa790e343c1b4b04e978d0989"
+    ]
+  },
+  "whole_original_binder_preserved": true,
+  "new_physical_owners_not_added_to_frozen_174": true
+}

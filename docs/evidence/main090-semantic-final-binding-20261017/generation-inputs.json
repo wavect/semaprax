@@ -1,0 +1,15 @@
+{
+  "source_only": true,
+  "prior_manifest": {
+    "length": 241192,
+    "sha256": "2b77afe4510d47a6a74b6987a9da454bf0ffb2025c405f0e7c2e1692b1baada6"
+  },
+  "changed_physical": {
+    "src/source_reflows/incoming67107_semantic_receivers.rs": [
+      32535,
+      "d68f7f9b5a638b4b87498dbff360df371d5d2d2258f36a639c350b40cc243b54"
+    ]
+  },
+  "whole_original_binder_preserved": true,
+  "new_physical_owners_not_added_to_frozen_174": true
+}

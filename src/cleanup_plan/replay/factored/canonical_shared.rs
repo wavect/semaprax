@@ -276,6 +276,9 @@ impl<'a> Canonicalizer<'a> {
                 return Err(error);
             });
         }
+        // Existing received owner place: no copied tag, bool or reference.
+        // scratch_paid=true makes cold_dead_node false by its own definition.
+        if let Self { scratch_paid: false, .. } = self {
         if budget.pays_allocations() {
             budget.reserve_bytes(function, Self::COLD_ROOT_CONTROLS, "factored cold terminal root predicate")?;
         }
@@ -284,6 +287,7 @@ impl<'a> Canonicalizer<'a> {
                 budget.reserve_bytes(function, Self::COLD_RESULT_CONTROLS, "factored cold terminal result receiving")?;
             }
             return self.cold_dead_id(function, root, budget);
+        }
         }
         if budget.pays_allocations() {
             budget.reserve_bytes(
@@ -302,6 +306,10 @@ impl<'a> Canonicalizer<'a> {
         state: &SharedWeighted,
         budget: &mut ReplayBudget,
     ) -> Result<Option<(u64, Vec<(Label, SharedWeighted)>)>, Diagnostic> {
+        // Identity/sticky preflight precedes every invocation payment. Cold
+        // activation and all original payment order remain in the old body.
+        self.closures.preflight(function, budget);
+        if self.closures.failed() { return Err(Diagnostic::io("SPX-H006", String::new())); }
         if budget.pays_allocations() {
             budget.reserve_bytes(
                 function,

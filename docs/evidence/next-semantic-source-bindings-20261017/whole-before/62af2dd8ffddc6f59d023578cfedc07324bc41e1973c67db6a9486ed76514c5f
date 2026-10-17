@@ -1,0 +1,228 @@
+{
+  "schema": "semaprax.mainbcc-ordinary-source-domain.v1",
+  "main_head": "bccbe9696eca892045b0603ad663234062df15f4",
+  "original_table_sha256": "08561b7278747222f6e7902d5169ce6444e25da3e1add2dcdcb4c6cb3a8fd73f",
+  "inputs": [
+    {
+      "path": "docs/evidence/ordinary-replay-routes-v1/sources.json",
+      "current_len": 10024,
+      "current_sha256": "08561b7278747222f6e7902d5169ce6444e25da3e1add2dcdcb4c6cb3a8fd73f",
+      "current_archive": "docs/evidence/ordinary-replay-routes-v1/sources.json",
+      "main_len": 10024,
+      "main_sha256": "08561b7278747222f6e7902d5169ce6444e25da3e1add2dcdcb4c6cb3a8fd73f",
+      "main_archive": "docs/evidence/ordinary-replay-routes-v1/sources.json",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 10024,
+          "remove_sha256": "08561b7278747222f6e7902d5169ce6444e25da3e1add2dcdcb4c6cb3a8fd73f",
+          "insert_archive": "docs/evidence/ordinary-replay-routes-v1/sources.json"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay.rs",
+      "current_len": 321092,
+      "current_sha256": "30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c",
+      "current_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/current-inputs/30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c.txt",
+      "main_len": 300830,
+      "main_sha256": "f55a89e71e01d7254fd13ae57b9fbe104a08bddc1a3f080140b6d70213c1544d",
+      "main_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/main-inputs/01.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 321092,
+          "remove_sha256": "30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c",
+          "insert_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/main-inputs/01.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay.rs.before.txt",
+      "current_len": 300644,
+      "current_sha256": "a095e76b1c26a3fb49664a2169e9933fac76904b75c0a5c39046892442d24370",
+      "current_archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay.rs.before.txt",
+      "main_len": 300644,
+      "main_sha256": "a095e76b1c26a3fb49664a2169e9933fac76904b75c0a5c39046892442d24370",
+      "main_archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 300644,
+          "remove_sha256": "a095e76b1c26a3fb49664a2169e9933fac76904b75c0a5c39046892442d24370",
+          "insert_archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay.rs.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/continuation_storage.rs",
+      "current_len": 13836,
+      "current_sha256": "4afe0bddb6402b7708b59f02963f954b7c2c9ade69c99a7803a95cdd23b745a8",
+      "current_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/current-inputs/4afe0bddb6402b7708b59f02963f954b7c2c9ade69c99a7803a95cdd23b745a8.txt",
+      "main_len": 13836,
+      "main_sha256": "4afe0bddb6402b7708b59f02963f954b7c2c9ade69c99a7803a95cdd23b745a8",
+      "main_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/main-inputs/03.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 13836,
+          "remove_sha256": "4afe0bddb6402b7708b59f02963f954b7c2c9ade69c99a7803a95cdd23b745a8",
+          "insert_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/main-inputs/03.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__continuation_storage.rs.before.txt",
+      "current_len": 13825,
+      "current_sha256": "864641c685d78104376ddb50b24d172edfad362383bcd5b3dfb3637a87ae305c",
+      "current_archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__continuation_storage.rs.before.txt",
+      "main_len": 13825,
+      "main_sha256": "864641c685d78104376ddb50b24d172edfad362383bcd5b3dfb3637a87ae305c",
+      "main_archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__continuation_storage.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 13825,
+          "remove_sha256": "864641c685d78104376ddb50b24d172edfad362383bcd5b3dfb3637a87ae305c",
+          "insert_archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__continuation_storage.rs.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/continuation_storage/tests.rs",
+      "current_len": 27342,
+      "current_sha256": "ef071c7def7542ab0365cdd9566779a4b37270365bf6c147df7e87122debbdc2",
+      "current_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/current-inputs/ef071c7def7542ab0365cdd9566779a4b37270365bf6c147df7e87122debbdc2.txt",
+      "main_len": 27342,
+      "main_sha256": "ef071c7def7542ab0365cdd9566779a4b37270365bf6c147df7e87122debbdc2",
+      "main_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/main-inputs/05.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 27342,
+          "remove_sha256": "ef071c7def7542ab0365cdd9566779a4b37270365bf6c147df7e87122debbdc2",
+          "insert_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/main-inputs/05.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__continuation_storage__tests.rs.before.txt",
+      "current_len": 25511,
+      "current_sha256": "661e208e70b4d4559774f9d50f30af17d39a44f767e863530ba2ee0c51a4bd54",
+      "current_archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__continuation_storage__tests.rs.before.txt",
+      "main_len": 25511,
+      "main_sha256": "661e208e70b4d4559774f9d50f30af17d39a44f767e863530ba2ee0c51a4bd54",
+      "main_archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__continuation_storage__tests.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 25511,
+          "remove_sha256": "661e208e70b4d4559774f9d50f30af17d39a44f767e863530ba2ee0c51a4bd54",
+          "insert_archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__continuation_storage__tests.rs.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+      "current_len": 36271,
+      "current_sha256": "993310a1f8247923519f59099a7a5deaae6566972345a71b8f4c41ce1482d120",
+      "current_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/current-inputs/993310a1f8247923519f59099a7a5deaae6566972345a71b8f4c41ce1482d120.txt",
+      "main_len": 36206,
+      "main_sha256": "7739c1324f612967d28bb4eb6fb87cdaa5354d743b4435d396d6f148c1354b31",
+      "main_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/main-inputs/07.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 36271,
+          "remove_sha256": "993310a1f8247923519f59099a7a5deaae6566972345a71b8f4c41ce1482d120",
+          "insert_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/main-inputs/07.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__expression_facts__receiving__retained.rs.before.txt",
+      "current_len": 36235,
+      "current_sha256": "ee20fca55c0cba14f58f9ff07f36d76b05197ecd838198729133076dfeb84d4e",
+      "current_archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__expression_facts__receiving__retained.rs.before.txt",
+      "main_len": 36235,
+      "main_sha256": "ee20fca55c0cba14f58f9ff07f36d76b05197ecd838198729133076dfeb84d4e",
+      "main_archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__expression_facts__receiving__retained.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 36235,
+          "remove_sha256": "ee20fca55c0cba14f58f9ff07f36d76b05197ecd838198729133076dfeb84d4e",
+          "insert_archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__expression_facts__receiving__retained.rs.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs",
+      "current_len": 29910,
+      "current_sha256": "58d578202f5276792d67035830b908a97408d3c702d015e89ce316becf13bc17",
+      "current_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/current-inputs/58d578202f5276792d67035830b908a97408d3c702d015e89ce316becf13bc17.txt",
+      "main_len": 29718,
+      "main_sha256": "371f112bb250011df5930334be7d3bd4f4ff82e10a8471469d981ca0ba094a87",
+      "main_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/main-inputs/09.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 29910,
+          "remove_sha256": "58d578202f5276792d67035830b908a97408d3c702d015e89ce316becf13bc17",
+          "insert_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/main-inputs/09.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__expression_facts__receiving__directory__status_prefix__tests.rs.before.txt",
+      "current_len": 28752,
+      "current_sha256": "c0b4fc2e1cab84091d6de095ed1e4514ced3e80c9eaa0ab22b6f19526275adc4",
+      "current_archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__expression_facts__receiving__directory__status_prefix__tests.rs.before.txt",
+      "main_len": 28752,
+      "main_sha256": "c0b4fc2e1cab84091d6de095ed1e4514ced3e80c9eaa0ab22b6f19526275adc4",
+      "main_archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__expression_facts__receiving__directory__status_prefix__tests.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 28752,
+          "remove_sha256": "c0b4fc2e1cab84091d6de095ed1e4514ced3e80c9eaa0ab22b6f19526275adc4",
+          "insert_archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__expression_facts__receiving__directory__status_prefix__tests.rs.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "src/source_reflows/semantic_receivers.rs",
+      "current_len": 30256,
+      "current_sha256": "3697d98f51d3d633a280ffd7ee0656c0d45e660e061cee5275ee81189d1ee1a4",
+      "current_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/current-inputs/3697d98f51d3d633a280ffd7ee0656c0d45e660e061cee5275ee81189d1ee1a4.txt",
+      "main_len": 29074,
+      "main_sha256": "806760673e36ddff23fc45a9c35da3d44910519e253845b07ac7ab1296b6e9b9",
+      "main_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/main-inputs/11.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 30256,
+          "remove_sha256": "3697d98f51d3d633a280ffd7ee0656c0d45e660e061cee5275ee81189d1ee1a4",
+          "insert_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/main-inputs/11.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-replay-routes-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+      "current_len": 26937,
+      "current_sha256": "17989402984251c9956537bc3d2d8c6a1a6c6252cb1bd188ffd265dc6cdd0a51",
+      "current_archive": "docs/evidence/ordinary-replay-routes-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+      "main_len": 26937,
+      "main_sha256": "17989402984251c9956537bc3d2d8c6a1a6c6252cb1bd188ffd265dc6cdd0a51",
+      "main_archive": "docs/evidence/ordinary-replay-routes-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 26937,
+          "remove_sha256": "17989402984251c9956537bc3d2d8c6a1a6c6252cb1bd188ffd265dc6cdd0a51",
+          "insert_archive": "docs/evidence/ordinary-replay-routes-v1/src__source_reflows__semantic_receivers.rs.before.txt"
+        }
+      ]
+    }
+  ]
+}

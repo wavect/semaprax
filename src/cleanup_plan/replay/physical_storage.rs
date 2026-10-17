@@ -15,6 +15,7 @@ pub(crate) struct PhysicalReservation {
     remaining: usize,
     charged: usize,
     refusal: Option<PhysicalRefusal>,
+    pub(in crate::cleanup_plan::replay) direct_anchor: Option<super::SelectedDirectAnchor>,
 }
 
 impl PhysicalReservation {
@@ -23,6 +24,7 @@ impl PhysicalReservation {
             remaining: limit,
             charged: 0,
             refusal: None,
+            direct_anchor: None,
         }
     }
 
@@ -238,3 +240,113 @@ mod representative_measurements;
 
 #[cfg(test)]
 mod zero_tests;
+
+#[cfg(test)]
+mod before_direct_anchor {
+    use super::*;
+pub(crate) struct BeforeDirectAnchorReservation {
+    remaining: usize,
+    charged: usize,
+    refusal: Option<PhysicalRefusal>,
+}
+
+impl BeforeDirectAnchorReservation {
+    pub(crate) fn new(limit: usize) -> Self {
+        Self {
+            remaining: limit,
+            charged: 0,
+            refusal: None,
+        }
+    }
+
+    pub(crate) fn charged(&self) -> usize {
+        self.charged
+    }
+
+    /// No allocation or refund occurs here. Failed requests cannot subsequently
+    /// authorize even a zero-byte construction through this ledger.
+    pub(crate) fn reserve(&mut self, bytes: usize) -> Result<(), PhysicalRefusal> {
+        if let Some(refusal) = self.refusal {
+            return Err(refusal);
+        }
+        let Some(charged) = self.charged.checked_add(bytes) else {
+            return self.fail(PhysicalRefusal::Overflow);
+        };
+        let Some(remaining) = self.remaining.checked_sub(bytes) else {
+            return self.fail(PhysicalRefusal::LocalLimit);
+        };
+        if crate::bounded_output::active_refused()
+            || !crate::bounded_output::reserve_active_required(bytes)
+        {
+            return self.fail(PhysicalRefusal::EnclosingBudget);
+        }
+        self.charged = charged;
+        self.remaining = remaining;
+        Ok(())
+    }
+
+    /// Exact reserve(0) frontier without constructing its Result receiver.
+    /// Adding/subtracting zero cannot overflow valid usize fields. The held
+    /// refusal remains first; enclosing floor authentication still runs.
+    pub(in crate::cleanup_plan::replay) fn authenticate_zero(&mut self) -> bool {
+        if self.refusal.is_some() {
+            return false;
+        }
+        if crate::bounded_output::active_refused()
+            || !crate::bounded_output::reserve_active_required(0)
+        {
+            self.refusal = Some(PhysicalRefusal::EnclosingBudget);
+            return false;
+        }
+        true
+    }
+
+    /// `T` describes the actual allocated element, including its padding. Nested
+    /// String/Vec/map/identity backing is separate and must be charged by callers.
+    pub(crate) fn reserve_array<T>(&mut self, count: usize) -> Result<(), PhysicalRefusal> {
+        if let Some(refusal) = self.refusal {
+            return Err(refusal);
+        }
+        match count.checked_mul(std::mem::size_of::<T>()) {
+            Some(bytes) => self.reserve(bytes),
+            None => self.fail(PhysicalRefusal::Overflow),
+        }
+    }
+
+    pub(super) fn reject(&mut self) {
+        if self.refusal.is_none() {
+            self.refusal = Some(PhysicalRefusal::LocalLimit);
+        }
+    }
+
+    fn fail(&mut self, refusal: PhysicalRefusal) -> Result<(), PhysicalRefusal> {
+        self.refusal = Some(refusal);
+        Err(refusal)
+    }
+}
+
+}
+
+#[cfg(test)]
+mod direct_anchor_layout_tests {
+    use super::*;
+    #[test]
+    fn direct_anchor_preserves_whole_old_selected_ledger_and_reports_actual_layout_cost() {
+        use before_direct_anchor::BeforeDirectAnchorReservation;
+        assert_eq!(std::mem::size_of::<BeforeDirectAnchorReservation>(),
+            std::mem::size_of::<(usize, usize, Option<PhysicalRefusal>)>());
+        assert!(std::mem::size_of::<PhysicalReservation>() >= std::mem::size_of::<BeforeDirectAnchorReservation>());
+        let mut old = BeforeDirectAnchorReservation::new(3);
+        let mut current = PhysicalReservation::new(3);
+        for bytes in [0, 1, 2, 1, 0] {
+            assert_eq!(old.reserve(bytes), current.reserve(bytes));
+            assert_eq!(old.charged(), current.charged());
+        }
+        assert_eq!(old.reserve_array::<u8>(0), current.reserve_array::<u8>(0));
+        assert_eq!(old.authenticate_zero(), current.authenticate_zero());
+        old.reject(); current.reject();
+        assert_eq!(old.reserve(0), current.reserve(0));
+        eprintln!("selected ledger old/current bytes={}/{}; ordinary budget carrier layout unchanged",
+            std::mem::size_of::<BeforeDirectAnchorReservation>(), std::mem::size_of::<PhysicalReservation>());
+    }
+}

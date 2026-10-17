@@ -1,0 +1,103 @@
+{
+  "status": "SOURCE_AUTHORED_UNEXECUTED_NOT_DISCOVERED",
+  "base": "36c6deb98720e243b0daaf81e813fbe3ec3b0a2d",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::whole_old_sequence_content_states_multiplicity_and_original_skeleton_work_survive",
+      "source_path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::independently_allocated_equal_sequences_sort_by_content_and_keep_terminal_multiplicity",
+      "source_path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::sequence_and_cursor_real_byte_frontiers_preserve_six_field_diagnostics_and_full_drop",
+      "source_path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::shared_hir_content_is_consumed_by_both_flat_and_immutable_plan_comparators",
+      "source_path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::first_original_work_failure_and_sticky_floor_settlement_are_not_replaced",
+      "source_path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::complete_owned_contract_residual_corpus_keeps_independent_flat_hir_and_plan_outputs",
+      "source_path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::complete_frozen_sequence_and_comparison_bodies_are_independently_compiled_verbatim",
+      "source_path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::whole_sequence_owner_reports_paid_allocated_peak_and_complete_drop_for_small_and_long_fanout",
+      "source_path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::original_oracle_retains_full_old_accounts_without_entering_shared_storage",
+      "source_path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::repeated_long_tail_freeze_retains_all_earlier_segment_contents",
+      "source_path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::sequence_marker_never_authenticates_foreign_observation_contents_or_lent_work",
+      "source_path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::shared_suffix_concatenation_and_prepend_keep_complete_order_with_free_metadata_work",
+      "source_path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::whole_frozen_sequence_and_plan_comparator_run_independently_in_original_scope",
+      "source_path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::source_custody::six_complete_predecessors_and_four_created_sources_keep_exact_bytes_and_refuse_drift",
+      "source_path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/source_custody.rs"
+    }
+  ],
+  "required_retained_originals": [
+    "all affected856/858/831 and HIR/PLAN/source-custody owners",
+    "actual808/catalog/NDJSON outcomes at unchanged caps",
+    "current452 owning-selected-189 and190 original work/physical controls unchanged"
+  ],
+  "not_run": [
+    "Cargo",
+    "Rust tests",
+    "compiler",
+    "Clippy",
+    "models",
+    "full graph refresh"
+  ]
+}

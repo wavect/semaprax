@@ -1,0 +1,924 @@
+{
+  "schema": "semaprax.main34d-three-source-domains.v1",
+  "main_head": "34d53510a3374537874c89a0e46be4d68ad9fe61",
+  "domains": [
+    {
+      "name": "held-status",
+      "reads": [
+        "docs/evidence/held-status-prefix-v1/views.json",
+        "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+        "docs/evidence/held-status-prefix-v1/src__cleanup_plan__replay__expression_facts__receiving__directory__status_prefix.rs.before.txt",
+        "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs",
+        "docs/evidence/held-status-prefix-v1/src__cleanup_plan__replay__expression_facts__receiving__directory__status_prefix__tests.rs.before.txt",
+        "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+        "docs/evidence/held-status-prefix-v1/src__cleanup_plan__replay__expression_facts__receiving__retained.rs.before.txt",
+        "docs/evidence/held-status-prefix-v1/sources.json",
+        "src/source_reflows/semantic_receivers.rs",
+        "docs/evidence/held-status-prefix-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+        "docs/evidence/source-reader-followups-20261016/sources.json",
+        "docs/evidence/held-status-prefix-v1/docs__evidence__source-reader-followups-20261016__sources.json.before.txt",
+        "docs/evidence/ordinary-replay-setup-v1/sources.json",
+        "docs/evidence/held-status-prefix-v1/docs__evidence__ordinary-replay-setup-v1__sources.json.before.txt"
+      ]
+    },
+    {
+      "name": "held-continuation",
+      "reads": [
+        "docs/evidence/held-continuation-growth-v1/views.json",
+        "src/cleanup_plan/replay/continuation_storage.rs",
+        "docs/evidence/held-continuation-growth-v1/src__cleanup_plan__replay__continuation_storage.rs.before.txt",
+        "src/cleanup_plan/replay/continuation_storage/tests.rs",
+        "docs/evidence/held-continuation-growth-v1/src__cleanup_plan__replay__continuation_storage__tests.rs.before.txt",
+        "docs/evidence/held-continuation-growth-v1/sources.json",
+        "src/cleanup_plan/replay.rs",
+        "docs/evidence/held-continuation-growth-v1/src__cleanup_plan__replay.rs.before.txt",
+        "src/source_reflows/semantic_receivers.rs",
+        "docs/evidence/held-continuation-growth-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+        "docs/evidence/ordinary-replay-setup-v1/sources.json",
+        "docs/evidence/held-continuation-growth-v1/docs__evidence__ordinary-replay-setup-v1__sources.json.before.txt",
+        "docs/evidence/held-status-prefix-v1/sources.json",
+        "docs/evidence/held-continuation-growth-v1/docs__evidence__held-status-prefix-v1__sources.json.before.txt",
+        "docs/evidence/source-reader-followups-20261016/sources.json",
+        "docs/evidence/held-continuation-growth-v1/docs__evidence__source-reader-followups-20261016__sources.json.before.txt",
+        "docs/evidence/receiver-source-custody-v1/inverse.json",
+        "docs/evidence/held-continuation-growth-v1/docs__evidence__receiver-source-custody-v1__inverse.json.before.txt",
+        "docs/evidence/compact-staged-observations-v1/inverse.json",
+        "docs/evidence/held-continuation-growth-v1/docs__evidence__compact-staged-observations-v1__inverse.json.before.txt",
+        "docs/evidence/moderate-factored-v1/sources.json",
+        "docs/evidence/held-continuation-growth-v1/docs__evidence__moderate-factored-v1__sources.json.before.txt"
+      ]
+    },
+    {
+      "name": "receiving-lookup",
+      "reads": [
+        "docs/evidence/paid-expression-lookup-state-v1/views.json",
+        "src/cleanup_plan/replay/expression_facts/arena/prefix.rs",
+        "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena__prefix.rs.before.txt",
+        "src/cleanup_plan/replay/expression_facts/arena.rs",
+        "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena.rs.before.txt",
+        "src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs",
+        "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena__prefix__tests.rs.before.txt",
+        "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs",
+        "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena__cursor_tests.rs.before.txt",
+        "docs/evidence/paid-expression-lookup-state-v1/sources.json",
+        "src/source_reflows/semantic_receivers.rs",
+        "docs/evidence/paid-expression-lookup-state-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+        "docs/evidence/ordinary-replay-setup-v1/sources.json",
+        "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__ordinary-replay-setup-v1__sources.json.before.txt",
+        "docs/evidence/held-status-prefix-v1/sources.json",
+        "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__held-status-prefix-v1__sources.json.before.txt",
+        "docs/evidence/source-reader-followups-20261016/sources.json",
+        "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__source-reader-followups-20261016__sources.json.before.txt",
+        "docs/evidence/held-continuation-growth-v1/sources.json",
+        "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__held-continuation-growth-v1__sources.json.before.txt",
+        "docs/evidence/prefix-certified-expression-lookup/exact-source-inverses.json",
+        "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__prefix-certified-expression-lookup__exact-source-inverses.json.before.txt"
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "path": "docs/evidence/held-status-prefix-v1/views.json",
+      "current_len": 148937,
+      "current_sha256": "5aa9115c6435babc0dd5c9bb41350974a90f4e5074ac7d24e868b9fc02b52df3",
+      "current_archive": "docs/evidence/held-status-prefix-v1/views.json",
+      "main_len": 148937,
+      "main_sha256": "5aa9115c6435babc0dd5c9bb41350974a90f4e5074ac7d24e868b9fc02b52df3",
+      "main_archive": "docs/evidence/held-status-prefix-v1/views.json",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 148937,
+          "remove_sha256": "5aa9115c6435babc0dd5c9bb41350974a90f4e5074ac7d24e868b9fc02b52df3",
+          "insert_archive": "docs/evidence/held-status-prefix-v1/views.json"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+      "current_len": 19604,
+      "current_sha256": "37dbfa2677e03beab295d5f96fbb3a4f9a4a84908721021b566113156dbc43f0",
+      "current_archive": "docs/evidence/main34d-three-source-domains-20261017/current-inputs/01.txt",
+      "main_len": 19472,
+      "main_sha256": "9f9c495e16fe9af39e773c6ef5413bc8eff8363b21d5771620f7bd91eec746b1",
+      "main_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/01.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 19604,
+          "remove_sha256": "37dbfa2677e03beab295d5f96fbb3a4f9a4a84908721021b566113156dbc43f0",
+          "insert_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/01.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-status-prefix-v1/src__cleanup_plan__replay__expression_facts__receiving__directory__status_prefix.rs.before.txt",
+      "current_len": 11824,
+      "current_sha256": "914e1a78079f871cb37462414b1991cde6722e78b7af39cb7979e11f16f767e9",
+      "current_archive": "docs/evidence/held-status-prefix-v1/src__cleanup_plan__replay__expression_facts__receiving__directory__status_prefix.rs.before.txt",
+      "main_len": 11824,
+      "main_sha256": "914e1a78079f871cb37462414b1991cde6722e78b7af39cb7979e11f16f767e9",
+      "main_archive": "docs/evidence/held-status-prefix-v1/src__cleanup_plan__replay__expression_facts__receiving__directory__status_prefix.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 11824,
+          "remove_sha256": "914e1a78079f871cb37462414b1991cde6722e78b7af39cb7979e11f16f767e9",
+          "insert_archive": "docs/evidence/held-status-prefix-v1/src__cleanup_plan__replay__expression_facts__receiving__directory__status_prefix.rs.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs",
+      "current_len": 29910,
+      "current_sha256": "58d578202f5276792d67035830b908a97408d3c702d015e89ce316becf13bc17",
+      "current_archive": "docs/evidence/main34d-three-source-domains-20261017/current-inputs/03.txt",
+      "main_len": 28752,
+      "main_sha256": "c0b4fc2e1cab84091d6de095ed1e4514ced3e80c9eaa0ab22b6f19526275adc4",
+      "main_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/03.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 29910,
+          "remove_sha256": "58d578202f5276792d67035830b908a97408d3c702d015e89ce316becf13bc17",
+          "insert_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/03.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-status-prefix-v1/src__cleanup_plan__replay__expression_facts__receiving__directory__status_prefix__tests.rs.before.txt",
+      "current_len": 16041,
+      "current_sha256": "8e890e5b1cedd801a36a808cee31f647d6fee2fa98896122442bb4a6f52e80c2",
+      "current_archive": "docs/evidence/held-status-prefix-v1/src__cleanup_plan__replay__expression_facts__receiving__directory__status_prefix__tests.rs.before.txt",
+      "main_len": 16041,
+      "main_sha256": "8e890e5b1cedd801a36a808cee31f647d6fee2fa98896122442bb4a6f52e80c2",
+      "main_archive": "docs/evidence/held-status-prefix-v1/src__cleanup_plan__replay__expression_facts__receiving__directory__status_prefix__tests.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 16041,
+          "remove_sha256": "8e890e5b1cedd801a36a808cee31f647d6fee2fa98896122442bb4a6f52e80c2",
+          "insert_archive": "docs/evidence/held-status-prefix-v1/src__cleanup_plan__replay__expression_facts__receiving__directory__status_prefix__tests.rs.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+      "current_len": 36271,
+      "current_sha256": "993310a1f8247923519f59099a7a5deaae6566972345a71b8f4c41ce1482d120",
+      "current_archive": "docs/evidence/main34d-three-source-domains-20261017/current-inputs/05.txt",
+      "main_len": 36235,
+      "main_sha256": "ee20fca55c0cba14f58f9ff07f36d76b05197ecd838198729133076dfeb84d4e",
+      "main_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/05.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 36271,
+          "remove_sha256": "993310a1f8247923519f59099a7a5deaae6566972345a71b8f4c41ce1482d120",
+          "insert_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/05.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-status-prefix-v1/src__cleanup_plan__replay__expression_facts__receiving__retained.rs.before.txt",
+      "current_len": 31028,
+      "current_sha256": "ef8c174c36906e2ee19b02bbef87c1a53284014cda80153387401d7a1d5d744e",
+      "current_archive": "docs/evidence/held-status-prefix-v1/src__cleanup_plan__replay__expression_facts__receiving__retained.rs.before.txt",
+      "main_len": 31028,
+      "main_sha256": "ef8c174c36906e2ee19b02bbef87c1a53284014cda80153387401d7a1d5d744e",
+      "main_archive": "docs/evidence/held-status-prefix-v1/src__cleanup_plan__replay__expression_facts__receiving__retained.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 31028,
+          "remove_sha256": "ef8c174c36906e2ee19b02bbef87c1a53284014cda80153387401d7a1d5d744e",
+          "insert_archive": "docs/evidence/held-status-prefix-v1/src__cleanup_plan__replay__expression_facts__receiving__retained.rs.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-status-prefix-v1/sources.json",
+      "current_len": 9317546,
+      "current_sha256": "20fd863fcb291ad9e4e09c4ccf79ca2be1bad9f206a7f87d88a201df890ab3de",
+      "current_archive": "docs/evidence/held-status-prefix-v1/sources.json",
+      "main_len": 9317546,
+      "main_sha256": "20fd863fcb291ad9e4e09c4ccf79ca2be1bad9f206a7f87d88a201df890ab3de",
+      "main_archive": "docs/evidence/held-status-prefix-v1/sources.json",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 9317546,
+          "remove_sha256": "20fd863fcb291ad9e4e09c4ccf79ca2be1bad9f206a7f87d88a201df890ab3de",
+          "insert_archive": "docs/evidence/held-status-prefix-v1/sources.json"
+        }
+      ]
+    },
+    {
+      "path": "src/source_reflows/semantic_receivers.rs",
+      "current_len": 30256,
+      "current_sha256": "3697d98f51d3d633a280ffd7ee0656c0d45e660e061cee5275ee81189d1ee1a4",
+      "current_archive": "docs/evidence/main34d-three-source-domains-20261017/current-inputs/08.txt",
+      "main_len": 26937,
+      "main_sha256": "17989402984251c9956537bc3d2d8c6a1a6c6252cb1bd188ffd265dc6cdd0a51",
+      "main_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/08.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 30256,
+          "remove_sha256": "3697d98f51d3d633a280ffd7ee0656c0d45e660e061cee5275ee81189d1ee1a4",
+          "insert_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/08.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-status-prefix-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+      "current_len": 12874,
+      "current_sha256": "68c95445cf0a8e9202822098149f74890cfc8807ab352ec071824e8705f4d28f",
+      "current_archive": "docs/evidence/held-status-prefix-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+      "main_len": 12874,
+      "main_sha256": "68c95445cf0a8e9202822098149f74890cfc8807ab352ec071824e8705f4d28f",
+      "main_archive": "docs/evidence/held-status-prefix-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 12874,
+          "remove_sha256": "68c95445cf0a8e9202822098149f74890cfc8807ab352ec071824e8705f4d28f",
+          "insert_archive": "docs/evidence/held-status-prefix-v1/src__source_reflows__semantic_receivers.rs.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/source-reader-followups-20261016/sources.json",
+      "current_len": 152502,
+      "current_sha256": "08d9a996cbf1c0d2582d3ae1175398c46666e28ba47f65f8fd69fdebc3c05115",
+      "current_archive": "docs/evidence/source-reader-followups-20261016/sources.json",
+      "main_len": 152502,
+      "main_sha256": "08d9a996cbf1c0d2582d3ae1175398c46666e28ba47f65f8fd69fdebc3c05115",
+      "main_archive": "docs/evidence/source-reader-followups-20261016/sources.json",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 152502,
+          "remove_sha256": "08d9a996cbf1c0d2582d3ae1175398c46666e28ba47f65f8fd69fdebc3c05115",
+          "insert_archive": "docs/evidence/source-reader-followups-20261016/sources.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-status-prefix-v1/docs__evidence__source-reader-followups-20261016__sources.json.before.txt",
+      "current_len": 108800,
+      "current_sha256": "3aca5ac6d30b933278a067096341874ce9d0dbec75a38e6de18e56810b94f9c8",
+      "current_archive": "docs/evidence/held-status-prefix-v1/docs__evidence__source-reader-followups-20261016__sources.json.before.txt",
+      "main_len": 108800,
+      "main_sha256": "3aca5ac6d30b933278a067096341874ce9d0dbec75a38e6de18e56810b94f9c8",
+      "main_archive": "docs/evidence/held-status-prefix-v1/docs__evidence__source-reader-followups-20261016__sources.json.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 108800,
+          "remove_sha256": "3aca5ac6d30b933278a067096341874ce9d0dbec75a38e6de18e56810b94f9c8",
+          "insert_archive": "docs/evidence/held-status-prefix-v1/docs__evidence__source-reader-followups-20261016__sources.json.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-replay-setup-v1/sources.json",
+      "current_len": 2073944,
+      "current_sha256": "b3d32041c7e20345238ec6fcd37764747c793e626467df2fe91c03f0dd3e38d3",
+      "current_archive": "docs/evidence/main34d-three-source-domains-20261017/current-inputs/meta-b3d32041c7e20345238ec6fcd37764747c793e626467df2fe91c03f0dd3e38d3.txt",
+      "main_len": 4195473,
+      "main_sha256": "5f43b9301289b6ce516b62121ec279920cb6a6bbec11edd45f1dd97aad4fa043",
+      "main_archive": "docs/evidence/main34d535-integration-20261017/docs__evidence__ordinary-replay-setup-v1__sources.json.main34d.json",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 2073944,
+          "remove_sha256": "b3d32041c7e20345238ec6fcd37764747c793e626467df2fe91c03f0dd3e38d3",
+          "insert_archive": "docs/evidence/main34d535-integration-20261017/docs__evidence__ordinary-replay-setup-v1__sources.json.main34d.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-status-prefix-v1/docs__evidence__ordinary-replay-setup-v1__sources.json.before.txt",
+      "current_len": 3872521,
+      "current_sha256": "c02c1d3090d3eb0aa0a8696701709c25b2896f318ebc54e543d50e302af8af6f",
+      "current_archive": "docs/evidence/held-status-prefix-v1/docs__evidence__ordinary-replay-setup-v1__sources.json.before.txt",
+      "main_len": 3872521,
+      "main_sha256": "c02c1d3090d3eb0aa0a8696701709c25b2896f318ebc54e543d50e302af8af6f",
+      "main_archive": "docs/evidence/held-status-prefix-v1/docs__evidence__ordinary-replay-setup-v1__sources.json.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 3872521,
+          "remove_sha256": "c02c1d3090d3eb0aa0a8696701709c25b2896f318ebc54e543d50e302af8af6f",
+          "insert_archive": "docs/evidence/held-status-prefix-v1/docs__evidence__ordinary-replay-setup-v1__sources.json.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-continuation-growth-v1/views.json",
+      "current_len": 17153,
+      "current_sha256": "4359c9896c3e1192b1173da1ff2c25954c0082cb61da341b0defd03992b9e8cf",
+      "current_archive": "docs/evidence/held-continuation-growth-v1/views.json",
+      "main_len": 17153,
+      "main_sha256": "4359c9896c3e1192b1173da1ff2c25954c0082cb61da341b0defd03992b9e8cf",
+      "main_archive": "docs/evidence/held-continuation-growth-v1/views.json",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 17153,
+          "remove_sha256": "4359c9896c3e1192b1173da1ff2c25954c0082cb61da341b0defd03992b9e8cf",
+          "insert_archive": "docs/evidence/held-continuation-growth-v1/views.json"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/continuation_storage.rs",
+      "current_len": 13836,
+      "current_sha256": "4afe0bddb6402b7708b59f02963f954b7c2c9ade69c99a7803a95cdd23b745a8",
+      "current_archive": "docs/evidence/main34d-three-source-domains-20261017/current-inputs/15.txt",
+      "main_len": 13825,
+      "main_sha256": "864641c685d78104376ddb50b24d172edfad362383bcd5b3dfb3637a87ae305c",
+      "main_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/15.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 13836,
+          "remove_sha256": "4afe0bddb6402b7708b59f02963f954b7c2c9ade69c99a7803a95cdd23b745a8",
+          "insert_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/15.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-continuation-growth-v1/src__cleanup_plan__replay__continuation_storage.rs.before.txt",
+      "current_len": 10988,
+      "current_sha256": "acc616d33ab36c4e9239db612dd8e5487b53b59eec798d1a68cc35c5a4c60df6",
+      "current_archive": "docs/evidence/held-continuation-growth-v1/src__cleanup_plan__replay__continuation_storage.rs.before.txt",
+      "main_len": 10988,
+      "main_sha256": "acc616d33ab36c4e9239db612dd8e5487b53b59eec798d1a68cc35c5a4c60df6",
+      "main_archive": "docs/evidence/held-continuation-growth-v1/src__cleanup_plan__replay__continuation_storage.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 10988,
+          "remove_sha256": "acc616d33ab36c4e9239db612dd8e5487b53b59eec798d1a68cc35c5a4c60df6",
+          "insert_archive": "docs/evidence/held-continuation-growth-v1/src__cleanup_plan__replay__continuation_storage.rs.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/continuation_storage/tests.rs",
+      "current_len": 27342,
+      "current_sha256": "ef071c7def7542ab0365cdd9566779a4b37270365bf6c147df7e87122debbdc2",
+      "current_archive": "docs/evidence/main34d-three-source-domains-20261017/current-inputs/17.txt",
+      "main_len": 25511,
+      "main_sha256": "661e208e70b4d4559774f9d50f30af17d39a44f767e863530ba2ee0c51a4bd54",
+      "main_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/17.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 27342,
+          "remove_sha256": "ef071c7def7542ab0365cdd9566779a4b37270365bf6c147df7e87122debbdc2",
+          "insert_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/17.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-continuation-growth-v1/src__cleanup_plan__replay__continuation_storage__tests.rs.before.txt",
+      "current_len": 13497,
+      "current_sha256": "4c8a91fdf7bc463433703b0c9c1b23985d15a285eca0adb32c5de7dc8f3f339d",
+      "current_archive": "docs/evidence/held-continuation-growth-v1/src__cleanup_plan__replay__continuation_storage__tests.rs.before.txt",
+      "main_len": 13497,
+      "main_sha256": "4c8a91fdf7bc463433703b0c9c1b23985d15a285eca0adb32c5de7dc8f3f339d",
+      "main_archive": "docs/evidence/held-continuation-growth-v1/src__cleanup_plan__replay__continuation_storage__tests.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 13497,
+          "remove_sha256": "4c8a91fdf7bc463433703b0c9c1b23985d15a285eca0adb32c5de7dc8f3f339d",
+          "insert_archive": "docs/evidence/held-continuation-growth-v1/src__cleanup_plan__replay__continuation_storage__tests.rs.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-continuation-growth-v1/sources.json",
+      "current_len": 177940,
+      "current_sha256": "fc570428ed0d2c7eabbbb6226bab73b0e5c3fa4dc16fa5e72fc6143ad86f8673",
+      "current_archive": "docs/evidence/held-continuation-growth-v1/sources.json",
+      "main_len": 177940,
+      "main_sha256": "fc570428ed0d2c7eabbbb6226bab73b0e5c3fa4dc16fa5e72fc6143ad86f8673",
+      "main_archive": "docs/evidence/held-continuation-growth-v1/sources.json",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 177940,
+          "remove_sha256": "fc570428ed0d2c7eabbbb6226bab73b0e5c3fa4dc16fa5e72fc6143ad86f8673",
+          "insert_archive": "docs/evidence/held-continuation-growth-v1/sources.json"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay.rs",
+      "current_len": 321092,
+      "current_sha256": "30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c",
+      "current_archive": "docs/evidence/main34d-three-source-domains-20261017/current-inputs/20.txt",
+      "main_len": 300644,
+      "main_sha256": "a095e76b1c26a3fb49664a2169e9933fac76904b75c0a5c39046892442d24370",
+      "main_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/20.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 321092,
+          "remove_sha256": "30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c",
+          "insert_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/20.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-continuation-growth-v1/src__cleanup_plan__replay.rs.before.txt",
+      "current_len": 300815,
+      "current_sha256": "b9aa407e36845dd9dcec27af9457bf3f321854add8d7b7243673abe20b66c3ad",
+      "current_archive": "docs/evidence/held-continuation-growth-v1/src__cleanup_plan__replay.rs.before.txt",
+      "main_len": 300815,
+      "main_sha256": "b9aa407e36845dd9dcec27af9457bf3f321854add8d7b7243673abe20b66c3ad",
+      "main_archive": "docs/evidence/held-continuation-growth-v1/src__cleanup_plan__replay.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 300815,
+          "remove_sha256": "b9aa407e36845dd9dcec27af9457bf3f321854add8d7b7243673abe20b66c3ad",
+          "insert_archive": "docs/evidence/held-continuation-growth-v1/src__cleanup_plan__replay.rs.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-continuation-growth-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+      "current_len": 17194,
+      "current_sha256": "46e39fff261a6fa0097f63ab11f0e523a514ed4eb475db38ef8af91ab9afea04",
+      "current_archive": "docs/evidence/held-continuation-growth-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+      "main_len": 17194,
+      "main_sha256": "46e39fff261a6fa0097f63ab11f0e523a514ed4eb475db38ef8af91ab9afea04",
+      "main_archive": "docs/evidence/held-continuation-growth-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 17194,
+          "remove_sha256": "46e39fff261a6fa0097f63ab11f0e523a514ed4eb475db38ef8af91ab9afea04",
+          "insert_archive": "docs/evidence/held-continuation-growth-v1/src__source_reflows__semantic_receivers.rs.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-continuation-growth-v1/docs__evidence__ordinary-replay-setup-v1__sources.json.before.txt",
+      "current_len": 4162926,
+      "current_sha256": "351cfdaf76c9f1f656b0c10b9d7224f42cc6bc06c78cb557666388e6b174e3c0",
+      "current_archive": "docs/evidence/held-continuation-growth-v1/docs__evidence__ordinary-replay-setup-v1__sources.json.before.txt",
+      "main_len": 4162926,
+      "main_sha256": "351cfdaf76c9f1f656b0c10b9d7224f42cc6bc06c78cb557666388e6b174e3c0",
+      "main_archive": "docs/evidence/held-continuation-growth-v1/docs__evidence__ordinary-replay-setup-v1__sources.json.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 4162926,
+          "remove_sha256": "351cfdaf76c9f1f656b0c10b9d7224f42cc6bc06c78cb557666388e6b174e3c0",
+          "insert_archive": "docs/evidence/held-continuation-growth-v1/docs__evidence__ordinary-replay-setup-v1__sources.json.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-continuation-growth-v1/docs__evidence__held-status-prefix-v1__sources.json.before.txt",
+      "current_len": 9250501,
+      "current_sha256": "18f19f414375bc540a37c3b2e95a74b573e7c7809da18c7aabf0a39f36d19665",
+      "current_archive": "docs/evidence/held-continuation-growth-v1/docs__evidence__held-status-prefix-v1__sources.json.before.txt",
+      "main_len": 9250501,
+      "main_sha256": "18f19f414375bc540a37c3b2e95a74b573e7c7809da18c7aabf0a39f36d19665",
+      "main_archive": "docs/evidence/held-continuation-growth-v1/docs__evidence__held-status-prefix-v1__sources.json.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 9250501,
+          "remove_sha256": "18f19f414375bc540a37c3b2e95a74b573e7c7809da18c7aabf0a39f36d19665",
+          "insert_archive": "docs/evidence/held-continuation-growth-v1/docs__evidence__held-status-prefix-v1__sources.json.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-continuation-growth-v1/docs__evidence__source-reader-followups-20261016__sources.json.before.txt",
+      "current_len": 140077,
+      "current_sha256": "88f6235cea165d6a2b9bac214dd24ee88455f2d5efee5d79e6898af15e26ddee",
+      "current_archive": "docs/evidence/held-continuation-growth-v1/docs__evidence__source-reader-followups-20261016__sources.json.before.txt",
+      "main_len": 140077,
+      "main_sha256": "88f6235cea165d6a2b9bac214dd24ee88455f2d5efee5d79e6898af15e26ddee",
+      "main_archive": "docs/evidence/held-continuation-growth-v1/docs__evidence__source-reader-followups-20261016__sources.json.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 140077,
+          "remove_sha256": "88f6235cea165d6a2b9bac214dd24ee88455f2d5efee5d79e6898af15e26ddee",
+          "insert_archive": "docs/evidence/held-continuation-growth-v1/docs__evidence__source-reader-followups-20261016__sources.json.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/receiver-source-custody-v1/inverse.json",
+      "current_len": 6660,
+      "current_sha256": "17758338cdb03f1a294fb75d923ccc515c814aa3d257521f41ef8593a7d9da1b",
+      "current_archive": "docs/evidence/main34d535-integration-20261017/docs__evidence__receiver-source-custody-v1__inverse.json.ours-before.json",
+      "main_len": 293191,
+      "main_sha256": "9165a502eeec5eaf656379a57af6cfd1925c215974eecc477e3410ca56e2c348",
+      "main_archive": "docs/evidence/main34d535-integration-20261017/docs__evidence__receiver-source-custody-v1__inverse.json.main34d.json",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 6660,
+          "remove_sha256": "17758338cdb03f1a294fb75d923ccc515c814aa3d257521f41ef8593a7d9da1b",
+          "insert_archive": "docs/evidence/main34d535-integration-20261017/docs__evidence__receiver-source-custody-v1__inverse.json.main34d.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-continuation-growth-v1/docs__evidence__receiver-source-custody-v1__inverse.json.before.txt",
+      "current_len": 292286,
+      "current_sha256": "a0eb2eaed0a49c6c0bf3f20c42674cb5b3bd7639477fa221189a39d92dc95fbc",
+      "current_archive": "docs/evidence/held-continuation-growth-v1/docs__evidence__receiver-source-custody-v1__inverse.json.before.txt",
+      "main_len": 292286,
+      "main_sha256": "a0eb2eaed0a49c6c0bf3f20c42674cb5b3bd7639477fa221189a39d92dc95fbc",
+      "main_archive": "docs/evidence/held-continuation-growth-v1/docs__evidence__receiver-source-custody-v1__inverse.json.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 292286,
+          "remove_sha256": "a0eb2eaed0a49c6c0bf3f20c42674cb5b3bd7639477fa221189a39d92dc95fbc",
+          "insert_archive": "docs/evidence/held-continuation-growth-v1/docs__evidence__receiver-source-custody-v1__inverse.json.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/compact-staged-observations-v1/inverse.json",
+      "current_len": 14904,
+      "current_sha256": "ef2d603d1d9190002b8e6b0c44fe6e1fb2bfb940e9497bf14db3026d3bf133ae",
+      "current_archive": "docs/evidence/main34d535-integration-20261017/docs__evidence__compact-staged-observations-v1__inverse.json.ours-before.json",
+      "main_len": 146307,
+      "main_sha256": "f4ded55dd9a9bdb829b312fc937164b4ac8935d77a35f0740869b8d5e2d63c19",
+      "main_archive": "docs/evidence/main34d535-integration-20261017/docs__evidence__compact-staged-observations-v1__inverse.json.main34d.json",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 14904,
+          "remove_sha256": "ef2d603d1d9190002b8e6b0c44fe6e1fb2bfb940e9497bf14db3026d3bf133ae",
+          "insert_archive": "docs/evidence/main34d535-integration-20261017/docs__evidence__compact-staged-observations-v1__inverse.json.main34d.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-continuation-growth-v1/docs__evidence__compact-staged-observations-v1__inverse.json.before.txt",
+      "current_len": 145402,
+      "current_sha256": "3695c32c076255f2e61ccb088a02cf887ac4ece86717af8332e67539c364f4cf",
+      "current_archive": "docs/evidence/held-continuation-growth-v1/docs__evidence__compact-staged-observations-v1__inverse.json.before.txt",
+      "main_len": 145402,
+      "main_sha256": "3695c32c076255f2e61ccb088a02cf887ac4ece86717af8332e67539c364f4cf",
+      "main_archive": "docs/evidence/held-continuation-growth-v1/docs__evidence__compact-staged-observations-v1__inverse.json.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 145402,
+          "remove_sha256": "3695c32c076255f2e61ccb088a02cf887ac4ece86717af8332e67539c364f4cf",
+          "insert_archive": "docs/evidence/held-continuation-growth-v1/docs__evidence__compact-staged-observations-v1__inverse.json.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/moderate-factored-v1/sources.json",
+      "current_len": 1063462,
+      "current_sha256": "cd4a2d223a0d10598b534e2416e1eb9024903b75ac84bd238cc155204dfdc088",
+      "current_archive": "docs/evidence/moderate-factored-v1/sources.json",
+      "main_len": 1063462,
+      "main_sha256": "cd4a2d223a0d10598b534e2416e1eb9024903b75ac84bd238cc155204dfdc088",
+      "main_archive": "docs/evidence/moderate-factored-v1/sources.json",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 1063462,
+          "remove_sha256": "cd4a2d223a0d10598b534e2416e1eb9024903b75ac84bd238cc155204dfdc088",
+          "insert_archive": "docs/evidence/moderate-factored-v1/sources.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/held-continuation-growth-v1/docs__evidence__moderate-factored-v1__sources.json.before.txt",
+      "current_len": 1059964,
+      "current_sha256": "d495df295f82b32acdf2725eaff491a1f6e2efe96a6ab7b79c6ba1c75af09842",
+      "current_archive": "docs/evidence/held-continuation-growth-v1/docs__evidence__moderate-factored-v1__sources.json.before.txt",
+      "main_len": 1059964,
+      "main_sha256": "d495df295f82b32acdf2725eaff491a1f6e2efe96a6ab7b79c6ba1c75af09842",
+      "main_archive": "docs/evidence/held-continuation-growth-v1/docs__evidence__moderate-factored-v1__sources.json.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 1059964,
+          "remove_sha256": "d495df295f82b32acdf2725eaff491a1f6e2efe96a6ab7b79c6ba1c75af09842",
+          "insert_archive": "docs/evidence/held-continuation-growth-v1/docs__evidence__moderate-factored-v1__sources.json.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/paid-expression-lookup-state-v1/views.json",
+      "current_len": 18687,
+      "current_sha256": "694b0f74ba7eaa987ff8adf2afe43dec96996b1902b55053db2fcd53b8fbaa7e",
+      "current_archive": "docs/evidence/paid-expression-lookup-state-v1/views.json",
+      "main_len": 18687,
+      "main_sha256": "694b0f74ba7eaa987ff8adf2afe43dec96996b1902b55053db2fcd53b8fbaa7e",
+      "main_archive": "docs/evidence/paid-expression-lookup-state-v1/views.json",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 18687,
+          "remove_sha256": "694b0f74ba7eaa987ff8adf2afe43dec96996b1902b55053db2fcd53b8fbaa7e",
+          "insert_archive": "docs/evidence/paid-expression-lookup-state-v1/views.json"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/arena/prefix.rs",
+      "current_len": 11364,
+      "current_sha256": "af5646f90884f31ab2a52f32a98a90a0a1d2710c36e1b0e04838f4a27ac98365",
+      "current_archive": "docs/evidence/main34d-three-source-domains-20261017/current-inputs/33.txt",
+      "main_len": 11227,
+      "main_sha256": "5b41b54ec6cf5e584e1845ab4e823ce752012ded7d3b9c485a3eb4fb181a74ae",
+      "main_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/33.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 11364,
+          "remove_sha256": "af5646f90884f31ab2a52f32a98a90a0a1d2710c36e1b0e04838f4a27ac98365",
+          "insert_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/33.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena__prefix.rs.before.txt",
+      "current_len": 5615,
+      "current_sha256": "a225fe616c63a220a5ed8ec7381604a92105b713fcebe0ab66878398d263a97f",
+      "current_archive": "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena__prefix.rs.before.txt",
+      "main_len": 5615,
+      "main_sha256": "a225fe616c63a220a5ed8ec7381604a92105b713fcebe0ab66878398d263a97f",
+      "main_archive": "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena__prefix.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 5615,
+          "remove_sha256": "a225fe616c63a220a5ed8ec7381604a92105b713fcebe0ab66878398d263a97f",
+          "insert_archive": "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena__prefix.rs.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/arena.rs",
+      "current_len": 13563,
+      "current_sha256": "2eae0ecc943b9114099a7e87c7b2acf565c0f6454cb02f396ee30e981a109488",
+      "current_archive": "docs/evidence/main34d-three-source-domains-20261017/current-inputs/35.txt",
+      "main_len": 13563,
+      "main_sha256": "2eae0ecc943b9114099a7e87c7b2acf565c0f6454cb02f396ee30e981a109488",
+      "main_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/35.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 13563,
+          "remove_sha256": "2eae0ecc943b9114099a7e87c7b2acf565c0f6454cb02f396ee30e981a109488",
+          "insert_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/35.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena.rs.before.txt",
+      "current_len": 13382,
+      "current_sha256": "680eb344e1bf236550eb3ae7725a981fe19898a52192635905771863c01a6d23",
+      "current_archive": "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena.rs.before.txt",
+      "main_len": 13382,
+      "main_sha256": "680eb344e1bf236550eb3ae7725a981fe19898a52192635905771863c01a6d23",
+      "main_archive": "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 13382,
+          "remove_sha256": "680eb344e1bf236550eb3ae7725a981fe19898a52192635905771863c01a6d23",
+          "insert_archive": "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena.rs.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs",
+      "current_len": 22243,
+      "current_sha256": "cf3a63ba83b16a9308def7f749b37f30e9287cf34ee0bb2845baf4c26fca78d8",
+      "current_archive": "docs/evidence/main34d-three-source-domains-20261017/current-inputs/37.txt",
+      "main_len": 22278,
+      "main_sha256": "3de11b7505c11098ea01952832745ce8a2818a4a2c9a06932678bb783081c9b4",
+      "main_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/37.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 22243,
+          "remove_sha256": "cf3a63ba83b16a9308def7f749b37f30e9287cf34ee0bb2845baf4c26fca78d8",
+          "insert_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/37.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena__prefix__tests.rs.before.txt",
+      "current_len": 12694,
+      "current_sha256": "2b703dacaff827f08d1c609c155b0939bee7dae0890e3ec850b2a3673f09e00c",
+      "current_archive": "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena__prefix__tests.rs.before.txt",
+      "main_len": 12694,
+      "main_sha256": "2b703dacaff827f08d1c609c155b0939bee7dae0890e3ec850b2a3673f09e00c",
+      "main_archive": "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena__prefix__tests.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 12694,
+          "remove_sha256": "2b703dacaff827f08d1c609c155b0939bee7dae0890e3ec850b2a3673f09e00c",
+          "insert_archive": "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena__prefix__tests.rs.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs",
+      "current_len": 8127,
+      "current_sha256": "fdb672ec67714810ba990a306ec8b282ce7c628d627b272b322d21e51293da34",
+      "current_archive": "docs/evidence/main34d-three-source-domains-20261017/current-inputs/39.txt",
+      "main_len": 8127,
+      "main_sha256": "fdb672ec67714810ba990a306ec8b282ce7c628d627b272b322d21e51293da34",
+      "main_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/39.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 8127,
+          "remove_sha256": "fdb672ec67714810ba990a306ec8b282ce7c628d627b272b322d21e51293da34",
+          "insert_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/39.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena__cursor_tests.rs.before.txt",
+      "current_len": 8132,
+      "current_sha256": "15d63a808395f44526e2d84a152b5ecf14f464083a3ca175fd4d567c3873565d",
+      "current_archive": "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena__cursor_tests.rs.before.txt",
+      "main_len": 8132,
+      "main_sha256": "15d63a808395f44526e2d84a152b5ecf14f464083a3ca175fd4d567c3873565d",
+      "main_archive": "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena__cursor_tests.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 8132,
+          "remove_sha256": "15d63a808395f44526e2d84a152b5ecf14f464083a3ca175fd4d567c3873565d",
+          "insert_archive": "docs/evidence/paid-expression-lookup-state-v1/src__cleanup_plan__replay__expression_facts__arena__cursor_tests.rs.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/paid-expression-lookup-state-v1/sources.json",
+      "current_len": 161226,
+      "current_sha256": "812f4c176e8efecd3415907be8ec146be60c78d33a19dcccc3175d7d5eb7daef",
+      "current_archive": "docs/evidence/paid-expression-lookup-state-v1/sources.json",
+      "main_len": 161226,
+      "main_sha256": "812f4c176e8efecd3415907be8ec146be60c78d33a19dcccc3175d7d5eb7daef",
+      "main_archive": "docs/evidence/paid-expression-lookup-state-v1/sources.json",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 161226,
+          "remove_sha256": "812f4c176e8efecd3415907be8ec146be60c78d33a19dcccc3175d7d5eb7daef",
+          "insert_archive": "docs/evidence/paid-expression-lookup-state-v1/sources.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/paid-expression-lookup-state-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+      "current_len": 22300,
+      "current_sha256": "407d97095d80f44ddefc57259b9a5125cfe5e8f2811cf0aaa6e955cf895d67d3",
+      "current_archive": "docs/evidence/paid-expression-lookup-state-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+      "main_len": 22300,
+      "main_sha256": "407d97095d80f44ddefc57259b9a5125cfe5e8f2811cf0aaa6e955cf895d67d3",
+      "main_archive": "docs/evidence/paid-expression-lookup-state-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 22300,
+          "remove_sha256": "407d97095d80f44ddefc57259b9a5125cfe5e8f2811cf0aaa6e955cf895d67d3",
+          "insert_archive": "docs/evidence/paid-expression-lookup-state-v1/src__source_reflows__semantic_receivers.rs.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__ordinary-replay-setup-v1__sources.json.before.txt",
+      "current_len": 4182773,
+      "current_sha256": "61f22e211df48dd9d377253b177db74e03e32d648316e98f138929820d6a07fd",
+      "current_archive": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__ordinary-replay-setup-v1__sources.json.before.txt",
+      "main_len": 4182773,
+      "main_sha256": "61f22e211df48dd9d377253b177db74e03e32d648316e98f138929820d6a07fd",
+      "main_archive": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__ordinary-replay-setup-v1__sources.json.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 4182773,
+          "remove_sha256": "61f22e211df48dd9d377253b177db74e03e32d648316e98f138929820d6a07fd",
+          "insert_archive": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__ordinary-replay-setup-v1__sources.json.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__held-status-prefix-v1__sources.json.before.txt",
+      "current_len": 9289389,
+      "current_sha256": "6a958616c6564fc28a5b9467b593380cafb41e42d7d37836aa790929322ec42b",
+      "current_archive": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__held-status-prefix-v1__sources.json.before.txt",
+      "main_len": 9289389,
+      "main_sha256": "6a958616c6564fc28a5b9467b593380cafb41e42d7d37836aa790929322ec42b",
+      "main_archive": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__held-status-prefix-v1__sources.json.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 9289389,
+          "remove_sha256": "6a958616c6564fc28a5b9467b593380cafb41e42d7d37836aa790929322ec42b",
+          "insert_archive": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__held-status-prefix-v1__sources.json.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__source-reader-followups-20261016__sources.json.before.txt",
+      "current_len": 146516,
+      "current_sha256": "ca260afa7add3ceb106d575e0ef405a9babfa8bc0dd6f12a4c50937933ba92d3",
+      "current_archive": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__source-reader-followups-20261016__sources.json.before.txt",
+      "main_len": 146516,
+      "main_sha256": "ca260afa7add3ceb106d575e0ef405a9babfa8bc0dd6f12a4c50937933ba92d3",
+      "main_archive": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__source-reader-followups-20261016__sources.json.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 146516,
+          "remove_sha256": "ca260afa7add3ceb106d575e0ef405a9babfa8bc0dd6f12a4c50937933ba92d3",
+          "insert_archive": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__source-reader-followups-20261016__sources.json.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__held-continuation-growth-v1__sources.json.before.txt",
+      "current_len": 115583,
+      "current_sha256": "03c1b33e4e0b08a6c36354a1f2f5facd42fc43248e48f64ce7fcf446ffd6f406",
+      "current_archive": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__held-continuation-growth-v1__sources.json.before.txt",
+      "main_len": 115583,
+      "main_sha256": "03c1b33e4e0b08a6c36354a1f2f5facd42fc43248e48f64ce7fcf446ffd6f406",
+      "main_archive": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__held-continuation-growth-v1__sources.json.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 115583,
+          "remove_sha256": "03c1b33e4e0b08a6c36354a1f2f5facd42fc43248e48f64ce7fcf446ffd6f406",
+          "insert_archive": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__held-continuation-growth-v1__sources.json.before.txt"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/prefix-certified-expression-lookup/exact-source-inverses.json",
+      "current_len": 4109603,
+      "current_sha256": "86770dca8d0e0efdb49729626f9a7b7186b1d9d7b3e92c0acd856e2913b37682",
+      "current_archive": "docs/evidence/main34d535-integration-20261017/docs__evidence__prefix-certified-expression-lookup__exact-source-inverses.json.ours-before.json",
+      "main_len": 1058978,
+      "main_sha256": "c3766c72457aa8f837d5479f8d1e12c4ea8605ccbf9524fd9eb265091f33084d",
+      "main_archive": "docs/evidence/main34d535-integration-20261017/docs__evidence__prefix-certified-expression-lookup__exact-source-inverses.json.main34d.json",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 4109603,
+          "remove_sha256": "86770dca8d0e0efdb49729626f9a7b7186b1d9d7b3e92c0acd856e2913b37682",
+          "insert_archive": "docs/evidence/main34d535-integration-20261017/docs__evidence__prefix-certified-expression-lookup__exact-source-inverses.json.main34d.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__prefix-certified-expression-lookup__exact-source-inverses.json.before.txt",
+      "current_len": 1058384,
+      "current_sha256": "6e4e6f81440b4560b3890b54ffc0da78ddcf2f855bff6a213da85db022c3bef2",
+      "current_archive": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__prefix-certified-expression-lookup__exact-source-inverses.json.before.txt",
+      "main_len": 1058384,
+      "main_sha256": "6e4e6f81440b4560b3890b54ffc0da78ddcf2f855bff6a213da85db022c3bef2",
+      "main_archive": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__prefix-certified-expression-lookup__exact-source-inverses.json.before.txt",
+      "whole_source_inverse": [
+        {
+          "at": 0,
+          "remove_len": 1058384,
+          "remove_sha256": "6e4e6f81440b4560b3890b54ffc0da78ddcf2f855bff6a213da85db022c3bef2",
+          "insert_archive": "docs/evidence/paid-expression-lookup-state-v1/docs__evidence__prefix-certified-expression-lookup__exact-source-inverses.json.before.txt"
+        }
+      ]
+    }
+  ],
+  "main_receiver_proofs": {
+    "archive": "docs/evidence/main34d535-integration-20261017/docs__evidence__receiver-source-custody-v1__inverse.json.main34d.json",
+    "len": 293191,
+    "sha256": "9165a502eeec5eaf656379a57af6cfd1925c215974eecc477e3410ca56e2c348"
+  },
+  "main_live_audits": {
+    "archive": "docs/evidence/live-source-audit-custody-v1/inverse.json",
+    "len": 24038,
+    "sha256": "b2437b4145d12bc9fe20fb1dbf2c888c1a6832f2e699a50064017479b1124e4a"
+  }
+}

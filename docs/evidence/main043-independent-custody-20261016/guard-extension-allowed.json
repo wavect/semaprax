@@ -128,7 +128,19 @@
       "src/loop_calls/byte_writer/tests/string_slots.rs": 1,
       "tests/wasm/scalar_browser_ci_contract/before_21abc.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs": 1,
-      "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": 1
+      "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": 1,
+      "src/cleanup_plan/replay/ordinary_plan_history/before_hir_compare.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix/before.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix/sequence_vector.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix/tests.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/before.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/source_custody.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/merge_keys.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/merge_keys_before.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -264,7 +276,19 @@
       "src/loop_calls/byte_writer/tests/string_slots.rs": 1,
       "tests/wasm/scalar_browser_ci_contract/before_21abc.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs": 1,
-      "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": 1
+      "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": 1,
+      "src/cleanup_plan/replay/ordinary_plan_history/before_hir_compare.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix/before.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix/sequence_vector.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix/tests.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/before.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/source_custody.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/merge_keys.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/merge_keys_before.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs": 1
     }
   },
   "tests/workspace/semantic_graph/source_inventory.rs": {
@@ -431,7 +455,19 @@
       "src/loop_calls/byte_writer/tests/string_slots.rs": 1,
       "tests/wasm/scalar_browser_ci_contract/before_21abc.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs": 1,
-      "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": 1
+      "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": 1,
+      "src/cleanup_plan/replay/ordinary_plan_history/before_hir_compare.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix/before.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix/sequence_vector.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix/tests.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/before.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/source_custody.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/merge_keys.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/merge_keys_before.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -596,7 +632,19 @@
       "src/loop_calls/byte_writer/tests/string_slots.rs": 1,
       "tests/wasm/scalar_browser_ci_contract/before_21abc.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs": 1,
-      "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": 1
+      "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": 1,
+      "src/cleanup_plan/replay/ordinary_plan_history/before_hir_compare.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix/before.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix/sequence_vector.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix/tests.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/before.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/source_custody.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/merge_keys.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/merge_keys_before.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs": 1
     }
   },
   "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
@@ -733,7 +781,19 @@
       "src/loop_calls/byte_writer/tests/string_slots.rs": 1,
       "tests/wasm/scalar_browser_ci_contract/before_21abc.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs": 1,
-      "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": 1
+      "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": 1,
+      "src/cleanup_plan/replay/ordinary_plan_history/before_hir_compare.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix/before.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix/sequence_vector.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix/tests.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/before.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/source_custody.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/merge_keys.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/merge_keys_before.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs": 1
     },
     "maximum": {
       "src/ast/program_source/function_alias/presentation.rs": 1,
@@ -868,7 +928,19 @@
       "src/loop_calls/byte_writer/tests/string_slots.rs": 1,
       "tests/wasm/scalar_browser_ci_contract/before_21abc.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs": 1,
-      "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": 1
+      "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": 1,
+      "src/cleanup_plan/replay/ordinary_plan_history/before_hir_compare.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix/before.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix/sequence_vector.rs": 1,
+      "src/cleanup_plan/replay/owned_suffix/tests.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/before.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/source_custody.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/merge_keys.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/merge_keys_before.rs": 1,
+      "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs": 1
     }
   }
 }

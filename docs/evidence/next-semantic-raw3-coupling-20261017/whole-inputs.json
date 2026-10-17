@@ -1,0 +1,91 @@
+{
+  "source_head": "e1e448d5bc50c9f56376b4fce2128e6ee3d040f9",
+  "new_owners": [
+    "src/cleanup_plan/replay/ordinary_plan_history/before_hir_compare.rs",
+    "src/cleanup_plan/replay/owned_suffix.rs",
+    "src/cleanup_plan/replay/owned_suffix/before.rs",
+    "src/cleanup_plan/replay/owned_suffix/sequence_vector.rs",
+    "src/cleanup_plan/replay/owned_suffix/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs",
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/before.rs",
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/source_custody.rs",
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/merge_keys.rs",
+    "src/cleanup_plan/replay/skeleton_work/merge_keys_before.rs",
+    "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs"
+  ],
+  "current_raw_prefix_subjects": 17,
+  "previous_guards_preserved": {
+    "three": true,
+    "five": true
+  },
+  "oldguard_algorithm_unchanged": true,
+  "old_allowed_required_maxima_retained": true,
+  "files": [
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "before_length": 97256,
+      "before_sha256": "f25b784eba1a2ea26a07b260b2ddff67b6dd90c0a6402fd143dc42ca68847d4e",
+      "before_archive": "docs/evidence/next-semantic-raw3-coupling-20261017/before/tests/hir_module_boundaries.rs",
+      "after_length": 98174,
+      "after_sha256": "5090d08b52cb9650af5fc2c2a28739a9783c3d43c7a0f25037ce032b04f51137"
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "before_length": 90364,
+      "before_sha256": "59e5b98593c2c2d443d1479e7c89564551d515ca921f7abab2cc8f5d579c8c21",
+      "before_archive": "docs/evidence/next-semantic-raw3-coupling-20261017/before/tests/workspace/semantic_graph/source_inventory.rs",
+      "after_length": 91318,
+      "after_sha256": "aa4e1844d2e867c519bd24fdb560535c9f07b7daa790e343c1b4b04e978d0989"
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "before_length": 155342,
+      "before_sha256": "2f60338ca315635e7d533ba6cbdeadda40d8b2e3d66a7398c7521d4b44f5f845",
+      "before_archive": "docs/evidence/next-semantic-raw3-coupling-20261017/before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "after_length": 156404,
+      "after_sha256": "bdf614306dd818a9d66a794edf46008c3306ffa2fabcb3acbf4b03060d7db316"
+    },
+    {
+      "source": "tests/support/production_source_inventory.rs",
+      "before_length": 3601,
+      "before_sha256": "5222fd3b115cc7eb8e0aaa90970e927ee366fa3860a9129bf5b50b096b466951",
+      "before_archive": "docs/evidence/next-semantic-raw3-coupling-20261017/before/tests/support/production_source_inventory.rs",
+      "after_length": 7821,
+      "after_sha256": "bea3c9c841d38be2b51ce6e9e3614da4589e1976625b4e09511957e7879ce190"
+    },
+    {
+      "source": "docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json",
+      "before_length": 57470,
+      "before_sha256": "f0a58df2393f2942f92c5729876533ae35b29ad7c0f088996944560250dda213",
+      "before_archive": "docs/evidence/next-semantic-raw3-coupling-20261017/before/docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json",
+      "after_length": 62474,
+      "after_sha256": "9bd9fe6bf24f8030f2307dafd423a6bd678e745e5ef67b75465c585ca258ece3"
+    },
+    {
+      "source": "docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/tests__hir_module_boundaries.rs.json",
+      "before_length": 10530,
+      "before_sha256": "0bc2f1cb74c83c401911d15a8dea0b8f9e88cbfd0ba1f3f4fd56d7ee4ac0be13",
+      "before_archive": "docs/evidence/next-semantic-raw3-coupling-20261017/before/docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/tests__hir_module_boundaries.rs.json",
+      "after_length": 11472,
+      "after_sha256": "025de3da8662e2c94b4427cc3779bd3b665f923893cb95b961f74c89b27dfd8c"
+    },
+    {
+      "source": "docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/tests__workspace__semantic_graph__source_inventory.rs.json",
+      "before_length": 13291,
+      "before_sha256": "b18946b05ee671b03c6eac6d8a44c48c2502c8d4d43041cf8755857a69bef2cd",
+      "before_archive": "docs/evidence/next-semantic-raw3-coupling-20261017/before/docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/tests__workspace__semantic_graph__source_inventory.rs.json",
+      "after_length": 14269,
+      "after_sha256": "4adea0c6da5535355ea6374630eb139c606b84bed4bd66ac0fdf95b9a81b3102"
+    },
+    {
+      "source": "docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.json",
+      "before_length": 12602,
+      "before_sha256": "66780843483a164b75f390575178d67be5c3a43877b72bfbb1e6c3704dc28240",
+      "before_archive": "docs/evidence/next-semantic-raw3-coupling-20261017/before/docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.json",
+      "after_length": 13688,
+      "after_sha256": "dc2907e379bbb45e1e0ba51000545184d6e650438567b52991c1172db752b433"
+    }
+  ],
+  "runtime": "UNEXECUTED"
+}

@@ -1,0 +1,10 @@
+{
+  "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs",
+  "actual_current_head": "246978fb7e0f1c95a007d560be781f337991f6c9",
+  "actual_current_sha256": "7056202c20fd3ae918b53ffc4ac65cd606e5e5faf38828ef7d9336cba0a78bf2",
+  "fd230_head": "fd23073b48c6b8a0eefe8898aab14ed6a0c12f05",
+  "base6e45_head": "6e45d10e874104ce6e745332f757c6ef1b21da0f",
+  "exact_equal_fd230_6e45": true,
+  "previous_sha256": "106d28c2bac98e252eb77c23b921f7a9af3e77d4ee334e6231dca5fc6a0e0d4e",
+  "byte_comparison": "actual full Git blobs, no normalization"
+}

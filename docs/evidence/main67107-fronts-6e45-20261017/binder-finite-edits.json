@@ -1,0 +1,18 @@
+[
+  {
+    "before": "\"1e85e09ad2eb5ec2189ce3915f389726d1219b09c85be997b39ae0feed6a0061\"",
+    "after": "\"d86e9260ffbb3328b7640d8907d45d62eebd7b5d978b0d5e683bd4efff472322\""
+  },
+  {
+    "before": "helper_dir/'canonical870_stage.py'",
+    "after": "helper_dir/'composed_stage.py'"
+  },
+  {
+    "before": "from canonical870_stage import canonical_stage",
+    "after": "from composed_stage import canonical_stage"
+  },
+  {
+    "before": "if args.write:\n",
+    "after": "receipt['main67107_outer_authentication']={'current_raw_sha256':sha(raw_canonical),'closed_stage_data_sha256':sha((R/'docs/evidence/main67107-fronts-6e45-20261017/stages.json').read_bytes()),'canonical_order':'actual current -> exact870 -> exact51 -> original831/db2','all_prior_binders_unchanged':True}\nif args.write:\n"
+  }
+]

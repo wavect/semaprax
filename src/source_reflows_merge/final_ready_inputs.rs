@@ -217,6 +217,8 @@ pub(crate) fn controls() {
 // Separate new raw endpoint; the immutable Canonical344 row remains staged51.
 // Old stage bytes are never an alternative live870 input.
 fn canonical870_stage(current: &str) -> String {
+    let outer = super::main67107_inputs::project("canonical870", current);
+    let current = outer.as_str();
     let data = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/opt870-current-stage-custody-20261017/raw-to-stage.json"));
     assert_eq!(digest(data), "6523645c1445ceffafe43ff87118f3f2d6f94686a39b444ff6f87cedf7460bc0");
     let row: serde_json::Value = serde_json::from_str(data).unwrap();

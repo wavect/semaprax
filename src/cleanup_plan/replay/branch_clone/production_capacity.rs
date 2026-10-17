@@ -4,6 +4,8 @@ use super::*;
 mod before;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod main_c883;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::cleanup_plan::replay) struct Decision {
@@ -180,6 +182,12 @@ macro_rules! produce {
                         $branch = Vec::with_capacity(capacity);
                         $branch.extend($observations.iter().cloned());
                         $branch.push($observation.into());
+                        // Count only the successfully filled bounded-copy Vec.
+                        // TAKE, shape probes and original fallback do not count.
+                        #[cfg(test)]
+                        if decision.copy_capacity.is_some() {
+                            branch_clone::tests::note_plan_copy();
+                        }
         skeleton_queue_push($budget, $function, &mut $queue,
             ($edge.to, $branch), "plan branch state push")?;
         continue;

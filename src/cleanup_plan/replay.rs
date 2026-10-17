@@ -210,6 +210,7 @@ struct ReplayBudget {
 }
 
 impl ReplayBudget {
+    #[cfg_attr(test, track_caller)]
     fn charge(
         &mut self,
         function: &ResolvedFunction,
@@ -224,7 +225,29 @@ impl ReplayBudget {
             return self.charge_skeleton(function, units, phase);
         }
         self.charge_oracle_work(function, units, phase)?;
+        #[cfg(test)]
+        let caller = std::panic::Location::caller();
         self.remaining = self.remaining.checked_sub(units).ok_or_else(|| {
+            #[cfg(test)]
+            REPLAY_WORK_REFUSAL.with(|record| {
+                record.set(Some(ReplayWorkRefusal {
+                    caller,
+                    requested: units,
+                    remaining: self.remaining,
+                    status_sources: function.cleanup_plan.status_sources.len(),
+                    first_status_bytes: function
+                        .cleanup_plan
+                        .status_sources
+                        .first()
+                        .map_or(0, |source| source.id.expression.as_str().len()),
+                    payer: match self.payer {
+                        AllocationPayer::LegacyUnobserved => "unobserved",
+                        AllocationPayer::ActiveBuilder => "builder",
+                        AllocationPayer::SelectedReservation => "selected",
+                        AllocationPayer::Oracle(_) => "oracle",
+                    },
+                }))
+            });
             self.budget_refusal(
                 function,
                 "cleanup replay work budget exhausted during ",
@@ -7896,3 +7919,23 @@ struct BeforeDirectAnchorBudgetLayout {
 }
 #[cfg(test)]
 const _: () = assert!(std::mem::size_of::<ReplayBudget>() == std::mem::size_of::<BeforeDirectAnchorBudgetLayout>());
+// Test diagnostics only. This POD record owns no HIR, text or heap allocation
+// and is never consulted by validation or a budget decision.
+#[cfg(test)]
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct ReplayWorkRefusal {
+    pub(crate) caller: &'static std::panic::Location<'static>,
+    pub(crate) requested: usize,
+    pub(crate) remaining: usize,
+    pub(crate) status_sources: usize,
+    pub(crate) first_status_bytes: usize,
+    pub(crate) payer: &'static str,
+}
+#[cfg(test)]
+thread_local! {
+    static REPLAY_WORK_REFUSAL: std::cell::Cell<Option<ReplayWorkRefusal>> = const { std::cell::Cell::new(None) };
+}
+#[cfg(test)]
+pub(crate) fn take_replay_work_refusal() -> Option<ReplayWorkRefusal> {
+    REPLAY_WORK_REFUSAL.with(|record| record.take())
+}

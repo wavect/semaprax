@@ -1,4 +1,6 @@
 include!("semantic_graph/source_inventory.rs");
+#[path = "semantic_graph/source_inventory_controls.rs"]
+mod source_inventory_controls;
 use std::fs::{File, OpenOptions};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -1476,4 +1478,15 @@ mod current344_input {
         env!("CARGO_MANIFEST_DIR"),
         "/src/source_reflows_merge/current344.rs"
     ));
+}
+
+#[test]
+fn private_layout_inventory_retains_every_full_input_and_every_current_owned_module() {
+    source_inventory_controls::verify(
+        Path::new(env!("CARGO_MANIFEST_DIR")),
+        SEMANTIC_GRAPH_PRIVATE_LAYOUT_ROOT,
+        semantic_graph_private_layout_source_inventory!(),
+        semantic_graph_private_layout_module_source_inventory!(),
+        include_str!("../../docs/evidence/main-c883-next-source-merge-20261017/current-projection-inputs.tsv"),
+    );
 }

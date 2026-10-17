@@ -1,0 +1,9 @@
+{
+  "status": "SOURCE_ONLY_UNQUALIFIED_MERGE_CHECKPOINT",
+  "rows": 240,
+  "compiled_sources": 71,
+  "main_head": "c883c2d3fff04a3e7afbb4afd5e0cae99ef91af4",
+  "only_controller_edits": "30 explicit named read acquisition expressions",
+  "read_scope": "closed rows, no fallback, complete current physical+compiled owner before main archive",
+  "final_current_ingress": "PENDING final source batch, never retarget this merge checkpoint"
+}

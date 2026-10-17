@@ -14,6 +14,9 @@ const ROTATION_UNITS: usize = 20;
 /// Work for one full-key comparison: full string `min(len) + 1` plus one unit per
 /// structural numeric field. `None` on arithmetic overflow.
 pub(super) trait KeyWork: Ord {
+    fn status_key(&self) -> Option<&StatusSourceId> {
+        None
+    }
     fn comparison_units(&self, other: &Self) -> Option<usize>;
 }
 
@@ -61,6 +64,9 @@ impl KeyWork for StorageId {
 }
 
 impl KeyWork for StatusSourceId {
+    fn status_key(&self) -> Option<&StatusSourceId> {
+        Some(self)
+    }
     fn comparison_units(&self, other: &Self) -> Option<usize> {
         // The lane is one structural numeric field.
         self.expression
@@ -77,6 +83,9 @@ macro_rules! numeric_key {
 numeric_key!(EdgeId, ExitTargetId, LivenessFlagId, StatusCase);
 
 impl<T: KeyWork> KeyWork for &T {
+    fn status_key(&self) -> Option<&StatusSourceId> {
+        T::status_key(self)
+    }
     fn comparison_units(&self, other: &Self) -> Option<usize> {
         T::comparison_units(self, other)
     }
@@ -104,7 +113,26 @@ pub(super) struct Directory<K> {
     root: usize,
     first: usize,
     phase: &'static str,
+    lookup: Option<Box<status_prefix::FrozenStatusIndex>>,
 }
+
+struct LookupCursor {
+    at: usize,
+    byte: usize,
+    mask: u16,
+    symbol: u16,
+    direction: bool,
+    units: usize,
+}
+// Complete initialized cursor plus receiving state, status-key Option and
+// borrowed receivers, final candidate/ordering and comparison temporaries.
+const LOOKUP_BYTES: usize = 2 * std::mem::size_of::<LookupCursor>()
+    + 2 * std::mem::size_of::<Option<&StatusSourceId>>()
+    + 4 * std::mem::size_of::<&StatusSourceId>()
+    + std::mem::size_of::<&status_prefix::FrozenStatusIndex>()
+    + 2 * std::mem::size_of::<Option<usize>>()
+    + std::mem::size_of::<usize>()
+    + std::mem::size_of::<Ordering>();
 
 struct Iter<'a, K> {
     nodes: &'a [Node<K>],
@@ -129,6 +157,11 @@ fn overflow(
 }
 
 impl<K: KeyWork> Directory<K> {
+    #[cfg(test)]
+    pub(super) fn has_frozen_lookup_for_test(&self) -> bool {
+        self.lookup.is_some()
+    }
+
     pub(super) fn new(
         function: &ResolvedFunction,
         budget: &mut ReplayBudget,
@@ -136,11 +169,20 @@ impl<K: KeyWork> Directory<K> {
     ) -> Result<Self, Diagnostic> {
         budget.reserve_bytes(function, 0, phase)?;
         budget.charge(function, 0, phase)?;
+        // The new optional field has two initialized receiving slots. Existing
+        // directory fields and reservation requests receive no credit.
+        budget.reserve_bytes(
+            function,
+            2 * std::mem::size_of::<Option<Box<status_prefix::FrozenStatusIndex>>>(),
+            phase,
+        )?;
+        budget.charge(function, 1, phase)?;
         Ok(Self {
             nodes: Vec::new(),
             root: NIL,
             first: NIL,
             phase,
+            lookup: None,
         })
     }
 
@@ -241,6 +283,84 @@ impl<K: KeyWork> Directory<K> {
         key: &K,
         budget: &mut ReplayBudget,
     ) -> Result<bool, Diagnostic> {
+        if let Some(index) = &self.lookup {
+            // Binding checks read no foreign payer or cached key. A rejected
+            // receiver remains rejected even after its original owner returns.
+            if index.failed.get() {
+                return Err(Diagnostic::io("SPX-H006", String::new()));
+            }
+            if !std::ptr::eq(index.function, function)
+                || !std::ptr::eq(index.budget, budget)
+                || !index.ledger.current()
+                || index.keys != self.nodes.as_ptr() as usize
+                || index.len != self.nodes.len()
+            {
+                index.failed.set(true);
+                return Err(Diagnostic::io("SPX-H006", String::new()));
+            }
+            self.authenticate(function, budget)?;
+            // All traversal state is one fixed receiving frame. Loop steps
+            // update its paid fields rather than constructing a new path.
+            budget.reserve_bytes(function, LOOKUP_BYTES, self.phase)?;
+            budget.charge(function, 24, self.phase)?;
+            let Some(query) = key.status_key() else {
+                index.failed.set(true);
+                return Err(Diagnostic::io("SPX-H006", String::new()));
+            };
+            let mut cursor = LookupCursor {
+                at: index.root,
+                byte: 0,
+                mask: 0,
+                symbol: 0,
+                direction: false,
+                units: 0,
+            };
+            cursor.byte = index.nodes[cursor.at].byte;
+            while cursor.byte != NIL {
+                budget.charge(function, VISIT_UNITS + 24, self.phase)?;
+                cursor.mask = index.nodes[cursor.at].mask;
+                cursor.symbol = if cursor.byte < query.expression.as_str().len() {
+                    256 | query.expression.as_str().as_bytes()[cursor.byte] as u16
+                } else if cursor.byte == query.expression.as_str().len() {
+                    match query.lane {
+                        StatusLane::OwnerAdmission => 0,
+                        StatusLane::OperationFailure => 1,
+                        StatusLane::AllocationFailure => 2,
+                        StatusLane::ContractFalse => 3,
+                    }
+                } else {
+                    0
+                };
+                cursor.direction = cursor.symbol & cursor.mask != 0;
+                cursor.at = if cursor.direction {
+                    index.nodes[cursor.at].one
+                } else {
+                    index.nodes[cursor.at].zero
+                };
+                cursor.byte = index.nodes[cursor.at].byte;
+            }
+            budget.charge(function, VISIT_UNITS + 2, self.phase)?;
+            cursor.at = index.nodes[cursor.at].zero;
+            let candidate = &self.nodes[cursor.at];
+            // The index selects only a candidate. Preserve the complete old
+            // key-comparison request and actual Ord equality, without a prefix
+            // discount, identifier parsing, hashes or numeric-ID authority.
+            cursor.units = match key
+                .comparison_units(&candidate.key)
+                .and_then(|units| units.checked_add(VISIT_UNITS))
+            {
+                Some(units) => units,
+                None => {
+                    return Err(overflow(
+                        function,
+                        budget,
+                        "directory key comparison work overflow",
+                    ))
+                }
+            };
+            budget.charge(function, cursor.units, self.phase)?;
+            return Ok(Ord::cmp(key, &candidate.key) == Ordering::Equal);
+        }
         self.authenticate(function, budget)?;
         Ok(self.probe(function, key, budget)?.found)
     }
@@ -252,6 +372,12 @@ impl<K: KeyWork> Directory<K> {
         key: K,
         budget: &mut ReplayBudget,
     ) -> Result<bool, Diagnostic> {
+        if let Some(index) = &self.lookup {
+            // Publication seals this privately owned directory. No mutation or
+            // fallback can revive a rejected read-only index.
+            index.failed.set(true);
+            return Err(Diagnostic::io("SPX-H006", String::new()));
+        }
         self.authenticate(function, budget)?;
         let probe = self.probe(function, &key, budget)?;
         if probe.found {

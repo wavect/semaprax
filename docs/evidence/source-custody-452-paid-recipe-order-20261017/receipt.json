@@ -1,0 +1,79 @@
+{
+  "status": "SOURCE_ONLY",
+  "base": "a7197c470",
+  "all_original_assertions_tables_archives_caps_preserved": true,
+  "new_physical_Rust_owners": 0,
+  "raw3_changes": false,
+  "proof": {
+    "status": "PASS_SOURCE_ONLY",
+    "original_recipe_byte_exact": true,
+    "ordered_rows_exact_bijection": 115,
+    "whole_row_bytes_retained": true,
+    "other_recipe_fields_unchanged": true,
+    "all115_current_helper_views_bound": true,
+    "arena_physical_fronts": 1,
+    "refusals": 7
+  },
+  "files": [
+    {
+      "path": "docs/evidence/source-custody-452-paid-recipe-order-20261017/recipe.ordered.json.txt",
+      "length": 25837,
+      "sha256": "53c5f765b4a94b70ba774096ea8e2619a464d8846b707ab29847f19a937f56eb"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-paid-recipe-order-20261017/arena.prior.txt",
+      "length": 19645,
+      "sha256": "891edcee186f1c7b3fb59bf7d2adf2443c9d230343569865d941b90410b04dd8"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-paid-recipe-order-20261017/recipe-inverse.json",
+      "length": 50540,
+      "sha256": "8ef534b3b3e1846926484e455939139a794139912d52c122d1f1b5ac7cedd913"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-paid-recipe-order-20261017/arena.current.txt",
+      "length": 56925,
+      "sha256": "6dbb0428fcd1e70858de38f0b795d7ac92f0b601d92318e7d2c818b5dfc3cb27"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-paid-recipe-order-20261017/pending-selectors.json",
+      "length": 709,
+      "sha256": "1df69f9f1055419cb38a3eca603f827398c8bc7771dfbf8058dc4a4b8852069e"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-paid-recipe-order-20261017/README.md",
+      "length": 1006,
+      "sha256": "1461d00b776ace7a30108fba4578de3428e9836c5a969f975054afee40a34287"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-paid-recipe-order-20261017/source-inverse.json",
+      "length": 27990,
+      "sha256": "d9c99839a5af581148b16e34002479bef3a68a5a369e371ee221259de1191cf5"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-paid-recipe-order-20261017/check-source.py",
+      "length": 3156,
+      "sha256": "6b91c7b92f93570baec21f0e407523a60d00a6a9a4edade189a3b757fd0f8722"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-paid-recipe-order-20261017/source-controls.json",
+      "length": 281,
+      "sha256": "e162b37603aa0fef4d54ffd1596f040f205c9b95b9945609ca49c4de41d09f3f"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-paid-recipe-order-20261017/source.before.txt",
+      "length": 11292,
+      "sha256": "239dcac3a2d14a302bd9fd8c454d0956ab76cce7b6b0d602387b6f242ddd653b"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-paid-recipe-order-20261017/recipe.original.json.txt",
+      "length": 25837,
+      "sha256": "9f419bb0fce12834a91ef948d90ea9be6655748efee773ae06cbee896f80272c"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-paid-recipe-order-20261017/arena-input.json",
+      "length": 307,
+      "sha256": "927866a2ae4d7644b38f6aa677923a3013192d3c96731de6c537d2d7830a3b15"
+    }
+  ]
+}

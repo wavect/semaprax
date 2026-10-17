@@ -1,0 +1,72 @@
+{
+  "status": "SOURCE_ONLY",
+  "base": "a7197c470",
+  "all_original_assertions_tables_archives_caps_preserved": true,
+  "new_physical_Rust_owners": 0,
+  "raw3_changes": false,
+  "proof": {
+    "status": "PASS_SOURCE_ONLY",
+    "strict_fixed_original_subjects": 13,
+    "new_exact_physical_fronts": 2,
+    "whole_old_helper_restored": true,
+    "refusals": 10,
+    "old_tables_caps_body_assertions_unchanged": true
+  },
+  "files": [
+    {
+      "path": "docs/evidence/source-custody-452-factored-20261017/whole-inverse.json",
+      "length": 54024,
+      "sha256": "d23ede8e58461d28ac3e59a9f6bcf9af986418e3dbff7c2b3a9da33e6339a44b"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-factored-20261017/1.prior.txt",
+      "length": 12616,
+      "sha256": "60f688bdadc749a017b45d09e43e8eb1b1034b2c11d7f38bcc25e3d8e3cd7185"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-factored-20261017/helper.before.txt",
+      "length": 24610,
+      "sha256": "02beda3ba8855672b8007ce0b81a7349d3ad5859a081d1490b643d8a1ffb5473"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-factored-20261017/1.current.txt",
+      "length": 28835,
+      "sha256": "f4fd89c5c28b47d826968d935f51dac66a49e8fd859bfa519e98013913a3923a"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-factored-20261017/0.prior.txt",
+      "length": 63023,
+      "sha256": "bbe5d1ff75b6b3bc811d181275181994027cd83188d6096e5b7716efbec753d3"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-factored-20261017/pending-selectors.json",
+      "length": 605,
+      "sha256": "338e17656b5bbdd4ea82e03e1d75cebc8b687db5785a7ed6c2d3f5b13540365c"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-factored-20261017/README.md",
+      "length": 724,
+      "sha256": "2783657d9182254c25c0235febfdb72e456d38ab141802626c4546ead7dee14c"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-factored-20261017/subjects.json",
+      "length": 639,
+      "sha256": "905d13e309669f08c44ba669339dc2b85bf2fecd60fdf86a07f3818d5f3175cd"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-factored-20261017/check-source.py",
+      "length": 1896,
+      "sha256": "f84f640272d092d1a2fbf58a092459476c731e0f3274db35aec7c8dde1465106"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-factored-20261017/source-controls.json",
+      "length": 217,
+      "sha256": "0c9ad09a23e1bee26d22396d342fc441feb799b8a862e23a9944d48b16c6f83d"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-factored-20261017/0.current.txt",
+      "length": 64422,
+      "sha256": "33e45de2e06bd0a251c7e6c22c0b953b4d32991ca488becdfccfe29209380111"
+    }
+  ]
+}

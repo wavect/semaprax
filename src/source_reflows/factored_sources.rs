@@ -400,7 +400,7 @@ fn domain_read(path: &::std::path::Path, domain: &str) -> Result<String, &'stati
     if relative != CORE_PATH {
         let current = &row["current"];
         let length = usize::try_from(current["length"].as_u64().ok_or("length")?).map_err(|_| "length")?;
-        let actual = custody_file(path, length, current["sha256"].as_str().ok_or("sha")?)?;
+        let actual = later_factored_current(path, relative, length, current["sha256"].as_str().ok_or("sha")?)?;
         if actual != archive(current)? { return Err("current-archive"); }
     }
     // Authenticate the complete original OURS snapshot too, independently of
@@ -477,4 +477,32 @@ fn joined_factored_domains_preserve_complete_receivers_and_refuse_foreign_inputs
     let mut forged = manifest["inputs"][0]["main"].clone();
     forged["archive"] = serde_json::Value::String("../foreign".to_owned());
     assert!(archive(&forged).is_err());
+}
+
+// Two later production sources precede the fixed13-subject historical domains.
+fn later_factored_current(path: &::std::path::Path, relative: &str, length: usize, expected: &str) -> Result<String, &'static str> {
+    let (current_length, current_sha, prior_length, prior_sha, current_archive, prior_archive) = match relative {
+        "src/cleanup_plan/replay/factored/canonical_shared.rs" => (64422usize, "33e45de2e06bd0a251c7e6c22c0b953b4d32991ca488becdfccfe29209380111", 63023usize, "bbe5d1ff75b6b3bc811d181275181994027cd83188d6096e5b7716efbec753d3", "0.current.txt", "0.prior.txt"),
+        "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs" => (28835usize, "f4fd89c5c28b47d826968d935f51dac66a49e8fd859bfa519e98013913a3923a", 12616usize, "60f688bdadc749a017b45d09e43e8eb1b1034b2c11d7f38bcc25e3d8e3cd7185", "1.current.txt", "1.prior.txt"),
+        _ => return custody_file(path, length, expected),
+    };
+    if length != prior_length || expected != prior_sha { return Err("foreign-later-factored-row"); }
+    let directory = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/evidence/source-custody-452-factored-20261017");
+    let raw = custody_file(path, current_length, current_sha)?;
+    if raw != custody_file(&directory.join(current_archive), current_length, current_sha)? { return Err("later-factored-current-archive"); }
+    custody_file(&directory.join(prior_archive), prior_length, prior_sha)
+}
+#[test]
+fn later_factored_sources_keep_complete_fixed_domains_and_refuse_foreign_expected_rows() {
+    let root = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    for (path, length, sha) in [
+        ("src/cleanup_plan/replay/factored/canonical_shared.rs", 63023usize, "bbe5d1ff75b6b3bc811d181275181994027cd83188d6096e5b7716efbec753d3"),
+        ("src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs", 12616usize, "60f688bdadc749a017b45d09e43e8eb1b1034b2c11d7f38bcc25e3d8e3cd7185"),
+    ] {
+        let old = later_factored_current(&root.join(path), path, length, sha).unwrap();
+        assert_eq!(old.len(), length);
+        assert_eq!(custody_digest(old.as_bytes()), sha);
+        assert!(later_factored_current(&root.join(path), path, length + 1, sha).is_err());
+        assert!(later_factored_current(&root.join(path), path, length, &"0".repeat(64)).is_err());
+    }
 }

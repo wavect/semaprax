@@ -1,0 +1,17 @@
+{
+  "status": "SOURCE_ONLY",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::paid_many::source::complete_immediate_canonicalizer_caller_terminal_helpers_and_all_original_tests_are_exact",
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::paid_many::source::ordered_recipe_keeps_all115_original_rows_fields_and_refuses_old_or_forged_order",
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "status": "SOURCE_ONLY",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::tests::targets::complete_predecessors_and_new_target_sources_are_bound",
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/tests/targets.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::factored_sources::later_factored_sources_keep_complete_fixed_domains_and_refuse_foreign_expected_rows",
+      "sourcepath": "src/source_reflows/factored_sources.rs"
+    }
+  ]
+}

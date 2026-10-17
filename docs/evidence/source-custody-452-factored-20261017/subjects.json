@@ -1,0 +1,16 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "current_length": 64422,
+    "current_sha256": "33e45de2e06bd0a251c7e6c22c0b953b4d32991ca488becdfccfe29209380111",
+    "prior_length": 63023,
+    "prior_sha256": "bbe5d1ff75b6b3bc811d181275181994027cd83188d6096e5b7716efbec753d3"
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+    "current_length": 28835,
+    "current_sha256": "f4fd89c5c28b47d826968d935f51dac66a49e8fd859bfa519e98013913a3923a",
+    "prior_length": 12616,
+    "prior_sha256": "60f688bdadc749a017b45d09e43e8eb1b1034b2c11d7f38bcc25e3d8e3cd7185"
+  }
+]

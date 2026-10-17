@@ -69,3 +69,13 @@ Unknown, invalid or nonempty ACLs refuse. The empty-list return convention is
 from Apple's acl_get_entry manual (success0; no entry/error-1 and errnoEINVAL):
 https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/acl_get_entry.3.html
 Actual kernel/ACL behavior remains untested by the pure source controls.
+
+Lifecycle hardening: group ownership is observed while the direct Popen child
+is unreaped. After wait/poll has reaped that leader, settlement performs only
+bounded absence observations; it never signals a possibly reused numeric group.
+Residual/unknown groups refuse rather than receive guessed cleanup authority.
+Producer setup failures still settle the owned group and close pipes, and
+partial startup cleanup forces nonblocking drains. Cleanup refusal gets its own
+terminal evidence, including after otherwise successful probes; an evidence-write
+failure cannot replace an earlier selected failure. These are pure-tested source
+controls, not actual process-group or kernel qualification.

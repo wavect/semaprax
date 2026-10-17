@@ -5,6 +5,8 @@ import ctypes
 import errno
 from dataclasses import replace
 import hashlib
+import io
+import json
 from pathlib import Path
 import stat
 import tempfile
@@ -163,6 +165,110 @@ class QualificationChecks(unittest.TestCase):
                 changed=copy.deepcopy(outcome)
                 changed['streams']['stdout']=encode(dict(document,errno=error))
                 self.assertRaises(AuthorityRefusal,q._check_probe,'read',changed,{},denied=True)
+
+    def test_reaped_leader_is_only_observed_never_signaled(self):
+        process=SimpleNamespace(pid=123,returncode=0)
+        with mock.patch.object(q.os,'getpgrp',return_value=456), \
+             mock.patch.object(q.os,'getpgid') as identity, \
+             mock.patch.object(q.os,'killpg',side_effect=ProcessLookupError) as send:
+            q._settle(process)
+            send.assert_called_once_with(123,0)
+            identity.assert_not_called()
+        with mock.patch.object(q.os,'getpgrp',return_value=456), \
+             mock.patch.object(q.os,'killpg') as send, \
+             mock.patch.object(q.time,'monotonic',side_effect=[0,3]):
+            self.assertRaises(AuthorityRefusal,q._settle,process)
+            send.assert_called_once_with(123,0)
+
+    def test_owned_group_timeout_escalates_before_reap_then_observes_bounded_exit(self):
+        process=SimpleNamespace(pid=123,returncode=None)
+        def wait(timeout):
+            if process.wait.call_count == 1:
+                raise q.subprocess.TimeoutExpired('owned',timeout)
+            process.returncode=-9
+            return -9
+        process.wait=mock.Mock(side_effect=wait)
+        def send(pid,sig):
+            if sig==0: raise ProcessLookupError
+        with mock.patch.object(q.os,'getpgrp',return_value=456), \
+             mock.patch.object(q.os,'getpgid',return_value=123), \
+             mock.patch.object(q.os,'killpg',side_effect=send) as signal_group:
+            q._settle(process)
+            self.assertEqual(signal_group.call_args_list,[mock.call(123,q.signal.SIGTERM),
+                mock.call(123,q.signal.SIGKILL),mock.call(123,0)])
+        process.returncode=None
+        with mock.patch.object(q.os,'getpgrp',return_value=456), \
+             mock.patch.object(q.os,'getpgid',return_value=999), \
+             mock.patch.object(q.os,'killpg') as send:
+            self.assertRaises(AuthorityRefusal,q._settle,process)
+            send.assert_not_called()
+        with mock.patch.object(q.os,'getpgrp',return_value=456), \
+             mock.patch.object(q.os,'getpgid',return_value=123), \
+             mock.patch.object(q.os,'killpg',side_effect=PermissionError):
+            self.assertRaises(PermissionError,q._settle,process)
+
+    def test_selector_failure_settles_owned_producer_and_closes_both_pipes(self):
+        process=SimpleNamespace(stdout=mock.Mock(),stderr=mock.Mock(),returncode=None)
+        compiler=next(e.path for e in self.plan.inventory if e.role=='dependency')
+        source=b'fixed source'
+        with mock.patch.object(q,'_read',return_value=(source,None)), \
+             mock.patch.object(q,'PROBE_SOURCE_SHA256',hashlib.sha256(source).hexdigest()), \
+             mock.patch.object(q,'_write_new') as write, \
+             mock.patch.object(q.subprocess,'Popen',return_value=process), \
+             mock.patch.object(q,'_acquire_group',return_value='owned'), \
+             mock.patch.object(q,'_settle') as settle, \
+             mock.patch.object(q.selectors,'DefaultSelector',side_effect=RuntimeError('selector setup')):
+            self.assertRaisesRegex(RuntimeError,'selector setup',q._build_probe,
+                self.plan,self.store,compiler,Path('/Volumes/Semaprax/evidence'))
+            settle.assert_called_once_with(process,'owned')
+            process.stdout.close.assert_called_once()
+            process.stderr.close.assert_called_once()
+            record=json.loads(write.call_args.args[1])
+            self.assertEqual(record['selected_error']['message'],'selector setup')
+
+    def test_partial_runtime_cleanup_forces_nonblocking_before_draining(self):
+        runtime=self.runtime()
+        runtime.process=SimpleNamespace(stdin=mock.Mock(),stdout=mock.Mock(),stderr=mock.Mock())
+        runtime.group='owned';runtime.buffer=bytearray();runtime.stderr_bytes=0
+        runtime.process.stdout.fileno.return_value=10
+        runtime.process.stderr.fileno.return_value=11
+        runtime.selector=mock.Mock();runtime.wire=mock.Mock();runtime.stderr=mock.Mock()
+        events=[]
+        with mock.patch.object(q,'_settle'), \
+             mock.patch.object(q.os,'set_blocking',side_effect=lambda fd,b:events.append(('safe',fd,b))), \
+             mock.patch.object(q.os,'read',side_effect=lambda fd,n:(events.append(('read',fd)),b'')[1]):
+            runtime.close()
+        self.assertEqual(events[:2],[('safe',10,False),('safe',11,False)])
+        self.assertEqual(events[2:],[('read',10),('read',11)])
+
+    def test_cleanup_failure_is_recorded_with_or_without_selected_primary(self):
+        runtime=SimpleNamespace(close=mock.Mock(side_effect=RuntimeError('late settlement')))
+        for primary in [None,ValueError('selected')]:
+            with mock.patch.object(q,'_write_new') as write:
+                if primary is None:
+                    self.assertRaisesRegex(RuntimeError,'late settlement',q._cleanup_runtime,
+                        runtime,Path('/Volumes/Semaprax/evidence'),primary,[{'case':'completed'}])
+                else:
+                    q._cleanup_runtime(runtime,Path('/Volumes/Semaprax/evidence'),primary,[{'case':'completed'}])
+                record=json.loads(write.call_args.args[1])
+                self.assertEqual(record['selected_primary_preserved'],primary is not None)
+                self.assertEqual(record['completed_observations'],[{'case':'completed'}])
+                self.assertFalse(record['authority_granted'])
+
+    def test_cleanup_evidence_write_failure_does_not_replace_selected_failure(self):
+        error=RuntimeError('selected cleanup')
+        runtime=SimpleNamespace(close=mock.Mock(side_effect=error))
+        with mock.patch.object(q,'_write_new',side_effect=OSError('evidence full')):
+            primary=ValueError('primary')
+            q._cleanup_runtime(runtime,Path('/Volumes/Semaprax/evidence'),primary,[])
+            self.assertIn('evidence full',primary.__notes__[0])
+            q._record_primary_refusal(Path('/Volumes/Semaprax/evidence'),primary,[])
+            self.assertIn('primary evidence write failed',primary.__notes__[1])
+            self.assertEqual(str(primary),'primary')
+            with self.assertRaises(RuntimeError) as selected:
+                q._cleanup_runtime(runtime,Path('/Volumes/Semaprax/evidence'),None,[])
+            self.assertIs(selected.exception,error)
+            self.assertIsInstance(selected.exception.__cause__,OSError)
 
     def test_termination_retains_full_error_and_never_kills_a_reused_pid(self):
         document={'schema':'semaprax.darwin-probe.v1','case':'timeout','pid':123,'uid':501,

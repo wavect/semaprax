@@ -1,0 +1,107 @@
+{
+  "status": "SOURCE_ONLY_CORRECTION_UNQUALIFIED",
+  "base_head": "a7d3257bf1d6dcc1cdf12337113745c695a0f356",
+  "rows": [
+    {
+      "path": "src/cleanup_plan/replay/branch_clone/direct.rs",
+      "before": {
+        "archive": "docs/evidence/opt879-explicit-receiver-correction-20261017/before/src/cleanup_plan/replay/branch_clone/direct.rs",
+        "length": 10857,
+        "sha256": "3f9f891564c0ef3f089f3b63a66cc5ef352f5a3e14bf276c3033d116e2af6d15"
+      },
+      "after": {
+        "archive": "docs/evidence/opt879-explicit-receiver-correction-20261017/after/src/cleanup_plan/replay/branch_clone/direct.rs",
+        "length": 13429,
+        "sha256": "f5b616f78936a2093e51132d5a99ff0042dce66d743323b01ff7fb179f67d880"
+      },
+      "inverse": [
+        {
+          "start": 0,
+          "end": 13429,
+          "replacement_archive": "docs/evidence/opt879-explicit-receiver-correction-20261017/before/src/cleanup_plan/replay/branch_clone/direct.rs"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+      "before": {
+        "archive": "docs/evidence/opt879-explicit-receiver-correction-20261017/before/src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+        "length": 11555,
+        "sha256": "df27664d3554d73778554143248f357e54c73a4e73746c9014ffa3e5b69b26c9"
+      },
+      "after": {
+        "archive": "docs/evidence/opt879-explicit-receiver-correction-20261017/after/src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+        "length": 17483,
+        "sha256": "b293cb696f2c6bbf9d378b5a069d8569e9c09b841c563ff0069f5d66ece8570a"
+      },
+      "inverse": [
+        {
+          "start": 0,
+          "end": 17483,
+          "replacement_archive": "docs/evidence/opt879-explicit-receiver-correction-20261017/before/src/cleanup_plan/replay/branch_clone/direct/tests.rs"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/branch_clone/production_capacity.rs",
+      "before": {
+        "archive": "docs/evidence/opt879-explicit-receiver-correction-20261017/before/src/cleanup_plan/replay/branch_clone/production_capacity.rs",
+        "length": 10763,
+        "sha256": "4430efc70a71158b88607285b57935ce56391a40a75d14c67126d59626a75028"
+      },
+      "after": {
+        "archive": "docs/evidence/opt879-explicit-receiver-correction-20261017/after/src/cleanup_plan/replay/branch_clone/production_capacity.rs",
+        "length": 10763,
+        "sha256": "a14f212a96712252f56eb79b665b353d008d63b1c0ee57b49ff7eab9459b5012"
+      },
+      "inverse": [
+        {
+          "start": 0,
+          "end": 10763,
+          "replacement_archive": "docs/evidence/opt879-explicit-receiver-correction-20261017/before/src/cleanup_plan/replay/branch_clone/production_capacity.rs"
+        }
+      ]
+    }
+  ],
+  "new_shipping_callback_chains": 0,
+  "literal_copy_and_actual_inline_bank_equal": true,
+  "old_original_tests_byteexact": true,
+  "new_selectors": [
+    "direct_generic_entry_prepays_result_and_arguments_with_exact_short_floor_sticky_drop",
+    "current_continuations_keep_full_predecessor_paths_and_both_work_accounts",
+    "current_query_rejects_missing_cycles_overflow_and_foreign_authority",
+    "continue_return_break_and_latch_have_real_bounded_continuation_controls"
+  ],
+  "cargo_tests_or_binders_executed": false,
+  "census": {
+    "bound_checked_arithmetic_sites": [
+      "transition count",
+      "goto marker",
+      "branch marker",
+      "lexical marker",
+      "terminal prefix+1",
+      "terminal plus pushes"
+    ],
+    "per_checked_site": "four usize actual/formal operands plus actual Option result; no closure",
+    "probe_additional_sites": [
+      "prefix checked_add",
+      "growth_capacity actual/formal4usize and Option",
+      "growth checked_mul",
+      "required checked_sub",
+      "named scalar,Option,bool receives"
+    ],
+    "copy_additional_sites": [
+      "whole actual/formal reference/value headers",
+      "two Result<Vec<T>,Diagnostic>",
+      "prefix checked_add",
+      "growth_capacity actual/formal4usize",
+      "required/original/capacity Option receivers",
+      "required/original/capacity bindings plus4len result values",
+      "four len method actual/formal pairs",
+      "payer equality4actual/formal refs",
+      "selected2actual/formal refs",
+      "payer/selected/lazy/enabled/capacity-fit bools"
+    ]
+  },
+  "threshold_disclosure": "COPY_SLOTS retains only the original ADDITIONAL_CONTROLS threshold. QUERY/PROBE and direct ABI banks are separately charged even on fallback. This is not a whole-new-cost profitability condition; no net saving or closure is claimed."
+}

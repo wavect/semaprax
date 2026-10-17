@@ -46,7 +46,7 @@ pub(in crate::cleanup_plan::replay) fn production_inline_controls<T: Clone>() ->
         + 2 * size_of::<std::slice::Iter<'_, T>>()
         + 2 * size_of::<std::iter::Cloned<std::slice::Iter<'_, T>>>()
         + ADDITIONAL_CONTROLS
-        + direct::QUERY_CONTROLS
+        + direct::PROBE_CONTROLS
 }
 
 // Retain the original added-production-price threshold. The current query

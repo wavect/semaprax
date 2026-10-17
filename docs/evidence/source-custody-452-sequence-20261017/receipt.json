@@ -1,0 +1,58 @@
+{
+  "status": "SOURCE_ONLY",
+  "base": "32068f781",
+  "whole_original_assertions_tables_caps_unchanged": true,
+  "new_Rust_owners": 0,
+  "raw3_changes": false,
+  "proof": {
+    "status": "PASS_SOURCE_ONLY",
+    "complete_frozen858_original_restored": true,
+    "complete_old_helper_tests_restored": true,
+    "fragment_inverse_clauses": 3,
+    "refusals": 8,
+    "old_metadata_archives_caps_assertions_unchanged": true,
+    "runtime": false
+  },
+  "files": [
+    {
+      "path": "docs/evidence/source-custody-452-sequence-20261017/whole-inverse.json",
+      "length": 9590,
+      "sha256": "abe86394497cdb6f3a726c58a78b406f68b2fae0ce0e98766b61924f64ea151f"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-sequence-20261017/helper.before.txt",
+      "length": 2071,
+      "sha256": "6e59c735c95509eca8e67e2865c661abc312eaa6fa2dd05d7be0eaf96131e85d"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-sequence-20261017/pending-selectors.json",
+      "length": 410,
+      "sha256": "c1bb5dbd7a008f0c24ece0faf104748699e40d7ac43533b1431285ffc1c5dfa8"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-sequence-20261017/README.md",
+      "length": 900,
+      "sha256": "a9fa9955d0659feaf7d3554919af4120be3dc6a04e879b690049037d8811f66d"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-sequence-20261017/check-source.py",
+      "length": 2556,
+      "sha256": "c81b0ea653860d1133cecc3a639395b7f58f3e7b33a943514ab93a91acfe7a94"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-sequence-20261017/source-controls.json",
+      "length": 258,
+      "sha256": "e62c4c3ab6fcd513311c29089c45d48f142c0a839459b5e9a98cae6ddf5d2221"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-sequence-20261017/sequence.prior.rs.txt",
+      "length": 9058,
+      "sha256": "4f22f98575c40645de39c95f918240e440c2e639605aadd5b36dd553fe5b5804"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-sequence-20261017/sequence.current.rs.txt",
+      "length": 8944,
+      "sha256": "562708b270e472605af04f9d2ace2d06101b7bd5a2b3295589e64c6cf48a86e7"
+    }
+  ]
+}

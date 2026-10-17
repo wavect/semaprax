@@ -1,0 +1,18 @@
+{
+  "status": "SOURCE_ONLY",
+  "new": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::opt858_sequence_input::later_sequence_fusion_keeps_complete858_input_and_rejects_other_stages",
+      "sourcepath": "src/source_reflows_merge/opt858_sequence_input.rs"
+    }
+  ],
+  "existing_required_actual_failed_rows": [
+    165,
+    167,
+    168,
+    174,
+    177
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "complete_frozen858_original_restored": true,
+  "complete_old_helper_tests_restored": true,
+  "fragment_inverse_clauses": 3,
+  "refusals": 8,
+  "old_metadata_archives_caps_assertions_unchanged": true,
+  "runtime": false
+}

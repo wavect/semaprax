@@ -1067,6 +1067,36 @@ fn inference_and_call_signature_keep_complete_old_results_and_index_backing_thro
     assert!(!refused);
     assert_eq!(spent, 0);
     assert_eq!(before, after);
+
+    // Exercise the actual ordinary-call dispatcher and its recursive evidence
+    // path, not only the direct test wrappers above. Both calls omit their type
+    // arguments; the inner result supplies the outer generic argument.
+    assert_eq!(GENERIC.matches("identity<i64>(alpha())").count(), 1);
+    let nested_source = GENERIC.replace("identity<i64>(alpha())", "identity(identity(alpha()))");
+    let nested_program = crate::check(&nested_source, "resolver-held-nested-inference.spx").unwrap();
+    let (nested_old, nested_current) = pair(|| paid_owned(&nested_program));
+    // Includes the complete ResolvedProgram, all work fields, and the ordered
+    // original identity-payer requests, under the saved allocation policy.
+    assert_eq!(nested_old, nested_current);
+    assert_eq!(wire(&nested_old.0), wire(&nested_current.0));
+    assert_resolved_identities_are_index_carriers(&nested_current.0);
+    assert!(nested_current.0.function_instances.iter().any(|instance| {
+        instance.template.as_str() == "identity"
+            && instance.type_arguments == vec![ResolvedType::I64]
+    }));
+    drop((nested_old, nested_current));
+    // The whole real paid resolver and all returned roots live inside each
+    // observation. This is the complete saved construction-policy comparison,
+    // not a claim that only the two new sites account for its total saving.
+    let (_, nested_old_cost) = measure(|| drop(saved(false, || paid_owned(&nested_program))));
+    let (_, nested_current_cost) = measure(|| drop(paid_owned(&nested_program)));
+    assert!(nested_old_cost.allocations > nested_current_cost.allocations);
+    assert!(nested_old_cost.allocated > nested_current_cost.allocated);
+    for observed in [nested_old_cost, nested_current_cost] {
+        assert!(!observed.invalid);
+        assert_eq!(observed.live, 0);
+        assert_eq!(observed.allocated, observed.freed);
+    }
 }
 
 #[test]

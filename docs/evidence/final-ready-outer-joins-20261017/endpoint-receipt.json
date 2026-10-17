@@ -1,8 +1,8 @@
 {
   "status": "PASS_NEW_UNQUALIFIED_SOURCE_ENDPOINTS_ONLY",
-  "source_head": "e031060ce138243b20792779a7f0a0ee4c7d2acb",
-  "source_repo": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
-  "output_repo": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "source_head": "0083fd57cf58947d60bfe76b3ec0e6b6a824d244",
+  "source_repo": "/Volumes/Semaprax/worktrees/next-large-integration-20261017",
+  "output_repo": "/Volumes/Semaprax/worktrees/next-large-integration-20261017",
   "projected_index_sha256": "2deb3dad2f22dd89f62610637943219100599b214f0ddae33d9737f4c8e14091",
   "raw_inputs": {
     "src/workspace_graph/expected_projection.rs": "974468e7035d1a7baa48b13078ce7ec7b0711c2c7610d64db7feea561b192f0c",
@@ -50,8 +50,8 @@
     "src/workspace_graph/expected_projection/field_update.rs": "b3e1eea8dd6bf25da2e9a2e928177973070450ffe34f095ed266b21d792fcebc",
     "src/workspace_graph/expected_projection/string_slots.rs": "570d9033ca799f4564b0b2f9e90abd82f063747f45cb8f20a3f23a082db09a5f",
     "src/workspace_graph/identity_resolution.rs": "2ab876f8146b3eb19a950a4003bb7c3489a9f9963d7a6496d2019dc9246968dc",
-    "src/cleanup_plan/replay/factored/canonical_shared.rs": "bbe5d1ff75b6b3bc811d181275181994027cd83188d6096e5b7716efbec753d3",
-    "tests/workspace/semantic_graph/source_inventory.rs": "29a6c3be08485c93251c2c58a1eef2be4de905b21f54865f85356d3a85bdf21b"
+    "src/cleanup_plan/replay/factored/canonical_shared.rs": "014f04e64f90e79480cce6ad9fe5cfbc8ce7f3fa82564e739ab53e131669700c",
+    "tests/workspace/semantic_graph/source_inventory.rs": "4fd17065b73b1141ebf2e03b6a8d9d0e7c15e86b277c6344785324c21a3c15cb"
   },
   "endpoints": [
     {
@@ -85,13 +85,13 @@
   "qualification": "NO_CARGO_OR_RUNTIME",
   "refresh_required_after_all_production_Rust_writes": true,
   "canonical870_raw_authentication": {
-    "raw_sha256": "bbe5d1ff75b6b3bc811d181275181994027cd83188d6096e5b7716efbec753d3",
+    "raw_sha256": "014f04e64f90e79480cce6ad9fe5cfbc8ce7f3fa82564e739ab53e131669700c",
     "stage_sha256": "459b9a2d0f454f608a3e1997b46e76cc09c1ddc098d976b7513f92b16263a839",
     "stage_binding_sha256": "6523645c1445ceffafe43ff87118f3f2d6f94686a39b444ff6f87cedf7460bc0",
     "original_canonical_endpoint_is_staged51": true
   },
   "main67107_outer_authentication": {
-    "current_raw_sha256": "bbe5d1ff75b6b3bc811d181275181994027cd83188d6096e5b7716efbec753d3",
+    "current_raw_sha256": "014f04e64f90e79480cce6ad9fe5cfbc8ce7f3fa82564e739ab53e131669700c",
     "closed_stage_data_sha256": "bfbacf2777c310ee34ad6acd34352a9c58777ec11d39f2649be584711d72f120",
     "canonical_order": "actual current -> exact870 -> exact51 -> original831/db2",
     "all_prior_binders_unchanged": true

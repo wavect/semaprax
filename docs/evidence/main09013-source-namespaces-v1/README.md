@@ -32,3 +32,18 @@ manifest seal, preserving the complete previous manifest. It does not regenerate
 Parent source composition may require independently reviewed additional ingress
 for changes outside this finite namespace; no wildcard normalizer is provided.
 No Cargo, rustc, compiler runtime or application gates were run in this lane.
+
+The guarded one-shot binder authenticates `binding-descriptor.json` and the
+complete immutable `input-domains.template-7cb.json`, checks all physical inputs
+against the caller's explicit full 40-digit Git HEAD, and checks all 236 sealed
+historical inputs before preparation. Reads use no-follow directory/file handles,
+a pre-buffer length bound, and post-read handle/path identity checks. The exact
+original raw-scope parser checks all prior registration entries and live counts;
+the native carrier stays within 1,500 lines. HEAD and every source identity and
+digest are rechecked before publication. Existing immutable archive names refuse
+collisions. The only persistent binding changes are the new manifest, its two
+module pins, and a newly created complete prior-manifest archive. A second run
+refuses the already bound manifest. The complete original 32-line recipe is
+retained in `bind_current.py.before-7cb.txt` and its whole inverse receipt.
+`verify_binding_recipe.py` exercises only bounded Python refusal controls on
+private temporary SSD files; it never invokes `run()` or performs final binding.

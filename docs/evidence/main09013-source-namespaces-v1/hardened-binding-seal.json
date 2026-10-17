@@ -1,0 +1,37 @@
+[
+  {
+    "path": "docs/evidence/main09013-source-namespaces-v1/bind_current.py",
+    "length": 13491,
+    "sha256": "4921dedbcd93d865cafc825f176f5598891864f35c605096185dfb49c6887546"
+  },
+  {
+    "path": "docs/evidence/main09013-source-namespaces-v1/binding-descriptor.json",
+    "length": 121365,
+    "sha256": "c98b31327f8f5fb88d4ee36f1b457d9f18339789abe528efb5aa18d9b652619c"
+  },
+  {
+    "path": "docs/evidence/main09013-source-namespaces-v1/input-domains.template-7cb.json",
+    "length": 243204,
+    "sha256": "3fadb659b8f2fd420716096fdd3c35b076da5d5263e9a45629f025b31ca52a4a"
+  },
+  {
+    "path": "docs/evidence/main09013-source-namespaces-v1/bind_current.py.before-7cb.txt",
+    "length": 2321,
+    "sha256": "fa8d9d2ba0f7826e779faead391925a8fa3a37656ae4bc3dcb38fa5ac9ff1b85"
+  },
+  {
+    "path": "docs/evidence/main09013-source-namespaces-v1/binding-recipe-inverse.json",
+    "length": 16477,
+    "sha256": "a30d91dfad1a485c5a33bc94dee7de6af5cba22c5b2bbfaa87fa056a9e0cb86d"
+  },
+  {
+    "path": "docs/evidence/main09013-source-namespaces-v1/verify_binding_recipe.py",
+    "length": 4174,
+    "sha256": "736428f745d9213a199f9355893bb4ea85456cf34309ef1b2ac92d1546ac9502"
+  },
+  {
+    "path": "docs/evidence/main09013-source-namespaces-v1/binding-recipe-proof.json",
+    "length": 341,
+    "sha256": "e4830dc72fa4c49b3e326a6a01ff18817d45b2e9f4f0d53a01a360620faae79a"
+  }
+]

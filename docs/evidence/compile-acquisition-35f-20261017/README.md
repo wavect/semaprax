@@ -51,7 +51,7 @@ env TMPDIR=/Volumes/Semaprax/runtime-tmp PYTHONDONTWRITEBYTECODE=1 /opt/homebrew
 ```
 
 Source-only controls are retained externally in
-/Volumes/Semaprax/provenance/alias-test-compile-35f-20261017/:76 hostile-input
+/Volumes/Semaprax/provenance/alias-test-compile-35f-20261017/:78 hostile-input
 checks, full source inverses, complete original-tool recovery, and parser-only
 Rust stdout/stderr. These are not current compiler/test passes. The independent
 review and later actual focused compilation/body execution remain necessary.

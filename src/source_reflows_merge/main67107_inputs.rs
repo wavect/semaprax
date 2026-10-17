@@ -210,7 +210,12 @@ fn compile35f_restore(row: &serde_json::Value, current: &str) -> String {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let raw = std::fs::read_to_string(root.join(source)).unwrap();
     assert_eq!(digest(&raw), row["current_sha256"], "actual new compile subject");
-    if digest(current) == row["before_sha256"].as_str().unwrap() { return current.to_owned(); }
+    let before = std::fs::read_to_string(root.join(row["before_archive"].as_str().unwrap())).unwrap();
+    assert_eq!(digest(&before), row["before_sha256"]);
+    if digest(current) == row["before_sha256"].as_str().unwrap() {
+        assert_eq!(current, before);
+        return current.to_owned();
+    }
     assert_eq!(digest(current), row["current_sha256"], "complete compile input");
     let mut lines: Vec<&str> = current.split_inclusive('\n').collect();
     let mut last = lines.len();
@@ -224,8 +229,6 @@ fn compile35f_restore(row: &serde_json::Value, current: &str) -> String {
     }
     let restored = lines.concat();
     assert_eq!(digest(&restored), row["before_sha256"]);
-    let before = std::fs::read_to_string(root.join(row["before_archive"].as_str().unwrap())).unwrap();
-    assert_eq!(digest(&before), row["before_sha256"]);
     assert_eq!(restored, before);
     restored
 }

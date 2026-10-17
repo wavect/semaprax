@@ -1,0 +1,14 @@
+{
+  "state": "SOURCE_CLI_FIX_NO_RUST_EXECUTION",
+  "before_sha256": "be0762fb77e2893bcfec44ba7397ccd878f94b968b117f3f5e1b1aa9ed50994b",
+  "after_sha256": "063a863e161548daeabdf5f6c3cfaeffd409954af364067760471f44143a3414",
+  "only_wrapper_change": "consume wrapper-only --repo before forwarding to unchanged refresh argparse",
+  "original_four_programs_and_finite_source_substitutions_unchanged": true,
+  "actual_first_refusal": "/Volumes/Semaprax/provenance/combined-main34d-source-binding-8b4876040-20261017/3.log",
+  "corrected_refresh_flags": [
+    "--apply",
+    "--expected-head",
+    "ACTUAL_HEAD",
+    "--memoize-source-masks"
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "status": "PASS_NEW_UNQUALIFIED_SOURCE_ENDPOINTS_ONLY",
-  "source_head": "827d3e0f2b5f39dbfe3fbe27d453dc62e46670ad",
+  "source_head": "8b487604012434d848e59dcda2f020a815f07c8a",
   "source_repo": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
   "output_repo": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
   "projected_index_sha256": "2deb3dad2f22dd89f62610637943219100599b214f0ddae33d9737f4c8e14091",
@@ -51,7 +51,7 @@
     "src/workspace_graph/expected_projection/string_slots.rs": "570d9033ca799f4564b0b2f9e90abd82f063747f45cb8f20a3f23a082db09a5f",
     "src/workspace_graph/identity_resolution.rs": "2ab876f8146b3eb19a950a4003bb7c3489a9f9963d7a6496d2019dc9246968dc",
     "src/cleanup_plan/replay/factored/canonical_shared.rs": "bbe5d1ff75b6b3bc811d181275181994027cd83188d6096e5b7716efbec753d3",
-    "tests/workspace/semantic_graph/source_inventory.rs": "0e19bed63f99aa9c4236add774c55ebf38d006b26303eeb0337c172c4756edcc"
+    "tests/workspace/semantic_graph/source_inventory.rs": "2811c3fee99f7d5015a247a0035820525dce06edeadc09b998bc1b72bf7ca471"
   },
   "endpoints": [
     {

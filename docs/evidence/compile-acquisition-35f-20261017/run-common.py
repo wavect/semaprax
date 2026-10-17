@@ -47,6 +47,9 @@ if __name__=='__main__':
   at=sys.argv.index('--tool');tool=sys.argv[at+1];del sys.argv[at:at+2]
  assert tool in TOOLS
  repo=Path(sys.argv[sys.argv.index('--repo')+1]).resolve()
+ # The unchanged refresh CLI derives its root from __file__ and has no --repo flag.
+ if tool=='refresh':
+  at=sys.argv.index('--repo');del sys.argv[at:at+2]
  path,current,proof=program(tool,repo)
  sys.argv[0]=str(path)
  exec(compile(current,str(path),'exec'),{'__file__':str(path),'__name__':'__main__','compile35f_stage':compile35f_stage})

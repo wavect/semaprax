@@ -1,0 +1,53 @@
+{
+  "state": "FIRST_REFUSAL",
+  "head": "8b487604012434d848e59dcda2f020a815f07c8a",
+  "steps": [
+    {
+      "step": 1,
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/compile-acquisition-35f-20261017/run-common.py",
+        "--tool",
+        "main",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+        "--expected-head",
+        "8b487604012434d848e59dcda2f020a815f07c8a",
+        "--write"
+      ],
+      "exit": 0,
+      "wall_seconds": 0.5472847080091015,
+      "log_sha256": "4462924d2a022f008d5e6124e28096a489468e183a989941fd77ba7ce209b9e7"
+    },
+    {
+      "step": 2,
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main67107-fronts-6e45-20261017/bind-composed-endpoints.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+        "--expected-head",
+        "8b487604012434d848e59dcda2f020a815f07c8a",
+        "--write"
+      ],
+      "exit": 0,
+      "wall_seconds": 0.3429061670030933,
+      "log_sha256": "3229e1d3cc8c20868728e4fcd6b88f3b4d27fdf4bc9eb1334f58359ab7242969"
+    },
+    {
+      "step": 3,
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/compile-acquisition-35f-20261017/run-common.py",
+        "--tool",
+        "refresh",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang"
+      ],
+      "exit": 2,
+      "wall_seconds": 0.04571637499611825,
+      "log_sha256": "1e43ccad2fdf54bbecba6c69a81877d1df227bf5a43d98884b58aecd3170f469"
+    }
+  ],
+  "Rust_test_bodies_executed": 0
+}

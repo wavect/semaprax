@@ -12,6 +12,20 @@ fn fixture(decisions: usize, owned: bool) -> ResolvedProgram {
     let source = format!(
         "module moderate.paths; @id(\"moderate.paths\") fn paths({parameters})->i64 {{{branches}42}}"
     );
+    // The complete original library-shaped literal is not an executable.
+    // Retain its exact six-field refusal before adding a separate legal main;
+    // paths remains the first function and every original replay assertion uses it.
+    let diagnostics = crate::check(&source, "moderate-paths.spx").unwrap_err();
+    assert_eq!(diagnostics.len(), 1);
+    let diagnostic = &diagnostics[0];
+    assert_eq!(diagnostic.code, "SPX-T105");
+    assert_eq!(diagnostic.severity, crate::diagnostic::Severity::Error);
+    assert_eq!(diagnostic.message, "executable module must define `fn main() -> i64`");
+    assert_eq!(diagnostic.path.as_deref(), Some("moderate-paths.spx"));
+    let start = source.find("fn paths").unwrap();
+    assert_eq!(diagnostic.span.as_ref().map(|span| (span.start, span.end, span.line, span.column)), Some((start, source.len(), 1, start + 1)));
+    assert_eq!(diagnostic.help.as_deref(), Some("a module without `fn main() -> i64` is a library module: check it through the project that owns it with `semaprax check <project-dir>`, or add `main` to run this file alone"));
+    let source = format!("{source}\n@id(\"moderate.main\") fn main()->i64 {{0}}");
     crate::hir::resolve(&crate::check(&source, "moderate-paths.spx").unwrap()).unwrap()
 }
 

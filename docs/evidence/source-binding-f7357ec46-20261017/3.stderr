@@ -1,0 +1,33 @@
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py", line 24, in <module>
+    assert receiver_view['historical'](R,read('src/source_reflows/semantic_receivers.rs'))==git(A,'src/source_reflows/semantic_receivers.rs')
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main043-independent-custody-20261016/semantic-receiver-view.py", line 31, in historical
+    result=restore(row,current);assert result==original
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main043-independent-custody-20261016/semantic-receiver-view.py", line 15, in restore
+    current=_acquire(current)
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main043-independent-custody-20261016/semantic-receiver-outer.py", line 32, in project
+    def project(current):return restore(ROW,SOURCE,current)
+                                ~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main043-independent-custody-20261016/semantic-receiver-outer.py", line 19, in restore
+    assert len(current.encode())<=65536 and sha(current)==row['current_sha256']
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/compile-acquisition-35f-20261017/run-common.py", line 55, in <module>
+    exec(compile(current,str(path),'exec'),{'__file__':str(path),'__name__':'__main__','compile35f_stage':compile35f_stage})
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main67107-fronts-6e45-20261017/refresh-composed.py", line 36, in <module>
+    exec(compile(current,str(original),'exec'),{'__file__':str(original),'__name__':'__main__','alias_stage':alias_stage})
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/joined-batch-custody-20261016/refresh.py", line 40, in <module>
+    main043=subprocess.check_output([sys.executable,str(R/'docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py'),'--repo',str(R),'--write-endpoints'],cwd=R);(O/'main043-proof.json').write_bytes(main043)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 473, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               **kwargs).stdout
+               ^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py', '--repo', '/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang', '--write-endpoints']' returned non-zero exit status 1.

@@ -1,0 +1,62 @@
+{
+  "status": "SOURCE_ONLY_COMMON_PENDING",
+  "base": "d6fa1df03926c83afc95ee89f19dcdcf92698dc7",
+  "changed_existing": [
+    "docs/evidence/alias-fixtures-c874-20261017/run-common-corrected-fixtures.py"
+  ],
+  "generated_child_routes_changed": 1,
+  "old_runner_stage_seven_table_unchanged": true,
+  "new_Rust_owners": 0,
+  "MAIN090174_and_FINAL6_inputs_changed": false,
+  "controls": {
+    "status": "PASS_SOURCE_ONLY_NO_TOOL_MAIN_OR_CHILD_EXECUTION",
+    "complete_runner_restored": true,
+    "complete_f030_wrapper_restored": true,
+    "four_original_program_inverses": 4,
+    "deepest_refresh_child_public_default_parts": true,
+    "complete_seven_acquisitions": 14,
+    "old_runner_stage_table_untouched": true
+  },
+  "files": [
+    {
+      "path": "docs/evidence/alias-fixtures-c874-20261017/run-common-corrected-fixtures.py",
+      "length": 3098,
+      "sha256": "40e4ea049c5d86600ab59bf463f9c1cdae03c647c7bd46213e19e755a38df570"
+    },
+    {
+      "path": "docs/evidence/compile35f-child-dispatch-20261017/README.md",
+      "length": 1684,
+      "sha256": "9bedb492c68d0bc670ca45e95b0a32e0f8139b5abefa80450f6db8681b03f7a4"
+    },
+    {
+      "path": "docs/evidence/compile35f-child-dispatch-20261017/check-source.py",
+      "length": 4210,
+      "sha256": "beca8e43d850b277cc9edfc30f49208a3d8184d489c7fb35695ebb4172c8969a"
+    },
+    {
+      "path": "docs/evidence/compile35f-child-dispatch-20261017/child-edit.json",
+      "length": 1133,
+      "sha256": "5420d00a6cbeff50223403c4575a588f4d533a83afa335ddc20a9b594dfe43cc"
+    },
+    {
+      "path": "docs/evidence/compile35f-child-dispatch-20261017/full-public-wrapper-inverse.json",
+      "length": 6158,
+      "sha256": "7ad5ef29de66b4577b705ae0f8a9bb42b74a3b1a42a286df890d899ad0e029cb"
+    },
+    {
+      "path": "docs/evidence/compile35f-child-dispatch-20261017/public-wrapper.f030.before.py",
+      "length": 2448,
+      "sha256": "f0305f85386a95bd9e076f010515bf4d023f542208d70e2f0d55d1b52687fc40"
+    },
+    {
+      "path": "docs/evidence/compile35f-child-dispatch-20261017/run-common.original.py.txt",
+      "length": 4924,
+      "sha256": "718df1a7b1de29928ae924725f98078275dcf41685862c9232b2aad327342a78"
+    },
+    {
+      "path": "docs/evidence/compile35f-child-dispatch-20261017/source-controls.json",
+      "length": 319,
+      "sha256": "47e422cde31e0f731d03087909f072b1df5113c3e78defff57201a41dbf6c387"
+    }
+  ]
+}

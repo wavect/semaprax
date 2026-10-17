@@ -1,0 +1,6 @@
+{
+  "old_main_assertion": " assert text.replace(b,a,1).encode()==original",
+  "new_main_assertion": " child_old=\"constant('new_parts',lambda s:s.replace('docs/evidence/main67107-fronts-6e45-20261017/verify-source-parts-composed.py','docs/evidence/compile-acquisition-35f-20261017/run-common.py',1))\"\n child_new=\"constant('new_parts',lambda s:s.replace('docs/evidence/main67107-fronts-6e45-20261017/verify-source-parts-composed.py','docs/evidence/alias-fixtures-c874-20261017/run-common-corrected-fixtures.py',1))\"\n assert text.count(child_old)==1\n text=text.replace(child_old,child_new,1)\n assert text.replace(child_new,child_old,1).replace(b,a,1).encode()==original",
+  "old_runner_child_dispatch": "constant('new_parts',lambda s:s.replace('docs/evidence/main67107-fronts-6e45-20261017/verify-source-parts-composed.py','docs/evidence/compile-acquisition-35f-20261017/run-common.py',1))",
+  "new_runner_child_dispatch": "constant('new_parts',lambda s:s.replace('docs/evidence/main67107-fronts-6e45-20261017/verify-source-parts-composed.py','docs/evidence/alias-fixtures-c874-20261017/run-common-corrected-fixtures.py',1))"
+}

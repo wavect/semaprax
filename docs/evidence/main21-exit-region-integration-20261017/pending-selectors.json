@@ -1,0 +1,98 @@
+{
+  "status": "SOURCE_ONLY_NOT_REGISTERED_NOT_EXECUTED",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::helpers::matching::tests::topological_forests_and_reverse_numberings_keep_the_complete_original_prefix",
+      "sourcepath": "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs",
+      "role": "new-main21-matcher"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::helpers::matching::tests::every_original_produced_non_latch_exit_keeps_its_full_expected_result",
+      "sourcepath": "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs",
+      "role": "new-main21-matcher"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::helpers::matching::tests::malformed_full_chains_precede_an_authored_prefix_mismatch",
+      "sourcepath": "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs",
+      "role": "new-main21-matcher"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::helpers::matching::tests::physical_and_work_frontiers_keep_full_payment_sticky_refusal_and_last_drop",
+      "sourcepath": "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs",
+      "role": "new-main21-matcher"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::helpers::matching::tests::actual_active_selector_is_prepaid_at_exact_short_zero_and_drops_without_debt",
+      "sourcepath": "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs",
+      "role": "new-paid-dispatch-frontier"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::semantic_receivers::incoming_main21::borrowed_exit_region_views_preserve_all_complete_predecessors_and_controls",
+      "sourcepath": "src/source_reflows/incoming21_semantic_receivers.rs",
+      "role": "new-complete-source-domain"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::semantic_receivers::incoming_main21::joined_main21_domains_preserve_full_current_inputs_and_refuse_foreign_stages",
+      "sourcepath": "src/source_reflows/incoming21_semantic_receivers.rs",
+      "role": "new-complete-source-domain"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::remaining::tests::complete_exit_receivers_preserve_all_old_fields_and_first_semantic_errors",
+      "sourcepath": "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs",
+      "role": "preserved-owning-control"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::remaining::tests::complete_exit_work_exact_short_and_sticky_use_the_same_original_budget",
+      "sourcepath": "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs",
+      "role": "preserved-owning-control"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::exits::tests::complete_exit_status_receivers_keep_six_fields_order_and_drop",
+      "sourcepath": "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs",
+      "role": "preserved-owning-control"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::exits::tests::exit_status_full_receivers_keep_exact_short_zero_work_bytes_and_tree_fallback",
+      "sourcepath": "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs",
+      "role": "preserved-owning-control"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::exits::tests::exit_status_authentication_precedes_debit_and_foreign_active_stays_sticky",
+      "sourcepath": "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs",
+      "role": "preserved-owning-control"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::helpers::tests::transitive_receiver_originals_and_sticky_auth_stay_complete",
+      "sourcepath": "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs",
+      "role": "preserved-owning-control"
+    }
+  ],
+  "new_checks": 7,
+  "preserved_minimum": 6
+}

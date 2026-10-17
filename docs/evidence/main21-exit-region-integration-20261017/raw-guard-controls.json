@@ -1,0 +1,20 @@
+{
+  "status": "PURE_SOURCE_PASS_NO_RUST_EXECUTION",
+  "checks": [
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "whole_original_restored": true,
+      "unique_additive_fragments": 7
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "whole_original_restored": true,
+      "unique_additive_fragments": 8
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "whole_original_restored": true,
+      "unique_additive_fragments": 7
+    }
+  ]
+}

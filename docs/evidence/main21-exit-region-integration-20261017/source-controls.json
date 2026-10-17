@@ -1,0 +1,29 @@
+{
+  "status": "PASS_PURE_SOURCE_NO_RUST_EXECUTION",
+  "main_domains": 148,
+  "ours_domains": 9,
+  "whole_source_inverses": 11,
+  "original_main_inverse_rows": 12,
+  "source_mutation_controls": 664,
+  "whole_raw_guards": [
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "fragments": 7,
+      "original_sha256": "959eaf830896619186a6c75d707a8bd1e41d123563f7bb04ced26ea947f4de78",
+      "current_sha256": "46cc885fc3bcade09e1ad43aa6c382e9a3e96ea6e182abeb3ec39519082d45d3"
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "fragments": 8,
+      "original_sha256": "7cee73c09e4a61b24480a7abf756c3fdf228d15a0f341a3cd0bc387b39fd6375",
+      "current_sha256": "f2869b65eff9852441e9d53e39898c0587acda490ce27a0403e5597f26bb93ec"
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "fragments": 7,
+      "original_sha256": "4ce9be9127d201c440ba2725ff5e38cfbd89c9fd70f6809da0da82b4891c180c",
+      "current_sha256": "509e64bcddcc9fb49d850b195487b0cdc0723e4c0d535eaae3931b7f4cdcab73"
+    }
+  ],
+  "no_typecheck_or_runtime": true
+}

@@ -1160,4 +1160,5 @@ Audience: all documentation readers.
 - [Grow invocation-held continuation backing as reached](evidence/held-continuation-growth-v1/README.md)
 - [Keep one paid comparison state per expression lookup](evidence/paid-expression-lookup-state-v1/README.md)
 - [Ordinary replay route correction](evidence/ordinary-replay-routes-v1/README.md)
+- [Borrowed exit region comparison](evidence/borrowed-exit-region-match-v1/README.md)
 - [Hosted graph accounting after replay route fixes](evidence/browser-graph-pins-7d34f1269/README.md)

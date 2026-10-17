@@ -111,7 +111,10 @@
       "tests/wasm/scalar_browser_ci_contract/before_671.rs": 1,
       "src/source_reflows/nested_scope.rs": 1,
       "src/source_reflows/factored_sources.rs": 1,
-      "tests/wasm/scalar_browser_ci_contract/before_7d34.rs": 1
+      "tests/wasm/scalar_browser_ci_contract/before_7d34.rs": 1,
+      "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs": 2,
+      "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs": 2,
+      "src/source_reflows/incoming21_semantic_receivers.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -230,7 +233,10 @@
       "tests/wasm/scalar_browser_ci_contract/before_671.rs": 1,
       "src/source_reflows/nested_scope.rs": 1,
       "src/source_reflows/factored_sources.rs": 1,
-      "tests/wasm/scalar_browser_ci_contract/before_7d34.rs": 1
+      "tests/wasm/scalar_browser_ci_contract/before_7d34.rs": 1,
+      "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs": 2,
+      "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs": 2,
+      "src/source_reflows/incoming21_semantic_receivers.rs": 1
     }
   },
   "tests/workspace/semantic_graph/source_inventory.rs": {
@@ -380,7 +386,10 @@
       "tests/wasm/scalar_browser_ci_contract/before_671.rs": 1,
       "src/source_reflows/nested_scope.rs": 1,
       "src/source_reflows/factored_sources.rs": 1,
-      "tests/wasm/scalar_browser_ci_contract/before_7d34.rs": 1
+      "tests/wasm/scalar_browser_ci_contract/before_7d34.rs": 1,
+      "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs": 1,
+      "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs": 1,
+      "src/source_reflows/incoming21_semantic_receivers.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -528,7 +537,10 @@
       "tests/wasm/scalar_browser_ci_contract/before_671.rs": 1,
       "src/source_reflows/nested_scope.rs": 1,
       "src/source_reflows/factored_sources.rs": 1,
-      "tests/wasm/scalar_browser_ci_contract/before_7d34.rs": 1
+      "tests/wasm/scalar_browser_ci_contract/before_7d34.rs": 1,
+      "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs": 1,
+      "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs": 1,
+      "src/source_reflows/incoming21_semantic_receivers.rs": 1
     }
   },
   "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
@@ -648,7 +660,10 @@
       "tests/wasm/scalar_browser_ci_contract/before_671.rs": 1,
       "src/source_reflows/nested_scope.rs": 1,
       "src/source_reflows/factored_sources.rs": 1,
-      "tests/wasm/scalar_browser_ci_contract/before_7d34.rs": 1
+      "tests/wasm/scalar_browser_ci_contract/before_7d34.rs": 1,
+      "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs": 3,
+      "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs": 3,
+      "src/source_reflows/incoming21_semantic_receivers.rs": 1
     },
     "maximum": {
       "src/cleanup_plan/replay.rs": 1,
@@ -766,7 +781,10 @@
       "tests/wasm/scalar_browser_ci_contract/before_671.rs": 1,
       "src/source_reflows/nested_scope.rs": 1,
       "src/source_reflows/factored_sources.rs": 1,
-      "tests/wasm/scalar_browser_ci_contract/before_7d34.rs": 1
+      "tests/wasm/scalar_browser_ci_contract/before_7d34.rs": 1,
+      "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs": 3,
+      "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs": 3,
+      "src/source_reflows/incoming21_semantic_receivers.rs": 1
     }
   }
 }

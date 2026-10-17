@@ -73,6 +73,8 @@ fn digest(source: &str) -> String {
 }
 
 pub(super) fn invert_ordinary(proof: &serde_json::Value, current: &str) -> String {
+    let acquired = super::semantic_receivers::incoming_main21::ours_expected_input(proof, current);
+    let current = acquired.as_str();
     let path = proof["path"].as_str().unwrap();
     assert_eq!(
         digest(current),

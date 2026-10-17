@@ -5014,6 +5014,14 @@ compiled for exact plan, work, priority and backing comparisons in
 qualification restrictions and exact pending owners are recorded under
 `docs/evidence/paid-loan-cursors/`.
 
+`cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs` owns the
+ActiveBuilder non-latch exit region comparison. Its fully funded borrowed state
+validates complete source and target ancestry before comparing the exact ordered
+prefix. Both ordinary receivers use it; loop latches and other payers retain the
+complete owning region receiver. The unchanged replay work account bounds all
+walks. Whole-source predecessors and pending full-fixture qualification live in
+[the comparison packet](evidence/borrowed-exit-region-match-v1/README.md).
+
 Ordinary cleanup replay DAG constructors in
 `cleanup_plan/replay/skeleton_work/ordinary_dag/frontier.rs` retain an immutable
 checked pending bound per node and prepay a reusable Work-owned destruction

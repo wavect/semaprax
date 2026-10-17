@@ -3,7 +3,7 @@ use super::*;
 use crate::bounded_output::{with_limit_usage_refusal, ReservationRefusal};
 use crate::test_allocation_observer::measure;
 
-fn program() -> ResolvedProgram {
+pub(super) fn program() -> ResolvedProgram {
     let owner = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/src/cleanup_plan/replay/expression_facts.rs"

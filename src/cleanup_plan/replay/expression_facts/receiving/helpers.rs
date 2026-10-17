@@ -1,6 +1,8 @@
 //! Complete paid transitive receiving results; original root helpers stay compiled.
 use super::*;
+mod matching;
 mod regions;
+pub(super) use matching::{exit_regions_match, EXIT_SELECTOR_BYTES};
 pub(super) use regions::expected_exit_regions;
 
 pub(super) fn validate_place(

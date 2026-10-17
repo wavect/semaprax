@@ -1,0 +1,4 @@
+{
+  "peak_KiB": 36400,
+  "scope": "Actual current JS syntax only; hosted fixture/Chromium remains required."
+}

@@ -1,0 +1,41 @@
+{
+  "runs": [
+    {
+      "case": "complete_isolated_paths_keep_every_field_backing_work_and_drop",
+      "compiler": "/opt/homebrew/bin/rustc",
+      "compile_peak_KiB": 164064,
+      "run_peak_KiB": 2016
+    },
+    {
+      "case": "complete_isolated_paths_keep_every_field_backing_work_and_drop",
+      "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+      "compile_peak_KiB": 179936,
+      "run_peak_KiB": 32
+    },
+    {
+      "case": "isolated_transfer_exact_short_zero_floor_and_work_refusal_remain_sticky",
+      "compiler": "/opt/homebrew/bin/rustc",
+      "compile_peak_KiB": 198576,
+      "run_peak_KiB": 1968
+    },
+    {
+      "case": "isolated_transfer_exact_short_zero_floor_and_work_refusal_remain_sticky",
+      "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+      "compile_peak_KiB": 146528,
+      "run_peak_KiB": 1184
+    },
+    {
+      "case": "all_other_merge_modes_and_unbounded_spare_capacity_keep_the_original_route",
+      "compiler": "/opt/homebrew/bin/rustc",
+      "compile_peak_KiB": 139168,
+      "run_peak_KiB": 32
+    },
+    {
+      "case": "all_other_merge_modes_and_unbounded_spare_capacity_keep_the_original_route",
+      "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+      "compile_peak_KiB": 138720,
+      "run_peak_KiB": 32
+    }
+  ],
+  "scope": "Both complete actual reference merger methods on the SAME SkeletonWork type, plus all3 complete isolated-path owning assertion bodies, actual current selector, complete current merged_paths, complete archived predecessor merged_paths, lexical predicate, work charge and current ReplayBudget/BO/Diagnostic/System. Explicit thin HIR/parser/with_index fixture adapters and panic-if-reached clone/union/oracle adapters. No full parser, other merger branches, oracle or hosted qualification."
+}

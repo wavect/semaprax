@@ -5089,6 +5089,14 @@ the new probe state before selection. Unknown shapes keep the old capacity.
 and the distinction between focused checks and full fixture qualification.
 
 
+`workspace_graph/tests/core_attempt_trace.rs` owns the opt-in current-thread
+retry receipt used by the original identity retry test. The cfg(test) root hook
+borrows the complete attempt result after the bounded attempt ends. Default
+execution is silent; nested and unwinding scopes restore the prior flag. It
+changes no production allocation, counter, quota or retry decision. Complete
+source custody and focused evidence are in
+[the retry receipt packet](evidence/core-attempt-receipts-v1/README.md).
+
 `cleanup_plan/replay/skeleton_work/isolated_paths.rs` owns the ordinary
 ActiveBuilder transfer eligibility for lexical paths outside Copy regions. The
 original merger keeps each such path separate. The receiver pays its new frame

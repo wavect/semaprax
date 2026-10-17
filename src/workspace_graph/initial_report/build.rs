@@ -262,6 +262,16 @@ pub(in crate::workspace_graph) fn build_owned_inner<E: super::Policy>(
                 })
             });
         let (core, paid_refusal) = core.into_parts();
+        #[cfg(test)]
+        tests::record_core_attempt(
+            fallback_mode,
+            resolve_builder_bytes,
+            consumed,
+            overflowed,
+            &refusal,
+            &site,
+            &core.as_ref().err(),
+        );
         core_builder_bytes = core_builder_bytes.max(consumed);
         if !overflowed {
             break core;

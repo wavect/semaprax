@@ -2,7 +2,7 @@
 use super::*;
 
 impl SkeletonWork<'_, '_> {
-    pub(super) fn saved_merged_paths(
+    pub(super) fn tail_merge_control(
         &mut self,
         paths: Vec<ExprSkeletonPath>,
     ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {

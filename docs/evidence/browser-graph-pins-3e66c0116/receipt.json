@@ -1,0 +1,26 @@
+{
+  "source_head": "3e66c01167eb754bdbbf51ffa232f45cabf64601",
+  "run": 39036006293,
+  "job": 117406158298,
+  "fixtures": [
+    {
+      "fixture": "calculator-baseline.json",
+      "current_digest": "sha256:bd6d001b3247a45b338755c53601870f4490e663d0533294ce967d2c1d0c7ac1",
+      "previous_digest": "sha256:4bdc2f735a3de7b58292bd2df551631534fa0847b63f4d84d1c3ee54bd5a1955",
+      "current_builder_bytes": 2697151,
+      "previous_builder_bytes": 2691397,
+      "complete_previous_wire_reproduced": true,
+      "current_wire_sha256": "c88b6ed6fdacb87d54cccc91a927ab221141488e720b772f9834514ca05ce1d3"
+    },
+    {
+      "fixture": "calculator-renamed.json",
+      "current_digest": "sha256:7d7f7917e57bd6c81ff6fe7b2c59359b2905b113285531885c40a88128f9bc4d",
+      "previous_digest": "sha256:5c5ae56e91c8028c41e2fd2f42218ef03781d3b24a100d86fdb26d83cfc93712",
+      "current_builder_bytes": 2697151,
+      "previous_builder_bytes": 2691397,
+      "complete_previous_wire_reproduced": true,
+      "current_wire_sha256": "dd10793f5eb29436e61ef11f246f778b87729320954bf89326a8badcb83af237"
+    }
+  ],
+  "scope": "Complete actual3e66capture, not later-head hosted qualification."
+}

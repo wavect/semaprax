@@ -25,7 +25,7 @@ fn initial_receiving_precedes_raw_entry_and_preserves_complete_inventory_through
                 continue;
             }
             for old in [true, false] {
-                let ((), observed) = measure(|| {
+                let ((charged, work_units), observed) = measure(|| {
                     let mut budget = ReplayBudget::with_physical(function, usize::MAX).unwrap();
                     let before = budget.physical.as_ref().unwrap().charged();
                     let remaining = budget.remaining;
@@ -64,14 +64,14 @@ fn initial_receiving_precedes_raw_entry_and_preserves_complete_inventory_through
                     }
                     assert!(budget.physical.as_ref().unwrap().charged() > before);
                     assert!(budget.remaining < remaining);
-                    eprintln!(
-                        "inventory initial receiving {} old={old} charged={} work={}",
-                        function.id,
-                        budget.physical.as_ref().unwrap().charged(),
-                        remaining - budget.remaining
-                    );
+                    let charged = budget.physical.as_ref().unwrap().charged();
+                    let work_units = remaining - budget.remaining;
                     drop(budget);
+                    (charged, work_units)
                 });
+                // Console initialization is reporting, outside the complete
+                // producer-and-budget Drop observation.
+                eprintln!("inventory initial receiving {} old={old} charged={charged} work={work_units}", function.id);
                 assert!(!observed.invalid && observed.live == 0);
                 assert_eq!(observed.allocated, observed.freed);
             }

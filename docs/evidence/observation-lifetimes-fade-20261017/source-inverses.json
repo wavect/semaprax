@@ -1,0 +1,25 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/inventory_coverage/typed_tests/initial_tests.rs",
+    "before_sha256": "d455c3010bc02246f562810a27fdccbfd44c793e38ac9b312454ebf6681a55ba",
+    "after_sha256": "ba36fbf79afd70c77b00c57ab5138737d2ebd6cd70f5d8505a5002f876f1f72c",
+    "inverse": {
+      "current": "                    let charged = budget.physical.as_ref().unwrap().charged();\n                    let work_units = remaining - budget.remaining;\n                    drop(budget);\n                    (charged, work_units)\n                });\n                // Console initialization is reporting, outside the complete\n                // producer-and-budget Drop observation.\n                eprintln!(\"inventory initial receiving {} old={old} charged={charged} work={work_units}\", function.id);\n",
+      "previous": "                    eprintln!(\n                        \"inventory initial receiving {} old={old} charged={} work={}\",\n                        function.id,\n                        budget.physical.as_ref().unwrap().charged(),\n                        remaining - budget.remaining\n                    );\n                    drop(budget);\n                });\n"
+    },
+    "additional_rename_inverse": {
+      "current": "let ((charged, work_units), observed) = measure(|| {",
+      "previous": "let ((), observed) = measure(|| {"
+    }
+  },
+  {
+    "path": "src/cleanup_plan/replay/sequence_vector/funded_tests.rs",
+    "before_sha256": "ae3604f259d29ff4b36d116ca9bf6811d379ddfc311285050354a121b9029eb3",
+    "after_sha256": "9078b64058929a18a42f85874ac28cf579be998f6ba75bef75bc3dd92f9d3867",
+    "inverse": {
+      "current": "                    *work.budget = ReplayBudget::unobserved();\n                    // DAG memo/backing can be retained by SkeletonWork. Keep\n                    // its final Drop inside the original allocation window.\n                    drop(suffixes);\n                    drop(work);\n                    drop(caller);\n                    (outcome, frontier, remaining, retry)\n                })\n            });\n            observed\n",
+      "previous": "                    *work.budget = ReplayBudget::unobserved();\n                    (outcome, frontier, remaining, retry)\n                })\n            });\n            drop(suffixes);\n            drop(work);\n            drop(caller);\n            observed\n"
+    },
+    "additional_rename_inverse": null
+  }
+]

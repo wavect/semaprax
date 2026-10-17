@@ -407,12 +407,14 @@ fn lexical_vector_first_work_keeps_six_fields_before_selection_floor_and_real_li
                         None
                     };
                     *work.budget = ReplayBudget::unobserved();
+                    // DAG memo/backing can be retained by SkeletonWork. Keep
+                    // its final Drop inside the original allocation window.
+                    drop(suffixes);
+                    drop(work);
+                    drop(caller);
                     (outcome, frontier, remaining, retry)
                 })
             });
-            drop(suffixes);
-            drop(work);
-            drop(caller);
             observed
         };
         let (((ample, frontier, _, _), allocation), refused, exact, first, site) =

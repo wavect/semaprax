@@ -319,8 +319,20 @@ fn renamed_and_ordinary_whole_producer_receiver_drop_and_refusal_costs_are_obser
                             &mut receiver,
                         ) {
                             Ok(source) => {
-                                let accepted = resolve(&source);
-                                drop(source);
+                                // Corrected common semantic baseline, applied
+                                // identically after the complete real producer.
+                                let mut directory = match common_provider_binding(&source, &programs, &mut receiver) {
+                                    Ok(Some(directory)) => directory,
+                                    _ => return false,
+                                };
+                                // Move, do not clone/discard, ALL original roots.
+                                // Retain the old current entry backing as well.
+                                directory.roots = source.functions.roots;
+                                let original_entries = source.functions.entries;
+                                let adapted = crate::ast::program_source::function_alias::TransientFunctions::new(&programs[0], directory);
+                                let accepted = resolve(&adapted);
+                                drop(adapted);
+                                drop(original_entries);
                                 accepted
                             }
                             Err(failure) => {
@@ -338,8 +350,17 @@ fn renamed_and_ordinary_whole_producer_receiver_drop_and_refusal_costs_are_obser
                             &mut receiver,
                         ) {
                             Ok(source) => {
-                                let accepted = resolve(&source);
-                                drop(source);
+                                // Corrected common semantic baseline, applied
+                                // identically after the complete real producer.
+                                let mut directory = match common_provider_binding(&source, &programs, &mut receiver) {
+                                    Ok(Some(directory)) => directory,
+                                    _ => return false,
+                                };
+                                let (_, original_roots) = source.into_overlay_owner();
+                                directory.roots = original_roots;
+                                let adapted = crate::ast::program_source::function_alias::TransientFunctions::new(&programs[0], directory);
+                                let accepted = resolve(&adapted);
+                                drop(adapted);
                                 accepted
                             }
                             Err(failure) => {
@@ -364,7 +385,7 @@ fn renamed_and_ordinary_whole_producer_receiver_drop_and_refusal_costs_are_obser
                 !physical.invalid && physical.live == 0 && physical.allocated == physical.freed
             );
         }
-        eprintln!("847 whole real owner current-ABI owning counterfactual paid={} physical={:?}; current paid={} physical={:?}; renamed={}",owning.2,owning.0.1,current.2,current.0.1,caller == RENAMED);
+        eprintln!("847 corrected common semantic baseline; complete owning producer paid={} physical={:?}; current producer paid={} physical={:?}; renamed={}",owning.2,owning.0.1,current.2,current.0.1,caller == RENAMED);
         for limit in [0, current.2 - 1, current.2] {
             let observed = observe(true, limit);
             assert_eq!(observed.0 .0, limit == current.2);
@@ -468,4 +489,141 @@ fn ordinary_project_import_as_vec_alias_preserves_real_provider_declarations_and
         Ok(())
     }).unwrap();
     std::fs::remove_dir_all(root).unwrap();
+}
+
+
+/// Both arms use this correction only AFTER their complete original producer.
+/// It grants no verdict: the ordinary source verifier and full HIR resolver run
+/// again on a fresh presentation. All original source owners remain borrowed.
+fn common_provider_binding<'p>(
+    source: &dyn ProgramSource,
+    programs: &'p [Program],
+    receiver: &mut Receiver,
+) -> Result<Option<crate::ast::program_source::function_alias::FunctionDirectory<'p>>, Failure> {
+    use crate::ast::program_source::function_alias::{FunctionDirectory, FunctionEntry, FunctionView, TransientFunctions};
+    use crate::ast::program_source::{generated_roots::GeneratedRoots, FunctionRef, FunctionSlices};
+    use std::mem::size_of;
+    receiver.entry::<Option<FunctionDirectory<'p>>>()?;
+    // Closed three-wrapper fixture: no fallback body, types or owned functions
+    // are manufactured. This common bound covers all top-level guard/iterator,
+    // borrowing, result and directory-header receivers before they are formed.
+    receiver.reserve(size_of::<([&dyn ProgramSource; 2], [&[Program]; 2], [&Program; 4], [FunctionSlices<'_>; 3], [std::ops::Range<usize>; 2], [bool; 32], [usize; 16], [Option<&Program>; 2], [GeneratedRoots; 3], (&Program, GeneratedRoots), FunctionDirectory<'p>, [TransientFunctions<'p>; 2], [FunctionDirectory<'p>; 2], [Vec<FunctionEntry<'p>>; 2], [&crate::ast::TypeDeclaration; 8])>())?;
+    if programs.len() != 2 || programs[0].functions.len() != 1 || source.function_refs().len() != 4 {
+        return Ok(None);
+    }
+    let authored = &programs[0];
+    if authored.module_uses.len() != 3 || source.path() != authored.path || source.module() != authored.module
+        || !source.module_uses().is_empty() || source.permits() != authored.permits
+        || source.interfaces() != authored.interfaces || source.protocols() != authored.protocols
+        || source.implementations() != authored.implementations || source.session_protocols() != authored.session_protocols
+        || source.agents() != authored.agents || source.types().len() < authored.types.len() {
+        return Ok(None);
+    }
+    for index in 0..authored.types.len() {
+        if source.types().get(index) != Some(&authored.types[index]) { return Ok(None); }
+    }
+    for index in 0..authored.functions.len() {
+        receiver.reserve(size_of::<([FunctionRef<'_>; 4], [&Function; 8], [&crate::ast::Expr; 64], [&crate::ast::Type; 64], [&str; 64], [bool; 512], [usize; 64])>())?;
+        if !source.function_refs().get(index).unwrap().same_ordinary_declaration(&authored.functions[index]) { return Ok(None); }
+    }
+    let mut directory = FunctionDirectory {
+        roots: GeneratedRoots::plain(Vec::new(), Vec::new()),
+        entries: super::directory::<FunctionEntry<'p>>(3, receiver)?,
+    };
+    for index in 0..3 {
+        // A conservative complete receiving-frame bound for each admitted
+        // with_capacity/push/get wrapper: <=2 parameters, <=4 body nodes and
+        // <=8 type nodes. It pays authentication, not fictitious payload copies.
+        receiver.reserve(size_of::<([FunctionRef<'_>; 4], [&Function; 8], [&crate::ast::Expr; 16], [&crate::ast::Type; 16], [&str; 32], [bool; 128], [usize; 16], [Option<FunctionView<'p>>; 2], [FunctionView<'p>; 2], [FunctionEntry<'p>; 2], [&crate::ast::ModuleUse; 3], [Option<crate::vec_ops::VecOp>; 2], [crate::vec_ops::VecOp; 2])>())?;
+        let import = &authored.module_uses[index];
+        let provider = &programs[1];
+        if import.kind != crate::ast::ModuleUseKind::Function || import.target_module != provider.module { return Ok(None); }
+        // Full linear membership acquisition is paid identically in both arms.
+        let scan_bytes = provider.functions.len().checked_mul(size_of::<([Option<&Function>; 2], [&Function; 3], [*const Function; 2], [bool; 4])>()).ok_or_else(|| receiver.limit())?;
+        let scan_bytes = scan_bytes.checked_add(size_of::<[std::slice::Iter<'_, Function>; 2]>()).ok_or_else(|| receiver.limit())?;
+        receiver.reserve(scan_bytes)?;
+        let Some(original) = provider.functions.iter().find(|function| function.stable_id == import.persistent_id) else { return Ok(None); };
+        let Some(op) = crate::vec_ops::source_wrapper(provider, original) else { return Ok(None); };
+        if !matches!(op, crate::vec_ops::VecOp::WithCapacity | crate::vec_ops::VecOp::Push | crate::vec_ops::VecOp::Get) || original.yields.is_some() || original.follows.is_some() { return Ok(None); }
+        let Some(view) = FunctionView::checked(provider, original, &import.alias) else { return Ok(None); };
+        directory.entries.push(FunctionEntry::Borrowed(view));
+        let expected = FunctionSlices::projected(&[], &directory).unwrap().get(index).unwrap();
+        let actual = source.function_refs().get(authored.functions.len() + index).unwrap();
+        // same_declaration compares EVERY field, ordered payload/body included,
+        // under the effective binding name. Also authenticate the raw spelling:
+        // exactly the old materialized alias OR the actual provider declaration.
+        if !actual.same_declaration(&expected) || !(actual.declaration_name() == import.alias || actual.declaration_name() == original.name) { return Ok(None); }
+    }
+    // The caller moves the complete original GeneratedRoots into this header.
+    // Empty plain roots here own no allocation and destroy no original data.
+    Ok(Some(directory))
+}
+
+
+#[test]
+fn corrected_common_binding_rejects_forged_payload_and_preserves_raw_old_refusal() {
+    use crate::ast::program_source::SyntheticProgramView;
+    for caller in [RENAMED, super::tests::CALLER] {
+        let programs = super::tests::sources(caller);
+        let authored = index_authored(&programs).unwrap();
+        let (raw, refused, _, first) = with_limit_usage_refusal(LIMIT, || {
+            let registry = LayoutRegistry::new(&programs, &authored);
+            let mut receiver = Receiver::acquire().unwrap();
+            super::super::before_alias::construct_using(&programs[0], &authored, &programs, &registry, None, &mut receiver).unwrap()
+        });
+        assert!(!refused && first.is_none());
+        if caller == RENAMED {
+            let diagnostics = linked(|| crate::source_verify::verify(&raw));
+            super::owned_growth_tests::assert_old_alias_refusal(&raw, &diagnostics);
+        }
+        let (current, refused, _, first) = with_limit_usage_refusal(LIMIT, || {
+            let registry = LayoutRegistry::new(&programs, &authored);
+            let mut receiver = Receiver::acquire().unwrap();
+            construct_transient(&programs[0], &authored, &programs, &registry, None, &mut receiver).unwrap()
+        });
+        assert!(!refused && first.is_none());
+        // This ADDITIONAL observation isolates only the common adapter fee;
+        // the original strict owner above still measures both whole producers.
+        let adapter_only = |source: &dyn ProgramSource| with_limit_usage_refusal(LIMIT, || {
+            crate::test_allocation_observer::measure_with_capacity(1 << 16, || {
+                let mut receiver = Receiver::acquire().unwrap();
+                let result = common_provider_binding(source, &programs, &mut receiver).unwrap();
+                let accepted = result.is_some();
+                drop(result);
+                drop(receiver);
+                accepted
+            })
+        });
+        let old_adapter = adapter_only(&raw);
+        let current_adapter = adapter_only(&current);
+        assert!(old_adapter.0 .0 && current_adapter.0 .0);
+        assert!(!old_adapter.1 && !current_adapter.1 && old_adapter.3.is_none() && current_adapter.3.is_none());
+        assert_eq!(old_adapter.2, current_adapter.2, "same complete common adapter bill");
+        assert_eq!(old_adapter.0 .1, current_adapter.0 .1, "same complete actual adapter allocation metrics");
+        assert!(!old_adapter.0 .1.invalid && old_adapter.0 .1.live == 0 && old_adapter.0 .1.allocated == old_adapter.0 .1.freed);
+        drop(current);
+        let (authored_source, roots) = raw.into_overlay_owner();
+        for changed in 0..8 {
+            // Negative input construction is outside the observed paid adapter,
+            // using a complete real old materialization, never a fake verdict.
+            let mut forged = crate::ast::program_source::generated_roots::GeneratedRoots::iterative(roots.types.clone(), roots.functions.clone());
+            let function = &mut forged.functions[0];
+            match changed {
+                0 => function.name = "forged_binding".to_owned(),
+                1 => function.stable_id = "forged.identity".to_owned(),
+                2 => function.effects.push("forged.effect".to_owned()),
+                3 => function.params[0].mode = crate::ast::ParamMode::Own,
+                4 => function.body = programs[0].functions[0].body.clone(),
+                5 => function.explicit_id = false,
+                6 => forged.functions.swap(0, 1),
+                _ => forged.functions.push(roots.functions[0].clone()),
+            }
+            let forged = SyntheticProgramView::with_generated_owner(authored_source, forged).unwrap();
+            let (accepted, refused, _, first) = with_limit_usage_refusal(LIMIT, || {
+                let mut receiver = Receiver::acquire().unwrap();
+                common_provider_binding(&forged, &programs, &mut receiver).unwrap().is_some()
+            });
+            assert!(!accepted && !refused && first.is_none(), "forged field {changed} admitted");
+        }
+    }
 }

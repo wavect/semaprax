@@ -107,7 +107,7 @@ fn discovery_indices_survive_discarded_directories_and_empty_flags() {
 #[test]
 fn independently_compiled_full_producer_sources_remain_byte_exact() {
     assert_eq!(
-        include_str!("../inventory_builder.rs"),
+        complete_inventory_predecessor(include_str!("../inventory_builder.rs")),
         include_str!("../../../docs/evidence/schema-summary/inventory_builder.rs.before")
     );
     assert_eq!(
@@ -118,4 +118,43 @@ fn independently_compiled_full_producer_sources_remain_byte_exact() {
         include_str!("generic_record.rs"),
         include_str!("../generic_record.rs")
     );
+}
+
+// Keep the original whole-source assertion and independently compiled old
+// receiver intact. Only these exact later import/module edits are reversed.
+fn complete_inventory_predecessor(current: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let digest = |source: &str| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes())));
+    assert_eq!(digest(current), "74761ad25d83020ed34e245643d95a62fe29bdaa6f144d71720f2b777ba6881f");
+    let mut restored = current.to_owned();
+    {
+        let new = "use crate::cleanup_plan::{ReplayClonePayload, ReplayPhysicalReservation, replay_reserve_vec};";
+        let old = "use crate::cleanup_plan::{replay_reserve_vec, ReplayClonePayload, ReplayPhysicalReservation};";
+        assert_eq!(restored.matches(new).count(), 1, "unique complete inventory inverse");
+        restored = restored.replacen(new, old, 1);
+    }
+    {
+        let new = "mod selected;\npub(crate) mod selected_inline;";
+        let old = "mod selected;";
+        assert_eq!(restored.matches(new).count(), 1, "unique complete inventory inverse");
+        restored = restored.replacen(new, old, 1);
+    }
+    {
+        let new = "\n\npub(crate) mod typed;\n";
+        let old = "\n";
+        assert_eq!(restored.matches(new).count(), 1, "unique complete inventory inverse");
+        restored = restored.replacen(new, old, 1);
+    }
+    assert_eq!(digest(&restored), "a00caa48b822a64862c176eb74acf2be1387b59b5af2298577167099c75ec356");
+    restored
+}
+
+#[test]
+fn inventory_source_inverse_retains_whole_modules_and_rejects_drift() {
+    let current = include_str!("../inventory_builder.rs");
+    let original = include_str!("../../../docs/evidence/schema-summary/inventory_builder.rs.before");
+    assert_eq!(complete_inventory_predecessor(current), original);
+    for hostile in [format!("{current} "), current.replacen("pub(crate)", "pub(super)", 1), original.to_owned()] {
+        assert!(std::panic::catch_unwind(|| complete_inventory_predecessor(&hostile)).is_err());
+    }
 }

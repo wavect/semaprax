@@ -83,6 +83,9 @@ fn every_receiver_inverse_preserves_the_entire_reflow_input_and_archive() {
             .join(archive_root)
             .join(proof["archive"].as_str().unwrap());
         assert_eq!(restored, std::fs::read_to_string(archive).unwrap());
+        // This named comparison uses the authenticated Main043 afterimage.
+        // A later raw endpoint may itself equal that proof's predecessor.
+        let current = receiver_comparison_input(proof, &current);
         assert_ne!(current, restored);
         // Execute the unchanged formatting inverse and its whole-file digest.
         if let Some(repair) = repair {
@@ -108,4 +111,34 @@ fn receiver_mutation_and_forged_predecessor_fail_closed() {
 #[test]
 fn complete_registered_helper_membership_is_preserved() {
     for proof in proofs() { assert!(contains(proof["path"].as_str().unwrap())); }
+}
+
+// Only this historical audit has a raw endpoint equal to its predecessor.
+// The existing sealed route authenticates raw250 -> reviewed75 in full; the
+// unchanged nonidentity assertion belongs to reviewed75 -> archive250.
+fn receiver_comparison_input(proof: &serde_json::Value, current: &str) -> String {
+    let path = proof["path"].as_str().unwrap();
+    if path != "src/cleanup_plan/replay/selected_entry/tests/session_errors/source.rs" {
+        return current.to_owned();
+    }
+    let afterimage = crate::source_reflows_merge::main043_input(path, current);
+    assert_eq!(digest(&afterimage), proof["after_sha256"], "whole Main043 afterimage");
+    afterimage
+}
+
+#[test]
+fn selected_audit_comparison_uses_the_authenticated_historical_domain() {
+    let path = "src/cleanup_plan/replay/selected_entry/tests/session_errors/source.rs";
+    let proof = proofs().iter().find(|proof| proof["path"] == path).unwrap();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let current = std::fs::read_to_string(root.join(path)).unwrap();
+    let restored = invert(proof, &current);
+    let afterimage = receiver_comparison_input(proof, &current);
+    assert_ne!(afterimage, restored);
+    assert_eq!(digest(&afterimage), proof["after_sha256"]);
+    assert_eq!(digest(&restored), proof["before_sha256"]);
+    assert!(std::panic::catch_unwind(|| receiver_comparison_input(proof, &format!("{current} "))).is_err());
+    let mut forged = proof.clone();
+    forged["after_sha256"] = serde_json::Value::String("0".repeat(64));
+    assert!(std::panic::catch_unwind(|| receiver_comparison_input(&forged, &current)).is_err());
 }

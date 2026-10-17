@@ -1,0 +1,89 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED",
+  "semantic_original": {
+    "archive": "docs/evidence/future831-f247-final-source-binding-20261017/full-f247/semantic_receivers.rs.txt",
+    "length": 56887,
+    "sha256": "e14549411d71f541ba3d65b92afd918fc92200aae54cb03068303a2243fe8281"
+  },
+  "semantic_acquisition_edits": [
+    {
+      "before": "const PROOFS: &str = include_str!(\"../../docs/evidence/receiver-source-custody-v1/inverse.json\");\n",
+      "after": ""
+    },
+    {
+      "before": "const LIVE_AUDITS: &str =\n    include_str!(\"../../docs/evidence/live-source-audit-custody-v1/inverse.json\");\n",
+      "after": ""
+    },
+    {
+      "before": "serde_json::from_str(PROOFS)",
+      "after": "serde_json::from_str(&_f247_json_read(Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(\"docs/evidence/receiver-source-custody-v1/inverse.json\")).unwrap())",
+      "count": 1
+    },
+    {
+      "before": "serde_json::from_str(LIVE_AUDITS)",
+      "after": "serde_json::from_str(&_f247_json_read(Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(\"docs/evidence/live-source-audit-custody-v1/inverse.json\")).unwrap())",
+      "count": 2
+    },
+    {
+      "before": "include_str!(\n            \"../../docs/evidence/source-reader-followups-20261016/allocation.json\"\n        )",
+      "after": "&_f247_json_read(Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(\"docs/evidence/source-reader-followups-20261016/allocation.json\")).unwrap()"
+    },
+    {
+      "before": "std::fs::read_to_string(",
+      "after": "main_f247_read(",
+      "count": 107
+    },
+    {
+      "before": "pub(crate) fn helper_digest_capture_predecessor(current: &str) -> String {\n",
+      "after": "pub(crate) fn helper_digest_capture_predecessor(current: &str) -> String {\n    let authenticated = crate::source_reflows_merge::main_c883_inputs::f247_expected(\n        \"src/workspace_graph/static_text/scalar_helpers.rs\", current,\n    );\n    let current = authenticated.as_str();\n"
+    }
+  ],
+  "semantic_added_import": "use crate::source_reflows_merge::main_c883_inputs::read_f247 as main_f247_read;\nuse crate::source_reflows_merge::main_c883_inputs::read_f247 as _f247_json_read;\n",
+  "semantic_added_local_helpers": "\n// Exact f247 root helpers in this independent namespace; only data acquisition differs.\nstatic RECORDS: OnceLock<serde_json::Value> = OnceLock::new();\nfn records() -> &'static [serde_json::Value] {\n    RECORDS\n        .get_or_init(|| serde_json::from_str(&main_f247_read(Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(\"src/source_reflows.json\")).unwrap()).unwrap())\n        .as_array()\n        .unwrap()\n}\n\nfn restore(record: &serde_json::Value, current: &str) -> String {\n    let path = record[\"path\"].as_str().unwrap();\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))\n        ),\n        record[\"after_sha256\"],\n        \"reviewed CI input drifted: {path}\"\n    );\n    let mut restored = current.to_owned();\n    for edit in record[\"inverse\"].as_array().unwrap() {\n        let after = edit[\"after\"].as_str().unwrap();\n        assert_eq!(\n            restored.matches(after).count(),\n            1,\n            \"nonunique CI inverse: {path}\"\n        );\n        restored = restored.replacen(after, edit[\"before\"].as_str().unwrap(), 1);\n    }\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(Sha256::digest(restored.as_bytes()))\n        ),\n        record[\"before_sha256\"],\n        \"CI inverse did not preserve the complete predecessor: {path}\"\n    );\n    restored\n}\n\n\n#[test]\nfn complete_f247_selector_preserves_first_precedence_and_full_input() {\n    let proof = exit_region_matches().first().unwrap();\n    let path = proof[\"path\"].as_str().unwrap();\n    let current = main_f247_read(Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(path)).unwrap();\n    assert!(contains(path));\n    assert_eq!(predecessor(path, &current), Some(invert(proof, &current)));\n}\n",
+  "compact_original": {
+    "archive": "docs/evidence/future831-f247-final-source-binding-20261017/full-f247/compact-source-custody.rs.txt",
+    "length": 7574,
+    "sha256": "1fd5b5a9535c846718331af0cd1c60eba5cf0f4a9379e29dad5794ad280e6e2b"
+  },
+  "compact_acquisition_edits": [
+    {
+      "before": "macro_rules! source {\n    ($path:literal) => {\n        include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/\", $path))\n    };\n}",
+      "after": "macro_rules! source {\n    (\"src/cleanup_plan/replay.rs\") => { include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future831-f247-final-source-binding-20261017/incoming/e9d061abd4812771d5357a77182d490d96a5f0768f2c302f29b6dafe34f8c1e1.txt\")) };\n    (\"docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay.rs.before.txt\") => { include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future831-f247-final-source-binding-20261017/incoming/ee6582dfe9654e0d405cd103834e5ceb501c87c60d4b676ccde829fb4801329f.txt\")) };\n    (\"src/cleanup_plan/replay/branch_clone/tests.rs\") => { include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future831-f247-final-source-binding-20261017/incoming/1f2b5f306c51e9eba09c1133b47eec2f13ad168121533b98ee4f77fcf4bb5321.txt\")) };\n    (\"docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__branch_clone__tests.rs.before.txt\") => { include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future831-f247-final-source-binding-20261017/incoming/e9c4c72bcfad51ee7936c3e4b302c4440ea6862c4b771bcfc3202885b63ebbb7.txt\")) };\n    (\"src/cleanup_plan/replay/factored.rs\") => { include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future831-f247-final-source-binding-20261017/incoming/7fe20afb729d15e4ab903bcc741c119f269b748fad0365d6271d609c64b5f94a.txt\")) };\n    (\"docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__factored.rs.before.txt\") => { include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future831-f247-final-source-binding-20261017/incoming/ca11b94661cd07264ef2b6da61f2dca28ac70aac3ffc4a362395c12e780beb7c.txt\")) };\n    (\"src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs\") => { include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future831-f247-final-source-binding-20261017/incoming/01b3e408874930f2aad015d20cf8317fc1507183f92aae740d11985b99d223e1.txt\")) };\n    (\"docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__factored__borrowed_canonical__dictionary__keys.rs.before.txt\") => { include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future831-f247-final-source-binding-20261017/incoming/a37b4da6cef36a9249dd30031bab14a710c32cea7b259159983978f390529643.txt\")) };\n    (\"src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs\") => { include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future831-f247-final-source-binding-20261017/incoming/c9c42329ff2e2ee3802de78f0da6484b42a7c58ae6636532024c4e955b743033.txt\")) };\n    (\"docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__factored__borrowed_canonical__tests.rs.before.txt\") => { include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future831-f247-final-source-binding-20261017/incoming/603d7c7bfcbc1d6163b7395f048b7421665539806d7643cc0d9f38b61e48bfc6.txt\")) };\n    (\"tests/hir_module_boundaries.rs\") => { include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future831-f247-final-source-binding-20261017/incoming/2a8c92d82704c56d18e15da4912e839be52e96114dbd9d2562fdb67cce303577.txt\")) };\n    (\"docs/evidence/compact-staged-observations-v1/tests__hir_module_boundaries.rs.before.txt\") => { include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future831-f247-final-source-binding-20261017/incoming/0fe29b4e9a4c1aea7e6ff38c608e4bc3f8b82c4c3c3a4484f35cf7f2490842bb.txt\")) };\n    (\"tests/workspace/semantic_graph/source_inventory.rs\") => { include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future831-f247-final-source-binding-20261017/incoming/75534a389c06ec3f4e28e6504303bf155b51062b46e5a76e2c80a255a5e56aa9.txt\")) };\n    (\"docs/evidence/compact-staged-observations-v1/tests__workspace__semantic_graph__source_inventory.rs.before.txt\") => { include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future831-f247-final-source-binding-20261017/incoming/401c904b0941c4dc7e4677936366d23375d7503944692061ee024f9278d40cb1.txt\")) };\n}"
+    },
+    {
+      "before": "const PACKET: &str = include_str!(concat!(\n    env!(\"CARGO_MANIFEST_DIR\"),\n    \"/docs/evidence/compact-staged-observations-v1/inverse.json\"\n));",
+      "after": "fn packet() -> &'static str {\n    static PACKET: std::sync::OnceLock<String> = std::sync::OnceLock::new();\n    PACKET.get_or_init(|| f247_read(\"docs/evidence/compact-staged-observations-v1/inverse.json\")).as_str()\n}"
+    },
+    {
+      "before": "serde_json::from_str(PACKET)",
+      "after": "serde_json::from_str(packet())",
+      "count": 2
+    },
+    {
+      "before": "include_str!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/docs/evidence/compact-staged-observations-v1/original-pieces.json\"\n    ))",
+      "after": "&f247_read(\"docs/evidence/compact-staged-observations-v1/original-pieces.json\")"
+    },
+    {
+      "before": "include_str!(\"before.rs\")",
+      "after": "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future831-f247-final-source-binding-20261017/incoming/4d10cbe619d26918551f006a29055551fbd0e1020387ac881848aa8d6f9719f6.txt\"))"
+    },
+    {
+      "before": "include_str!(\"lexical_before.rs\")",
+      "after": "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/future831-f247-final-source-binding-20261017/incoming/ce639daa60fcb96e43d19d48d9c9f0e5e8eb22b34488604c48e12e55056bd889.txt\"))"
+    },
+    {
+      "before": "pub(in crate::cleanup_plan::replay) fn before_root(current: &str) -> String {\n",
+      "after": "pub(in crate::cleanup_plan::replay) fn before_root(current: &str) -> String {\n    let authenticated = crate::source_reflows_merge::main_c883_inputs::f247_expected(\n        \"src/cleanup_plan/replay.rs\", current,\n    );\n    let current = authenticated.as_str();\n"
+    },
+    {
+      "before": "fn all_seven_live_receivers_reconstruct_every_predecessor_byte() {\n",
+      "after": "fn all_seven_live_receivers_reconstruct_every_predecessor_byte() {\n    authenticate_compiled_inputs();\n"
+    },
+    {
+      "before": "fn original_enumerator_enum_header_traits_and_lexical_helper_stay_complete() {\n",
+      "after": "fn original_enumerator_enum_header_traits_and_lexical_helper_stay_complete() {\n    authenticate_compiled_inputs();\n"
+    }
+  ],
+  "compact_added_local_helper": "\nfn f247_read(path: &str) -> String {\n    crate::source_reflows_merge::main_c883_inputs::read_f247(\n        std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(path),\n    ).unwrap()\n}\nfn authenticate_compiled_inputs() {\n    assert_eq!(f247_read(\"src/cleanup_plan/replay.rs\"), source!(\"src/cleanup_plan/replay.rs\"));\n    assert_eq!(f247_read(\"docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay.rs.before.txt\"), source!(\"docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay.rs.before.txt\"));\n    assert_eq!(f247_read(\"src/cleanup_plan/replay/branch_clone/tests.rs\"), source!(\"src/cleanup_plan/replay/branch_clone/tests.rs\"));\n    assert_eq!(f247_read(\"docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__branch_clone__tests.rs.before.txt\"), source!(\"docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__branch_clone__tests.rs.before.txt\"));\n    assert_eq!(f247_read(\"src/cleanup_plan/replay/factored.rs\"), source!(\"src/cleanup_plan/replay/factored.rs\"));\n    assert_eq!(f247_read(\"docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__factored.rs.before.txt\"), source!(\"docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__factored.rs.before.txt\"));\n    assert_eq!(f247_read(\"src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs\"), source!(\"src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs\"));\n    assert_eq!(f247_read(\"docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__factored__borrowed_canonical__dictionary__keys.rs.before.txt\"), source!(\"docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__factored__borrowed_canonical__dictionary__keys.rs.before.txt\"));\n    assert_eq!(f247_read(\"src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs\"), source!(\"src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs\"));\n    assert_eq!(f247_read(\"docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__factored__borrowed_canonical__tests.rs.before.txt\"), source!(\"docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__factored__borrowed_canonical__tests.rs.before.txt\"));\n    assert_eq!(f247_read(\"tests/hir_module_boundaries.rs\"), source!(\"tests/hir_module_boundaries.rs\"));\n    assert_eq!(f247_read(\"docs/evidence/compact-staged-observations-v1/tests__hir_module_boundaries.rs.before.txt\"), source!(\"docs/evidence/compact-staged-observations-v1/tests__hir_module_boundaries.rs.before.txt\"));\n    assert_eq!(f247_read(\"tests/workspace/semantic_graph/source_inventory.rs\"), source!(\"tests/workspace/semantic_graph/source_inventory.rs\"));\n    assert_eq!(f247_read(\"docs/evidence/compact-staged-observations-v1/tests__workspace__semantic_graph__source_inventory.rs.before.txt\"), source!(\"docs/evidence/compact-staged-observations-v1/tests__workspace__semantic_graph__source_inventory.rs.before.txt\"));\n    assert_eq!(before_root(FILES[0].1), FILES[0].3);\n}\n",
+  "all_original_assertions_loops_and_hash_arrays_retained": true
+}

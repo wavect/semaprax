@@ -3,6 +3,7 @@ from pathlib import Path
 import hashlib
 import json
 from outer_carrier_input import read_input as outer_read_input
+from compile_input import project as compile_project
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
@@ -60,7 +61,7 @@ def project(name, text):
 def read_input(path):
     path = Path(path)
     name = path.resolve().relative_to(ROOT).as_posix()
-    return project(name, outer_read_input(path))
+    return project(name, compile_project(name, outer_read_input(path)))
 
 
 def physical_unions():

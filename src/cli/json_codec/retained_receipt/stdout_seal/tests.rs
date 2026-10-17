@@ -32,6 +32,28 @@ fn expected_digest(bytes: &[u8]) -> String {
     )
 }
 
+fn assert_diagnostic_error(actual: Result<(), Diagnostic>, expected: Diagnostic) {
+    let actual = actual.expect_err("publication or stdout failure must remain an error");
+    assert_eq!(
+        (
+            actual.code,
+            actual.severity,
+            &actual.message,
+            &actual.path,
+            &actual.span,
+            &actual.help,
+        ),
+        (
+            expected.code,
+            expected.severity,
+            &expected.message,
+            &expected.path,
+            &expected.span,
+            &expected.help,
+        )
+    );
+}
+
 #[test]
 fn nonce_grammar_is_closed_bounded_and_preserves_all_ordinary_arguments() {
     for nonce in ["a", "-", "-single", "A_b-09", &"z".repeat(64)] {
@@ -148,18 +170,18 @@ fn publication_refusal_preserves_destination_and_never_writes_a_seal() {
     fs::write(&output, b"foreign exact bytes").unwrap();
     let expected = publish_new(&output, b"new\n").unwrap_err();
     let mut stdout = Vec::new();
-    assert_eq!(
+    assert_diagnostic_error(
         publish_sealed(&output, b"new\n", "n", &mut stdout),
-        Err(expected)
+        expected,
     );
     assert!(stdout.is_empty());
     assert_eq!(fs::read(&output).unwrap(), b"foreign exact bytes");
     assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
     let missing = root.join("absent/receipt.json");
     let expected = publish_new(&missing, b"new\n").unwrap_err();
-    assert_eq!(
+    assert_diagnostic_error(
         publish_sealed(&missing, b"new\n", "n", &mut stdout),
-        Err(expected)
+        expected,
     );
     assert!(stdout.is_empty());
     assert!(!missing.exists());
@@ -187,11 +209,9 @@ fn partial_stdout_failure_reports_publication_without_rollback() {
         }
     }
     let mut stdout = Broken { prefix: Vec::new() };
-    assert_eq!(
+    assert_diagnostic_error(
         publish_sealed(&output, b"exact\n", "n", &mut stdout),
-        Err(error(
-            "codec receipt was published, but cannot write stdout seal: seal sink refused"
-        ))
+        error("codec receipt was published, but cannot write stdout seal: seal sink refused"),
     );
     assert_eq!(fs::read(&output).unwrap(), b"exact\n");
     assert_eq!(stdout.prefix.len(), 7);
@@ -217,11 +237,9 @@ fn flush_failure_is_failure_even_after_a_complete_stdout_record() {
         }
     }
     let mut stdout = Broken { bytes: Vec::new() };
-    assert_eq!(
+    assert_diagnostic_error(
         publish_sealed(&output, b"exact\n", "n", &mut stdout),
-        Err(error(
-            "codec receipt was published, but cannot write stdout seal: flush refused"
-        ))
+        error("codec receipt was published, but cannot write stdout seal: flush refused"),
     );
     assert_eq!(fs::read(&output).unwrap(), b"exact\n");
     assert!(serde_json::from_slice::<serde_json::Value>(&stdout.bytes).is_ok());

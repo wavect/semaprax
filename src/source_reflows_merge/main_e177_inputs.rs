@@ -64,7 +64,7 @@ fn packet() -> serde_json::Value {
         data.len(), &digest(data.as_bytes())).unwrap();
     assert_eq!(held,data,"whole actual and compiled MAIN_E177 namespace");
     let packet:serde_json::Value=serde_json::from_str(data).unwrap();
-    assert_eq!(packet["schema"],"semaprax.main_e177-whole-source-acquisition.v1");
+    assert_eq!(packet["schema"],"semaprax.main-e177-whole-source-acquisition.v1");
     assert_eq!(packet["rows"].as_array().unwrap().len(),471);
     packet
 }

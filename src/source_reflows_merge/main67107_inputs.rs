@@ -220,6 +220,8 @@ fn compile35f_records() -> serde_json::Value {
 fn compile35f_restore(row: &serde_json::Value, current: &str) -> String {
     let source = row["source"].as_str().unwrap();
     assert!(COMPILE35F_KEYS.binary_search(&source).is_ok());
+    let repaired = compile_repair_previous(source, current);
+    let current = repaired.as_str();
     let owned = owned_compile35f_input(source, current);
     let current = owned.as_str();
     // A preselected35f view still acquires/authenticates physical current below.
@@ -233,6 +235,7 @@ fn compile35f_restore(row: &serde_json::Value, current: &str) -> String {
     // A35f intermediate requires the actual physical new source to remain bound.
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let raw = factored_core_physical(source);
+    let raw = compile_repair_previous(source, &raw);
     assert_eq!(digest(&raw), row["current_sha256"], "actual new compile subject");
     let before = std::fs::read_to_string(root.join(row["before_archive"].as_str().unwrap())).unwrap();
     assert_eq!(digest(&before), row["before_sha256"]);
@@ -894,7 +897,8 @@ fn semantic_batch_complete_physical_views_preserve_old_sources_and_refuse_suppli
             }
         }
     }
-    assert_eq!(semantic_batch_previous("foreign", "unchanged", "base851"), "unchanged");    // Existing owning gate also authenticates every exact compilation ingress.
+    assert_eq!(semantic_batch_previous("foreign", "unchanged", "base851"), "unchanged");
+    // Existing owning gate also authenticates every exact compilation ingress.
     let repaired = compile_repair_records();
     for row in repaired["rows"].as_array().unwrap() {
         let source = row["source"].as_str().unwrap();

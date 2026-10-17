@@ -3,46 +3,56 @@
   "before_length": 57293,
   "before_sha256": "38060d6b2c6a563363cd902032c8e2f9c92427fc06224e18be28ff63618deea9",
   "before_archive": "docs/evidence/semantic162-compile-source-ingress-20261017/main67107_inputs.before.rs.txt",
-  "current_length": 64197,
-  "current_sha256": "5b2673afe793082a479f6449d63f67664bd88197a13ae86304c4b07eb6fd7d5f",
+  "current_length": 64349,
+  "current_sha256": "235c6351d7c8ec1305d2bb9525c1e204affd7e2dda9eb346e041a51ce186813b",
   "inverse": [
     {
-      "start": 58506,
+      "start": 58658,
       "after": "\n// Exact complete compilation repair ingress, before every frozen semantic view.\n// This is test-source custody only; no allocator, payer or runtime authority.\nfn compile_repair_records() -> serde_json::Value {\n    let data = include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/semantic162-compile-source-ingress-20261017/inputs.json\"));\n    assert_eq!(data.len(), 13993);\n    assert_eq!(digest(data), \"e3870d5c067c099197b21f5b749b3124eaa4174701fe3eb47ca73db88ac44f14\");\n    let packet: serde_json::Value = serde_json::from_str(data).unwrap();\n    assert_eq!(packet[\"schema\"], \"semaprax.semantic162-compile-ingress.v1\");\n    assert_eq!(packet[\"rows\"].as_array().unwrap().len(), 16);\n    packet\n}\nfn compile_repair_previous(source: &str, current: &str) -> String {\n    let packet = compile_repair_records();\n    let rows = packet[\"rows\"].as_array().unwrap();\n    assert!(rows.iter().filter(|r| r[\"source\"] == source).count() <= 1);\n    let Some(row) = rows.iter().find(|r| r[\"source\"] == source) else { return current.to_owned(); };\n    let root = ::std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let read = |path: &str, length: &serde_json::Value, sha: &serde_json::Value| {\n        factored_core_file(&root.join(path), usize::try_from(length.as_u64().unwrap()).unwrap(), sha.as_str().unwrap()).unwrap()\n    };\n    let actual = read(source, &row[\"current_length\"], &row[\"current_sha256\"]);\n    assert_eq!(actual, read(row[\"current_archive\"].as_str().unwrap(), &row[\"current_length\"], &row[\"current_sha256\"]));\n    let compiled = match source {\n        \"src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs\" => include_str!(\"../cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs\"),\n        \"src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs\" => include_str!(\"../cleanup_plan/replay/skeleton_work/merge_keys_tests.rs\"),\n        \"src/cleanup_plan/replay/physical_storage/zero_tests.rs\" => include_str!(\"../cleanup_plan/replay/physical_storage/zero_tests.rs\"),\n        \"src/cleanup_plan/replay/owned_suffix.rs\" => include_str!(\"../cleanup_plan/replay/owned_suffix.rs\"),\n        \"src/cleanup_plan/replay/skeleton_work/ordinary_dag.rs\" => include_str!(\"../cleanup_plan/replay/skeleton_work/ordinary_dag.rs\"),\n        \"src/cleanup_plan/replay/skeleton_work.rs\" => include_str!(\"../cleanup_plan/replay/skeleton_work.rs\"),\n        \"src/cleanup_plan/replay/owned_suffix/tests.rs\" => include_str!(\"../cleanup_plan/replay/owned_suffix/tests.rs\"),\n        \"src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs\" => include_str!(\"../cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs\"),\n        \"src/cleanup_plan/replay/sequence_prefix.rs\" => include_str!(\"../cleanup_plan/replay/sequence_prefix.rs\"),\n        \"src/cleanup_plan/replay/owned_suffix/sequence_vector.rs\" => include_str!(\"../cleanup_plan/replay/owned_suffix/sequence_vector.rs\"),\n        \"src/cleanup_plan/replay/lexical_cert/paid/chains_tests.rs\" => include_str!(\"../cleanup_plan/replay/lexical_cert/paid/chains_tests.rs\"),\n        \"src/cleanup_plan/replay/sequence_prefix/main_c11/wrapper_context.rs\" => include_str!(\"../cleanup_plan/replay/sequence_prefix/main_c11/wrapper_context.rs\"),\n        \"src/cleanup_plan/replay/sequence_prefix/main8a/wrapper_context.rs\" => include_str!(\"../cleanup_plan/replay/sequence_prefix/main8a/wrapper_context.rs\"),\n        \"src/cleanup_plan/replay/sequence_vector/main_a3/path_array_source.rs\" => include_str!(\"../cleanup_plan/replay/sequence_vector/main_a3/path_array_source.rs\"),\n        \"src/workspace_graph/source_schema/nominal_context/tests.rs\" => include_str!(\"../workspace_graph/source_schema/nominal_context/tests.rs\"),\n        \"src/cleanup_plan/replay/inventory_coverage/typed_tests.rs\" => include_str!(\"../cleanup_plan/replay/inventory_coverage/typed_tests.rs\"),\n        _ => unreachable!(\"sealed sixteen compilation subjects\"),\n    };\n    assert_eq!(actual, compiled, \"whole physical/compiled compilation repair\");\n    let previous = read(row[\"previous_archive\"].as_str().unwrap(), &row[\"previous_length\"], &row[\"previous_sha256\"]);\n    let mut restored = actual.clone();\n    let mut last = restored.len();\n    for edit in row[\"inverse\"].as_array().unwrap() {\n        let start = usize::try_from(edit[\"start\"].as_u64().unwrap()).unwrap();\n        let after = edit[\"after\"].as_str().unwrap();\n        let end = start.checked_add(after.len()).unwrap();\n        assert!(end <= last);\n        assert_eq!(restored.get(start..end), Some(after));\n        restored.replace_range(start..end, edit[\"before\"].as_str().unwrap());\n        last = start;\n    }\n    assert_eq!(restored, previous, \"complete independently retained precompile source\");\n    if current == actual || current == previous { previous } else { current.to_owned() }\n}\nfn compile_repair_file(path: &::std::path::Path, length: usize, expected: &str) -> Result<String, &'static str> {\n    let root = ::std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let packet = compile_repair_records();\n    if let Ok(relative) = path.strip_prefix(root) {\n        if let Some(source) = relative.to_str() {\n            if let Some(row) = packet[\"rows\"].as_array().unwrap().iter().find(|r| r[\"source\"] == source\n                && r[\"previous_sha256\"] == expected && r[\"previous_length\"].as_u64() == Some(length as u64)) {\n                let actual = factored_core_file(path, usize::try_from(row[\"current_length\"].as_u64().unwrap()).map_err(|_| \"compile-length\")?, row[\"current_sha256\"].as_str().ok_or(\"compile-sha\")?)?;\n                return Ok(compile_repair_previous(source, &actual));\n            }\n        }\n    }\n    factored_core_file(path, length, expected)\n}\n",
       "before": ""
     },
     {
-      "start": 57366,
-      "after": "    assert_eq!(semantic_batch_previous(\"foreign\", \"unchanged\", \"base851\"), \"unchanged\");    // Existing owning gate also authenticates every exact compilation ingress.\n    let repaired = compile_repair_records();\n    for row in repaired[\"rows\"].as_array().unwrap() {\n        let source = row[\"source\"].as_str().unwrap();\n        let raw = factored_core_file(&root.join(source), row[\"current_length\"].as_u64().unwrap() as usize, row[\"current_sha256\"].as_str().unwrap()).unwrap();\n        let old = compile_repair_previous(source, &raw);\n        assert_eq!(digest(&old), row[\"previous_sha256\"]);\n        assert_eq!(old.len() as u64, row[\"previous_length\"].as_u64().unwrap());\n        assert_eq!(compile_repair_previous(source, &old), old);\n        assert_eq!(compile_repair_file(&root.join(source), old.len(), row[\"previous_sha256\"].as_str().unwrap()).unwrap(), old);\n        for bad in [String::new(), format!(\"{raw} \"), raw[..raw.len()-1].to_owned(), format!(\"{raw}{raw}\")] {\n            assert_ne!(compile_repair_previous(source, &bad), old);\n        }\n    }\n    assert_eq!(compile_repair_previous(\"foreign\", \"unchanged\"), \"unchanged\");\n",
-      "before": "    assert_eq!(semantic_batch_previous(\"foreign\", \"unchanged\", \"base851\"), \"unchanged\");\n"
+      "start": 57606,
+      "after": "    // Existing owning gate also authenticates every exact compilation ingress.\n    let repaired = compile_repair_records();\n    for row in repaired[\"rows\"].as_array().unwrap() {\n        let source = row[\"source\"].as_str().unwrap();\n        let raw = factored_core_file(&root.join(source), row[\"current_length\"].as_u64().unwrap() as usize, row[\"current_sha256\"].as_str().unwrap()).unwrap();\n        let old = compile_repair_previous(source, &raw);\n        assert_eq!(digest(&old), row[\"previous_sha256\"]);\n        assert_eq!(old.len() as u64, row[\"previous_length\"].as_u64().unwrap());\n        assert_eq!(compile_repair_previous(source, &old), old);\n        assert_eq!(compile_repair_file(&root.join(source), old.len(), row[\"previous_sha256\"].as_str().unwrap()).unwrap(), old);\n        for bad in [String::new(), format!(\"{raw} \"), raw[..raw.len()-1].to_owned(), format!(\"{raw}{raw}\")] {\n            assert_ne!(compile_repair_previous(source, &bad), old);\n        }\n    }\n    assert_eq!(compile_repair_previous(\"foreign\", \"unchanged\"), \"unchanged\");\n",
+      "before": ""
     },
     {
-      "start": 56677,
+      "start": 56828,
       "after": "        let raw = compile_repair_file(&root.join(source), row[\"current_length\"].as_u64().unwrap() as usize, row[\"current_sha256\"].as_str().unwrap()).unwrap();\n",
       "before": "        let raw = factored_core_file(&root.join(source), row[\"current_length\"].as_u64().unwrap() as usize, row[\"current_sha256\"].as_str().unwrap()).unwrap();\n"
     },
     {
-      "start": 56310,
+      "start": 56461,
       "after": "    compile_repair_file(path, length, expected)\n",
       "before": "    factored_core_file(path, length, expected)\n"
     },
     {
-      "start": 55935,
+      "start": 56086,
       "after": "                    let actual = compile_repair_file(path, usize::try_from(row[\"current_length\"].as_u64().unwrap()).map_err(|_| \"semantic-length\")?, row[\"current_sha256\"].as_str().ok_or(\"semantic-sha\")?)?;\n",
       "before": "                    let actual = factored_core_file(path, usize::try_from(row[\"current_length\"].as_u64().unwrap()).map_err(|_| \"semantic-length\")?, row[\"current_sha256\"].as_str().ok_or(\"semantic-sha\")?)?;\n"
     },
     {
-      "start": 54388,
+      "start": 54539,
       "after": "    let compiled = compile_repair_previous(source, compiled);\n",
       "before": ""
     },
     {
-      "start": 51964,
+      "start": 52115,
       "after": "        compile_repair_file(&root.join(path), usize::try_from(length.as_u64().unwrap()).unwrap(), sha.as_str().unwrap()).unwrap()\n",
       "before": "        factored_core_file(&root.join(path), usize::try_from(length.as_u64().unwrap()).unwrap(), sha.as_str().unwrap()).unwrap()\n"
     },
     {
-      "start": 51228,
+      "start": 51379,
+      "after": "    let repaired = compile_repair_previous(source, current);\n    let current = repaired.as_str();\n",
+      "before": ""
+    },
+    {
+      "start": 14681,
+      "after": "    let raw = compile_repair_previous(source, &raw);\n",
+      "before": ""
+    },
+    {
+      "start": 13837,
       "after": "    let repaired = compile_repair_previous(source, current);\n    let current = repaired.as_str();\n",
       "before": ""
     }

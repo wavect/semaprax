@@ -6984,12 +6984,11 @@ fn plan_skeleton_paths(
                     let observation = final_output::observation!(edge, budget, function);
                     budget.reserve_bytes(
                         function,
-                        branch_clone::inline_controls::<std::rc::Rc<SkeletonObservation>>(),
+                        branch_clone::direct::inline_controls::<std::rc::Rc<SkeletonObservation>, SkeletonObservation>(),
                         "branch clone receiving controls",
                     )?;
-                    // The branch producer has no Result<Vec<_>, Diagnostic>
-                    // receiver or owned observation forwarding argument. Its
-                    // nested work/census/payment Results retain their charges.
+                    // The direct generic call's actual/formal arguments and
+                    // Vec Result are funded above, before their formation.
                     let mut branch;
                     if !budget.pays_allocations() {
                         branch = skeleton_clone(
@@ -7006,47 +7005,10 @@ fn plan_skeleton_paths(
                             "plan branch observation push",
                         )?;
                     } else {
-                        budget.charge_skeleton(
-                            function,
-                            1,
-                            "cleanup-plan skeleton branch clone",
+                        branch = branch_clone::direct::copy_prepaid(
+                            budget, function, &observations, observation,
+                            "cleanup-plan skeleton branch clone", plan, edge.to,
                         )?;
-                        budget.reserve_clone(
-                            function,
-                            &observations,
-                            "cleanup-plan skeleton branch clone",
-                        )?;
-                        note_skeleton_materialization();
-                        // Original push work precedes every extra backing debit.
-                        budget.charge_skeleton(function, 1, "plan branch observation push")?;
-                        note_skeleton_materialization();
-                        let capacity = if observations.is_empty() {
-                            1
-                        } else {
-                            if observations.len() > usize::MAX / 2 {
-                                return Err(budget.budget_refusal(
-                                    function,
-                                    "cleanup replay branch capacity overflowed",
-                                    "",
-                                ));
-                            }
-                            observations.len() * 2
-                        };
-                        budget.reserve_array::<std::rc::Rc<SkeletonObservation>>(
-                            function,
-                            capacity - observations.len(),
-                            "plan branch observation push",
-                        )?;
-                        budget.reserve_bytes(
-                            function,
-                            physical_clone::conversion_bytes::<std::rc::Rc<SkeletonObservation>, _>(
-                                &observation,
-                            ),
-                            "plan branch observation push",
-                        )?;
-                        branch = Vec::with_capacity(capacity);
-                        branch.extend(observations.iter().cloned());
-                        branch.push(observation.into());
                     }
                     skeleton_queue_push(
                         budget,

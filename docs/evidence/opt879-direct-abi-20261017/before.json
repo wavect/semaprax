@@ -1,0 +1,32 @@
+[
+  {
+    "path": "src/cleanup_plan/replay.rs",
+    "archive": "docs/evidence/opt879-direct-abi-20261017/before/src/cleanup_plan/replay.rs",
+    "length": 326295,
+    "sha256": "add44f92c19bb698ebec165c74554f4d606cd38885e6230e1e882556eb068848"
+  },
+  {
+    "path": "src/cleanup_plan/replay/branch_clone.rs",
+    "archive": "docs/evidence/opt879-direct-abi-20261017/before/src/cleanup_plan/replay/branch_clone.rs",
+    "length": 17063,
+    "sha256": "dbedf701561e84f3bad64dca84478115c28884fb3ff12b9aa5b34b3ed4ae5274"
+  },
+  {
+    "path": "src/cleanup_plan/replay/branch_clone/production_capacity.rs",
+    "archive": "docs/evidence/opt879-direct-abi-20261017/before/src/cleanup_plan/replay/branch_clone/production_capacity.rs",
+    "length": 10705,
+    "sha256": "6cb7f63a48bb023c7c366f16a7030f9c7855715898a85b31770062835482e314"
+  },
+  {
+    "path": "src/cleanup_plan/replay/branch_clone/tests.rs",
+    "archive": "docs/evidence/opt879-direct-abi-20261017/before/src/cleanup_plan/replay/branch_clone/tests.rs",
+    "length": 31717,
+    "sha256": "cd9a1c11b0ad8f0194d13e74ed78211161fb75faf859f555a3e05dc13f10ac05"
+  },
+  {
+    "path": "CHANGELOG.md",
+    "archive": "docs/evidence/opt879-direct-abi-20261017/before/CHANGELOG.md",
+    "length": 572566,
+    "sha256": "fed9440aa8e9ff21425e865f1aebc69f1250ac2b0df0ab5b499d28d7b5378e8d"
+  }
+]

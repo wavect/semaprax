@@ -1,0 +1,150 @@
+{
+  "status": "SOURCE_ONLY_UNQUALIFIED",
+  "base_head": "4fde6dcdc55d7befd0bb612ab9c27c6f6ae79530",
+  "whole_sources": [
+    {
+      "path": "src/cleanup_plan/replay.rs",
+      "before": {
+        "path": "src/cleanup_plan/replay.rs",
+        "archive": "docs/evidence/opt879-direct-abi-20261017/before/src/cleanup_plan/replay.rs",
+        "length": 326295,
+        "sha256": "add44f92c19bb698ebec165c74554f4d606cd38885e6230e1e882556eb068848"
+      },
+      "after_archive": "docs/evidence/opt879-direct-abi-20261017/after/src/cleanup_plan/replay.rs",
+      "after_length": 324389,
+      "after_sha256": "6cdfce6c20964d62f360cd147d0c6ca8b4d9cb86f671d6d5b5773d8c6e446ae7",
+      "inverse": [
+        {
+          "start": 0,
+          "end": 324389,
+          "replacement_archive": "docs/evidence/opt879-direct-abi-20261017/before/src/cleanup_plan/replay.rs"
+        }
+      ],
+      "whole_restoration_verified": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/branch_clone.rs",
+      "before": {
+        "path": "src/cleanup_plan/replay/branch_clone.rs",
+        "archive": "docs/evidence/opt879-direct-abi-20261017/before/src/cleanup_plan/replay/branch_clone.rs",
+        "length": 17063,
+        "sha256": "dbedf701561e84f3bad64dca84478115c28884fb3ff12b9aa5b34b3ed4ae5274"
+      },
+      "after_archive": "docs/evidence/opt879-direct-abi-20261017/after/src/cleanup_plan/replay/branch_clone.rs",
+      "after_length": 17112,
+      "after_sha256": "4ff120ef24b54cc98d956f3548a76b4a7f0ca9f4393044356f47ea1e51cefbc5",
+      "inverse": [
+        {
+          "start": 0,
+          "end": 17112,
+          "replacement_archive": "docs/evidence/opt879-direct-abi-20261017/before/src/cleanup_plan/replay/branch_clone.rs"
+        }
+      ],
+      "whole_restoration_verified": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/branch_clone/production_capacity.rs",
+      "before": {
+        "path": "src/cleanup_plan/replay/branch_clone/production_capacity.rs",
+        "archive": "docs/evidence/opt879-direct-abi-20261017/before/src/cleanup_plan/replay/branch_clone/production_capacity.rs",
+        "length": 10705,
+        "sha256": "6cb7f63a48bb023c7c366f16a7030f9c7855715898a85b31770062835482e314"
+      },
+      "after_archive": "docs/evidence/opt879-direct-abi-20261017/after/src/cleanup_plan/replay/branch_clone/production_capacity.rs",
+      "after_length": 10763,
+      "after_sha256": "4430efc70a71158b88607285b57935ce56391a40a75d14c67126d59626a75028",
+      "inverse": [
+        {
+          "start": 0,
+          "end": 10763,
+          "replacement_archive": "docs/evidence/opt879-direct-abi-20261017/before/src/cleanup_plan/replay/branch_clone/production_capacity.rs"
+        }
+      ],
+      "whole_restoration_verified": true
+    },
+    {
+      "path": "CHANGELOG.md",
+      "before": {
+        "path": "CHANGELOG.md",
+        "archive": "docs/evidence/opt879-direct-abi-20261017/before/CHANGELOG.md",
+        "length": 572566,
+        "sha256": "fed9440aa8e9ff21425e865f1aebc69f1250ac2b0df0ab5b499d28d7b5378e8d"
+      },
+      "after_archive": "docs/evidence/opt879-direct-abi-20261017/after/CHANGELOG.md",
+      "after_length": 572834,
+      "after_sha256": "e28fecf5d8261d75ccded4564206d50e1b80d6826ac94c4fea07f9370e5d2264",
+      "inverse": [
+        {
+          "start": 0,
+          "end": 572834,
+          "replacement_archive": "docs/evidence/opt879-direct-abi-20261017/before/CHANGELOG.md"
+        }
+      ],
+      "whole_restoration_verified": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/branch_clone/direct.rs",
+      "before_absent": true,
+      "after_length": 10857,
+      "after_sha256": "3f9f891564c0ef3f089f3b63a66cc5ef352f5a3e14bf276c3033d116e2af6d15"
+    },
+    {
+      "path": "src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+      "before_absent": true,
+      "after_length": 11555,
+      "after_sha256": "df27664d3554d73778554143248f357e54c73a4e73746c9014ffa3e5b69b26c9"
+    },
+    {
+      "path": "src/cleanup_plan/replay/branch_clone/direct/before.rs",
+      "before_absent": true,
+      "after_length": 33355,
+      "after_sha256": "b617d274c09b64c42a749953e2ed0d6a608d08a8ffbcfda0ce4eb9a74fcd2036"
+    }
+  ],
+  "unchanged_old_tests": {
+    "path": "src/cleanup_plan/replay/branch_clone/tests.rs",
+    "sha256": "cd9a1c11b0ad8f0194d13e74ed78211161fb75faf859f555a3e05dc13f10ac05"
+  },
+  "retained_immediate_whole_function": {
+    "named_acquisition_edits": 3,
+    "body_reconstructed_exact": true,
+    "old_probe_body_byteexact_compiled": true
+  },
+  "module_lines": {
+    "src/cleanup_plan/replay.rs": 7915,
+    "src/cleanup_plan/replay/branch_clone.rs": 407,
+    "src/cleanup_plan/replay/branch_clone/production_capacity.rs": 199,
+    "src/cleanup_plan/replay/branch_clone/direct.rs": 280,
+    "src/cleanup_plan/replay/branch_clone/direct/tests.rs": 288,
+    "src/cleanup_plan/replay/branch_clone/direct/before.rs": 706
+  },
+  "new_selectors": [
+    "cleanup_plan::replay::branch_clone::direct::tests::direct_generic_entry_prepays_result_and_arguments_with_exact_short_floor_sticky_drop",
+    "cleanup_plan::replay::branch_clone::direct::tests::current_continuations_keep_full_predecessor_paths_and_both_work_accounts",
+    "cleanup_plan::replay::branch_clone::direct::tests::current_query_rejects_missing_cycles_overflow_and_foreign_authority"
+  ],
+  "source_binding_required_for_new_modules": [
+    "src/cleanup_plan/replay/branch_clone/direct.rs",
+    "src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+    "src/cleanup_plan/replay/branch_clone/direct/before.rs"
+  ],
+  "executed": [
+    "bounded source reads",
+    "rustfmt syntax/format for new direct.rs and direct/tests.rs only",
+    "whole byte/inverse reconstruction assertions",
+    "git diff --check"
+  ],
+  "not_executed": [
+    "Cargo",
+    "Rust compilation",
+    "Rust tests",
+    "source bindings",
+    "global gates",
+    "application/cost qualification"
+  ],
+  "known_runtime_drivers": [
+    "real_generic_probe_receiving_frontier_exact_short_zero_floor_is_sticky_and_drops_completely",
+    "next_fork_capacity_keeps_every_full_arithmetic_path_and_original_work"
+  ],
+  "performance_claim": false
+}

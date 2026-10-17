@@ -12,6 +12,7 @@ pub(in crate::cleanup_plan::replay) struct Decision {
     pub(in crate::cleanup_plan::replay) take: bool,
     pub(in crate::cleanup_plan::replay) copy_capacity: Option<usize>,
 }
+#[cfg(test)]
 impl Decision {
     const NONE: Self = Self { take: false, copy_capacity: None };
 }
@@ -45,12 +46,14 @@ pub(in crate::cleanup_plan::replay) fn production_inline_controls<T: Clone>() ->
         + 2 * size_of::<std::slice::Iter<'_, T>>()
         + 2 * size_of::<std::iter::Cloned<std::slice::Iter<'_, T>>>()
         + ADDITIONAL_CONTROLS
+        + direct::QUERY_CONTROLS
 }
 
-// A copy is selected only when its genuinely absent pointer backing exceeds
-// this whole added production price. This is not a refund or a direct fee.
-const COPY_SLOTS: usize = ADDITIONAL_CONTROLS / size_of::<std::rc::Rc<SkeletonObservation>>() + 1;
+// Retain the original added-production-price threshold. The current query
+// bank is separately paid before entry; net application gains remain pending.
+pub(super) const COPY_SLOTS: usize = ADDITIONAL_CONTROLS / size_of::<std::rc::Rc<SkeletonObservation>>() + 1;
 
+#[cfg(test)]
 pub(in crate::cleanup_plan::replay) fn probe(input: TakeCandidate<'_>) -> Decision {
     #[cfg(test)]
     if super::tests::original_selected() { return Decision::NONE; }
@@ -120,7 +123,7 @@ macro_rules! produce {
     ($budget:ident, $function:ident, $observations:ident, $observation:ident,
      $plan:ident, $edge:ident, $remaining_edges:ident, $edges:ident,
      $branch:ident, $queue:ident) => {{
-        let decision = $crate::cleanup_plan::replay::branch_clone::production_capacity::probe(
+        let decision = $crate::cleanup_plan::replay::branch_clone::direct::probe(
             $crate::cleanup_plan::replay::branch_clone::TakeCandidate {
                 values: &$observations, remaining_edges: $remaining_edges.len(),
                 edge_count: $edges.len(), budget: $budget, plan: $plan, target: $edge.to,

@@ -12,7 +12,7 @@ pub(crate) use free_order::watch_free_order;
 // holds 4096 title allocations plus its frame, row/slot tables and owned
 // backing. Four entries per maximum row leave a bounded margin for those
 // fixed allocations. This changes no runtime/compiler quota: exhaustion still
-// marks observation invalid, and the fixed tracking array is excluded from the
+// marks observation invalid, and the fixed tracking backing is excluded from the
 // measured requested layouts just as before.
 const SLOTS: usize = 16_384;
 #[derive(Clone, Copy)]
@@ -87,14 +87,14 @@ impl ExtendedRegistry {
 }
 struct State {
     extended: Option<ExtendedRegistry>,
-    slots: [Slot; SLOTS],
+    slots: Vec<Slot>,
     metrics: Metrics,
 }
 impl State {
     const fn new() -> Self {
         Self {
             extended: None,
-            slots: [EMPTY; SLOTS],
+            slots: Vec::new(),
             metrics: Metrics {
                 allocations: 0,
                 reallocations: 0,
@@ -168,8 +168,8 @@ impl State {
     }
 }
 thread_local! {
-    // Const fixed storage is initialized before the phase; the observer never
-    // allocates a registry, grows a container or formats text in a callback.
+    // Only the carrier lives in TLS. Its fixed backing is acquired before
+    // activation; allocator callbacks never allocate, grow or format metadata.
     static STATE: RefCell<State> = const {RefCell::new(State::new())};
     static ACTIVE: Cell<bool> = const {Cell::new(false)};
     static INVALID: Cell<bool> = const {Cell::new(false)};
@@ -301,11 +301,13 @@ pub(crate) fn live_bytes_matching(mut owns: impl FnMut(usize) -> bool) -> usize 
 }
 
 // Keep instrumentation outside the per-operation generic body. These helpers
-// allocate nothing and retain the same observation and unwind boundaries.
+// prepare metadata before activation and retain the same observation and unwind
+// boundaries. Metadata backing is excluded, as the former TLS array was.
 fn begin_observation() -> Guard {
     assert!(!active(), "allocation observation cannot nest");
     STATE.with(|state| {
         let mut state = state.borrow_mut();
+        state.slots.resize(SLOTS, EMPTY);
         state.slots.fill(EMPTY);
         if let Some(registry) = &mut state.extended {
             registry.slots.fill(EMPTY);
@@ -363,6 +365,44 @@ pub(crate) fn measure_with_capacity<T>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn fixed_registry_backing_is_lazy_reused_and_outside_the_observed_window() {
+        assert_eq!(SLOTS, 16_384);
+        assert!(std::mem::size_of::<State>() < std::mem::size_of::<[Slot; SLOTS]>());
+        std::thread::Builder::new()
+            .stack_size(128 * 1024)
+            .spawn(|| {
+                assert!(STATE.with(|state| state.borrow().slots.is_empty()));
+                let (_, metrics) = measure(|| {
+                    let mut bytes = Vec::<u8>::with_capacity(17);
+                    bytes.resize(17, 7);
+                    std::hint::black_box(&bytes);
+                });
+                assert_eq!(
+                    metrics,
+                    Metrics {
+                        allocations: 1,
+                        reallocations: 0,
+                        allocated: 17,
+                        freed: 17,
+                        live: 0,
+                        highwater: 17,
+                        invalid: false,
+                    }
+                );
+                let pointer = STATE.with(|state| {
+                    let state = state.borrow();
+                    assert_eq!(state.slots.len(), SLOTS);
+                    state.slots.as_ptr()
+                });
+                let (_, empty) = measure(|| ());
+                assert_eq!(empty, Metrics::default());
+                assert_eq!(STATE.with(|state| state.borrow().slots.as_ptr()), pointer);
+            })
+            .unwrap()
+            .join()
+            .unwrap();
+    }
     #[test]
     fn spare_capacity_and_replacement_overlap_are_observed_from_allocator_layouts() {
         let (capacities, metrics) = measure(|| {

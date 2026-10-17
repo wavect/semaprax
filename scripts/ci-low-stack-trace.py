@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 import runpy
 import shutil
+import struct
 import subprocess
 import sys
 
@@ -50,6 +51,33 @@ try:
 except Exception as error:
     print(f"stopped frame layout unavailable: {error}")
 """
+
+
+def elf_tls_layout(path):
+    """Read bounded ELF64 program headers; never execute or map the artifact."""
+    size = path.stat().st_size
+    with path.open("rb") as stream:
+        header = stream.read(64)
+        if len(header) != 64 or header[:7] != b"\x7fELF\x02\x01\x01":
+            raise ValueError("stack artifact is not a complete little-endian ELF64 file")
+        offset = struct.unpack_from("<Q", header, 32)[0]
+        width, count = struct.unpack_from("<HH", header, 54)
+        if width != 56 or not 1 <= count <= 4096 or offset + width * count > size:
+            raise ValueError("stack artifact has an invalid or excessive program-header table")
+        result = None
+        stream.seek(offset)
+        for _ in range(count):
+            entry = stream.read(width)
+            if struct.unpack_from("<I", entry)[0] != 7:  # PT_TLS
+                continue
+            file_offset = struct.unpack_from("<Q", entry, 8)[0]
+            initialized, total, alignment = struct.unpack_from("<QQQ", entry, 32)
+            if (result is not None or initialized > total or file_offset + initialized > size
+                    or (alignment > 1 and alignment & (alignment - 1))):
+                raise ValueError("stack artifact has an invalid or duplicate TLS segment")
+            result = {"initialized_bytes": initialized, "total_bytes": total,
+                      "alignment": alignment}
+        return result
 
 
 def select_executable(messages, root, target):
@@ -123,6 +151,10 @@ def main():
         "executable": str(executable.relative_to(ROOT)),
         "executable_sha256": digest.hexdigest(),
         "qualification": "owning shard failure remains authoritative",
+    }, sort_keys=True), flush=True)
+    print(json.dumps({
+        "diagnostic_only": True, "schema": "semaprax.elf-tls.v1", "head": current,
+        "tls": elf_tls_layout(executable),
     }, sort_keys=True), flush=True)
     commands = [
         "set pagination off", "set print thread-events off",

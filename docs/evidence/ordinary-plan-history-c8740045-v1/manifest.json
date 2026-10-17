@@ -39,8 +39,8 @@
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history.rs",
-      "sha256": "a24cf57c1435d183637429faff9c7022fbbed64af9f0f2ae2da273b8284f8c26",
-      "lines": 571
+      "sha256": "af1c1eb050784185ef2eedb1b895796eb6fac1c45299d4f6a2be0227d2e50281",
+      "lines": 582
     },
     {
       "path": "src/source_reflows_merge/ordinary_plan_inputs.rs",

@@ -1,0 +1,18 @@
+{
+  "status": "SOURCE_ONLY_UNCOMPILED_UNEXECUTED_NOT_REGISTERED",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::semantic_receivers::ordinary_replay_routes_keep_complete_predecessors_and_existing_controls",
+      "sourcepath": "src/source_reflows/semantic_receivers.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::incoming67107_semantic_receivers::complete_mainbcc_routes_keep_all_six_rows_and_refuse_foreign_inputs",
+      "sourcepath": "src/source_reflows/incoming67107_semantic_receivers.rs"
+    }
+  ],
+  "core247_and_supplement79_unchanged": true
+}

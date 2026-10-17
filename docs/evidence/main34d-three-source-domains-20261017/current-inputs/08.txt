@@ -2,6 +2,7 @@
 //! These snapshots are used only by historical source assertions. Live source
 //! inventories continue to include the current modules and their new children.
 use super::*;
+use super::incoming67107_semantic_receivers::{mainbcc_read, mainbcc_invert};
 use super::incoming67107_semantic_receivers::invert_ordinary;
 use super::incoming67107_semantic_receivers::{main34d_project, main34d_read, main34d_proofs, main34d_predecessor};
 
@@ -659,4 +660,36 @@ fn receiving_lookup_views_keep_complete_prior_modules_and_all_owning_inputs() {
         ),
         before_file(path)
     );
+}
+
+#[test]
+fn ordinary_replay_routes_keep_complete_predecessors_and_existing_controls() {
+    // This complete incoming owner reads only its independent immutable BCC domain.
+    let main_read = |path: std::path::PathBuf| mainbcc_read(&path);
+    let invert = mainbcc_invert;
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let records: Vec<serde_json::Value> = serde_json::from_str(
+        &main_read(root.join("docs/evidence/ordinary-replay-routes-v1/sources.json"))
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(records.len(), 6);
+    let mut paths = std::collections::BTreeSet::new();
+    for proof in records {
+        let path = proof["path"].as_str().unwrap();
+        assert!(paths.insert(path.to_owned()));
+        let current = main_read(root.join(path)).unwrap();
+        let before = invert(&proof, &current);
+        assert_eq!(
+            before,
+            main_read(root.join(proof["archive"].as_str().unwrap())).unwrap()
+        );
+        if path.ends_with("/tests.rs") {
+            assert!(current.starts_with(&before));
+        }
+        assert!(std::panic::catch_unwind(|| invert(&proof, &(current.clone() + "\n"))).is_err());
+        let mut forged = proof.clone();
+        forged["before_sha256"] = serde_json::Value::String("0".repeat(64));
+        assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());
+    }
 }

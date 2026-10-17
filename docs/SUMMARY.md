@@ -1159,3 +1159,4 @@ Audience: all documentation readers.
 - [Hold the status-directory prefix during paid construction](evidence/held-status-prefix-v1/README.md)
 - [Grow invocation-held continuation backing as reached](evidence/held-continuation-growth-v1/README.md)
 - [Keep one paid comparison state per expression lookup](evidence/paid-expression-lookup-state-v1/README.md)
+- [Ordinary replay route correction](evidence/ordinary-replay-routes-v1/README.md)

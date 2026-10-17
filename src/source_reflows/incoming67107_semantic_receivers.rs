@@ -347,7 +347,7 @@ fn complete_followup_receivers_keep_all_original_source_bytes() {
 // complete current and MAIN inputs; no source, authority, or production text is
 // changed. Whole source payloads remain bounded runtime files, not large embeds.
 const MAIN34D_MANIFEST_LEN: usize = 51371;
-const MAIN34D_MANIFEST_SHA: &str = "f5623c127ce38016a46bc6c7a60db31967d95ff6a237c8de5c1de81b8420c4e0";
+const MAIN34D_MANIFEST_SHA: &str = "b446a74f214d8021d98fbe2860bd75363803c12e2ce6a56fe49393aabcec866b";
 // Separate NEWMAIN-only admitted source-proof input: held-status sources.json.
 // The unrelated runtime_json335 cap remains exactly5,081,115 and is untouched.
 const MAIN34D_CAP: usize = 9_317_546;
@@ -554,4 +554,90 @@ fn complete_main34d_inputs_keep_all_domains_and_refuse_wrong_source_and_bounded_
     }
     assert_eq!(main34d_file(root, 0, &digest_bytes(&[])), Err("length-or-nonregular"));
     assert_eq!(main34d_file(&root.join("docs/evidence/main34d-three-source-domains-20261017/NEVER_EXISTS"), 0, &digest_bytes(&[])), Err("missing"));
+}
+
+// Independent latest MAIN ordinary-routes domain, never a retarget of MAIN34d.
+const MAINBCC_MANIFEST_LEN: usize = 12232;
+const MAINBCC_MANIFEST_SHA: &str = "c4bd51a066bc657b1fc75140f28278b185b6a15042feb2908f287b918c8a31a8";
+const MAINBCC_CAP: usize = 1_048_576;
+fn mainbcc_manifest() -> serde_json::Value {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert!(MAINBCC_MANIFEST_LEN <= MAINBCC_CAP);
+    let text = main34d_file(&root.join("docs/evidence/mainbcc-ordinary-source-domain-20261017/input-manifest.json"), MAINBCC_MANIFEST_LEN, MAINBCC_MANIFEST_SHA).unwrap();
+    let value: serde_json::Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(value["schema"], "semaprax.mainbcc-ordinary-source-domain.v1");
+    assert_eq!(value["main_head"], "bccbe9696eca892045b0603ad663234062df15f4");
+    let entries = value["inputs"].as_array().unwrap();
+    assert_eq!(entries.len(), 13);
+    let mut paths = std::collections::BTreeSet::new();
+    for entry in entries {
+        assert!(paths.insert(entry["path"].as_str().unwrap()));
+        for field in ["current_len", "main_len"] { assert!(entry[field].as_u64().unwrap() <= MAINBCC_CAP as u64); }
+    }
+    value
+}
+fn mainbcc_entry<'a>(manifest: &'a serde_json::Value, path: &str) -> &'a serde_json::Value {
+    let entries: Vec<_> = manifest["inputs"].as_array().unwrap().iter().filter(|entry| entry["path"] == path).collect();
+    assert_eq!(entries.len(), 1, "foreign, missing or duplicate BCC source");
+    entries[0]
+}
+pub(super) fn mainbcc_read(path: &Path) -> std::io::Result<String> {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let relative = path.strip_prefix(root).unwrap().to_str().unwrap();
+    let manifest = mainbcc_manifest();
+    let entry = mainbcc_entry(&manifest, relative);
+    let raw = main34d_file(path, usize::try_from(entry["current_len"].as_u64().unwrap()).unwrap(), entry["current_sha256"].as_str().unwrap()).unwrap();
+    Ok(main34d_project_entry(entry, &raw))
+}
+pub(super) fn mainbcc_invert(proof: &serde_json::Value, current: &str) -> String {
+    let path = proof["path"].as_str().unwrap();
+    assert_eq!(
+        digest(current),
+        proof["after_sha256"],
+        "receiver input drifted: {path}"
+    );
+    let mut restored = current.to_owned();
+    for edit in proof["inverse"].as_array().unwrap() {
+        let after = edit["after"].as_str().unwrap();
+        assert_eq!(
+            restored.matches(after).count(),
+            1,
+            "nonunique receiver inverse: {path}"
+        );
+        restored = restored.replacen(after, edit["before"].as_str().unwrap(), 1);
+    }
+    assert_eq!(
+        digest(&restored),
+        proof["before_sha256"],
+        "receiver predecessor drifted: {path}"
+    );
+    restored
+}
+
+#[test]
+fn complete_mainbcc_routes_keep_all_six_rows_and_refuse_foreign_inputs() {
+    let manifest = mainbcc_manifest();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let table = mainbcc_read(&root.join("docs/evidence/ordinary-replay-routes-v1/sources.json")).unwrap();
+    let rows: Vec<serde_json::Value> = serde_json::from_str(&table).unwrap();
+    assert_eq!(rows.len(), 6);
+    for entry in manifest["inputs"].as_array().unwrap() {
+        let path = entry["path"].as_str().unwrap();
+        let value = mainbcc_read(&root.join(path)).unwrap();
+        assert_eq!(digest(&value), entry["main_sha256"]);
+        let raw = std::fs::read(root.join(path)).unwrap();
+        let raw = String::from_utf8(raw).unwrap();
+        for changed in [raw.clone() + "\n", "!".to_owned() + &raw] {
+            assert!(std::panic::catch_unwind(|| main34d_project_entry(entry, &changed)).is_err());
+        }
+        if entry["current_sha256"] != entry["main_sha256"] {
+            assert!(std::panic::catch_unwind(|| main34d_project_entry(entry, &value)).is_err());
+        }
+    }
+    assert!(std::panic::catch_unwind(|| mainbcc_entry(&manifest, "src/foreign.rs")).is_err());
+    let mut duplicate = manifest.clone();
+    let first = duplicate["inputs"][0].clone();
+    duplicate["inputs"].as_array_mut().unwrap().push(first);
+    let path = manifest["inputs"][0]["path"].as_str().unwrap();
+    assert!(std::panic::catch_unwind(|| mainbcc_entry(&duplicate, path)).is_err());
 }

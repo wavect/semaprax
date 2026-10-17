@@ -1,8 +1,8 @@
 {
   "status": "BOUND_SOURCE_ONLY_UNQUALIFIED_UNTIL_FINAL_REGISTERED_BUILD",
-  "inputs_observed_head": "754f5c5c3c25facf8ea6e68ac14ce0492a3857ff",
+  "inputs_observed_head": "8fbb43ca4c29f92b4a892190de5be784d90d8114",
   "main_head": "34d53510a3374537874c89a0e46be4d68ad9fe61",
-  "manifest_sha256": "f5623c127ce38016a46bc6c7a60db31967d95ff6a237c8de5c1de81b8420c4e0",
+  "manifest_sha256": "b446a74f214d8021d98fbe2860bd75363803c12e2ce6a56fe49393aabcec866b",
   "manifest_bytes": 51371,
   "unique_inputs": 49,
   "domain_counts": [

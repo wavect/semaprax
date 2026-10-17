@@ -30,6 +30,7 @@ pub(in crate::cleanup_plan::replay) fn validate_status_sources_certified<'hir>(
     if matches!(
         &budget.payer,
         &crate::cleanup_plan::replay::allocation::AllocationPayer::ActiveBuilder
+            | &crate::cleanup_plan::replay::allocation::AllocationPayer::LegacyUnobserved
     ) {
         // Pay the complete new lexical selection receivers before length
         // inspection. This is an additional real fee, never credit from the proof

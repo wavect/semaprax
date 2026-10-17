@@ -1,0 +1,42 @@
+[
+  {
+    "path": "src/hir/validation/byte_traversal/nested/tests.rs",
+    "archive": "00.ours.txt",
+    "sha256": "489816bc00ef3f93be7c69f874aa6cc64272fa62ec9d3cac9bfdb34b633eeb82"
+  },
+  {
+    "path": "src/hir/validation/byte_traversal/nested/tests/source_composition.rs",
+    "archive": "01.ours.txt",
+    "sha256": "31473c03e04eece1c5f155cac724f69a6249c5076c3150443dc5d8dc7625d29c"
+  },
+  {
+    "path": "docs/evidence/nested-byte-traversal-780/ci-scope-original.json",
+    "archive": "02.ours.txt",
+    "sha256": "a7d118c200efe34e2ade1634ae42711535e472c69ce0f52480cdefb7c3697290"
+  },
+  {
+    "path": "docs/evidence/nested-byte-traversal-780/ci-scope-tests.before.txt",
+    "archive": "03.ours.txt",
+    "sha256": "4731dd5a006a7b5fdb906795a01c61045f183bf03efce70f7fbfc7164e17b145"
+  },
+  {
+    "path": "docs/evidence/incoming-main-a9a75e1-20261016/incoming/src/hir/validation/byte_traversal/nested/tests.rs",
+    "archive": "04.ours.txt",
+    "sha256": "9a8b41dff3fd9bb3211e62f7180beabe0a0251da41266ed6a2a83e69f67af63f"
+  },
+  {
+    "path": "docs/evidence/incoming-main-a9a75e1-20261016/ours/src/hir/validation/byte_traversal/nested/tests.rs",
+    "archive": "05.ours.txt",
+    "sha256": "bb7ae50a94f03a334dab03412baeb1986a98d7e2d4694bcd033d6f03008cf431"
+  },
+  {
+    "path": "docs/evidence/nested-byte-actual-fixture-correction-940/source-inverses.json",
+    "archive": "06.ours.txt",
+    "sha256": "781b0779e44e82945e3f329795580ca1acbf11ca3013a1d1766e3de0af393d1a"
+  },
+  {
+    "path": "docs/evidence/nested-byte-actual-fixture-correction-940/original/0.before",
+    "archive": "07.ours.txt",
+    "sha256": "7fe239c8c7c5afe12db2c3125286b45cf8b168cac45a408d0c443cc4ecfe5427"
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "path": "docs/evidence/main34d-three-source-domains-20261017/check-source.py",
+  "current_sha256": "5997fe4eb8457b65e3852c3ca852c5d2490ca84c84ace341743e1ebd634c98bd",
+  "original_sha256": "7cb2c682aa86c9d0b38eb02f44152503cf27842070288189e3819f5f2926a8b1",
+  "original_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/original-programs/check-main34d.before.py.txt",
+  "finite_edit": {
+    "before": "    source = (r/'src/source_reflows/semantic_receivers.rs').read_text()",
+    "after": "    source = (r/'src/source_reflows/semantic_receivers.rs').read_text()\n    # The complete new BCC owner and whole previous receiver are authenticated\n    # before obtaining the unchanged original three-owner suffix below.\n    bcc_checker = r/'docs/evidence/mainbcc-ordinary-source-domain-20261017/check-source.py'\n    assert sha(bcc_checker.read_bytes()) == '2f86c576f4b852e739eaa79101f80e2e8d46c4391a870822e45ef579aff80a0d'\n    import runpy\n    source = runpy.run_path(str(bcc_checker))['previous_receiver'](r, source)"
+  }
+}

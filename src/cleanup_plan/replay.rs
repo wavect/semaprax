@@ -3215,7 +3215,11 @@ fn expression_skeleton<'hir>(
     } else {
         (
             continuation_storage::Lease::Local,
-            continuation_storage::fresh(function, work.budget)?,
+            if work.budget.payer == AllocationPayer::ActiveBuilder {
+                continuation_storage::fresh_receiving(function, work.budget)?
+            } else {
+                continuation_storage::fresh(function, work.budget)?
+            },
         )
     };
     // No directory borrow spans the runner: guards re-enter this same Storage.

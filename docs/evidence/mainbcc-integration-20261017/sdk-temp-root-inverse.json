@@ -1,0 +1,13 @@
+{
+  "source": "crates/semaprax-native-rust-interop-platform/tests/unix_authority.rs",
+  "reason": "Keep installed SDK query temporary output in the same explicit SSD test root while retaining scrubbed environment.",
+  "before_sha256": "1642035cc5287319eac9df14034711cdcfe4b3ef327713bc29f1df15187f1215",
+  "after_sha256": "7243569e671d21859abab5127f83b22322db0bad7421bcbf812d05450a5309d6",
+  "inverse": [
+    {
+      "after": "            .args([\"--sdk\", \"macosx\", \"--show-sdk-path\"])\n            .env_clear()\n            .env(\"TMPDIR\", root)\n            .output()",
+      "before": "            .args([\"--sdk\", \"macosx\", \"--show-sdk-path\"])\n            .env_clear()\n            .output()"
+    }
+  ],
+  "qualification": "Pending one exact native authority owner after source batch; no runtime claim"
+}

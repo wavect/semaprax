@@ -52,6 +52,12 @@ def main():
         e = manifest[name]; raw = read(e['archive'])
         assert len(raw) == e['len'] and sha(raw) == e['sha256'] and len(json.loads(raw)) == count
     source = (r/'src/source_reflows/semantic_receivers.rs').read_text()
+    # The complete new BCC owner and whole previous receiver are authenticated
+    # before obtaining the unchanged original three-owner suffix below.
+    bcc_checker = r/'docs/evidence/mainbcc-ordinary-source-domain-20261017/check-source.py'
+    assert sha(bcc_checker.read_bytes()) == '2f86c576f4b852e739eaa79101f80e2e8d46c4391a870822e45ef579aff80a0d'
+    import runpy
+    source = runpy.run_path(str(bcc_checker))['previous_receiver'](r, source)
     original = (d/'original-programs/semantic_receivers.main34d.txt').read_text()
     first = 'fn held_status_views_preserve_complete_original_inputs_and_validation_loops() {'
     original = original[original.index(first):]

@@ -1,0 +1,52 @@
+{
+  "status": "PASS_SOURCE_ONLY_POSTBIND_REAUTHENTICATION",
+  "head": "da8d04491200cd3bc2a4c96f5024372c5524ae20",
+  "dirty_paths": [
+    " M docs/evidence/accepted-final6-source-binding-20261017/check-source.py",
+    " M docs/evidence/accepted-strict-guard-generation-20261017/check-source.py",
+    " M docs/evidence/main-e177-final-source-binding-20261017/current-inputs.json",
+    " M docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py",
+    " M docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py",
+    " M src/source_reflows_merge/main_e177_final_inputs.rs",
+    " M src/source_reflows_merge/next_big_batch_inputs.rs",
+    "?? docs/evidence/main-e177-final-source-binding-20261017/current/10185cd94bf79b218cddfaa2cec848c2729a78bc2892c216ea7e72b5091d02f2.txt",
+    "?? docs/evidence/sequence-compiled-stage-repair-20261017/before/docs__evidence__accepted-final6-source-binding-20261017__check-source.py.txt",
+    "?? docs/evidence/sequence-compiled-stage-repair-20261017/before/docs__evidence__accepted-strict-guard-generation-20261017__check-source.py.txt",
+    "?? docs/evidence/sequence-compiled-stage-repair-20261017/before/docs__evidence__main-e177-final-source-binding-20261017__current-inputs.json.txt",
+    "?? docs/evidence/sequence-compiled-stage-repair-20261017/before/docs__evidence__main-e177-final-source-binding-20261017__guard_payload.py.txt",
+    "?? docs/evidence/sequence-compiled-stage-repair-20261017/before/docs__evidence__main043-independent-custody-20261016__verify-or-refresh.py.txt",
+    "?? docs/evidence/sequence-compiled-stage-repair-20261017/before/src__source_reflows_merge__main_e177_final_inputs.rs.txt",
+    "?? docs/evidence/sequence-compiled-stage-repair-20261017/before/src__source_reflows_merge__next_big_batch_inputs.rs.txt",
+    "?? docs/evidence/sequence-compiled-stage-repair-20261017/check-postbind49.before.py.txt",
+    "?? docs/evidence/sequence-compiled-stage-repair-20261017/check-postbind49.py",
+    "?? docs/evidence/sequence-compiled-stage-repair-20261017/prepare.py",
+    "?? docs/evidence/sequence-compiled-stage-repair-20261017/receipt.json",
+    "?? docs/evidence/sequence-compiled-stage-repair-20261017/whole-inverses.json"
+  ],
+  "current_rows": 49,
+  "incoming_namespace_current_rows": 471,
+  "whole_immutable_incoming_archives": 471,
+  "old_table_anchors": 2,
+  "new_raw_modules": 36,
+  "ordered_table_rows": 441,
+  "pins": {
+    "docs/evidence/main-e177-final-source-binding-20261017/current-inputs.json": [
+      33454,
+      "c7ef5558171837e13132324c39d047d9dac2f0f210322fd0b104e2e843be3209"
+    ],
+    "docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py": [
+      19974,
+      "b283d115088881f5ba6649c52fdb2a4b7939beb20b601041a245b2cf422d2fc2"
+    ],
+    "docs/evidence/main-e177-full-controller-acquisition-20261017/inputs.json": [
+      237694,
+      "77863eae5848b0a166e6d71393ecec786d4992bc4163b3f644766d901a18dc29"
+    ],
+    "src/source_reflows_merge/main_e177_final_inputs.rs": [
+      14776,
+      "ddbb8e44763c6eaaa44a1d0bf17afa796883b7b2d6a925c0b7509e85e352d5c5"
+    ]
+  },
+  "Cargo": false,
+  "Rust_executed": false
+}

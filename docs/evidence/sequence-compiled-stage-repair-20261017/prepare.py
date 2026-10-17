@@ -1,0 +1,19 @@
+from pathlib import Path
+import json,hashlib,subprocess,ast
+R=Path('/Volumes/Semaprax/worktrees/wasm-custody-compile-repair-20261017');BASE='da8d04491200cd3bc2a4c96f5024372c5524ae20';REL='docs/evidence/sequence-compiled-stage-repair-20261017';D=R/REL;D.mkdir(parents=True,exist_ok=True);ST='docs/evidence/main-e177-final-source-binding-20261017';H=lambda b:hashlib.sha256(b).hexdigest();G=lambda p:subprocess.check_output(['git','show',BASE+':'+p],cwd=R);rows=[]
+def edit(p,new,ops):
+ b=G(p);assert(R/p).read_bytes()==b;p0=REL+'/before/'+p.replace('/','__')+'.txt';(R/p0).parent.mkdir(parents=True,exist_ok=True);(R/p0).write_bytes(b);(R/p).write_bytes(new);rows.append(dict(source=p,before=dict(length=len(b),sha256=H(b),archive=p0),after=dict(length=len(new),sha256=H(new)),edits=ops,restore_complete_before=p0))
+helper='src/source_reflows_merge/next_big_batch_inputs.rs';old=G(helper);s=old.decode();before='    if supplied==current || supplied==previous {previous}else{supplied.to_owned()}';after='    let supplied=crate::source_reflows_merge::main_e177_final_inputs::value(source,row["current"]["sha256"].as_str().unwrap(),supplied);\n'+before;assert s.count(before)==1;s=s.replace(before,after);newbody=s.encode();edit(helper,newbody,[dict(before=before,after=after,count=1)])
+p=ST+'/current-inputs.json';old=G(p);v=json.loads(old);assert len(v['rows'])==49;row=next(x for x in v['rows']if x['source']==helper);assert(row['current']['length'],row['current']['sha256'])==(len(G(helper)),H(G(helper)));archive=ST+'/current/'+H(newbody)+'.txt';(R/archive).write_bytes(newbody);row['current']=dict(length=len(newbody),sha256=H(newbody),archive=archive);new=(json.dumps(v,indent=2)+'\n').encode();edit(p,new,[dict(operation='replace_only_complete_current_descriptor',source=helper,before_current=next(x['current']for x in json.loads(old)['rows']if x['source']==helper),after_current=row['current'])]);oldpacket=old;newpacket=new
+helper2='src/source_reflows_merge/main_e177_final_inputs.rs';s=G(helper2).decode();ops=[]
+for before,after in [(f'assert_eq!(data.len(), {len(oldpacket)});',f'assert_eq!(data.len(), {len(newpacket)});'),(H(oldpacket),H(newpacket))]:
+ if before==after:continue
+ assert s.count(before)==1;s=s.replace(before,after);ops.append(dict(before=before,after=after,count=1))
+edit(helper2,s.encode(),ops);body2=s.encode()
+gp=ST+'/guard_payload.py';old=G(gp);t=old.decode();node=next(n.value for n in ast.parse(t).body if isinstance(n,ast.Assign)and isinstance(n.targets[0],ast.Name)and n.targets[0].id=='CONFIG');cfg=ast.literal_eval(node);cfg['packet'].update(length=len(newpacket),sha256=H(newpacket));assert cfg['rows']==49
+for h,body in [(helper,newbody),(helper2,body2)]:cfg['modules'][h].update(length=len(body),sha256=H(body))
+lines=t.splitlines(True);a=sum(map(len,lines[:node.lineno-1]))+node.col_offset;b=sum(map(len,lines[:node.end_lineno-1]))+node.end_col_offset;nt=t[:a]+repr(cfg)+t[b:];ast.parse(nt);edit(gp,nt.encode(),[dict(before=t[a:b],after=repr(cfg),count=1)]);newguard=nt.encode()
+for p in ['docs/evidence/accepted-strict-guard-generation-20261017/check-source.py','docs/evidence/accepted-final6-source-binding-20261017/check-source.py','docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py']:
+ t=G(p).decode();assert t.count(H(old))==1;nt=t.replace(H(old),H(newguard));ops=[dict(before=H(old),after=H(newguard),count=1)];assert len(old)==len(newguard);ast.parse(nt);edit(p,nt.encode(),ops)
+(D/'whole-inverses.json').write_text(json.dumps(dict(status='SOURCE_ONLY',base=BASE,rows=rows,old49_whole_retained=True,old54_and454_and471_unchanged=True,scope='One named supplied/compiled acquisition through the same final stage already used for physical source; original comparison/foreign behavior retained.'),indent=2)+'\n')
+print(json.dumps(dict(guard_length=len(newguard),guard_sha256=H(newguard),next_helper_sha256=H(newbody),packet49_sha256=H(newpacket))))

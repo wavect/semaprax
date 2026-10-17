@@ -151,6 +151,7 @@ pub(crate) fn value(source: &str,expected: &str,supplied: &str) -> String {
     let packet=packet();let Some(row)=packet["rows"].as_array().unwrap().iter().find(|r|r["source"]==source)else{return supplied.to_owned()};
     let Some(prior)=row["views"].as_array().unwrap().iter().find(|v|v["sha256"]==expected)else{return supplied.to_owned()};
     let current=actual(row);let previous=read_view(prior);
+    let supplied=crate::source_reflows_merge::main_e177_final_inputs::value(source,row["current"]["sha256"].as_str().unwrap(),supplied);
     if supplied==current || supplied==previous {previous}else{supplied.to_owned()}
 }
 #[test]

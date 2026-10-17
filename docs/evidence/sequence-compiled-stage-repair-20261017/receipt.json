@@ -1,0 +1,131 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "base": "da8d04491200cd3bc2a4c96f5024372c5524ae20",
+  "actual_failure_source": "0f9fb3766f0413694e4a12447538f7c7bb99627f",
+  "actual_failures": [
+    {
+      "index": 12,
+      "left": {
+        "length": 326295,
+        "sha256": "add44f92c19bb698ebec165c74554f4d606cd38885e6230e1e882556eb068848"
+      },
+      "right": {
+        "length": 324455,
+        "sha256": "733505ad93eda40bcbfa03ed0d2978f5e1dd5f0aa93020daff78d833def3b464"
+      }
+    },
+    {
+      "index": 13,
+      "left": {
+        "length": 326295,
+        "sha256": "add44f92c19bb698ebec165c74554f4d606cd38885e6230e1e882556eb068848"
+      },
+      "right": {
+        "length": 324455,
+        "sha256": "733505ad93eda40bcbfa03ed0d2978f5e1dd5f0aa93020daff78d833def3b464"
+      }
+    },
+    {
+      "index": 15,
+      "left": {
+        "length": 326295,
+        "sha256": "add44f92c19bb698ebec165c74554f4d606cd38885e6230e1e882556eb068848"
+      },
+      "right": {
+        "length": 324455,
+        "sha256": "733505ad93eda40bcbfa03ed0d2978f5e1dd5f0aa93020daff78d833def3b464"
+      }
+    }
+  ],
+  "root_cause": "Physical next_big::file already acquired final current\u2192afa\u2192ROOT42; supplied/compiled next_big::value skipped final current\u2192afa, so old comparison returned actual current unchanged.",
+  "correction": "One named final value acquisition before original current/previous comparison; both original branches and foreign passthrough retained. All final value paths authenticate complete physical+compiled+archive current before selecting whole prior.",
+  "exact_stages": {
+    "latest_current": {
+      "length": 324455,
+      "sha256": "733505ad93eda40bcbfa03ed0d2978f5e1dd5f0aa93020daff78d833def3b464",
+      "archive": "docs/evidence/main-e177-final-source-binding-20261017/current/733505ad93eda40bcbfa03ed0d2978f5e1dd5f0aa93020daff78d833def3b464.txt"
+    },
+    "afa_current": {
+      "length": 324389,
+      "sha256": "6cdfce6c20964d62f360cd147d0c6ca8b4d9cb86f671d6d5b5773d8c6e446ae7",
+      "archive": "docs/evidence/next-big-batch-source-binding-20261017/current/6cdfce6c20964d62f360cd147d0c6ca8b4d9cb86f671d6d5b5773d8c6e446ae7.txt"
+    },
+    "ROOT42_current": {
+      "name": "ROOT42:current",
+      "length": 326295,
+      "sha256": "add44f92c19bb698ebec165c74554f4d606cd38885e6230e1e882556eb068848",
+      "archive": "docs/evidence/next-big-batch-source-binding-20261017/views/add44f92c19bb698ebec165c74554f4d606cd38885e6230e1e882556eb068848.txt"
+    }
+  },
+  "old_bodies_and_tables": "Full complete next_big old body and every changed file beforeimage retained. Whole old49 table retained, all row order/views unchanged, exactly one next_big current descriptor changes. Immutable54/454 and current471 unchanged.",
+  "174_and_FINAL6_source_membership": "No changed source appears in either physical174 or FINAL6 current source rows. Role source hashes need refresh after combined semantic batch. No module registration or newphysical owner added.",
+  "foreign_controls": "Original equality/foreign branch byteexact; final view only recognizes complete authenticated actualcurrent or exactdeclaredprior. Existing three failed owner bodies/assertions/hostiles untouched.",
+  "strict58": "Not rerun in this followup; actual58 PASS belongs preceding da8 checkpoint. Parent combined source checks remain required.",
+  "postbind_checker": {
+    "path": "/Volumes/Semaprax/provenance/sequence-compiled-stage-repair-20261017/check-postbind49.py",
+    "sha256": "5c64549876084feda13853b64b88fba83408a90a42ceb194a11dcca189760c88"
+  },
+  "Cargo": false,
+  "Rust_test_bodies": 0,
+  "finite_byte_selection_proof": {
+    "scope": "Eight exact byte-selection equalities derived from retained source branches; not Rust execution or a substitute for original runtime owners. Physical/compiled/held authority remains the unchanged Rust guard.",
+    "cases": [
+      {
+        "input": "actual current",
+        "input_length": 324455,
+        "input_sha256": "733505ad93eda40bcbfa03ed0d2978f5e1dd5f0aa93020daff78d833def3b464",
+        "selected_length": 326295,
+        "selected_sha256": "add44f92c19bb698ebec165c74554f4d606cd38885e6230e1e882556eb068848"
+      },
+      {
+        "input": "already normalized afa",
+        "input_length": 324389,
+        "input_sha256": "6cdfce6c20964d62f360cd147d0c6ca8b4d9cb86f671d6d5b5773d8c6e446ae7",
+        "selected_length": 326295,
+        "selected_sha256": "add44f92c19bb698ebec165c74554f4d606cd38885e6230e1e882556eb068848"
+      },
+      {
+        "input": "exact declared ROOT42 prior",
+        "input_length": 326295,
+        "input_sha256": "add44f92c19bb698ebec165c74554f4d606cd38885e6230e1e882556eb068848",
+        "selected_length": 326295,
+        "selected_sha256": "add44f92c19bb698ebec165c74554f4d606cd38885e6230e1e882556eb068848"
+      },
+      {
+        "input": "foreign",
+        "input_length": 7,
+        "input_sha256": "656771905e1ef731f65cd0a0d9fb061238380a1a012e6abdf846ecc7d2ea36fd",
+        "selected_length": 7,
+        "selected_sha256": "656771905e1ef731f65cd0a0d9fb061238380a1a012e6abdf846ecc7d2ea36fd"
+      },
+      {
+        "input": "empty",
+        "input_length": 0,
+        "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "selected_length": 0,
+        "selected_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "input": "truncated",
+        "input_length": 324454,
+        "input_sha256": "64011970de13a7fbf6ca2a9b34d8eb109ea673fb53894495feb74f30a139eb06",
+        "selected_length": 324454,
+        "selected_sha256": "64011970de13a7fbf6ca2a9b34d8eb109ea673fb53894495feb74f30a139eb06"
+      },
+      {
+        "input": "duplicate",
+        "input_length": 648910,
+        "input_sha256": "af968bb077fdb5c8ec5b6b0a6b86f3b7b612517255cec4e1a4af797f4ea582c6",
+        "selected_length": 648910,
+        "selected_sha256": "af968bb077fdb5c8ec5b6b0a6b86f3b7b612517255cec4e1a4af797f4ea582c6"
+      },
+      {
+        "input": "wrong historical stage",
+        "input_length": 326296,
+        "input_sha256": "8ed48ac1d4c1898378b8b566ab44527f0d9353c5db22da163c51c5c60db9611b",
+        "selected_length": 326296,
+        "selected_sha256": "8ed48ac1d4c1898378b8b566ab44527f0d9353c5db22da163c51c5c60db9611b"
+      }
+    ]
+  }
+}

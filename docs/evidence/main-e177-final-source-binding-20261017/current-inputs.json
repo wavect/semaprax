@@ -634,9 +634,9 @@
       "source": "src/source_reflows_merge/next_big_batch_inputs.rs",
       "compiled": true,
       "current": {
-        "length": 16723,
-        "sha256": "4d42241052812d7b51d6d20db3881b3643decd0ebb37f52711d9345442b123a5",
-        "archive": "docs/evidence/main-e177-final-source-binding-20261017/current/4d42241052812d7b51d6d20db3881b3643decd0ebb37f52711d9345442b123a5.txt"
+        "length": 16860,
+        "sha256": "10185cd94bf79b218cddfaa2cec848c2729a78bc2892c216ea7e72b5091d02f2",
+        "archive": "docs/evidence/main-e177-final-source-binding-20261017/current/10185cd94bf79b218cddfaa2cec848c2729a78bc2892c216ea7e72b5091d02f2.txt"
       },
       "views": [
         {

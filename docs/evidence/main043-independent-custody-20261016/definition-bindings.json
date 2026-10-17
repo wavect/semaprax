@@ -52,8 +52,8 @@
     },
     {
       "path": "src/source_reflows/main043/semantic_receivers.rs",
-      "bytes": 4318,
-      "sha256": "2ef2eb1aa9ceff7702f991a45b42c87d397936dca612d2e8ce25f93bbdd4d09d"
+      "bytes": 6160,
+      "sha256": "4bc99dc2b93442b83cb679e3c0e108f3b50121d90e8aee4ceed01296e7ec33b5"
     },
     {
       "path": "src/source_reflows_merge/main043_custody.rs",

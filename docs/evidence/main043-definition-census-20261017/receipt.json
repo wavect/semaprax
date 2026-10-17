@@ -1,0 +1,21 @@
+{
+  "status": "TARGETED_SOURCE_CENSUS_PASS_NOT_COMMON_PASS",
+  "base": "197e7814c86f144804eaa65ef1143828c4fd39bd",
+  "definition_rows": 12,
+  "changed_current_definition_rows": 1,
+  "other_ordered_rows_unchanged": 11,
+  "existing_verifier_and_Rust_sources_unchanged": true,
+  "new_Rust_selectors": 0,
+  "common_or_Cargo_or_runtime_executed": false,
+  "ROOT_written": false,
+  "files": {
+    "README.md": "2bdb93d7e3351af9e1864dc53cc4a7fe17b857385f7731b82f065d3f3dca5d7e",
+    "definition-bindings.json.before": "8f6e7a2c069366398de3e868533d6989da16ccdb425461d53873aa342a9bd829",
+    "definition-source-inverse.json": "5eb3f2f7c24e140c2f1aa8c8f93e80f1ef53da38de1e538e4bb230189518a9d1",
+    "semantic_receivers.rs.before.txt": "2ef2eb1aa9ceff7702f991a45b42c87d397936dca612d2e8ce25f93bbdd4d09d",
+    "semantic_receivers.rs.current.txt": "4bc99dc2b93442b83cb679e3c0e108f3b50121d90e8aee4ceed01296e7ec33b5",
+    "source-controls.json": "61f3be50528e673230bb97a2e1368b08bd64e6f9c105b5dfc14bae1591272cc0",
+    "table-inverse.json": "f304ded37571d7fbc4e8c8856f0e88cf4fc0ec7eec756f5f6ac8c28db7658a2b",
+    "verify-census.py": "a8143b6d9bf0c31299be0bcbde3b0cee4c7e2d9e0f70f2ac878172408029a2a9"
+  }
+}

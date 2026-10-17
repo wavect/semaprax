@@ -1,0 +1,20 @@
+{
+  "path": "docs/evidence/main043-independent-custody-20261016/definition-bindings.json",
+  "base": "197e7814c86f144804eaa65ef1143828c4fd39bd",
+  "before_sha256": "8f6e7a2c069366398de3e868533d6989da16ccdb425461d53873aa342a9bd829",
+  "current_sha256": "e32604159e0d9e668957214416a1b1042fb2097741ddae20b1bd95cc683c5952",
+  "before_source": "{\n  \"definitions\": [\n    {\n      \"path\": \"src/source_reflows/main043/audit_0.rs\",\n      \"bytes\": 5959,\n      \"sha256\": \"644134e886e77a26db499c306cc7cf80b0d780976b936b645b2154ee7ea62151\"\n    },\n    {\n      \"path\": \"src/source_reflows/main043/audit_1.rs\",\n      \"bytes\": 5404,\n      \"sha256\": \"73bb1109d363d687e48d9853df40e4dc4bcb9cdca1f2eebc1325b67b97529fe6\"\n    },\n    {\n      \"path\": \"src/source_reflows/main043/audit_2.rs\",\n      \"bytes\": 6937,\n      \"sha256\": \"6904955884f9cc22e02ac9cd5c4f731ce79b5bc26db74e993e9971253b674ec1\"\n    },\n    {\n      \"path\": \"src/source_reflows/main043/audit_3.rs\",\n      \"bytes\": 3285,\n      \"sha256\": \"dde82cea9c41e282e790d96d14c2dc5ddc6f74275e0af16aed136e46969a338f\"\n    },\n    {\n      \"path\": \"src/source_reflows/main043/audit_4.rs\",\n      \"bytes\": 2014,\n      \"sha256\": \"16fd3536f3d776497504a42191690e5e4995cd0d695dd928cdc0fda1bd1aaf2a\"\n    },\n    {\n      \"path\": \"src/source_reflows/main043/audit_5.rs\",\n      \"bytes\": 5027,\n      \"sha256\": \"938898f8da7d4cc572bcf295aed97bf29f48603b534a4647409b1a060761e928\"\n    },\n    {\n      \"path\": \"src/source_reflows/main043/audit_6.rs\",\n      \"bytes\": 6451,\n      \"sha256\": \"f0bea2cf6be741cb35ea69e64e0cb4f1031038b9176108c75199b8f32b69d08a\"\n    },\n    {\n      \"path\": \"src/source_reflows/main043/audit_7.rs\",\n      \"bytes\": 7948,\n      \"sha256\": \"c89714442c5087e8216d799a9a953ce6e01bc67198b90b07df6e86a51fc41508\"\n    },\n    {\n      \"path\": \"src/source_reflows/main043/audit_8.rs\",\n      \"bytes\": 4510,\n      \"sha256\": \"7dbe0b6df7339be760564fd5af2a8c3ecfe1036ff211f82ca0549e746a7e4b3e\"\n    },\n    {\n      \"path\": \"src/source_reflows/main043.rs\",\n      \"bytes\": 4322,\n      \"sha256\": \"aa2286e2c9b1a78c91075334ca7cc52dbfff632128b9d96725a4d42979870b2c\"\n    },\n    {\n      \"path\": \"src/source_reflows/main043/semantic_receivers.rs\",\n      \"bytes\": 4318,\n      \"sha256\": \"2ef2eb1aa9ceff7702f991a45b42c87d397936dca612d2e8ce25f93bbdd4d09d\"\n    },\n    {\n      \"path\": \"src/source_reflows_merge/main043_custody.rs\",\n      \"bytes\": 6480,\n      \"sha256\": \"7dd405ac16c605e8972e700848b934fdc58ce94381f42b14fbe2f652e885966a\"\n    }\n  ],\n  \"verification_script_sha256\": \"b8b72537f880da2655f102002275dbe0c5a7eb0aee72982eae017204d15266c7\",\n  \"guard_extension_verifier_sha256\": \"c2dece1bcd69cdcc66abe6be3c39230d6485bb8735641349c6c09bd9e153228f\"\n}\n",
+  "exact_inverse": {
+    "current_row": {
+      "path": "src/source_reflows/main043/semantic_receivers.rs",
+      "bytes": 6160,
+      "sha256": "4bc99dc2b93442b83cb679e3c0e108f3b50121d90e8aee4ceed01296e7ec33b5"
+    },
+    "previous_row": {
+      "path": "src/source_reflows/main043/semantic_receivers.rs",
+      "bytes": 4318,
+      "sha256": "2ef2eb1aa9ceff7702f991a45b42c87d397936dca612d2e8ce25f93bbdd4d09d"
+    }
+  },
+  "source_change_commit": "189a13a084dbbd0d847a3b4e60aff71a5b7cdfbb"
+}

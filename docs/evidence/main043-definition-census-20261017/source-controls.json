@@ -1,0 +1,13 @@
+{
+  "status": "PASS_TARGETED_SOURCE_ONLY_DEFINITION_CENSUS",
+  "definition_rows": 12,
+  "updated_rows": 1,
+  "unchanged_ordered_rows": 11,
+  "hostile_controls": 56,
+  "whole_old_table_restored": true,
+  "whole_old_definition_restored": true,
+  "original_verifier_whole_source_unchanged": true,
+  "new_Rust_selectors": 0,
+  "common_refresh_run": false,
+  "Cargo_or_runtime_run": false
+}

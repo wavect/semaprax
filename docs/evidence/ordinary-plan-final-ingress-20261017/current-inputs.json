@@ -29,13 +29,19 @@
   {
     "path": "src/source_reflows_merge.rs",
     "expected_sha256": "10330014cf84803a8d017702b59a626820f777f7fb0cc950cc512897b8b6d220",
-    "current_length": 46161,
-    "current_sha256": "e39790a4feedf4e2ea920e66760e1f17c0d2455a78e3640cd64badaeaf55de53",
-    "current_archive": "docs/evidence/ordinary-plan-final-ingress-20261017/current/e39790a4feedf4e2ea920e66760e1f17c0d2455a78e3640cd64badaeaf55de53.txt",
+    "current_length": 46420,
+    "current_sha256": "17fd9053a46a45e17f3ae8890220a4176290d00c26a7f9a6890b696c9ec7ac89",
+    "current_archive": "docs/evidence/ordinary-plan-final-ingress-20261017/current/17fd9053a46a45e17f3ae8890220a4176290d00c26a7f9a6890b696c9ec7ac89.txt",
     "checkpoint_length": 46161,
     "checkpoint_sha256": "e39790a4feedf4e2ea920e66760e1f17c0d2455a78e3640cd64badaeaf55de53",
     "checkpoint_archive": "docs/evidence/ordinary-plan-final-ingress-20261017/before787/01.txt",
-    "inverse": []
+    "inverse": [
+      {
+        "start_byte": 46161,
+        "after": "\n// Only the historical PLAN source test receives this exact root checkpoint.\npub(crate) fn ordinary_plan_history_root_checkpoint(current: &str, compiled_before: &str) -> String {\n    ordinary_plan_inputs::original_root_checkpoint(current, compiled_before)\n}\n",
+        "before": ""
+      }
+    ]
   },
   {
     "path": "src/source_reflows_merge/main67107_inputs.rs",

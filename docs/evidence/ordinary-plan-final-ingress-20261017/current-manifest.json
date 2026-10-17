@@ -29,8 +29,8 @@
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history/source_custody.rs",
-      "sha256": "9338ef7185fc5cfc3d317e5223ce152caee53bca1a4b225e4314c993cb360c92",
-      "lines": 55
+      "sha256": "15c00486d9fc40bbafddde3a37ed3d945ef9eaf48320990da930f712671cd114",
+      "lines": 67
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history/tests.rs",
@@ -39,13 +39,13 @@
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history.rs",
-      "sha256": "af1c1eb050784185ef2eedb1b895796eb6fac1c45299d4f6a2be0227d2e50281",
-      "lines": 582
+      "sha256": "35da2f708b6d73dc44427f6ef36e8a4d9dcebb9d499cab40efbbfa221b85bd66",
+      "lines": 583
     },
     {
       "path": "src/source_reflows_merge/ordinary_plan_inputs.rs",
-      "sha256": "169ab43d0397bfa4fd55ec4bcaca046361f88ee7eaff032f7702302cdc74498a",
-      "lines": 375
+      "sha256": "de2e77ed79eb0d7a27ace8e618c647fffe908fd8a79208be85df2b31b996ca8b",
+      "lines": 397
     }
   ]
 }

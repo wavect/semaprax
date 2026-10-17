@@ -118,6 +118,8 @@ fn digest(source: &str) -> String {
 }
 
 fn invert(proof: &serde_json::Value, current: &str) -> String {
+    let acquired = incoming_main21::ours_expected_input(proof, current);
+    let current = acquired.as_str();
     let path = proof["path"].as_str().unwrap();
     let joined = crate::source_reflows_merge::main8fb_input(path, current);
     let current = joined.as_str();
@@ -144,6 +146,8 @@ fn invert(proof: &serde_json::Value, current: &str) -> String {
     restored
 }
 
+mod retained_predecessor {
+use super::*;
 pub(super) fn predecessor(path: &str, current: &str) -> Option<String> {
     if let Some(proof) = receiving_lookups()
         .iter()
@@ -176,7 +180,11 @@ pub(super) fn predecessor(path: &str, current: &str) -> Option<String> {
     let proof = proofs().iter().find(|proof| proof["path"] == path)?;
     Some(invert(proof, current))
 }
+}
 
+
+mod retained_contains {
+use super::*;
 pub(super) fn contains(path: &str) -> bool {
     proofs()
         .iter()
@@ -188,6 +196,8 @@ pub(super) fn contains(path: &str) -> bool {
         .chain(receiving_lookups())
         .any(|proof| proof["path"] == path)
 }
+}
+
 
 #[test]
 fn ordinary_helper_views_authenticate_every_complete_input() {
@@ -692,4 +702,19 @@ fn ordinary_replay_routes_keep_complete_predecessors_and_existing_controls() {
         forged["before_sha256"] = serde_json::Value::String("0".repeat(64));
         assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());
     }
+}
+
+// Independent MAIN21 namespace and whole-source acquisitions precede all old domains.
+#[path = "incoming21_semantic_receivers.rs"]
+pub(super) mod incoming_main21;
+
+pub(super) fn predecessor(path: &str, current: &str) -> Option<String> {
+    if retained_contains::contains(path) {
+        return retained_predecessor::predecessor(path, current);
+    }
+    let acquired = incoming_main21::ours_input(path, current);
+    (acquired != current).then_some(acquired)
+}
+pub(super) fn contains(path: &str) -> bool {
+    incoming_main21::ours_contains(path) || retained_contains::contains(path)
 }

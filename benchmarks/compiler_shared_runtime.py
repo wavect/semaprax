@@ -25,19 +25,30 @@ MAX_STDERR = 1024 * 1024
 
 
 def matched_configuration(value):
-    closed(value, ['backend', 'model', 'effort', 'arms', 'runtime_contract_sha256',
-                   'compiler_tool_arms', 'allow_model_fallback'])
+    closed(value, ['backend', 'model', 'effort', 'arms', 'runtime_contracts_sha256',
+                   'runtime_sha256', 'compiler_sha256', 'compiler_tool_arms', 'allow_model_fallback'])
     if (value['backend'] != BACKEND or value['arms'] != ['semaprax', 'typescript']
             or value['compiler_tool_arms'] != ['semaprax']
             or value['allow_model_fallback'] is not False
             or type(value['model']) is not str or not 1 <= len(value['model']) <= 128
-            or value['effort'] not in ['low', 'medium', 'high', 'xhigh', 'max', 'ultra']
-            or type(value['runtime_contract_sha256']) is not str
-            or len(value['runtime_contract_sha256']) != 64
-            or any(c not in '0123456789abcdef' for c in value['runtime_contract_sha256'])):
+            or value['effort'] not in ['low', 'medium', 'high', 'xhigh', 'max', 'ultra']):
         raise Refusal('shared-runtime matched configuration differs')
-    # Freeze through the same closed JSON representation used for the receipt.
+    contracts = closed(value['runtime_contracts_sha256'], ['semaprax', 'typescript'])
+    for digest in [*contracts.values(), value['runtime_sha256'], value['compiler_sha256']]:
+        if type(digest) is not str or len(digest) != 64 or any(c not in '0123456789abcdef' for c in digest):
+            raise Refusal('shared-runtime artifact/contract digest differs')
+    # Both arms bind this one full configuration, with distinct declared trial
+    # roots/contracts and the same model, effort, runtime and compiler identity.
     return decode(encode(value))
+
+
+def fixed_policy(authority):
+    policy = decode(encode(dict(authority.sandbox_policy)))
+    expected = {'type': 'workspaceWrite', 'writableRoots': [str(authority.workspace_root)],
+        'networkAccess': False, 'excludeSlashTmp': True, 'excludeTmpdirEnvVar': True}
+    if policy != expected:
+        raise Refusal('unsupported shared-runtime policy scope')
+    return policy
 
 
 def require_authority(authority):
@@ -55,8 +66,11 @@ class Session:
         require_authority(authority)
         self.authority = authority
         self.config = matched_configuration(configuration)
-        if self.config['runtime_contract_sha256'] != authority.contract_sha256:
-            raise Refusal('configuration and authority contract differ')
+        if (authority.contract_sha256 not in self.config['runtime_contracts_sha256'].values()
+                or authority.runtime_sha256 != self.config['runtime_sha256']
+                or authority.compiler_sha256 != self.config['compiler_sha256']):
+            raise Refusal('configuration and authority artifacts/contracts differ')
+        fixed_policy(authority)
         authority.check_private_path(evidence)
         self.protocol = Protocol()
         self.sequence = 0
@@ -65,6 +79,7 @@ class Session:
         self.events = []
         self.command = None
         self.handler = None
+        self.declared_tools = None
         self.deferred_requests = []
         self.server_ids = set()
         self.call_ids = set()
@@ -201,9 +216,63 @@ class Session:
             raise Refusal('foreign, duplicate or malformed runtime response')
         self.responses[message['id']] = message
 
+    def _authorize_parameters(self, method, params):
+        """Closed invocation scope in addition to installed-schema compatibility."""
+        policy = fixed_policy(self.authority)
+        root = str(self.authority.workspace_root)
+        if method == 'initialize':
+            if self.sequence != 0:
+                raise Refusal('runtime connection was already initialized')
+            return
+        if method == 'thread/start':
+            if (params.get('cwd') != root or params.get('runtimeWorkspaceRoots') != [root]
+                    or params.get('environments') != [] or params.get('sandbox') != 'workspace-write'
+                    or params.get('approvalPolicy') != 'never'
+                    or params.get('model') != self.config['model']
+                    or params.get('allowProviderModelFallback') is not False
+                    or params.get('config') != {'model_reasoning_effort': self.config['effort']}
+                    or self.declared_tools is None or params.get('dynamicTools') != self.declared_tools):
+                raise Refusal('thread authority differs from matched configuration')
+            if set(params) != {'cwd', 'runtimeWorkspaceRoots', 'environments', 'sandbox',
+                    'approvalPolicy', 'model', 'allowProviderModelFallback', 'config', 'dynamicTools'}:
+                raise Refusal('unadmitted thread configuration')
+            return
+        if method == 'turn/start':
+            if (params.get('sandboxPolicy') != policy or params.get('cwd') != root
+                    or params.get('runtimeWorkspaceRoots') != [root] or params.get('environments') != []
+                    or params.get('approvalPolicy') != 'never' or params.get('threadId') != self.thread_id
+                    or params.get('model') != self.config['model'] or params.get('effort') != self.config['effort']
+                    or set(params) != {'sandboxPolicy', 'cwd', 'runtimeWorkspaceRoots', 'environments',
+                        'approvalPolicy', 'threadId', 'model', 'effort', 'input'}):
+                raise Refusal('turn authority differs from matched configuration')
+            return
+        if method == 'command/exec':
+            from compiler_retained_receipt import options
+            argv = params.get('command')
+            if (type(argv) is not list or len(argv) > 35 or len(argv) < 4
+                    or any(type(arg) is not str or '\0' in arg for arg in argv)
+                    or argv[0] != str(self.authority.compiler_binary)
+                    or argv[-2] != '--receipt-stdout-seal' or argv.count('--receipt-stdout-seal') != 1
+                    or len(argv[-1]) != 64 or any(c not in '0123456789abcdef' for c in argv[-1])
+                    or options(argv[1:-2]) is None):
+                raise Refusal('compiler command is not the closed retained invocation')
+            if (params.get('sandboxPolicy') != policy or params.get('cwd') != root
+                    or params.get('env') != dict(self.authority.command_env)
+                    or params.get('tty') is not False or params.get('streamStdin') is not False
+                    or params.get('streamStdoutStderr') is not True or params.get('outputBytesCap') != 513
+                    or type(params.get('timeoutMs')) is not int or not 0 < params['timeoutMs'] <= 60000
+                    or self.command is None or params.get('processId') != self.command['process_id']
+                    or set(params) != {'command', 'sandboxPolicy', 'cwd', 'env', 'tty', 'streamStdin',
+                        'streamStdoutStderr', 'outputBytesCap', 'timeoutMs', 'processId'}):
+                raise Refusal('compiler execution authority differs')
+            return
+        raise Refusal('unsupported shared-runtime operation')
+
     def request(self, method, params, timeout):
+        require_authority(self.authority)
         if not 0 < timeout <= 1800 or len(self.pending) >= 8:
             raise Refusal('runtime request bound differs')
+        self._authorize_parameters(method, params)
         if method != 'initialize':
             self.protocol.validate(method, params)
         self.sequence += 1
@@ -223,7 +292,8 @@ class Session:
 
     def start_thread(self, arm):
         require_authority(self.authority)
-        if arm not in self.config['arms'] or self.thread_id is not None:
+        if (arm not in self.config['arms'] or self.thread_id is not None
+                or self.config['runtime_contracts_sha256'][arm] != self.authority.contract_sha256):
             raise Refusal('shared-runtime arm/thread differs')
         tools = []
         if arm in self.config['compiler_tool_arms']:
@@ -232,6 +302,7 @@ class Session:
                 'inputSchema': {'type': 'object', 'properties': {
                     'cwd': {'type': 'string'}, 'argv': {'type': 'array', 'items': {'type': 'string'}}},
                     'required': ['cwd', 'argv'], 'additionalProperties': False}}]
+        self.declared_tools = tools
         params = {'cwd': str(self.authority.workspace_root), 'model': self.config['model'],
             'sandbox': 'workspace-write', 'approvalPolicy': 'never',
             'runtimeWorkspaceRoots': [str(self.authority.workspace_root)],
@@ -240,7 +311,7 @@ class Session:
         result = self.protocol.validate('thread_start_result', self.request('thread/start', params, 20))
         if (result['cwd'] != str(self.authority.workspace_root)
                 or result['runtimeWorkspaceRoots'] != [str(self.authority.workspace_root)]
-                or result['sandbox'] != decode(encode(dict(self.authority.sandbox_policy)))
+                or result['sandbox'] != fixed_policy(self.authority)
                 or result['approvalPolicy'] != 'never'
                 or result['model'] != self.config['model']
                 or result['reasoningEffort'] != self.config['effort']):
@@ -249,6 +320,8 @@ class Session:
         return result
 
     def run_turn(self, prompt, handler, timeout=1800):
+        if type(timeout) not in (int, float) or not 0 < timeout <= 1800:
+            raise Refusal('runtime turn wall bound differs')
         require_authority(self.authority)
         if self.thread_id is None or self.turn_id is not None:
             raise Refusal('runtime turn is not fresh')
@@ -257,7 +330,7 @@ class Session:
             'cwd': str(self.authority.workspace_root),
             'runtimeWorkspaceRoots': [str(self.authority.workspace_root)],
             'environments': [], 'approvalPolicy': 'never',
-            'sandboxPolicy': decode(encode(dict(self.authority.sandbox_policy))),
+            'sandboxPolicy': fixed_policy(self.authority),
             'model': self.config['model'], 'effort': self.config['effort']}
         result = self.protocol.validate('turn_start_result', self.request('turn/start', params, 20))
         self.turn_id = result['turn']['id']
@@ -307,7 +380,7 @@ class Session:
         process_id = uuid.uuid4().hex
         self.command = {'process_id': process_id, 'stdout': bytearray(), 'stderr': bytearray()}
         params = {'command': list(argv), 'cwd': cwd, 'env': dict(self.authority.command_env),
-            'sandboxPolicy': decode(encode(dict(self.authority.sandbox_policy))),
+            'sandboxPolicy': fixed_policy(self.authority),
             'processId': process_id, 'tty': False, 'streamStdin': False,
             'streamStdoutStderr': True, 'outputBytesCap': 513, 'timeoutMs': int(timeout * 1000)}
         try:
@@ -333,35 +406,45 @@ class Session:
         self.closed = True
         process = self.process
         settlement_error = None
-        if process is not None:
-            try:
-                os.killpg(process.pid, signal.SIGTERM)
-            except ProcessLookupError:
-                pass
-            try:
-                process.wait(timeout=2)
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.wait(timeout=2)
-            # Prove settlement of this runner-owned server group. A qualified
-            # authority must separately establish the runtime command lifecycle;
-            # this check never claims to enumerate detached host processes.
-            deadline = time.monotonic() + 2
-            while True:
+        try:
+            if process is not None:
                 try:
-                    os.killpg(process.pid, 0)
+                    os.killpg(process.pid, signal.SIGTERM)
                 except ProcessLookupError:
-                    break
-                if time.monotonic() >= deadline:
-                    settlement_error = Refusal('runner-owned runtime group did not settle')
-                    break
-                os.killpg(process.pid, signal.SIGKILL)
-                time.sleep(0.01)
-            for pipe in [process.stdin, process.stdout, process.stderr]:
-                pipe.close()
-        self.selector.close()
-        self.transcript.close()
-        self.stderr.close()
+                    pass
+                try:
+                    process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    process.wait(timeout=2)
+                # This proves only our server group. Qualified authority must
+                # separately establish command-group/detached-child semantics.
+                deadline = time.monotonic() + 2
+                while True:
+                    try:
+                        os.killpg(process.pid, 0)
+                    except ProcessLookupError:
+                        break
+                    if time.monotonic() >= deadline:
+                        raise Refusal('runner-owned runtime group did not settle')
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        break
+                    time.sleep(0.01)
+        except (OSError, subprocess.TimeoutExpired, Refusal) as error:
+            settlement_error = Refusal('runner-owned runtime settlement refused')
+            settlement_error.__cause__ = error
+        finally:
+            if process is not None:
+                for pipe in [process.stdin, process.stdout, process.stderr]:
+                    pipe.close()
+            self.selector.close()
+            self.transcript.close()
+            self.stderr.close()
         if settlement_error is not None:
             raise settlement_error
 

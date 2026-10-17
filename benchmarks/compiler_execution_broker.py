@@ -51,6 +51,20 @@ def _request(value, authority, candidate):
     return tuple(argv), cwd, values, output
 
 
+def _root_and_evidence(candidate, evidence):
+    """Resource setup only; caller must already hold execution/path authority."""
+    # Collision refuses before opening a held FD; a failed open leaves no FD.
+    evidence.mkdir()
+    try:
+        return os.open(candidate, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    except BaseException:
+        try:
+            evidence.rmdir()
+        except OSError:
+            pass  # Never replace the original acquisition failure.
+        raise
+
+
 class ExecuteBroker:
     def __init__(self, session, candidate: Path, evidence: Path):
         from compiler_shared_runtime import Session
@@ -64,9 +78,8 @@ class ExecuteBroker:
             raise Refusal('candidate must be the fixed qualified workspace root')
         self.authority.authorize_cwd(str(self.candidate))
         self.authority.check_private_path(evidence)
-        self.root_fd = os.open(self.candidate, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        self.root_fd = _root_and_evidence(self.candidate, evidence)
         self.evidence = evidence
-        evidence.mkdir()
         self.requests = 0
         self.records = []
 

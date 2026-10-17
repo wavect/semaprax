@@ -5,6 +5,7 @@ Schema compatibility is not enforcement authority. This module starts no process
 from __future__ import annotations
 import hashlib
 import json
+import math
 from pathlib import Path
 
 PROTOCOL_SHA256 = '1ac6d7c46a319d9c92d4fa78fca78ad01ea2fad82161c8855e837d8e59434077'
@@ -24,13 +25,20 @@ def _pairs(pairs):
     return result
 
 
+def _finite_float(text):
+    value = float(text)
+    if not math.isfinite(value):
+        raise Refusal('nonfinite runtime number')
+    return value
+
+
 def decode(raw: bytes):
     if len(raw) > MAX_FRAME:
         raise Refusal('runtime frame exceeds bound')
     try:
-        return json.loads(raw.decode('utf-8'), object_pairs_hook=_pairs,
+        return json.loads(raw.decode('utf-8'), object_pairs_hook=_pairs, parse_float=_finite_float,
                           parse_constant=lambda _: (_ for _ in ()).throw(Refusal('nonfinite JSON')))
-    except (UnicodeError, json.JSONDecodeError, RecursionError) as error:
+    except (UnicodeError, ValueError, RecursionError) as error:
         raise Refusal('malformed runtime JSON') from error
 
 
@@ -106,6 +114,13 @@ def _validate(value, schema, document, depth=0):
     if type(value) in (int, float):
         if value < schema.get('minimum', value) or value > schema.get('maximum', value):
             raise Refusal('runtime number outside schema')
+    numeric_format = schema.get('format')
+    if numeric_format in ['int32', 'int64', 'uint', 'uint16', 'uint32', 'uint64']:
+        bits = {'int32': 32, 'int64': 64, 'uint': 64, 'uint16': 16, 'uint32': 32, 'uint64': 64}[numeric_format]
+        signed = numeric_format.startswith('int')
+        low, high = (-(1 << (bits - 1)), (1 << (bits - 1)) - 1) if signed else (0, (1 << bits) - 1)
+        if type(value) is not int or not low <= value <= high:
+            raise Refusal('runtime integer format differs')
     if type(value) is str and len(value) < schema.get('minLength', 0):
         raise Refusal('runtime string is too short')
     if type(value) is list:

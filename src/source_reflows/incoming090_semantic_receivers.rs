@@ -894,7 +894,7 @@ fn last_branch_prefix_keeps_complete_predecessors_and_original_source_controls()
 // Separate finite bounded acquisition; complete original body above.
 const MAIN090_MANIFEST: &str = "docs/evidence/main09013-source-namespaces-v1/input-domains.json";
 const MAIN090_MANIFEST_LEN: usize = 241192;
-const MAIN090_MANIFEST_SHA: &str = "d2bffbbaf18725d6885008296734e931999ba7599e62c2448c114a54a2ebc187";
+const MAIN090_MANIFEST_SHA: &str = "178f06efa9e5ee2f63543c7a29bc6a3b09a7ae270d71b235b628283c98a04bc0";
 const MAIN090_CAP: usize = 9464242; // Exact largest sealed MAIN8c input, distinct historical namespace.
 fn main090_manifest() -> serde_json::Value {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));

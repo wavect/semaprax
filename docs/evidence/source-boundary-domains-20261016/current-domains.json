@@ -2129,6 +2129,7 @@
         "tests/wasm/scalar_browser_ci_contract/before_524.rs",
         "tests/wasm/scalar_browser_ci_contract/before_671.rs",
         "tests/wasm/scalar_browser_ci_contract/before_75b.rs",
+        "tests/wasm/scalar_browser_ci_contract/before_7d34.rs",
         "tests/wasm/scalar_browser_ci_contract/before_c11.rs",
         "tests/wasm/scalar_browser_ci_contract/before_c451.rs",
         "tests/wasm/scalar_browser_ci_contract/before_c451_c11.rs",
@@ -2631,9 +2632,9 @@
         "src/source_verify/function_map.rs",
         "src/source_verify/funding.rs"
       ],
-      "full_manifest_sha256": "c9e049f5504207a156ff69828f28c2f416226b25677eae6689d3654fe99406cb",
-      "full_raw_sha256": "933cc42bb39806530fe746fab2297725674f0dee420768f4c552aa3ec10540a5",
-      "full_authenticated_production_sha256": "2f82bfa9c1349175f1238aa9eef9ae3b055433fab967ce84966b05b82d98b9ed"
+      "full_manifest_sha256": "5de91ae66ee0199e1529ba79c18a23880b1b5607c938b4147f34bb864aeeed4c",
+      "full_raw_sha256": "dace6b30a11d9c4425d7e65040818d837e82948dc2bc47d28bf554172b661a55",
+      "full_authenticated_production_sha256": "f36bfe1fe0407057cc79bfb52f8ee297f92bbd2eab6235cdcb9338a59b678d4a"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -3618,9 +3619,9 @@
         "src/source_verify/declaration/identity.rs",
         "src/source_verify/declaration/record_shape.rs"
       ],
-      "full_manifest_sha256": "65bb7c6f8627af592fcd8461400214e852634bfc920b8ebe271baab57ecd23f5",
-      "full_raw_sha256": "a1bc915f50618e8f7ffeb736b7133c7699c28a2a5c0f31bc6082aed2659cebf1",
-      "full_authenticated_production_sha256": "d6e6e52ae617a35d209bca22ed2c9b1158d8dd56def2cb4b7d59913bbc8098f9"
+      "full_manifest_sha256": "0a577d38b51608fb69098de696b2bb7fbf3cfe7c70d13f4e3e3ef2613a124957",
+      "full_raw_sha256": "36c62ae5a3015aef80ce520ee62f46c2101a987d3cd0d7a1ce2a63d091f7f725",
+      "full_authenticated_production_sha256": "30a8f5ecd2c1b028315188a5722e04a028bf5bc937532357a51678f5f3dfb529"
     }
   }
 }

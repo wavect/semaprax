@@ -1,0 +1,505 @@
+{
+  "source": "c8740045e33126a4375aadd1dc524a25be9245fc",
+  "clippy": "pending",
+  "issues": {
+    "853": {
+      "passed": 4,
+      "total": 4,
+      "owners": [
+        {
+          "selector": "hir::ids::instance_match::tests::streamed_instance_matches_complete_encoder_all_forms_and_forged_bytes",
+          "selected_in": "core247",
+          "index": 198,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "07348213a2411a46f21ce9656052d9d3c7d91813cdb9a39bcc6a17d6f1329f5e"
+        },
+        {
+          "selector": "hir::ids::instance_match::tests::streamed_instance_exact_short_zero_sticky_floor_keep_all_key_producers_and_drop",
+          "selected_in": "core247",
+          "index": 199,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "d929c92916905a9bc43250de90f838e7e5572c5aa286d19424893333efa29b06"
+        },
+        {
+          "selector": "hir::ids::instance_match::tests::streamed_instance_validator_preserves_duplicate_before_canonical_refusal",
+          "selected_in": "core247",
+          "index": 200,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "4b8e6d0f440d5fea6caa4bf89f3c42e66df267e344d8835cd7c2c43bf78a70b6"
+        },
+        {
+          "selector": "hir::ids::instance_match::tests::streamed_instance_zero_argument_nominal_omission_cannot_authenticate_empty_key",
+          "selected_in": "core247",
+          "index": 201,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "d044419388ef5de1fa49852f3aa5769cbb5c535425453734e3e5dc14c05e11c9"
+        }
+      ]
+    },
+    "855": {
+      "passed": 15,
+      "total": 15,
+      "owners": [
+        {
+          "selector": "hir::expr_nodes::residual_payload_tests::residual_payload_compacts_the_complete_previous_expression_layout",
+          "selected_in": "core247",
+          "index": 202,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "43183c4f1f799325832169757e2f9527161dffcc38d192ccd682b856f3e63870"
+        },
+        {
+          "selector": "hir::expr_nodes::residual_payload_tests::residual_payload_zero_exact_short_and_drop_pay_before_allocation",
+          "selected_in": "core247",
+          "index": 203,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "e07b885efaebc22859dad906c75c2cbbace5f6ec95bc1823e364acc38cf5ff64"
+        },
+        {
+          "selector": "hir::expr_nodes::residual_payload_tests::residual_payload_keeps_all_result_and_option_fields_debug_clone_and_backing",
+          "selected_in": "core247",
+          "index": 204,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "c3d7e985cc83a2e27c90f887a6df0e05a37ea69e8828995aff3f853136cd8519"
+        },
+        {
+          "selector": "hir::expr_nodes::residual_payload_tests::residual_payload_cache_keeps_wire_depth_node_and_hostile_input_boundaries",
+          "selected_in": "core247",
+          "index": 205,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "038072caf1facdc30f6b3017e3478ac97b0653b47b23904a8626d66669ffc2c9"
+        },
+        {
+          "selector": "hir::expr_nodes::residual_payload_tests::lexical_residual_receiving_keeps_old_producer_order_floor_and_restored_sticky_owner",
+          "selected_in": "core247",
+          "index": 206,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "37b18de026bbf8d0d8e4b60ff1e64af62b7d6e9848284e94b24686565cf8f062"
+        },
+        {
+          "selector": "hir::residual_constructor_before::residual_payload_tests::residual_payload_compacts_the_complete_previous_expression_layout",
+          "selected_in": "core247",
+          "index": 207,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "ac0e54b278ba633960d2b6eb1faa7619a2e5bfbbe94d015c36639afa145b9e1d"
+        },
+        {
+          "selector": "hir::residual_constructor_before::residual_payload_tests::residual_payload_zero_exact_short_and_drop_pay_before_allocation",
+          "selected_in": "core247",
+          "index": 208,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "903d639669386bc71bae3bdca929921d05f44aedf614a9ba7710373ef0bc2fa4"
+        },
+        {
+          "selector": "hir::residual_constructor_before::residual_payload_tests::residual_payload_keeps_all_result_and_option_fields_debug_clone_and_backing",
+          "selected_in": "core247",
+          "index": 209,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "fa461bb153fedf0716699d80cd63584fca1a2a291128120c739e1071b0278098"
+        },
+        {
+          "selector": "hir::residual_constructor_before::residual_payload_tests::residual_payload_cache_keeps_wire_depth_node_and_hostile_input_boundaries",
+          "selected_in": "core247",
+          "index": 210,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "1a4721702df9f629576d8cf488f47343ca09908844a1510aeb228f8280ad2394"
+        },
+        {
+          "selector": "implementation::tests::hir_traversal::hir_fingerprint_admits_exact_depth_result_and_option_try_chains",
+          "selected_in": "core247",
+          "index": 116,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "88811979df74f062371b9cfc57531d9c984d5d46b07ecdc6be81f0b83ada42a1"
+        },
+        {
+          "selector": "source_reflows::semantic_receivers_main7c6::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+          "selected_in": "core247",
+          "index": 211,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "b059a1407db7dbb57766b195149c4c6a5ae3e0e2ec39c9981fe2f4f5c82c542c"
+        },
+        {
+          "selector": "source_reflows::semantic_receivers_main7c6::receiver_mutation_and_forged_predecessor_fail_closed",
+          "selected_in": "core247",
+          "index": 212,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "b6a2ce9f0fe85acf540e5e40403d8db82178704ea02403a5437e5d3651a0a68e"
+        },
+        {
+          "selector": "hir::expr_nodes::residual_payload_tests::residual_payload_owned_handoff_preserves_children_without_allocation_or_budget",
+          "selected_in": "core247",
+          "index": 213,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "8c33c5f0f136ef89a6e5abd9e535b8ff629d0b2d62647a5eae74267d7c5c88d6"
+        },
+        {
+          "selector": "option_try_semantics::resolved_option_try_authenticates_carrier_members_instances_and_schema",
+          "selected_in": "core247",
+          "index": 214,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "2d1a4a73c4169502d237fc18e107bd3363ec20e95de4491f1f1e3eb0ae85b5ed"
+        },
+        {
+          "selector": "owned_result_variants::owned_result_try_cleanup_replay_rejects_case_source_and_residual_tampering",
+          "selected_in": "core247",
+          "index": 215,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "61ce598c74dd5a56fa27da9eab65b92fa6a03d36331a82615b20d8f7e501582e"
+        }
+      ]
+    },
+    "860": {
+      "passed": 18,
+      "total": 18,
+      "owners": [
+        {
+          "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+          "selected_in": "core247",
+          "index": 2,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "5a855c54436e0c4eee33804432dbb0b4df40e65303353b9ea81a6dadb0efaef3"
+        },
+        {
+          "selector": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+          "selected_in": "core247",
+          "index": 115,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "3f8e4c3cfa8a82825837981c3455144f47f3a1e722ca4b43ae99aeb7ad55e60b"
+        },
+        {
+          "selector": "production_source_inventory::boundary::tests::complete_original_domains_and_current_roles_remain_separate_and_source_bound",
+          "selected_in": "core247",
+          "index": 120,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "04476e777aefabfc4caadcd07e7b1a3a88b0fb826030eaa7fe3d8d71db34faf5"
+        },
+        {
+          "selector": "production_source_inventory::boundary::tests::complete_authentication_refuses_reclassification_source_drift_and_raw_drift",
+          "selected_in": "core247",
+          "index": 121,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "bf6c26c1b0bc9d25ce2ddd1e90086d9e9cffd21e68f04f99f3ff8f6c602d8d30"
+        },
+        {
+          "selector": "production_source_inventory::boundary::tests::old_test_roots_and_foreign_path_actual_children_cannot_escape_membership",
+          "selected_in": "core247",
+          "index": 122,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "d57383463c4342a6db427057b2c91a77064a7ebe6876c36e717a93dd7b42edbb"
+        },
+        {
+          "selector": "production_source_inventory::boundary::tests::dropped_current_child_and_modified_typed_manifest_are_rejected",
+          "selected_in": "core247",
+          "index": 123,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "221cefa1da4fdf4a00ce0aaef9e1879661fe35022925ed7800d2bc79daaf717f"
+        },
+        {
+          "selector": "semantic_graph::production_source_inventory::boundary::tests::complete_original_domains_and_current_roles_remain_separate_and_source_bound",
+          "selected_in": "core247",
+          "index": 124,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "76d901f57fc315527981e45f002dc2692bba37a470e7a71da5f16e83f169a0cd"
+        },
+        {
+          "selector": "semantic_graph::production_source_inventory::boundary::tests::complete_authentication_refuses_reclassification_source_drift_and_raw_drift",
+          "selected_in": "core247",
+          "index": 125,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "2c731eb1a9063ff041b3b8e2b22f07496c92adca80dde8eb3aaf97b1b335b9ef"
+        },
+        {
+          "selector": "semantic_graph::production_source_inventory::boundary::tests::old_test_roots_and_foreign_path_actual_children_cannot_escape_membership",
+          "selected_in": "core247",
+          "index": 126,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "20b0c1590091c72b0735b597def6a5f9d84284623c5887abd0c0d4fbdb9163f7"
+        },
+        {
+          "selector": "semantic_graph::production_source_inventory::boundary::tests::dropped_current_child_and_modified_typed_manifest_are_rejected",
+          "selected_in": "core247",
+          "index": 127,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "337b577ad1048b35444fb95829e9b4e10e6ab828b0291d2efb4e1525097fade1"
+        },
+        {
+          "selector": "no_module_exceeds_its_recorded_size",
+          "selected_in": "core247",
+          "index": 239,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "46d38922838b807c30847c04533d9dd97dd51ec99f5fa61409da2e579d7015f2"
+        },
+        {
+          "selector": "production_source_inventory::relocated_subjects_must_reach_the_actual_owner_payload",
+          "selected_in": "supplement100",
+          "index": 4,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "fefa9bc03cb230e72a0ca3b6f553bdf75da4d2a4260f95bb55f64399361d21a6"
+        },
+        {
+          "selector": "semantic_graph::production_source_inventory::relocated_subjects_must_reach_the_actual_owner_payload",
+          "selected_in": "supplement100",
+          "index": 5,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "6b30271c4ab53a59d4290f00f450fcf6999c25689d9ee973acc44d08e1a9e663"
+        },
+        {
+          "selector": "hir::validation::byte_traversal::nested::tests::ci_scope::nested_scope_correction_retains_complete_original_hostile_and_loan_controls",
+          "selected_in": "supplement100",
+          "index": 86,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "0cfa225e7f63c0e8d35073dc25e36ebda6fcf9d538db640da7c8e8acacc40e50"
+        },
+        {
+          "selector": "hir::validation::byte_traversal::nested::tests::source_composition::joined_nested_source_keeps_full_live_union_and_both_complete_parent_custodies",
+          "selected_in": "supplement100",
+          "index": 87,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "4322280a4f96d5b70fb12ccd06ac14df47e3935acc1a46e738da44d6b2f71417"
+        },
+        {
+          "selector": "hir::validation::byte_traversal::nested::tests::source_composition::joined_nested_source_refuses_foreign_truncated_drifted_predicates_and_partial_recipes",
+          "selected_in": "supplement100",
+          "index": 88,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "a61b588656710bee10b2ac41d5128cdb4b9b53e4c3e159ba5096a7e32f223f49"
+        },
+        {
+          "selector": "source_reflows::nested_scope::complete_nested_custody_assertions_remain_executable_and_byte_exact",
+          "selected_in": "supplement100",
+          "index": 84,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "b1f24d359f3d5163e22e6d0a2c1538b3cbd9774770d60de9b80ae8a521affab1"
+        },
+        {
+          "selector": "source_reflows::nested_scope::complete_joined_nested_domains_preserve_both_full_receivers_and_refuse_foreign_inputs",
+          "selected_in": "supplement100",
+          "index": 85,
+          "pass": true,
+          "summary": [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          "log_sha256": "f5b98213672ecfe477105daa65143c52591d7eba2b86a7cd7ec22b75429a9c7e"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "frozen_head": "c8740045e33126a4375aadd1dc524a25be9245fc",
+  "timestamp": "2026-10-17T05:22:43.899230+00:00",
+  "actual_controller_launch_environment": {
+    "PATH": "/Volumes/Semaprax/internal-cache-offload-20261016/cargo-home/bin:/Volumes/Semaprax/internal-cache-offload-20261016/nvm-home/versions/node/v24.3.0/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "TMPDIR": "/Volumes/Semaprax/runtime-tmp",
+    "CARGO_HOME": "/Volumes/Semaprax/internal-cache-offload-20261016/cargo-home",
+    "RUSTUP_HOME": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home",
+    "CARGO_LOG": "cargo::core::compiler::fingerprint=trace"
+  },
+  "absent_build_variables": [
+    "RUSTFLAGS",
+    "RUSTDOCFLAGS",
+    "CC",
+    "CFLAGS",
+    "CPPFLAGS",
+    "AR"
+  ],
+  "source_derived_child_PATH": "/Users/kevin/.nvm/versions/node/v24.3.0/bin:/Volumes/Semaprax/internal-cache-offload-20261016/cargo-home/bin:/Volumes/Semaprax/internal-cache-offload-20261016/nvm-home/versions/node/v24.3.0/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+  "child_path_not_directly_observed_yet": true,
+  "physical_homes": {
+    "CARGO_HOME": "/Volumes/Semaprax/internal-cache-offload-20261016/cargo-home",
+    "RUSTUP_HOME": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home"
+  },
+  "private_target": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012",
+  "historical35f_complete_PATH_proven": false
+}

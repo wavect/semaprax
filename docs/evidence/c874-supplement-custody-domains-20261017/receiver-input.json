@@ -1,0 +1,12 @@
+{
+  "source": "src/source_reflows/semantic_receivers.rs",
+  "current_length": 30176,
+  "current_sha256": "ecf5ee0ecea248e53fb31254b043c3a885b46c4a1c3dceb2432d7f1a087e45d5",
+  "current_archive": "receiver.raw-ecf5ee0ecea248e53fb31254b043c3a885b46c4a1c3dceb2432d7f1a087e45d5.rs.txt",
+  "stage_length": 12626,
+  "stage_sha256": "d19607ffcbca7e4d676a774eb2f21d81293430f6c5985a7afd6409d9bb7589df",
+  "stage_archive": "receiver.d196-stage.rs.txt",
+  "format_archive": "receiver.c874-before.rs.txt",
+  "format_length": 29039,
+  "format_sha256": "ba2ddbf8486039ba24fb0f36a90dea66910e931cbb71115b4d2eab114906430b"
+}

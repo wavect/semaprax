@@ -3,9 +3,16 @@ from pathlib import Path
 import argparse,hashlib,json,subprocess,os,tempfile
 REL=Path('docs/evidence/mainbcc-ordinary-source-domain-20261017')
 MAIN='bccbe9696eca892045b0603ad663234062df15f4'
+FORMAT_NAMESPACE_SHA='c67837ba0c7b584b32b59bba4a6c414b628ba2b00326e8510f8efc6ca7279b1e'
 sha=lambda b:hashlib.sha256(b).hexdigest()
 def previous_receiver(repo,current):
  R=Path(repo);D=R/REL
+ # Authenticate physical RAW and acquire the complete prior namespace first.
+ import importlib.util
+ bridge=R/'docs/evidence/c874-supplement-custody-domains-20261017/format-namespace.py'
+ assert sha(bridge.read_bytes())==FORMAT_NAMESPACE_SHA
+ spec=importlib.util.spec_from_file_location('closed_format_namespace',bridge);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+ current=module.previous_namespace(R,current)
  original=(D/'original-programs/src__source_reflows__semantic_receivers.rs').read_bytes()
  assert sha(original)=='6816d73e025e149033a83a0bce3f0f1bd3072563fad3a8b715395274a6a8eb2b'
  bcc=(D/'original-programs/semantic_receivers.bcc.txt').read_bytes()

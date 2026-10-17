@@ -1,0 +1,15 @@
+{
+  "state": "UNEXECUTED_DRAFT",
+  "package": "semaprax",
+  "kind": "lib",
+  "selectors": [
+    {
+      "selector": "source_reflows_merge::main67107_inputs::complete_supplemental_receiver_stages_and_original_six_field_record_remain_bound",
+      "source": "src/source_reflows_merge/main67107_inputs.rs"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::paid_many::source::complete_paid_many_source_domains_keep_all_original_inputs_and_raw_production_checks",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs"
+    }
+  ]
+}

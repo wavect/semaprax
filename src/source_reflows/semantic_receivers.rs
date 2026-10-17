@@ -718,3 +718,10 @@ pub(super) fn predecessor(path: &str, current: &str) -> Option<String> {
 pub(super) fn contains(path: &str) -> bool {
     incoming_main21::ours_contains(path) || retained_contains::contains(path)
 }
+
+// Semantic inverse owners pass complete, authenticated formatting AFTERimages.
+// Keep raw-current acquisition at source_reflows::restore for its live owners;
+// this namespace's archived-stage calls retain the full original formatter.
+fn restore(record: &serde_json::Value, current: &str) -> String {
+    super::restore_formatting(record, current)
+}

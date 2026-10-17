@@ -1,0 +1,100 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/before_paid_many.rs",
+    "current": {
+      "archive": "paid-current-0-499e2e20b836ab7adf9b095ae608e55482a411ae7e5d9bea34b3a560d77ccdf2.txt",
+      "length": 62623,
+      "sha256": "499e2e20b836ab7adf9b095ae608e55482a411ae7e5d9bea34b3a560d77ccdf2"
+    },
+    "view": {
+      "archive": "paid-view-0-04cd63b0567d11983e3220371da9dcc556a8422efdd70387ee53eb83a31d54d0.txt",
+      "length": 62611,
+      "sha256": "04cd63b0567d11983e3220371da9dcc556a8422efdd70387ee53eb83a31d54d0",
+      "head": "1bae9e8902fe8ba9e59958308dc779f9bb185da9"
+    }
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "current": {
+      "archive": "paid-current-1-bf9c7cf18aafd539daaac00db9253eff6287a562d76e41dfc91c56bd5bd0337b.txt",
+      "length": 63833,
+      "sha256": "bf9c7cf18aafd539daaac00db9253eff6287a562d76e41dfc91c56bd5bd0337b"
+    },
+    "view": {
+      "archive": "paid-view-1-d2da17ff0d2a477bf625e9bd039380165e9f0cfbf5f2b144e0000659669e3c30.txt",
+      "length": 62384,
+      "sha256": "d2da17ff0d2a477bf625e9bd039380165e9f0cfbf5f2b144e0000659669e3c30",
+      "head": "1bae9e8902fe8ba9e59958308dc779f9bb185da9"
+    }
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs",
+    "current": {
+      "archive": "paid-current-2-32fe7f5d3c46cc0d199954141ce2c3b15e119bbe83b2418f51d33fe740a23c0f.txt",
+      "length": 6746,
+      "sha256": "32fe7f5d3c46cc0d199954141ce2c3b15e119bbe83b2418f51d33fe740a23c0f"
+    },
+    "view": {
+      "archive": "paid-view-2-0be72c82ceb41ccf8636721d95a1f6560c5239d48b4c0adc93ebf3326b3acf29.txt",
+      "length": 6724,
+      "sha256": "0be72c82ceb41ccf8636721d95a1f6560c5239d48b4c0adc93ebf3326b3acf29",
+      "head": "51c1dfc49962e046566ad21ec31f20c6b3a9bdae"
+    }
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+    "current": {
+      "archive": "paid-current-3-fd122ac9ba5101c7bec9046fe6b4f939a964bc362a59948b0774e64417ed3e17.txt",
+      "length": 30885,
+      "sha256": "fd122ac9ba5101c7bec9046fe6b4f939a964bc362a59948b0774e64417ed3e17"
+    },
+    "view": {
+      "archive": "paid-view-3-7f1f4ff20511927fe02a8d05b41806271929e1b5cecbf06bda460064b5a9b39a.txt",
+      "length": 25028,
+      "sha256": "7f1f4ff20511927fe02a8d05b41806271929e1b5cecbf06bda460064b5a9b39a",
+      "head": "51c1dfc49962e046566ad21ec31f20c6b3a9bdae"
+    }
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/moderate_tests.rs",
+    "current": {
+      "archive": "paid-current-4-23419c996b937f48fda6ae04365c8e6b2b23dd42a6a3ef9faa62d211e086644c.txt",
+      "length": 12405,
+      "sha256": "23419c996b937f48fda6ae04365c8e6b2b23dd42a6a3ef9faa62d211e086644c"
+    },
+    "view": {
+      "archive": "paid-view-4-7123d044a6278a1d1fbc00a40134e6d68fd232068d8c032010e7c052f671764f.txt",
+      "length": 11230,
+      "sha256": "7123d044a6278a1d1fbc00a40134e6d68fd232068d8c032010e7c052f671764f",
+      "head": "51c1dfc49962e046566ad21ec31f20c6b3a9bdae"
+    }
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs",
+    "current": {
+      "archive": "paid-current-5-185543a5d61d4e63b00b7fd2eb47d9c235eefbdb284f86dc5f6d1bfc06eb7b72.txt",
+      "length": 10296,
+      "sha256": "185543a5d61d4e63b00b7fd2eb47d9c235eefbdb284f86dc5f6d1bfc06eb7b72"
+    },
+    "view": {
+      "archive": "paid-view-5-4e2eb4e769f942d63dc045ba26d8bcf73493c8226133dcfefa2f6e898728b882.txt",
+      "length": 5659,
+      "sha256": "4e2eb4e769f942d63dc045ba26d8bcf73493c8226133dcfefa2f6e898728b882",
+      "head": "51c1dfc49962e046566ad21ec31f20c6b3a9bdae"
+    }
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs",
+    "current": {
+      "archive": "paid-current-6-0f45910f5aac7575f6aec3d6c92e3a1bae7bcd82c2f5043cb921a05bf927ecd1.txt",
+      "length": 13097,
+      "sha256": "0f45910f5aac7575f6aec3d6c92e3a1bae7bcd82c2f5043cb921a05bf927ecd1"
+    },
+    "view": {
+      "archive": "paid-view-6-c532c30e4b82070848cb65a5499a4bb5d58bb60cdaeec5705041e5c287fa3d42.txt",
+      "length": 13097,
+      "sha256": "c532c30e4b82070848cb65a5499a4bb5d58bb60cdaeec5705041e5c287fa3d42",
+      "head": "51c1dfc49962e046566ad21ec31f20c6b3a9bdae"
+    }
+  }
+]

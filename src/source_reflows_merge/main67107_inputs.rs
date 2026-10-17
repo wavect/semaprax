@@ -27,7 +27,8 @@ fn restore(rows: &serde_json::Value, domain: &str, current: &str) -> String {
     assert_eq!(row["source"], source);
     let singleton = singleton_successor_expected_input(source, row["current_sha256"].as_str().unwrap(), current);
     let current = singleton.as_str();
-    let acquired = compile35f_expected_input(source, row["current_sha256"].as_str().unwrap(), current);
+    let stage = supplemental_receiver_expected_input(source, row["current_sha256"].as_str().unwrap(), current);
+    let acquired = compile35f_expected_input(source, row["current_sha256"].as_str().unwrap(), &stage);
     let current = acquired.as_str();
     assert_eq!(digest(current), row["current_sha256"]);
     assert_eq!(current, row["current"].as_str().unwrap());
@@ -104,6 +105,8 @@ fn main043_receiver_restore(row: &serde_json::Value, source: &str, current: &str
     assert_eq!(row.as_object().unwrap().len(), 7);
     assert_eq!(source, "src/source_reflows/semantic_receivers.rs");
     assert_eq!(row["source"], source);
+    let acquired = supplemental_receiver_expected_input(source, row["current_sha256"].as_str().unwrap(), current);
+    let current = acquired.as_str();
     assert!(current.len() <= 65_536);
     assert_eq!(digest(current), row["current_sha256"]);
     assert_eq!(current, row["current"].as_str().unwrap());
@@ -128,6 +131,7 @@ fn main043_receiver_restore(row: &serde_json::Value, source: &str, current: &str
     assert_eq!(digest(&restored), row["previous_sha256"]);
     assert_eq!(restored, row["previous"].as_str().unwrap());
     assert_eq!(restored, previous);
+    assert_eq!(row["previous_length"].as_u64().unwrap(), previous.len() as u64);
     restored
 }
 fn main043_receiver_record() -> serde_json::Value {
@@ -135,7 +139,13 @@ fn main043_receiver_record() -> serde_json::Value {
     let raw = std::fs::read_to_string(root.join("docs/evidence/main043-semantic-acquisition-20261017/current-to-043-stage.json")).unwrap();
     assert!(raw.len() <= 131_072);
     assert_eq!(digest(&raw), "63bd9f8a4f8d19369a78798a41278e5b96ab0732361598656884efd6af159ff9");
-    serde_json::from_str(&raw).unwrap()
+    let mut row: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(row.as_object().unwrap().len(), 6, "complete original immutable record");
+    let previous = row["previous"].as_str().unwrap();
+    assert_eq!(digest(previous), row["previous_sha256"]);
+    let length = previous.len() as u64;
+    row["previous_length"] = serde_json::Value::from(length);
+    row
 }
 #[test]
 fn main043_receiver_complete_stage_and_original_historical_inverse_are_retained() {
@@ -462,3 +472,50 @@ fn corrected_alias_fixtures_keep_complete_c874_sources_and_refuse_foreign_stages
     }
     assert_eq!(corrected_alias_fixture_input("foreign","unchanged"),"unchanged");
 }
+// Separate actual endpoint before immutable followup/043 d196 source inputs.
+const SUPPLEMENT_RECEIVER_PREFIX: &str = "docs/evidence/c874-supplement-custody-domains-20261017";
+fn supplemental_receiver_expected_input(source: &str, expected: &str, current: &str) -> String {
+    if source != "src/source_reflows/semantic_receivers.rs" || expected != "d19607ffcbca7e4d676a774eb2f21d81293430f6c5985a7afd6409d9bb7589df" {
+        return current.to_owned();
+    }
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let text = factored_core_file(&root.join(SUPPLEMENT_RECEIVER_PREFIX).join("receiver-input.json"), SUPPLEMENT_RECEIVER_LENGTH, SUPPLEMENT_RECEIVER_SHA).unwrap();
+    let row: serde_json::Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(row["source"], source);
+    assert_eq!(row["stage_sha256"], expected);
+    let length = usize::try_from(row["current_length"].as_u64().unwrap()).unwrap();
+    assert!(length <= 65_536);
+    let sha = row["current_sha256"].as_str().unwrap();
+    let raw = factored_core_file(&root.join(source), length, sha).unwrap();
+    let held = factored_core_file(&root.join(SUPPLEMENT_RECEIVER_PREFIX).join(row["current_archive"].as_str().unwrap()), length, sha).unwrap();
+    assert_eq!(raw, held, "complete independently sealed actual receiver");
+    assert_eq!(raw, include_str!("../source_reflows/semantic_receivers.rs"), "complete actual compiled receiver");
+    let stage_len = usize::try_from(row["stage_length"].as_u64().unwrap()).unwrap();
+    assert!(stage_len <= 65_536);
+    let stage = factored_core_file(&root.join(SUPPLEMENT_RECEIVER_PREFIX).join(row["stage_archive"].as_str().unwrap()), stage_len, expected).unwrap();
+    assert!(current == raw || current == stage, "foreign receiver input stage");
+    stage
+}
+
+#[test]
+fn complete_supplemental_receiver_stages_and_original_six_field_record_remain_bound() {
+    let source = "src/source_reflows/semantic_receivers.rs";
+    let raw = include_str!("../source_reflows/semantic_receivers.rs");
+    let expected = "d19607ffcbca7e4d676a774eb2f21d81293430f6c5985a7afd6409d9bb7589df";
+    let stage = supplemental_receiver_expected_input(source, expected, raw);
+    assert_eq!(digest(&stage), expected);
+    assert_eq!(supplemental_receiver_expected_input(source, expected, &stage), stage);
+    assert_eq!(project("followupReceiverMAIN", raw), project("followupReceiverMAIN", &stage));
+    let record = main043_receiver_record();
+    assert_eq!(record.as_object().unwrap().len(), 7);
+    assert_eq!(record["previous_length"].as_u64().unwrap(), record["previous"].as_str().unwrap().len() as u64);
+    assert_eq!(main043_receiver_restore(&record, source, raw), record["previous"].as_str().unwrap());
+    let mut forged = record.clone(); forged["previous_length"] = serde_json::Value::from(0);
+    assert!(std::panic::catch_unwind(|| main043_receiver_restore(&forged, source, raw)).is_err());
+    for bad in [String::new(), raw[..raw.len()-1].to_owned(), format!("{raw} "), format!("{raw}{raw}"), record["previous"].as_str().unwrap().to_owned()] {
+        assert!(std::panic::catch_unwind(|| supplemental_receiver_expected_input(source, expected, &bad)).is_err());
+    }
+    assert_eq!(supplemental_receiver_expected_input("foreign", expected, "unchanged"), "unchanged");
+}
+const SUPPLEMENT_RECEIVER_LENGTH: usize = 607;
+const SUPPLEMENT_RECEIVER_SHA: &str = "4f73b6091d11a7bc7b9427234698fd4fea4f88e4c2e6c160947e1ac1ebaf7ac4";

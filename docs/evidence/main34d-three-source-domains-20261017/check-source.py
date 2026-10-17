@@ -55,7 +55,7 @@ def main():
     # The complete new BCC owner and whole previous receiver are authenticated
     # before obtaining the unchanged original three-owner suffix below.
     bcc_checker = r/'docs/evidence/mainbcc-ordinary-source-domain-20261017/check-source.py'
-    assert sha(bcc_checker.read_bytes()) == '2f86c576f4b852e739eaa79101f80e2e8d46c4391a870822e45ef579aff80a0d'
+    assert sha(bcc_checker.read_bytes()) == 'abc1278d791050bb51159bbf829899f03a43647147cdaaa9de2b49c243c82891'
     import runpy
     source = runpy.run_path(str(bcc_checker))['previous_receiver'](r, source)
     original = (d/'original-programs/semantic_receivers.main34d.txt').read_text()

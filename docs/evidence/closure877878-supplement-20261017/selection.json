@@ -1,0 +1,238 @@
+{
+  "status": "SOURCE_VERIFIED_LITERAL23_UNEXECUTED_PENDING_PARENT_SAME_F1_ARTIFACT_RUN",
+  "source_head": "9334eec5a785ed8b67a3698da019fbabd0cea01a",
+  "actual_artifact_source_head": "f1b24eda3f98e19c294f50eff388f642eabc7ccb",
+  "same_production_test_projection": true,
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::whole_old_sequence_content_states_multiplicity_and_original_skeleton_work_survive",
+      "issue": 877,
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "line": 85,
+      "source_sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::independently_allocated_equal_sequences_sort_by_content_and_keep_terminal_multiplicity",
+      "issue": 877,
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "line": 125,
+      "source_sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::shared_hir_content_is_consumed_by_both_flat_and_immutable_plan_comparators",
+      "issue": 877,
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "line": 259,
+      "source_sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::first_original_work_failure_and_sticky_floor_settlement_are_not_replaced",
+      "issue": 877,
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "line": 302,
+      "source_sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::complete_owned_contract_residual_corpus_keeps_independent_flat_hir_and_plan_outputs",
+      "issue": 877,
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "line": 346,
+      "source_sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::complete_frozen_sequence_and_comparison_bodies_are_independently_compiled_verbatim",
+      "issue": 877,
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "line": 403,
+      "source_sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::whole_sequence_owner_reports_paid_allocated_peak_and_complete_drop_for_small_and_long_fanout",
+      "issue": 877,
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "line": 430,
+      "source_sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::repeated_long_tail_freeze_retains_all_earlier_segment_contents",
+      "issue": 877,
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "line": 501,
+      "source_sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::shared_suffix_concatenation_and_prepend_keep_complete_order_with_free_metadata_work",
+      "issue": 877,
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "line": 625,
+      "source_sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::whole_frozen_sequence_and_plan_comparator_run_independently_in_original_scope",
+      "issue": 877,
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "line": 671,
+      "source_sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::source_custody::six_complete_predecessors_and_four_created_sources_keep_exact_bytes_and_refuse_drift",
+      "issue": 877,
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/source_custody.rs",
+      "line": 29,
+      "source_sha256": "f3dcb6c08c2901dbab6c8992ad935515151764096251f03f91c7fecd6168383f",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::merge_keys_tests::borrowed_merge_keys_match_complete_before_languages_order_and_work",
+      "issue": 878,
+      "source": "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs",
+      "line": 107,
+      "source_sha256": "e31dcefcb253e8d9ba94da407cb87d3f11a2e18ea4f9a29e9ff5f7e0913ffa92",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::merge_keys_tests::borrowed_merge_keys_keep_original_work_refusal_before_new_storage",
+      "issue": 878,
+      "source": "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs",
+      "line": 158,
+      "source_sha256": "e31dcefcb253e8d9ba94da407cb87d3f11a2e18ea4f9a29e9ff5f7e0913ffa92",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::merge_keys_tests::borrowed_suffix_route_retains_complete_before_multiplicity",
+      "issue": 878,
+      "source": "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs",
+      "line": 196,
+      "source_sha256": "e31dcefcb253e8d9ba94da407cb87d3f11a2e18ea4f9a29e9ff5f7e0913ffa92",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::merge_keys_tests::borrowed_merge_directory_pays_storage_and_every_refusal_through_drop",
+      "issue": 878,
+      "source": "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs",
+      "line": 270,
+      "source_sha256": "e31dcefcb253e8d9ba94da407cb87d3f11a2e18ea4f9a29e9ff5f7e0913ffa92",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::merge_keys_tests::borrowed_merge_floor_foreign_frontiers_keep_six_fields_sticky_and_complete_drop",
+      "issue": 878,
+      "source": "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs",
+      "line": 321,
+      "source_sha256": "e31dcefcb253e8d9ba94da407cb87d3f11a2e18ea4f9a29e9ff5f7e0913ffa92",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::owned_suffix::tests::owned_suffix_retains_original_owner_free_order_on_work_refusals",
+      "issue": 878,
+      "source": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+      "line": 56,
+      "source_sha256": "fa6695fa3d741c3a96ee5e69f45dac1e5ad2a28080baf9b47f43bac2612f2977",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::owned_suffix::tests::owned_suffix_all_physical_refusals_drop_prefix_carrier_before_original_suffix",
+      "issue": 878,
+      "source": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+      "line": 106,
+      "source_sha256": "fa6695fa3d741c3a96ee5e69f45dac1e5ad2a28080baf9b47f43bac2612f2977",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::owned_suffix::tests::owned_suffix_matches_full_borrowed_languages_and_work",
+      "issue": 878,
+      "source": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+      "line": 145,
+      "source_sha256": "fa6695fa3d741c3a96ee5e69f45dac1e5ad2a28080baf9b47f43bac2612f2977",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::owned_suffix::tests::owned_suffix_reports_cumulative_backing_through_result_destruction",
+      "issue": 878,
+      "source": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+      "line": 191,
+      "source_sha256": "fa6695fa3d741c3a96ee5e69f45dac1e5ad2a28080baf9b47f43bac2612f2977",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::owned_suffix::tests::owned_suffix_floor_foreign_frontiers_keep_six_fields_sticky_and_prefix_drop",
+      "issue": 878,
+      "source": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+      "line": 267,
+      "source_sha256": "fa6695fa3d741c3a96ee5e69f45dac1e5ad2a28080baf9b47f43bac2612f2977",
+      "reason": "Literal issue acceptance behavioral/source/measurement owner absent actual ef112"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::strategy::activation_tests::exact_65536_and_65537_choose_distinct_routes_without_raising_ceiling",
+      "issue": 877,
+      "source": "src/cleanup_plan/replay/factored/strategy/activation_tests.rs",
+      "line": 49,
+      "source_sha256": "daba60f6688ac69bb97368afa97253e1eeb065f927cbef9ab7bd45832cecc367",
+      "reason": "Literal genuine-over-limit refusal/decision authentication requirement"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::strategy::activation_tests::above_cap_equal_terminal_totals_do_not_authenticate_reordered_decisions",
+      "issue": 877,
+      "source": "src/cleanup_plan/replay/factored/strategy/activation_tests.rs",
+      "line": 92,
+      "source_sha256": "daba60f6688ac69bb97368afa97253e1eeb065f927cbef9ab7bd45832cecc367",
+      "reason": "Literal genuine-over-limit refusal/decision authentication requirement"
+    }
+  ]
+}

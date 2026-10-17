@@ -1,0 +1,60 @@
+{
+  "schema": "semaprax.diagnostic148-fixture-inverses.v1",
+  "base": "c09f8c8e5453e6f401c06acd188c8ba3409f164b",
+  "rows": [
+    {
+      "path": "src/cleanup_plan/replay/branch_clone/tests.rs",
+      "before_archive": "before/0.rs.txt",
+      "before_len": 31717,
+      "before_sha256": "cd9a1c11b0ad8f0194d13e74ed78211161fb75faf859f555a3e05dc13f10ac05",
+      "after_len": 31514,
+      "after_sha256": "62b9e0c3a9b13808363506de6505e5380d276af65069f99fdc62ee52023ac79a",
+      "inverse_edits": [
+        {
+          "old_start": 434,
+          "new_start": 434,
+          "before": "    // A finite synthetic plan control keeps all preceding status observations\n    // on one Goto path. Its only Branch is the real three-edge caller under test.\n    for (index,block) in function.cleanup_plan.blocks.iter_mut().enumerate() {\n        if index!=last {\n            if let CleanupTerminator::Branch(edges)=&block.terminator {\n                block.terminator=CleanupTerminator::Goto(edges[0]);\n            }\n        }\n    }\n",
+          "after": "    // Preserve the checked status branches and their real observations. A Goto\n    // does not emit a Status observation, and selecting its first edge can\n    // terminate before this final branch. Only append the third final edge.\n"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs",
+      "before_archive": "before/1.rs.txt",
+      "before_len": 47518,
+      "before_sha256": "f38734199734c035d4b6c0ffba0ee2de66820c4c5713526c6394e2a5340ae666",
+      "after_len": 47588,
+      "after_sha256": "a6480c8f6127aaa4fc7282cec875d1061aa00ffd7b1bc3b2f3e1f8f3ab0d0056",
+      "inverse_edits": [
+        {
+          "old_start": 387,
+          "new_start": 387,
+          "before": "        // The physical selected receiver needs the same complete authenticated\n        // current directory as production; detached HIR remains a negative below.\n",
+          "after": "        // These complete sources contain no borrowed UTF-8 literals, so the\n        // closed static-text receiver has no inventory. Use the actual held\n        // workspace's production linker; detached HIR remains a negative below.\n"
+        },
+        {
+          "old_start": 390,
+          "new_start": 391,
+          "before": "        fixture.with_prepared_context(|program| {\n",
+          "after": "        fixture.with_linked_context(|program| {\n"
+        }
+      ]
+    },
+    {
+      "path": "src/workspace_graph/test_replay_context.rs",
+      "before_archive": "before/2.rs.txt",
+      "before_len": 3288,
+      "before_sha256": "ac22adda65c444649c53448d1a781e8225188358871f43247b361556cf9ff4c0",
+      "after_len": 4069,
+      "after_sha256": "7c87fef0eb8344735f3e06f5ff0d6627beeacacdeb8d6a6911a36b021a5b33ec",
+      "inverse_edits": [
+        {
+          "old_start": 82,
+          "new_start": 82,
+          "before": "",
+          "after": "    /// Complete non-static-text controls use the production owned-data linker,\n    /// not the closed literal-source receiver. Its roots are exact retained\n    /// members; provider closure, builtin types and declaration index are all\n    /// rebuilt and validated by the existing linker before the callback.\n    pub(crate) fn with_linked_context<T>(\n        &self,\n        apply: impl FnOnce(&dyn crate::cleanup::ReplayContext) -> T,\n    ) -> T {\n        let module = self.module();\n        let roots = module.functions.iter()\n            .map(|function| function.id.as_str().to_owned())\n            .collect::<Vec<_>>();\n        let program = self.0.linked_owned_data_api_program_with_roots(\n            &module.module, &roots,\n        ).unwrap();\n        apply(&program)\n    }\n"
+        }
+      ]
+    }
+  ]
+}

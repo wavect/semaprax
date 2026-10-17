@@ -80,6 +80,23 @@ impl SourceRecordReplayFixture {
         )
         .unwrap()
     }
+    /// Complete non-static-text controls use the production owned-data linker,
+    /// not the closed literal-source receiver. Its roots are exact retained
+    /// members; provider closure, builtin types and declaration index are all
+    /// rebuilt and validated by the existing linker before the callback.
+    pub(crate) fn with_linked_context<T>(
+        &self,
+        apply: impl FnOnce(&dyn crate::cleanup::ReplayContext) -> T,
+    ) -> T {
+        let module = self.module();
+        let roots = module.functions.iter()
+            .map(|function| function.id.as_str().to_owned())
+            .collect::<Vec<_>>();
+        let program = self.0.linked_owned_data_api_program_with_roots(
+            &module.module, &roots,
+        ).unwrap();
+        apply(&program)
+    }
     pub(crate) fn with_context<T>(
         &self,
         apply: impl FnOnce(&dyn crate::cleanup::ReplayContext) -> T,

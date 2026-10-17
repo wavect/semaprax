@@ -3,6 +3,7 @@ from pathlib import Path
 import hashlib
 import json
 from outer_carrier_input import read_input as outer_read_input
+assert hashlib.sha256((Path(__file__).resolve().parent / "compile_input.py").read_bytes()).hexdigest() == "f46b668bd8cdb3a77afd99fff496439786665ee603ff6cf8c915abbf660805e0"
 from compile_input import project as compile_project
 
 HERE = Path(__file__).resolve().parent

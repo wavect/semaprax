@@ -1346,3 +1346,5 @@ pub(crate) fn main_f247_file_raw(path: &::std::path::Path, length: usize, expect
     if let Some(value) = crate::source_reflows_merge::next_big_batch_inputs::file(path, length, expected) { return Ok(value); }
     before_future57::main_f247_file_raw(path, length, expected)
 }
+
+pub(crate) use before_future57::accepted_physical_compiled;

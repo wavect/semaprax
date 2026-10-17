@@ -587,6 +587,23 @@
       ]
     },
     {
+      "source": "src/source_reflows_merge/main67107_inputs.rs",
+      "compiled": true,
+      "current": {
+        "length": 95087,
+        "sha256": "e80fa5fa90e74255729ab37d4748c83ee1545499613d85e92442245e9db4ab37",
+        "archive": "docs/evidence/f44-forwarding-repair-20261017/current-main67107.rs.txt"
+      },
+      "views": [
+        {
+          "name": "whole-f44-afa54-current",
+          "length": 95026,
+          "sha256": "ca49b653a5909c4b044e90d2c0689df2108ba4e33af7605cbec129171d287c74",
+          "archive": "docs/evidence/next-big-batch-source-binding-20261017/current/ca49b653a5909c4b044e90d2c0689df2108ba4e33af7605cbec129171d287c74.txt"
+        }
+      ]
+    },
+    {
       "source": "src/source_reflows_merge/main99f_inputs.rs",
       "compiled": true,
       "current": {

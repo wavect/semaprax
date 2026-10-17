@@ -15,10 +15,43 @@ const IMPORTS: &str = "module directory.app;\nuse function @id(\"std.collections
 const MAIN: &str = "@id(\"directory.main\") fn main()->i64 {let a=with_capacity<i64>(2usize);let b=push<i64>(a,42);get<i64>(b,0usize)}";
 
 fn programs(caller: &str) -> [Program; 2] {
-    [
-        crate::parse(caller, "caller.spx").unwrap(),
-        crate::parse(PROVIDER, "provider.spx").unwrap(),
-    ]
+    let caller = if caller == IMPORTS {
+        // Imports-only text is deliberately not admitted source. Preserve its
+        // original complete parser refusal before constructing an AST-only
+        // synthetic-main input, outside both old/current observation windows.
+        let diagnostic = crate::parse(IMPORTS, "caller.spx").unwrap_err();
+        assert_eq!(diagnostic.code, "SPX-P101");
+        assert_eq!(diagnostic.severity, crate::diagnostic::Severity::Error);
+        assert_eq!(
+            diagnostic.message,
+            "a module must declare at least one function"
+        );
+        assert_eq!(diagnostic.path.as_deref(), Some("caller.spx"));
+        assert_eq!(
+            diagnostic
+                .span
+                .as_ref()
+                .map(|span| (span.start, span.end, span.line, span.column)),
+            Some((IMPORTS.len(), IMPORTS.len(), 5, 1))
+        );
+        assert_eq!(diagnostic.help, None);
+        let source =
+            format!("{IMPORTS}@id(\"directory.fixture-anchor\") fn fixture_anchor()->i64 {{0}}");
+        let mut program = crate::parse(&source, "caller.spx").unwrap();
+        let anchors = std::mem::take(&mut program.functions);
+        assert_eq!(anchors.len(), 1);
+        assert_eq!(anchors[0].stable_id, "directory.fixture-anchor");
+        assert_eq!(anchors[0].name, "fixture_anchor");
+        drop(anchors);
+        assert!(program.functions.is_empty());
+        assert_eq!(program.functions.capacity(), 0);
+        // Program has no retained function index/directory. index_authored and
+        // LayoutRegistry are built by callers only after this removal.
+        program
+    } else {
+        crate::parse(caller, "caller.spx").unwrap()
+    };
+    [caller, crate::parse(PROVIDER, "provider.spx").unwrap()]
 }
 fn renamed(caller: &str) -> String {
     caller

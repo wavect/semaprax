@@ -43,7 +43,7 @@ packet. New MAIN-specific tools/domains remain separate and unchanged.
 E="$ROOT/docs/evidence/compile-acquisition-35f-20261017"
 env TMPDIR=/Volumes/Semaprax/runtime-tmp PYTHONDONTWRITEBYTECODE=1 /opt/homebrew/bin/python3 "$E/run-common.py" --tool main --repo "$ROOT" --expected-head "$HEAD" --write
 env TMPDIR=/Volumes/Semaprax/runtime-tmp PYTHONDONTWRITEBYTECODE=1 /opt/homebrew/bin/python3 "$ROOT/docs/evidence/main67107-fronts-6e45-20261017/bind-composed-endpoints.py" --repo "$ROOT" --expected-head "$HEAD" --write
-env TMPDIR=/Volumes/Semaprax/runtime-tmp PYTHONDONTWRITEBYTECODE=1 /opt/homebrew/bin/python3 "$E/run-common.py" --tool refresh --repo "$ROOT"
+env TMPDIR=/Volumes/Semaprax/runtime-tmp PYTHONDONTWRITEBYTECODE=1 /opt/homebrew/bin/python3 "$E/run-common.py" --tool refresh --repo "$ROOT" --apply --expected-head "$HEAD" --memoize-source-masks
 # Original common refresh invokes the new exact parts wrapper automatically.
 env TMPDIR=/Volumes/Semaprax/runtime-tmp PYTHONDONTWRITEBYTECODE=1 /opt/homebrew/bin/python3 "$E/run-common.py" --tool main --repo "$ROOT" --expected-head "$HEAD"
 env TMPDIR=/Volumes/Semaprax/runtime-tmp PYTHONDONTWRITEBYTECODE=1 /opt/homebrew/bin/python3 "$ROOT/docs/evidence/main67107-fronts-6e45-20261017/bind-composed-endpoints.py" --repo "$ROOT" --expected-head "$HEAD"

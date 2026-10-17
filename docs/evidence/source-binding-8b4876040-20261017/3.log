@@ -1,0 +1,3 @@
+usage: refresh-composed.py [-h] [--apply] --expected-head EXPECTED_HEAD
+                           [--memoize-source-masks]
+refresh-composed.py: error: the following arguments are required: --expected-head

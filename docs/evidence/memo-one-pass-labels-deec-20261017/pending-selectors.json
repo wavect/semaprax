@@ -1,0 +1,14 @@
+{
+  "status": "SOURCE_ONLY_NOT_REGISTERED_NOT_EXECUTED",
+  "new": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::borrowed_labels::one_pass_labels_preserve_original_subset_work_and_all_paid_cuts_through_drop",
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs"
+    }
+  ],
+  "unchanged_required": [
+    "cleanup_plan::replay::factored::canonical_shared::memo::tests::chunked_complete_canonical_receiver_preserves_old_work_ids_and_last_drop"
+  ]
+}

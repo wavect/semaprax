@@ -1,0 +1,18 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "before": "0.before.rs.txt",
+    "current": "0.current.rs.txt",
+    "before_sha256": "cdbced119fdcd161c437ef9ac83d8066caadae0eabdf5bee83ce95db260fd472",
+    "current_sha256": "2276e6ea95f7e3885e6c52b886771b5b0379337e14eb6a5f670f05a615e6bf99",
+    "inverse": "authenticate entire current, replace with complete before; no partial/wildcard acquisition"
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+    "before": "1.before.rs.txt",
+    "current": "1.current.rs.txt",
+    "before_sha256": "7d72a2aadb93fc3a865cceb4a35b7ce9fa0ee01a23dab50491845184859b3f1e",
+    "current_sha256": "8d55d9154ba91e4223b066b4d80755c67becd13f5e6c400ed0ff332d2fdb3c5d",
+    "inverse": "authenticate entire current, replace with complete before; no partial/wildcard acquisition"
+  }
+]

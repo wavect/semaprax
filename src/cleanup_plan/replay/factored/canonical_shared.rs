@@ -729,8 +729,8 @@ impl<'a> Canonicalizer<'a> {
             let accepted = closed.get(&self.sink).copied().unwrap_or(0);
             match &budget.payer {
                 AllocationPayer::ActiveBuilder => {
-                    budget.reserve_bytes(function, borrowed_labels::ordinary_receiving(), "factored direct singleton call receivers")?;
-                    return borrowed_labels::ordinary_successors(function, budget, self.automaton, closed, accepted);
+                    budget.reserve_bytes(function, borrowed_labels::one_pass_receiving(), "factored one-pass label call receivers")?;
+                    return borrowed_labels::one_pass_successors(function, budget, self.automaton, closed, accepted);
                 }
                 AllocationPayer::SelectedReservation => {}
                 AllocationPayer::LegacyUnobserved => {}
@@ -959,8 +959,8 @@ impl<'a> Canonicalizer<'a> {
         let accepted = closed.get(&self.sink).copied().unwrap_or(0);
         match &budget.payer {
             AllocationPayer::ActiveBuilder => {
-                budget.reserve_bytes(function, borrowed_labels::ordinary_receiving(), "factored direct singleton call receivers")?;
-                return borrowed_labels::ordinary_successors(function, budget, self.automaton, closed, accepted);
+                budget.reserve_bytes(function, borrowed_labels::one_pass_receiving(), "factored one-pass label call receivers")?;
+                return borrowed_labels::one_pass_successors(function, budget, self.automaton, closed, accepted);
             }
             AllocationPayer::SelectedReservation => {}
             AllocationPayer::LegacyUnobserved => {}

@@ -305,7 +305,7 @@ fn sequence_core(
             let observations = prefix.observations;
             let observations = work.extend_owned_observations(
                 observations,
-                &suffix.observations,
+                suffix.observations,
                 "skeleton suffix clone",
             )?;
             let owned_source =
@@ -383,7 +383,7 @@ fn sequence_core(
                 work.clone_observations(&prefix.observations, "skeleton prefix clone")?;
             let observations = work.extend_owned_observations(
                 observations,
-                &suffix.observations,
+                suffix.observations,
                 "skeleton suffix clone",
             )?;
             let owned_source =
@@ -448,7 +448,7 @@ fn sequence_core(
         };
         let observations = work.extend_owned_observations(
             observations,
-            &last.observations,
+            last.observations,
             "skeleton suffix clone",
         )?;
         let owned_source =

@@ -1,0 +1,22 @@
+{
+  "status": "SOURCE_ONLY_UNQUALIFIED",
+  "base": "deec161142b2f3e882e50b4450338c69c137e586",
+  "diagnostic_log": "/Volumes/Semaprax/lane-prompts/semantic-focused162-deec16114-20261017/clippy-production.log",
+  "diagnostic_log_sha256": "99e37294b9a25f787034c3f49f7ff327067a7348d6f8dbd0fd30161ef57a86d9",
+  "lint_errors": 4,
+  "rust_paths": [
+    "src/cleanup_plan/replay/owned_suffix.rs",
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs"
+  ],
+  "new_selectors": [],
+  "prices_caps_assertions_unchanged": true,
+  "no_execution": true,
+  "files": {
+    "01.before.txt": "d74cf92511cdc0557030444582ecdd41e345f3d87aa0fc1d126d933e715511e3",
+    "whole-source-inverses.json": "9c526dbf299b203c4d018ed2c2a1261a6cad13d9ea07454b3463b8e9474af1a2",
+    "README.md": "15d11e435df53080c45f5578786fa4ae4ba7117db25e745e214f51b73f62e852",
+    "01.after.txt": "fb5c395326c2343fb3983a8cc6129364479901dbc9b3d827cccf023e79701c99",
+    "00.after.txt": "4a6e8f3c107e0ca3c8eff1d78418ab3787acafc50d445f46bd5f496ef492a6e0",
+    "00.before.txt": "e9cd09455d33d55768e413902085d1b27870a972fe7a079497e976d5acbd2da4"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "status": "ACCEPT_PRIVATE_STATIC_SOURCE_ONLY_NOT_OS_QUALIFICATION",
+  "peer_commit": "aee7af58bdd7ab7375e1c2bde77edcd3ca80aec6",
+  "peer_receipt_sha256": "0fe46a246b6ae72b7e7bb950c599fe905feeb0b95c2db8422474cae2c11e6f2d",
+  "actual_joined_head": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+  "composition_receipt_sha256": "8f5db1c0caaff90b34d026e19543f373db4170135314fac0fc8fe4deb839db60",
+  "reviewed": [
+    "complete finite literal path algebra including exclusions and metadata",
+    "exact1 user config layer/root/held TOML/origin agreement and canonical duplicate refusal",
+    "exact full independent emitted profile agreement; executor cannot invent deny holes",
+    "versioned named config adapter retains whole v1 parser and actual file reads use real named config",
+    "explicit CODEX_HOME/schema/runtime bindings, bounded config size and original authority unchanged"
+  ],
+  "findings_closed": [
+    "executor denyhole narrower than emitted profile rejected",
+    "noncanonical/duplicate reconstructed config rejected",
+    "actual config filename mismatch resolved only in explicit named v2 candidate"
+  ],
+  "actual_runtime_child_RPC_provider_or_grant": false,
+  "qualification_limits": [
+    "root UID/modes are preliminary, not ACL/mount/policy proof",
+    "actual runtime configuration load/cache/auth/startup still untested",
+    "fingerprints remain conservative descriptions, not policy equivalence",
+    "no actual kernel profile/no-fork/wholechild qualification or live admission"
+  ]
+}

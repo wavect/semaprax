@@ -1,0 +1,153 @@
+{
+  "status": "SOURCE_ONLY_NO_ACTUAL_STARTUP_NO_EXECUTION_AUTHORITY",
+  "base": "7966a10f08b2b455132fad595c63e69f31c1f466",
+  "joined_head_before_receipt": "a0dc44e3e3c6b4b1f77457f7c831cc0787ae1fda",
+  "all_existing_benchmark_files_unchanged": true,
+  "new_files": [
+    {
+      "path": "benchmarks/COMPILER-EXECUTION-PROVISIONING-V1.md",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "a8f47d24256361d4c3218af514b7149274ef038a30de1916cf8af22f5544d469"
+    },
+    {
+      "path": "benchmarks/compiler_config_startup_qualification.py",
+      "source_commit": "7993caff786525783f6f7792a72971d93b05eba3",
+      "sha256": "33c816e52bc821803b036d19c0e7f75637fd99fb8c2f864af0ebebd942714ca3"
+    },
+    {
+      "path": "benchmarks/compiler_configuration_provisioning.py",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "b59cb1e0872ea902fab32688415c3030cbcc26177b2faab37c1e9eaf5c279b2e"
+    },
+    {
+      "path": "benchmarks/compiler_darwin_child.py",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "65c90c11ba0843ffecdb36715621671a5f1e00d88946f41a1450336d6ea44ce7"
+    },
+    {
+      "path": "benchmarks/compiler_effective_policy.py",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "fc9dfb79355ba15b1b835719387d9481063f818604bbbe0a1d1eca8eac7b0d2c"
+    },
+    {
+      "path": "benchmarks/compiler_execution_authority.py",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "359640a7060a1180ad6d37d788e05c29e134c2bebe600e324de04d49d7fd3df0"
+    },
+    {
+      "path": "benchmarks/compiler_execution_broker.py",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "e05801524a25b6dd89ed548b23288030b837efe036794caddbc9741999faeeea"
+    },
+    {
+      "path": "benchmarks/compiler_runtime_protocol.py",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "9d75521ba7fe35e63a9797e57655e2d282c22a803756bade95c7625e7cf43006"
+    },
+    {
+      "path": "benchmarks/compiler_runtime_v1/CONFIG-STARTUP-QUALIFICATION-V1.md",
+      "source_commit": "7993caff786525783f6f7792a72971d93b05eba3",
+      "sha256": "c2e509ce426ebe73073b6fa6925e7da202e71691b691ff92eb5a5f2cd35bec71"
+    },
+    {
+      "path": "benchmarks/compiler_runtime_v1/DARWIN-CHILD-V1.md",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "4f7d281e2ec45a5b826424c2e8794d2679415c83ec4c2e58b99d3d0c90502e1d"
+    },
+    {
+      "path": "benchmarks/compiler_runtime_v1/EFFECTIVE-POLICY-V1.md",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "7f915c55818696186a218e2346e44ca92d16df16de9e5c5f1c650bdaf1ba9a1b"
+    },
+    {
+      "path": "benchmarks/compiler_runtime_v1/QUALIFICATION.md",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "01cac644ea2d6e58e407beef0eb380d0ed17acf5a290525998fb0958cda89779"
+    },
+    {
+      "path": "benchmarks/compiler_runtime_v1/README.md",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "6b875ab7b5f203fe43e8761c55a249b7c11239b6e2cc1f15548564b4d19b3c68"
+    },
+    {
+      "path": "benchmarks/compiler_runtime_v1/config-startup/ConfigReadParams.json",
+      "source_commit": "7993caff786525783f6f7792a72971d93b05eba3",
+      "sha256": "257c54a423b47c1d209ff1076765a1564d82322fd5161670fd489a2874de1bac"
+    },
+    {
+      "path": "benchmarks/compiler_runtime_v1/config-startup/ConfigReadResponse.json",
+      "source_commit": "7993caff786525783f6f7792a72971d93b05eba3",
+      "sha256": "4ec77e1a3eed746037149799c3b6bb8fe7b4b593e5930fc9f410e6282de9df50"
+    },
+    {
+      "path": "benchmarks/compiler_runtime_v1/protocol.json",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "1ac6d7c46a319d9c92d4fa78fca78ad01ea2fad82161c8855e837d8e59434077"
+    },
+    {
+      "path": "benchmarks/compiler_runtime_v1/sources.json",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "0642832fc9d6157c76bca2d2a3b6717d91ba6a9715bdb8325a9a072eb38c3460"
+    },
+    {
+      "path": "benchmarks/compiler_shared_runtime.py",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "b9add8ebad38f6824542fa05d009337922103ba529d4a876ed869aa899a25a4a"
+    },
+    {
+      "path": "benchmarks/test_compiler_config_startup_qualification.py",
+      "source_commit": "7993caff786525783f6f7792a72971d93b05eba3",
+      "sha256": "289f578258002c9d48b9d0fcfbc491d0df8755461db4299507db1cf203c75268"
+    },
+    {
+      "path": "benchmarks/test_compiler_configuration_provisioning.py",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "dfc8dce21877ff0574421264b3c2ac68fcb6806893ca134748d7a7de42952c6a"
+    },
+    {
+      "path": "benchmarks/test_compiler_darwin_child.py",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "fe249813c6f3b55087a7b1063a479d297c759cd912629763b0d8f484327e2e70"
+    },
+    {
+      "path": "benchmarks/test_compiler_effective_policy.py",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "43e0db34aded57a33e9c53171c88ea98040b54cd1a872b3fce1422d009309e2e"
+    },
+    {
+      "path": "benchmarks/test_compiler_execution_authority.py",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "b48e14be56f9cca2fd45be3ee38f638a04a120c3f3a410d6d49ec40034877ff9"
+    },
+    {
+      "path": "benchmarks/test_compiler_shared_runtime.py",
+      "source_commit": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+      "sha256": "5dd697dfdd8fc884f05c59966b402e3ab51e4a6c0cc31edf411880d78207051d"
+    }
+  ],
+  "private_source_reviews": {
+    "shared-runtime": {
+      "path": "/Volumes/Semaprax/provenance/codec869-shared-runtime-independent-review-20261017/acceptance.json",
+      "sha256": "23be99f1892231982565479712e62021cdaecaa5deb7c184e5332bbcc6e8f0e7"
+    },
+    "darwin": {
+      "path": "/Volumes/Semaprax/provenance/codec869-darwin-independent-review-20261017/acceptance.json",
+      "sha256": "e5046c336933b53127707719e65325cab2f1df0adf157da59365df8af61b7a09"
+    },
+    "effective-policy": {
+      "path": "/Volumes/Semaprax/provenance/codec869-effective-policy-independent-review-20261017/acceptance.json",
+      "sha256": "c2db034f51da8ae6cc125ab92c1483155477ca312adc325df7b9f8d2491e0463"
+    },
+    "startup": {
+      "path": "/Volumes/Semaprax/provenance/codec869-config-startup-source-20261017/receipt.json",
+      "sha256": "ef76ba8fc017d44726d778ef3860c11795ae890c9d25b93b5c2cb207f41bd7cf"
+    }
+  },
+  "root_test_execution": false,
+  "model_or_provider_calls": false,
+  "campaign_switched": false,
+  "current_admission_still_refuses": true,
+  "ssd_root_actual_uid": 501,
+  "root_store_currently_provisioned": false,
+  "issue869_closed": false
+}

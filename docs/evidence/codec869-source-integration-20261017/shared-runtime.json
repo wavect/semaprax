@@ -1,0 +1,26 @@
+{
+  "status": "ACCEPT_PRIVATE_SOURCE_CHECKPOINT_NOT_LIVE_AUTHORITY_OR_ISSUE_CLOSURE",
+  "commit": "3203bd096ef08effe850061df401e64caa2cb0e9",
+  "authority_composition_commit": "50f67c861",
+  "receipt_sha256": "083f4a515db4e8f189ebae60367a598775cf4a3889bbc001489358e5c3cbe073",
+  "full_inverse_sha256": "6db213d2e1feee2274f172fdde51de6473f68f7ed0e9deadecb621f084b6a4ff",
+  "checks": {
+    "new_source_hashes": 11,
+    "existing_tracked_files_changed": 0,
+    "old_benchmark_inventory_count": 8751,
+    "independent_pure_transport_checks": 18,
+    "authority_pure_checks": 4,
+    "whole_original_v1_structural_kernel": "retained byteexact",
+    "direct_RPC_authority_bypass": "fixed at common request ingress",
+    "constructor_candidate_FD_leak": "fixed by exclusive evidence admission beforeFDopen"
+  },
+  "limits": [
+    "admit and public ExecutionAuthority construction always refuse",
+    "no live grant minted or mocked",
+    "actual effective policy/env/config/loader/ACL/mount/socket qualification unimplemented",
+    "common effective two-arm authority fingerprint and live grant/proof receipt binding unimplemented",
+    "whole detached-child settlement unqualified",
+    "no campaign selection or calibration changes"
+  ],
+  "runtime_provider_compiler_RPC_Cargo_executed": false
+}

@@ -28,9 +28,17 @@ def main():
   # All remaining old code/assertions and fixed historical pins are untouched.
  verifier=R/GUARD/'verify-or-refresh.py';recipe=R/GUARD/'guard-extension-recipe-edits.json'
  outputs={helper:code.encode()}
- for path in [verifier,recipe]:
-  text=path.read_text();old=sha(before);new=sha(code.encode());assert text.count(old)==1
-  outputs[path]=text.replace(old,new,1).encode()
+ # A fixed definition generation owns this exact verifier/recipe pair.
+ # An unchanged semantic helper requires no substitution; a changed helper
+ # cannot retarget this generation's complete immutable prior verifier.
+ if sha(verifier.read_bytes())=='d649251e0ea9c9e605d0dab15b77b59edbb431c911465076a66ff62c6c8ceabb':
+  assert sha(recipe.read_bytes())=='2da6adb0117598c3ad703b5ed5c9aa8f8929e2b595c4737bc3a127da0e914b46'
+  assert sha(before)==sha(code.encode()),'new semantic helper needs an explicit definition generation'
+  outputs[verifier]=verifier.read_bytes();outputs[recipe]=recipe.read_bytes()
+ else:
+  for path in [verifier,recipe]:
+   text=path.read_text();old=sha(before);new=sha(code.encode());assert text.count(old)==1
+   outputs[path]=text.replace(old,new,1).encode()
  assert head()==a.expected_head and (R/m['SOURCE']).read_bytes()==raw
  if a.write:
   for path,data in outputs.items():path.write_bytes(data)

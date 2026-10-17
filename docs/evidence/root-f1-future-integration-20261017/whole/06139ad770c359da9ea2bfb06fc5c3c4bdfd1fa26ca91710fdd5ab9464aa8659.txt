@@ -1,0 +1,69 @@
+{
+  "mode": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "original_generator_definition_span_sha256": "fabc67d5447a0fe66a363782da7d578383ddc2f1cad504b332eeefe7cb7d6a5f",
+  "original_verifier_definition_span_sha256": "b02eca2b0f07e13c6478f511c2c0a9e2e865ca3f518626e19fe0f78a3eb50912",
+  "domains": {
+    "hir": {
+      "original_roots": 1046,
+      "current_boundary_members": 1125,
+      "current_boundary_production": 409,
+      "outside_production_still_fully_authenticated": 82,
+      "full_role_production": 491,
+      "full_role_test_only": 847,
+      "full_raw_sha256": "17f1e109e298f14f5e12400c943a7042e370540f69b2d88843b19de596b36f71",
+      "boundary_production_sha256": "e8547fd459c35bbb801530866da48f59858362fe2c2b7f9eb6c0bb700a9e4903",
+      "exact_original_forbidden_tokens": [
+        "struct Resolver",
+        "impl Resolver",
+        "fn scoped_identity(",
+        "fn materialize_function_template",
+        "fn specialize_source_function",
+        "pub fn resolve(",
+        "crate::cleanup::build_inventory",
+        "crate::cleanup_plan::build_plan",
+        "std::fs",
+        "std::process",
+        "platform::"
+      ],
+      "all_original_coverage_preserved": true,
+      "actual_current_registered_children_complete": true,
+      "global_polluted_purity_result_not_claimed": true
+    },
+    "projection": {
+      "original_roots": 179,
+      "current_boundary_members": 195,
+      "current_boundary_production": 73,
+      "outside_production_still_fully_authenticated": 539,
+      "full_role_production": 612,
+      "full_role_test_only": 922,
+      "full_raw_sha256": "181501340e678ceb3513e79ee9c7a54f3613752fe5b879303d5e577ff88cc00c",
+      "boundary_production_sha256": "120645f17a96b36199dadbe054892e371b445a776adcee5641a624758c5dfece",
+      "exact_original_forbidden_tokens": [
+        "use super::*;",
+        "workspace::",
+        "std::fs",
+        "std::process",
+        "snapshot(",
+        "build_authenticated",
+        "render_graph_json",
+        "write_file",
+        "create_dir",
+        "remove_file",
+        "ACTIVE"
+      ],
+      "all_original_coverage_preserved": true,
+      "actual_current_registered_children_complete": true,
+      "global_polluted_purity_result_not_claimed": true
+    }
+  },
+  "negative_controls": {
+    "dropped_actual_child_refused": true,
+    "coordinated_class_drop_not_original_generated_output": true,
+    "production_reclassification_refused": true,
+    "actual_source_drift_refused": true,
+    "whole_raw_drift_refused": true,
+    "foreign_path_child_cannot_escape": true
+  },
+  "status": "SOURCE_ONLY_EXACT_BOUNDARIES_AND_COMPLETE_SOURCE_ROLE_CUSTODY_PASS",
+  "registration_update": "BOUNDED_ORIGINAL_PARSER_FOUR_PARENTS_NINE_NEW_CHILDREN_THEN_EXACT_KNOWN_BINDING_HASH_REFRESH"
+}

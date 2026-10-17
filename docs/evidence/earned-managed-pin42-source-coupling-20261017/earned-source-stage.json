@@ -1,0 +1,108 @@
+{
+  "schema": "semaprax.earned-managed-two-owner-source-stage.v1",
+  "producer_head": "ef788f8237beeb16dcc1cfa9346fc1dbb6f69a4d",
+  "workflow_sha256": "9c545fd7998a2e01d3bcaade2a582a6659105008710fe1792e8b9b5ddb3d1d65",
+  "reviewed_plan_sha256": "a3f391d00188ff8c14557f5fd535b1be68b72b9d6081d495d4f86e7010769219",
+  "build_receipt_sha256": "67e15309783ac86db1bd72aeadbc4b4f8083f2f2410c80ce987c384fadbba071",
+  "producer_receipt_sha256": "38da2f443266500fdc0f6307cc5115e4fdea6b1772efebac548da9f1e6b4450c",
+  "rows": [
+    {
+      "source": "tests/workspace/semantic_graph.rs",
+      "current": {
+        "length": 57426,
+        "sha256": "eba36d8815d2fd4f0e94995357e42c96085fdce1005519bca65feb4d693b5b79",
+        "archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/after-owners/tests__workspace__semantic_graph.rs.txt"
+      },
+      "prior": {
+        "name": "earned_pin_producer",
+        "length": 57424,
+        "sha256": "b291ce67ab1eb43ca4407c85b53b157d4d76f4ffb6c7091c63d91fb8f641ae9c",
+        "archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before-owners/tests__workspace__semantic_graph.rs.txt"
+      },
+      "edits": [
+        {
+          "path": "tests/workspace/semantic_graph.rs",
+          "before": "assert_eq!(graph.budget().used_builder_bytes(), 973_339);",
+          "after": "assert_eq!(graph.budget().used_builder_bytes(), 1_015_985);",
+          "actual_wire": "public-graph"
+        },
+        {
+          "path": "tests/workspace/semantic_graph.rs",
+          "before": "sha256:cda634c1cfeb7fd5a31be9f8332bc5cee0610310379be7510fee23cdc1e669c1",
+          "after": "sha256:f9e254ca5de88fbc1af31fc025bbbe3bc5f2e35c251c4ce1428943a7c9790600",
+          "actual_wire": "public-graph"
+        },
+        {
+          "path": "tests/workspace/semantic_graph.rs",
+          "before": "sha256:26c450e0185cbe5de20633e074f7d38455ed04ceb68651adbd2459e0e496b2a8",
+          "after": "sha256:be378c0f130cb5d3de37eab4cb840988aa635e2877ff63a9316e4bbb65da59c9",
+          "actual_wire": "context"
+        },
+        {
+          "path": "tests/workspace/semantic_graph.rs",
+          "before": "sha256:7c7ae2cedc6ee83ba9814c28b1a6b0a96fb8b85cfb7bd65cca628fe9242222af",
+          "after": "sha256:ea1c6914bab96e5cc4706e5b09836139196495956c148a5e909a9f7c26ac662f",
+          "actual_wire": "forward"
+        },
+        {
+          "path": "tests/workspace/semantic_graph.rs",
+          "before": "sha256:3be3b04b2cbc5f8abef6c584deed7f854ec22189134a4b67db71cfd416d6dfb1",
+          "after": "sha256:ef32b73b86f2342419526e920f9ed1498c62df3e3ab4d060d0531b939077bd13",
+          "actual_wire": "capability-context"
+        },
+        {
+          "path": "tests/workspace/semantic_graph.rs",
+          "before": "sha256:bb4991566a276f76d7970f49def1184a9047ecf4af0a166b9e642a5598583a73",
+          "after": "sha256:398769425e1601469066ce42f18fe832fde030672faf52c890b2764ab12c6779",
+          "actual_wire": "type-context"
+        },
+        {
+          "path": "tests/workspace/semantic_graph.rs",
+          "before": "sha256:d6e4f39c11c6c2d6ed7ec3e5138d787583961a3669a648daa9085236b3e3e7ee",
+          "after": "sha256:d9087de07c4170c6cb104922e2c8fcd2d3ef7d84053e24fb7f8929e5d8d7ef5f",
+          "actual_wire": "impact"
+        },
+        {
+          "path": "tests/workspace/semantic_graph.rs",
+          "before": "sha256:720704c7baf6b69411b6357041512416c02ece3305fa0ff034d580ddc93a87a7",
+          "after": "sha256:f9406a2cd0565f5eb476ecf91b9676621d4a32a117c6ce27e4a46896195c5c61",
+          "actual_wire": "custom-impact"
+        },
+        {
+          "path": "tests/workspace/semantic_graph.rs",
+          "before": "sha256:93cd7596ab762e34654581f0530368afbe6896e0a395149609711fc9e2b89b3f",
+          "after": "sha256:fcf6b4149c6ac2926f5d4e9ed79c0b0fa6ebc9574cdac5d2619c06f5a511496d",
+          "actual_wire": "review"
+        },
+        {
+          "path": "tests/workspace/semantic_graph.rs",
+          "before": "sha256:64807a35fbe94bfa66201dd3db1468712b93f28b49d98ccc70eeb33460c1e2a0",
+          "after": "sha256:fde9c1b0d2934b90e0e131b84368a5700121a36e23ebd5d13bb5f841e8584a6d",
+          "actual_wire": "capability-review"
+        }
+      ]
+    },
+    {
+      "source": "src/workspace_graph/type_proof_tests.rs",
+      "current": {
+        "length": 52672,
+        "sha256": "53dff12c17b2f8733dbe19b3404585b7f4d6d58ff5a17d55a27ff64ce76b8d4b",
+        "archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/after-owners/src__workspace_graph__type_proof_tests.rs.txt"
+      },
+      "prior": {
+        "name": "earned_pin_producer",
+        "length": 52672,
+        "sha256": "96f67d2f15a416adff470656f1eb697d87ab8ce05bbddbc349efce178d611309",
+        "archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before-owners/src__workspace_graph__type_proof_tests.rs.txt"
+      },
+      "edits": [
+        {
+          "path": "src/workspace_graph/type_proof_tests.rs",
+          "before": "sha256:64d6c385141e02cb6d9c68c19a3569f76eebb6dfe018a183f5cc2b17e0acd9a6",
+          "after": "sha256:513b1d359412973fa3a0b621566c7052ee5cf4b3aee0db2ad77b1e8c3f354aa7",
+          "actual_wire": "projection-wire"
+        }
+      ]
+    }
+  ]
+}

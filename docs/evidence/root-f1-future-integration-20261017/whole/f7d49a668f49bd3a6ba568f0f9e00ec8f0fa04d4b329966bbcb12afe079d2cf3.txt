@@ -1,0 +1,32 @@
+[
+  {
+    "source": "src/source_reflows_merge/main67107_inputs.rs",
+    "archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/whole-source-inverses/0.json",
+    "length": 158353,
+    "sha256": "637efdb44cda9a127e997b75da7d6fb4d272507d8d685535b0cdc6094d6ac203"
+  },
+  {
+    "source": "docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py",
+    "archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/whole-source-inverses/1.json",
+    "length": 5849,
+    "sha256": "399af2a54ba21a9298353a1b20016be8ce845a32485910469bc3982ec157f2cf"
+  },
+  {
+    "source": "docs/evidence/accepted-final6-source-binding-20261017/check-source.py",
+    "archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/whole-source-inverses/2.json",
+    "length": 4815,
+    "sha256": "3d23929b8704fff9abbf8188b218775ee49d5c971c9cc74ecf673dd22d95c30e"
+  },
+  {
+    "source": "docs/evidence/accepted-strict-guard-generation-20261017/check-source.py",
+    "archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/whole-source-inverses/3.json",
+    "length": 8545,
+    "sha256": "61917d351693a79ef6876ede7c0f5360aef1c35c6a21514b422fa00cda6bc378"
+  },
+  {
+    "source": "docs/evidence/main043-independent-custody-20261016/guard-extension-recipe-edits.json",
+    "archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/whole-source-inverses/4.json",
+    "length": 107069,
+    "sha256": "567989cdc194d2ce742feb05174de5db053fbca72b40d98d936b642fbf6e7ed4"
+  }
+]

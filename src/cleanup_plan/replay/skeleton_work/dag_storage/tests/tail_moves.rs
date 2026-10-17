@@ -80,7 +80,7 @@ fn complete_saved_merges(selected: bool) {
         failed,
         abrupt,
     ];
-    let old = old_work.saved_merged_paths(inputs.clone()).unwrap();
+    let old = old_work.tail_merge_control(inputs.clone()).unwrap();
     let new = new_work.merged_paths(inputs).unwrap();
     assert_paths(&old, &new);
     assert_eq!(new[1].observations.items.as_ptr(), singleton_pointer);
@@ -334,7 +334,7 @@ fn saved_lexical_merges_keep_failure_residual_return_and_conditional_isolation()
             .iter()
             .map(|p| p.observations.items.as_ptr())
             .collect();
-        let old = old_work.saved_merged_paths(inputs.clone()).unwrap();
+        let old = old_work.tail_merge_control(inputs.clone()).unwrap();
         let new = new_work.merged_paths(inputs).unwrap();
         assert_paths(&old, &new);
         assert_eq!(new.len(), if active_region { 6 } else { 7 });
@@ -411,7 +411,7 @@ fn merge_probe(
                 Ok(())
             } else {
                 let merged = if saved {
-                    work.saved_merged_paths(inputs)
+                    work.tail_merge_control(inputs)
                 } else {
                     work.merged_paths(inputs)
                 }?;
@@ -506,7 +506,7 @@ fn consuming_merges_preserve_first_work_refusal_at_every_node_boundary() {
         b.skeleton_remaining = units;
         let mut old_work = SkeletonWork::new(&program, function, &mut a);
         let mut new_work = SkeletonWork::new(&program, function, &mut b);
-        let old = old_work.saved_merged_paths(vec![path(&item, 2), path(&item, 3)]);
+        let old = old_work.tail_merge_control(vec![path(&item, 2), path(&item, 3)]);
         let new = new_work.merged_paths(vec![path(&item, 2), path(&item, 3)]);
         match (old, new) {
             (Ok(old), Ok(new)) => assert_paths(&old, &new),

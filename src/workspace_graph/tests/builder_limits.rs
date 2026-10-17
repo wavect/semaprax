@@ -482,7 +482,9 @@ fn identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refu
 
     CORE_BUILD_ATTEMPTS.with(|attempts| attempts.set(0));
     crate::cleanup_plan::take_replay_work_refusal();
-    let built_result = build_owned_with_builder_limit(sources.clone(), MAX_BUILDER_BYTES);
+    let built_result = observe_core_attempts(|| {
+        build_owned_with_builder_limit(sources.clone(), MAX_BUILDER_BYTES)
+    });
     if let Some(refusal) = crate::cleanup_plan::take_replay_work_refusal() {
         eprintln!("identity-retry-work-refusal caller={} requested={} remaining={} statuses={} first_status_bytes={} payer={}",
             refusal.caller, refusal.requested, refusal.remaining, refusal.status_sources,

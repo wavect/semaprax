@@ -1,0 +1,71 @@
+{
+  "status": "SOURCE_ONLY_UNQUALIFIED_MERGE",
+  "parents": {
+    "current": "8ca43da82880e63b77d9dd4717e6a1f9faa260fb",
+    "incoming": "99f1f06d361e16bd937f4a6eda19703e78f0e525"
+  },
+  "conflicts": [
+    "CHANGELOG.md",
+    "docs/evidence/borrowed-exit-region-match-v1/sources.json",
+    "docs/evidence/held-continuation-growth-v1/sources.json",
+    "docs/evidence/held-status-prefix-v1/sources.json",
+    "docs/evidence/last-branch-prefix-v1/sources.json",
+    "docs/evidence/ordinary-replay-routes-v1/sources.json",
+    "docs/evidence/ordinary-replay-setup-v1/sources.json",
+    "docs/evidence/paid-expression-lookup-state-v1/sources.json",
+    "docs/evidence/plan-branch-capacity-v1/sources.json",
+    "docs/evidence/projection-audit-scope-v1/sources.json",
+    "docs/evidence/replay-operation-totals-v1/sources.json",
+    "docs/evidence/replay-work-refusal-v1/sources.json",
+    "docs/evidence/source-reader-followups-20261016/sources.json",
+    "docs/evidence/status-identity-index-v1/sources.json",
+    "docs/evidence/status-membership-index-v1/sources.json",
+    "docs/evidence/string-slot-byte-helper-v1/sources.json",
+    "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "src/source_reflows/semantic_receivers.rs",
+    "src/workspace_graph.rs",
+    "src/workspace_graph/tests.rs",
+    "tests/wasm/scalar_browser_ci_contract/historical_builder.rs"
+  ],
+  "whole_domain_row_counts": {
+    "current": 345,
+    "incoming": 388
+  },
+  "retained_domains_sha256": "c53e7f047225810d9ed98f44e4ce3023e1f771372536c7875f1b83983c91b4dd",
+  "retained_existing_live_json": 17,
+  "actual_producer": "src/workspace_graph/initial_report/build.rs",
+  "actual_producer_whole_images": [
+    {
+      "role": "before",
+      "archive": "docs/evidence/main99f-future-integration-20261017/before.initial-report-build.rs.txt",
+      "length": 16803,
+      "sha256": "607af6cab243e1970aed326c8dc7ce7c211ffe902f4e425467599538aef013d1"
+    },
+    {
+      "role": "after",
+      "archive": "docs/evidence/main99f-future-integration-20261017/after.initial-report-build.rs.txt",
+      "length": 17054,
+      "sha256": "0fd9df9abe4ceadd45105394a4efcda2edc3a3ab780d0326d924288a60ea5bda"
+    }
+  ],
+  "actual_producer_exact_inverse": "remove producer_hook once from merge-resolution.json",
+  "all_sixteen_old_c883_and_full_f247_controller_names_and_tables": "unchanged live current branch; independent complete incoming99f domain archived",
+  "pending_combined_batch": [
+    "Compile and wire separately named full incoming99f semantic controller bodies to the complete incoming99f domain; preserve old c883/f247 controllers independently",
+    "Compile and wire complete incoming3e66 browser bridge to authenticated exact historical runner/current-source views, preserving future current pin lineage and every previous bridge",
+    "Join core_attempt_trace.rs and before_3e66.rs into every current raw/owned source closure and preserve complete moved-producer source inverse",
+    "Refresh only final combined current/prior source bindings after accepted880 and earned ROOT pin merge"
+  ],
+  "new_compiled_unit_selectors": [
+    "workspace_graph::tests::core_attempt_trace::opt_in_preserves_borrowed_result_and_nested_scope_without_default_formatting",
+    "workspace_graph::tests::core_attempt_trace::disabled_receipts_do_not_format_and_enabled_receipts_borrow_all_original_inputs",
+    "workspace_graph::tests::core_attempt_trace::unwind_restores_each_original_observer_scope"
+  ],
+  "new_source_owner_names": [
+    "core_attempt_receipts_preserve_all_original_retry_and_source_controls",
+    "tail_merger_helper_name_preserves_both_complete_reference_bodies_and_all_assertions"
+  ],
+  "source_bindings_executed": false,
+  "cargo_or_tests_executed": false,
+  "browser_capture_executed": false
+}

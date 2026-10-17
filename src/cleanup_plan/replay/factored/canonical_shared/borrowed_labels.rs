@@ -450,8 +450,8 @@ fn direct_singleton_complete_directory_preimage_remains_byte_exact() {
     let before=include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/ordinary-singleton-successors-20261017/before/src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs"));
     let current=include_str!("borrowed_labels.rs");
     assert!(current.starts_with(before));
-    assert_eq!(current.matches("pub(super) fn successors<C: Closed>").count(),1);
-    assert_eq!(current.matches("struct Directory<'a>").count(),1);
+    assert_eq!(current.matches(concat!("pub(super) fn ", "successors<C: Closed>")).count(),1);
+    assert_eq!(current.matches(concat!("struct ", "Directory<'a>")).count(),1);
 }
 
 

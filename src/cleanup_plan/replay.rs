@@ -7155,33 +7155,11 @@ fn plan_skeleton_paths(
                         // false probe paths; this is a bounded implementation
                         // detail of that materialization, not a CPU ledger.
                         if let ReplayBudget { payer: AllocationPayer::ActiveBuilder, .. } = budget {
-                                budget.reserve_bytes(function, branch_clone::TAKE_CALL_CONTROLS,
-                                    "plan final branch probe receiving")?;
-                                if branch_clone::can_take(branch_clone::TakeCandidate {
-                                    values: &observations,
-                                    remaining_edges: remaining_edges.len(),
-                                    edge_count: edges.len(),
-                                    budget,
-                                    plan,
-                                    target: edge.to,
-                                }) {
-                                    note_skeleton_materialization();
-                                    budget.charge_skeleton(function, 1, "plan branch observation push")?;
-                                    note_skeleton_materialization();
-                                    budget.reserve_bytes(function, 0, "plan branch observation push")?;
-                                    budget.reserve_bytes(function,
-                                        physical_clone::conversion_bytes::<std::rc::Rc<SkeletonObservation>, _>(&observation),
-                                        "plan branch observation push")?;
-                                    #[cfg(test)]
-                                    branch_clone::note_take();
-                                    #[cfg(test)]
-                                    branch_clone::note_generic_take();
-                                    branch = std::mem::take(&mut observations);
-                                    branch.push(observation.into());
-                                    skeleton_queue_push(budget, function, &mut queue,
-                                        (edge.to, branch), "plan branch state push")?;
-                                    continue;
-                                }
+                            budget.reserve_bytes(function,
+                                branch_clone::TAKE_CALL_CONTROLS + branch_clone::production_capacity::ADDITIONAL_CONTROLS,
+                                "plan final branch probe receiving")?;
+                            branch_clone::production_capacity::produce!(budget, function, observations,
+                                observation, plan, edge, remaining_edges, edges, branch, queue);
                         }
                         budget.reserve_clone(
                             function,

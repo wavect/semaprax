@@ -1,0 +1,48 @@
+{
+  "status": "SOURCE_MAP_ONLY_FAILURE_NOT_REEXECUTED",
+  "owner": "cleanup_plan::replay::factored::canonical_shared::paid_many::tests::composed_frozen_actual_comparison_keeps_full_source_trace_and_diagnostic_order",
+  "loss_sites": [
+    {
+      "source": "paid_many/tests.rs",
+      "immediate_before_line": 411,
+      "stage": "physical-setup",
+      "loss": "Err(error) branch asserts H006 then returns Err(())"
+    },
+    {
+      "source": "paid_many/tests.rs",
+      "immediate_before_line": 436,
+      "stage": "full-comparison",
+      "loss": "map_err closure asserts H006 and implicitly returns()"
+    }
+  ],
+  "current_route": [
+    {
+      "source": "src/cleanup_plan/replay/factored.rs",
+      "function": "compare_with_index_storage",
+      "stages": [
+        "build_comparison",
+        "canonical ordered dictionary owner receiving",
+        "cold terminal predicate or held closure invocation",
+        "HIR root canonicalization",
+        "plan root canonicalization"
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored.rs",
+      "function": "build_comparison",
+      "stages": [
+        "lend existing skeleton allowance",
+        "HIR skeleton",
+        "automaton nodes and HIR observation transitions",
+        "plan automaton",
+        "restore unused allowance and return original Diagnostic"
+      ]
+    }
+  ],
+  "old_route": "before_paid_many/compare.rs independently compiled complete comparison, uses same build_comparison; all source bytes unchanged",
+  "capture": "Full original Debug Diagnostic: code,severity,message,path,span,help plus stage/arm/limit and unchanged original budget scalars. No inner-stage inference beyond actual diagnostic text.",
+  "reporting_limit_only": 16384,
+  "overflow": "report_complete=false; selected original failure remains unchanged",
+  "print_after_measure_and_drop": true,
+  "no_new_selector_or_production_change": true
+}

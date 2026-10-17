@@ -18,7 +18,7 @@
   {
     "path": "src/source_reflows/incoming67107_semantic_receivers.rs",
     "current_len": 32045,
-    "current_sha256": "96e22b72215c9dc0370ef8ce877307798d48b99256e2393f2ad008e989cca77e",
+    "current_sha256": "5b14ab93dba6fe594204817ac76eca64a4b7e1fd537177a3d3ac81f87e387c4a",
     "original_len": 14110,
     "original_sha256": "312fde087005ab31671190994e8eb71cdac95cd32d3b4d1fbc13c3c544f66a21",
     "original_archive": "docs/evidence/main34d-three-source-domains-20261017/original-programs/src__source_reflows__incoming67107_semantic_receivers.rs.ours492.txt",
@@ -26,7 +26,7 @@
       {
         "at": 0,
         "remove_len": 32045,
-        "remove_sha256": "96e22b72215c9dc0370ef8ce877307798d48b99256e2393f2ad008e989cca77e",
+        "remove_sha256": "5b14ab93dba6fe594204817ac76eca64a4b7e1fd537177a3d3ac81f87e387c4a",
         "insert_archive": "docs/evidence/main34d-three-source-domains-20261017/original-programs/src__source_reflows__incoming67107_semantic_receivers.rs.ours492.txt"
       }
     ]

@@ -577,3 +577,41 @@ fn checked_roots_and_reentrant_guards_keep_complete_old_paths_with_small_paid_ba
         assert_eq!(old_budget.skeleton_remaining, budget.skeleton_remaining);
     });
 }
+
+#[test]
+fn ordinary_standalone_roots_keep_complete_original_paths_without_fixed_backing() {
+    let program = program();
+    crate::bounded_output::with_limit(1 << 26, || {
+        let mut old_budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+        let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+        for function in &program.functions {
+            let mut old = SkeletonWork::new(&program, function, &mut old_budget);
+            let mut current = SkeletonWork::new(&program, function, &mut budget);
+            assert!(current.continuations.is_none());
+            for expression in function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(function.ensures.iter())
+            {
+                let before = old_expression(&program, function, expression, &mut old).unwrap();
+                let after =
+                    expression_skeleton(&program, function, expression, &mut current).unwrap();
+                assert_eq!(before.len(), after.len());
+                for (before, after) in before.iter().zip(&after) {
+                    assert_eq!(
+                        observation_sequences(&before.observations),
+                        observation_sequences(&after.observations)
+                    );
+                    assert_eq!(before.owned_source, after.owned_source);
+                    assert_eq!(
+                        (before.failed, before.residual, &before.continuation),
+                        (after.failed, after.residual, &after.continuation)
+                    );
+                }
+            }
+        }
+        assert_eq!(old_budget.skeleton_spent, budget.skeleton_spent);
+        assert_eq!(old_budget.skeleton_remaining, budget.skeleton_remaining);
+    });
+}

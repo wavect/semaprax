@@ -1,6 +1,6 @@
 {
   "status": "NEW_UNQUALIFIED_MAIN_FRONT_BINDINGS_ONLY",
-  "source_head": "f7357ec46b2b860682a31cbe5fc01a80209509e6",
+  "source_head": "00cf8329e00da33209a0dbfdc20b8d7fc236c726",
   "source_repo": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
   "raw_inputs": {
     "src/byte_ops.rs": "22e3f98ab80d320bed149c19de4ab1394f0dca7b55be3b7080f2745a50186ade",
@@ -26,7 +26,7 @@
     "src/loop_calls/byte_writer.rs": "9d9227d8d51508bf478aa83d9c76ee2d16a40ea8bda2413b239da92bf87fa863",
     "src/loop_calls/byte_writer/resolved.rs": "df9e8311daff58f93801e4b381b08941cc2692158b0dbb44bfe98836c68d0498",
     "src/loop_calls/byte_writer/resolved/funded.rs": "e6eab15f9b6228435190df01b8b8a088427473e0c35d905873406f385861bf1d",
-    "src/source_reflows/semantic_receivers.rs": "6816d73e025e149033a83a0bce3f0f1bd3072563fad3a8b715395274a6a8eb2b",
+    "src/source_reflows/semantic_receivers.rs": "ba2ddbf8486039ba24fb0f36a90dea66910e931cbb71115b4d2eab114906430b",
     "src/string_ops.rs": "edd96a3c89c7ec70ec3e4d8082a0fd2277e5e946ae4e51320197617461465dc7",
     "src/string_ops/concat_funded.rs": "18d9ad30309e1da62ca88d9e06740f1cb0384635291b93ab97edc823c99ce4bc",
     "src/string_ops/conditions.rs": "75eb3ac3e51c19cbab6332ae439dc33e0e7f5b5e496effae25fc6bfc4ec41560",
@@ -42,10 +42,10 @@
     "docs/evidence/unit-weight-closure-v1/inverse.json": "c54029793b825b9b2a2a6ddae6c1354d8f6eddfc7ef3c2c559c07fa74443e4ce",
     "docs/evidence/factored-flat-targets-v1/sources.json": "f71b6832ac5d869c1f9f557714724bbbab91033c6b9d13cd11be85f2ed1d7813",
     "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs": "60f688bdadc749a017b45d09e43e8eb1b1034b2c11d7f38bcc25e3d8e3cd7185",
-    "src/cleanup_plan/replay.rs": "8b1bfec11acfc070e9e925047fa20f2584f8834760f2623087c3997f9faf1fff",
+    "src/cleanup_plan/replay.rs": "6db5b0ed361258023e3d7cad058c3de6d737b416b67e98e7113ecb0a993c86c1",
     "src/cleanup_plan/replay/factored/oracle_hook.rs": "0126d25150ca4b96f11995293fc9043d23fc8fff2008485e9560abe5c85cb7ae",
-    "tests/hir_module_boundaries.rs": "f85ee55535c7185a5b97e7ee3886e46ee7cc11adc07d98111d39aad681d1af43",
-    "tests/workspace/semantic_graph/source_inventory.rs": "2811c3fee99f7d5015a247a0035820525dce06edeadc09b998bc1b72bf7ca471",
+    "tests/hir_module_boundaries.rs": "f02bba225d5ef39efada185148152874746e946ad9096bfced713251d563583b",
+    "tests/workspace/semantic_graph/source_inventory.rs": "efa8ea91cd4c1c30ada4c7d6cfcf15a4b17b750bcf10b9122ebf94b450b0a208",
     "src/source_verify/declaration.rs": "74f8b49a70fc80d44c952098b5d11e0da59c7e9ecc47fdbb890f63f366d00c23",
     "src/cleanup_plan/replay/branch_clone/tests.rs": "1ceebb30aefeb84f0b3be9a2ff916c247a8017ecbe1a33d58f36bd556094c757",
     "src/cleanup_plan/replay/factored.rs": "343eda3712d0c3b224742d72c34838a327e0c69449c8a94fd7eb81dc5e0134a6",
@@ -112,13 +112,13 @@
     "docs/evidence/receiver-source-custody-v1/src__hir__expr_nodes.rs.before.txt": "38b34d4f37ced73abb4e6054e668fa0454bcc9dbb0caabda31da680b44fa38fc"
   },
   "outputs": {
-    "docs/evidence/ordinary-replay-setup-v1/sources.json": "f38d4e426196d25959a5fd4d7319a30b8d4e456f77e686ddb6060d94aa9b7ee2",
+    "docs/evidence/ordinary-replay-setup-v1/sources.json": "8649bea97b3a9081a3b46eb46758140defe906d6d467ff1e704a5f6d015b4816",
     "docs/evidence/ordinary-replay-setup-v1/format-inputs.json": "b0dfadd73eb07d4fafb4010177b3f8e8e6b619b75d9cb7fd9e3b86f68bc5f840",
     "docs/evidence/ordinary-replay-setup-v1/helper-inputs.json": "347499fc3e60466e1e1ee04e219aeec04d61cd8e6ae3a165f91d8bb6a04a65ef",
     "docs/evidence/ordinary-replay-setup-v1/production-cfg.json": "a2433bba5c8d80869a3d30cbf99e72d1ab75570aac06b19f719406b8b20a14ab",
     "docs/evidence/factored-flat-labels-v1/sources.json": "ee4309e37b0523065c48ac67a5eb2e3542c9ac96b31dd38cfec85f5198660d0f",
     "docs/evidence/factored-flat-labels-v1/test-namespace.json": "e3a5a6530353211086d3b554ceb19fbb82f9be82a2d8149b7220ccf0fce4ae69",
-    "docs/evidence/main67107-production-composition-20261017/receiver-main12.json": "9ffe1f6f298aecacbd9820322dbe2fd6c03a40475f9146a80030cbf2fe917a4b"
+    "docs/evidence/main67107-production-composition-20261017/receiver-main12.json": "1b0aee3c703a19bacd2c322cc8d14d5e47be891a0fd6084ba87d1afd88ce583e"
   },
   "no_cargo_or_runtime": true
 }

@@ -1,0 +1,153 @@
+{
+  "head": "00cf8329e00da33209a0dbfdc20b8d7fc236c726",
+  "source_only": true,
+  "steps": [
+    {
+      "step": 1,
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/compile-acquisition-35f-20261017/run-common.py",
+        "--tool",
+        "main",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+        "--expected-head",
+        "00cf8329e00da33209a0dbfdc20b8d7fc236c726",
+        "--write"
+      ],
+      "exit": 0,
+      "seconds": 1.1778638339892495
+    },
+    {
+      "step": 2,
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/mainbcc-ordinary-source-domain-20261017/bind-inputs.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+        "--inputs",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+        "--write"
+      ],
+      "exit": 0,
+      "seconds": 0.4588640830188524
+    },
+    {
+      "step": 3,
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main34d-three-source-domains-20261017/bind-inputs.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+        "--inputs",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+        "--write"
+      ],
+      "exit": 0,
+      "seconds": 0.9777218750095926
+    },
+    {
+      "step": 4,
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/mainbcc-ordinary-source-domain-20261017/bind-inputs.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+        "--inputs",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+        "--write"
+      ],
+      "exit": 0,
+      "seconds": 0.15959545798250474,
+      "metadata_reseal_rust_unchanged": true
+    },
+    {
+      "step": 5,
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main043-newmain-acquisition-20261017/bind-current.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+        "--expected-head",
+        "00cf8329e00da33209a0dbfdc20b8d7fc236c726",
+        "--write"
+      ],
+      "exit": 0,
+      "seconds": 0.13211370800854638
+    },
+    {
+      "step": 6,
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/mainbcc-ordinary-source-domain-20261017/bind-inputs.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+        "--inputs",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang"
+      ],
+      "exit": 0,
+      "seconds": 0.1384350840235129
+    },
+    {
+      "step": 7,
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main34d-three-source-domains-20261017/bind-inputs.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+        "--inputs",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang"
+      ],
+      "exit": 0,
+      "seconds": 0.8303192500025034
+    },
+    {
+      "step": 8,
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main043-newmain-acquisition-20261017/bind-current.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+        "--expected-head",
+        "00cf8329e00da33209a0dbfdc20b8d7fc236c726"
+      ],
+      "exit": 0,
+      "seconds": 0.05348212498938665
+    },
+    {
+      "step": 9,
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/mainbcc-ordinary-source-domain-20261017/check-source.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+        "--inputs",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang"
+      ],
+      "exit": 0,
+      "seconds": 0.33948308299295604
+    },
+    {
+      "step": 10,
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main34d-three-source-domains-20261017/check-source.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+        "--inputs",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang"
+      ],
+      "exit": 0,
+      "seconds": 1.310206666996237
+    },
+    {
+      "step": 11,
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main043-newmain-acquisition-20261017/check-source.py"
+      ],
+      "exit": 0,
+      "seconds": 0.8304925419797655
+    }
+  ]
+}

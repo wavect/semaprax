@@ -419,3 +419,520 @@ pub(in crate::hir) fn compare_finish_drop(
         after.allocated + text.len() + DeclarationId::shared_backing_bytes(text.len()).unwrap()
     );
 }
+
+
+// Original finish algorithms compiled independently; only their private names
+// change. No production dispatch or fake source/authentication context exists.
+use crate::ast::Span;
+use crate::diagnostic::Diagnostic;
+use crate::hir::{ExprPath, OwnershipMode, ResolvedType, Resolver};
+
+fn saved_vec_finish<'p>(
+    resolver: &Resolver<'_, '_>,
+    function: &FunctionExecutionId,
+    path: impl Into<ExprPath<'p>>,
+    span: Span,
+    op: crate::vec_ops::VecOp,
+    element: ResolvedType,
+    args: Vec<ResolvedExpr>,
+) -> Result<ResolvedExpr, Diagnostic> {
+    for (index, argument) in args.iter().enumerate() {
+        if !op.accepts_resolved(index, &argument.ty, &element) {
+            return Err(resolver.error(
+                "SPX-H006",
+                format!(
+                    "vector operation `{}` argument {index} has the wrong type",
+                    op.name()
+                ),
+                argument.span,
+            ));
+        }
+    }
+    let ty = op.resolved_return_type(&element);
+    if op == crate::vec_ops::VecOp::StrAt && !crate::vec_ops::string_slot::arguments(&args) {
+        return Err(resolver.error("SPX-H006", crate::vec_ops::string_slot::SHAPE, span));
+    }
+    if op == crate::vec_ops::VecOp::UniqueBy
+        && !crate::vec_ops::field_unique::arguments(&args, &element)
+    {
+        return Err(resolver.error("SPX-H006", crate::vec_ops::field_unique::SHAPE, span));
+    }
+    let ownership = if op == crate::vec_ops::VecOp::StrAt {
+        OwnershipMode::Borrow
+    } else if op.returns_owner() {
+        OwnershipMode::Own
+    } else {
+        OwnershipMode::Value
+    };
+    Ok(ResolvedExpr {
+        id: path.into().expression_id(function),
+        ty,
+        ownership,
+        kind: ResolvedExprKind::Call {
+            callee: DeclarationId::new(op.id()),
+            type_arguments: vec![element],
+            instance: None,
+            args,
+        },
+        span,
+    })
+}
+
+fn saved_box_finish<'p>(
+    function: &FunctionExecutionId,
+    path: impl Into<ExprPath<'p>>,
+    span: Span,
+    op: crate::box_ops::BoxOp,
+    element: ResolvedType,
+    args: Vec<ResolvedExpr>,
+) -> Result<ResolvedExpr, Diagnostic> {
+    let Some(argument) = args.first() else {
+        return Err(Diagnostic::io(
+            "SPX-H006",
+            "box operation argument is missing",
+        ));
+    };
+    if argument.ty != op.resolved_param_type(&element) {
+        return Err(Diagnostic::io(
+            "SPX-H006",
+            "box operation argument has the wrong type",
+        ));
+    }
+    let ty = op.resolved_return_type(&element);
+    Ok(ResolvedExpr {
+        id: path.into().expression_id(function),
+        ownership: if op == crate::box_ops::BoxOp::New || element == ResolvedType::Bytes {
+            OwnershipMode::Own
+        } else {
+            OwnershipMode::Value
+        },
+        ty,
+        kind: ResolvedExprKind::Call {
+            callee: DeclarationId::new(op.id()),
+            type_arguments: vec![element],
+            instance: None,
+            args,
+        },
+        span,
+    })
+}
+
+#[test]
+fn closed_vec_box_and_stdin_identities_keep_full_owned_traits_and_zero_sticky_drop() {
+    let cases = crate::vec_ops::ALL
+        .into_iter()
+        .map(|op| (CompilerDeclaration::VecOperation(op), op.id()))
+        .chain(
+            crate::box_ops::ALL
+                .into_iter()
+                .map(|op| (CompilerDeclaration::BoxOperation(op), op.id())),
+        )
+        .chain(
+            [
+                crate::stdin_stream_ops::PureOp::Chunk,
+                crate::stdin_stream_ops::PureOp::Eof,
+            ]
+            .into_iter()
+            .map(|op| (CompilerDeclaration::StdinInspection(op), op.id())),
+        );
+    for (operation, text) in cases {
+        let old = DeclarationId::new(text);
+        let current = DeclarationId::compiler(operation);
+        assert_eq!(current, old);
+        assert_eq!(current.cmp(&old), std::cmp::Ordering::Equal);
+        assert_eq!(hash(&current), hash(&old));
+        assert_eq!(format!("{current:?}"), format!("{old:?}"));
+        assert_eq!(
+            crate::cache_codec::encode(&current).unwrap(),
+            crate::cache_codec::encode(&old).unwrap()
+        );
+        let (((), observed), refused, spent, first) = with_limit_usage_refusal(0, || {
+            measure(|| {
+                let identity = DeclarationId::compiler(operation);
+                assert_eq!(identity.as_str().as_bytes(), text.as_bytes());
+                assert!(identity.is_compiler_static());
+                assert_eq!(identity.owned_allocation_bytes(), 0);
+                drop([identity.clone(), identity]);
+            })
+        });
+        assert!(!refused && first.is_none() && !observed.invalid);
+        assert_eq!(
+            (
+                spent,
+                observed.allocations,
+                observed.reallocations,
+                observed.allocated,
+                observed.freed,
+                observed.live
+            ),
+            (0, 0, 0, 0, 0, 0)
+        );
+        let (((), observed), refused, spent, first) = with_limit_usage_refusal(0, || {
+            measure(|| {
+                assert!(!reserve_active_required(1));
+                let identity = DeclarationId::compiler(operation);
+                assert_eq!(identity, old);
+                drop(identity);
+                assert!(!reserve_active_required(0));
+            })
+        });
+        assert!(refused && !observed.invalid);
+        assert_eq!(first.unwrap().requested, 1);
+        assert_eq!(
+            (spent, observed.allocated, observed.freed, observed.live),
+            (0, 0, 0, 0)
+        );
+    }
+}
+
+#[test]
+fn vec_and_box_actual_finish_keep_complete_owned_oracle_diagnostics_and_drop() {
+    // Fixture setup precedes observation; these are typed finish receivers,
+    // not a claim that arbitrary integer AST payloads are source-valid calls.
+    let program = crate::check(
+        "module operation.identities; @id(\"operation.main\") fn main()->i64 {0}",
+        "operation-identities.spx",
+    )
+    .unwrap();
+    let resolver = Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(&program)),
+        program: &program,
+        byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(&program),
+        declarations: crate::hir::DeclarationIndex::from_verified(&program).unwrap(),
+        reuse: None,
+        function_work: crate::hir::FunctionResolutionWork::default(),
+        fused_producer: None,
+        partition_profile: false,
+    };
+    let owner = owner();
+    let mut accepted_vec_receivers = 0usize;
+    for op in crate::vec_ops::ALL {
+        for element in [ResolvedType::I64, ResolvedType::String] {
+            let args = arguments(&owner, &crate::vec_ops::resolved_params(op, &element));
+            // Operations with additional Place/source-profile requirements may
+            // reject this direct typed fixture; equality covers all six fields.
+            let old = saved_vec_finish(
+                &resolver,
+                &owner,
+                "λ.call\0tail",
+                Span::default(),
+                op,
+                element.clone(),
+                args.clone(),
+            );
+            let current = crate::hir::resolve_vec_call::finish(
+                &resolver,
+                &owner,
+                "λ.call\0tail",
+                Span::default(),
+                op,
+                element.clone(),
+                args.clone(),
+            );
+            assert_eq!(current, old, "{op:?}");
+            if current.is_ok() {
+                accepted_vec_receivers += 1;
+                let old_args = args.clone();
+                let current_args = args.clone();
+                let old_element = element.clone();
+                let current_element = element.clone();
+                compare_finish_drop(
+                    || {
+                        saved_vec_finish(
+                            &resolver,
+                            &owner,
+                            "full.drop",
+                            Span::default(),
+                            op,
+                            old_element,
+                            old_args,
+                        )
+                    },
+                    || {
+                        crate::hir::resolve_vec_call::finish(
+                            &resolver,
+                            &owner,
+                            "full.drop",
+                            Span::default(),
+                            op,
+                            current_element,
+                            current_args,
+                        )
+                    },
+                    op.id(),
+                );
+            }
+            for at in 0..args.len() {
+                let mut changed = args.clone();
+                changed[at].ty = ResolvedType::Bool;
+                assert_eq!(
+                    crate::hir::resolve_vec_call::finish(
+                        &resolver,
+                        &owner,
+                        "hostile",
+                        Span::default(),
+                        op,
+                        element.clone(),
+                        changed.clone()
+                    ),
+                    saved_vec_finish(
+                        &resolver,
+                        &owner,
+                        "hostile",
+                        Span::default(),
+                        op,
+                        element.clone(),
+                        changed
+                    )
+                );
+            }
+        }
+    }
+    assert!(
+        accepted_vec_receivers > 0,
+        "actual Vec finish must reach success and physical Drop comparison"
+    );
+    for op in crate::box_ops::ALL {
+        for element in [ResolvedType::I64, ResolvedType::Bytes] {
+            let args = arguments(&owner, &crate::box_ops::resolved_params(op, &element));
+            let old_args = args.clone();
+            let current_args = args.clone();
+            let old_element = element.clone();
+            let current_element = element.clone();
+            compare_finish_drop(
+                || {
+                    saved_box_finish(
+                        &owner,
+                        "full.drop",
+                        Span::default(),
+                        op,
+                        old_element,
+                        old_args,
+                    )
+                },
+                || {
+                    crate::hir::resolve_box_call::finish(
+                        &owner,
+                        "full.drop",
+                        Span::default(),
+                        op,
+                        current_element,
+                        current_args,
+                    )
+                },
+                op.id(),
+            );
+            let mut changed = args;
+            changed.clear();
+            assert_eq!(
+                crate::hir::resolve_box_call::finish(
+                    &owner,
+                    "hostile",
+                    Span::default(),
+                    op,
+                    element.clone(),
+                    changed.clone()
+                ),
+                saved_box_finish(&owner, "hostile", Span::default(), op, element, changed)
+            );
+        }
+    }
+}
+
+use crate::ast::{Expr, ExprKind};
+use crate::hir::resolve_expr::path_arena::Seg;
+use crate::hir::{Binding, Place};
+use std::collections::BTreeMap;
+
+impl Resolver<'_, '_> {
+    fn saved_stdin_inspection<'p>(
+        &self,
+        execution: &FunctionExecutionId,
+        expression: &Expr,
+        bindings: &BTreeMap<String, Binding>,
+        path: impl Into<ExprPath<'p>>,
+    ) -> Result<Option<ResolvedExpr>, Diagnostic> {
+        let ExprKind::Call {
+            name,
+            type_arguments,
+            args,
+        } = &expression.kind
+        else {
+            return Ok(None);
+        };
+        let Some(op) = crate::stdin_stream_ops::pure_by_name(name) else {
+            return Ok(None);
+        };
+        let [argument] = args.as_slice() else {
+            return Err(self.error(
+                "SPX-T270",
+                "streaming stdin inspection requires one reader",
+                expression.span,
+            ));
+        };
+        let ExprKind::Var(name) = &argument.kind else {
+            return Err(self.error(
+                "SPX-T270",
+                "streaming stdin inspection requires an exact named reader",
+                argument.span,
+            ));
+        };
+        let binding = bindings.get(name).ok_or_else(|| {
+            self.error(
+                "SPX-H002",
+                "streaming stdin reader is out of scope",
+                argument.span,
+            )
+        })?;
+        if !type_arguments.is_empty()
+            || !crate::stdin_stream_ops::is_reader(&binding.ty)
+            || !matches!(
+                binding.ownership,
+                OwnershipMode::Own | OwnershipMode::Borrow
+            )
+        {
+            return Err(self.error(
+                "SPX-T270",
+                "invalid streaming stdin inspection operand",
+                argument.span,
+            ));
+        }
+        let path = path.into();
+        let place = Place {
+            root: binding.id.clone(),
+            projections: Vec::new(),
+        };
+        let (kind, ownership) = match op {
+            crate::stdin_stream_ops::PureOp::Chunk => (
+                ResolvedExprKind::BorrowPlace {
+                    operation: DeclarationId::new(op.id()),
+                    place,
+                },
+                OwnershipMode::Borrow,
+            ),
+            crate::stdin_stream_ops::PureOp::Eof => (
+                ResolvedExprKind::Call {
+                    callee: DeclarationId::new(op.id()),
+                    type_arguments: Vec::new(),
+                    instance: None,
+                    args: vec![ResolvedExpr {
+                        id: path.expression_id_with(execution, &[Seg::ArgZero.into()]),
+                        ty: binding.ty.clone(),
+                        ownership: binding.ownership,
+                        kind: ResolvedExprKind::Place(place),
+                        span: argument.span,
+                    }],
+                },
+                OwnershipMode::Value,
+            ),
+        };
+        Ok(Some(ResolvedExpr {
+            id: path.expression_id(execution),
+            ty: op.result(),
+            ownership,
+            kind,
+            span: expression.span,
+        }))
+    }
+}
+
+#[test]
+fn stdin_actual_inspections_keep_full_owned_oracle_scope_refusals_and_drop() {
+    let program = crate::check(
+        "module stream.identities; @id(\"stream.main\") fn main()->i64 {0}",
+        "stream-identities.spx",
+    )
+    .unwrap();
+    let resolver = Resolver {
+        function_cells: std::borrow::Cow::Owned(crate::source_verify::function_cells(&program)),
+        program: &program,
+        byte_helpers: crate::loop_calls::byte_writer::SourceIndex::new(&program),
+        declarations: crate::hir::DeclarationIndex::from_verified(&program).unwrap(),
+        reuse: None,
+        function_work: crate::hir::FunctionResolutionWork::default(),
+        fused_producer: None,
+        partition_profile: false,
+    };
+    let owner = owner();
+    for (name, text) in [
+        ("stdin_stream_chunk", crate::stdin_stream_ops::CHUNK_ID),
+        ("stdin_stream_eof", crate::stdin_stream_ops::EOF_ID),
+    ] {
+        let expression = Expr {
+            kind: ExprKind::Call {
+                name: name.to_owned(),
+                type_arguments: Vec::new(),
+                args: vec![Expr {
+                    kind: ExprKind::Var("reader".to_owned()),
+                    span: Span::default(),
+                }],
+            },
+            span: Span::default(),
+        };
+        let mut bindings = BTreeMap::new();
+        bindings.insert(
+            "reader".to_owned(),
+            Binding {
+                traversal_row: None,
+                id: ValueId::parameter(&owner, 0),
+                ty: crate::stdin_stream_ops::reader(),
+                ownership: OwnershipMode::Borrow,
+                mutable: false,
+            },
+        );
+        let old = resolver.saved_stdin_inspection(&owner, &expression, &bindings, "λ.stream\0tail");
+        let current =
+            resolver.resolve_stdin_inspection(&owner, &expression, &bindings, "λ.stream\0tail");
+        assert_eq!(current, old);
+        assert!(current.unwrap().is_some());
+        compare_finish_drop(
+            || {
+                resolver
+                    .saved_stdin_inspection(&owner, &expression, &bindings, "full.drop")
+                    .map(|value| value.unwrap())
+            },
+            || {
+                resolver
+                    .resolve_stdin_inspection(&owner, &expression, &bindings, "full.drop")
+                    .map(|value| value.unwrap())
+            },
+            text,
+        );
+        for mutation in 0..6 {
+            let mut changed = expression.clone();
+            let mut changed_bindings = bindings.clone();
+            match mutation {
+                0 => {
+                    changed_bindings.clear();
+                }
+                1 => {
+                    changed_bindings.get_mut("reader").unwrap().ty = ResolvedType::I64;
+                }
+                2 => {
+                    changed_bindings.get_mut("reader").unwrap().ownership = OwnershipMode::Value;
+                }
+                3 => {
+                    if let ExprKind::Call { args, .. } = &mut changed.kind {
+                        args.clear();
+                    }
+                }
+                4 => {
+                    if let ExprKind::Call { type_arguments, .. } = &mut changed.kind {
+                        type_arguments.push(crate::ast::Type::I64);
+                    }
+                }
+                _ => {
+                    if let ExprKind::Call { args, .. } = &mut changed.kind {
+                        args[0].kind = ExprKind::Int(0);
+                    }
+                }
+            }
+            let old =
+                resolver.saved_stdin_inspection(&owner, &changed, &changed_bindings, "hostile");
+            let current =
+                resolver.resolve_stdin_inspection(&owner, &changed, &changed_bindings, "hostile");
+            assert_eq!(current, old, "{name}, mutation {mutation}");
+            assert!(current.is_err());
+        }
+    }
+}

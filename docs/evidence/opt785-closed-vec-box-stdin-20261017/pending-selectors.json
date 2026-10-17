@@ -1,0 +1,23 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "hir::ids::fixed_operation_tests::closed_vec_box_and_stdin_identities_keep_full_owned_traits_and_zero_sticky_drop",
+    "sourcepath": "src/hir/ids/fixed_operation_tests.rs",
+    "status": "PENDING_ACTUAL_COMPILER_DISCOVERY_AND_EXECUTION"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "hir::ids::fixed_operation_tests::vec_and_box_actual_finish_keep_complete_owned_oracle_diagnostics_and_drop",
+    "sourcepath": "src/hir/ids/fixed_operation_tests.rs",
+    "status": "PENDING_ACTUAL_COMPILER_DISCOVERY_AND_EXECUTION"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "hir::ids::fixed_operation_tests::stdin_actual_inspections_keep_full_owned_oracle_scope_refusals_and_drop",
+    "sourcepath": "src/hir/ids/fixed_operation_tests.rs",
+    "status": "PENDING_ACTUAL_COMPILER_DISCOVERY_AND_EXECUTION"
+  }
+]

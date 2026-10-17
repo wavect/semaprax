@@ -11,6 +11,9 @@ use crate::hir::ResolvedHostCommandOperation;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum CompilerDeclaration {
     Vec,
+    VecOperation(crate::vec_ops::VecOp),
+    BoxOperation(crate::box_ops::BoxOp),
+    StdinInspection(crate::stdin_stream_ops::PureOp),
     Box,
     Option,
     OptionNone,
@@ -56,6 +59,9 @@ impl CompilerDeclaration {
         match self {
             Self::StringTake => crate::string_ops::take::ID,
             Self::Vec => crate::prelude::VEC_ID,
+            Self::VecOperation(op) => op.id(),
+            Self::BoxOperation(op) => op.id(),
+            Self::StdinInspection(op) => op.id(),
             Self::Box => crate::prelude::BOX_ID,
             Self::Option => crate::prelude::OPTION_ID,
             Self::OptionNone => crate::prelude::OPTION_NONE_ID,
@@ -95,3 +101,7 @@ impl CompilerDeclaration {
         }
     }
 }
+
+// These existing owned-call sites formerly received an &str into new(). The
+// closed enum replaces that receiver; it introduces no larger call carrier.
+const _: () = assert!(std::mem::size_of::<CompilerDeclaration>() <= std::mem::size_of::<&str>());

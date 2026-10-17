@@ -1,0 +1,29 @@
+{
+  "status": "SOURCE_ONLY_NOT_TYPECHECKED_OR_EXECUTED",
+  "base": "6d43cee05acb28677f4b7aff683961d0202e2705",
+  "production_constructor_replacements": 4,
+  "new_closed_operation_domains": [
+    17,
+    3,
+    2
+  ],
+  "old_testfile_wholeprefix_exact": true,
+  "compiled_old_receiver_bodies_byte_exact_after_private_name_change": {
+    "Vec_finish": true,
+    "Box_finish": true,
+    "stdin_inspection": true
+  },
+  "receiving_const_inequality": "size_of::<CompilerDeclaration>() <= size_of::<&str>()",
+  "new_Rust_modules": 0,
+  "changed_Rust_files": 5,
+  "module_lines": {
+    "src/hir/ids/compiler.rs": 107,
+    "src/hir/ids/fixed_operation_tests.rs": 938,
+    "src/hir/resolve_vec_call.rs": 433,
+    "src/hir/resolve_box_call.rs": 336,
+    "src/hir/resolve_stdin_stream.rs": 133
+  },
+  "rustfmt_parse_only": true,
+  "full_inverse_sha256": "d0050f0893772d9f2b1a89b9d1119c1d3cf686af81b6f93f3125522662925a5b",
+  "no_Cargo_or_runtime_or_ROOT_writes": true
+}

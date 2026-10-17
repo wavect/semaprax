@@ -1,3 +1,4 @@
+- Source-only #785 removes owned identity reconstruction from closed Vec, Box and stdin inspection producers, retaining exact old receiver algorithms and hostile/whole-Drop controls; focused qualification remains pending.
 - Source-only #785 reuses the current declaration-index identity at generic inference and call-signature target sites; original payer, full old construction controls and application measurement obligations remain. Focused qualification is pending.
 - Compose paid flat multi-target successors with the retained inline singleton
   path in both canonical receiving families (OPT870). Acquire real promotion,

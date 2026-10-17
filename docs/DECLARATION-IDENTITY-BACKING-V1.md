@@ -341,3 +341,12 @@ The public infallible constructor and remaining dynamic migrations stay open.
 Complete old construction-policy parity, original-payer zero/short/exact refusal
 and through-Drop allocation controls are authored in the existing held-resolver
 owner; execution and application/live-agent comparisons remain pending.
+
+### Closed Vec, Box and stdin inspection identities (source-only #785)
+
+The existing closed compiler-identity policy now also carries the original
+VecOp, BoxOp and stdin PureOp enums. Their exact op.id() spellings replace
+String/Arc reconstruction only after the original receiving guards. Complete
+owned identity/wire and frozen producer controls remain independent; no new
+payer, refund, cap, dynamic identity route or admission authority is introduced.
+Focused compilation/execution and actual application measurements are pending.

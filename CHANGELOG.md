@@ -1,3 +1,4 @@
+- Source-only #785 reuses the current declaration-index identity at generic inference and call-signature target sites; original payer, full old construction controls and application measurement obligations remain. Focused qualification is pending.
 - Compose paid flat multi-target successors with the retained inline singleton
   path in both canonical receiving families (OPT870). Acquire real promotion,
   search, shift, growth and sharing receivers; retain complete legacy and

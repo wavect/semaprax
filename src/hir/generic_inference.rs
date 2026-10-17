@@ -38,7 +38,7 @@ impl Resolver<'_, '_> {
         {
             return None;
         }
-        let owner = DeclarationId::new(target.payload().stable_id.clone());
+        let owner = self.declarations.held_identity(&target.payload().stable_id);
         let mut inferred = vec![None; target.payload().type_parameters.len()];
         for (formal, argument) in target.payload().params.iter().zip(args) {
             let formal = self
@@ -383,7 +383,7 @@ impl Resolver<'_, '_> {
             .iter()
             .map(|argument| self.resolve_call_type_argument(caller, argument, span))
             .collect::<Result<Vec<_>, _>>()?;
-        let template = DeclarationId::new(target.payload().stable_id.clone());
+        let template = self.declarations.held_identity(&target.payload().stable_id);
         if target.payload().type_parameters.is_empty() {
             if !resolved.is_empty() {
                 return Err(self.error(

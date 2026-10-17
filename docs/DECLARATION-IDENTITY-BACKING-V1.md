@@ -330,3 +330,14 @@ key-visitation and full-Drop observations. A test-only selection executes the
 complete original allocating equality at all five sites for whole-validator
 Diagnostic and graph comparison. It supplies no production dispatch or cache.
 All new execution and actual application benefit remain pending.
+
+### Remaining inference target reconstruction (source-only #785)
+
+The same-pass generic argument inference and ordinary call-signature target
+owners now clone the exact identity already held by their DeclarationIndex.
+The original initial-index payer and full generic argument/instance producers
+remain; no new backing, payer, credit or identity authority is created here.
+The public infallible constructor and remaining dynamic migrations stay open.
+Complete old construction-policy parity, original-payer zero/short/exact refusal
+and through-Drop allocation controls are authored in the existing held-resolver
+owner; execution and application/live-agent comparisons remain pending.

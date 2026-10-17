@@ -1,0 +1,5 @@
+{
+  "peak_KiB": 156384,
+  "policy": "Cargo.toml existing [lints.clippy] result_large_err=allow reproduced explicitly; other warnings denied",
+  "scope": "Complete current insertion modules and actual budget bodies, with explicit existing fixture adapters; full-workspace Clippy remains hosted."
+}

@@ -30,6 +30,18 @@ pub(in crate::cleanup_plan::replay) fn validate_status_sources_retained<'hir>(
             ids: None,
         });
     }
+    budget.reserve_bytes(
+        function,
+        3 * std::mem::size_of::<bool>(),
+        "status receiver selection",
+    )?;
+    budget.charge(function, 3, "status receiver selection")?;
+    if function.cleanup_plan.status_sources.len() >= 256
+        && matches!(budget.payer, AllocationPayer::ActiveBuilder)
+        && !budget.selected()
+    {
+        return inline_status::validate(function, facts, budget);
+    }
     let expressions: &dyn Lookup = facts;
     let mut ids = Directory::new(function, budget, "cleanup status identity directory")?;
     let prefix_owner = directory::StatusInsertionOwner::new(function, &ids, budget)?;
@@ -814,3 +826,5 @@ pub(in crate::cleanup_plan::replay) fn validate_status_sources_held_prefix<'hir>
         ids: Some(ids),
     })
 }
+
+mod inline_status;

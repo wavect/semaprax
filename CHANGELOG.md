@@ -88,6 +88,8 @@
 - Add a source-only JSON codec retained-input receipt candidate: exact held originals, resolved source inventory and two same-process retained-revision derivations; binary binding, host adoption and executable qualification remain pending.
 # Changelog
 
+- Reuse a paid status diagnostic receiving cell on wide ordinary builder validation, retaining every original producer, identity, invocation and failure check; restore complete ordered source-audit coverage.
+
 - Keep warm canonical Memo rejection ahead of the poisoned payer, and remove
   query slice coercions and miss indexing through borrowed Vec/Zip receiving.
   Complete old controls and strict paid-reduction gate remain; NEXT qualification

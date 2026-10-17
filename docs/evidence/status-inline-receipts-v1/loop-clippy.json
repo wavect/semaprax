@@ -1,0 +1,5 @@
+{
+  "peak_KiB": 158400,
+  "policy": "Existing Cargo.toml result_large_err=allow; all other warnings denied",
+  "scope": "Complete original/current status validation loops and insertion modules with explicit component adapters; full-workspace Clippy remains hosted."
+}

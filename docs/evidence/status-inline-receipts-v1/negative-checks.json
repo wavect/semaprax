@@ -1,0 +1,26 @@
+[
+  {
+    "mutant": "unpaid-diagnostic-cell",
+    "complete_owning_test": "inline_receipts_pay_the_complete_cell_and_reduce_actual_cumulative_reservations",
+    "compiled": true,
+    "rejected": true,
+    "compile_peak_KiB": 168176,
+    "observation_log_sha256": "411760d9b2dd1065e5fbda79defcb49fea35b8647efc72d50c0006d953a880b2"
+  },
+  {
+    "mutant": "foreign-budget-admitted",
+    "complete_owning_test": "inline_receipts_keep_exact_function_budget_and_current_key_bindings",
+    "compiled": true,
+    "rejected": true,
+    "compile_peak_KiB": 164144,
+    "observation_log_sha256": "411760d9b2dd1065e5fbda79defcb49fea35b8647efc72d50c0006d953a880b2"
+  },
+  {
+    "mutant": "nested-owner-receipt-removed",
+    "complete_owning_test": "inline_receipts_refuse_nested_and_restored_invocations_before_any_foreign_debit",
+    "compiled": true,
+    "rejected": true,
+    "compile_peak_KiB": 148208,
+    "observation_log_sha256": "411760d9b2dd1065e5fbda79defcb49fea35b8647efc72d50c0006d953a880b2"
+  }
+]

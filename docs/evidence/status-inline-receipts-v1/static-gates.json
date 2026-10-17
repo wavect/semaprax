@@ -1,0 +1,20 @@
+[
+  {
+    "name": "source",
+    "tests": 2,
+    "peak_KiB": 4544,
+    "scope": "Existing unchanged compiled static gate reads current repository sources."
+  },
+  {
+    "name": "docs",
+    "tests": 3,
+    "peak_KiB": 4144,
+    "scope": "Existing unchanged compiled static gate reads current repository sources."
+  },
+  {
+    "name": "release",
+    "tests": 13,
+    "peak_KiB": 22400,
+    "scope": "Existing unchanged compiled static gate reads current repository sources."
+  }
+]

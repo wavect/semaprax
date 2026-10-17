@@ -1184,3 +1184,5 @@ Audience: all documentation readers.
 - [Reuse paid status insertion scratch](evidence/status-cursor-reuse-v1/README.md)
 
 - [Public report wire receipts](evidence/public-wire-receipts-v1/README.md)
+
+- [Reuse one status diagnostic receiving cell](evidence/status-inline-receipts-v1/README.md)

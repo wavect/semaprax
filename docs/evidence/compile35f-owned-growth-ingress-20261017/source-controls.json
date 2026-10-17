@@ -1,0 +1,10 @@
+{
+  "status": "PASS_SOURCE_ONLY_NO_COMMON_OR_RUST_EXECUTION",
+  "known_keys": 7,
+  "whole_stage_successes": 14,
+  "known_supplied_channels": 3,
+  "refusals": 32,
+  "original_stage_and_seven_table_unchanged": true,
+  "whole_rust_inverse": true,
+  "rust_lines": 681
+}

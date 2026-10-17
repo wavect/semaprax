@@ -220,6 +220,8 @@ fn compile35f_records() -> serde_json::Value {
 fn compile35f_restore(row: &serde_json::Value, current: &str) -> String {
     let source = row["source"].as_str().unwrap();
     assert!(COMPILE35F_KEYS.binary_search(&source).is_ok());
+    let owned = owned_compile35f_input(source, current);
+    let current = owned.as_str();
     // A preselected35f view still acquires/authenticates physical current below.
     // Do not project it again through the distinct new-to-c874 fixture stage.
     let fixture = if digest(current) == row["before_sha256"].as_str().unwrap() {
@@ -351,6 +353,7 @@ fn factored_core_file(path: &::std::path::Path, length: usize, expected: &str) -
 
 fn factored_core_physical(source: &str) -> String {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    if source == OWNED_COMPILE35F_PATH { return owned_compile35f_input(source, OWNED_COMPILE35F_RAW); }
     if source != FACTORED_CORE_PATH {
         let raw=std::fs::read_to_string(root.join(source)).unwrap();
         return corrected_alias_fixture_input(source,&raw);
@@ -614,3 +617,65 @@ fn selected_successor_complete_root_and_arena_acquisition_refuses_foreign_stages
 
 const SUPPLEMENT_RECEIVER_LENGTH: usize = 607;
 const SUPPLEMENT_RECEIVER_SHA: &str = "1c120e26c852966dba70f8d67b5869465bedd655aa4eb4612986453a2f8f1035";
+
+
+const OWNED_COMPILE35F_PATH: &str = "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs";
+const OWNED_COMPILE35F_RAW: &str = include_str!("../workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs");
+fn owned_compile35f_input(source: &str, current: &str) -> String {
+    if source != OWNED_COMPILE35F_PATH { return current.to_owned(); }
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let data = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/compile35f-owned-growth-ingress-20261017/seal.json"));
+    assert!(data.len() <= 65_536);
+    assert_eq!(digest(data), "1481bc58a11f7e39d53cea0790414c98a6be1ccaa6509e990ac1e64084d095c8");
+    let seal: serde_json::Value = serde_json::from_str(data).unwrap();
+    assert_eq!(seal["schema"], "semaprax.compile35f-owned-growth-ingress.v1");
+    assert_eq!(seal["source"], source);
+    let rows = compile35f_records();
+    let row = rows.as_array().unwrap().iter().find(|r| r["source"] == source).unwrap();
+    assert_eq!(row["current_sha256"], seal["previous_sha256"]);
+    assert_eq!(row["before_sha256"], seal["original35f_sha256"]);
+    assert_eq!(row["before_archive"], seal["original35f_archive"]);
+    let read = |archive: &str, length: &str, expected: &str| {
+        let length = usize::try_from(seal[length].as_u64().unwrap()).unwrap();
+        assert!(length <= 262_144);
+        factored_core_file(&root.join(archive), length, seal[expected].as_str().unwrap()).unwrap()
+    };
+    let actual = read(source, "current_length", "current_sha256");
+    assert_eq!(actual, OWNED_COMPILE35F_RAW);
+    assert_eq!(actual, read(seal["current_archive"].as_str().unwrap(), "current_length", "current_sha256"));
+    let previous = read(seal["previous_archive"].as_str().unwrap(), "previous_length", "previous_sha256");
+    let original = read(seal["original35f_archive"].as_str().unwrap(), "original35f_length", "original35f_sha256");
+    let mut restored = actual.as_bytes().to_vec();
+    let mut last = restored.len();
+    for edit in seal["inverse"].as_array().unwrap() {
+        let at = usize::try_from(edit["at"].as_u64().unwrap()).unwrap();
+        let after = edit["after"].as_str().unwrap().as_bytes();
+        let end = at.checked_add(after.len()).unwrap();
+        assert!(at <= end && end <= last);
+        assert_eq!(&restored[at..end], after);
+        restored.splice(at..end, edit["before"].as_str().unwrap().bytes());
+        last = at;
+    }
+    assert_eq!(restored, previous.as_bytes());
+    if current == original { return original; }
+    assert!(current == actual || current == previous, "foreign whole owned compile input");
+    previous
+}
+
+#[test]
+fn owned_compile35f_current_acquisition_preserves_complete_seven_subjects_and_refuses_foreign() {
+    let source = OWNED_COMPILE35F_PATH;
+    let previous = owned_compile35f_input(source, OWNED_COMPILE35F_RAW);
+    assert_eq!(digest(&previous), "fa95c61e8eb3ba3c300c4fee92e3da1777ad360483309c6f0ac9c2c5cf46e956");
+    assert_eq!(owned_compile35f_input(source, &previous), previous);
+    let rows = compile35f_records();
+    let row = rows.as_array().unwrap().iter().find(|r| r["source"] == source).unwrap();
+    let before = compile35f_input(source, OWNED_COMPILE35F_RAW);
+    assert_eq!(digest(&before), row["before_sha256"]);
+    assert_eq!(compile35f_input(source, &previous), before);
+    assert_eq!(compile35f_input(source, &before), before);
+    for bad in [String::new(), "foreign".to_owned(), format!("{previous} "), OWNED_COMPILE35F_RAW[..OWNED_COMPILE35F_RAW.len()-1].to_owned()] {
+        assert!(std::panic::catch_unwind(|| owned_compile35f_input(source, &bad)).is_err());
+    }
+    assert_eq!(owned_compile35f_input("foreign", "unchanged"), "unchanged");
+}

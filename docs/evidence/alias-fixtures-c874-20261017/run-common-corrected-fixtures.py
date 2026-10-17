@@ -1,52 +1,29 @@
-"""Closed two-fixture acquisition before the unchanged35f common algorithms."""
+"""Fixed owned-growth generation before the unchanged corrected35f wrapper."""
 from pathlib import Path
-import hashlib,json,types,sys
-D=Path(__file__).resolve().parent;R=D.parents[2]
-sha=lambda b:hashlib.sha256(b).hexdigest()
-DATA_SHA='97332f8c15c3e824634ac248f307bd755ed69319773d10c363b99df4e0e12bae'
-RUN_SHA='718df1a7b1de29928ae924725f98078275dcf41685862c9232b2aad327342a78'
-STAGE_SHA='8ae05d285bba94107d1073d792938057f6c997f3f9ee9e9d6b52dd525fc67e30'
-def fixture_stage(repo,source,raw,read_fixed):
- data=(D/'acquisition.json').read_bytes();assert sha(data)==DATA_SHA
- rows=json.loads(data);assert len(rows)==2
- row=next((r for r in rows if r['source']==source),None)
- if row is None:return raw
- assert 0<=row['current_len']<=262_144 and 0<=row['before_len']<=262_144
- actual=read_fixed(repo/source,row['current_len'],row['current_sha256'])
- before=read_fixed(repo/row['archive'],row['before_len'],row['before_sha256'])
- text=actual.decode()
- for edit in row['inverse']:
-  assert text.count(edit['after'])==1;text=text.replace(edit['after'],edit['before'],1)
- assert text.encode()==before
- if raw in (actual,before):return before
- # Only the old seven-row channel may pass its exact older35f intermediate.
- table=(repo/'docs/evidence/compile-acquisition-35f-20261017/sources.json').read_bytes()
- assert sha(table)=='61af497922931df374510a7d8acd4b8691481f960407f1670c4d4e4dc37625fe'
- old=next((r for r in json.loads(table)if r['source']==source),None)
- if old is not None:
-  archived=read_fixed(repo/old['before_archive'],38678,old['before_sha256'])
-  if raw==archived:return raw
- raise AssertionError('foreign corrected fixture stage')
-def render_stage(raw):
- assert sha(raw)==STAGE_SHA;original=raw.decode();text=original
- edits=[
-  (' raw=_factored_core_input(repo,source,raw)',' raw=_corrected_fixture_stage(repo,source,raw)\n raw=_factored_core_input(repo,source,raw)'),
-  (' if source!=FACTORED_CORE:return(repo/source).read_bytes()',' if source!=FACTORED_CORE:return _corrected_fixture_stage(repo,source,(repo/source).read_bytes())'),
- ]
- for a,b in edits:assert text.count(a)==1;text=text.replace(a,b,1)
- restored=text
- for a,b in reversed(edits):assert restored.count(b)==1;restored=restored.replace(b,a,1)
- assert restored.encode()==raw
- namespace={'__name__':'closed_corrected_fixture_stage'}
- exec(compile(text,'closed35f-stage-with-two-fixtures','exec'),namespace)
- namespace['_corrected_fixture_stage']=lambda repo,source,raw:fixture_stage(repo,source,raw,namespace['_factored_file'])
- return types.SimpleNamespace(stage=namespace['stage'])
-def main():
- path=R/'docs/evidence/compile-acquisition-35f-20261017/run-common.py'
- original=path.read_bytes();assert sha(original)==RUN_SHA
- a="spec=importlib.util.spec_from_file_location('compile35f_closed_acquisition',E/'stage.py');helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)"
- b='helper = _render_corrected_fixture_stage(raw)'
- text=original.decode();assert text.count(a)==1;text=text.replace(a,b,1)
- assert text.replace(b,a,1).encode()==original
- exec(compile(text,str(path),'exec'),{'__file__':str(path),'__name__':'__main__','_render_corrected_fixture_stage':render_stage})
-if __name__=='__main__':main()
+import hashlib,os,stat,types
+P=Path(__file__).resolve();R=P.parents[3];D=R/'docs/evidence/compile35f-owned-growth-ingress-20261017'
+sha=lambda raw:hashlib.sha256(raw).hexdigest()
+def held(path,length,expected):
+    assert hasattr(os,'O_NOFOLLOW') and length<=65536
+    with os.fdopen(os.open(path,os.O_RDONLY|os.O_NOFOLLOW),'rb') as stream:
+        before=os.fstat(stream.fileno());assert stat.S_ISREG(before.st_mode) and before.st_size==length
+        raw=stream.read(length+1);assert len(raw)==length
+        after=os.fstat(stream.fileno());physical=os.lstat(path)
+        identity=lambda s:(s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns,s.st_mode)
+        assert stat.S_ISREG(physical.st_mode) and identity(before)==identity(after)==identity(physical)
+    assert sha(raw)==expected;return raw
+raw=held(D/'owned_stage.py',3878,'b27a64e4a9a71326cf873b039fd104d7cf9526828a332e6c3342eb49ec5c9037')
+m=types.ModuleType('closed_owned_growth_stage');m.__file__=str(D/'owned_stage.py')
+exec(compile(raw,m.__file__,'exec'),m.__dict__)
+original=held(D/'run-common-corrected-fixtures.before.py',3202,'5b90164556d0a2d014aedc40cd5ea3cc57d19a839338838e3263a422e300bdeb')
+edits=[(' for a,b in edits:assert text.count(a)==1;text=text.replace(a,b,1)', ' edits.extend(_owned_stage_edits())\n for a,b in edits:assert text.count(a)==1;text=text.replace(a,b,1)'), (" namespace['_corrected_fixture_stage']=lambda repo,source,raw:fixture_stage(repo,source,raw,namespace['_factored_file'])", " namespace['_corrected_fixture_stage']=lambda repo,source,raw:fixture_stage(repo,source,raw,namespace['_factored_file'])\n namespace['_owned_compile_input']=lambda repo,source,raw:_owned_supplied(repo,source,raw,namespace['_factored_file'])\n namespace['_owned_compile_physical']=lambda repo,source:_owned_physical(repo,source,namespace['_factored_file'],namespace['_corrected_fixture_stage'])")]
+current=original.decode()
+for old,new in edits:assert current.count(old)==1;current=current.replace(old,new,1)
+restored=current
+for old,new in reversed(edits):assert restored.count(new)==1;restored=restored.replace(new,old,1)
+assert restored.encode()==original
+_owned_stage_edits=m.stage_edits
+_owned_supplied=m.supplied
+_owned_physical=m.physical
+# Preserve the original importable API and its original __main__ gate.
+exec(compile(current,str(P),'exec'),globals())

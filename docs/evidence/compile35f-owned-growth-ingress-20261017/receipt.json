@@ -1,0 +1,92 @@
+{
+  "status": "SOURCE_ONLY_NOT_COMMON_OR_RUST_QUALIFIED",
+  "base": "e7ec963816907ab8866932d319d723b1aea09e2b",
+  "changed_existing": [
+    "docs/evidence/alias-fixtures-c874-20261017/run-common-corrected-fixtures.py",
+    "src/source_reflows_merge/main67107_inputs.rs"
+  ],
+  "new_rust_owners": 0,
+  "source_controls": {
+    "status": "PASS_SOURCE_ONLY_NO_COMMON_OR_RUST_EXECUTION",
+    "known_keys": 7,
+    "whole_stage_successes": 14,
+    "known_supplied_channels": 3,
+    "refusals": 32,
+    "original_stage_and_seven_table_unchanged": true,
+    "whole_rust_inverse": true,
+    "rust_lines": 681
+  },
+  "files": [
+    {
+      "path": "docs/evidence/alias-fixtures-c874-20261017/run-common-corrected-fixtures.py",
+      "length": 2448,
+      "sha256": "f0305f85386a95bd9e076f010515bf4d023f542208d70e2f0d55d1b52687fc40"
+    },
+    {
+      "path": "src/source_reflows_merge/main67107_inputs.rs",
+      "length": 43443,
+      "sha256": "c30561ec04950c587768523fb3a4abddba844441983de979f14adeb171544937"
+    },
+    {
+      "path": "docs/evidence/compile35f-owned-growth-ingress-20261017/README.md",
+      "length": 2102,
+      "sha256": "a41fb6d547469b55360e7ee5b7d5844031365b33730980a74510fc20f4cb71ed"
+    },
+    {
+      "path": "docs/evidence/compile35f-owned-growth-ingress-20261017/check-source.py",
+      "length": 5118,
+      "sha256": "d0ceae2bfc9ce9999b2c8196cd3ffc6333f54ac794cb6612a4d28f33b81a1dd5"
+    },
+    {
+      "path": "docs/evidence/compile35f-owned-growth-ingress-20261017/main67107_inputs.before.rs.txt",
+      "length": 39457,
+      "sha256": "6e236497e0cf2dd9e57e5aebb17c002fc41f2317356687e62d5f5c605bf372d5"
+    },
+    {
+      "path": "docs/evidence/compile35f-owned-growth-ingress-20261017/owned-growth.compile35f-current.rs.txt",
+      "length": 25671,
+      "sha256": "fa95c61e8eb3ba3c300c4fee92e3da1777ad360483309c6f0ac9c2c5cf46e956"
+    },
+    {
+      "path": "docs/evidence/compile35f-owned-growth-ingress-20261017/owned-growth.current.rs.txt",
+      "length": 29968,
+      "sha256": "5265ad08a18f48440a0615bf5e4f815e40790f99c43ec681d0f31401a3e4aaa9"
+    },
+    {
+      "path": "docs/evidence/compile35f-owned-growth-ingress-20261017/owned_stage.py",
+      "length": 3878,
+      "sha256": "b27a64e4a9a71326cf873b039fd104d7cf9526828a332e6c3342eb49ec5c9037"
+    },
+    {
+      "path": "docs/evidence/compile35f-owned-growth-ingress-20261017/public-wrapper-full-inverse.json",
+      "length": 6092,
+      "sha256": "09508e1ea9083cbbc249a05c576f5f929c8192ff748789bbd9b4201933feda8e"
+    },
+    {
+      "path": "docs/evidence/compile35f-owned-growth-ingress-20261017/run-common-corrected-fixtures.before.py",
+      "length": 3202,
+      "sha256": "5b90164556d0a2d014aedc40cd5ea3cc57d19a839338838e3263a422e300bdeb"
+    },
+    {
+      "path": "docs/evidence/compile35f-owned-growth-ingress-20261017/rust-finite-inverse.json",
+      "length": 4703,
+      "sha256": "2dcbdc4d7dba4f69dc64d04b4d09802d3f19260194bbb13a738e5075b63c8539"
+    },
+    {
+      "path": "docs/evidence/compile35f-owned-growth-ingress-20261017/seal.json",
+      "length": 5599,
+      "sha256": "1481bc58a11f7e39d53cea0790414c98a6be1ccaa6509e990ac1e64084d095c8"
+    },
+    {
+      "path": "docs/evidence/compile35f-owned-growth-ingress-20261017/source-controls.json",
+      "length": 266,
+      "sha256": "116d71abe3ecca87be1d09bf3a75edfef52797d2b7c16a93729c729b84da036d"
+    },
+    {
+      "path": "docs/evidence/compile35f-owned-growth-ingress-20261017/wrapper-finite-edits.json",
+      "length": 733,
+      "sha256": "e9260dcdeb46b3a446a2340cfa915d46bc36570785982cc792ace4b87b7e0f65"
+    }
+  ],
+  "required_followup": "strict existing FINAL6 binding then common refresh; focused new and complete-seven Rust selectors; no MAIN090174 rebind required"
+}

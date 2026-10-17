@@ -7,5 +7,6 @@
   "old_tables_unchanged": true,
   "compiled_input_authentication": "complete literal equality + length + SHA, no runtime filesystem claim",
   "rust_parse": "PASS",
-  "runtime": "UNEXECUTED"
+  "runtime": "UNEXECUTED",
+  "call_boundary_audit": "physical input retained separately; raw-only acquisition executes once; original current-SHA compares staged; explicit second-stage refusal in existing owner"
 }

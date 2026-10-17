@@ -870,12 +870,20 @@ fn current_replay_operation_guards_bind_the_actual_receivers_without_production_
     }
 }
 
+pub(crate) use main_f247::helper_digest_capture_predecessor;
+mod main_f247 {
+use super::*;
+use crate::source_reflows_merge::main_c883_inputs::read_f247 as main_f247_read;
 /// The original source-work assertion still reads its complete prior input.
 /// The separate custody control below authenticates all current changed files.
 pub(crate) fn helper_digest_capture_predecessor(current: &str) -> String {
+    let authenticated = crate::source_reflows_merge::main_c883_inputs::f247_expected(
+        "src/workspace_graph/static_text/scalar_helpers.rs", current,
+    );
+    let current = authenticated.as_str();
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let proofs: Vec<serde_json::Value> = serde_json::from_str(
-        &std::fs::read_to_string(
+        &main_f247_read(
             root.join("docs/evidence/optional-helper-digest-work-v1/sources.json"),
         )
         .unwrap(),
@@ -888,7 +896,7 @@ pub(crate) fn helper_digest_capture_predecessor(current: &str) -> String {
     let before = invert(proof, current);
     assert_eq!(
         before,
-        std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap()
+        main_f247_read(root.join(proof["archive"].as_str().unwrap())).unwrap()
     );
     before
 }
@@ -897,7 +905,7 @@ pub(crate) fn helper_digest_capture_predecessor(current: &str) -> String {
 fn optional_helper_digest_preserves_complete_predecessors_and_all_old_controls() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let proofs: Vec<serde_json::Value> = serde_json::from_str(
-        &std::fs::read_to_string(
+        &main_f247_read(
             root.join("docs/evidence/optional-helper-digest-work-v1/sources.json"),
         )
         .unwrap(),
@@ -908,11 +916,11 @@ fn optional_helper_digest_preserves_complete_predecessors_and_all_old_controls()
     for proof in &proofs {
         let path = proof["path"].as_str().unwrap();
         assert!(paths.insert(path));
-        let current = std::fs::read_to_string(root.join(path)).unwrap();
+        let current = main_f247_read(root.join(path)).unwrap();
         let before = invert(proof, &current);
         assert_eq!(
             before,
-            std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap()
+            main_f247_read(root.join(proof["archive"].as_str().unwrap())).unwrap()
         );
         assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + "\n"))).is_err());
         let mut forged = proof.clone();
@@ -934,7 +942,7 @@ fn optional_helper_digest_preserves_complete_predecessors_and_all_old_controls()
 fn isolated_lexical_path_reuse_preserves_complete_merger_and_all_prior_controls() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let proofs: Vec<serde_json::Value> = serde_json::from_str(
-        &std::fs::read_to_string(
+        &main_f247_read(
             root.join("docs/evidence/isolated-skeleton-paths-v1/sources.json"),
         )
         .unwrap(),
@@ -947,11 +955,11 @@ fn isolated_lexical_path_reuse_preserves_complete_merger_and_all_prior_controls(
     for proof in &proofs {
         let path = proof["path"].as_str().unwrap();
         assert!(paths.insert(path.to_owned()));
-        let current = std::fs::read_to_string(root.join(path)).unwrap();
+        let current = main_f247_read(root.join(path)).unwrap();
         let before = invert(proof, &current);
         assert_eq!(
             before,
-            std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap()
+            main_f247_read(root.join(proof["archive"].as_str().unwrap())).unwrap()
         );
         assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + "\n"))).is_err());
         let mut forged = proof.clone();
@@ -986,7 +994,7 @@ fn isolated_lexical_path_reuse_preserves_complete_merger_and_all_prior_controls(
     let saved = format!("use super::super::*;\n\nimpl SkeletonWork<'_, '_> {{\n    pub(super) fn saved_merged_paths({}\n}}\n", body.trim_end());
     assert_eq!(
         saved,
-        std::fs::read_to_string(
+        main_f247_read(
             root.join("src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs")
         )
         .unwrap()
@@ -1015,8 +1023,10 @@ fn isolated_lexical_path_reuse_preserves_complete_merger_and_all_prior_controls(
         &mut live,
     );
     assert_eq!(created, live);
-    let authority = std::fs::read_to_string(root.join("tests/hir_module_boundaries.rs")).unwrap();
+    let authority = main_f247_read(root.join("tests/hir_module_boundaries.rs")).unwrap();
     for path in created {
         assert_eq!(authority.matches(&format!("\"../{path}\"")).count(), 1);
     }
+}
+
 }

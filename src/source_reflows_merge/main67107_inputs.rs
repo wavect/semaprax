@@ -1000,12 +1000,12 @@ fn compile_repair_file(path: &::std::path::Path, length: usize, expected: &str) 
 
 // Whole-source finite admission in front of the independently frozen prior chains.
 fn accepted_records() -> serde_json::Value {
-    let data = include_str!("../../docs/evidence/workspace21-final-bindings-20261017/inputs.json");
-    assert_eq!(data.len(), 33305);
-    assert_eq!(digest(data), "4048fb07babb11bb598fd66a6dab73929e04ed132d39283a3b35ceee52e27356");
+    let data = include_str!("../../docs/evidence/future831-f247-final-source-binding-20261017/current-inputs.json");
+    assert_eq!(data.len(), 42945);
+    assert_eq!(digest(data), "1534c57c748a197c12d4276331ab89ee2a8b38d4dd1f1a656f9254d7a8995399");
     let packet: serde_json::Value = serde_json::from_str(data).unwrap();
     assert_eq!(packet["schema"], "semaprax.accepted-whole-source-ingress.v1");
-    assert_eq!(packet["rows"].as_array().unwrap().len(), 41);
+    assert_eq!(packet["rows"].as_array().unwrap().len(), 54);
     packet
 }
 fn accepted_compiled(source: &str) -> &'static str {
@@ -1051,6 +1051,19 @@ fn accepted_compiled(source: &str) -> &'static str {
         "tests/workspace/semantic_graph.rs" => include_str!("../../tests/workspace/semantic_graph.rs"),
         "tests/workspace/semantic_graph/source_inventory.rs" => include_str!("../../tests/workspace/semantic_graph/source_inventory.rs"),
         "tests/workspace/semantic_graph/source_inventory_controls.rs" => include_str!("../../tests/workspace/semantic_graph/source_inventory_controls.rs"),
+        "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs" => include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs"),
+        "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs" => include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs"),
+        "src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs" => include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs"),
+        "src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs" => include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs"),
+        "src/cleanup_plan/replay/skeleton_work.rs" => include_str!("../../src/cleanup_plan/replay/skeleton_work.rs"),
+        "src/cleanup_plan/replay/skeleton_work/isolated_paths.rs" => include_str!("../../src/cleanup_plan/replay/skeleton_work/isolated_paths.rs"),
+        "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs" => include_str!("../../src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs"),
+        "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs" => include_str!("../../src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs"),
+        "src/source_reflows.rs" => include_str!("../../src/source_reflows.rs"),
+        "src/workspace_graph/static_text/scalar_helpers.rs" => include_str!("../../src/workspace_graph/static_text/scalar_helpers.rs"),
+        "src/workspace_graph/static_text/scalar_helpers/capture_directory/tests.rs" => include_str!("../../src/workspace_graph/static_text/scalar_helpers/capture_directory/tests.rs"),
+        "tests/workspace/semantic_change/reporting.rs" => include_str!("../../tests/workspace/semantic_change/reporting.rs"),
+        "tests/workspace/semantic_structural_change/reporting.rs" => include_str!("../../tests/workspace/semantic_structural_change/reporting.rs"),
         _ => unreachable!("closed accepted whole-source membership"),
     }
 }
@@ -1117,4 +1130,60 @@ fn accepted_whole_sources_authenticate_actual_owners_and_keep_every_prior_indepe
         }
     }
     assert!(accepted_expected_file(&root.join("foreign"), 0, "foreign").is_none());
+}
+
+// Distinct exact incoming f247 cap; existing historical caps stay unchanged.
+const MAIN_F247_CAP: usize = 9_703_917;
+fn main_f247_body(reader: &mut impl std::io::Read, length: usize, expected: &str) -> Result<String, &'static str> {
+    if length > MAIN_F247_CAP { return Err("bound"); }
+    let mut bytes = Vec::new();
+    bytes.try_reserve_exact(length).map_err(|_| "allocation")?;
+    bytes.resize(length, 0);
+    reader.read_exact(&mut bytes).map_err(|_| "truncated")?;
+    let mut extra = [0u8; 1];
+    if reader.read(&mut extra).map_err(|_| "read")? != 0 { return Err("extra"); }
+    if main_f247_digest(&bytes) != expected { return Err("digest"); }
+    String::from_utf8(bytes).map_err(|_| "utf8")
+}
+fn main_f247_digest(bytes: &[u8]) -> String {
+    format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
+}
+fn main_f247_same_file(a: &std::fs::Metadata, b: &std::fs::Metadata) -> bool {
+    if !a.is_file() || !b.is_file() || a.len() != b.len() || a.modified().ok() != b.modified().ok() { return false; }
+    #[cfg(unix)]
+    { use std::os::unix::fs::MetadataExt; if a.dev() != b.dev() || a.ino() != b.ino() || a.ctime() != b.ctime() || a.ctime_nsec() != b.ctime_nsec() { return false; } }
+    #[cfg(windows)]
+    { use std::os::windows::fs::MetadataExt; if a.file_attributes() & 0x400 != 0 || b.file_attributes() & 0x400 != 0 || a.creation_time() != b.creation_time() || a.last_write_time() != b.last_write_time() { return false; } }
+    true
+}
+pub(crate) fn main_f247_file_raw(path: &::std::path::Path, length: usize, expected: &str) -> Result<String, &'static str> {
+    if length > MAIN_F247_CAP { return Err("bound"); }
+    let path_before = std::fs::symlink_metadata(path).map_err(|_| "missing")?;
+    if path_before.file_type().is_symlink() || !path_before.is_file() { return Err("length-or-nonregular"); }
+    let mut options = std::fs::OpenOptions::new(); options.read(true);
+    #[cfg(unix)]
+    { use std::os::unix::fs::OpenOptionsExt; options.custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC | libc::O_NONBLOCK); }
+    #[cfg(windows)]
+    { use std::os::windows::fs::OpenOptionsExt; options.custom_flags(0x0020_0000); }
+    #[cfg(not(any(unix, windows)))]
+    { return Err("platform"); }
+    let mut file = options.open(path).map_err(|_| "open")?;
+    let metadata = file.metadata().map_err(|_| "metadata")?;
+    if !main_f247_same_file(&path_before, &metadata) || metadata.len() != u64::try_from(length).map_err(|_| "bound")? {
+        return Err("length-or-nonregular");
+    }
+    // The one opened no-follow regular handle is checked before any buffer.
+    let value = main_f247_body(&mut file, length, expected)?;
+    let after = file.metadata().map_err(|_| "metadata")?;
+    let path_after = std::fs::symlink_metadata(path).map_err(|_| "metadata")?;
+    if path_after.file_type().is_symlink() || !main_f247_same_file(&metadata, &after) || !main_f247_same_file(&after, &path_after) { return Err("metadata-drift"); }
+    Ok(value)
+}
+
+// Current compiler text for the finite accepted-owned source domain only.
+pub(crate) fn accepted_physical_compiled(source: &str) -> Option<&'static str> {
+    let packet = accepted_records();
+    if packet["rows"].as_array().unwrap().iter().any(|row| row["source"] == source) {
+        Some(accepted_compiled(source))
+    } else { None }
 }

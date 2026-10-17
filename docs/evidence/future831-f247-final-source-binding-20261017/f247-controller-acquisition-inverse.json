@@ -1,0 +1,14 @@
+{
+  "source": "src/source_reflows/semantic_receivers.rs",
+  "whole_before_archive": "docs/evidence/future831-f247-final-source-binding-20261017/before/src__source_reflows__semantic_receivers.rs.txt",
+  "old_suffix_sha256": "21654559709d993939ca7c4ea60f653f33b395a2db448e214f6ca1b68d4e5014",
+  "helper_actual_acquisition": {
+    "remove": "pub(crate) fn helper_digest_capture_predecessor(current: &str) -> String {\n    let authenticated = crate::source_reflows_merge::main_c883_inputs::f247_expected(\n        \"src/workspace_graph/static_text/scalar_helpers.rs\", current,\n    );\n    let current = authenticated.as_str();\n",
+    "restore": "pub(crate) fn helper_digest_capture_predecessor(current: &str) -> String {\n"
+  },
+  "read_acquisition": {
+    "remove": "main_f247_read(",
+    "restore": "std::fs::read_to_string("
+  },
+  "all_assertions_and_loops_unchanged": true
+}

@@ -1,0 +1,72 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED",
+  "new_owners": [
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs"
+  ],
+  "carrier_whole_inverses": {
+    "tests/hir_module_boundaries.rs": {
+      "current": [
+        99752,
+        "9743cc249a380141a76f774c1c24331aaadfae7abcbf13aa99856bb21143d36c"
+      ],
+      "before": [
+        99079,
+        "7dade8fc55a0ea5f4a16bc57d1ac8ce43ed200694a39ea6e3d33038228c8b8c1"
+      ],
+      "archive": "docs/evidence/future831-f247-final-source-binding-20261017/raw-prior/tests__hir_module_boundaries.rs.txt",
+      "needle": "include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared.rs\")",
+      "addition": ", include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs\")",
+      "base": "../",
+      "unbound_before_archive": "docs/evidence/future831-f247-final-source-binding-20261017/before/tests__hir_module_boundaries.rs.txt"
+    },
+    "tests/workspace/semantic_graph/source_inventory.rs": {
+      "current": [
+        97535,
+        "ec79e706722d44165d450530c3aa6509c35f44cbad206144ed0aa6edc0d583ad"
+      ],
+      "before": [
+        96877,
+        "4dbeb81d84db0f80bb51ccc8fc1a25d2d71e49759ddeeccdc84c4d1748b27e11"
+      ],
+      "archive": "docs/evidence/future831-f247-final-source-binding-20261017/raw-prior/tests__workspace__semantic_graph__source_inventory.rs.txt",
+      "needle": "include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared.rs\")",
+      "addition": ", include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs\"), include_str!(\"../../src/cleanup_plan/replay/skeleton_work/isolated_paths.rs\"), include_str!(\"../../src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs\")",
+      "base": "../../",
+      "unbound_before_archive": "docs/evidence/future831-f247-final-source-binding-20261017/before/tests__workspace__semantic_graph__source_inventory.rs.txt"
+    },
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
+      "current": [
+        158162,
+        "43518d1edf9297eb3770918c27e309a0931fc0587d507df6648ee8585e268b8a"
+      ],
+      "before": [
+        157441,
+        "369a29b5860f644b33b82e8e968ab66225faf70cfb930757aff04ba591824d4e"
+      ],
+      "archive": "docs/evidence/future831-f247-final-source-binding-20261017/raw-prior/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.txt",
+      "needle": "include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared.rs\")",
+      "addition": ", include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs\")",
+      "base": "../../../../../",
+      "unbound_before_archive": "docs/evidence/future831-f247-final-source-binding-20261017/before/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.txt"
+    }
+  },
+  "helper": {
+    "path": "docs/evidence/future831-f247-final-source-binding-20261017/guard_payload.py",
+    "length": 7538,
+    "sha256": "c249dbbb29427d6034809305d352fa51326dbe6d2280c73afe41e331de51fd07"
+  },
+  "old_counts_and_controls_unchanged": true,
+  "native_literal_line_join": {
+    "before_length": 158198,
+    "before_sha256": "408201d5670b605edbcf404eaeebdfde56e49c9923bbb844c27902bd230d85ae",
+    "after_length": 158162,
+    "after_sha256": "43518d1edf9297eb3770918c27e309a0931fc0587d507df6648ee8585e268b8a",
+    "whole_before": "docs/evidence/future831-f247-final-source-binding-20261017/before/native-before-literal-line-join.txt"
+  }
+}

@@ -1,0 +1,57 @@
+"""Exact ten-input compile repair acquisition before unchanged strict controls."""
+from pathlib import Path
+import hashlib,json,os,stat,re
+R=Path(__file__).resolve().parents[3];D=Path(__file__).resolve().parent
+def bounded(path,length,digest):
+ assert 0<=length<=262144 and hasattr(os,'O_NOFOLLOW')
+ fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
+ identity=lambda s:(s.st_dev,s.st_ino,s.st_mode,s.st_size,s.st_mtime_ns,s.st_ctime_ns)
+ try:
+  first=os.fstat(fd);assert stat.S_ISREG(first.st_mode) and first.st_size==length
+  with os.fdopen(fd,'rb',closefd=False)as stream:
+   raw=stream.read(length);assert len(raw)==length and not stream.read(1)
+  after=os.fstat(fd);physical=os.lstat(path)
+  assert stat.S_ISREG(physical.st_mode) and identity(first)==identity(after)==identity(physical)
+  assert hashlib.sha256(raw).hexdigest()==digest
+  raw.decode('utf8');return raw
+ finally:os.close(fd)
+
+
+OLD_HELPER='docs/evidence/workspace21-legacy-source-repair-20261017/guard_payload.py'
+OLD_PIN=(5028, '5ba509e7343ac8ada5b6dd4f7e7ab22df4856d28f455d0b902c088b896cdad35')
+CARRIERS={'tests/hir_module_boundaries.rs': {'current': (99752, '9743cc249a380141a76f774c1c24331aaadfae7abcbf13aa99856bb21143d36c'), 'before': (99079, '7dade8fc55a0ea5f4a16bc57d1ac8ce43ed200694a39ea6e3d33038228c8b8c1'), 'archive': 'docs/evidence/future831-f247-final-source-binding-20261017/raw-prior/tests__hir_module_boundaries.rs.txt', 'needle': 'include_str!("../src/cleanup_plan/replay/factored/canonical_shared.rs")', 'addition': ', include_str!("../src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs"), include_str!("../src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs"), include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs"), include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs")', 'base': '../', 'unbound_before_archive': 'docs/evidence/future831-f247-final-source-binding-20261017/before/tests__hir_module_boundaries.rs.txt'}, 'tests/workspace/semantic_graph/source_inventory.rs': {'current': (97535, 'ec79e706722d44165d450530c3aa6509c35f44cbad206144ed0aa6edc0d583ad'), 'before': (96877, '4dbeb81d84db0f80bb51ccc8fc1a25d2d71e49759ddeeccdc84c4d1748b27e11'), 'archive': 'docs/evidence/future831-f247-final-source-binding-20261017/raw-prior/tests__workspace__semantic_graph__source_inventory.rs.txt', 'needle': 'include_str!("../../src/cleanup_plan/replay/factored/canonical_shared.rs")', 'addition': ', include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs"), include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs"), include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs"), include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs"), include_str!("../../src/cleanup_plan/replay/skeleton_work/isolated_paths.rs"), include_str!("../../src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs"), include_str!("../../src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs")', 'base': '../../', 'unbound_before_archive': 'docs/evidence/future831-f247-final-source-binding-20261017/before/tests__workspace__semantic_graph__source_inventory.rs.txt'}, 'crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs': {'current': (158162, '43518d1edf9297eb3770918c27e309a0931fc0587d507df6648ee8585e268b8a'), 'before': (157441, '369a29b5860f644b33b82e8e968ab66225faf70cfb930757aff04ba591824d4e'), 'archive': 'docs/evidence/future831-f247-final-source-binding-20261017/raw-prior/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.txt', 'needle': 'include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared.rs")', 'addition': ', include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs"), include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs"), include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs"), include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs")', 'base': '../../../../../', 'unbound_before_archive': 'docs/evidence/future831-f247-final-source-binding-20261017/before/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.txt'}}
+OWNERS={'src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs': (15707, 'ea3b9f8e55a3f183ba7f6f07a01d6a1d71364a4ce6e246934de95e3603535edd'), 'src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs': (17690, '50e4d6dc7bfd923acba894af0d8bb004c97ea56bb6c23164f80e33f2c78f8ea1'), 'src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs': (63367, '553179e57cccd27eae0d228ad54b4717ec743007d9ae354d31ed6174266732be'), 'src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs': (7473, 'd611a058bf45d4c5ff05135c9c76119b366877f0c5a7ca840a205547a8f3650e'), 'src/cleanup_plan/replay/skeleton_work/isolated_paths.rs': (2063, '5cc0e767a4e5e61ae5135d4193b831d941b90b6f676f6620d64fb9ac016c0d72'), 'src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs': (11699, '021a0dd84f3275b7cbd69936cb8def96e5172fb39ceaa1b4b385d3962f6792f2'), 'src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs': (7000, '7e3eb4e7868f45d04e6f1abd69ee35a56f32c0c355154d2e44386e2be1bc96c4')}
+def accepted_guard_extensions(root):
+ assert Path(root).resolve()==R
+ raw=bounded(R/OLD_HELPER,*OLD_PIN)
+ # Authenticate the complete actual three carriers before any prior view.
+ for path,row in CARRIERS.items():bounded(R/path,*row['current'])
+ for owner,pair in OWNERS.items():bounded(R/owner,*pair)
+ prior=CARRIERS['tests/workspace/semantic_graph/source_inventory.rs']
+ def prior_carrier():return bounded(R/prior['archive'],*prior['before'])
+ before='bounded(R/CARRIER,*CURRENT)'
+ after='_future_prior_carrier()'
+ code=raw.decode();assert code.count(before)==1
+ code=code.replace(before,after,1);assert code.replace(after,before,1).encode()==raw
+ ns={'__file__':str(R/OLD_HELPER),'_future_prior_carrier':prior_carrier}
+ exec(compile(code,str(R/OLD_HELPER),'exec'),ns)
+ m=dict(ns['accepted_guard_extensions'](R))
+ verify=m['verify_guard'];fragments=m['fragments']
+ def acquire(path,current):
+  assert path in CARRIERS,('foreign current raw carrier',path)
+  row=CARRIERS[path];actual=bounded(R/path,*row['current']).decode()
+  assert current==actual,'unprojected whole current raw input required'
+  for owner,pair in OWNERS.items():bounded(R/owner,*pair)
+  previous=bounded(R/row['archive'],*row['before']).decode()
+  assert actual.count(row['needle']+row['addition'])==1
+  # Exact current bank membership; each new physical owner has one literal
+  # at the owned root inventory site. No old table maximum is changed.
+  for owner in OWNERS:
+   assert actual.count('include_str!("'+row['base']+owner+'")')==1
+  return previous
+ def verify_guard(path,current,original,refresh=False):
+  assert not refresh
+  return verify(path,acquire(path,current),original,False)
+ def finite_fragments(path,current,original):return fragments(path,acquire(path,current),original)
+ m['verify_guard']=verify_guard;m['fragments']=finite_fragments
+ return m

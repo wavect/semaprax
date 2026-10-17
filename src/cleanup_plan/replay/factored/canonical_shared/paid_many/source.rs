@@ -226,4 +226,4 @@ fn complete_paid_many_source_domains_keep_all_original_inputs_and_raw_production
     composed_production_prepays_both_real_promotion_search_and_finish_receivers();
 }
 const PAID_INPUT_LENGTH: usize = 4272;
-const PAID_INPUT_SHA: &str = "6cfafbeff375730c6a486c0c226eda9f6f836d1626fd0a1961661456de38ea9d";
+const PAID_INPUT_SHA: &str = "3c7684f768e1cf98c8ad052cd1cb8b6be8d27d1c6d1755043003bc66857fc6ff";

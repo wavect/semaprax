@@ -3,7 +3,7 @@ from pathlib import Path
 import argparse,hashlib,json,subprocess,os,tempfile
 REL=Path('docs/evidence/mainbcc-ordinary-source-domain-20261017')
 MAIN='bccbe9696eca892045b0603ad663234062df15f4'
-FORMAT_NAMESPACE_SHA='c67837ba0c7b584b32b59bba4a6c414b628ba2b00326e8510f8efc6ca7279b1e'
+FORMAT_NAMESPACE_SHA='4ef9c3dddf75b2527025971ed491b246f9e61bb5aa7e8a0487d1683f61a385fb'
 sha=lambda b:hashlib.sha256(b).hexdigest()
 def previous_receiver(repo,current):
  R=Path(repo);D=R/REL

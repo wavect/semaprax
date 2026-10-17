@@ -506,8 +506,8 @@
   },
   {
     "source": "src/source_reflows/factored_sources.rs",
-    "sha256": "841257f90612ce90360e488453417fa7c0740020b1be882a89b91445b0b7d3b8",
-    "lines": 544
+    "sha256": "0c7318412b2888e628705004cf0e3eb8748ba0920dc833cb8bec3620cb03b019",
+    "lines": 568
   },
   {
     "source": "src/source_reflows/incoming090_semantic_receivers.rs",
@@ -626,8 +626,8 @@
   },
   {
     "source": "src/source_reflows_merge/main7f8_source_inputs.rs",
-    "sha256": "335dbc8d9a4f8f06c026512f73eddfd0f3556e4dd97a7e3ca17114f70a4cb543",
-    "lines": 219
+    "sha256": "b540739bc6bf23c8526f60641e6021f63819ea4050e71fe67427492173ac2f7e",
+    "lines": 257
   },
   {
     "source": "src/source_reflows_merge/main8a_historical.rs",
@@ -636,8 +636,8 @@
   },
   {
     "source": "src/source_reflows_merge/main_eb2_inputs.rs",
-    "sha256": "006c40cd14322e5243495262de1bc4985cd51359625f80eb81a3b4f0513519c4",
-    "lines": 123
+    "sha256": "b354552752b10566769cdfc9efbb7b68683140d5e5471662030a81106ce06782",
+    "lines": 124
   },
   {
     "source": "src/source_reflows_merge/maina3_custody.rs",

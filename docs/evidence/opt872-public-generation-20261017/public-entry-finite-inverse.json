@@ -1,0 +1,59 @@
+{
+  "original_sha256": "19936e3603f390f9c821e8baeb99a0ea9a629373152c91e2a04a3113bef6eb6c",
+  "current_sha256": "84e424f8caf063666a3c7fb9ce3e1f6917853510c060126912fb62ffe616c2f5",
+  "edits": [
+    {
+      "before": "    parser.add_argument(\"--apply\", action=\"store_true\")",
+      "after": "    parser.add_argument(\"--workflow-record\", required=True, type=Path)\n    parser.add_argument(\"--expected-workflow-record-sha256\", required=True)\n    parser.add_argument(\"--apply\", action=\"store_true\")"
+    },
+    {
+      "before": "    expected = json.loads((trusted_round / \"expected-counts.json\").read_bytes())\n",
+      "after": "    expected = json.loads((trusted_round / \"expected-counts.json\").read_bytes())\n    # The descriptor is independently reviewed; its own contents grant no authority.\n    import importlib.util\n    generation_path = Path(__file__).resolve().parent / \"prelude_forecast_committed_generation.py\"\n    require(hashlib.sha256(generation_path.read_bytes()).hexdigest() == \"cb2ea06b1f01b302b20bfbc07a543adba577da5acd9ed92aa117119352bab3d2\", \"committed-generation module drift\")\n    spec = importlib.util.spec_from_file_location(\"reviewed_committed_generation\", generation_path)\n    generation = importlib.util.module_from_spec(spec)\n    spec.loader.exec_module(generation)\n    baseline_capture, baseline_hashes = generation.preflight(args, expected, build)\n    baseline_public = json.loads((baseline_capture / \"wires/public-graph.json\").read_bytes())\n    baseline_amount = baseline_public[\"budget\"][\"used_builder_bytes\"]\n    analysis = [(name, baseline_hashes[name + \".json\"]) for name, _ in ANALYSIS]\n"
+    },
+    {
+      "before": "        require(built[key][\"target\"][\"name\"] == role",
+      "after": "        require(built[key][\"target\"][\"kind\"] == ([\"lib\"] if role == \"semaprax\" else [\"test\"]), \"trusted binary kind mismatch\")\n        require(built[key][\"target\"][\"name\"] == role"
+    },
+    {
+      "before": "    names = [\"public-graph\"] + [name for name, _ in ANALYSIS] + [\"projection-wire\"]",
+      "after": "    names = [\"public-graph\"] + [name for name, _ in analysis] + [\"projection-wire\"]"
+    },
+    {
+      "before": "    graph = values[\"public-graph\"]",
+      "after": "    whole_wire_review = generation.validate_capture(capture, baseline_capture)\n    graph = values[\"public-graph\"]"
+    },
+    {
+      "before": "    for name, _ in ANALYSIS:\n        require(values[name]",
+      "after": "    for name, _ in analysis:\n        require(values[name]"
+    },
+    {
+      "before": "edit(owner, \"assert_eq!(graph.budget().used_builder_bytes(), 334_016);\",",
+      "after": "edit(owner, \"assert_eq!(graph.budget().used_builder_bytes(), \" + format(baseline_amount, \"_\") + \");\","
+    },
+    {
+      "before": "edit(owner, \"sha256:c5cbb726c4e888d9b6e945964e52d233af45d25c80dc292890343d5ad2079a2e\",",
+      "after": "edit(owner, \"sha256:\" + baseline_hashes[\"public-graph.json\"],"
+    },
+    {
+      "before": "    for name, old in ANALYSIS:\n",
+      "after": "    for name, old in analysis:\n"
+    },
+    {
+      "before": "         \"sha256:ba3d1b86d584444b3ed9d18bb0dfd2ed7b69a2a68841a40de3ce5cdfc5dc39f9\",",
+      "after": "         \"sha256:\" + baseline_hashes[\"projection-wire.json\"],"
+    },
+    {
+      "before": "        permitted = [(edits[0][\"before\"], amount, 334016),",
+      "after": "        permitted = [(edits[0][\"before\"], amount, baseline_amount),"
+    },
+    {
+      "before": "            permitted = [(\"sha256:\" + ANALYSIS[0][1],\n                          [sha(wires[name]) for name, _ in ANALYSIS],\n                          [\"sha256:\" + old for _, old in ANALYSIS])]",
+      "after": "            permitted = [(\"sha256:\" + analysis[0][1],\n                          [sha(wires[name]) for name, _ in analysis],\n                          [\"sha256:\" + old for _, old in analysis])]"
+    },
+    {
+      "before": "    report = dict(schema=",
+      "after": "    complete_source_projection = generation.source_projection(trusted_root, head, before_sources, after_sources)\n    report = dict(complete_wire_review=whole_wire_review, complete_source_projection=complete_source_projection,\n                  schema="
+    }
+  ],
+  "complete_original_recovered": true
+}

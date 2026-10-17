@@ -67,6 +67,19 @@ status and missing independent-review/custody records cannot confer authority.
 
 `cleanup_plan/replay/skeleton_work.rs` ordinary construction uses the explicit-payer renewal, moving-string, condition and lexical-owner collectors. It prepares the held ReplayBudget refusal/census backing before any collector allocation; original collectors and the complete previous constructor remain independent test controls. No allocation-funding claim is inferred from a transfer optimization.
 
+`cleanup_plan/replay/ordinary_plan_history.rs` and its children own the private
+ordinary ActiveBuilder PLAN history candidate. Immutable segments use backward
+arena indices; child paths retain a segment index and a short owned tail.
+`producer.rs` builds the complete plan set, and prepaid forward cursors compare
+its observations and terminals with the unchanged flat HIR multiset. Its
+fallible heapsort orders comparison-owned paths only. Canonical runtime cleanup
+vectors retain their original order. `before.rs` independently compiles the
+complete flat predecessor. Selected, Oracle, renewal and lexical/factored
+replay remain outside this route. `source_reflows_merge/ordinary_plan_inputs.rs`
+owns its bounded, sealed historical source acquisition. This ownership map does
+not establish runtime qualification or application savings; see the
+[candidate evidence](evidence/ordinary-plan-history-c8740045-v1/README.md).
+
 ## System shape
 
 ```text

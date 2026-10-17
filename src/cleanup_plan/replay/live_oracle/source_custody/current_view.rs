@@ -157,3 +157,35 @@ fn lexical_later_promotions_retain_complete_original_input_and_refuse_foreign_st
     }
     assert!(std::panic::catch_unwind(|| before_production_promotion("foreign.rs", current)).is_err());
 }
+
+// Closed promotion input before every unchanged work inverse and whole-source assertion.
+pub(super) fn funded_before_promotion(source: &str, current: &str) -> String {
+    let (raw, prior, raw_len, raw_sha, prior_len, prior_sha) = match source {
+        "src/literal_format/funded.rs" => (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/literal_format/funded.rs")),
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-custody-452-promotions-20261017/0.prior.rs.txt")),
+            3758usize, "c80bf82ed4cb60a58038c05229725b154b858a3afa56935000df8a5651c1b8a7", 3740usize, "373e5f8ff1857e3893164c51e35cb26fc92e65556e8dc57b13c5d5ff62a58f7e"),
+        "src/string_ops/conditions/funded.rs" => (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/string_ops/conditions/funded.rs")),
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-custody-452-promotions-20261017/1.prior.rs.txt")),
+            7268usize, "fa8cd466ca164dc0639e8670d2c61586943ee07adb5ea4aea2affcb4451e6f08", 7250usize, "991930a735260c17530eacdc832d909c959f595efdddf0f0cff7f7a7d8137075"),
+        _ => panic!("foreign funded promotion subject"),
+    };
+    let sha = |text: &str| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes())));
+    assert_eq!(raw.len(), raw_len);
+    assert_eq!(sha(raw), raw_sha, "whole compiled promotion input");
+    assert_eq!(current, raw, "whole supplied promotion input");
+    assert_eq!(prior.len(), prior_len);
+    assert_eq!(sha(prior), prior_sha, "whole prior promotion input");
+    prior.to_owned()
+}
+#[test]
+fn funded_promotions_preserve_whole_original_guards_and_refuse_foreign_stages() {
+    for (source, raw) in [("src/literal_format/funded.rs", include_str!("../../../../literal_format/funded.rs")),
+        ("src/string_ops/conditions/funded.rs", include_str!("../../../../string_ops/conditions/funded.rs"))] {
+        let prior = funded_before_promotion(source, raw);
+        assert_ne!(prior, raw);
+        for bad in [String::new(), raw[..raw.len()-1].to_owned(), format!("{raw} "), prior, raw.replace('\n', "\r\n")] {
+            assert!(std::panic::catch_unwind(|| funded_before_promotion(source, &bad)).is_err());
+        }
+        assert!(std::panic::catch_unwind(|| funded_before_promotion("foreign.rs", raw)).is_err());
+    }
+}

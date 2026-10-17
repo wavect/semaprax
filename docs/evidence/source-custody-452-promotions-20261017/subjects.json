@@ -1,0 +1,16 @@
+[
+  {
+    "path": "src/literal_format/funded.rs",
+    "current_length": 3758,
+    "current_sha256": "c80bf82ed4cb60a58038c05229725b154b858a3afa56935000df8a5651c1b8a7",
+    "prior_length": 3740,
+    "prior_sha256": "373e5f8ff1857e3893164c51e35cb26fc92e65556e8dc57b13c5d5ff62a58f7e"
+  },
+  {
+    "path": "src/string_ops/conditions/funded.rs",
+    "current_length": 7268,
+    "current_sha256": "fa8cd466ca164dc0639e8670d2c61586943ee07adb5ea4aea2affcb4451e6f08",
+    "prior_length": 7250,
+    "prior_sha256": "991930a735260c17530eacdc832d909c959f595efdddf0f0cff7f7a7d8137075"
+  }
+]

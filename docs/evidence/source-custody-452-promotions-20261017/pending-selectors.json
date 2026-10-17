@@ -1,0 +1,40 @@
+{
+  "status": "SOURCE_ONLY_PENDING_PARENT_FOCUSED_QUALIFICATION",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::b::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "sourcepath": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "reason": "actual452failure01; all original full source assertions unchanged"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "sourcepath": "tests/workspace/semantic_graph.rs",
+      "reason": "actual452failure02; complete actual five-subject payload before original full manifest authentication"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::current_view::funded_promotions_preserve_whole_original_guards_and_refuse_foreign_stages",
+      "sourcepath": "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+      "reason": "new closed two-subject full current/prior authentication controls"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:hir_module_boundaries",
+      "selector": "production_source_inventory::current_relocated_subjects_require_all_five_in_order_and_reject_old_or_duplicate_prefixes",
+      "sourcepath": "tests/support/production_source_inventory.rs",
+      "reason": "new5-prefix actual scope guard; original3-prefix tests retained"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::production_source_inventory::current_relocated_subjects_require_all_five_in_order_and_reject_old_or_duplicate_prefixes",
+      "sourcepath": "tests/support/production_source_inventory.rs",
+      "reason": "new5-prefix actual scope guard; original3-prefix tests retained"
+    }
+  ]
+}

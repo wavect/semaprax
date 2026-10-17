@@ -871,3 +871,6 @@ fn current_replay_operation_guards_bind_the_actual_receivers_without_production_
 }
 
 pub(crate) use crate::source_reflows::main_f247_controllers::helper_digest_capture_predecessor;
+
+#[path = "semantic_receivers/status_inline.rs"]
+mod status_inline;

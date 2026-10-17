@@ -1,0 +1,85 @@
+{
+  "runs": [
+    {
+      "source_fingerprint": "91f365996bd970324fe8bcbc4cfcefa26ac8676ad2ebb454d829c87a38226557",
+      "compiler": "/opt/homebrew/bin/rustc",
+      "test": "inline_receipts_keep_every_old_link_key_duplicate_and_original_work",
+      "compile_peak_KiB": 171472,
+      "run_peak_KiB": 32,
+      "panic_strategy": "abort"
+    },
+    {
+      "source_fingerprint": "91f365996bd970324fe8bcbc4cfcefa26ac8676ad2ebb454d829c87a38226557",
+      "compiler": "/opt/homebrew/bin/rustc",
+      "test": "inline_receipts_pay_the_complete_cell_and_reduce_actual_cumulative_reservations",
+      "compile_peak_KiB": 190656,
+      "run_peak_KiB": 32,
+      "panic_strategy": "abort"
+    },
+    {
+      "source_fingerprint": "91f365996bd970324fe8bcbc4cfcefa26ac8676ad2ebb454d829c87a38226557",
+      "compiler": "/opt/homebrew/bin/rustc",
+      "test": "inline_receipts_keep_exact_short_zero_floor_and_sticky_drop_frontiers",
+      "compile_peak_KiB": 152976,
+      "run_peak_KiB": 32,
+      "panic_strategy": "abort"
+    },
+    {
+      "source_fingerprint": "91f365996bd970324fe8bcbc4cfcefa26ac8676ad2ebb454d829c87a38226557",
+      "compiler": "/opt/homebrew/bin/rustc",
+      "test": "inline_receipts_refuse_nested_and_restored_invocations_before_any_foreign_debit",
+      "compile_peak_KiB": 155760,
+      "run_peak_KiB": 32,
+      "panic_strategy": "abort"
+    },
+    {
+      "source_fingerprint": "91f365996bd970324fe8bcbc4cfcefa26ac8676ad2ebb454d829c87a38226557",
+      "compiler": "/opt/homebrew/bin/rustc",
+      "test": "inline_receipts_keep_exact_function_budget_and_current_key_bindings",
+      "compile_peak_KiB": 180784,
+      "run_peak_KiB": 32,
+      "panic_strategy": "abort"
+    },
+    {
+      "source_fingerprint": "91f365996bd970324fe8bcbc4cfcefa26ac8676ad2ebb454d829c87a38226557",
+      "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+      "test": "inline_receipts_keep_every_old_link_key_duplicate_and_original_work",
+      "compile_peak_KiB": 179664,
+      "run_peak_KiB": 32,
+      "panic_strategy": "abort"
+    },
+    {
+      "source_fingerprint": "91f365996bd970324fe8bcbc4cfcefa26ac8676ad2ebb454d829c87a38226557",
+      "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+      "test": "inline_receipts_pay_the_complete_cell_and_reduce_actual_cumulative_reservations",
+      "compile_peak_KiB": 198960,
+      "run_peak_KiB": 32,
+      "panic_strategy": "abort"
+    },
+    {
+      "source_fingerprint": "91f365996bd970324fe8bcbc4cfcefa26ac8676ad2ebb454d829c87a38226557",
+      "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+      "test": "inline_receipts_keep_exact_short_zero_floor_and_sticky_drop_frontiers",
+      "compile_peak_KiB": 133488,
+      "run_peak_KiB": 32,
+      "panic_strategy": "abort"
+    },
+    {
+      "source_fingerprint": "91f365996bd970324fe8bcbc4cfcefa26ac8676ad2ebb454d829c87a38226557",
+      "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+      "test": "inline_receipts_refuse_nested_and_restored_invocations_before_any_foreign_debit",
+      "compile_peak_KiB": 137664,
+      "run_peak_KiB": 32,
+      "panic_strategy": "abort"
+    },
+    {
+      "source_fingerprint": "91f365996bd970324fe8bcbc4cfcefa26ac8676ad2ebb454d829c87a38226557",
+      "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+      "test": "inline_receipts_keep_exact_function_budget_and_current_key_bindings",
+      "compile_peak_KiB": 132384,
+      "run_peak_KiB": 32,
+      "panic_strategy": "abort"
+    }
+  ],
+  "scope": "Complete current Directory/status prefix/reused cursor/in-place receipt implementation and5 complete owning bodies; explicit HIR fixture and frozen BO adapters. Actual budget method bodies and System allocation observer. Full compiler/runtime remains hosted."
+}

@@ -1,0 +1,42 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+    "function": "authenticate",
+    "sha256": "9ba88d88283c02de8ff2ca6f48cc94b24085ffceebbc06c1babfd47f9946585a"
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+    "function": "compare",
+    "sha256": "8c0735b93297afd6f29944e83469469c368dbcc35b62759b8304db415996a543"
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+    "function": "certified_probe",
+    "sha256": "163356357ff42245c3b4bc0dee1292a58643beb8d2ad7363843073f1f577cccd"
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+    "function": "held_probe",
+    "sha256": "206b7ed1eb97f3f0c8840c6365e3425577a5ea62c6413aca72191e8d198e363f"
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+    "function": "common_prefix",
+    "sha256": "4101185c91a144f513c57f32ef8745cd252e7cd98e8309a2b8ad6c0b8ea0334e"
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+    "function": "insert",
+    "sha256": "d057863fbb038cee5f487c86c3f9dda8eee4ae727635c435fb7c0249ee5c6943"
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+    "function": "insert_indexed",
+    "sha256": "d8b34196fdf59ba1413a2c6ffcce10f9e76a1dbc8c265bf08a66a008f3db3714"
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+    "function": "validate_status_sources_held_prefix",
+    "sha256": "5340e1e043f40126b7af58b9eacadb81eae31bc4cdc9071e6368ecd1cc66d0db"
+  }
+]

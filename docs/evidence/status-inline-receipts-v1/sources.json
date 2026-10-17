@@ -1,0 +1,90 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+    "before_sha256": "aff3b6e7d30470659a80db529b48a8acbb2931b02a7ea813c6d34844f474d20d",
+    "after_sha256": "bcc0e1db38bd8bc567620c61e147cb8f0a9db553a6fb4e941e2648a8e1e5b83f",
+    "archive": "docs/evidence/status-inline-receipts-v1/source-before/0.txt",
+    "inverse": [
+      {
+        "after": "e(Box::new(frozen));\n        Ok(())\n    }\n}\n\nmod reused_cursor;\n\nmod inline;\n",
+        "before": "e(Box::new(frozen));\n        Ok(())\n    }\n}\n\nmod reused_cursor;\n"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+    "before_sha256": "48b037671d03602a57db8499280e92ff88ab16978a5ca4bbb146a5ee8530d0a2",
+    "after_sha256": "d518e48ef9895ea86db8f50a0c958efce6c977e23ab7665cfe3997664c98648e",
+    "archive": "docs/evidence/status-inline-receipts-v1/source-before/1.txt",
+    "inverse": [
+      {
+        "after": ": ClassifierLedger::capture(),\n        ids: Some(ids),\n    })\n}\n\nmod inline_status;\n",
+        "before": ": ClassifierLedger::capture(),\n        ids: Some(ids),\n    })\n}\n"
+      },
+      {
+        "after": "ClassifierLedger::capture(),\n            ids: None,\n        });\n    }\n    budget.reserve_bytes(\n        function,\n        3 * std::mem::size_of::<bool>(),\n        \"status receiver selection\",\n    )?;\n    budget.charge(function, 3, \"status receiver selection\")?;\n    if function.cleanup_plan.status_sources.len() >= 256\n        && matches!(budget.payer, AllocationPayer::ActiveBuilder)\n        && !budget.selected()\n    {\n        return inline_status::validate(function, facts, budget);\n    }\n    if function.cleanup_plan.status_sources.len() >= 3 {\n ",
+        "before": "ClassifierLedger::capture(),\n            ids: None,\n        });\n    }\n    if function.cleanup_plan.status_sources.len() >= 3 {\n "
+      }
+    ]
+  },
+  {
+    "path": "tests/hir_module_boundaries.rs",
+    "before_sha256": "d9149e4de775720f16fd1f70603f953bc45f215b7534f16106e58d3f136b0b74",
+    "after_sha256": "adabe5869e41ae5caf037eccc2f50e324eda6ef82c0199109a9588ca296cf6f3",
+    "archive": "docs/evidence/status-inline-receipts-v1/source-before/2.txt",
+    "inverse": [
+      {
+        "after": "cts/receiving/directory/status_prefix/reused_cursor/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/inline.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/inline/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving/retained/inline_status.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving/retained/inline_status/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/expression_fact",
+        "before": "cts/receiving/directory/status_prefix/reused_cursor/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/expression_fact"
+      }
+    ]
+  },
+  {
+    "path": "tests/workspace/semantic_graph/source_inventory.rs",
+    "before_sha256": "da72498c6f63a37e488c75df9fe31fe2301c12114e5db0d496bc6d4072f6e06d",
+    "after_sha256": "2bd99dc5fd267e671b02a9e6c0034d86792854091094c7a947aaf015aa077f5a",
+    "archive": "docs/evidence/status-inline-receipts-v1/source-before/3.txt",
+    "inverse": [
+      {
+        "after": "cts/receiving/directory/status_prefix/reused_cursor/tests.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/inline.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/inline/tests.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/expression_facts/receiving/retained/inline_status.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/expression_facts/receiving/retained/inline_status/tests.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/expression_f",
+        "before": "cts/receiving/directory/status_prefix/reused_cursor/tests.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/expression_f"
+      }
+    ]
+  },
+  {
+    "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "before_sha256": "0a07bac8b9c0a51619952ca365ec06204c8ec0731f76d6b698c565ff8bcd88aa",
+    "after_sha256": "021fd0f516093caeb0db9627a98c33f685da8bb40894f73d5b94e2595d79570f",
+    "archive": "docs/evidence/status-inline-receipts-v1/source-before/4.txt",
+    "inverse": [
+      {
+        "after": "cts/receiving/directory/status_prefix/reused_cursor/tests.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/inline.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/inline/tests.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained/inline_status.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained/inline_status/tests.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/exp",
+        "before": "cts/receiving/directory/status_prefix/reused_cursor/tests.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/exp"
+      }
+    ]
+  },
+  {
+    "path": "src/source_reflows/semantic_receivers.rs",
+    "before_sha256": "a354a8476c045fcb176ce6babbbb6174236f49efa3f3deae24de7eb4c445d8e9",
+    "after_sha256": "d0d1b7e116b320f80ddd501dc7361e26a85fcb5bd5aa4ab1f6ba65d783ee85d5",
+    "archive": "docs/evidence/status-inline-receipts-v1/source-before/5.txt",
+    "inverse": [
+      {
+        "after": "::catch_unwind(|| invert(&forged, &current)).is_err());\n    }\n}\n\n#[path = \"semantic_receivers/status_inline.rs\"]\nmod status_inline;\n",
+        "before": "::catch_unwind(|| invert(&forged, &current)).is_err());\n    }\n}\n"
+      }
+    ]
+  },
+  {
+    "path": "docs/evidence/projection-audit-scope-v1/legacy-inputs.tsv",
+    "before_sha256": "fb307a41c4702828798accb2a7abf4fa0fb78da7d0d1782fe6f5fb2135ba7ddb",
+    "after_sha256": "525254695bb6e275900e616941700ee75a22f7432118baae8f0f21ce5199dbdd",
+    "archive": "docs/evidence/status-inline-receipts-v1/source-before/6.txt",
+    "inverse": [
+      {
+        "after": "lay/expression_facts/receiving/directory/status_prefix/tests.rs\nsrc/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor.rs\nsrc/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor/tests.rs\nsrc/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/inline.rs\nsrc/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/inline/tests.rs\nsrc/cleanup_plan/replay/expression_facts/receiving/retained/inline_status.rs\nsrc/cleanup_plan/replay/expression_facts/receiving/retained/inline_status/tests.rs\nsrc/cleanup_plan/replay/expression_facts/receiving/retained/stat",
+        "before": "lay/expression_facts/receiving/directory/status_prefix/tests.rs\nsrc/cleanup_plan/replay/expression_facts/receiving/retained/stat"
+      }
+    ]
+  }
+]

@@ -1,0 +1,29 @@
+{
+  "runs": [
+    {
+      "compiler": "/opt/homebrew/bin/rustc",
+      "test": "complete_inline_status_loop_keeps_all_current_rows_and_pays_every_live_control",
+      "compile_peak_KiB": 171760,
+      "run_peak_KiB": 800
+    },
+    {
+      "compiler": "/opt/homebrew/bin/rustc",
+      "test": "complete_inline_status_loop_keeps_duplicate_unknown_case_callee_and_lane_refusals",
+      "compile_peak_KiB": 161088,
+      "run_peak_KiB": 2432
+    },
+    {
+      "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+      "test": "complete_inline_status_loop_keeps_all_current_rows_and_pays_every_live_control",
+      "compile_peak_KiB": 195776,
+      "run_peak_KiB": 2336
+    },
+    {
+      "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+      "test": "complete_inline_status_loop_keeps_duplicate_unknown_case_callee_and_lane_refusals",
+      "compile_peak_KiB": 159328,
+      "run_peak_KiB": 32
+    }
+  ],
+  "scope": "Complete original held-prefix and current in-place status validation loops, every actual producer/lookup/freeze branch, actual Directory/prefix/cursor/ReplayBudget/Diagnostic/observer bodies. Explicit HIR, fact-lookup, structural-message and bounded-output fixture adapters. Full resolver and hosted test execution remain required."
+}

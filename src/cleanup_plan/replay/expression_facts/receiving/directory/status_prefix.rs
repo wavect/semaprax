@@ -1074,3 +1074,5 @@ impl HeldPrefix<'_, '_> {
 }
 
 mod reused_cursor;
+
+mod inline;

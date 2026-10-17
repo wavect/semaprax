@@ -65,6 +65,12 @@ src/loan_plan/paid_plan/retained_before_dense.rs
 src/loan_plan/funded_flat/before_dense.rs
 src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs
 src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs
+src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor.rs
+src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor/tests.rs
+src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/inline.rs
+src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/inline/tests.rs
+src/cleanup_plan/replay/expression_facts/receiving/retained/inline_status.rs
+src/cleanup_plan/replay/expression_facts/receiving/retained/inline_status/tests.rs
 src/cleanup_plan/replay/expression_facts/receiving/retained/status_before_prefix.rs
 src/cleanup_plan/replay/expression_facts/receiving/retained/component_before_prefix.rs
 src/workspace_graph/expected_projection/private_layout.rs

@@ -1,0 +1,353 @@
+{
+  "unique_source_tests": 32,
+  "digest_tests": 3,
+  "prior_suites": [],
+  "runs": [
+    {
+      "suite": 0,
+      "selected": [
+        [
+          "source_reflows.rs",
+          "approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors"
+        ]
+      ],
+      "compile_peak_KiB": 168928,
+      "run_peak_KiB": 9184
+    },
+    {
+      "suite": 1,
+      "selected": [
+        [
+          "source_reflows.rs",
+          "a_changed_current_byte_is_refused_before_an_inverse_can_hide_it"
+        ]
+      ],
+      "compile_peak_KiB": 145584,
+      "run_peak_KiB": 32
+    },
+    {
+      "suite": 2,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "ordinary_helper_views_authenticate_every_complete_input"
+        ]
+      ],
+      "compile_peak_KiB": 185776,
+      "run_peak_KiB": 6496
+    },
+    {
+      "suite": 3,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "ordinary_setup_complete_sources_and_original_legacy_constructor_remain_exact"
+        ]
+      ],
+      "compile_peak_KiB": 145792,
+      "run_peak_KiB": 17584
+    },
+    {
+      "suite": 4,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "ordinary_setup_bridges_preserve_every_complete_original_format_input"
+        ]
+      ],
+      "compile_peak_KiB": 194592,
+      "run_peak_KiB": 32
+    },
+    {
+      "suite": 5,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "every_receiver_inverse_preserves_the_entire_reflow_input_and_archive"
+        ]
+      ],
+      "compile_peak_KiB": 149536,
+      "run_peak_KiB": 6464
+    },
+    {
+      "suite": 6,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "receiver_mutation_and_forged_predecessor_fail_closed"
+        ]
+      ],
+      "compile_peak_KiB": 160336,
+      "run_peak_KiB": 5568
+    },
+    {
+      "suite": 7,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "allocation_followup_preserves_the_complete_original_format_input"
+        ]
+      ],
+      "compile_peak_KiB": 191216,
+      "run_peak_KiB": 32
+    },
+    {
+      "suite": 8,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "complete_followup_receivers_keep_all_original_source_bytes"
+        ]
+      ],
+      "compile_peak_KiB": 171776,
+      "run_peak_KiB": 3504
+    },
+    {
+      "suite": 12,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "ordinary_replay_routes_keep_complete_predecessors_and_existing_controls"
+        ]
+      ],
+      "compile_peak_KiB": 116528,
+      "run_peak_KiB": 5584
+    },
+    {
+      "suite": 13,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "borrowed_exit_region_views_preserve_all_complete_predecessors_and_controls"
+        ]
+      ],
+      "compile_peak_KiB": 147952,
+      "run_peak_KiB": 7232
+    },
+    {
+      "suite": 14,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "slot_byte_helper_and_generic_bound_frontier_keep_complete_source_receivers"
+        ]
+      ],
+      "compile_peak_KiB": 187520,
+      "run_peak_KiB": 3712
+    },
+    {
+      "suite": 15,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "last_branch_prefix_keeps_complete_predecessors_and_original_source_controls"
+        ]
+      ],
+      "compile_peak_KiB": 147008,
+      "run_peak_KiB": 5104
+    },
+    {
+      "suite": 16,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "plan_branch_capacity_preserves_complete_sources_and_all_existing_controls"
+        ]
+      ],
+      "compile_peak_KiB": 143504,
+      "run_peak_KiB": 4352
+    },
+    {
+      "suite": 17,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "replay_work_refusal_capture_retains_all_complete_predecessors_and_assertions"
+        ]
+      ],
+      "compile_peak_KiB": 186992,
+      "run_peak_KiB": 3728
+    },
+    {
+      "suite": 18,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "held_status_index_keeps_complete_predecessor_receivers_and_assertions"
+        ]
+      ],
+      "compile_peak_KiB": 148976,
+      "run_peak_KiB": 3264
+    },
+    {
+      "suite": 19,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "projection_audit_scope_preserves_complete_sources_and_all_historical_receivers"
+        ]
+      ],
+      "compile_peak_KiB": 147904,
+      "run_peak_KiB": 4272
+    },
+    {
+      "suite": 20,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "historical_pin_capture_chains_restore_every_original_source"
+        ]
+      ],
+      "compile_peak_KiB": 144496,
+      "run_peak_KiB": 3744
+    },
+    {
+      "suite": 21,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "status_membership_index_preserves_complete_predecessors_and_all_original_controllers"
+        ]
+      ],
+      "compile_peak_KiB": 118448,
+      "run_peak_KiB": 128
+    },
+    {
+      "suite": 22,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "replay_operation_totals_preserve_complete_predecessors_and_production_text"
+        ]
+      ],
+      "compile_peak_KiB": 175648,
+      "run_peak_KiB": 5024
+    },
+    {
+      "suite": 23,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "optional_helper_digest_preserves_complete_predecessors_and_all_old_controls"
+        ]
+      ],
+      "compile_peak_KiB": 148480,
+      "run_peak_KiB": 3680
+    },
+    {
+      "suite": 24,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "isolated_lexical_path_reuse_preserves_complete_merger_and_all_prior_controls"
+        ]
+      ],
+      "compile_peak_KiB": 193872,
+      "run_peak_KiB": 3488
+    },
+    {
+      "suite": 25,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "core_attempt_receipts_preserve_all_original_retry_and_source_controls"
+        ]
+      ],
+      "compile_peak_KiB": 147376,
+      "run_peak_KiB": 3536
+    },
+    {
+      "suite": 26,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "tail_merger_helper_name_preserves_both_complete_reference_bodies_and_all_assertions"
+        ]
+      ],
+      "compile_peak_KiB": 146176,
+      "run_peak_KiB": 32
+    },
+    {
+      "suite": 27,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "reused_status_cursor_preserves_complete_predecessors_and_all_original_receivers"
+        ]
+      ],
+      "compile_peak_KiB": 146016,
+      "run_peak_KiB": 3072
+    },
+    {
+      "suite": 28,
+      "selected": [
+        [
+          "semantic_receivers.rs",
+          "public_wire_receipts_preserve_complete_sources_and_every_original_assertion"
+        ]
+      ],
+      "compile_peak_KiB": 121632,
+      "run_peak_KiB": 2864
+    },
+    {
+      "suite": 29,
+      "selected": [
+        [
+          "nested_scope.rs",
+          "complete_nested_custody_assertions_remain_executable_and_byte_exact"
+        ]
+      ],
+      "compile_peak_KiB": 121104,
+      "run_peak_KiB": 2352
+    },
+    {
+      "suite": 30,
+      "selected": [
+        [
+          "factored_sources.rs",
+          "complete_factored_custody_assertions_remain_executable_and_byte_exact"
+        ]
+      ],
+      "compile_peak_KiB": 146176,
+      "run_peak_KiB": 5248
+    },
+    {
+      "suite": 31,
+      "selected": [
+        [
+          "status_inline.rs",
+          "inline_status_receipts_keep_all_complete_inputs_and_original_validation_loops"
+        ]
+      ],
+      "compile_peak_KiB": 176096,
+      "run_peak_KiB": 2000
+    }
+  ],
+  "deferred_RAM": [
+    {
+      "suite": 9,
+      "selected": [
+        "semantic_receivers.rs",
+        "held_status_views_preserve_complete_original_inputs_and_validation_loops"
+      ],
+      "reason": "Actual unchanged complete body stopped at the 200MiB process-tree RAM cap; no further local retries. Default hosted execution remains required."
+    },
+    {
+      "suite": 10,
+      "selected": [
+        "semantic_receivers.rs",
+        "held_continuation_inputs_preserve_the_complete_machine_and_all_original_controls"
+      ],
+      "reason": "Actual unchanged complete body stopped at the 200MiB process-tree RAM cap; no further local retries. Default hosted execution remains required."
+    },
+    {
+      "suite": 11,
+      "selected": [
+        "semantic_receivers.rs",
+        "receiving_lookup_views_keep_complete_prior_modules_and_all_owning_inputs"
+      ],
+      "reason": "Actual unchanged complete body stopped at the 200MiB process-tree RAM cap; no further local retries. Default hosted execution remains required."
+    }
+  ],
+  "scope": "All32 actual current source-framework owning tests plus3 digest tests, split into independent binaries under the unchanged200MiB cap. Whole original assertion bodies retained; only nonselected test annotations cfg-disabled in each SSD stage and literal include paths rebased. Already-passed group controls retained by complete logs; remaining source tests execute independently. Digest tests repeat. Full compiler/runtime not qualified."
+}

@@ -1,0 +1,66 @@
+[
+  {
+    "path": "src/workspace_graph.rs",
+    "archive": "docs/evidence/core-attempt-receipts-v1/src__workspace_graph.rs.before.txt",
+    "before_sha256": "c0f9b97366d555108fa122c42cbc4fd27c096450318502f72450ea570c956728",
+    "after_sha256": "0c1e77b55ff43fc75bd1e45eed1a3cb4062ea4562a3cba0002a0ebb1a34be4c3",
+    "inverse": [
+      {
+        "after": "      Ok::<_, Vec<Diagnostic>>((core, custody))\n            });\n        #[cfg(test)]\n        tests::record_core_attempt(\n            fallback_mode,\n            resolve_builder_bytes,\n            consumed,\n            overflowed,\n            &refusal,\n            &site,\n            &core.as_ref().err(),\n        );\n        core_builder_bytes = core_builder_bytes.max(consumed);\n ",
+        "before": "      Ok::<_, Vec<Diagnostic>>((core, custody))\n            });\n        core_builder_bytes = core_builder_bytes.max(consumed);\n "
+      }
+    ]
+  },
+  {
+    "path": "src/workspace_graph/tests.rs",
+    "archive": "docs/evidence/core-attempt-receipts-v1/src__workspace_graph__tests.rs.before.txt",
+    "before_sha256": "0c86219285da2b980463458fcbf8df48464294db981d4ade62bb034ff5a548c9",
+    "after_sha256": "1c44988c8f993c597802ac95bf8366a3eba15ad871a026507012dfed1c76d21d",
+    "inverse": [
+      {
+        "after": "#[path = \"tests/core_attempt_trace.rs\"]\nmod core_attempt_trace;\npub(super) use core_attempt_trace::{\n    observe as observe_core_attempts, record as record_core_attempt,\n};\n#[path = \"tests/cache_stage_debits.rs\"]\nmod cache_stage_debits;\n",
+        "before": "#[path = \"tests/cache_stage_debits.rs\"]\nmod cache_stage_debits;\n"
+      }
+    ]
+  },
+  {
+    "path": "src/workspace_graph/tests/builder_limits.rs",
+    "archive": "docs/evidence/core-attempt-receipts-v1/src__workspace_graph__tests__builder_limits.rs.before.txt",
+    "before_sha256": "71e448e861242a39720fce2770cbead31ce2a51072726591210a6eff188dd0cf",
+    "after_sha256": "30fb6d3dde00e67707bc5234228c5a3866fb9b6f4c13ff8573007969f21ac402",
+    "inverse": [
+      {
+        "after": "leanup_plan::take_replay_work_refusal();\n    let built_result = observe_core_attempts(|| {\n        build_owned_with_builder_limit(sources.clone(), MAX_BUILDER_BYTES)\n    });\n    if let Some(refusal) = crate::cleanup_plan::take_replay_w",
+        "before": "leanup_plan::take_replay_work_refusal();\n    let built_result = build_owned_with_builder_limit(sources.clone(), MAX_BUILDER_BYTES);\n    if let Some(refusal) = crate::cleanup_plan::take_replay_w"
+      }
+    ]
+  },
+  {
+    "path": "src/source_reflows/semantic_receivers.rs",
+    "archive": "docs/evidence/core-attempt-receipts-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+    "before_sha256": "e14549411d71f541ba3d65b92afd918fc92200aae54cb03068303a2243fe8281",
+    "after_sha256": "fa6aa5b2d53932b4a013ab50168783003af766a41c651fb036cdf95f5f7c860e",
+    "inverse": [
+      {
+        "after": "    _ => panic!(\"unexpected receipt source\"),\n        }\n    }\n}\n\n#[test]\nfn tail_merger_helper_name_preserves_both_complete_reference_bodies_and_all_assertions() {\n    let root = Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let proofs: Vec<serde_json::Value> = serde_json::from_str(\n        &std::fs::read_to_string(root.join(\"docs/evidence/tail-merge-helper-name-v1/sources.json\"))\n            .unwrap(),\n    )\n    .unwrap();\n    assert_eq!(proofs.len(), 3);\n    let mut paths = std::collections::BTreeSet::new();\n    for proof in &proofs {\n        let path = proof[\"path\"].as_str().unwrap();\n        assert!(paths.insert(path));\n        let current = std::fs::read_to_string(root.join(path)).unwrap();\n        let before = invert(proof, &current);\n        assert_eq!(\n            before,\n            std::fs::read_to_string(root.join(proof[\"archive\"].as_str().unwrap())).unwrap()\n        );\n        assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + \"\\n\"))).is_err());\n        let mut forged = proof.clone();\n        forged[\"before_sha256\"] = serde_json::Value::String(\"0\".repeat(64));\n        assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());\n        if path == \"src/source_reflows/semantic_receivers.rs\" {\n            assert!(current.starts_with(&before));\n        } else {\n            let old = \"saved_merged_paths\";\n            let new = \"tail_merge_control\";\n            let count = if path.ends_with(\"/old.rs\") { 1 } else { 4 };\n            assert_eq!(current.matches(new).count(), count);\n            assert!(!current.contains(old));\n            assert_eq!(current.replace(new, old), before);\n        }\n    }\n}\n",
+        "before": "    _ => panic!(\"unexpected receipt source\"),\n        }\n    }\n}\n"
+      },
+      {
+        "after": "thority.matches(&format!(\"\\\"../{path}\\\"\")).count(), 1);\n    }\n}\n\n#[test]\nfn core_attempt_receipts_preserve_all_original_retry_and_source_controls() {\n    let root = Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let proofs: Vec<serde_json::Value> = serde_json::from_str(\n        &std::fs::read_to_string(root.join(\"docs/evidence/core-attempt-receipts-v1/sources.json\"))\n            .unwrap(),\n    )\n    .unwrap();\n    assert_eq!(proofs.len(), 5);\n    let mut paths = std::collections::BTreeSet::new();\n    for proof in &proofs {\n        let path = proof[\"path\"].as_str().unwrap();\n        assert!(paths.insert(path));\n        let current = std::fs::read_to_string(root.join(path)).unwrap();\n        let before = invert(proof, &current);\n        assert_eq!(\n            before,\n            std::fs::read_to_string(root.join(proof[\"archive\"].as_str().unwrap())).unwrap()\n        );\n        assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + \"\\n\"))).is_err());\n        let mut forged = proof.clone();\n        forged[\"before_sha256\"] = serde_json::Value::String(\"0\".repeat(64));\n        assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());\n        match path {\n            \"src/workspace_graph.rs\" => {\n                let hook = \"        #[cfg(test)]\\n        tests::record_core_attempt(\\n            fallback_mode,\\n            resolve_builder_bytes,\\n            consumed,\\n            overflowed,\\n            &refusal,\\n            &site,\\n            &core.as_ref().err(),\\n        );\\n\";\n                assert_eq!(current.matches(hook).count(), 1);\n                assert!(hook.contains(\"#[cfg(test)]\"));\n                assert_eq!(current.replacen(hook, \"\", 1), before);\n            }\n            \"src/workspace_graph/tests.rs\" => {\n                assert_eq!(current.strip_prefix(\"#[path = \\\"tests/core_attempt_trace.rs\\\"]\\nmod core_attempt_trace;\\npub(super) use core_attempt_trace::{\\n    observe as observe_core_attempts, record as record_core_attempt,\\n};\\n\").unwrap(), before);\n            }\n            \"src/workspace_graph/tests/builder_limits.rs\" => {\n                let hook = \"    let built_result = observe_core_attempts(|| {\\n        build_owned_with_builder_limit(sources.clone(), MAX_BUILDER_BYTES)\\n    });\";\n                assert_eq!(current.matches(hook).count(), 1);\n                assert_eq!(current.replacen(hook, \"    let built_result = build_owned_with_builder_limit(sources.clone(), MAX_BUILDER_BYTES);\", 1), before);\n                assert!(current.contains(\"assert_eq!(CORE_BUILD_ATTEMPTS.with(Cell::get), 2);\"));\n            }\n            \"src/source_reflows/semantic_receivers.rs\" => assert!(current.starts_with(&before)),\n            \"src/workspace_graph/tests/core_attempt_trace.rs\" => assert!(before.is_empty()),\n            _ => panic!(\"unexpected receipt source\"),\n        }\n    }\n}\n",
+        "before": "thority.matches(&format!(\"\\\"../{path}\\\"\")).count(), 1);\n    }\n}\n"
+      }
+    ]
+  },
+  {
+    "path": "src/workspace_graph/tests/core_attempt_trace.rs",
+    "archive": "docs/evidence/core-attempt-receipts-v1/src__workspace_graph__tests__core_attempt_trace.rs.before.txt",
+    "before_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "after_sha256": "7a67363c8fcb741714c5456fdbe3a10eb27c121d5951eca374adb33b4628e1e0",
+    "inverse": [
+      {
+        "after": "//! Opt-in receipts for the unchanged real retry loop; no trace consumes a ledger.\nuse std::cell::Cell;\nuse std::fmt::Debug;\nthread_local! {\n    static ENABLED: Cell<bool> = const { Cell::new(false) };\n}\n\npub(in crate::workspace_graph) fn observe<T>(run: impl FnOnce() -> T) -> T {\n    struct Restore(bool);\n    impl Drop for Restore {\n        fn drop(&mut self) {\n            ENABLED.with(|enabled| enabled.set(self.0));\n        }\n    }\n    let _restore = Restore(ENABLED.with(|enabled| enabled.replace(true)));\n    run()\n}\n\npub(in crate::workspace_graph) fn record(\n    mode: impl Debug,\n    prebound: usize,\n    consumed: usize,\n    overflowed: bool,\n    refusal: &impl Debug,\n    site: &impl Debug,\n    errors: &impl Debug,\n) {\n    if ENABLED.with(Cell::get) {\n        eprintln!(\"identity-core-attempt mode={mode:?} prebound={prebound} consumed={consumed} overflowed={overflowed} refusal={refusal:?} site={site:?} errors={errors:?}\");\n    }\n}\n\n#[test]\nfn opt_in_preserves_borrowed_result_and_nested_scope_without_default_formatting() {\n    assert!(!ENABLED.with(Cell::get));\n    let result = vec![3u8, 7, 11];\n    let pointer = result.as_ptr();\n    let returned = observe(|| {\n        assert!(ENABLED.with(Cell::get));\n        let returned = observe(|| &result);\n        assert!(ENABLED.with(Cell::get));\n        returned\n    });\n    assert_eq!(returned.as_ptr(), pointer);\n    assert_eq!(returned, &result);\n    assert!(!ENABLED.with(Cell::get));\n}\n\n#[test]\nfn disabled_receipts_do_not_format_and_enabled_receipts_borrow_all_original_inputs() {\n    struct Seen<'a>(&'a Cell<usize>);\n    impl Debug for Seen<'_> {\n        fn fmt(&self, output: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {\n            self.0.set(self.0.get() + 1);\n            output.write_str(\"borrowed-original\")\n        }\n    }\n    let calls = Cell::new(0);\n    let value = Seen(&calls);\n    record(2, 100, 150, true, &value, &value, &value);\n    assert_eq!(calls.get(), 0);\n    observe(|| record(2, 100, 150, true, &value, &value, &value));\n    assert_eq!(calls.get(), 3);\n    record(5, 80, 120, false, &value, &value, &value);\n    assert_eq!(calls.get(), 3);\n    assert!(!ENABLED.with(Cell::get));\n}\n\n#[test]\nfn unwind_restores_each_original_observer_scope() {\n    assert!(!ENABLED.with(Cell::get));\n    observe(|| {\n        let failure = std::panic::catch_unwind(|| observe(|| panic!(\"inner receipt unwind\")));\n        assert!(failure.is_err());\n        assert!(ENABLED.with(Cell::get));\n    });\n    assert!(!ENABLED.with(Cell::get));\n    let failure = std::panic::catch_unwind(|| observe(|| panic!(\"outer receipt unwind\")));\n    assert!(failure.is_err());\n    assert!(!ENABLED.with(Cell::get));\n}\n",
+        "before": ""
+      }
+    ]
+  }
+]

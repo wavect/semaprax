@@ -1,0 +1,42 @@
+{
+  "status": "SOURCE_ONLY_NOT_BINDER_OR_RUST_QUALIFIED",
+  "base": "7827d3687da21e1093d40f8c8e3f7116edba1993",
+  "reviewed_test_fix": "f231dbb244810605ff8abc1148321a0142ea8d95",
+  "predecessor_manifest_sha256": "178f06efa9e5ee2f63543c7a29bc6a3b09a7ae270d71b235b628283c98a04bc0",
+  "whole_original_binder_sha256": "4921dedbcd93d865cafc825f176f5598891864f35c605096185dfb49c6887546",
+  "physical_rows": 174,
+  "changed_current_rows": 1,
+  "unchanged_current_rows": 173,
+  "source_controls": {
+    "whole_original_binder_inverse": true,
+    "refusals": 6,
+    "binder_executed": false
+  },
+  "files": [
+    {
+      "path": "docs/evidence/main090-branch-test-next-binding-20261017/README.md",
+      "length": 2057,
+      "sha256": "29328fbcff076ad44b757ccac566f0b07667ddca2ca5df1a8c0ca2e908bee630"
+    },
+    {
+      "path": "docs/evidence/main090-branch-test-next-binding-20261017/bind-next.py",
+      "length": 3470,
+      "sha256": "e669abf5e56834868491d79f03da2b2f7e1a1f6a8c359c919743449333faa2b4"
+    },
+    {
+      "path": "docs/evidence/main090-branch-test-next-binding-20261017/bind_current.before.py.txt",
+      "length": 13491,
+      "sha256": "4921dedbcd93d865cafc825f176f5598891864f35c605096185dfb49c6887546"
+    },
+    {
+      "path": "docs/evidence/main090-branch-test-next-binding-20261017/check-source.py",
+      "length": 1321,
+      "sha256": "77a0be92b7130ba129f9b7e79a309631bf5631cc32a035d2e6bd88f185ccbcfc"
+    },
+    {
+      "path": "docs/evidence/main090-branch-test-next-binding-20261017/input-domains.178f06.json",
+      "length": 241192,
+      "sha256": "178f06efa9e5ee2f63543c7a29bc6a3b09a7ae270d71b235b628283c98a04bc0"
+    }
+  ]
+}

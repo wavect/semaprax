@@ -1,0 +1,28 @@
+[
+  {
+    "domain": "moderate-original",
+    "path": "docs/evidence/receiver-source-custody-v1/inverse.json",
+    "current_archive": "0.current.txt",
+    "current_length": 172007,
+    "current_sha256": "b73fb7b3dc1b3d2dbcce17ac6beeebe9832a22519aabe009cd37cec9d43b5221",
+    "previous_archive": "0.previous.txt",
+    "previous_length": 293191,
+    "previous_sha256": "9165a502eeec5eaf656379a57af6cfd1925c215974eecc477e3410ca56e2c348",
+    "physical_archive": "0.physical.txt",
+    "physical_length": 6660,
+    "physical_sha256": "17758338cdb03f1a294fb75d923ccc515c814aa3d257521f41ef8593a7d9da1b"
+  },
+  {
+    "domain": "moderate-original",
+    "path": "docs/evidence/compact-staged-observations-v1/inverse.json",
+    "current_archive": "1.current.txt",
+    "current_length": 145402,
+    "current_sha256": "3695c32c076255f2e61ccb088a02cf887ac4ece86717af8332e67539c364f4cf",
+    "previous_archive": "1.previous.txt",
+    "previous_length": 146307,
+    "previous_sha256": "f4ded55dd9a9bdb829b312fc937164b4ac8935d77a35f0740869b8d5e2d63c19",
+    "physical_archive": "1.physical.txt",
+    "physical_length": 14904,
+    "physical_sha256": "ef2d603d1d9190002b8e6b0c44fe6e1fb2bfb940e9497bf14db3026d3bf133ae"
+  }
+]

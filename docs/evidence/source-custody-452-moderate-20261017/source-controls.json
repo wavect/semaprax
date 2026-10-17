@@ -1,0 +1,8 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "whole_moderate_original_subjects_restored": 3,
+  "new_explicit_metadata_stages": 2,
+  "refusals": 14,
+  "old_joined_helper_oldtables_assertions_caps_unchanged": true,
+  "Rust_runtime": false
+}

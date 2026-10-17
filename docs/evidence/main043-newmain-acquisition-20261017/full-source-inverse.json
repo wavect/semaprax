@@ -3,32 +3,32 @@
   "rows": [
     {
       "path": "docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py",
-      "current_len": 9518,
-      "current_sha256": "7c2eb0ca8ff31f89b3744d69089bb62c57c8114495ddc4ec78862c32f8b4392a",
+      "current_len": 2033,
+      "current_sha256": "26155a29849779ab5ed77d23d19276e4681eaf7157e0136a965c2c5b9cee0acd",
       "before_len": 9347,
       "before_sha256": "87ef9e1bc7a14120e85ca5a2145e0322899d4ed39a4f72bfcfa657ee66d787d3",
       "before_archive": "docs/evidence/main043-newmain-acquisition-20261017/before/verify-or-refresh.py",
       "inverse": [
         {
           "at": 0,
-          "remove_len": 9518,
-          "remove_sha256": "7c2eb0ca8ff31f89b3744d69089bb62c57c8114495ddc4ec78862c32f8b4392a",
+          "remove_len": 2033,
+          "remove_sha256": "26155a29849779ab5ed77d23d19276e4681eaf7157e0136a965c2c5b9cee0acd",
           "insert_archive": "docs/evidence/main043-newmain-acquisition-20261017/before/verify-or-refresh.py"
         }
       ]
     },
     {
       "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-recipe-edits.json",
-      "current_len": 4854,
-      "current_sha256": "0b4d0d046b8fda5aae93ab90c48265e691ec3239169e97a2b6a87c12c6204d10",
+      "current_len": 24646,
+      "current_sha256": "bff38a8e67bd2b9a1f993bb48bfeae43b0f5630ed7eeeadd58e2299db4460847",
       "before_len": 4507,
       "before_sha256": "54cdd9f6b3bce3564b0e7ca25e0194b41f486bc5c8d82019238b7b22387c0352",
       "before_archive": "docs/evidence/main043-newmain-acquisition-20261017/before/guard-extension-recipe-edits.json",
       "inverse": [
         {
           "at": 0,
-          "remove_len": 4854,
-          "remove_sha256": "0b4d0d046b8fda5aae93ab90c48265e691ec3239169e97a2b6a87c12c6204d10",
+          "remove_len": 24646,
+          "remove_sha256": "bff38a8e67bd2b9a1f993bb48bfeae43b0f5630ed7eeeadd58e2299db4460847",
           "insert_archive": "docs/evidence/main043-newmain-acquisition-20261017/before/guard-extension-recipe-edits.json"
         }
       ]

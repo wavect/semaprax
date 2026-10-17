@@ -311,57 +311,57 @@
     },
     {
       "path": "docs/evidence/last-branch-prefix-v1/README.md",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 3671,
+      "current_sha256": "19e4d0a7b9b92e5ee4b2cfaec6464b4ffb8a7173baf1be9066a35ea8ea8ec051",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/last-branch-prefix-v1/README.md",
       "view_len": 3671,
       "view_sha256": "19e4d0a7b9b92e5ee4b2cfaec6464b4ffb8a7173baf1be9066a35ea8ea8ec051",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/last-branch-prefix-v1/sources.json",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 17817,
+      "current_sha256": "c2bdb2055db47057494e9c47b409c2c8632cfe59af7d2f9be736a97756b6729c",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/last-branch-prefix-v1/sources.json",
       "view_len": 18224,
       "view_sha256": "2ea5ed92987ae80b7b200f8cf5851548b3b857d707bbfbd31fb674a3a89cc7e4",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/last-branch-prefix-v1/src__cleanup_plan__replay.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 300830,
+      "current_sha256": "f55a89e71e01d7254fd13ae57b9fbe104a08bddc1a3f080140b6d70213c1544d",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/src/cleanup_plan/replay.rs",
       "view_len": 300830,
       "view_sha256": "f55a89e71e01d7254fd13ae57b9fbe104a08bddc1a3f080140b6d70213c1544d",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/last-branch-prefix-v1/src__cleanup_plan__replay__branch_clone.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 1401,
+      "current_sha256": "6dcfa386c60710c350cf02f1c8c5448a00b246f2919f959a859b67516c8940d6",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/last-branch-prefix-v1/src__cleanup_plan__replay__branch_clone.rs.before.txt",
       "view_len": 1401,
       "view_sha256": "6dcfa386c60710c350cf02f1c8c5448a00b246f2919f959a859b67516c8940d6",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/last-branch-prefix-v1/src__cleanup_plan__replay__branch_clone__tests.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 9068,
+      "current_sha256": "6509ab480c69cfe00583d9d640f73726f5184f728b16dcde2d7d35b42fe15496",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/src/cleanup_plan/replay/branch_clone/tests.rs",
       "view_len": 9068,
       "view_sha256": "6509ab480c69cfe00583d9d640f73726f5184f728b16dcde2d7d35b42fe15496",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/last-branch-prefix-v1/src__source_reflows__semantic_receivers.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 34546,
+      "current_sha256": "88d2914bfe2a711b7cae92275ddf8e6c311dcdbc9b90024bd2f032fa357ab32a",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/last-branch-prefix-v1/src__source_reflows__semantic_receivers.rs.before.txt",
       "view_len": 34546,
       "view_sha256": "88d2914bfe2a711b7cae92275ddf8e6c311dcdbc9b90024bd2f032fa357ab32a",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/live-source-audit-custody-v1/inverse.json",
@@ -455,8 +455,8 @@
     },
     {
       "path": "docs/evidence/ordinary-replay-setup-v1/helper-inputs.json",
-      "current_len": 489720,
-      "current_sha256": "347499fc3e60466e1e1ee04e219aeec04d61cd8e6ae3a165f91d8bb6a04a65ef",
+      "current_len": 489888,
+      "current_sha256": "9e43dba7bb28b6875d20a4084f9ad0a1868d2b093d62e36dcec9439389128a5e",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/ordinary-replay-setup-v1/helper-inputs.json",
       "view_len": 634902,
       "view_sha256": "35d31aaa1b5637fb5a258b8bf8e5de9c50b20f709303e0ec8e8b34cb5478074c",
@@ -464,8 +464,8 @@
     },
     {
       "path": "docs/evidence/ordinary-replay-setup-v1/sources.json",
-      "current_len": 2072520,
-      "current_sha256": "8649bea97b3a9081a3b46eb46758140defe906d6d467ff1e704a5f6d015b4816",
+      "current_len": 2073944,
+      "current_sha256": "b3d32041c7e20345238ec6fcd37764747c793e626467df2fe91c03f0dd3e38d3",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/ordinary-replay-setup-v1/sources.json",
       "view_len": 4283031,
       "view_sha256": "050424d79817de22df698d782b639a1aef4cd4d1dcc26623cb501bd424185cec",
@@ -851,111 +851,111 @@
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/README.md",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 3484,
+      "current_sha256": "fafd764a37a52a17bdafcbae9ce07870be12e316cd5d241fbb6421ee62e7525c",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/string-slot-byte-helper-v1/README.md",
       "view_len": 3484,
       "view_sha256": "fafd764a37a52a17bdafcbae9ce07870be12e316cd5d241fbb6421ee62e7525c",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 105523,
+      "current_sha256": "70b707a2915c51abb76a72aeb084835c943c8a969c906a1b12eb287e7fa6beca",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
       "view_len": 105523,
       "view_sha256": "70b707a2915c51abb76a72aeb084835c943c8a969c906a1b12eb287e7fa6beca",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/new-files.json",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 157,
+      "current_sha256": "57b349982dd6a7753c375ce405e42a0cbb0d86a7abc9dc3ba50d6f575ef8d79e",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/string-slot-byte-helper-v1/new-files.json",
       "view_len": 157,
       "view_sha256": "57b349982dd6a7753c375ce405e42a0cbb0d86a7abc9dc3ba50d6f575ef8d79e",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/sources.json",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 13103,
+      "current_sha256": "5fc4e37a9eb2eec35b05ebeca7af14e78ad12af40061d8af86c101416785a195",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/string-slot-byte-helper-v1/sources.json",
       "view_len": 13103,
       "view_sha256": "5fc4e37a9eb2eec35b05ebeca7af14e78ad12af40061d8af86c101416785a195",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__resolved.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 22918,
+      "current_sha256": "03212b0a28826fbb9d8c1521962d057fcdd504500ebcc3a0a1301d8bda8f9106",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/src/loop_calls/byte_writer/resolved.rs",
       "view_len": 22918,
       "view_sha256": "03212b0a28826fbb9d8c1521962d057fcdd504500ebcc3a0a1301d8bda8f9106",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__source.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 11127,
+      "current_sha256": "dc862821c4e964f0fefed6f801c374ce397e541e59eebd3cfdc41b69b8f7814d",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__source.rs.before.txt",
       "view_len": 11127,
       "view_sha256": "dc862821c4e964f0fefed6f801c374ce397e541e59eebd3cfdc41b69b8f7814d",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__tests.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 8048,
+      "current_sha256": "677f9a319a7ea144becfc1ea46e13fcebb3d68d2c7c05e16dcf04d1607cf8e2e",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__tests.rs.before.txt",
       "view_len": 8048,
       "view_sha256": "677f9a319a7ea144becfc1ea46e13fcebb3d68d2c7c05e16dcf04d1607cf8e2e",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/src__source_reflows__semantic_receivers.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 32749,
+      "current_sha256": "361eed66147b91cae6e0f4fe4f0f3446575f918424a23ed27374b51424199c2f",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/src/source_reflows/semantic_receivers.rs",
       "view_len": 32749,
       "view_sha256": "361eed66147b91cae6e0f4fe4f0f3446575f918424a23ed27374b51424199c2f",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/src__source_verify__declaration.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 12140,
+      "current_sha256": "f6687bf16ba0ae287c79b96ab888de22e41d4ec7cecf010c81cdd6545018fc23",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/src/source_verify/declaration.rs",
       "view_len": 12140,
       "view_sha256": "f6687bf16ba0ae287c79b96ab888de22e41d4ec7cecf010c81cdd6545018fc23",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/src__source_verify__declaration__declarations__tests.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 9773,
+      "current_sha256": "ed309db956572aea6322fa66b6f7c1f66c324528d9ca20b6b7b72e3d39a1ec9c",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/string-slot-byte-helper-v1/src__source_verify__declaration__declarations__tests.rs.before.txt",
       "view_len": 9773,
       "view_sha256": "ed309db956572aea6322fa66b6f7c1f66c324528d9ca20b6b7b72e3d39a1ec9c",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/src__vec_ops__string_slot.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 4511,
+      "current_sha256": "7412bab22b7b207c3e0c5351d98590f73bab8261a06729e6dc2f0d07a69c389e",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/string-slot-byte-helper-v1/src__vec_ops__string_slot.rs.before.txt",
       "view_len": 4511,
       "view_sha256": "7412bab22b7b207c3e0c5351d98590f73bab8261a06729e6dc2f0d07a69c389e",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/tests__hir_module_boundaries.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 54335,
+      "current_sha256": "d6e8ad51661a3f8727e9f654bd7e7f2687ffa6fa13fd9c66900217def541c1cc",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/tests/hir_module_boundaries.rs",
       "view_len": 54335,
       "view_sha256": "d6e8ad51661a3f8727e9f654bd7e7f2687ffa6fa13fd9c66900217def541c1cc",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "src/byte_ops.rs",
@@ -986,8 +986,8 @@
     },
     {
       "path": "src/cleanup_plan/replay.rs",
-      "current_len": 318621,
-      "current_sha256": "458260e9a3d66601d731b7bad8737efdfd5a4deb4e52bbb07adf0f0af150777b",
+      "current_len": 321224,
+      "current_sha256": "555fe96fc9153aa2a7843ffd15da85e429bb56b1eef52e98193930f80203618e",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/cleanup_plan/replay.rs",
       "view_len": 302169,
       "view_sha256": "e02105834f829503b1e1a6645067f7b0784fed133890c6f7b4553346ba011f28",
@@ -1004,8 +1004,8 @@
     },
     {
       "path": "src/cleanup_plan/replay/branch_clone.rs",
-      "current_len": 4977,
-      "current_sha256": "35facf68388efde6a741c404244e3263248d059d3c13e9d12a18d24e8da4a072",
+      "current_len": 11660,
+      "current_sha256": "7c87d361dda743f65516b263826af386f03b3b53ce7886a9c707233cbf123957",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/cleanup_plan/replay/branch_clone.rs",
       "view_len": 5704,
       "view_sha256": "e0c30462e1576af2a9b48f9bdc55a64ce606510864752932fc8b280a3c77b1d4",
@@ -1013,8 +1013,8 @@
     },
     {
       "path": "src/cleanup_plan/replay/branch_clone/tests.rs",
-      "current_len": 9162,
-      "current_sha256": "1ceebb30aefeb84f0b3be9a2ff916c247a8017ecbe1a33d58f36bd556094c757",
+      "current_len": 23870,
+      "current_sha256": "e8163fa7935623b165170be2242d547f3ad89a5c4905f9a90b763ab9b8619e59",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/cleanup_plan/replay/branch_clone/tests.rs",
       "view_len": 14266,
       "view_sha256": "48956a2d192fdbc73cbfa58cb9e57f3e4380a4ff601728ded0d53c2bbf9db8ca",
@@ -1382,8 +1382,8 @@
     },
     {
       "path": "src/loop_calls/byte_writer/resolved.rs",
-      "current_len": 23048,
-      "current_sha256": "df9e8311daff58f93801e4b381b08941cc2692158b0dbb44bfe98836c68d0498",
+      "current_len": 23214,
+      "current_sha256": "a11ca15dd29de5813e49f84002072b13694c001554f8e2826c7be28dc395f918",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/loop_calls/byte_writer/resolved.rs",
       "view_len": 23084,
       "view_sha256": "a357e24edfcba7588e983f59e997c3186f24841f0aab818aa8059fd650829d2e",
@@ -1400,8 +1400,8 @@
     },
     {
       "path": "src/loop_calls/byte_writer/source.rs",
-      "current_len": 11211,
-      "current_sha256": "9f113a5e8adb48225fb2210fcaedeee9fafc4f6e3346b542061998b16367d53b",
+      "current_len": 11656,
+      "current_sha256": "fd6de62fedf0c439a71490e86fd1ed24ea87e2b919ff3b577702c9bbf7f953a4",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/loop_calls/byte_writer/source.rs",
       "view_len": 11572,
       "view_sha256": "6d78124797c1af7280919705207a8da235a7a1160d71f25379bf24cf99f2467c",
@@ -1409,8 +1409,8 @@
     },
     {
       "path": "src/loop_calls/byte_writer/tests.rs",
-      "current_len": 8048,
-      "current_sha256": "677f9a319a7ea144becfc1ea46e13fcebb3d68d2c7c05e16dcf04d1607cf8e2e",
+      "current_len": 8067,
+      "current_sha256": "25783b38fd84562964e61bcb2682253634427ec5496f11600bc38e7c3e4c2a15",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/loop_calls/byte_writer/tests.rs",
       "view_len": 8067,
       "view_sha256": "25783b38fd84562964e61bcb2682253634427ec5496f11600bc38e7c3e4c2a15",
@@ -1418,12 +1418,12 @@
     },
     {
       "path": "src/loop_calls/byte_writer/tests/string_slots.rs",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 5697,
+      "current_sha256": "f1a4ba2d8638076e3c784089305b3ae9b583f656e3112eaf6e637f8eaf4fae62",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/loop_calls/byte_writer/tests/string_slots.rs",
       "view_len": 5697,
       "view_sha256": "f1a4ba2d8638076e3c784089305b3ae9b583f656e3112eaf6e637f8eaf4fae62",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "src/source_reflows.json",
@@ -1445,8 +1445,8 @@
     },
     {
       "path": "src/source_verify/declaration.rs",
-      "current_len": 14901,
-      "current_sha256": "70619a1c9924119a6cd6a19e0512dc8c62f4126259e291bf1e466ac4c3f09be6",
+      "current_len": 15623,
+      "current_sha256": "c93ac4c883fe6b10c831a2603c994ea03880986fd0b7a394bfa41ec8a06d88cb",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/source_verify/declaration.rs",
       "view_len": 12842,
       "view_sha256": "1ee6c27c7e20e6578261de0f58d0019762080e33f5631685081a8318485420d8",
@@ -1454,8 +1454,8 @@
     },
     {
       "path": "src/source_verify/declaration/declarations/tests.rs",
-      "current_len": 9773,
-      "current_sha256": "ed309db956572aea6322fa66b6f7c1f66c324528d9ca20b6b7b72e3d39a1ec9c",
+      "current_len": 10679,
+      "current_sha256": "be58d086c21bfa98ec4fe8fb6fe4fba523046ac6240f3e7f0722ed65dcce5018",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/source_verify/declaration/declarations/tests.rs",
       "view_len": 10679,
       "view_sha256": "be58d086c21bfa98ec4fe8fb6fe4fba523046ac6240f3e7f0722ed65dcce5018",
@@ -1517,8 +1517,8 @@
     },
     {
       "path": "src/vec_ops/string_slot.rs",
-      "current_len": 4511,
-      "current_sha256": "7412bab22b7b207c3e0c5351d98590f73bab8261a06729e6dc2f0d07a69c389e",
+      "current_len": 4519,
+      "current_sha256": "f0e82ef9b7a753aac3335d4978d0709ea7dda4f80c226f9d32225c843074fbe9",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/vec_ops/string_slot.rs",
       "view_len": 4519,
       "view_sha256": "f0e82ef9b7a753aac3335d4978d0709ea7dda4f80c226f9d32225c843074fbe9",
@@ -1870,57 +1870,57 @@
     },
     {
       "path": "docs/evidence/last-branch-prefix-v1/README.md",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 3671,
+      "current_sha256": "19e4d0a7b9b92e5ee4b2cfaec6464b4ffb8a7173baf1be9066a35ea8ea8ec051",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/last-branch-prefix-v1/README.md",
       "view_len": 3671,
       "view_sha256": "19e4d0a7b9b92e5ee4b2cfaec6464b4ffb8a7173baf1be9066a35ea8ea8ec051",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/last-branch-prefix-v1/sources.json",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 17817,
+      "current_sha256": "c2bdb2055db47057494e9c47b409c2c8632cfe59af7d2f9be736a97756b6729c",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/last-branch-prefix-v1/sources.json",
       "view_len": 18224,
       "view_sha256": "2ea5ed92987ae80b7b200f8cf5851548b3b857d707bbfbd31fb674a3a89cc7e4",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/last-branch-prefix-v1/src__cleanup_plan__replay.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 300830,
+      "current_sha256": "f55a89e71e01d7254fd13ae57b9fbe104a08bddc1a3f080140b6d70213c1544d",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/src/cleanup_plan/replay.rs",
       "view_len": 300830,
       "view_sha256": "f55a89e71e01d7254fd13ae57b9fbe104a08bddc1a3f080140b6d70213c1544d",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/last-branch-prefix-v1/src__cleanup_plan__replay__branch_clone.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 1401,
+      "current_sha256": "6dcfa386c60710c350cf02f1c8c5448a00b246f2919f959a859b67516c8940d6",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/last-branch-prefix-v1/src__cleanup_plan__replay__branch_clone.rs.before.txt",
       "view_len": 1401,
       "view_sha256": "6dcfa386c60710c350cf02f1c8c5448a00b246f2919f959a859b67516c8940d6",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/last-branch-prefix-v1/src__cleanup_plan__replay__branch_clone__tests.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 9068,
+      "current_sha256": "6509ab480c69cfe00583d9d640f73726f5184f728b16dcde2d7d35b42fe15496",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/src/cleanup_plan/replay/branch_clone/tests.rs",
       "view_len": 9068,
       "view_sha256": "6509ab480c69cfe00583d9d640f73726f5184f728b16dcde2d7d35b42fe15496",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/last-branch-prefix-v1/src__source_reflows__semantic_receivers.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 34546,
+      "current_sha256": "88d2914bfe2a711b7cae92275ddf8e6c311dcdbc9b90024bd2f032fa357ab32a",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/last-branch-prefix-v1/src__source_reflows__semantic_receivers.rs.before.txt",
       "view_len": 34546,
       "view_sha256": "88d2914bfe2a711b7cae92275ddf8e6c311dcdbc9b90024bd2f032fa357ab32a",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/live-source-audit-custody-v1/inverse.json",
@@ -2014,8 +2014,8 @@
     },
     {
       "path": "docs/evidence/ordinary-replay-setup-v1/helper-inputs.json",
-      "current_len": 489720,
-      "current_sha256": "347499fc3e60466e1e1ee04e219aeec04d61cd8e6ae3a165f91d8bb6a04a65ef",
+      "current_len": 489888,
+      "current_sha256": "9e43dba7bb28b6875d20a4084f9ad0a1868d2b093d62e36dcec9439389128a5e",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/ordinary-replay-setup-v1/helper-inputs.json",
       "view_len": 634902,
       "view_sha256": "35d31aaa1b5637fb5a258b8bf8e5de9c50b20f709303e0ec8e8b34cb5478074c",
@@ -2023,8 +2023,8 @@
     },
     {
       "path": "docs/evidence/ordinary-replay-setup-v1/sources.json",
-      "current_len": 2072520,
-      "current_sha256": "8649bea97b3a9081a3b46eb46758140defe906d6d467ff1e704a5f6d015b4816",
+      "current_len": 2073944,
+      "current_sha256": "b3d32041c7e20345238ec6fcd37764747c793e626467df2fe91c03f0dd3e38d3",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/ordinary-replay-setup-v1/sources.json",
       "view_len": 4283031,
       "view_sha256": "050424d79817de22df698d782b639a1aef4cd4d1dcc26623cb501bd424185cec",
@@ -2410,111 +2410,111 @@
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/README.md",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 3484,
+      "current_sha256": "fafd764a37a52a17bdafcbae9ce07870be12e316cd5d241fbb6421ee62e7525c",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/string-slot-byte-helper-v1/README.md",
       "view_len": 3484,
       "view_sha256": "fafd764a37a52a17bdafcbae9ce07870be12e316cd5d241fbb6421ee62e7525c",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 105523,
+      "current_sha256": "70b707a2915c51abb76a72aeb084835c943c8a969c906a1b12eb287e7fa6beca",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
       "view_len": 105523,
       "view_sha256": "70b707a2915c51abb76a72aeb084835c943c8a969c906a1b12eb287e7fa6beca",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/new-files.json",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 157,
+      "current_sha256": "57b349982dd6a7753c375ce405e42a0cbb0d86a7abc9dc3ba50d6f575ef8d79e",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/string-slot-byte-helper-v1/new-files.json",
       "view_len": 157,
       "view_sha256": "57b349982dd6a7753c375ce405e42a0cbb0d86a7abc9dc3ba50d6f575ef8d79e",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/sources.json",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 13103,
+      "current_sha256": "5fc4e37a9eb2eec35b05ebeca7af14e78ad12af40061d8af86c101416785a195",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/string-slot-byte-helper-v1/sources.json",
       "view_len": 13103,
       "view_sha256": "5fc4e37a9eb2eec35b05ebeca7af14e78ad12af40061d8af86c101416785a195",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__resolved.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 22918,
+      "current_sha256": "03212b0a28826fbb9d8c1521962d057fcdd504500ebcc3a0a1301d8bda8f9106",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/src/loop_calls/byte_writer/resolved.rs",
       "view_len": 22918,
       "view_sha256": "03212b0a28826fbb9d8c1521962d057fcdd504500ebcc3a0a1301d8bda8f9106",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__source.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 11127,
+      "current_sha256": "dc862821c4e964f0fefed6f801c374ce397e541e59eebd3cfdc41b69b8f7814d",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__source.rs.before.txt",
       "view_len": 11127,
       "view_sha256": "dc862821c4e964f0fefed6f801c374ce397e541e59eebd3cfdc41b69b8f7814d",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__tests.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 8048,
+      "current_sha256": "677f9a319a7ea144becfc1ea46e13fcebb3d68d2c7c05e16dcf04d1607cf8e2e",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__tests.rs.before.txt",
       "view_len": 8048,
       "view_sha256": "677f9a319a7ea144becfc1ea46e13fcebb3d68d2c7c05e16dcf04d1607cf8e2e",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/src__source_reflows__semantic_receivers.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 32749,
+      "current_sha256": "361eed66147b91cae6e0f4fe4f0f3446575f918424a23ed27374b51424199c2f",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/src/source_reflows/semantic_receivers.rs",
       "view_len": 32749,
       "view_sha256": "361eed66147b91cae6e0f4fe4f0f3446575f918424a23ed27374b51424199c2f",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/src__source_verify__declaration.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 12140,
+      "current_sha256": "f6687bf16ba0ae287c79b96ab888de22e41d4ec7cecf010c81cdd6545018fc23",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/src/source_verify/declaration.rs",
       "view_len": 12140,
       "view_sha256": "f6687bf16ba0ae287c79b96ab888de22e41d4ec7cecf010c81cdd6545018fc23",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/src__source_verify__declaration__declarations__tests.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 9773,
+      "current_sha256": "ed309db956572aea6322fa66b6f7c1f66c324528d9ca20b6b7b72e3d39a1ec9c",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/string-slot-byte-helper-v1/src__source_verify__declaration__declarations__tests.rs.before.txt",
       "view_len": 9773,
       "view_sha256": "ed309db956572aea6322fa66b6f7c1f66c324528d9ca20b6b7b72e3d39a1ec9c",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/src__vec_ops__string_slot.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 4511,
+      "current_sha256": "7412bab22b7b207c3e0c5351d98590f73bab8261a06729e6dc2f0d07a69c389e",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/string-slot-byte-helper-v1/src__vec_ops__string_slot.rs.before.txt",
       "view_len": 4511,
       "view_sha256": "7412bab22b7b207c3e0c5351d98590f73bab8261a06729e6dc2f0d07a69c389e",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "docs/evidence/string-slot-byte-helper-v1/tests__hir_module_boundaries.rs.before.txt",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 54335,
+      "current_sha256": "d6e8ad51661a3f8727e9f654bd7e7f2687ffa6fa13fd9c66900217def541c1cc",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/tests/hir_module_boundaries.rs",
       "view_len": 54335,
       "view_sha256": "d6e8ad51661a3f8727e9f654bd7e7f2687ffa6fa13fd9c66900217def541c1cc",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "src/byte_ops.rs",
@@ -2545,8 +2545,8 @@
     },
     {
       "path": "src/cleanup_plan/replay.rs",
-      "current_len": 318621,
-      "current_sha256": "458260e9a3d66601d731b7bad8737efdfd5a4deb4e52bbb07adf0f0af150777b",
+      "current_len": 321224,
+      "current_sha256": "555fe96fc9153aa2a7843ffd15da85e429bb56b1eef52e98193930f80203618e",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/cleanup_plan/replay.rs",
       "view_len": 302169,
       "view_sha256": "e02105834f829503b1e1a6645067f7b0784fed133890c6f7b4553346ba011f28",
@@ -2563,8 +2563,8 @@
     },
     {
       "path": "src/cleanup_plan/replay/branch_clone.rs",
-      "current_len": 4977,
-      "current_sha256": "35facf68388efde6a741c404244e3263248d059d3c13e9d12a18d24e8da4a072",
+      "current_len": 11660,
+      "current_sha256": "7c87d361dda743f65516b263826af386f03b3b53ce7886a9c707233cbf123957",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/cleanup_plan/replay/branch_clone.rs",
       "view_len": 5704,
       "view_sha256": "e0c30462e1576af2a9b48f9bdc55a64ce606510864752932fc8b280a3c77b1d4",
@@ -2572,8 +2572,8 @@
     },
     {
       "path": "src/cleanup_plan/replay/branch_clone/tests.rs",
-      "current_len": 9162,
-      "current_sha256": "1ceebb30aefeb84f0b3be9a2ff916c247a8017ecbe1a33d58f36bd556094c757",
+      "current_len": 23870,
+      "current_sha256": "e8163fa7935623b165170be2242d547f3ad89a5c4905f9a90b763ab9b8619e59",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/cleanup_plan/replay/branch_clone/tests.rs",
       "view_len": 14266,
       "view_sha256": "48956a2d192fdbc73cbfa58cb9e57f3e4380a4ff601728ded0d53c2bbf9db8ca",
@@ -2941,8 +2941,8 @@
     },
     {
       "path": "src/loop_calls/byte_writer/resolved.rs",
-      "current_len": 23048,
-      "current_sha256": "df9e8311daff58f93801e4b381b08941cc2692158b0dbb44bfe98836c68d0498",
+      "current_len": 23214,
+      "current_sha256": "a11ca15dd29de5813e49f84002072b13694c001554f8e2826c7be28dc395f918",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/loop_calls/byte_writer/resolved.rs",
       "view_len": 23084,
       "view_sha256": "a357e24edfcba7588e983f59e997c3186f24841f0aab818aa8059fd650829d2e",
@@ -2959,8 +2959,8 @@
     },
     {
       "path": "src/loop_calls/byte_writer/source.rs",
-      "current_len": 11211,
-      "current_sha256": "9f113a5e8adb48225fb2210fcaedeee9fafc4f6e3346b542061998b16367d53b",
+      "current_len": 11656,
+      "current_sha256": "fd6de62fedf0c439a71490e86fd1ed24ea87e2b919ff3b577702c9bbf7f953a4",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/loop_calls/byte_writer/source.rs",
       "view_len": 11572,
       "view_sha256": "6d78124797c1af7280919705207a8da235a7a1160d71f25379bf24cf99f2467c",
@@ -2968,8 +2968,8 @@
     },
     {
       "path": "src/loop_calls/byte_writer/tests.rs",
-      "current_len": 8048,
-      "current_sha256": "677f9a319a7ea144becfc1ea46e13fcebb3d68d2c7c05e16dcf04d1607cf8e2e",
+      "current_len": 8067,
+      "current_sha256": "25783b38fd84562964e61bcb2682253634427ec5496f11600bc38e7c3e4c2a15",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/loop_calls/byte_writer/tests.rs",
       "view_len": 8067,
       "view_sha256": "25783b38fd84562964e61bcb2682253634427ec5496f11600bc38e7c3e4c2a15",
@@ -2977,12 +2977,12 @@
     },
     {
       "path": "src/loop_calls/byte_writer/tests/string_slots.rs",
-      "current_len": 0,
-      "current_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "current_len": 5697,
+      "current_sha256": "f1a4ba2d8638076e3c784089305b3ae9b583f656e3112eaf6e637f8eaf4fae62",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/loop_calls/byte_writer/tests/string_slots.rs",
       "view_len": 5697,
       "view_sha256": "f1a4ba2d8638076e3c784089305b3ae9b583f656e3112eaf6e637f8eaf4fae62",
-      "binding_status": "UNASSEMBLED_FAIL_CLOSED"
+      "binding_status": "assembled"
     },
     {
       "path": "src/source_reflows.json",
@@ -3004,8 +3004,8 @@
     },
     {
       "path": "src/source_verify/declaration.rs",
-      "current_len": 14901,
-      "current_sha256": "70619a1c9924119a6cd6a19e0512dc8c62f4126259e291bf1e466ac4c3f09be6",
+      "current_len": 15623,
+      "current_sha256": "c93ac4c883fe6b10c831a2603c994ea03880986fd0b7a394bfa41ec8a06d88cb",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/source_verify/declaration.rs",
       "view_len": 12842,
       "view_sha256": "1ee6c27c7e20e6578261de0f58d0019762080e33f5631685081a8318485420d8",
@@ -3013,8 +3013,8 @@
     },
     {
       "path": "src/source_verify/declaration/declarations/tests.rs",
-      "current_len": 9773,
-      "current_sha256": "ed309db956572aea6322fa66b6f7c1f66c324528d9ca20b6b7b72e3d39a1ec9c",
+      "current_len": 10679,
+      "current_sha256": "be58d086c21bfa98ec4fe8fb6fe4fba523046ac6240f3e7f0722ed65dcce5018",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/source_verify/declaration/declarations/tests.rs",
       "view_len": 10679,
       "view_sha256": "be58d086c21bfa98ec4fe8fb6fe4fba523046ac6240f3e7f0722ed65dcce5018",
@@ -3076,8 +3076,8 @@
     },
     {
       "path": "src/vec_ops/string_slot.rs",
-      "current_len": 4511,
-      "current_sha256": "7412bab22b7b207c3e0c5351d98590f73bab8261a06729e6dc2f0d07a69c389e",
+      "current_len": 4519,
+      "current_sha256": "f0e82ef9b7a753aac3335d4978d0709ea7dda4f80c226f9d32225c843074fbe9",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/vec_ops/string_slot.rs",
       "view_len": 4519,
       "view_sha256": "f0e82ef9b7a753aac3335d4978d0709ea7dda4f80c226f9d32225c843074fbe9",
@@ -3125,7 +3125,7 @@
       "view_len": 32182,
       "view_sha256": "6c5d74b4423ae089bdb8864c3b0210bad4b160b8a6e003819a5553d7ab891e43",
       "current_len": 32535,
-      "current_sha256": "d0f958fdfea95f2e078341e27890de2e7f44b6afd237717981df05f1fb378e2a"
+      "current_sha256": "c4a18faf8945345860352bbf1e9ee2c3d9c5fac439e9c7359cff65c9ba8ffd0d"
     }
   ],
   "ours": [],
@@ -4098,26 +4098,7 @@
       "sha256": "6f39f3e238182d5694f78ffef61fe7191cad10e7a60709d847359b3b9d121b58"
     }
   ],
-  "unassembled": [
-    "docs/evidence/last-branch-prefix-v1/README.md",
-    "docs/evidence/last-branch-prefix-v1/sources.json",
-    "docs/evidence/last-branch-prefix-v1/src__cleanup_plan__replay.rs.before.txt",
-    "docs/evidence/last-branch-prefix-v1/src__cleanup_plan__replay__branch_clone.rs.before.txt",
-    "docs/evidence/last-branch-prefix-v1/src__cleanup_plan__replay__branch_clone__tests.rs.before.txt",
-    "docs/evidence/last-branch-prefix-v1/src__source_reflows__semantic_receivers.rs.before.txt",
-    "docs/evidence/string-slot-byte-helper-v1/README.md",
-    "docs/evidence/string-slot-byte-helper-v1/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.before.txt",
-    "docs/evidence/string-slot-byte-helper-v1/new-files.json",
-    "docs/evidence/string-slot-byte-helper-v1/sources.json",
-    "docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__resolved.rs.before.txt",
-    "docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__source.rs.before.txt",
-    "docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__tests.rs.before.txt",
-    "docs/evidence/string-slot-byte-helper-v1/src__source_reflows__semantic_receivers.rs.before.txt",
-    "docs/evidence/string-slot-byte-helper-v1/src__source_verify__declaration.rs.before.txt",
-    "docs/evidence/string-slot-byte-helper-v1/src__source_verify__declaration__declarations__tests.rs.before.txt",
-    "docs/evidence/string-slot-byte-helper-v1/src__vec_ops__string_slot.rs.before.txt",
-    "docs/evidence/string-slot-byte-helper-v1/tests__hir_module_boundaries.rs.before.txt",
-    "src/loop_calls/byte_writer/tests/string_slots.rs"
-  ],
-  "cap": 9464242
+  "unassembled": [],
+  "cap": 9464242,
+  "bound_final_head": "f811df28beb74d1cfb4cf37c376b8a812c72b0ed"
 }

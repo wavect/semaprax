@@ -1,0 +1,169 @@
+{
+  "status": "SOURCE_ONLY_CUSTODY_INGRESS_AND_PARENT_BINDING_PENDING",
+  "base": "0fa63204bc67d3c35245a8634b90c7ecd4984707",
+  "changed_existing": [
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json",
+    "docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.json",
+    "docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/tests__hir_module_boundaries.rs.json",
+    "docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/tests__workspace__semantic_graph__source_inventory.rs.json"
+  ],
+  "new_rust_owners": 0,
+  "new_test_selectors": [],
+  "checks": {
+    "status": "PASS_SOURCE_ONLY_NO_COMMON_OR_RUST_EXECUTION",
+    "historical_census_base": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+    "census_subjects": 159,
+    "guards": [
+      {
+        "source": "tests/hir_module_boundaries.rs",
+        "complete_original_retained": true,
+        "all_prior_include_counts_retained": true,
+        "new_actual_payload_includes": 2,
+        "before_missing": [
+          "src/loop_calls/byte_writer/tests/string_slots.rs",
+          "tests/wasm/scalar_browser_ci_contract/before_21abc.rs"
+        ],
+        "after_missing": [],
+        "lines": 899
+      },
+      {
+        "source": "tests/workspace/semantic_graph/source_inventory.rs",
+        "complete_original_retained": true,
+        "all_prior_include_counts_retained": true,
+        "new_actual_payload_includes": 2,
+        "before_missing": [
+          "src/loop_calls/byte_writer/tests/string_slots.rs",
+          "tests/wasm/scalar_browser_ci_contract/before_21abc.rs"
+        ],
+        "after_missing": [],
+        "lines": 777
+      },
+      {
+        "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "complete_original_retained": true,
+        "all_prior_include_counts_retained": true,
+        "new_actual_payload_includes": 2,
+        "before_missing": [
+          "src/loop_calls/byte_writer/tests/string_slots.rs",
+          "tests/wasm/scalar_browser_ci_contract/before_21abc.rs"
+        ],
+        "after_missing": [],
+        "lines": 1500
+      }
+    ],
+    "hostile_actual_verifier_refusals": 12,
+    "new_subjects": [
+      {
+        "source": "src/loop_calls/byte_writer/tests/string_slots.rs",
+        "length": 5697,
+        "sha256": "f1a4ba2d8638076e3c784089305b3ae9b583f656e3112eaf6e637f8eaf4fae62"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_21abc.rs",
+        "length": 5247,
+        "sha256": "97907d75b2d59588125458eb2a0603dadf6900854ee79139aa2271d9fcc82ed4"
+      }
+    ],
+    "unchanged_guard_parser_sha256": "ccfb62c8b30e5564446ddc6eb2a31f5a7502e5ed43d3d5077a8c0105c42ef95a"
+  },
+  "files": [
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "length": 97057,
+      "sha256": "dc3bf3b20917a0c523231e405ff329e5950f12b55501bced9ae908fbaf5b8888"
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "length": 90159,
+      "sha256": "42bdd4f76491607cab8538b3006d4b807aca5d138badc1d763c7090cfc53b000"
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "length": 155119,
+      "sha256": "dff1f6f15ef145c633165446c54ad37ed6c8ef978caa121c413dcaf06b5fa918"
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json",
+      "length": 56360,
+      "sha256": "edd13bcf77dff55cc5b186d9fb6d5b67351c14cac235f5eaa6e22fd01d3944cd"
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.json",
+      "length": 12375,
+      "sha256": "f92f1ca3a50c1cd0ad087e0e1f633d0256729df4c8d8b642c90e6c3f4d0b60b3"
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/tests__hir_module_boundaries.rs.json",
+      "length": 10327,
+      "sha256": "44a087140f71fea0364bbefa641200c2c75d1cc696f528754a50e800f26f5570"
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/tests__workspace__semantic_graph__source_inventory.rs.json",
+      "length": 13082,
+      "sha256": "d6fc5b8a863de03e802d9b4fbbeec68b8213cf8608c1a40257294b00622c572e"
+    },
+    {
+      "path": "docs/evidence/raw-owner-census-0fa632-20261017/README.md",
+      "length": 1613,
+      "sha256": "e0e9deb20387032dbb63cdae22730a4080c071d8b2c7ccc8ce2fb440c5dc3e52"
+    },
+    {
+      "path": "docs/evidence/raw-owner-census-0fa632-20261017/additions.json",
+      "length": 2386,
+      "sha256": "78fe9a491f3419791addc86560e3d745a03304044a3e8da0928d51cfe9ba7a64"
+    },
+    {
+      "path": "docs/evidence/raw-owner-census-0fa632-20261017/before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "length": 154954,
+      "sha256": "65a85506ae5f882fc1b2f045421a4f1bebc03550245b1fbaebaa117d66f3a35e"
+    },
+    {
+      "path": "docs/evidence/raw-owner-census-0fa632-20261017/before/guard-extension-allowed.json",
+      "length": 55598,
+      "sha256": "6220ec0dc1e9226a72c084e2cdc67d557002611fa600f843c5c612b6d4976df9"
+    },
+    {
+      "path": "docs/evidence/raw-owner-census-0fa632-20261017/before/guard-extension-bindings/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.json",
+      "length": 12206,
+      "sha256": "a39cd10e3239386a32fb830997ddec6b3789fa9c6b899fdca00f68d92495675c"
+    },
+    {
+      "path": "docs/evidence/raw-owner-census-0fa632-20261017/before/guard-extension-bindings/tests__hir_module_boundaries.rs.json",
+      "length": 10182,
+      "sha256": "57244ebc448aeca94b24744093c7eda3e13781a28d3d9086e82354d277106030"
+    },
+    {
+      "path": "docs/evidence/raw-owner-census-0fa632-20261017/before/guard-extension-bindings/tests__workspace__semantic_graph__source_inventory.rs.json",
+      "length": 12931,
+      "sha256": "0ac8e7c28a569e2c38156d6504ac17873c91f277bb852e1241d0744a51668b72"
+    },
+    {
+      "path": "docs/evidence/raw-owner-census-0fa632-20261017/before/tests/hir_module_boundaries.rs",
+      "length": 96916,
+      "sha256": "c1ef0ebc48df71bc52b830a86f3525ebd8db53fb3ae24b79197384372d5a9be0"
+    },
+    {
+      "path": "docs/evidence/raw-owner-census-0fa632-20261017/before/tests/workspace/semantic_graph/source_inventory.rs",
+      "length": 90012,
+      "sha256": "4fd17065b73b1141ebf2e03b6a8d9d0e7c15e86b277c6344785324c21a3c15cb"
+    },
+    {
+      "path": "docs/evidence/raw-owner-census-0fa632-20261017/check-source.py",
+      "length": 3674,
+      "sha256": "dbf98f96c13a905da09549d8deae13c1d5a6228eb729e9d0dcc2301be1fa4a4e"
+    },
+    {
+      "path": "docs/evidence/raw-owner-census-0fa632-20261017/source-controls.json",
+      "length": 2017,
+      "sha256": "5f47d90de7667cc4e44f38d64071ac45f1fdc3c3cd0188c33fdd8ea6cbea7a81"
+    },
+    {
+      "path": "docs/evidence/raw-owner-census-0fa632-20261017/whole-inverses.json",
+      "length": 196206,
+      "sha256": "84052edc6fb9edb00592ebfeb4d8f6e3f3f1174ff8e0e5fc3c567105cb9a43f8"
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "status": "PASS_SOURCE_ONLY_NO_COMMON_OR_RUST_EXECUTION",
+  "historical_census_base": "16c6b7f56b145ed085e4e7964caa3b1716159375",
+  "census_subjects": 159,
+  "guards": [
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "complete_original_retained": true,
+      "all_prior_include_counts_retained": true,
+      "new_actual_payload_includes": 2,
+      "before_missing": [
+        "src/loop_calls/byte_writer/tests/string_slots.rs",
+        "tests/wasm/scalar_browser_ci_contract/before_21abc.rs"
+      ],
+      "after_missing": [],
+      "lines": 899
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "complete_original_retained": true,
+      "all_prior_include_counts_retained": true,
+      "new_actual_payload_includes": 2,
+      "before_missing": [
+        "src/loop_calls/byte_writer/tests/string_slots.rs",
+        "tests/wasm/scalar_browser_ci_contract/before_21abc.rs"
+      ],
+      "after_missing": [],
+      "lines": 777
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "complete_original_retained": true,
+      "all_prior_include_counts_retained": true,
+      "new_actual_payload_includes": 2,
+      "before_missing": [
+        "src/loop_calls/byte_writer/tests/string_slots.rs",
+        "tests/wasm/scalar_browser_ci_contract/before_21abc.rs"
+      ],
+      "after_missing": [],
+      "lines": 1500
+    }
+  ],
+  "hostile_actual_verifier_refusals": 12,
+  "new_subjects": [
+    {
+      "source": "src/loop_calls/byte_writer/tests/string_slots.rs",
+      "length": 5697,
+      "sha256": "f1a4ba2d8638076e3c784089305b3ae9b583f656e3112eaf6e637f8eaf4fae62"
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/before_21abc.rs",
+      "length": 5247,
+      "sha256": "97907d75b2d59588125458eb2a0603dadf6900854ee79139aa2271d9fcc82ed4"
+    }
+  ],
+  "unchanged_guard_parser_sha256": "ccfb62c8b30e5564446ddc6eb2a31f5a7502e5ed43d3d5077a8c0105c42ef95a"
+}

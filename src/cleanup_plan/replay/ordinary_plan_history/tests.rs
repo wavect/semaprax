@@ -3,7 +3,7 @@ use super::*;
 use crate::bounded_output::with_limit_usage_refusal;
 use crate::test_allocation_observer::measure;
 
-fn program() -> ResolvedProgram {
+pub(super) fn program() -> ResolvedProgram {
     let source = "module history; @id(\"f\") fn f(a:bool,b:bool,c:bool)->i64 {let n=if a {1}else{2};let m=if b {n+1}else{n+2};if c {m+1}else{m+2}} @id(\"main\") fn main()->i64 {f(true,false,true)}";
     let checked = crate::check(source, "history.spx").unwrap();
     let canonical = crate::format::canonical(&checked);

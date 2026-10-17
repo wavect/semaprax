@@ -10,6 +10,39 @@ fn digest(text: &str) -> String {
         crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
     )
 }
+const PACKET_LENGTH: usize = 601716; // sealed by the source binding recipe
+const PACKET_SHA256: &str = "78d4e1f8f175ebcd914ad02a9d77ed8704bf191bc617810783b4d1e90164bf10";
+fn records() -> serde_json::Value {
+    assert!(
+        PACKET.len() <= 2 * 1024 * 1024,
+        "fixed custody packet exceeds cap"
+    );
+    assert_eq!(PACKET.len(), PACKET_LENGTH, "whole custody packet length");
+    assert_eq!(digest(PACKET), PACKET_SHA256, "whole custody packet digest");
+    serde_json::from_str(PACKET).unwrap()
+}
+const CURRENT: [(&str, &str); 5] = [
+    (
+        "src/cleanup_plan/replay.rs",
+        include_str!("../cleanup_plan/replay.rs"),
+    ),
+    (
+        "src/source_reflows_merge.rs",
+        include_str!("../source_reflows_merge.rs"),
+    ),
+    (
+        "src/source_reflows_merge/main67107_inputs.rs",
+        include_str!("main67107_inputs.rs"),
+    ),
+    (
+        "tests/hir_module_boundaries.rs",
+        include_str!("../../tests/hir_module_boundaries.rs"),
+    ),
+    (
+        "tests/workspace/semantic_graph/source_inventory.rs",
+        include_str!("../../tests/workspace/semantic_graph/source_inventory.rs"),
+    ),
+];
 fn restore(row: &serde_json::Value, current: &str) -> String {
     assert_eq!(
         digest(current),
@@ -41,7 +74,7 @@ pub(super) fn acquire(source: &str, current: &str) -> String {
     ) {
         return current.to_owned();
     }
-    let rows: serde_json::Value = serde_json::from_str(PACKET).unwrap();
+    let rows = records();
     let rows = rows.as_array().unwrap();
     assert_eq!(rows.len(), 5);
     let matching: Vec<_> = rows.iter().filter(|row| row["path"] == source).collect();
@@ -58,11 +91,11 @@ pub(super) fn acquire(source: &str, current: &str) -> String {
 }
 #[test]
 fn complete_originals_inverse_and_foreign_inputs_remain_independent() {
-    let rows: serde_json::Value = serde_json::from_str(PACKET).unwrap();
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let rows = records();
     for row in rows.as_array().unwrap() {
         let path = row["path"].as_str().unwrap();
-        let current = std::fs::read_to_string(root.join(path)).unwrap();
+        let current = CURRENT.iter().find(|(name, _)| *name == path).unwrap().1;
+        assert!(current.len() <= 2 * 1024 * 1024);
         let before = restore(row, &current);
         assert_eq!(acquire(path, &current), before);
         assert_eq!(acquire(path, &before), before);
@@ -71,6 +104,6 @@ fn complete_originals_inverse_and_foreign_inputs_remain_independent() {
         let mut forged = row.clone();
         forged["before_sha256"] = serde_json::Value::String("0".repeat(64));
         assert!(std::panic::catch_unwind(|| restore(&forged, &current)).is_err());
-        assert_eq!(acquire("foreign", &current), current);
+        assert_eq!(acquire("foreign", current), current);
     }
 }

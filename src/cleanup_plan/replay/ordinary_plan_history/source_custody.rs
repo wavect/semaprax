@@ -15,8 +15,16 @@ fn digest(text: &str) -> String {
     )
 }
 
+const PACKET_LENGTH: usize = 2230;
+const PACKET_SHA256: &str = "1b03e7b910f14010da7dadb4afd0321761b274b83363bd5fd1580d55159628f6";
+fn records() -> serde_json::Value {
+    assert!(INVERSE.len() <= 2 * 1024 * 1024);
+    assert_eq!(INVERSE.len(), PACKET_LENGTH);
+    assert_eq!(digest(INVERSE), PACKET_SHA256);
+    serde_json::from_str(INVERSE).unwrap()
+}
 pub(crate) fn prior_root(current: &str) -> String {
-    let packet: serde_json::Value = serde_json::from_str(INVERSE).unwrap();
+    let packet = records();
     let mut restored = current.to_owned();
     for edit in packet["inverse"].as_array().unwrap() {
         let after = edit["after"].as_str().unwrap();
@@ -31,7 +39,7 @@ pub(crate) fn prior_root(current: &str) -> String {
 }
 #[test]
 fn complete_predecessor_and_inverse_are_bound_to_exact_root_bytes() {
-    let packet: serde_json::Value = serde_json::from_str(INVERSE).unwrap();
+    let packet = records();
     assert_eq!(digest(BEFORE), packet["before_sha256"]);
     let current = include_str!("../../replay.rs");
     assert_eq!(digest(current), packet["after_sha256"]);

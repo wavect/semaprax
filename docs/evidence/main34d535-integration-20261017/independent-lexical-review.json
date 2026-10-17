@@ -1,0 +1,18 @@
+{
+  "candidate_commit": "1b0c6715d414f99ac663e0338b3159881ec3e907",
+  "source_acceptance_only": true,
+  "receipt_sha256": "94b30d72c00a50c4f68ff3745f18d329c71e84b02ea75d7a97015bbba8067265",
+  "whole_production_after_seven_path_inverse": true,
+  "entire_original_testfile_prefix_exact": true,
+  "new_scenarios": [
+    "actual currentActiveBuilderArena3+ receiver withremaining3 mustfailafterlexicalbegin, proofpoisoned",
+    "actual lexicaltoken unwinds viaresume_unwind(unitpayload), subsequentmemberblankH006",
+    "actual lexicaltoken completes, then rejectedreuse marksFailed and survivesDrop"
+  ],
+  "preserved_checks": "FirstfullDiagnostic cloned/retained; repeatedactuallexicalbegin/member blankH006 equality; no additionalwork/receivingdebit/physicalallocation; actualtoken/proof/budget/Diagnostics dropinsidewholeobserver, finalallocated==freed/live0/invalidfalse. Snapshotaftercloneexcludes testscaffold fromretryclaim.",
+  "source_borrow_type_review": "Shadowed&proof/&mutbudget scopedinsideelse/closures; no referencesescape ownedDiagnostic outcomes. Productionmacro nowabsolutehygienicpaths preservingallothercode. No source-obvious borrow/type blocker.",
+  "unwind": "resume_unwind avoids user/libtestpanic hook; Box<()> payloadzeroheap. Runtimeunwindmechanism/executionstillpending.",
+  "new_selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::lexical_current_attempt_refusal_unwind_and_completed_reuse_are_affine",
+  "no_Rust_tests_builds_or_common_executed": true,
+  "limitations": "No typecheck, actualunwind/Drop/physicalmetrics execution orcurrentheadPASS claim. Parentactualcombinedcompilation+registeredselector required."
+}

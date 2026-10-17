@@ -1,0 +1,86 @@
+[
+  {
+    "path": "tests/workspace.rs",
+    "archive": "docs/evidence/public-wire-receipts-v1/tests__workspace.rs.before.txt",
+    "before_sha256": "2722662e4c54895e22dbffa8fb72f1ace5b93b99c4d58335f3948f6d73d5505f",
+    "after_sha256": "45b44288e356eb9de5d7a2554fcdd6f1d9576e928cf076a778fa9b7eb379e7af",
+    "inverse": [
+      {
+        "after": "semantic_workflow_cli.rs\"]\nmod universal_semantic_workflow_cli;\n\n#[path = \"workspace/pin_capture.rs\"]\nmod pin_capture;\n",
+        "before": "semantic_workflow_cli.rs\"]\nmod universal_semantic_workflow_cli;\n"
+      }
+    ]
+  },
+  {
+    "path": "tests/workspace/semantic_graph.rs",
+    "archive": "docs/evidence/public-wire-receipts-v1/tests__workspace__semantic_graph.rs.before.txt",
+    "before_sha256": "f55a9ff27884e16088511f7dea0a7c17eb5d55c08327758ae46d3fd9833650a3",
+    "after_sha256": "6e2f921d4e56968dee9781070a212bac15df2617dc7fffb9f99d82c7cc3f9293",
+    "inverse": [
+      {
+        "after": " replaced.\nfn capture_pin_candidate(name: &str, bytes: &[u8]) {\n    super::pin_capture::record(name, bytes);\n    let Some(directory) = std::env::var_os(\"SEMAPRAX_PRELUDE_PIN",
+        "before": " replaced.\nfn capture_pin_candidate(name: &str, bytes: &[u8]) {\n    let Some(directory) = std::env::var_os(\"SEMAPRAX_PRELUDE_PIN"
+      }
+    ]
+  },
+  {
+    "path": "tests/workspace/semantic_change.rs",
+    "archive": "docs/evidence/public-wire-receipts-v1/tests__workspace__semantic_change.rs.before.txt",
+    "before_sha256": "c4d6147101f49db29534a0ebaa038d4951538211feb29e27bf900695a3d14b63",
+    "after_sha256": "ae187171ec6d88a357fdf76b3193dd1b0ebe1f7fd62f87cb130038d2e3ebbbde",
+    "inverse": [
+      {
+        "after": "x::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))\n    );\n    super::pin_capture::observe(\"change\", source.as_bytes(), digest)\n}\n\nfn raw_sources(root: &Path) -> Vec<Vec<u8>> {\n    [\"a/provid",
+        "before": "x::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))\n    )\n}\n\nfn raw_sources(root: &Path) -> Vec<Vec<u8>> {\n    [\"a/provid"
+      },
+      {
+        "after": "output);\n    output\n}\n\nfn raw_sha(source: &str) -> String {\n    let digest = format!(\n        \"sha256:{:x}\",\n        semaprax::digest_hex::Lo",
+        "before": "output);\n    output\n}\n\nfn raw_sha(source: &str) -> String {\n    format!(\n        \"sha256:{:x}\",\n        semaprax::digest_hex::Lo"
+      }
+    ]
+  },
+  {
+    "path": "tests/workspace/semantic_operations.rs",
+    "archive": "docs/evidence/public-wire-receipts-v1/tests__workspace__semantic_operations.rs.before.txt",
+    "before_sha256": "c97dbf2bb3def9e569ca4563f3c92de6ea248e96e9a77fa3c3a68642eac74a34",
+    "after_sha256": "8506b3b498ba8dc6926b1a603248a7f714b33d457137e17dc51fc1e133dfb275",
+    "inverse": [
+      {
+        "after": "\n        semaprax::digest_hex::LowerHex(hasher.finalize())\n    );\n    super::pin_capture::observe(\"operations\", bytes, digest)\n}\n\n#[test]\nfn public_api_cli_getters_kats_and_no_write_are_exac",
+        "before": "\n        semaprax::digest_hex::LowerHex(hasher.finalize())\n    )\n}\n\n#[test]\nfn public_api_cli_getters_kats_and_no_write_are_exac"
+      },
+      {
+        "after": "  let mut hasher = Sha256::new();\n    hasher.update(bytes);\n    let digest = format!(\n        \"sha256:{:x}\",\n        semaprax::digest_hex::Lo",
+        "before": "  let mut hasher = Sha256::new();\n    hasher.update(bytes);\n    format!(\n        \"sha256:{:x}\",\n        semaprax::digest_hex::Lo"
+      }
+    ]
+  },
+  {
+    "path": "tests/workspace/semantic_structural_change.rs",
+    "archive": "docs/evidence/public-wire-receipts-v1/tests__workspace__semantic_structural_change.rs.before.txt",
+    "before_sha256": "2f89560dd516028c1c9d5b6ffc4821e7b85d4586232e340f14d49bf12bcc77e3",
+    "after_sha256": "19072f9362ad1805477e2885628211a4f117e03756f2884115f14329bfc22da1",
+    "inverse": [
+      {
+        "after": "x::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))\n    );\n    super::pin_capture::observe(\"structural-change\", source.as_bytes(), digest)\n}\n\nfn raw_sources(root: &Path) -> Vec<Vec<u8>> {\n    [\n        ",
+        "before": "x::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))\n    )\n}\n\nfn raw_sources(root: &Path) -> Vec<Vec<u8>> {\n    [\n        "
+      },
+      {
+        "after": "output);\n    output\n}\n\nfn raw_sha(source: &str) -> String {\n    let digest = format!(\n        \"sha256:{:x}\",\n        semaprax::digest_hex::Lo",
+        "before": "output);\n    output\n}\n\nfn raw_sha(source: &str) -> String {\n    format!(\n        \"sha256:{:x}\",\n        semaprax::digest_hex::Lo"
+      }
+    ]
+  },
+  {
+    "path": "src/source_reflows/semantic_receivers.rs",
+    "archive": "docs/evidence/public-wire-receipts-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+    "before_sha256": "fd6e92a4383f667e95ad71962760a7117259c1421d0f3d134600dc69c9d49bd1",
+    "after_sha256": "a354a8476c045fcb176ce6babbbb6174236f49efa3f3deae24de7eb4c445d8e9",
+    "inverse": [
+      {
+        "after": "::catch_unwind(|| invert(&forged, &current)).is_err());\n    }\n}\n\n#[test]\nfn public_wire_receipts_preserve_complete_sources_and_every_original_assertion() {\n    let root = Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let proofs: Vec<serde_json::Value> = serde_json::from_str(\n        &std::fs::read_to_string(root.join(\"docs/evidence/public-wire-receipts-v1/sources.json\"))\n            .unwrap(),\n    )\n    .unwrap();\n    assert_eq!(proofs.len(), 6);\n    let mut paths = std::collections::BTreeSet::new();\n    for proof in &proofs {\n        let path = proof[\"path\"].as_str().unwrap();\n        assert!(paths.insert(path));\n        let current = std::fs::read_to_string(root.join(path)).unwrap();\n        let before = invert(proof, &current);\n        assert_eq!(\n            before,\n            std::fs::read_to_string(root.join(proof[\"archive\"].as_str().unwrap())).unwrap()\n        );\n        assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + \"\\n\"))).is_err());\n        let mut forged = proof.clone();\n        forged[\"before_sha256\"] = serde_json::Value::String(\"0\".repeat(64));\n        assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());\n    }\n}\n",
+        "before": "::catch_unwind(|| invert(&forged, &current)).is_err());\n    }\n}\n"
+      }
+    ]
+  }
+]

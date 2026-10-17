@@ -57,10 +57,10 @@
     },
     {
       "path": "src/source_reflows_merge/main043_custody.rs",
-      "bytes": 6503,
-      "sha256": "78bb1fde3c1996d7ea5fc4f3969703414509ca8ad4ecf3fb9ca736ad037883dc"
+      "bytes": 6485,
+      "sha256": "b2f81d248768af997898da2873ef5dc6b27a3781d6068be2b474813a8630aae7"
     }
   ],
   "verification_script_sha256": "b8b72537f880da2655f102002275dbe0c5a7eb0aee72982eae017204d15266c7",
-  "guard_extension_verifier_sha256": "13c5fa3d9679e9705fa520e924910269c7d46315ab0c286025c63c98c500cfd2"
+  "guard_extension_verifier_sha256": "26155a29849779ab5ed77d23d19276e4681eaf7157e0136a965c2c5b9cee0acd"
 }

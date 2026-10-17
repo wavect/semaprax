@@ -42,6 +42,12 @@
       "kind": "lib",
       "selector": "source_reflows_merge::main67107_inputs::singleton_successor_whole_c874_acquisition_is_scoped_and_refuses_foreign_stages",
       "sourcepath": "src/source_reflows_merge/main67107_inputs.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::borrowed_labels::direct_singleton_new_selection_zero_through_three_keeps_six_fields_and_sticky_cut",
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs"
     }
   ]
 }

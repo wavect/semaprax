@@ -370,7 +370,7 @@
   "selected_child_pilot": "runtime unchanged in both arms",
   "execution": "NONE_SOURCE_ONLY",
   "final_normalizer": "src/source_reflows_merge/maina3_custody.rs",
-  "final_normalizer_sha256": "4a0cef756ff4cad9350203eb00e42f2932579789a446dc3ed162d21b44b61e5a",
+  "final_normalizer_sha256": "d0bc678b423d09ad87216385819b20e9ac7cb1538b82e4d2fe27a489ec4c8620",
   "component_runtime_source": "c75520f013a2dd420450c9b232c1bc11d65d974f",
   "scope": "a3/e47 shipping vector/leaf +847/781 +729; original90 selector only arm difference, fixed36 common runtime",
   "Main_source": "a3cdfa095db21055558099ecef5e051b8472f6a3",
@@ -380,5 +380,5 @@
   "joined_source_commit": "1aaaa78f1def8a7c1e0e25642f8fc4e4e0ffac61",
   "postpin_phase": "postpin-218a-20261016",
   "baseline_source_commit": "218a9583138d78ef5aed9a495a9150dee9b64619",
-  "joined_batch_source_commit": "e7a784dcc67c42b49c0cc46456d7873ab0a2e8d3"
+  "joined_batch_source_commit": "113c1ff5bbdd5c60c9df24b6c3281c60032f902d"
 }

@@ -377,8 +377,8 @@
         "first": "src/source_verify/hints.rs",
         "last": "tests/workspace/semantic_graph/source_inventory.rs",
         "rows": 104,
-        "length": 2524187,
-        "sha256": "ffaed016622fc874c2feaa4d5df76df736dc284f84425b7259676ca71cd94320"
+        "length": 2524356,
+        "sha256": "a04c413c5dd181b905a6c1929e6a60d693d46c4c69e3818c54c5250d2a4ec6ae"
       }
     ]
   },

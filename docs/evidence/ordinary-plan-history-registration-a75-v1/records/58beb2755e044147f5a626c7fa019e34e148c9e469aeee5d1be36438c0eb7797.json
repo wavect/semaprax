@@ -1,0 +1,13 @@
+{
+  "path": "docs/evidence/ordinary-plan-history-c8740045-v1/manifest.json",
+  "before_sha256": "d45449461be4033c2e540af4743f76aaf9d170885644933689ee40d2bb0b141c",
+  "after_sha256": "c901eb04e15fce40c620bdf9f0b0b026ed502cbd553bdd33bd70477127486b4f",
+  "before": "{\n  \"base\": \"c8740045e33126a4375aadd1dc524a25be9245fc\",\n  \"runtime_verification\": \"not run; integrated parent owns Cargo and runtime\",\n  \"files\": [\n    {\n      \"path\": \"src/cleanup_plan/replay/ordinary_plan_history/before.rs\",\n      \"sha256\": \"9e07f08634f9a79e9d38955da089790acf951521362e46ba23b073e67e9ba3a5\",\n      \"lines\": 630\n    },\n    {\n      \"path\": \"src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs\",\n      \"sha256\": \"ffef6a5cfa6ad40ec9517466227b422d853a87f6415596ea8c622d40153550b2\",\n      \"lines\": 214\n    },\n    {\n      \"path\": \"src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs\",\n      \"sha256\": \"9d426284e668624a8173a4bbe19e63d34aadee30500529ac8e13c05f0a7530ec\",\n      \"lines\": 83\n    },\n    {\n      \"path\": \"src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs\",\n      \"sha256\": \"41ff9db2a3a0a94a4557d1c3f2ba60ff96262842c083265eee7dfa8c3902aed3\",\n      \"lines\": 154\n    },\n    {\n      \"path\": \"src/cleanup_plan/replay/ordinary_plan_history/producer.rs\",\n      \"sha256\": \"39b563ae65f3cfbb62f944e84ac133435106412a0f6dddd3090a82fcdc00cdc2\",\n      \"lines\": 427\n    },\n    {\n      \"path\": \"src/cleanup_plan/replay/ordinary_plan_history/source_custody.rs\",\n      \"sha256\": \"9338ef7185fc5cfc3d317e5223ce152caee53bca1a4b225e4314c993cb360c92\",\n      \"lines\": 55\n    },\n    {\n      \"path\": \"src/cleanup_plan/replay/ordinary_plan_history/tests.rs\",\n      \"sha256\": \"b100fb248f89d1ca80b62d259db2576b9846cc0072952b072d2a80def28d0a3c\",\n      \"lines\": 241\n    },\n    {\n      \"path\": \"src/cleanup_plan/replay/ordinary_plan_history.rs\",\n      \"sha256\": \"af1c1eb050784185ef2eedb1b895796eb6fac1c45299d4f6a2be0227d2e50281\",\n      \"lines\": 582\n    },\n    {\n      \"path\": \"src/source_reflows_merge/ordinary_plan_inputs.rs\",\n      \"sha256\": \"b3c9e13c91131ec82728335dd776aa5ec11da202a8b3762b430571622f1272df\",\n      \"lines\": 109\n    }\n  ]\n}\n",
+  "inverse": [
+    {
+      "start_character": 1748,
+      "after": "      \"sha256\": \"ed57d61a80e362fb3eeecfb6b863e048f35c322f8c7d2ef8048969910f127e4e\",\n      \"lines\": 112\n",
+      "before": "      \"sha256\": \"b3c9e13c91131ec82728335dd776aa5ec11da202a8b3762b430571622f1272df\",\n      \"lines\": 109\n"
+    }
+  ]
+}

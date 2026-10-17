@@ -1,0 +1,33 @@
+{
+  "path": "src/source_reflows_merge/ordinary_plan_inputs.rs",
+  "before_sha256": "b3c9e13c91131ec82728335dd776aa5ec11da202a8b3762b430571622f1272df",
+  "after_sha256": "ed57d61a80e362fb3eeecfb6b863e048f35c322f8c7d2ef8048969910f127e4e",
+  "before": "//! Exact new-source acquisition before every unchanged historical raw guard.\nuse sha2::{Digest, Sha256};\nconst PACKET: &str = include_str!(concat!(\n    env!(\"CARGO_MANIFEST_DIR\"),\n    \"/docs/evidence/ordinary-plan-history-c8740045-v1/inputs.json\"\n));\nfn digest(text: &str) -> String {\n    format!(\n        \"{:x}\",\n        crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))\n    )\n}\nconst PACKET_LENGTH: usize = 601716; // sealed by the source binding recipe\nconst PACKET_SHA256: &str = \"78d4e1f8f175ebcd914ad02a9d77ed8704bf191bc617810783b4d1e90164bf10\";\nfn records() -> serde_json::Value {\n    assert!(\n        PACKET.len() <= 2 * 1024 * 1024,\n        \"fixed custody packet exceeds cap\"\n    );\n    assert_eq!(PACKET.len(), PACKET_LENGTH, \"whole custody packet length\");\n    assert_eq!(digest(PACKET), PACKET_SHA256, \"whole custody packet digest\");\n    serde_json::from_str(PACKET).unwrap()\n}\nconst CURRENT: [(&str, &str); 5] = [\n    (\n        \"src/cleanup_plan/replay.rs\",\n        include_str!(\"../cleanup_plan/replay.rs\"),\n    ),\n    (\n        \"src/source_reflows_merge.rs\",\n        include_str!(\"../source_reflows_merge.rs\"),\n    ),\n    (\n        \"src/source_reflows_merge/main67107_inputs.rs\",\n        include_str!(\"main67107_inputs.rs\"),\n    ),\n    (\n        \"tests/hir_module_boundaries.rs\",\n        include_str!(\"../../tests/hir_module_boundaries.rs\"),\n    ),\n    (\n        \"tests/workspace/semantic_graph/source_inventory.rs\",\n        include_str!(\"../../tests/workspace/semantic_graph/source_inventory.rs\"),\n    ),\n];\nfn restore(row: &serde_json::Value, current: &str) -> String {\n    assert_eq!(\n        digest(current),\n        row[\"after_sha256\"],\n        \"whole ordinary plan source input\"\n    );\n    let mut result = current.to_owned();\n    for edit in row[\"inverse\"].as_array().unwrap() {\n        let new = edit[\"after\"].as_str().unwrap();\n        assert_eq!(\n            result.matches(new).count(),\n            1,\n            \"unique complete source inverse\"\n        );\n        result = result.replacen(new, edit[\"before\"].as_str().unwrap(), 1);\n    }\n    assert_eq!(digest(&result), row[\"before_sha256\"]);\n    assert_eq!(result, row[\"before\"].as_str().unwrap());\n    result\n}\npub(super) fn acquire(source: &str, current: &str) -> String {\n    if !matches!(\n        source,\n        \"src/cleanup_plan/replay.rs\"\n            | \"src/source_reflows_merge.rs\"\n            | \"src/source_reflows_merge/main67107_inputs.rs\"\n            | \"tests/hir_module_boundaries.rs\"\n            | \"tests/workspace/semantic_graph/source_inventory.rs\"\n    ) {\n        return current.to_owned();\n    }\n    let rows = records();\n    let rows = rows.as_array().unwrap();\n    assert_eq!(rows.len(), 5);\n    let matching: Vec<_> = rows.iter().filter(|row| row[\"path\"] == source).collect();\n    assert!(matching.len() <= 1);\n    let Some(row) = matching.first() else {\n        return current.to_owned();\n    };\n    // Only this exact successor is acquired here. Other historical inputs keep\n    // their unchanged expected-input owner and strict downstream byte guard.\n    if digest(current) != row[\"after_sha256\"] {\n        return current.to_owned();\n    }\n    restore(row, current)\n}\n#[test]\nfn complete_originals_inverse_and_foreign_inputs_remain_independent() {\n    let rows = records();\n    for row in rows.as_array().unwrap() {\n        let path = row[\"path\"].as_str().unwrap();\n        let current = CURRENT.iter().find(|(name, _)| *name == path).unwrap().1;\n        assert!(current.len() <= 2 * 1024 * 1024);\n        let before = restore(row, &current);\n        assert_eq!(acquire(path, &current), before);\n        assert_eq!(acquire(path, &before), before);\n        let bad = format!(\"{current} \");\n        assert!(std::panic::catch_unwind(|| restore(row, &bad)).is_err());\n        let mut forged = row.clone();\n        forged[\"before_sha256\"] = serde_json::Value::String(\"0\".repeat(64));\n        assert!(std::panic::catch_unwind(|| restore(&forged, &current)).is_err());\n        assert_eq!(acquire(\"foreign\", current), current);\n    }\n}\n",
+  "inverse": [
+    {
+      "start_character": 3043,
+      "after": "    assert_eq!(rows.len(), 6);\n",
+      "before": "    assert_eq!(rows.len(), 5);\n"
+    },
+    {
+      "start_character": 2587,
+      "after": "            | \"crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\"\n",
+      "before": ""
+    },
+    {
+      "start_character": 1533,
+      "after": "    (\"crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\",\n        include_str!(\"../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\")),\n",
+      "before": ""
+    },
+    {
+      "start_character": 902,
+      "after": "const CURRENT: [(&str, &str); 6] = [\n",
+      "before": "const CURRENT: [(&str, &str); 5] = [\n"
+    },
+    {
+      "start_character": 392,
+      "after": "const PACKET_LENGTH: usize = 784669; // sealed by the source binding recipe\nconst PACKET_SHA256: &str = \"a5d995cad4d5ecff6ea81eb310580a9a2caaf63150718d4992726cb99b877278\";\n",
+      "before": "const PACKET_LENGTH: usize = 601716; // sealed by the source binding recipe\nconst PACKET_SHA256: &str = \"78d4e1f8f175ebcd914ad02a9d77ed8704bf191bc617810783b4d1e90164bf10\";\n"
+    }
+  ]
+}

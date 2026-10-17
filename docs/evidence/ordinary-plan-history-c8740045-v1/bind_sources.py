@@ -2,7 +2,7 @@ from pathlib import Path
 import hashlib,json,subprocess,difflib
 r=Path(__file__).resolve().parents[3];d=Path(__file__).resolve().parent
 h=lambda s:hashlib.sha256(s.encode()).hexdigest()
-paths=['src/cleanup_plan/replay.rs','src/source_reflows_merge.rs','src/source_reflows_merge/main67107_inputs.rs','tests/hir_module_boundaries.rs','tests/workspace/semantic_graph/source_inventory.rs']
+paths=['src/cleanup_plan/replay.rs','src/source_reflows_merge.rs','src/source_reflows_merge/main67107_inputs.rs','tests/hir_module_boundaries.rs','tests/workspace/semantic_graph/source_inventory.rs','crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs']
 rows=[]
 for path in paths:
  old=subprocess.check_output(['git','show','c8740045e33126a4375aadd1dc524a25be9245fc:'+path],cwd=r).decode();new=(r/path).read_text()

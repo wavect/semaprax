@@ -23,7 +23,7 @@ Indices point only backward; arena destruction has no recursive parent owners.
 
 `replay.rs.before.txt` is the complete original root. `root-inverse.json` binds
 its exact successor and additive inverse. `inputs.json` contains every byte of
-all five changed original source inputs, full before/after SHA-256 bindings and
+all six changed original source inputs, full before/after SHA-256 bindings and
 unique inverse edits. The new shared test-only acquisition front restores only
 these exact current bytes before the entire unchanged compile35f and older
 source custody mappings. Both source inventory joins retain all previous
@@ -39,7 +39,7 @@ changes, first work exhaustion and sticky zero, owner exclusions, malformed
 links, exact/one-short/zero whole-operation physical limits and teardown.
 
 Verification performed here: rustfmt parsed/formatted the new Rust modules;
-`git diff --check`; Python exact reconstruction of all five complete original
+`git diff --check`; Python exact reconstruction of all six complete original
 inputs from their inverse packets. No Cargo, rustc, test executable, benchmark,
 codec/catalog runtime, or full quality profile ran in this lane. Source parsing
 and inverse reconstruction do not establish type correctness or runtime parity.

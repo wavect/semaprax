@@ -10,8 +10,8 @@ fn digest(text: &str) -> String {
         crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
     )
 }
-const PACKET_LENGTH: usize = 601716; // sealed by the source binding recipe
-const PACKET_SHA256: &str = "78d4e1f8f175ebcd914ad02a9d77ed8704bf191bc617810783b4d1e90164bf10";
+const PACKET_LENGTH: usize = 784669; // sealed by the source binding recipe
+const PACKET_SHA256: &str = "a5d995cad4d5ecff6ea81eb310580a9a2caaf63150718d4992726cb99b877278";
 fn records() -> serde_json::Value {
     assert!(
         PACKET.len() <= 2 * 1024 * 1024,
@@ -21,7 +21,7 @@ fn records() -> serde_json::Value {
     assert_eq!(digest(PACKET), PACKET_SHA256, "whole custody packet digest");
     serde_json::from_str(PACKET).unwrap()
 }
-const CURRENT: [(&str, &str); 5] = [
+const CURRENT: [(&str, &str); 6] = [
     (
         "src/cleanup_plan/replay.rs",
         include_str!("../cleanup_plan/replay.rs"),
@@ -42,6 +42,8 @@ const CURRENT: [(&str, &str); 5] = [
         "tests/workspace/semantic_graph/source_inventory.rs",
         include_str!("../../tests/workspace/semantic_graph/source_inventory.rs"),
     ),
+    ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        include_str!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs")),
 ];
 fn restore(row: &serde_json::Value, current: &str) -> String {
     assert_eq!(
@@ -67,6 +69,7 @@ pub(super) fn acquire(source: &str, current: &str) -> String {
     if !matches!(
         source,
         "src/cleanup_plan/replay.rs"
+            | "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
             | "src/source_reflows_merge.rs"
             | "src/source_reflows_merge/main67107_inputs.rs"
             | "tests/hir_module_boundaries.rs"
@@ -76,7 +79,7 @@ pub(super) fn acquire(source: &str, current: &str) -> String {
     }
     let rows = records();
     let rows = rows.as_array().unwrap();
-    assert_eq!(rows.len(), 5);
+    assert_eq!(rows.len(), 6);
     let matching: Vec<_> = rows.iter().filter(|row| row["path"] == source).collect();
     assert!(matching.len() <= 1);
     let Some(row) = matching.first() else {

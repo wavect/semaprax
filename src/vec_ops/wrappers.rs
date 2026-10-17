@@ -166,6 +166,16 @@ pub(crate) fn source_wrapper_ref(
     program: &dyn ProgramSource,
     function: &crate::ast::program_source::FunctionRef<'_>,
 ) -> Option<VecOp> {
+    if let Some((provider, declaration)) = function.provider_declaration() {
+        if !source_module_is_authenticated(program) {
+            return None;
+        }
+        // A borrowed presentation must be an actual member of this source.
+        // The unchanged full guard checks the real provider's reserved name,
+        // identity, signature, effects and complete forwarding body.
+        return program.function_refs().contains_presentation(function)
+            .then(|| source_wrapper(provider, declaration)).flatten();
+    }
     if !source_module_is_authenticated(program)
         || !function.payload().explicit_id
         || function.payload().type_parameters.len() != 1

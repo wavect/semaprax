@@ -917,7 +917,13 @@ impl<'v, 'p> Resolver<'v, 'p> {
             .collect::<Result<_, _>>()?;
         Ok(ResolvedFunctionTemplate {
             id: function_id,
-            name: function.name().to_owned(),
+            name: if transparent_vec_wrapper.is_some() || transparent_box_wrapper.is_some() {
+                // Lookup still uses the local alias; intrinsic declarations
+                // retain the exact provider spelling required by HIR replay.
+                function.payload().name.clone()
+            } else {
+                function.name().to_owned()
+            },
             type_parameters,
             params,
             result_id,

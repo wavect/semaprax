@@ -1,6 +1,6 @@
 //! Test-only, allocation-free debit attribution for one exact resolved-core
 //! ledger. Counters describe reservations, never physical allocation or refunds.
-use super::{active, Budget, ReservationStage};
+use super::{active, Budget, ReservationStage}; pub(crate) mod route_debits;
 use std::cell::Cell;
 use std::rc::Rc;
 
@@ -70,7 +70,7 @@ thread_local! {
 pub(super) fn debit(budget: &Budget, bytes: usize) {
     CURRENT.with(|current| {
         let mut trace = current.get();
-        if trace.owner == budget as *const Budget as usize {
+        if trace.owner == budget as *const Budget as usize { route_debits::debit(trace.owner, bytes, budget.stage.get() == Some(ReservationStage::HirValidation), trace.operation == Some(Operation::CleanupReplay));
             let ordinal = budget.stage.get().map_or(0, |stage| stage as usize + 1);
             trace.debits[ordinal] = trace.debits[ordinal]
                 .checked_add(bytes)
@@ -120,7 +120,7 @@ pub(super) fn refusal(budget: &Budget, requested: usize) {
         let mut trace = current.get();
         if trace.owner == budget as *const Budget as usize
             && trace.first_operation_refusal.is_none()
-        {
+        { route_debits::refusal(trace.owner, budget.stage.get() == Some(ReservationStage::HirValidation) && trace.operation == Some(Operation::CleanupReplay));
             trace.first_operation_refusal = Some(OperationRefusal {
                 operation: trace.operation,
                 requested,
@@ -144,7 +144,7 @@ pub(crate) fn start(prebound: usize, layouts: usize, mode: u8) -> Guard {
         layouts,
         mode,
         ..Trace::EMPTY
-    };
+    }; route_debits::start(trace.owner, prebound, mode);
     let previous = CURRENT.with(|current| current.replace(trace));
     Guard { previous }
 }
@@ -160,7 +160,7 @@ impl Drop for Guard {
             trace.sum(),
             trace.consumed,
             "every committed debit exactly once"
-        );
+        ); route_debits::finish(trace.owner, trace.consumed, trace.debits[ReservationStage::HirValidation as usize + 1]);
         LAST_COMPLETED.with(|completed| completed.set(Some(trace)));
         COMPLETED.with(|completed| {
             if completed

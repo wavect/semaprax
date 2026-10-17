@@ -148,7 +148,7 @@ fn exact_original_fixture_prefix() {
 #[test]
 fn primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure()
  {
-    exact_original_fixture_prefix();
+    exact_original_fixture_prefix(); let _route_observation = crate::bounded_output::stage_debits::route_debits::observe();
     take_completed();
     take_last_completed();
     MARK.with(|slot| slot.set(None));
@@ -165,7 +165,7 @@ fn primitive_string_codec_actual_preparation_reports_existing_first_operation_wi
     let maximum = take_completed();
     let last = take_last_completed();
     eprintln!("OPT808 actual unchanged native preparation maximum core trace: {maximum:?}");
-    eprintln!("OPT808 actual unchanged native preparation final core trace: {last:?}");
+    eprintln!("OPT808 actual unchanged native preparation final core trace: {last:?}"); crate::bounded_output::stage_debits::route_debits::print_settled();
     match result {
         Ok(root) => fs::remove_dir_all(root).unwrap(),
         Err(original) => {

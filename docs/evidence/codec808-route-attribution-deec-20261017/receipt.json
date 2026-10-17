@@ -1,0 +1,97 @@
+{
+  "status": "SOURCE_CANDIDATE_UNEXECUTED",
+  "base": "deec161142b2f3e882e50b4450338c69c137e586",
+  "modified": [
+    {
+      "path": "src/bounded_output/stage_debits.rs",
+      "length": 6862,
+      "sha256": "7673e74472f63faf7a1e0b782cc0032467b2f84e5689fc49cc37856e899bdc04",
+      "lines": 185
+    },
+    {
+      "path": "src/cleanup_plan/replay.rs",
+      "length": 324757,
+      "sha256": "27e6e3174612f0bb1fcafef0ed16928f57faf201ce7d53b11cf370811ac61bfd",
+      "lines": 7910
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored.rs",
+      "length": 45631,
+      "sha256": "525a1ecd04c23876bcdb3c959592d68710079dc8b602659fb2650f07467b0693",
+      "lines": 1103
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/continuation_receiver.rs",
+      "length": 2098,
+      "sha256": "c6256e04224731110b5e1906169ec5e55139147f18433700825e18c982007794",
+      "lines": 42
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/oracle_hook.rs",
+      "length": 12088,
+      "sha256": "8cb40146286217b0816abb9f576b9d72805b3a38c0e48d5b71e51fedead76800",
+      "lines": 313
+    },
+    {
+      "path": "tests/native/string_settlement/codec_allocation/codec808_frontier.rs",
+      "length": 7068,
+      "sha256": "39837794268d365be877d508bbec1210ab7469de5185758f22209088ef75cae2",
+      "lines": 179
+    }
+  ],
+  "new_physical_modules": [
+    {
+      "path": "src/bounded_output/stage_debits/route_debits.rs",
+      "length": 11646,
+      "sha256": "6b91f7e138e3f7ed4f43f004a197fe45decb1944c76bea95cb68f19f949df028",
+      "lines": 325
+    }
+  ],
+  "new_test_selectors": [],
+  "existing_selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+  "unchanged_priced_sources": [
+    {
+      "path": "src/bounded_output.rs",
+      "length": 50190,
+      "sha256": "d01a82d602c286044cc1d5df8d05d02dfe5168d1139a82380aa01b06e47c7fd5"
+    },
+    {
+      "path": "src/cleanup_plan/replay/physical_budget.rs",
+      "length": 13378,
+      "sha256": "5ea16ac3902b45761e55635a694339537659ba0c33ad74b695648703c1905224"
+    },
+    {
+      "path": "src/cleanup_plan/replay/physical_storage.rs",
+      "length": 13357,
+      "sha256": "6d1342dc7f992a5000ef7412b1b971a360a750f67c6adc39d351246ebaa90c8d"
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work.rs",
+      "length": 47594,
+      "sha256": "2532173c152df743989e4afd5fc84ae4b3dd32bf45b0a72fe09039a832887c4b"
+    }
+  ],
+  "actual_prior_logs": [
+    {
+      "path": "/Volumes/Semaprax/lane-prompts/semantic-focused162-deec16114-20261017/owning-selected-29.log",
+      "length": 3879,
+      "sha256": "49b37a0529c6924e7b021560bcd63a2cf50d44f80f08c246fc03ea5543581b47"
+    },
+    {
+      "path": "/Volumes/Semaprax/lane-prompts/semantic-focused162-deec16114-20261017/owning-selected-150.log",
+      "length": 1610,
+      "sha256": "8ec3d0c2a78fa2a5aab700ddfdf3ce61ad66f06444c321a40f8452744bbf7170"
+    },
+    {
+      "path": "/Volumes/Semaprax/lane-prompts/semantic-focused162-deec16114-20261017/owning-selected-151.log",
+      "length": 1586,
+      "sha256": "9c111a962bacd74e2c76d199e4ea79484a7a08dc549ccded1ecccf8aa5ab3650"
+    }
+  ],
+  "checks": [
+    "Original line counts retained; every old line is an exact prefix of current corresponding line.",
+    "All six whole-source exact inverses reconstructed and SHA-checked.",
+    "rustfmt emit-stdout parse only; no Cargo/typecheck/runtime."
+  ],
+  "runtime": null
+}

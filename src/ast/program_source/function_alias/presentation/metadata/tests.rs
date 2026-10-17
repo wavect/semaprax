@@ -1,3 +1,4 @@
+use super::super::FunctionIter;
 use super::*;
 use crate::ast::program_source::function_alias::{FunctionDirectory, FunctionEntry, FunctionView};
 use crate::ast::program_source::generated_roots::GeneratedRoots;

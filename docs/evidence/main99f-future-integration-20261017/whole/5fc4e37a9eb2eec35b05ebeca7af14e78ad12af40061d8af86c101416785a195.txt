@@ -1,0 +1,112 @@
+[
+  {
+    "path": "src/loop_calls/byte_writer/source.rs",
+    "archive": "docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__source.rs.before.txt",
+    "before_sha256": "dc862821c4e964f0fefed6f801c374ce397e541e59eebd3cfdc41b69b8f7814d",
+    "after_sha256": "6d78124797c1af7280919705207a8da235a7a1160d71f25379bf24cf99f2467c",
+    "inverse": [
+      {
+        "after": "te::vec_ops::by_name(name) {\n                                if op == crate::vec_ops::VecOp::StrAt {\n                                    if !type_arguments.is_empty()\n                                        || !matches!(args.as_slice(), [source, _]\n                                            if matches!(&source.kind, ExprKind::Var(_)))\n                                    {\n                                        return None;\n                                    }\n                                } else if !vec_operation(op) {\n                                    return ",
+        "before": "te::vec_ops::by_name(name) {\n                                if !vec_operation(op) {\n                                    return "
+      }
+    ]
+  },
+  {
+    "path": "src/loop_calls/byte_writer/resolved.rs",
+    "archive": "docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__resolved.rs.before.txt",
+    "before_sha256": "03212b0a28826fbb9d8c1521962d057fcdd504500ebcc3a0a1301d8bda8f9106",
+    "after_sha256": "a357e24edfcba7588e983f59e997c3186f24841f0aab818aa8059fd650829d2e",
+    "inverse": [
+      {
+        "after": "ps::by_id(callee.as_str()) {\n                                if op == crate::vec_ops::VecOp::StrAt {\n                                    crate::vec_ops::string_slot::inspect(expression)?;\n                                } else if !vec_operation(op) {\n                                    return ",
+        "before": "ps::by_id(callee.as_str()) {\n                                if !vec_operation(op) {\n                                    return "
+      }
+    ]
+  },
+  {
+    "path": "src/vec_ops/string_slot.rs",
+    "archive": "docs/evidence/string-slot-byte-helper-v1/src__vec_ops__string_slot.rs.before.txt",
+    "before_sha256": "7412bab22b7b207c3e0c5351d98590f73bab8261a06729e6dc2f0d07a69c389e",
+    "after_sha256": "f0e82ef9b7a753aac3335d4978d0709ea7dda4f80c226f9d32225c843074fbe9",
+    "inverse": [
+      {
+        "after": "Expr]) -> bool {\n    matches!(args, [source, index]\n        if super::resolved_vec_matches(&source.ty, &ResolvedType::String)\n        && matches!(source.ownership, Owne",
+        "before": "Expr]) -> bool {\n    matches!(args, [source, index]\n        if source.ty == super::resolved_vec(ResolvedType::String)\n        && matches!(source.ownership, Owne"
+      }
+    ]
+  },
+  {
+    "path": "src/loop_calls/byte_writer/tests.rs",
+    "archive": "docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__tests.rs.before.txt",
+    "before_sha256": "677f9a319a7ea144becfc1ea46e13fcebb3d68d2c7c05e16dcf04d1607cf8e2e",
+    "after_sha256": "25783b38fd84562964e61bcb2682253634427ec5496f11600bc38e7c3e4c2a15",
+    "inverse": [
+      {
+        "after": "(&program, main).unwrap_err().code,\n        \"SPX-H006\"\n    );\n}\n\nmod string_slots;\n",
+        "before": "(&program, main).unwrap_err().code,\n        \"SPX-H006\"\n    );\n}\n"
+      }
+    ]
+  },
+  {
+    "path": "tests/hir_module_boundaries.rs",
+    "archive": "docs/evidence/string-slot-byte-helper-v1/tests__hir_module_boundaries.rs.before.txt",
+    "before_sha256": "d6e8ad51661a3f8727e9f654bd7e7f2687ffa6fa13fd9c66900217def541c1cc",
+    "after_sha256": "d6e8ad51661a3f8727e9f654bd7e7f2687ffa6fa13fd9c66900217def541c1cc",
+    "inverse": []
+  },
+  {
+    "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "archive": "docs/evidence/string-slot-byte-helper-v1/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.before.txt",
+    "before_sha256": "70b707a2915c51abb76a72aeb084835c943c8a969c906a1b12eb287e7fa6beca",
+    "after_sha256": "70b707a2915c51abb76a72aeb084835c943c8a969c906a1b12eb287e7fa6beca",
+    "inverse": []
+  },
+  {
+    "path": "src/source_reflows/semantic_receivers.rs",
+    "archive": "docs/evidence/string-slot-byte-helper-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+    "before_sha256": "361eed66147b91cae6e0f4fe4f0f3446575f918424a23ed27374b51424199c2f",
+    "after_sha256": "a620377ce8bcfe1ff7d44654ddc5ebf45cfecb2743e3ad4248220260a4dc58c7",
+    "inverse": [
+      {
+        "after": " assert_ne!(digest(&(current + \"\\n\")), file[\"sha256\"]);\n    }\n}\n\nfn before_last_branch_root(current: &str) -> String {\n    let sources: Vec<serde_json::Value> = serde_json::from_str(\n        &std::fs::read_to_string(\n            Path::new(env!(\"CARGO_MANIFEST_DIR\"))\n                .join(\"docs/evidence/last-branch-prefix-v1/sources.json\"),\n        )\n        .unwrap(),\n    )\n    .unwrap();\n    let proof = sources\n        .iter()\n        .find(|proof| proof[\"path\"] == \"src/cleanup_plan/replay.rs\")\n        .unwrap();\n    invert(proof, current)\n}\n\n#[test]\nfn last_branch_prefix_keeps_complete_predecessors_and_original_source_controls() {\n    let root = Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let sources: Vec<serde_json::Value> = serde_json::from_str(\n        &std::fs::read_to_string(root.join(\"docs/evidence/last-branch-prefix-v1/sources.json\"))\n            .unwrap(),\n    )\n    .unwrap();\n    assert_eq!(sources.len(), 4);\n    let mut paths = std::collections::BTreeSet::new();\n    for proof in &sources {\n        let path = proof[\"path\"].as_str().unwrap();\n        assert!(paths.insert(path));\n        let current = std::fs::read_to_string(root.join(path)).unwrap();\n        let before = invert(proof, &current);\n        assert_eq!(\n            before,\n            std::fs::read_to_string(root.join(proof[\"archive\"].as_str().unwrap())).unwrap()\n        );\n        assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + \"\\n\"))).is_err());\n        let mut forged = proof.clone();\n        forged[\"before_sha256\"] = serde_json::Value::String(\"0\".repeat(64));\n        assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());\n        if path.ends_with(\"branch_clone/tests.rs\") {\n            assert!(current.starts_with(&before));\n        }\n    }\n    let helper =\n        std::fs::read_to_string(root.join(\"src/cleanup_plan/replay/branch_clone.rs\")).unwrap();\n    let proof = sources\n        .iter()\n        .find(|proof| proof[\"path\"] == \"src/cleanup_plan/replay/branch_clone.rs\")\n        .unwrap();\n    let before = invert(proof, &helper);\n    assert_eq!(\n        helper.split(\"/// A pure probe\").next().unwrap(),\n        before.split(\"#[cfg(test)]\\nmod tests;\").next().unwrap()\n    );\n}\n",
+        "before": " assert_ne!(digest(&(current + \"\\n\")), file[\"sha256\"]);\n    }\n}\n"
+      },
+      {
+        "after": "o_string(root.join(record[\"path\"].as_str().unwrap())).unwrap();\n            let current = if record[\"path\"] == \"src/cleanup_plan/replay.rs\" {\n                before_last_branch_root(&current)\n            } else {\n                current\n            };\n            assert_eq!(digest(&current), record[\"sha256\"]);\n    ",
+        "before": "o_string(root.join(record[\"path\"].as_str().unwrap())).unwrap();\n            assert_eq!(digest(&current), record[\"sha256\"]);\n    "
+      },
+      {
+        "after": "contains(&old_storage[machine_types..]));\n    let mut machine = before_last_branch_root(\n        &std::fs::read_to_string(root.join(\"src/cleanup_plan/replay.rs\")).unwrap(),\n    );\n    let standalone = \"if work.budget.payer == AllocationPayer",
+        "before": "contains(&old_storage[machine_types..]));\n    let mut machine = std::fs::read_to_string(root.join(\"src/cleanup_plan/replay.rs\")).unwrap();\n    let standalone = \"if work.budget.payer == AllocationPayer"
+      },
+      {
+        "after": "digest(&(current + \"\\n\")), record[\"sha256\"]);\n        }\n    }\n}\n\n#[test]\nfn slot_byte_helper_and_generic_bound_frontier_keep_complete_source_receivers() {\n    let root = Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let evidence = root.join(\"docs/evidence/string-slot-byte-helper-v1\");\n    let sources: Vec<serde_json::Value> =\n        serde_json::from_str(&std::fs::read_to_string(evidence.join(\"sources.json\")).unwrap())\n            .unwrap();\n    assert_eq!(sources.len(), 9);\n    let mut paths = std::collections::BTreeSet::new();\n    for proof in &sources {\n        let path = proof[\"path\"].as_str().unwrap();\n        assert!(paths.insert(path));\n        let current = std::fs::read_to_string(root.join(path)).unwrap();\n        let before = invert(proof, &current);\n        assert_eq!(\n            before,\n            std::fs::read_to_string(root.join(proof[\"archive\"].as_str().unwrap())).unwrap()\n        );\n        assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + \"\\n\"))).is_err());\n        let mut forged = proof.clone();\n        forged[\"before_sha256\"] = serde_json::Value::String(\"0\".repeat(64));\n        assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());\n        if path.ends_with(\"byte_writer/tests.rs\") {\n            assert_eq!(\n                current.strip_suffix(\"\\nmod string_slots;\\n\").unwrap(),\n                before\n            );\n        }\n    }\n    let new_files: Vec<serde_json::Value> =\n        serde_json::from_str(&std::fs::read_to_string(evidence.join(\"new-files.json\")).unwrap())\n            .unwrap();\n    assert_eq!(new_files.len(), 1);\n    for file in new_files {\n        let current = std::fs::read_to_string(root.join(file[\"path\"].as_str().unwrap())).unwrap();\n        assert_eq!(digest(&current), file[\"sha256\"]);\n        assert_ne!(digest(&(current + \"\\n\")), file[\"sha256\"]);\n    }\n}\n",
+        "before": "digest(&(current + \"\\n\")), record[\"sha256\"]);\n        }\n    }\n}\n"
+      }
+    ]
+  },
+  {
+    "path": "src/source_verify/declaration.rs",
+    "archive": "docs/evidence/string-slot-byte-helper-v1/src__source_verify__declaration.rs.before.txt",
+    "before_sha256": "f6687bf16ba0ae287c79b96ab888de22e41d4ec7cecf010c81cdd6545018fc23",
+    "after_sha256": "1ee6c27c7e20e6578261de0f58d0019762080e33f5631685081a8318485420d8",
+    "inverse": [
+      {
+        "after": " before executable checks.\n    if storage_declaration_refused {\n        // Generic declaration shape/depth/leaf bounds remain independently\n        // authoritative even when a concrete storage declaration was refused.\n        // Keep those declaration receipts without checking executable bodies\n        // or exposing unsupported-storage signature cascades.\n        let declaration_prefix = diagnostics.len();\n        check_function_declarations(program, &types, &mut functions, &mut ids, &mut diagnostics);\n        let mut position = 0;\n        diagnostics.retain(|diagnostic| {\n            let retain =\n                position < declaration_prefix || matches!(diagnostic.code, \"SPX-T223\" | \"SPX-T224\");\n            position += 1;\n            retain\n        });\n        return finish_diagnostics(diagnostics);\n    }\n\n    check",
+        "before": " before executable checks.\n    if storage_declaration_refused {\n        return finish_diagnostics(diagnostics);\n    }\n\n    check"
+      }
+    ]
+  },
+  {
+    "path": "src/source_verify/declaration/declarations/tests.rs",
+    "archive": "docs/evidence/string-slot-byte-helper-v1/src__source_verify__declaration__declarations__tests.rs.before.txt",
+    "before_sha256": "ed309db956572aea6322fa66b6f7c1f66c324528d9ca20b6b7b72e3d39a1ec9c",
+    "after_sha256": "be58d086c21bfa98ec4fe8fb6fe4fba523046ac6240f3e7f0722ed65dcce5018",
+    "inverse": [
+      {
+        "after": "\");\n    assert!(!errors.contains(&\"SPX-T268\"), \"{errors:?}\");\n}\n\n#[test]\nfn rejected_storage_preserves_generic_leaf_bound_receipts_without_executable_cascades() {\n    let fields = (0..257)\n        .map(|index| format!(\"leaf_{index}: Bytes,\"))\n        .collect::<Vec<_>>()\n        .join(\"\\n\");\n    let source = format!(\n        \"module test.storage_generic_bounds; record Bag {{{fields}}} record Box<T> {{value:T,}} record Pair<T,U> {{left:T,right:U,}} fn relay<T>(value:own Box<Pair<Bag,T>>)->Box<Pair<Bag,T>>{{value}} fn main()->i64{{let unused=missing_executable();0}}\"\n    );\n    let errors = codes(&source);\n    assert!(errors.contains(&\"SPX-T268\"), \"{errors:?}\");\n    assert!(\n        errors\n            .iter()\n            .any(|code| matches!(*code, \"SPX-T223\" | \"SPX-T224\")),\n        \"{errors:?}\"\n    );\n    assert!(\n        errors\n            .iter()\n            .all(|code| matches!(*code, \"SPX-T268\" | \"SPX-T223\" | \"SPX-T224\")),\n        \"{errors:?}\"\n    );\n}\n",
+        "before": "\");\n    assert!(!errors.contains(&\"SPX-T268\"), \"{errors:?}\");\n}\n"
+      }
+    ]
+  }
+]

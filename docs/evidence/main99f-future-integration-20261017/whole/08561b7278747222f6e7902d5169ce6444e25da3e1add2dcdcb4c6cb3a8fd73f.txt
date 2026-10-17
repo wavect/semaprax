@@ -1,0 +1,82 @@
+[
+  {
+    "path": "src/cleanup_plan/replay.rs",
+    "archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay.rs.before.txt",
+    "before_sha256": "a095e76b1c26a3fb49664a2169e9933fac76904b75c0a5c39046892442d24370",
+    "after_sha256": "f55a89e71e01d7254fd13ae57b9fbe104a08bddc1a3f080140b6d70213c1544d",
+    "inverse": [
+      {
+        "after": "  (\n            continuation_storage::Lease::Local,\n            if work.budget.payer == AllocationPayer::ActiveBuilder {\n                continuation_storage::fresh_receiving(function, work.budget)?\n            } else {\n                continuation_storage::fresh(function, work.budget)?\n            },\n        )\n    };\n    // No directory borrow spans the runner: ",
+        "before": "  (\n            continuation_storage::Lease::Local,\n            continuation_storage::fresh(function, work.budget)?,\n        )\n    };\n    // No directory borrow spans the runner: "
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/continuation_storage.rs",
+    "archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__continuation_storage.rs.before.txt",
+    "before_sha256": "864641c685d78104376ddb50b24d172edfad362383bcd5b3dfb3637a87ae305c",
+    "after_sha256": "4afe0bddb6402b7708b59f02963f954b7c2c9ade69c99a7803a95cdd23b745a8",
+    "inverse": [
+      {
+        "after": " independent oracle receivers retain the complete fixed layout.\npub(super) fn fresh_receiving<'hir>(\n    function: &ResolvedFunction,\n    b",
+        "before": " independent oracle receivers retain the complete fixed layout.\nfn fresh_receiving<'hir>(\n    function: &ResolvedFunction,\n    b"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/continuation_storage/tests.rs",
+    "archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__continuation_storage__tests.rs.before.txt",
+    "before_sha256": "661e208e70b4d4559774f9d50f30af17d39a44f767e863530ba2ee0c51a4bd54",
+    "after_sha256": "ef071c7def7542ab0365cdd9566779a4b37270365bf6c147df7e87122debbdc2",
+    "inverse": [
+      {
+        "after": "udget.skeleton_remaining, budget.skeleton_remaining);\n    });\n}\n\n#[test]\nfn ordinary_standalone_roots_keep_complete_original_paths_without_fixed_backing() {\n    let program = program();\n    crate::bounded_output::with_limit(1 << 26, || {\n        let mut old_budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n        let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n        for function in &program.functions {\n            let mut old = SkeletonWork::new(&program, function, &mut old_budget);\n            let mut current = SkeletonWork::new(&program, function, &mut budget);\n            assert!(current.continuations.is_none());\n            for expression in function\n                .requires\n                .iter()\n                .chain(std::iter::once(&function.body))\n                .chain(function.ensures.iter())\n            {\n                let before = old_expression(&program, function, expression, &mut old).unwrap();\n                let after =\n                    expression_skeleton(&program, function, expression, &mut current).unwrap();\n                assert_eq!(before.len(), after.len());\n                for (before, after) in before.iter().zip(&after) {\n                    assert_eq!(\n                        observation_sequences(&before.observations),\n                        observation_sequences(&after.observations)\n                    );\n                    assert_eq!(before.owned_source, after.owned_source);\n                    assert_eq!(\n                        (before.failed, before.residual, &before.continuation),\n                        (after.failed, after.residual, &after.continuation)\n                    );\n                }\n            }\n        }\n        assert_eq!(old_budget.skeleton_spent, budget.skeleton_spent);\n        assert_eq!(old_budget.skeleton_remaining, budget.skeleton_remaining);\n    });\n}\n",
+        "before": "udget.skeleton_remaining, budget.skeleton_remaining);\n    });\n}\n"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+    "archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__expression_facts__receiving__retained.rs.before.txt",
+    "before_sha256": "ee20fca55c0cba14f58f9ff07f36d76b05197ecd838198729133076dfeb84d4e",
+    "after_sha256": "7739c1324f612967d28bb4eb6fb87cdaa5354d743b4435d396d6f148c1354b31",
+    "inverse": [
+      {
+        "after": "ger::capture(),\n            ids: None,\n        });\n    }\n    if function.cleanup_plan.status_sources.len() >= 3 {\n        return",
+        "before": "ger::capture(),\n            ids: None,\n        });\n    }\n    if budget.pays_allocations() && function.cleanup_plan.status_sources.len() >= 3 {\n        return"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs",
+    "archive": "docs/evidence/ordinary-replay-routes-v1/src__cleanup_plan__replay__expression_facts__receiving__directory__status_prefix__tests.rs.before.txt",
+    "before_sha256": "c0b4fc2e1cab84091d6de095ed1e4514ced3e80c9eaa0ab22b6f19526275adc4",
+    "after_sha256": "371f112bb250011df5930334be7d3bd4f4ff82e10a8471469d981ca0ba094a87",
+    "inverse": [
+      {
+        "after": "aid);\n    assert_eq!(allocation.allocated, allocation.freed);\n}\n\n#[test]\nfn unobserved_wide_status_construction_uses_the_same_authenticated_held_bound() {\n    let prefix = \"shared.\".repeat(146);\n    let names = (0..16_000)\n        .map(|index| format!(\"{prefix}.{index:06}\"))\n        .collect::<Vec<_>>();\n    let keys = names\n        .iter()\n        .map(|name| (name.as_str(), StatusLane::OperationFailure))\n        .collect::<Vec<_>>();\n    let function = function(&keys);\n    let mut budget = ReplayBudget::unobserved();\n    let mut directory =\n        Directory::new(&function, &mut budget, \"cleanup status identity directory\").unwrap();\n    let mut held = directory.held_prefix(&function, &mut budget).unwrap();\n    for source in &function.cleanup_plan.status_sources {\n        assert!(held.insert(&function, &source.id, &mut budget).unwrap());\n    }\n    drop(held);\n    assert_eq!(directory.len(), 16_000);\n    assert!(directory.balanced());\n    assert!(budget.remaining < MAX_REPLAY_WORK_UNITS && budget.remaining > 0);\n}\n",
+        "before": "aid);\n    assert_eq!(allocation.allocated, allocation.freed);\n}\n"
+      }
+    ]
+  },
+  {
+    "path": "src/source_reflows/semantic_receivers.rs",
+    "archive": "docs/evidence/ordinary-replay-routes-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+    "before_sha256": "17989402984251c9956537bc3d2d8c6a1a6c6252cb1bd188ffd265dc6cdd0a51",
+    "after_sha256": "806760673e36ddff23fc45a9c35da3d44910519e253845b07ac7ab1296b6e9b9",
+    "inverse": [
+      {
+        "after": ";\",\n            1\n        ),\n        before_file(path)\n    );\n}\n\n#[test]\nfn ordinary_replay_routes_keep_complete_predecessors_and_existing_controls() {\n    let root = Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let records: Vec<serde_json::Value> = serde_json::from_str(\n        &std::fs::read_to_string(root.join(\"docs/evidence/ordinary-replay-routes-v1/sources.json\"))\n            .unwrap(),\n    )\n    .unwrap();\n    assert_eq!(records.len(), 6);\n    let mut paths = std::collections::BTreeSet::new();\n    for proof in records {\n        let path = proof[\"path\"].as_str().unwrap();\n        assert!(paths.insert(path.to_owned()));\n        let current = std::fs::read_to_string(root.join(path)).unwrap();\n        let before = invert(&proof, &current);\n        assert_eq!(\n            before,\n            std::fs::read_to_string(root.join(proof[\"archive\"].as_str().unwrap())).unwrap()\n        );\n        if path.ends_with(\"/tests.rs\") {\n            assert!(current.starts_with(&before));\n        }\n        assert!(std::panic::catch_unwind(|| invert(&proof, &(current.clone() + \"\\n\"))).is_err());\n        let mut forged = proof.clone();\n        forged[\"before_sha256\"] = serde_json::Value::String(\"0\".repeat(64));\n        assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());\n    }\n}\n",
+        "before": ";\",\n            1\n        ),\n        before_file(path)\n    );\n}\n"
+      },
+      {
+        "after": "ad_to_string(root.join(\"src/cleanup_plan/replay.rs\")).unwrap();\n    let standalone = \"if work.budget.payer == AllocationPayer::ActiveBuilder {\\n                continuation_storage::fresh_receiving(function, work.budget)?\\n            } else {\\n                continuation_storage::fresh(function, work.budget)?\\n            }\";\n    assert_eq!(machine.matches(standalone).count(), 1);\n    machine = machine.replacen(\n        standalone,\n        \"continuation_storage::fresh(function, work.budget)?\",\n        1,\n    );\n    let after = r###\"            if $frames.len() == $frames.cap",
+        "before": "ad_to_string(root.join(\"src/cleanup_plan/replay.rs\")).unwrap();\n    let after = r###\"            if $frames.len() == $frames.cap"
+      },
+      {
+        "after": "to_string(root.join(proof[\"path\"].as_str().unwrap())).unwrap();\n    // Reconstruct the authenticated predecessor dispatch before applying the\n    // original complete-validator assertions below.\n    let receiving_guard = \"if function.cleanup_plan.status_sources.len() >= 3 {\";\n    assert_eq!(current.matches(receiving_guard).count(), 1);\n    let current = current.replacen(\n        receiving_guard,\n        \"if budget.pays_allocations() && function.cleanup_plan.status_sources.len() >= 3 {\",\n        1,\n    );\n    let guard=\"    if budget.pays_allocations() && function.clea",
+        "before": "to_string(root.join(proof[\"path\"].as_str().unwrap())).unwrap();\n    let guard=\"    if budget.pays_allocations() && function.clea"
+      }
+    ]
+  }
+]

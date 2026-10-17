@@ -50,6 +50,8 @@ def main():
     parser.add_argument("--expected-producer-receipt-sha256", required=True)
     parser.add_argument("--round", required=True, type=Path,
                         help="trusted ROOT round holding existing build and producer receipts")
+    parser.add_argument("--workflow-record", required=True, type=Path)
+    parser.add_argument("--expected-workflow-record-sha256", required=True)
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--evidence-dir", type=Path)
     args = parser.parse_args()
@@ -79,6 +81,17 @@ def main():
                 "external ROOT-approved receipt hash mismatch")
     producer = json.loads(producer_bytes)
     expected = json.loads((trusted_round / "expected-counts.json").read_bytes())
+    # The descriptor is independently reviewed; its own contents grant no authority.
+    import importlib.util
+    generation_path = Path(__file__).resolve().parent / "prelude_forecast_committed_generation.py"
+    require(hashlib.sha256(generation_path.read_bytes()).hexdigest() == "cb2ea06b1f01b302b20bfbc07a543adba577da5acd9ed92aa117119352bab3d2", "committed-generation module drift")
+    spec = importlib.util.spec_from_file_location("reviewed_committed_generation", generation_path)
+    generation = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(generation)
+    baseline_capture, baseline_hashes = generation.preflight(args, expected, build)
+    baseline_public = json.loads((baseline_capture / "wires/public-graph.json").read_bytes())
+    baseline_amount = baseline_public["budget"]["used_builder_bytes"]
+    analysis = [(name, baseline_hashes[name + ".json"]) for name, _ in ANALYSIS]
     require(build["exit_code"] == producer["exit_code"] == 0
             and not producer["resource_refusal"], "trusted ROOT build/producer failed")
     require(build["source_subject"] == producer["source_subject"]
@@ -98,6 +111,7 @@ def main():
         key = str(Path(executable).resolve())
         require(str(Path(record["path"]).resolve()) == key and key in built,
                 "trusted binary role path mismatch")
+        require(built[key]["target"]["kind"] == (["lib"] if role == "semaprax" else ["test"]), "trusted binary kind mismatch")
         require(built[key]["target"]["name"] == role
                 and record["sha256"] == built[key]["executable_sha256"],
                 "trusted binary role SHA mismatch")
@@ -118,7 +132,7 @@ def main():
         if statuses[label][0] == 0:
             require("test result: ok. 1 passed; 0 failed" in log, "missing actual owner success: " + label)
     require(statuses["projection-wire"][0] == 0, "ignored wire producer failed")
-    names = ["public-graph"] + [name for name, _ in ANALYSIS] + ["projection-wire"]
+    names = ["public-graph"] + [name for name, _ in analysis] + ["projection-wire"]
     index = {record["name"]: record for record in manifest["candidates"]}
     require(len(index) == len(manifest["candidates"]), "duplicate wire candidate")
     wires = {}
@@ -132,6 +146,7 @@ def main():
         require(not data.endswith(b"\n"), "wire has noncanonical terminal LF: " + name)
         values[name] = json.loads(data)
         wires[name] = data
+    whole_wire_review = generation.validate_capture(capture, baseline_capture)
     graph = values["public-graph"]
     require(graph["schema"] == "semaprax.workspace-semantic-graph.v1", "public graph schema drift")
     amount = graph["budget"]["used_builder_bytes"]
@@ -142,20 +157,20 @@ def main():
         field = (',"graph_digest":"' + digest + '"').encode()
         require(wires[name].count(field) == 1, "graph digest field framing drift")
         require(workspace_artifact_digest(wires[name].replace(field, b"", 1)) == digest, "graph digest does not bind domain/length/full payload")
-    for name, _ in ANALYSIS:
+    for name, _ in analysis:
         require(values[name]["workspace_graph_digest"] == graph["graph_digest"], "analysis graph binding differs: " + name)
     edits = []
     def edit(path, before, after, evidence):
         edits.append(dict(path=path, before=before, after=after, actual_wire=evidence))
     owner = "tests/workspace/semantic_graph.rs"
-    edit(owner, "assert_eq!(graph.budget().used_builder_bytes(), 334_016);",
+    edit(owner, "assert_eq!(graph.budget().used_builder_bytes(), " + format(baseline_amount, "_") + ");",
          "assert_eq!(graph.budget().used_builder_bytes(), " + format(amount, "_") + ");", "public-graph")
-    edit(owner, "sha256:c5cbb726c4e888d9b6e945964e52d233af45d25c80dc292890343d5ad2079a2e",
+    edit(owner, "sha256:" + baseline_hashes["public-graph.json"],
          sha(wires["public-graph"]), "public-graph")
-    for name, old in ANALYSIS:
+    for name, old in analysis:
         edit(owner, "sha256:" + old, sha(wires[name]), name)
     edit("src/workspace_graph/type_proof_tests.rs",
-         "sha256:ba3d1b86d584444b3ed9d18bb0dfd2ed7b69a2a68841a40de3ce5cdfc5dc39f9",
+         "sha256:" + baseline_hashes["projection-wire.json"],
          sha(wires["projection-wire"]), "projection-wire")
     before_sources = {}
     after_sources = {}
@@ -184,12 +199,12 @@ def main():
         require(match is not None and match[1].endswith("tests/workspace/semantic_graph.rs"),
                 "not an exact owning stale-pin assertion: " + label)
         left, right = json.loads(match[3]), json.loads(match[4])
-        permitted = [(edits[0]["before"], amount, 334016),
+        permitted = [(edits[0]["before"], amount, baseline_amount),
                      (edits[1]["before"], sha(wires["public-graph"]), edits[1]["before"])]
         if label == "analysis":
-            permitted = [("sha256:" + ANALYSIS[0][1],
-                          [sha(wires[name]) for name, _ in ANALYSIS],
-                          ["sha256:" + old for _, old in ANALYSIS])]
+            permitted = [("sha256:" + analysis[0][1],
+                          [sha(wires[name]) for name, _ in analysis],
+                          ["sha256:" + old for _, old in analysis])]
         authorized = False
         for needle, actual, historical in permitted:
             offset = owner_source.index(needle)
@@ -197,7 +212,9 @@ def main():
             line = owner_source.count("\n", 0, assertion) + 1
             authorized |= int(match[2]) == line and left == actual and right == historical
         require(authorized, "non-pin assertion or mismatched actual/old failure: " + label)
-    report = dict(schema="semaprax.prelude-forecast-reviewed-pin-plan.v1", capture_head=head,
+    complete_source_projection = generation.source_projection(trusted_root, head, before_sources, after_sources)
+    report = dict(complete_wire_review=whole_wire_review, complete_source_projection=complete_source_projection,
+                  schema="semaprax.prelude-forecast-reviewed-pin-plan.v1", capture_head=head,
                   status="actual-candidate-plan-requires-wire-review", edits=edits,
                   source_sha256={path: sha(data) for path, data in before_sources.items()},
                   after_sha256={path: sha(data) for path, data in after_sources.items()},

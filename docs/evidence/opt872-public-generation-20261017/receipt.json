@@ -1,0 +1,78 @@
+{
+  "state": "SOURCE_ONLY_CANDIDATE_UNEXECUTED",
+  "base": "f6aeccc21d16e50a78d4f44522eaa5b028bd2cc0",
+  "proof": {
+    "state": "PASS_PURE_SOURCE_ARCHIVED_WIRE_CONTROLS_ONLY",
+    "original_public_lines": 227,
+    "original_public_require_guards": 42,
+    "current_public_require_guards": 44,
+    "baseline_wires": 10,
+    "independently_bound_existing_actual_wires": 10,
+    "validly_resealed_refusals": 20,
+    "original_legacy_refusal_retained": true,
+    "complete_original_source_inverse_edits": 107,
+    "new_capture": false,
+    "public_main_executed": false,
+    "pins_applied": false
+  },
+  "files": [
+    {
+      "path": "docs/evidence/opt872-public-generation-20261017/README.md",
+      "length": 3461,
+      "sha256": "c18834be19c4436e64308f38a253596f06cfc9ce1c19edd894889e1fcac6372b"
+    },
+    {
+      "path": "docs/evidence/opt872-public-generation-20261017/check-source.py",
+      "length": 4871,
+      "sha256": "97e9b5d5e8124d0b3cbba9598dba8691e1a1e8bf9349c3f49cfe81a3994bfd70"
+    },
+    {
+      "path": "docs/evidence/opt872-public-generation-20261017/original-committed67b-generation.py",
+      "length": 12381,
+      "sha256": "495cf823bff1b1b2123ad89e69b5ba4e9d42da504dde59f2039e2a989e07f842"
+    },
+    {
+      "path": "docs/evidence/opt872-public-generation-20261017/original-five-build-admission.py",
+      "length": 6560,
+      "sha256": "dd822599720b7ed964043daada833c6c802bfbd5ac1c0e3fadd66ea104a0bcb0"
+    },
+    {
+      "path": "docs/evidence/opt872-public-generation-20261017/original-program-pins.json",
+      "length": 444,
+      "sha256": "aba008ce8c99450f61ce8bdaf9c86c766746791a4da05ad944f1a9518fc4d40d"
+    },
+    {
+      "path": "docs/evidence/opt872-public-generation-20261017/original-source-inverse-composition.py",
+      "length": 4316,
+      "sha256": "7219e0924d6dc42222796c96414a11a7aa90c222073e3ee188bb1a0197308946"
+    },
+    {
+      "path": "docs/evidence/opt872-public-generation-20261017/original-update-prelude-forecast-pins.py",
+      "length": 14002,
+      "sha256": "19936e3603f390f9c821e8baeb99a0ea9a629373152c91e2a04a3113bef6eb6c"
+    },
+    {
+      "path": "docs/evidence/opt872-public-generation-20261017/public-entry-finite-inverse.json",
+      "length": 4321,
+      "sha256": "aaf7906eba15bd9ed4e25d0936532a9af4fc88eddcd3cc001e3ecb076134f994"
+    },
+    {
+      "path": "docs/evidence/opt872-public-generation-20261017/source-proof.json",
+      "length": 432,
+      "sha256": "9e6b6075f657a1b55ec419118b240f80405fc7572e9e73ba02ddda823fa29953"
+    },
+    {
+      "path": "scripts/prelude_forecast_committed_generation.py",
+      "length": 11475,
+      "sha256": "cb2ea06b1f01b302b20bfbc07a543adba577da5acd9ed92aa117119352bab3d2"
+    },
+    {
+      "path": "scripts/update-prelude-forecast-pins.py",
+      "length": 15483,
+      "sha256": "84e424f8caf063666a3c7fb9ce3e1f6917853510c060126912fb62ffe616c2f5"
+    }
+  ],
+  "public_main_executed": false,
+  "new_capture": false,
+  "pin_apply": false
+}

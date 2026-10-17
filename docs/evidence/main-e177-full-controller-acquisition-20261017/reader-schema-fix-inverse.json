@@ -1,0 +1,13 @@
+{
+  "source": "src/source_reflows_merge/main_e177_inputs.rs",
+  "before": "docs/evidence/main-e177-full-controller-acquisition-20261017/reader-before-schema-fix.rs.txt",
+  "before_sha256": "96fdc2faf6087916194b408110616bb16dfb8ddfca7f940eebb4e3572648dc68",
+  "after_sha256": "6a413e05b37026dc3557854b5ddb1139d7c8ce757b9d08df9a7fc8522ea5d6f3",
+  "edits": [
+    {
+      "before": "semaprax.main_e177-whole-source-acquisition.v1",
+      "after": "semaprax.main-e177-whole-source-acquisition.v1",
+      "count": 1
+    }
+  ]
+}

@@ -1070,12 +1070,16 @@ prelude/declaration index and resolver consume that exact input; invariant
 transformations and semantic cache publication keep genuine owning boundaries.
 `ast/program_source/function_alias.rs` owns provider-bound borrowed function
 views and the projected `DeclSlices` directory. A view requires the exact
-provider member and unchanged function name; pointer identity grants no authority.
-Its `FunctionDirectory` retains one `GeneratedRoots` owner for all generated
-types and fallback functions, including partial-construction teardown.
-`expected_projection/borrowed_imports/typed/alias.rs` owns the ordered import
-walk. The original wrapper classifier still admits the shape, and renamed or
-unsupported aliases retain the owning fallback. The actual core selects this
+provider member; its local alias remains the binding used by name lookup.
+Under the existing linked-source authority, the intrinsic classifier checks
+actual presentation membership and the complete original provider declaration,
+including its reserved name, identity, signature and forwarding body. Intrinsic
+HIR templates retain that provider name. A pointer, alias or origin label alone
+grants no authority. Its `FunctionDirectory` retains one `GeneratedRoots` owner
+for all generated types and fallback functions, including partial-construction
+teardown. `expected_projection/borrowed_imports/typed/alias.rs` owns the ordered
+import walk. The original full wrapper classifier still admits the shape;
+unsupported declarations retain the owning fallback and ordinary diagnostics. The actual core selects this
 transient route only for retained-output uncached construction without a
 frontend; it cannot publish a checked cache key. Existing semantic replay and
 final owning products retain their original boundaries.

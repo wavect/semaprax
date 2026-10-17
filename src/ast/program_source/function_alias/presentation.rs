@@ -4,7 +4,7 @@
 //! never borrows a constructor argument, iterator item, or copied FunctionView.
 //! The alias controls every name-sensitive consumer; payload() is an explicit
 //! boundary for consumers that need original fields. There is no Deref/AsRef.
-use super::{FunctionDirectory, FunctionEntry};
+use super::{FunctionDirectory, FunctionEntry, FunctionView};
 use crate::ast::Function;
 
 // Ordinary declaration helpers keep their existing AST input APIs while the
@@ -20,14 +20,25 @@ impl Function {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub(crate) struct FunctionRef<'a> {
     payload: &'a Function,
-    alias_cell: Option<&'a &'a str>,
+    alias_cell: Option<&'a FunctionView<'a>>,
 }
 /// The original capacity owner: a class declaration pointer is sufficient to
 /// recover its exact name, leaving the tuple's backing available for the view.
 pub(crate) type FunctionCell<'a> = (Option<&'a crate::ast::TypeDeclaration>, FunctionRef<'a>);
+
+impl std::fmt::Debug for FunctionRef<'_> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Preserve the prior payload/alias debug boundary; do not recursively
+        // dump the entire newly reachable provider Program on a test failure.
+        formatter.debug_struct("FunctionRef")
+            .field("payload", &self.payload)
+            .field("alias_cell", &self.alias_cell.map(|view| view._alias))
+            .finish()
+    }
+}
 
 impl<'a> FunctionRef<'a> {
     pub(crate) fn ordinary(payload: &'a Function) -> Self {
@@ -38,7 +49,7 @@ impl<'a> FunctionRef<'a> {
     }
     pub(crate) fn name(&self) -> &'a str {
         match self.alias_cell {
-            Some(cell) => cell,
+            Some(cell) => cell._alias,
             None => &self.payload.name,
         }
     }
@@ -47,6 +58,14 @@ impl<'a> FunctionRef<'a> {
     }
     pub(crate) fn has_stored_alias(&self) -> bool {
         self.alias_cell.is_some()
+    }
+
+    /// The actual checked provider declaration, never the local binding name.
+    /// A specialized or unrelated payload cannot inherit this authority merely
+    /// by retaining a stored alias cell. Full wrapper guards still run on it.
+    pub(crate) fn provider_declaration(&self) -> Option<(&'a crate::ast::Program, &'a Function)> {
+        let view = self.alias_cell?;
+        std::ptr::eq(self.payload, view.original).then_some((view._provider, view.original))
     }
 
     /// A genuine owning transform materializes the effective name once. Raw
@@ -289,7 +308,7 @@ impl<'a> FunctionSlices<'a> {
                         .map(FunctionRef::ordinary),
                     FunctionEntry::Borrowed(view) => Some(FunctionRef {
                         payload: view.original,
-                        alias_cell: Some(&view._alias),
+                        alias_cell: Some(view),
                     }),
                 }
             }

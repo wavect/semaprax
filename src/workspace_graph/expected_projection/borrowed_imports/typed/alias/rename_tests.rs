@@ -75,15 +75,28 @@ fn renamed_vec_and_box_payloads_lend_provider_fields_through_actual_owner_and_hi
                 assert!(crate::box_ops::source_wrapper_ref(&view, &cell).is_none());
             }
             let layout = registry.get(&programs[0], &authored, &programs).unwrap();
-            let expected = linked(|| {
+            let old_result = linked(|| {
                 crate::hir::identity_resolution::before_function_alias::resolve_source_nominal(
                     &old,
                     layout.presentation(&programs[0], &old).unwrap(),
                     crate::workspace_graph::reserve_builder_structure,
                 )
-            })
-            .unwrap()
-            .0;
+            });
+            let diagnostics = match old_result {
+                Err(crate::hir::identity_resolution::Failure::Source(diagnostics)) => diagnostics,
+                other => panic!("historical owning intrinsic-name limitation changed: {other:?}"),
+            };
+            super::owned_growth_tests::assert_old_alias_refusal(&old, &diagnostics);
+            // Additional whole-payload-authenticated provider/binding oracle;
+            // the old receiver above is explicitly not claimed to succeed.
+            let oracle = super::owned_growth_tests::provider_binding_oracle(&old, &programs);
+            let expected = linked(|| {
+                crate::hir::identity_resolution::resolve_source_nominal(
+                    &oracle,
+                    layout.presentation(&programs[0], &oracle).unwrap(),
+                    crate::workspace_graph::reserve_builder_structure,
+                )
+            }).unwrap().0;
             let mut owner =
                 crate::bounded_output::identity_reservation::IdentityReservation::acquire()
                     .unwrap();
@@ -185,6 +198,42 @@ fn malformed_provider_cannot_gain_borrowing_through_a_renamed_import() {
         .unwrap()
         .effects
         .push("hostile.effect".to_owned());
+    // Preserve the complete original malformed generic provider and its actual
+    // earlier refusal. It cannot reach a borrowed-entry control through this
+    // signature-only importer: generic cross-file types are not admitted.
+    let ((), negative_refused, _, negative_first) = with_limit_usage_refusal(LIMIT, || {
+        let authored = index_authored(&programs).unwrap();
+        let registry = LayoutRegistry::new(&programs, &authored);
+        let mut owner = Receiver::acquire().unwrap();
+        for current in [false, true] {
+            let result = if current {
+                construct_transient(&programs[0], &authored, &programs, &registry, None, &mut owner)
+            } else {
+                super::super::before_alias::construct_using(&programs[0], &authored, &programs, &registry, None, &mut owner)
+            };
+            let diagnostic = match result {
+                Err(Failure::One(diagnostic)) => diagnostic,
+                _ => panic!("original generic malformed provider did not retain its early refusal"),
+            };
+            assert_eq!(diagnostic.code, "SPX-G172");
+            assert_eq!(diagnostic.severity, crate::diagnostic::Severity::Error);
+            assert_eq!(diagnostic.message, "generic cross-file types are not admitted");
+            assert_eq!(diagnostic.path, None);
+            assert_eq!(diagnostic.span, None);
+            assert_eq!(diagnostic.help, None);
+        }
+    });
+    assert!(!negative_refused && negative_first.is_none());
+    // A parsed, nongeneric scalar signature reaches the intended owning
+    // fallback. Its reserved identity/name and hostile effect remain intact,
+    // so the unchanged full intrinsic guard must still reject the declaration.
+    let mut scalar = crate::parse("module hostile; @id(\"hostile.scalar\") fn scalar(value:i64,index:usize)->i64 {value}", "hostile.spx").unwrap().functions.remove(0);
+    let malformed = programs[1].functions.iter_mut().find(|function| function.stable_id == "std.collections.vec.get").unwrap();
+    malformed.type_parameters = Vec::new();
+    malformed.params = std::mem::take(&mut scalar.params);
+    malformed.return_type = scalar.return_type.clone();
+    malformed.body = scalar.body.clone();
+    assert!(crate::vec_ops::source_wrapper(&programs[1], programs[1].functions.iter().find(|function| function.stable_id == "std.collections.vec.get").unwrap()).is_none());
     let authored = index_authored(&programs).unwrap();
     let ((), refused, _, _) = with_limit_usage_refusal(LIMIT, || {
         let registry = LayoutRegistry::new(&programs, &authored);
@@ -325,4 +374,90 @@ fn renamed_and_ordinary_whole_producer_receiver_drop_and_refusal_costs_are_obser
             );
         }
     }
+}
+
+
+#[test]
+fn provider_bound_intrinsic_alias_requires_existing_authority_exact_membership_and_original_guard() {
+    use crate::ast::program_source::function_alias::FunctionView;
+    use crate::ast::program_source::FunctionRef;
+    struct BeforeFunctionRef<'a> {
+        payload: &'a crate::ast::Function,
+        alias_cell: Option<&'a &'a str>,
+    }
+    // Compile the entire original facade layout beside the current one. These
+    // exact-profile assertions are executable prerequisites, not measured claims.
+    assert_eq!(std::mem::size_of::<FunctionRef<'_>>(), std::mem::size_of::<BeforeFunctionRef<'_>>());
+    assert_eq!(std::mem::align_of::<FunctionRef<'_>>(), std::mem::align_of::<BeforeFunctionRef<'_>>());
+    let programs = super::tests::sources(RENAMED);
+    let authored = index_authored(&programs).unwrap();
+    let ((), refused, _, first) = with_limit_usage_refusal(LIMIT, || {
+        let registry = LayoutRegistry::new(&programs, &authored);
+        let mut owner = Receiver::acquire().unwrap();
+        let view = construct_transient(&programs[0], &authored, &programs, &registry, None, &mut owner).unwrap();
+        let foreign = construct_transient(&programs[0], &authored, &programs, &registry, None, &mut owner).unwrap();
+        let index = programs[0].functions.len();
+        let cell = view.function_refs().get(index).unwrap();
+        let alien = foreign.function_refs().get(index).unwrap();
+        let original = authored["std.collections.vec.with-capacity"].function.unwrap();
+        let alias = cell.name();
+        let before = BeforeFunctionRef { payload: original, alias_cell: Some(&alias) };
+        assert!(std::ptr::eq(before.payload, original));
+        assert_eq!(before.alias_cell.copied(), Some(alias));
+        let specialized = original.clone();
+        let specialized_cell = cell.specialized_payload(&specialized);
+        assert!(specialized_cell.provider_declaration().is_none());
+        linked(|| assert!(crate::vec_ops::source_wrapper_ref(&view, &specialized_cell).is_none()));
+        assert!(crate::vec_ops::source_wrapper_ref(&view, &cell).is_none());
+        assert!(cell.provider_declaration().is_some());
+        linked(|| {
+            assert_eq!(crate::vec_ops::source_wrapper_ref(&view, &cell), Some(crate::vec_ops::VecOp::WithCapacity));
+            assert!(crate::vec_ops::source_wrapper_ref(&view, &alien).is_none());
+        });
+        let mut changed = original.clone();
+        changed.name = "make_vec".to_owned();
+        assert!(crate::vec_ops::source_wrapper(&programs[1], &changed).is_none());
+        assert!(FunctionView::checked(&programs[1], &changed, "make_vec").is_none());
+        changed = original.clone();
+        changed.effects.push("hostile.effect".to_owned());
+        assert!(crate::vec_ops::source_wrapper(&programs[1], &changed).is_none());
+        changed = original.clone();
+        changed.params[0].mode = crate::ast::ParamMode::Own;
+        assert!(crate::vec_ops::source_wrapper(&programs[1], &changed).is_none());
+        changed = original.clone();
+        changed.body = programs[0].functions[0].body.clone();
+        assert!(crate::vec_ops::source_wrapper(&programs[1], &changed).is_none());
+        changed = original.clone();
+        changed.stable_id = "forged.wrapper".to_owned();
+        assert!(crate::vec_ops::source_wrapper(&programs[1], &changed).is_none());
+        drop((view, foreign, owner));
+        drop(registry);
+    });
+    assert!(!refused && first.is_none());
+}
+
+#[test]
+fn ordinary_project_import_as_vec_alias_preserves_real_provider_declarations_and_complete_sources() {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    let root = std::env::temp_dir().join(format!("intrinsic-import-as-{}-{}", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed)));
+    std::fs::create_dir_all(root.join("src")).unwrap();
+    let manifest = "schema = \"semaprax.project.v1\"\nname = \"intrinsic-alias-witness\"\nentry = \"alias.current\"\nsources = [\"src/app.spx\", \"src/provider.spx\", \"src/tests.spx\"]\nweb_exports = [\"alias.current.main\"]\ntests = [\"alias.witness_tests\"]\n";
+    let tests = "module alias.witness_tests; @id(\"alias.witness.smoke\") fn smoke()->bool {true}";
+    std::fs::write(root.join("semaprax.toml"), manifest).unwrap();
+    for (path, source) in [("src/app.spx", RENAMED), ("src/provider.spx", PROVIDER), ("src/tests.spx", tests)] {
+        std::fs::write(root.join(path), source).unwrap();
+    }
+    crate::project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
+        snapshot.check()?;
+        crate::hir::validate(snapshot.entry_program()).unwrap();
+        for (path, source) in [("src/app.spx", RENAMED), ("src/provider.spx", PROVIDER), ("src/tests.spx", tests)] {
+            assert_eq!(snapshot.sources().iter().find(|input| input.path() == path).unwrap().source(), source);
+        }
+        let evaluated = crate::interpreter::evaluate_resolved_zero_arg_i64(snapshot.entry_program(), "alias.current.main", 100_000)?;
+        assert!(matches!(evaluated.outcome, crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(42)));
+
+        Ok(())
+    }).unwrap();
+    std::fs::remove_dir_all(root).unwrap();
 }

@@ -195,20 +195,38 @@ fn borrowed_owned_mixed_and_synthetic_main_keep_zero_or_original_capacity_and_fu
             );
             let layout = registry.get(&programs[0], &authored, &programs).unwrap();
             crate::vec_ops::with_authenticated_linked_source(|| {
-                let expected = crate::hir::identity_resolution::resolve_source_nominal(
+                let old_result = crate::hir::identity_resolution::resolve_source_nominal(
                     &old,
                     layout.presentation(&programs[0], &old).unwrap(),
                     crate::workspace_graph::reserve_builder_structure,
-                )
-                .unwrap()
-                .0;
-                let actual = crate::hir::identity_resolution::resolve_source_nominal(
+                );
+                let current_result = crate::hir::identity_resolution::resolve_source_nominal(
                     &current,
                     layout.presentation(&programs[0], &current).unwrap(),
                     crate::workspace_graph::reserve_builder_structure,
-                )
-                .unwrap()
-                .0;
+                );
+                let (expected, actual) = match (old_result, current_result) {
+                    (Ok(expected), Ok(actual)) => (expected.0, actual.0),
+                    (Err(crate::hir::identity_resolution::Failure::Source(old_errors)),
+                     Err(crate::hir::identity_resolution::Failure::Source(current_errors))) => {
+                        assert_old_alias_refusal(&old, &old_errors);
+                        assert_eq!(old_errors, current_errors);
+                        // Both historical owning-name routes are retained as
+                        // actual failures. This additional oracle authenticates
+                        // every produced field, then separates declaration and
+                        // binding for the genuine current import-as success.
+                        let oracle = provider_binding_oracle(&old, &programs);
+                        let production = crate::workspace_graph::expected_projection::borrowed_imports::typed::alias::construct_transient(&programs[0], &authored, &programs, &registry, None, &mut owner).unwrap();
+                        let expected = crate::hir::identity_resolution::resolve_source_nominal(
+                            &oracle, layout.presentation(&programs[0], &oracle).unwrap(),
+                            crate::workspace_graph::reserve_builder_structure).unwrap().0;
+                        let actual = crate::hir::identity_resolution::resolve_source_nominal(
+                            &production, layout.presentation(&programs[0], &production).unwrap(),
+                            crate::workspace_graph::reserve_builder_structure).unwrap().0;
+                        (expected, actual)
+                    }
+                    other => panic!("old/current historical outcome changed: {other:?}"),
+                };
                 assert_eq!(expected, actual);
                 crate::hir::validate(&actual).unwrap();
             });
@@ -485,4 +503,89 @@ fn complete_immediate_directory_producer_and_expanded_acquisition_remain_source_
             "/docs/evidence/owned-function-directory-847/tests.before.rs.txt"
         ))
     );
+}
+
+
+/// Additional, test-only provider/binding oracle. This is not the historical
+/// receiver and is never inside its paid/allocation observation window. Every
+/// declaration produced by the old route is authenticated completely before
+/// any original provider payload can stand in for its local binding spelling.
+pub(super) fn provider_binding_oracle<'p>(
+    old: &dyn ProgramSource,
+    programs: &'p [Program],
+) -> crate::ast::program_source::function_alias::TransientFunctions<'p> {
+    use crate::ast::program_source::function_alias::{FunctionDirectory, FunctionEntry, FunctionView, TransientFunctions};
+    use crate::ast::program_source::{generated_roots::GeneratedRoots, FunctionSlices};
+    let authored = &programs[0];
+    assert_eq!(old.path(), authored.path);
+    assert_eq!(old.module(), authored.module);
+    assert!(old.functions().len() <= 8 && old.types().len() <= 16);
+    for (index, function) in authored.functions.iter().enumerate() {
+        assert_eq!(old.functions().get(index), Some(function));
+    }
+    let mut directory = FunctionDirectory {
+        roots: GeneratedRoots::plain(old.types().iter().skip(authored.types.len()).cloned().collect(), Vec::new()),
+        entries: Vec::new(),
+    };
+    for function in old.functions().iter().skip(authored.functions.len()) {
+        let imported = authored.module_uses.iter().find(|import| {
+            import.kind == crate::ast::ModuleUseKind::Function
+                && import.persistent_id == function.stable_id
+                && import.alias == function.name
+        });
+        let provider = imported.and_then(|import| programs.iter().find(|provider| provider.module == import.target_module));
+        let original = provider.and_then(|provider| provider.functions.iter().find(|candidate| candidate.stable_id == function.stable_id));
+        match (imported, provider, original) {
+            (Some(import), Some(provider), Some(original))
+                if crate::vec_ops::source_wrapper(provider, original).is_some()
+                    || crate::box_ops::source_wrapper(provider, original).is_some() => {
+                directory.entries.push(FunctionEntry::Borrowed(FunctionView::checked(provider, original, &import.alias).unwrap()));
+            }
+            _ => {
+                directory.entries.push(FunctionEntry::Owned(directory.roots.functions.len()));
+                directory.roots.functions.push(function.clone());
+            }
+        }
+        let views = FunctionSlices::projected(&[], &directory).unwrap();
+        assert!(views.get(views.len() - 1).unwrap().same_ordinary_declaration(function), "complete historical payload differs from authenticated provider/binding");
+    }
+    let bridge = TransientFunctions::new(authored, directory);
+    assert_eq!(old.types().iter().collect::<Vec<_>>(), bridge.types().iter().collect::<Vec<_>>());
+    assert_eq!(old.permits(), bridge.permits());
+    assert_eq!(old.interfaces(), bridge.interfaces());
+    assert_eq!(old.protocols(), bridge.protocols());
+    assert_eq!(old.implementations(), bridge.implementations());
+    assert_eq!(old.session_protocols(), bridge.session_protocols());
+    assert_eq!(old.agents(), bridge.agents());
+    bridge
+}
+
+/// Retain the old receiver's actual limitation as a complete diagnostic oracle.
+/// Local import aliases are valid syntax; their old owning materialization
+/// changed reserved declaration names and was not a successful HIR subject.
+pub(super) fn assert_old_alias_refusal(
+    old: &dyn ProgramSource,
+    diagnostics: &[crate::diagnostic::Diagnostic],
+) {
+    let mut expected = Vec::new();
+    for function in old.function_refs() {
+        let kind = if crate::vec_ops::wrapper_by_id(&function.payload().stable_id)
+            .is_some_and(|op| Some(function.name()) != crate::vec_ops::wrapper_name(op)) {
+            Some(("SPX-T283", "vector"))
+        } else if crate::box_ops::wrapper_by_id(&function.payload().stable_id)
+            .is_some_and(|op| function.name() != crate::box_ops::wrapper_name(op)) {
+            Some(("SPX-T286", "box"))
+        } else { None };
+        if let Some((code, kind)) = kind {
+            // The old route's binding name is deliberately distinct from the
+            // exact reserved wrapper declaration name; no forged success here.
+            let mut diagnostic = crate::diagnostic::Diagnostic::error(code,
+                format!("`{}.{}` must be one exact transparent compiler-owned {kind} wrapper", old.module(), function.name()),
+                function.payload().span);
+            diagnostic.path = Some(old.path().to_owned());
+            expected.push(diagnostic);
+        }
+    }
+    assert!(!expected.is_empty());
+    assert_eq!(diagnostics, expected.as_slice());
 }

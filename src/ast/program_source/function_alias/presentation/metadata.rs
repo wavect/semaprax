@@ -216,7 +216,7 @@ impl<'a> FunctionSlices<'a> {
                                 std::ptr::eq(view.original, target.payload)
                                     && target
                                         .alias_cell
-                                        .is_some_and(|cell| std::ptr::eq(cell, &view._alias))
+                                        .is_some_and(|cell| std::ptr::eq(cell, view))
                             }
                         })
                     })

@@ -1,0 +1,21 @@
+{
+  "status": "SOURCE_ONLY_UNCOMPILED_UNEXECUTED_REQUIRES_REVIEW",
+  "retained_primitive_frame_sites": {
+    "charge": 4,
+    "original_paid": 6,
+    "direct_HIR_reserve": 3,
+    "swap_payments": 2,
+    "Zip_next_payment": 1,
+    "explicit_backing": 2
+  },
+  "dynamic_payloads": {
+    "paired_next": "2*NEXT_CALL + 4*PATH_INDEX + PAIR_MATCH",
+    "left_right_prepare": "PREPARE_CALL + PATH_INDEX at each actual call",
+    "flat_next": "NEXT_CALL + FLAT_MATCH",
+    "shared_next": "NEXT_CALL + SHARED_MATCH",
+    "swap": "PATH_SWAP at each actual swap",
+    "final_next": "FINAL_NEXT before every Zip.next including sentinel"
+  },
+  "independent_first_diagnostic": "unchanged ReplayBudget::reserve_bytes with actual observed prefix/request/phase; all6fields compared",
+  "tradeoff": "New payload fees are real overhead; no fit/gain claim. Recreated compound payloads are not retained once."
+}

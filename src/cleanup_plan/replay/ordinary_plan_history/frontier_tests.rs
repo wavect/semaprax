@@ -59,7 +59,7 @@ fn observe(
                     COMPARE_CALL_CONTROLS,
                     "frontier comparison call"
                 )?;
-                compare(function, &mut budget, actual, expected)
+                before_comparison::compare(function, &mut budget, actual, expected)
             })();
             let result = result.map_err(failure);
             let spent = budget.skeleton_spent;

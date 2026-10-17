@@ -1,0 +1,343 @@
+{
+  "predecessor": "4e029a127",
+  "files": [
+    {
+      "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+      "before_archive": "comparison_owner.before.rs.txt",
+      "before_sha256": "060a02079a37e91733aa536157658c04a05260ff535cf8aca5d230122587a755",
+      "after_sha256": "35b9565f8dbe7dc67164bc87540f4f49e9bf46e3dae7bb791dd3ba1b31c0ef78",
+      "edits": [
+        {
+          "before_start": 38,
+          "before_lines": [
+            "    + 2 * size_of::<std::slice::Iter<'static, SkeletonPath>>() // zip actual/formal concrete iterators\n",
+            "    + 2 * size_of::<FinalZip>() // returned/owned loop iterator\n",
+            "    + 2 * size_of::<&[PlanPath]>() + 2 * size_of::<&[SkeletonPath]>()\n",
+            "    + 2 * size_of::<&mut FinalZip>() // one loop-next actual/formal site\n"
+          ],
+          "after_start": 38,
+          "after_lines": [
+            "    + 2 * size_of::<std::slice::Iter<'static, SkeletonPath>>()\n",
+            "    + 2 * size_of::<FinalZip>()\n",
+            "    + 2 * size_of::<&Vec<PlanPath>>() + size_of::<&[PlanPath]>() // Vec deref actual/formal/return\n",
+            "    + 2 * size_of::<&[PlanPath]>() + 2 * size_of::<&[SkeletonPath]>();\n",
+            "const FINAL_NEXT: usize = 2 * size_of::<&mut FinalZip>()\n"
+          ]
+        },
+        {
+          "before_start": 43,
+          "before_lines": [
+            "    + 2 * size_of::<(&PlanPath, &SkeletonPath)>(); // next return/receiving + pair bindings\n",
+            "const CURSOR_INITIALIZERS: usize = 2 * size_of::<std::slice::IterMut<'static, Cursor>>()\n",
+            "    + 2 * size_of::<&mut [Cursor; 2]>() // IntoIterator actual/formal place receivers\n",
+            "    + 2 * size_of::<&mut std::slice::IterMut<'static, Cursor>>()\n",
+            "    + 2 * size_of::<Option<&mut Cursor>>() + size_of::<&mut Cursor>();\n",
+            "const FINAL_MATCHES: usize = size_of::<(Option<&SkeletonObservation>, Option<&Rc<SkeletonObservation>>)>()\n",
+            "    + size_of::<(Option<&SkeletonObservation>, Option<&SkeletonObservation>)>()\n",
+            "    + 3 * size_of::<&SkeletonObservation>() + size_of::<&Rc<SkeletonObservation>>() // match bindings\n",
+            "    + 8 * size_of::<&SkeletonObservation>() // actual/formal equality operands at two guards\n",
+            "    + 2 * size_of::<&Rc<SkeletonObservation>>() + size_of::<&SkeletonObservation>() // as_ref actual/formal/return\n"
+          ],
+          "after_start": 44,
+          "after_lines": [
+            "    + 2 * size_of::<(&PlanPath, &SkeletonPath)>()\n",
+            "    + size_of::<usize>() // flat index local, per path (also prepaid for sentinel)\n",
+            "    + 4 * size_of::<&SkeletonTerminal>() + size_of::<bool>();\n",
+            "const FLAT_MATCH: usize = size_of::<(Option<&SkeletonObservation>, Option<&Rc<SkeletonObservation>>)>()\n",
+            "    + size_of::<&SkeletonObservation>() + size_of::<&Rc<SkeletonObservation>>()\n",
+            "    + 4 * size_of::<&SkeletonObservation>() // equality actual/formal pair\n",
+            "    + 2 * size_of::<&Rc<SkeletonObservation>>() + size_of::<&SkeletonObservation>()\n"
+          ]
+        },
+        {
+          "before_start": 54,
+          "before_lines": [
+            "    + 2 * size_of::<usize>()\n",
+            "    + size_of::<Option<&Rc<SkeletonObservation>>>() // flat get actual/formal/return\n",
+            "    + 4 * size_of::<&SkeletonTerminal>() // final terminal inequality operands\n",
+            "    + size_of::<usize>() // flat comparison index\n",
+            "    + 4 * size_of::<bool>(); // len, both observation guards, terminal comparison\n"
+          ],
+          "after_start": 52,
+          "after_lines": [
+            "    + 2 * size_of::<usize>() + size_of::<Option<&Rc<SkeletonObservation>>>()\n",
+            "    + size_of::<bool>();\n",
+            "const SHARED_MATCH: usize = size_of::<(Option<&SkeletonObservation>, Option<&SkeletonObservation>)>()\n",
+            "    + 2 * size_of::<&SkeletonObservation>()\n",
+            "    + 4 * size_of::<&SkeletonObservation>() + size_of::<bool>();\n"
+          ]
+        },
+        {
+          "before_start": 74,
+          "before_lines": [
+            "// Four charge sites (sift, pair, flat HIR, shared HIR), eight later byte\n",
+            "// acquisition sites (left/right/paired, HIR prepare/query/flat-next/shared\n",
+            "// prepare/shared-next) and the shared-HIR-next acquisition =13. Their Results,\n",
+            "// phase/function/budget/usize actual+formal roles exist before their calls.\n"
+          ],
+          "after_start": 72,
+          "after_lines": [
+            "// Retained primitive caller slots, not dynamic compound payload credit:\n",
+            "// four charge sites + six original paid sites + three direct HIR reserve sites\n",
+            "// + two swap payment sites + one Zip-next payment site = sixteen. Each is a\n",
+            "// nonrecursive sequential Result<(), Diagnostic> receiving frame: success has\n",
+            "// no owned payload, failure leaves the invocation immediately with one owned\n",
+            "// Diagnostic. Function/budget places never change and no Result escapes or\n",
+            "// overlaps another activation of its lexical site. Distinct compound Option,\n",
+            "// tuple, comparison/index/swap payloads below are paid on EVERY execution.\n",
+            "// Two explicit backing sites have distinct prepaid primitive frames; no\n",
+            "// iterator, IterMut::next or Option<&mut Cursor> initializer remains.\n"
+          ]
+        },
+        {
+          "before_start": 82,
+          "before_lines": [
+            "    + 13 * PAYMENT_HEADER\n",
+            "    + PAYMENT_HEADER + 2 * size_of::<&mut Vec<usize>>() // one cursor-backing call site\n",
+            "    + 6 * PATH_INDEX + 2 * PATH_SWAP\n",
+            "    + PAIR_MATCH + CURSOR_INITIALIZERS + FINAL_ITERATORS + FINAL_MATCHES + 4 * MISMATCH_CALL\n"
+          ],
+          "after_start": 86,
+          "after_lines": [
+            "    + 16 * PAYMENT_HEADER // original thirteen, two swap sites and final Zip-next site\n",
+            "    + 2 * (PAYMENT_HEADER + 2 * size_of::<&mut Vec<usize>>()) // explicit two backing sites\n",
+            "    + FINAL_ITERATORS + size_of::<bool>() + 4 * MISMATCH_CALL\n"
+          ]
+        },
+        {
+          "before_start": 121,
+          "before_lines": [
+            "    for cursor in &mut owner.cursors {\n",
+            "        backing!(budget, function, &mut cursor.links, actual.max_depth, \"ordinary plan history cursor backing\")?;\n",
+            "    }\n"
+          ],
+          "after_start": 124,
+          "after_lines": [
+            "    backing!(budget, function, &mut owner.cursors[0].links, actual.max_depth, \"ordinary plan history cursor backing\")?;\n",
+            "    backing!(budget, function, &mut owner.cursors[1].links, actual.max_depth, \"ordinary plan history cursor backing\")?;\n"
+          ]
+        },
+        {
+          "before_start": 140,
+          "before_lines": [],
+          "after_start": 142,
+          "after_lines": [
+            "                paid!(budget, function, PATH_SWAP, \"ordinary plan retained drain swap receivers\")?;\n"
+          ]
+        },
+        {
+          "before_start": 166,
+          "before_lines": [
+            "                paid!(budget, function, PREPARE_CALL, \"ordinary plan history left cursor prepare\")?;\n"
+          ],
+          "after_start": 169,
+          "after_lines": [
+            "                paid!(budget, function, PREPARE_CALL + PATH_INDEX, \"ordinary plan history left cursor prepare\")?;\n"
+          ]
+        },
+        {
+          "before_start": 168,
+          "before_lines": [
+            "                paid!(budget, function, PREPARE_CALL, \"ordinary plan history right cursor prepare\")?;\n"
+          ],
+          "after_start": 171,
+          "after_lines": [
+            "                paid!(budget, function, PREPARE_CALL + PATH_INDEX, \"ordinary plan history right cursor prepare\")?;\n"
+          ]
+        },
+        {
+          "before_start": 174,
+          "before_lines": [
+            "                paid!(budget, function, 2 * NEXT_CALL, \"ordinary plan history paired cursor next\")?;\n"
+          ],
+          "after_start": 177,
+          "after_lines": [
+            "                paid!(budget, function, 2 * NEXT_CALL + 4 * PATH_INDEX + PAIR_MATCH, \"ordinary plan history paired cursor next\")?;\n"
+          ]
+        },
+        {
+          "before_start": 200,
+          "before_lines": [],
+          "after_start": 203,
+          "after_lines": [
+            "                paid!(budget, function, PATH_SWAP, \"ordinary plan retained sift swap receivers\")?;\n"
+          ]
+        },
+        {
+          "before_start": 211,
+          "before_lines": [
+            "    for (path, flat) in actual.paths.iter().zip(expected) {\n"
+          ],
+          "after_start": 215,
+          "after_lines": [
+            "    let mut pairs = actual.paths.iter().zip(expected);\n",
+            "    loop {\n",
+            "        paid!(budget, function, FINAL_NEXT, \"ordinary plan retained final Zip next receivers\")?;\n",
+            "        let Some((path, flat)) = pairs.next() else { break; };\n"
+          ]
+        },
+        {
+          "before_start": 231,
+          "before_lines": [
+            "                    NEXT_CALL,\n"
+          ],
+          "after_start": 238,
+          "after_lines": [
+            "                    NEXT_CALL + FLAT_MATCH,\n"
+          ]
+        },
+        {
+          "before_start": 259,
+          "before_lines": [
+            "                    NEXT_CALL,\n"
+          ],
+          "after_start": 266,
+          "after_lines": [
+            "                    NEXT_CALL + SHARED_MATCH,\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs",
+      "before_archive": "tests.before.rs.txt",
+      "before_sha256": "71799ccdf2ae789380b520a26796c52b6baf828cd372eb2edc0edbbc7d7156d5",
+      "after_sha256": "1ff7ffdbc4bcd7af1c373da252cbdd8b57fc72b8a007e991ac4b892b8d811b6c",
+      "edits": [
+        {
+          "before_start": 57,
+          "before_lines": [],
+          "after_start": 57,
+          "after_lines": [
+            "            let allocation = crate::test_allocation_observer::current_metrics();\n"
+          ]
+        },
+        {
+          "before_start": 60,
+          "before_lines": [],
+          "after_start": 61,
+          "after_lines": [
+            "            assert_eq!(crate::test_allocation_observer::current_metrics(), allocation);\n"
+          ]
+        },
+        {
+          "before_start": 73,
+          "before_lines": [],
+          "after_start": 75,
+          "after_lines": [
+            "}\n",
+            "// Independent primitive oracle: reproduce the ACTUALLY OBSERVED ledger prefix,\n",
+            "// then ask the unchanged real reserve primitive for its first full Diagnostic.\n",
+            "// This test state replication is never production credit or a guessed bill.\n",
+            "fn primitive_failure(function: &ResolvedFunction, event: frontiers::Event,\n",
+            "    limit: usize, floor: usize) -> Failure {\n",
+            "    let ((saved, metrics), refused, _, receipt) = with_limit_usage_refusal(limit, || measure(|| {\n",
+            "        let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n",
+            "        budget.prepare_builder(function).unwrap();\n",
+            "        let used = limit - crate::bounded_output::active_remaining().unwrap();\n",
+            "        let prefix = event.before.checked_sub(used).expect(\"observed prefix includes builder bootstrap\");\n",
+            "        budget.reserve_bytes(function, prefix, \"independent observed prefix\").unwrap();\n",
+            "        assert_eq!(limit - crate::bounded_output::active_remaining().unwrap(), event.before);\n",
+            "        assert!(crate::bounded_output::set_active_floor(floor));\n",
+            "        let error = budget.reserve_bytes(function, event.after.unwrap() - event.before, event.phase).unwrap_err();\n",
+            "        let saved = failure(&error);\n",
+            "        crate::bounded_output::clear_active_floor();\n",
+            "        drop(budget);\n",
+            "        drop(error);\n",
+            "        saved\n",
+            "    }));\n",
+            "    assert!(refused);\n",
+            "    let receipt = receipt.unwrap();\n",
+            "    assert_eq!(receipt.requested, event.after.unwrap() - event.before);\n",
+            "    assert_eq!(receipt.remaining, limit - event.before);\n",
+            "    assert_eq!(receipt.floor, floor);\n",
+            "    balanced(metrics);\n",
+            "    saved\n"
+          ]
+        },
+        {
+          "before_start": 141,
+          "before_lines": [
+            "    for phase in [\"ordinary plan history cursor backing\", \"ordinary plan history paired cursor next\", \"ordinary plan history HIR cursor prepare\", \"ordinary plan history HIR cursor next\"] {\n"
+          ],
+          "after_start": 171,
+          "after_lines": [
+            "    for phase in [\"ordinary plan history cursor backing\", \"ordinary plan history paired cursor next\", \"ordinary plan history HIR cursor prepare\", \"ordinary plan history HIR cursor next\", \"ordinary plan retained final Zip next receivers\", \"ordinary plan retained drain swap receivers\", \"ordinary plan retained sift swap receivers\"] {\n"
+          ]
+        },
+        {
+          "before_start": 163,
+          "before_lines": [],
+          "after_start": 193,
+          "after_lines": [
+            "                assert_eq!(a.0.0.result.as_ref().unwrap_err(), &primitive_failure(function, event, limit, floor));\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/bounded_output/stage_debits/route_debits.rs",
+      "before_archive": "route_debits.before.rs.txt",
+      "before_sha256": "eb6459312ec8e9b90783a6fd5b8020e284501b94dd9d50b2a1a833afa6550f65",
+      "after_sha256": "8e490c2a4854f4908ee0ffddf1a3799b77f81c71ab3b9e5a5ee2a3215f8bd4c3",
+      "edits": [
+        {
+          "before_start": 46,
+          "before_lines": [
+            "const COMPARISON_PHASES: usize = 10;\n"
+          ],
+          "after_start": 46,
+          "after_lines": [
+            "const COMPARISON_PHASES: usize = 13;\n"
+          ]
+        },
+        {
+          "before_start": 69,
+          "before_lines": [],
+          "after_start": 69,
+          "after_lines": [
+            "        \"ordinary plan retained drain swap receivers\" => Some(10),\n",
+            "        \"ordinary plan retained sift swap receivers\" => Some(11),\n",
+            "        \"ordinary plan retained final Zip next receivers\" => Some(12),\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/ORDINARY-PLAN-COMPARISON-OWNER-V1.md",
+      "before_archive": "contract.before.md.txt",
+      "before_sha256": "b82ff0db89548201841100a81d6d000bcb01b944957e04566a1550a9f6f89f6d",
+      "after_sha256": "90868e3369b2ceb043cd5784092e5151078bf41190159745ff2e8276be1b3310",
+      "edits": [
+        {
+          "before_start": 68,
+          "before_lines": [],
+          "after_start": 68,
+          "after_lines": [
+            "\n",
+            "Review followup: the entry bank does not exempt recreated payloads. Paired\n",
+            "observation tuples, match/cmp receivers and path-index calls are paid at every\n",
+            "paired NEXT execution; flat/shared match payloads are paid at their actual\n",
+            "NEXT sites. Each swap pays its full actual receiver bank. Final Zip construction\n",
+            "is paid once, including Vec auto-deref; every Zip.next pays its Option/tuple,\n",
+            "path bindings and terminal receivers, including the final sentinel request.\n",
+            "Two explicit cursor backing calls remove the initializer iterator entirely.\n",
+            "This adds real physical frontiers and may reduce or reverse savings on long\n",
+            "observation prefixes. Original work, PREPARE_CALL and NEXT_CALL prices remain\n",
+            "unchanged; no gain is claimed.\n",
+            "\n",
+            "Only the nonrecursive primitive caller frames are retained by lexical site:\n",
+            "successful Result<(), Diagnostic> carries no owned payload; the sole owned\n",
+            "failure exits immediately, and no frame escapes or overlaps a later use at\n",
+            "its site. The fixed function/budget places do not change. This narrow rule\n",
+            "does not cover recreated Option/tuple/cmp payloads. The current frontier owner\n",
+            "now compares the full first Diagnostic with the unchanged real reserve\n",
+            "primitive at the independently observed prefix, and verifies retry allocation\n",
+            "counters are unchanged as well as work and ledger balance. That oracle is\n",
+            "test-only state replication, never a production allowance or fee credit.\n"
+          ]
+        }
+      ]
+    }
+  ]
+}

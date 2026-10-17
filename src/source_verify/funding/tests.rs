@@ -51,3 +51,38 @@ fn sealed_abort_handoff_allocates_nothing_after_the_first_refusal() {
         std::mem::size_of::<Vec<Diagnostic>>()
     );
 }
+
+
+#[test]
+fn storage_frontier_entry_is_prepaid_at_exact_and_one_short_without_drop_debt() {
+    let identity = IdentityReservation::setup_bytes().unwrap();
+    let exact = identity + SourceFunding::setup_bytes();
+    let old_entry = exact - SourceFunding::STORAGE_DECLARATION_RECEIVING_BYTES;
+    assert!(old_entry < exact - 1);
+    for (limit, admitted) in [(old_entry, false), (exact - 1, false), (exact, true)] {
+        let ((success, refused, used), physical) = crate::test_allocation_observer::measure(|| {
+            crate::bounded_output::with_limit_usage(limit, || {
+                let mut owner = IdentityReservation::acquire().unwrap();
+                let success = match SourceFunding::funded(&mut owner) {
+                    Ok(mut funding) => {
+                        // Entry paid every named scan/finish slot before this
+                        // later operation can observe the exhausted account.
+                        let first = funding.reserve(1).unwrap_err();
+                        assert_eq!(funding.reserve(0), Err(first));
+                        true
+                    }
+                    Err(Refused::Budget(_)) => false,
+                    Err(other) => panic!("unexpected source entry refusal: {other:?}"),
+                };
+                success
+            })
+        });
+        assert_eq!(success, admitted);
+        assert!(refused);
+        assert!(used <= limit);
+        if admitted { assert_eq!(used, exact); }
+        assert!(!physical.invalid);
+        assert_eq!(physical.live, 0);
+        assert_eq!(physical.allocated, physical.freed);
+    }
+}

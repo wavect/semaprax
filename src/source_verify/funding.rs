@@ -56,6 +56,20 @@ impl BodyOutput<'_, '_> {
         + size_of::<SourceStop>();
 }
 impl<'o> SourceFunding<'o> {
+    // Entry-prepaid receiving slots for the newly introduced storage frontier.
+    // These are headers/scalars only; existing diagnostic backing/legacy work
+    // is not relabelled as paid, and no old bill is refunded.
+    const STORAGE_DECLARATION_RECEIVING_BYTES: usize =
+        size_of::<[usize; 2]>() // diagnostics.len return and storage-start receiver
+        + size_of::<[std::ops::RangeFrom<usize>; 2]>() // range literal and index argument
+        + size_of::<[&Vec<Diagnostic>; 2]>() // len and index borrowed receivers
+        + size_of::<[&[Diagnostic]; 2]>() // selected slice and iter receiver
+        + size_of::<[std::slice::Iter<'_, Diagnostic>; 2]>() // iter return and receiving iterator
+        + size_of::<[&mut std::slice::Iter<'_, Diagnostic>; 2]>() // any argument and formal borrow
+        + size_of::<[&Diagnostic; 2]>() // predicate argument and parameter
+        + size_of::<[crate::diagnostic::Severity; 2]>() // copied severity and is_error parameter
+        + size_of::<[bool; 4]>() // is_error, predicate, any return and refusal receiver
+        + size_of::<[Vec<Diagnostic>; 4]>(); // finish argument, parameter, return and receiver
     fn bridge_bytes() -> usize {
         size_of::<Self>()
             + size_of::<Result<Self, Refused>>()
@@ -68,6 +82,7 @@ impl<'o> SourceFunding<'o> {
             + size_of::<Result<Vec<AbortPayload>, Refused>>() // storage call receiver
             + size_of::<SourceStop>()
             + size_of::<Result<(), SourceStop>>()
+            + Self::STORAGE_DECLARATION_RECEIVING_BYTES
     }
     pub(crate) fn entry_receiving_bytes() -> usize {
         size_of::<Result<Self, Refused>>()

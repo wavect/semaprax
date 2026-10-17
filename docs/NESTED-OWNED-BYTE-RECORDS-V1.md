@@ -35,6 +35,10 @@ patterns, imports, FFI, Project exports, Components, and public aggregate ABIs
 remain closed. The existing recursive-type diagnostic remains authoritative.
 Shapes outside this closed profile retain `SPX-T268` rather than being
 partially lowered.
+A storage-declaration refusal finishes the other declaration checks and returns
+their diagnostics before checking executable signatures or patterns. Native
+import failures retain their existing diagnostic priority; invalid storage does
+not acquire a partial executable profile through later checks.
 
 [Owned String Records v1](OWNED-STRING-RECORDS-V1.md) defines the additive
 internal profile for bounded records mixing owned String and Bytes leaves.

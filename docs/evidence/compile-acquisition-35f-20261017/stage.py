@@ -19,7 +19,8 @@ def records(repo):
 def stage(repo,source,raw):
  if source not in KEYS:return raw
  repo=Path(repo);row=next(r for r in records(repo)if r['source']==source)
- actual=(repo/source).read_bytes();assert sha(actual)==row['current_sha256'],'actual new raw compile source'
+ raw=_factored_core_input(repo,source,raw)
+ actual=_factored_core_physical(repo,source);assert sha(actual)==row['current_sha256'],'actual new raw compile source'
  before=(repo/row['before_archive']).read_bytes();assert sha(before)==row['before_sha256']
  if sha(raw)==row['before_sha256']:
   assert raw==before
@@ -31,3 +32,37 @@ def stage(repo,source,raw):
   assert ''.join(lines[a:z])==e['current'];lines[a:z]=e['previous'].splitlines(keepends=True);last=a
  restored=''.join(lines).encode();assert sha(restored)==row['before_sha256'] and restored==before
  return restored
+
+# Exact outer core relocation only. The seven original rows and inverse are immutable.
+FACTORED_CORE='src/cleanup_plan/replay/factored/canonical_shared/tests.rs'
+FACTORED_CAP=2_097_152
+FACTORED_RAW_LEN=30885
+FACTORED_RAW_SHA='fd122ac9ba5101c7bec9046fe6b4f939a964bc362a59948b0774e64417ed3e17'
+FACTORED_OURS_LEN=36646
+FACTORED_OURS_SHA='c151768408bd95f3a56ae5eb48b013ac010c221d0b43df9a141ad47cd97ca953'
+def _factored_file(path,length,expected):
+ import os,stat
+ assert 0<=length<=FACTORED_CAP,'factored bound'
+ path=Path(path);before=path.lstat();assert stat.S_ISREG(before.st_mode),'factored regular source'
+ flags=os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC
+ fd=os.open(path,flags)
+ def identity(s):return(s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns,s.st_mode)
+ try:
+  opened=os.fstat(fd);assert stat.S_ISREG(opened.st_mode)and identity(before)==identity(opened)and opened.st_size==length,'factored source identity/length'
+  data=bytearray()
+  while len(data)<length:
+   part=os.read(fd,length-len(data));assert part,'factored truncated';data.extend(part)
+  assert not os.read(fd,1),'factored extra'
+  assert identity(opened)==identity(os.fstat(fd))==identity(path.lstat()),'factored drift'
+ finally:os.close(fd)
+ data=bytes(data);assert sha(data)==expected,'factored sha';data.decode('utf8');return data
+def _factored_core_physical(repo,source):
+ repo=Path(repo)
+ if source!=FACTORED_CORE:return(repo/source).read_bytes()
+ _factored_file(repo/source,FACTORED_RAW_LEN,FACTORED_RAW_SHA)
+ return _factored_file(repo/'docs/evidence/main-d285-factored-custody-20261017/ours-core.before.txt',FACTORED_OURS_LEN,FACTORED_OURS_SHA)
+def _factored_core_input(repo,source,raw):
+ if source!=FACTORED_CORE:return raw
+ old=_factored_core_physical(repo,source)
+ if len(raw)==FACTORED_RAW_LEN and sha(raw)==FACTORED_RAW_SHA:return old
+ return raw

@@ -1,0 +1,28 @@
+{
+  "source_head": "7d34f126956c7e6894c85a1cfbd81157159b475c",
+  "run": 39000267955,
+  "job": 117301876733,
+  "fixtures": {
+    "calculator-baseline.json": {
+      "bytes": 9894,
+      "sha256": "e1d2cbb4264480fa58e64e46253c876229e9d8cd7e6b4c2667ecd38e5d5a3f2e",
+      "digest": "sha256:4098f13f11e167a1062e6f535bffa5cfc72849a0068f9b4be6f1f70c8f97bc8c",
+      "builder_bytes": 2696104,
+      "prior_builder_bytes": 2927728,
+      "whole_previous_wire_restored": true
+    },
+    "calculator-renamed.json": {
+      "bytes": 9894,
+      "sha256": "5780e065a298ffc78c763e3fbfe48e56e540b1021fb4057c15af54129a0e394f",
+      "digest": "sha256:49c9af804452d85bc8d4c5e248c039bff5440df7650cfc60c8f3c92144ebf2f2",
+      "builder_bytes": 2696104,
+      "prior_builder_bytes": 2927728,
+      "whole_previous_wire_restored": true
+    }
+  },
+  "source_snapshots": {
+    "historical_builder.before.rs.txt": "3a53776194bf754a6516972c06d4cd24833df53ab02eea027dd5d1ba32f0cb63",
+    "test-fixtures.before.mjs": "11cfaa78b2fb7df873e2d2f6b5b66c9a06ac33cdb5448cf12bb5ce6a1f216b47"
+  },
+  "scope": "Complete hosted records: strict base64, raw length/SHA, compiler/source provenance, independent graph-domain digests. Restoring exact builder bill and self-digest reproduces all prior bytes. Browser execution and current-head full CI still pending."
+}

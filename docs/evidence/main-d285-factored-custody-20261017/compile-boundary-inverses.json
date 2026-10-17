@@ -1,0 +1,59 @@
+{
+  "schema": "semaprax.whole-source-compile-domain-inverse.v1",
+  "base": "415d3c7400892ab2e209010643309a123caca997",
+  "files": [
+    {
+      "path": "src/source_reflows_merge/main67107_inputs.rs",
+      "before_archive": "main67107_inputs.before.rs.txt",
+      "before_sha256": "0a511a057dd6854bda7641671bfb3c99d0682234d172d851711c9aa047fa2d9a",
+      "before_length": 16300,
+      "after_sha256": "92f37c17f42b28477804d61c882e45ca4b64d8fc67fd78cab11ab369026152d9",
+      "after_length": 22127,
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 22127,
+          "remove_sha256": "92f37c17f42b28477804d61c882e45ca4b64d8fc67fd78cab11ab369026152d9",
+          "insert_archive": "main67107_inputs.before.rs.txt",
+          "insert_sha256": "0a511a057dd6854bda7641671bfb3c99d0682234d172d851711c9aa047fa2d9a"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/compile-acquisition-35f-20261017/stage.py",
+      "before_archive": "compile-stage.before.py.txt",
+      "before_sha256": "966cf0bbea108acaf8a63cfaa7ab6b62632e4355f6d37949d40774d019ce458b",
+      "before_length": 2026,
+      "after_sha256": "8ae05d285bba94107d1073d792938057f6c997f3f9ee9e9d6b52dd525fc67e30",
+      "after_length": 3932,
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 3932,
+          "remove_sha256": "8ae05d285bba94107d1073d792938057f6c997f3f9ee9e9d6b52dd525fc67e30",
+          "insert_archive": "compile-stage.before.py.txt",
+          "insert_sha256": "966cf0bbea108acaf8a63cfaa7ab6b62632e4355f6d37949d40774d019ce458b"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/compile-acquisition-35f-20261017/run-common.py",
+      "before_archive": "run-common.before.py.txt",
+      "before_sha256": "063a863e161548daeabdf5f6c3cfaeffd409954af364067760471f44143a3414",
+      "before_length": 4924,
+      "after_sha256": "718df1a7b1de29928ae924725f98078275dcf41685862c9232b2aad327342a78",
+      "after_length": 4924,
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 4924,
+          "remove_sha256": "718df1a7b1de29928ae924725f98078275dcf41685862c9232b2aad327342a78",
+          "insert_archive": "run-common.before.py.txt",
+          "insert_sha256": "063a863e161548daeabdf5f6c3cfaeffd409954af364067760471f44143a3414"
+        }
+      ]
+    }
+  ],
+  "immutable_seven_table_sha256": "61af497922931df374510a7d8acd4b8691481f960407f1670c4d4e4dc37625fe",
+  "four_original_common_tools": "unchanged; all original program finite inverses checked without executing tools"
+}

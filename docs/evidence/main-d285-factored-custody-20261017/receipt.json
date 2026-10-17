@@ -1,0 +1,69 @@
+{
+  "state": "SOURCE_ONLY_UNEXECUTED",
+  "base": "3d77c9566508782b607bed64735a9efe81e15c88",
+  "main": "d285dc5375ba78e63db8ad2b77ebad9069db3bcb",
+  "files": {
+    "src/source_reflows/factored_sources.rs": {
+      "sha256": "02beda3ba8855672b8007ce0b81a7349d3ad5859a081d1490b643d8a1ffb5473",
+      "length": 24610
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/tests.rs": {
+      "sha256": "fd122ac9ba5101c7bec9046fe6b4f939a964bc362a59948b0774e64417ed3e17",
+      "length": 30885
+    },
+    "src/source_reflows.rs": {
+      "sha256": "7aef58d3741f42fe73cb7f34ed926a0ba8b286d6a0e60f4e216dfbf205a4da00",
+      "length": 9659
+    },
+    "docs/evidence/main-d285-factored-custody-20261017/subjects.json": {
+      "sha256": "a70188dae65776176d3aad1c642f7a2d319f22a8c6aef4aa944d7b462bad5f66",
+      "length": 10617
+    },
+    "docs/evidence/main-d285-factored-custody-20261017/check-source.py": {
+      "sha256": "d5cd6ab19d41200eadea05221beb6c76a6f60328e4bd318fe509dc07ac8287c5",
+      "length": 3778
+    },
+    "docs/evidence/main-d285-factored-custody-20261017/source-inverses.json": {
+      "sha256": "a09265b55492af4f2b8b3f3c269afdd39fc5052341d4484bc0c2afb3472af2c1",
+      "length": 96429
+    },
+    "docs/evidence/main-d285-factored-custody-20261017/main-helper-inverse.json": {
+      "sha256": "0b49deb22eec173e9f83e2e646e63623d37227d4d4c8cd1d522037c29a395597",
+      "length": 1012
+    },
+    "docs/evidence/main-d285-factored-custody-20261017/pending-selectors.json": {
+      "sha256": "4671f982e73cc33261e8ed75abb02956a2a5b88d77431096f2b26b67bf3b2963",
+      "length": 1642
+    },
+    "src/source_reflows_merge/main67107_inputs.rs": {
+      "sha256": "92f37c17f42b28477804d61c882e45ca4b64d8fc67fd78cab11ab369026152d9",
+      "length": 22127
+    },
+    "docs/evidence/compile-acquisition-35f-20261017/stage.py": {
+      "sha256": "8ae05d285bba94107d1073d792938057f6c997f3f9ee9e9d6b52dd525fc67e30",
+      "length": 3932
+    },
+    "docs/evidence/compile-acquisition-35f-20261017/run-common.py": {
+      "sha256": "718df1a7b1de29928ae924725f98078275dcf41685862c9232b2aad327342a78",
+      "length": 4924
+    },
+    "docs/evidence/main-d285-factored-custody-20261017/compile-boundary-inverses.json": {
+      "sha256": "8b8abf1cbd5d16eacde363a73951c36961b542f419ceb1d5d88961149cf02571",
+      "length": 2529
+    },
+    "docs/evidence/main-d285-factored-custody-20261017/check-compile-boundary.py": {
+      "sha256": "dae952ba50062c3a3bb847f42b608adbc85bcf416df99197b664bc1208ec0e86",
+      "length": 4796
+    }
+  },
+  "source_proof": "PASS; 13 full subjects,7 MAIN predecessor inverses,2+2 whole receiver bodies,1 original MAIN gate",
+  "rustfmt_parse": "PASS; all4 Rustfiles; emit stdout only",
+  "cargo": "NOT_RUN",
+  "raw3_and_043": "PARENT_PENDING_EXACT_ONCE",
+  "runtime_and_registration": "PENDING",
+  "fourth_existing_rust_owner": "src/source_reflows_merge/main67107_inputs.rs",
+  "python_stage_same_domain": "sources.json/oldSHA unchanged; one closed core acquisition before physical/current comparisons",
+  "old_four_tools": "all unchanged and finite program inverse checked",
+  "actual_python_controls": "5 positive/17 negative PASS; read-only source controls, no Rust execution",
+  "pending_selectors": 5
+}

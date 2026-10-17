@@ -4510,8 +4510,11 @@ coverage gate recognizes this reader exactly as it recognizes `include_str!`;
 ordinary authority and implementation audits continue to read current source.
 The nested byte-traversal custody assertion delegates its test-only file reads
 to `source_reflows/nested_scope.rs`; its complete original assertion body is
-byte-locked and executable there. Core HIR retains the test entry but owns no
-filesystem operations.
+byte-locked and executable there. The factored target and label custody
+assertions likewise live in `source_reflows/factored_sources.rs`; their original
+entries delegate to complete byte-locked bodies. Audited HIR and replay modules
+retain every algorithm, physical control and test entry while filesystem
+operations belong to the test source-reader layer.
 
 The `cfg(test)` source-view helper `source_reflows_merge` delegates fixture transport
 to its private `runtime_json` loader, fixed inventory, and hostile-I/O tests. The

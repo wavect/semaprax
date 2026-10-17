@@ -1,0 +1,9 @@
+{
+  "base": "3d77c9566508782b607bed64735a9efe81e15c88",
+  "main": "d285dc5375ba78e63db8ad2b77ebad9069db3bcb",
+  "core": "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+  "main_helper_sha256": "87f1159ce3ae591b86b88732138b51c5ef2577f50e84dae5c14f078da9c48f33",
+  "subject_manifest_sha256": "a70188dae65776176d3aad1c642f7a2d319f22a8c6aef4aa944d7b462bad5f66",
+  "subjects": 13,
+  "new_reader_per_input_cap": 2097152
+}

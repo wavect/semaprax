@@ -1,0 +1,116 @@
+{
+  "status": "EXACT_SEPARATE_NEW_SUBJECT_REGISTRATION_PARENT_RAW_UNION_PENDING",
+  "new_subject": {
+    "path": "tests/wasm/scalar_browser_ci_contract/before_7d34.rs",
+    "source_ref": "d285dc5375ba78e63db8ad2b77ebad9069db3bcb",
+    "bytes": 5243,
+    "sha256": "eb43b69f6a9deded48d37ed201bb2a3526ae70bf1f90446dfe57987ff80cc836",
+    "lines": 129,
+    "role": "test_only",
+    "package": "semaprax",
+    "target": "wasm",
+    "physical_payload_required": 1,
+    "physical_payload_maximum": 1,
+    "independent_bound": 5243,
+    "original_raw3_capacity_unchanged": true
+  },
+  "registration_chain": [
+    {
+      "parent": "tests/wasm.rs",
+      "text": "#[path = \"wasm/scalar_browser_ci_contract.rs\"]\nmod scalar_browser_ci_contract;"
+    },
+    {
+      "parent": "tests/wasm/scalar_browser_ci_contract.rs",
+      "text": "#[path = \"scalar_browser_ci_contract/historical_builder.rs\"]\nmod historical_builder;"
+    },
+    {
+      "parent": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "text": "#[path = \"before_7d34.rs\"]\nmod before_7d34;"
+    }
+  ],
+  "raw_carrier_payload_updates": [
+    {
+      "carrier": "tests/hir_module_boundaries.rs",
+      "exact_payload_anchor": "include_str!(\"../tests/wasm/scalar_browser_ci_contract/before_671.rs\")",
+      "anchor_occurrences": 1,
+      "insert_after_anchor": ",include_str!(\"../tests/wasm/scalar_browser_ci_contract/before_7d34.rs\")",
+      "context": "g67107_semantic_receivers.rs\"),include_str!(\"../src/source_reflows_merge/main67107_inputs.rs\"),include_str!(\"../tests/wasm/scalar_browser_ci_contract/before_671.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs\"), incl",
+      "rule": "Real raw audit_source_join payload only; preserve leading3 subjects/sentinel and all old raw3 domain tuples/required/max/caps unchanged."
+    },
+    {
+      "carrier": "tests/workspace/semantic_graph/source_inventory.rs",
+      "exact_payload_anchor": "include_str!(\"../../tests/wasm/scalar_browser_ci_contract/before_671.rs\")",
+      "anchor_occurrences": 1,
+      "insert_after_anchor": ",include_str!(\"../../tests/wasm/scalar_browser_ci_contract/before_7d34.rs\")",
+      "context": "107_semantic_receivers.rs\"),include_str!(\"../../src/source_reflows_merge/main67107_inputs.rs\"),include_str!(\"../../tests/wasm/scalar_browser_ci_contract/before_671.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs\"), i",
+      "rule": "Real raw audit_source_join payload only; preserve leading3 subjects/sentinel and all old raw3 domain tuples/required/max/caps unchanged."
+    },
+    {
+      "carrier": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "exact_payload_anchor": "include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/before_671.rs\")",
+      "anchor_occurrences": 1,
+      "insert_after_anchor": ",include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/before_7d34.rs\")",
+      "context": "tic_receivers.rs\"),include_str!(\"../../../../../src/source_reflows_merge/main67107_inputs.rs\"),include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/before_671.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/paid_many/test",
+      "rule": "Real raw audit_source_join payload only; preserve leading3 subjects/sentinel and all old raw3 domain tuples/required/max/caps unchanged."
+    }
+  ],
+  "selectors": [
+    {
+      "package": "semaprax",
+      "kind": "test",
+      "target": "wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main7d34_browser_bridge_preserves_three_complete_trees_and_raw_role_refusals",
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "status": "PENDING_COMPILE_DISCOVERY_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test",
+      "target": "wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::incoming_main7d34::hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "status": "PENDING_COMPILE_DISCOVERY_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test",
+      "target": "wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::incoming_main7d34::a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "status": "PENDING_COMPILE_DISCOVERY_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test",
+      "target": "wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::incoming_main7d34::the_complete_old_bridge_changes_only_its_retained_runner_include",
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "status": "PENDING_COMPILE_DISCOVERY_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test",
+      "target": "wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::before_7d34::hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+      "source": "tests/wasm/scalar_browser_ci_contract/before_7d34.rs",
+      "status": "PENDING_COMPILE_DISCOVERY_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test",
+      "target": "wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::before_7d34::a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+      "source": "tests/wasm/scalar_browser_ci_contract/before_7d34.rs",
+      "status": "PENDING_COMPILE_DISCOVERY_RUNTIME"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test",
+      "target": "wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::before_7d34::the_complete_old_bridge_changes_only_its_retained_runner_include",
+      "source": "tests/wasm/scalar_browser_ci_contract/before_7d34.rs",
+      "status": "PENDING_COMPILE_DISCOVERY_RUNTIME"
+    }
+  ],
+  "scope": "One NEW physical subject is separately classified/bounded; never extend original raw3 tuples or increase their count/max/caps. Child prior-owner registration alternatives come from unchanged complete imported modules."
+}

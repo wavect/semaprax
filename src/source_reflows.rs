@@ -254,3 +254,10 @@ mod semantic_receivers_main44;
 
 #[path = "source_reflows/main043.rs"]
 mod main043;
+
+#[path = "source_reflows/factored_sources.rs"]
+mod factored_sources;
+pub(crate) use factored_sources::{
+    joined_labels as complete_outer_label_sources_and_original_producer_remain_exact,
+    joined_predecessors as complete_predecessors_and_new_target_sources_are_bound,
+};

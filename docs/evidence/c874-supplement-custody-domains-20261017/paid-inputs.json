@@ -58,9 +58,9 @@
   {
     "path": "src/cleanup_plan/replay/factored/moderate_tests.rs",
     "current": {
-      "archive": "paid-current-4-23419c996b937f48fda6ae04365c8e6b2b23dd42a6a3ef9faa62d211e086644c.txt",
-      "length": 12405,
-      "sha256": "23419c996b937f48fda6ae04365c8e6b2b23dd42a6a3ef9faa62d211e086644c"
+      "archive": "paid-current-4-92e56a374c20a9f649151a1c9f4aad5c08954abf44b0f07ae4c82782acb47912.txt",
+      "length": 12649,
+      "sha256": "92e56a374c20a9f649151a1c9f4aad5c08954abf44b0f07ae4c82782acb47912"
     },
     "view": {
       "archive": "paid-view-4-7123d044a6278a1d1fbc00a40134e6d68fd232068d8c032010e7c052f671764f.txt",

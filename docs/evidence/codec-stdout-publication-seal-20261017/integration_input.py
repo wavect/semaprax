@@ -2,6 +2,7 @@
 from pathlib import Path
 import hashlib
 import json
+from outer_carrier_input import read_input as outer_read_input
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
@@ -59,7 +60,7 @@ def project(name, text):
 def read_input(path):
     path = Path(path)
     name = path.resolve().relative_to(ROOT).as_posix()
-    return project(name, path.read_text())
+    return project(name, outer_read_input(path))
 
 
 def physical_unions():
@@ -68,7 +69,7 @@ def physical_unions():
     # the original sentinel and every other carrier byte restore exactly.
     for row in DATA["unions"]:
         assert set(row) == {"path", "root", "root_sha256", "anchor", "added"}
-        current = (ROOT / row["path"]).read_text()
+        current = outer_read_input(ROOT / row["path"])
         root = (LAYER / row["root"]).read_text()
         assert digest(root) == row["root_sha256"]
         assert root.count(row["anchor"]) == 1

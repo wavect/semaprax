@@ -1,0 +1,12 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "snapshot_head": "3831436b7622170bf1ea6700315e6d6d54486eff",
+  "complete_preimages": 7,
+  "drift_controls": 34,
+  "new_files": 4,
+  "new_pending_rust_owners": 8,
+  "old_assertion_calls_in_changed_rust": 74,
+  "raw_joins": 3,
+  "rust_or_provider_execution": false,
+  "unchanged_whole_files": 7
+}

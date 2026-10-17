@@ -46,6 +46,10 @@ mod singleton_target_tests;
 mod successor_targets;
 mod paid_many;
 mod borrowed_labels;
+#[macro_use]
+mod selected_labels;
+#[cfg(test)]
+mod before_selected_labels;
 #[cfg(test)]
 #[path = "canonical_shared/before_paid_many.rs"]
 mod before_paid_many;
@@ -732,7 +736,9 @@ impl<'a> Canonicalizer<'a> {
                     budget.reserve_bytes(function, borrowed_labels::one_pass_receiving(), "factored one-pass label call receivers")?;
                     return borrowed_labels::one_pass_successors(function, budget, self.automaton, closed, accepted);
                 }
-                AllocationPayer::SelectedReservation => {}
+                AllocationPayer::SelectedReservation => {
+                    return selected_labels_successors!(function, budget, self.automaton, closed, accepted, true);
+                }
                 AllocationPayer::LegacyUnobserved => {}
                 _ => {
                     budget.reserve_bytes(function, borrowed_labels::receiving::<ordered_weights::OrderedWeights>(), "factored borrowed label call receivers")?;
@@ -962,7 +968,9 @@ impl<'a> Canonicalizer<'a> {
                 budget.reserve_bytes(function, borrowed_labels::one_pass_receiving(), "factored one-pass label call receivers")?;
                 return borrowed_labels::one_pass_successors(function, budget, self.automaton, closed, accepted);
             }
-            AllocationPayer::SelectedReservation => {}
+            AllocationPayer::SelectedReservation => {
+                return selected_labels_successors!(function, budget, self.automaton, closed, accepted, false);
+            }
             AllocationPayer::LegacyUnobserved => {}
             _ => {
                 budget.reserve_bytes(function, borrowed_labels::receiving::<ordered_weights::OrderedWeights>(), "factored borrowed label call receivers")?;

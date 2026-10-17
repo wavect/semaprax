@@ -126,7 +126,9 @@
       "tests/workspace/semantic_graph/source_inventory.rs": 1,
       "src/source_reflows/incoming090_semantic_receivers.rs": 1,
       "src/loop_calls/byte_writer/tests/string_slots.rs": 1,
-      "tests/wasm/scalar_browser_ci_contract/before_21abc.rs": 1
+      "tests/wasm/scalar_browser_ci_contract/before_21abc.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -260,7 +262,9 @@
       "tests/workspace/semantic_graph/source_inventory.rs": 1,
       "src/source_reflows/incoming090_semantic_receivers.rs": 1,
       "src/loop_calls/byte_writer/tests/string_slots.rs": 1,
-      "tests/wasm/scalar_browser_ci_contract/before_21abc.rs": 1
+      "tests/wasm/scalar_browser_ci_contract/before_21abc.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": 1
     }
   },
   "tests/workspace/semantic_graph/source_inventory.rs": {
@@ -425,7 +429,9 @@
       "tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs": 1,
       "src/source_reflows/incoming090_semantic_receivers.rs": 1,
       "src/loop_calls/byte_writer/tests/string_slots.rs": 1,
-      "tests/wasm/scalar_browser_ci_contract/before_21abc.rs": 1
+      "tests/wasm/scalar_browser_ci_contract/before_21abc.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -588,7 +594,9 @@
       "tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs": 1,
       "src/source_reflows/incoming090_semantic_receivers.rs": 1,
       "src/loop_calls/byte_writer/tests/string_slots.rs": 1,
-      "tests/wasm/scalar_browser_ci_contract/before_21abc.rs": 1
+      "tests/wasm/scalar_browser_ci_contract/before_21abc.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": 1
     }
   },
   "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
@@ -723,7 +731,9 @@
       "tests/workspace/semantic_graph/source_inventory.rs": 1,
       "src/source_reflows/incoming090_semantic_receivers.rs": 1,
       "src/loop_calls/byte_writer/tests/string_slots.rs": 1,
-      "tests/wasm/scalar_browser_ci_contract/before_21abc.rs": 1
+      "tests/wasm/scalar_browser_ci_contract/before_21abc.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": 1
     },
     "maximum": {
       "src/ast/program_source/function_alias/presentation.rs": 1,
@@ -856,7 +866,9 @@
       "tests/workspace/semantic_graph/source_inventory.rs": 1,
       "src/source_reflows/incoming090_semantic_receivers.rs": 1,
       "src/loop_calls/byte_writer/tests/string_slots.rs": 1,
-      "tests/wasm/scalar_browser_ci_contract/before_21abc.rs": 1
+      "tests/wasm/scalar_browser_ci_contract/before_21abc.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs": 1,
+      "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": 1
     }
   }
 }

@@ -1,0 +1,69 @@
+{
+  "schema": "semaprax.source-owner-extension.v1",
+  "source_head": "489afe16e5dc82ac6321c06a6c853d6c6ee22999",
+  "qualification": "source_only_no_cargo",
+  "new_subjects": [
+    "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs"
+  ],
+  "all_prior_registry_counts_preserved": true,
+  "native_lines": 1500,
+  "rows": [
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json",
+      "before_len": 56360,
+      "before_sha256": "edd13bcf77dff55cc5b186d9fb6d5b67351c14cac235f5eaa6e22fd01d3944cd",
+      "after_len": 57470,
+      "after_sha256": "f0a58df2393f2942f92c5729876533ae35b29ad7c0f088996944560250dda213",
+      "archive": "docs/evidence/paid-many-raw-owner-extension-20261017/before/docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json"
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "before_len": 97057,
+      "before_sha256": "dc3bf3b20917a0c523231e405ff329e5950f12b55501bced9ae908fbaf5b8888",
+      "after_len": 97256,
+      "after_sha256": "f25b784eba1a2ea26a07b260b2ddff67b6dd90c0a6402fd143dc42ca68847d4e",
+      "archive": "docs/evidence/paid-many-raw-owner-extension-20261017/before/tests/hir_module_boundaries.rs"
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "before_len": 90159,
+      "before_sha256": "42bdd4f76491607cab8538b3006d4b807aca5d138badc1d763c7090cfc53b000",
+      "after_len": 90364,
+      "after_sha256": "59e5b98593c2c2d443d1479e7c89564551d515ca921f7abab2cc8f5d579c8c21",
+      "archive": "docs/evidence/paid-many-raw-owner-extension-20261017/before/tests/workspace/semantic_graph/source_inventory.rs"
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "before_len": 155119,
+      "before_sha256": "dff1f6f15ef145c633165446c54ad37ed6c8ef978caa121c413dcaf06b5fa918",
+      "after_len": 155342,
+      "after_sha256": "2f60338ca315635e7d533ba6cbdeadda40d8b2e3d66a7398c7521d4b44f5f845",
+      "archive": "docs/evidence/paid-many-raw-owner-extension-20261017/before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/tests__hir_module_boundaries.rs.json",
+      "before_len": 10327,
+      "before_sha256": "44a087140f71fea0364bbefa641200c2c75d1cc696f528754a50e800f26f5570",
+      "after_len": 10530,
+      "after_sha256": "0bc2f1cb74c83c401911d15a8dea0b8f9e88cbfd0ba1f3f4fd56d7ee4ac0be13",
+      "archive": "docs/evidence/paid-many-raw-owner-extension-20261017/before/docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/tests__hir_module_boundaries.rs.json"
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/tests__workspace__semantic_graph__source_inventory.rs.json",
+      "before_len": 13082,
+      "before_sha256": "d6fc5b8a863de03e802d9b4fbbeec68b8213cf8608c1a40257294b00622c572e",
+      "after_len": 13291,
+      "after_sha256": "b18946b05ee671b03c6eac6d8a44c48c2502c8d4d43041cf8755857a69bef2cd",
+      "archive": "docs/evidence/paid-many-raw-owner-extension-20261017/before/docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/tests__workspace__semantic_graph__source_inventory.rs.json"
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.json",
+      "before_len": 12375,
+      "before_sha256": "f92f1ca3a50c1cd0ad087e0e1f633d0256729df4c8d8b642c90e6c3f4d0b60b3",
+      "after_len": 12602,
+      "after_sha256": "66780843483a164b75f390575178d67be5c3a43877b72bfbb1e6c3704dc28240",
+      "archive": "docs/evidence/paid-many-raw-owner-extension-20261017/before/docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.json"
+    }
+  ]
+}

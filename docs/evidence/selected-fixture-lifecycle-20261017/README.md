@@ -73,4 +73,4 @@ source guards. Both files remain below the 1500-line limit.
 The five exact selectors and the surrounding receiving certificate/path,
 selected context, oracle invocation and sequence-minimum corpora require parent
 compilation/execution. Source reasoning does not establish that actual23/52
-pass at the final combined HEAD. Full gates remain pending the parent batch.
+pass at the final combined HEAD. Only focused owning checks remain pending the parent batch; no full quality gate is authorized.

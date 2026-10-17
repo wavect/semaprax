@@ -1,0 +1,15 @@
+{
+  "source": "d3d6564f932b0edfef29f4e1253e7ae0142bb100",
+  "command": [
+    "/opt/homebrew/bin/python3",
+    "scripts/tests/test_ci_low_stack_trace.py"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 0.15348545898450539,
+  "file_sha256": {
+    "scripts/ci-low-stack-trace.py": "7e0d4ace50526d43ba53e8939bc511963c0615c5fa6154ee5a322bdd8b3598a8",
+    "scripts/tests/test_ci_low_stack_trace.py": "af93830431dd28a2b8ecd4f7cf50d6b6a6b5a18e20f70aa0596266476ffc7741"
+  },
+  "rust_executed": false,
+  "scope": "only changed low-stack trace Python test module"
+}

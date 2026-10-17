@@ -1,0 +1,20 @@
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+    Finished `test` profile [unoptimized] target(s) in 3m 33s
+   Compiling serde v1.0.229
+   Compiling sigstore-types v0.14.0
+   Compiling zerocopy v0.8.56
+   Compiling sigstore-crypto v0.14.0
+   Compiling ppv-lite86 v0.2.21
+   Compiling rand_chacha v0.9.0
+   Compiling rand v0.9.5
+   Compiling sigstore-merkle v0.14.0
+   Compiling serde_json_canonicalizer v0.3.2
+   Compiling sigstore-tsa v0.14.0
+   Compiling sigstore-rekor v0.14.0
+   Compiling sigstore-trust-root v0.14.0
+   Compiling sigstore-bundle v0.14.0
+   Compiling sigstore-verify v0.14.0
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+    Finished `dev` profile [unoptimized] target(s) in 1m 45s
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+error: could not compile `semaprax` (test "project") due to 2 previous errors

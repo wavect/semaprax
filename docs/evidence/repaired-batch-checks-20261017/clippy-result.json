@@ -1,0 +1,901 @@
+{
+  "source_head": "6fb88632f73ea8aed713c5e22156c2d838cce7c5",
+  "source_tree": "a67886a0a6b021c63c192f973ee531ab114809a0",
+  "cwd": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "command": [
+    "/Users/kevin/.cargo/bin/rustup",
+    "run",
+    "1.97.1",
+    "cargo",
+    "clippy",
+    "--locked",
+    "--offline",
+    "-p",
+    "semaprax",
+    "--lib",
+    "--bin",
+    "semaprax",
+    "--jobs",
+    "1",
+    "--message-format=json",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "environment": {
+    "PATH": "/Users/kevin/.nvm/versions/node/v24.3.0/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/kevin/.codex/tmp/arg0-macos/codex-arg09jzzyo:/Users/kevin/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/kevin/.kimi-code/bin:/Volumes/Semaprax/internal-cache-offload-20261016/nvm-home/versions/node/v24.3.0/bin:/Users/kevin/.local/bin:/Users/kevin/Library/pnpm:/Users/kevin/.bun/bin:/Users/kevin/Library/Android/sdk/platform-tools:/Users/kevin/Library/Android/sdk/tools:/Users/kevin/.elan/bin:/Library/Frameworks/Python.framework/Versions/3.14/bin:/Users/kevin/.nvm/versions/node/v24.3.0/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/Users/kevin/.foundry/bin:/opt/homebrew/share/google-cloud-sdk/bin:/Users/kevin/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS:/Users/kevin/.foundry/bin",
+    "TMPDIR": "/Volumes/Semaprax/runtime-tmp",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "CARGO_HOME": "/Volumes/Semaprax/internal-cache-offload-20261016/cargo-home",
+    "RUSTUP_HOME": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home",
+    "CARGO_TARGET_DIR": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_NET_OFFLINE": "true",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_DEV_CODEGEN_UNITS": "64",
+    "CARGO_PROFILE_TEST_CODEGEN_UNITS": "64",
+    "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+    "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+    "CARGO_PROFILE_DEV_LTO": "false",
+    "CARGO_PROFILE_TEST_LTO": "false",
+    "CLANG": "/usr/bin/clang",
+    "SEMAPRAX_ARCHIVER": "/usr/bin/libtool",
+    "SEMAPRAX_COLLECTION_WRITER_BUILD_HEAD": "6fb88632f73ea8aed713c5e22156c2d838cce7c5",
+    "SEMAPRAX_COLLECTION_WRITER_BUILD_TREE": "a67886a0a6b021c63c192f973ee531ab114809a0",
+    "XDG_CACHE_HOME": "/Volumes/Semaprax/lane-prompts/production-clippy-repaired-batch-20261017/cache"
+  },
+  "source_inputs_sha256": "21baab6d4e5825cfdacefa7c2d84c81dd8e620486511e3d8946a0754849a3def",
+  "controller_sha256": "6f86f8645ee54a7ebdb14f48449417b50d8b952321ed46a1bfcc106e9a9d4d00",
+  "phase_sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867",
+  "pressure_helper_sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+  "executed_test_bodies": 0,
+  "pid": 68388,
+  "result": {
+    "command": [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "clippy",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--bin",
+      "semaprax",
+      "--jobs",
+      "1",
+      "--message-format=json",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "executed": true,
+    "exit_code": 0,
+    "resource_refusal": null,
+    "observation_errors": [],
+    "peak_process_group_rss_bytes": 5754208256,
+    "rss_limit_bytes": 9663676416,
+    "last_system_free_percent": 79,
+    "process_high_water_marks": [
+      {
+        "pid": 70210,
+        "ppid": 68388,
+        "rss_bytes": 25165824,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/cargo-clippy"
+      },
+      {
+        "pid": 70213,
+        "ppid": 70210,
+        "rss_bytes": 101580800,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/cargo"
+      },
+      {
+        "pid": 70247,
+        "ppid": 70213,
+        "rss_bytes": 32768,
+        "name": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/build/proc-macro2-4417142953ca1d09/build-script-build"
+      },
+      {
+        "pid": 70293,
+        "ppid": 70213,
+        "rss_bytes": 161398784,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 70701,
+        "ppid": 70213,
+        "rss_bytes": 371769344,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 70780,
+        "ppid": 70213,
+        "rss_bytes": 72826880,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 70795,
+        "ppid": 70213,
+        "rss_bytes": 266878976,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 70865,
+        "ppid": 70213,
+        "rss_bytes": 145915904,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 70930,
+        "ppid": 70213,
+        "rss_bytes": 46055424,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 70936,
+        "ppid": 70213,
+        "rss_bytes": 53854208,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 70971,
+        "ppid": 70213,
+        "rss_bytes": 182616064,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 71023,
+        "ppid": 70213,
+        "rss_bytes": 50216960,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 71146,
+        "ppid": 70213,
+        "rss_bytes": 4145152,
+        "name": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/build/aws-lc-sys-32019fc55123dc62/build-script-main"
+      },
+      {
+        "pid": 71863,
+        "ppid": 71146,
+        "rss_bytes": 17383424,
+        "name": "(clang)"
+      },
+      {
+        "pid": 71864,
+        "ppid": 71863,
+        "rss_bytes": 31997952,
+        "name": "(clang)"
+      },
+      {
+        "pid": 72510,
+        "ppid": 71146,
+        "rss_bytes": 17432576,
+        "name": "(clang)"
+      },
+      {
+        "pid": 72512,
+        "ppid": 72510,
+        "rss_bytes": 180224,
+        "name": "(clang)"
+      },
+      {
+        "pid": 72710,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 72937,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 73142,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 73369,
+        "ppid": 71146,
+        "rss_bytes": 17448960,
+        "name": "(clang)"
+      },
+      {
+        "pid": 73371,
+        "ppid": 73369,
+        "rss_bytes": 3948544,
+        "name": "(clang)"
+      },
+      {
+        "pid": 73571,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 73796,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 74375,
+        "ppid": 71146,
+        "rss_bytes": 17481728,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 74376,
+        "ppid": 74375,
+        "rss_bytes": 46071808,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 74467,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 74626,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 74836,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 75051,
+        "ppid": 71146,
+        "rss_bytes": 17399808,
+        "name": "(clang)"
+      },
+      {
+        "pid": 75052,
+        "ppid": 75051,
+        "rss_bytes": 43548672,
+        "name": "(clang)"
+      },
+      {
+        "pid": 75245,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 75461,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 75656,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 75870,
+        "ppid": 71146,
+        "rss_bytes": 6356992,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 76071,
+        "ppid": 71146,
+        "rss_bytes": 17367040,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 76072,
+        "ppid": 76071,
+        "rss_bytes": 44531712,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 76286,
+        "ppid": 71146,
+        "rss_bytes": 17432576,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 76287,
+        "ppid": 76286,
+        "rss_bytes": 9715712,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 76481,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 76695,
+        "ppid": 71146,
+        "rss_bytes": 17432576,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 76696,
+        "ppid": 76695,
+        "rss_bytes": 26116096,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 76891,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 77050,
+        "ppid": 71146,
+        "rss_bytes": 17399808,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 77051,
+        "ppid": 77050,
+        "rss_bytes": 90947584,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 77119,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 77313,
+        "ppid": 71146,
+        "rss_bytes": 1245184,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 77868,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 78089,
+        "ppid": 71146,
+        "rss_bytes": 17432576,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 78090,
+        "ppid": 78089,
+        "rss_bytes": 37683200,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 78283,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 78497,
+        "ppid": 71146,
+        "rss_bytes": 17399808,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 78498,
+        "ppid": 78497,
+        "rss_bytes": 28049408,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 78691,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 78907,
+        "ppid": 71146,
+        "rss_bytes": 17448960,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 78908,
+        "ppid": 78907,
+        "rss_bytes": 34324480,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 79104,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 79320,
+        "ppid": 71146,
+        "rss_bytes": 17383424,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 79321,
+        "ppid": 79320,
+        "rss_bytes": 42582016,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 79514,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 79728,
+        "ppid": 71146,
+        "rss_bytes": 17399808,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 79729,
+        "ppid": 79728,
+        "rss_bytes": 37519360,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 79922,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 80137,
+        "ppid": 71146,
+        "rss_bytes": 1228800,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 80330,
+        "ppid": 71146,
+        "rss_bytes": 17416192,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 80331,
+        "ppid": 80330,
+        "rss_bytes": 44695552,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 80896,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 81121,
+        "ppid": 71146,
+        "rss_bytes": 17465344,
+        "name": "(clang)"
+      },
+      {
+        "pid": 81123,
+        "ppid": 81121,
+        "rss_bytes": 18710528,
+        "name": "(clang)"
+      },
+      {
+        "pid": 81326,
+        "ppid": 71146,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 81557,
+        "ppid": 71146,
+        "rss_bytes": 17399808,
+        "name": "(clang)"
+      },
+      {
+        "pid": 81558,
+        "ppid": 81557,
+        "rss_bytes": 20234240,
+        "name": "(clang)"
+      },
+      {
+        "pid": 82192,
+        "ppid": 70213,
+        "rss_bytes": 52822016,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 82248,
+        "ppid": 70213,
+        "rss_bytes": 32768,
+        "name": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/build/aws-lc-rs-e262f36bd63c4eaa/build-script-build"
+      },
+      {
+        "pid": 82653,
+        "ppid": 70213,
+        "rss_bytes": 136511488,
+        "name": "(rustc)"
+      },
+      {
+        "pid": 82741,
+        "ppid": 70213,
+        "rss_bytes": 82493440,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 82762,
+        "ppid": 82741,
+        "rss_bytes": 2097152,
+        "name": "(xcrun)"
+      },
+      {
+        "pid": 82797,
+        "ppid": 70213,
+        "rss_bytes": 3309568,
+        "name": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/build/ring-1e15f91fb618d1aa/build-script-build"
+      },
+      {
+        "pid": 83049,
+        "ppid": 82797,
+        "rss_bytes": 638976,
+        "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 83621,
+        "ppid": 82797,
+        "rss_bytes": 0,
+        "name": "<defunct>"
+      },
+      {
+        "pid": 83987,
+        "ppid": 70213,
+        "rss_bytes": 105791488,
+        "name": "(rustc)"
+      },
+      {
+        "pid": 83989,
+        "ppid": 70213,
+        "rss_bytes": 210599936,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84016,
+        "ppid": 83989,
+        "rss_bytes": 16859136,
+        "name": "(clang)"
+      },
+      {
+        "pid": 84017,
+        "ppid": 84016,
+        "rss_bytes": 72450048,
+        "name": "(ld)"
+      },
+      {
+        "pid": 84071,
+        "ppid": 70213,
+        "rss_bytes": 66879488,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84082,
+        "ppid": 70213,
+        "rss_bytes": 131170304,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84085,
+        "ppid": 70213,
+        "rss_bytes": 50053120,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84149,
+        "ppid": 70213,
+        "rss_bytes": 93503488,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84157,
+        "ppid": 70213,
+        "rss_bytes": 176373760,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84162,
+        "ppid": 70213,
+        "rss_bytes": 53182464,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84560,
+        "ppid": 70213,
+        "rss_bytes": 31113216,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84613,
+        "ppid": 70213,
+        "rss_bytes": 32768,
+        "name": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/build/icu_properties_data-ee2e6a946a878ad7/build-script-build"
+      },
+      {
+        "pid": 84635,
+        "ppid": 70213,
+        "rss_bytes": 39043072,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84690,
+        "ppid": 70213,
+        "rss_bytes": 50364416,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84747,
+        "ppid": 70213,
+        "rss_bytes": 32768,
+        "name": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/build/rustls-a24c4323e2bbfa0c/build-script-build"
+      },
+      {
+        "pid": 84752,
+        "ppid": 70213,
+        "rss_bytes": 251707392,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84794,
+        "ppid": 70213,
+        "rss_bytes": 182943744,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84812,
+        "ppid": 70213,
+        "rss_bytes": 62668800,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84816,
+        "ppid": 70213,
+        "rss_bytes": 80314368,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84853,
+        "ppid": 70213,
+        "rss_bytes": 136101888,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84885,
+        "ppid": 70213,
+        "rss_bytes": 64372736,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84896,
+        "ppid": 70213,
+        "rss_bytes": 97435648,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84908,
+        "ppid": 70213,
+        "rss_bytes": 39616512,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84945,
+        "ppid": 70213,
+        "rss_bytes": 160972800,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84958,
+        "ppid": 70213,
+        "rss_bytes": 50118656,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 84968,
+        "ppid": 70213,
+        "rss_bytes": 6930432,
+        "name": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/build/semaprax-80712bb5c690e67b/build-script-build"
+      },
+      {
+        "pid": 85385,
+        "ppid": 70213,
+        "rss_bytes": 86999040,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 85393,
+        "ppid": 70213,
+        "rss_bytes": 143212544,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+      },
+      {
+        "pid": 85403,
+        "ppid": 70213,
+        "rss_bytes": 5627625472,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/clippy-driver"
+      },
+      {
+        "pid": 86015,
+        "ppid": 70213,
+        "rss_bytes": 353091584,
+        "name": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/clippy-driver"
+      }
+    ],
+    "wall_seconds": 149.31096466700546,
+    "baseline_telemetry": {
+      "kernel_pressure": {
+        "raw": 1,
+        "label": "normal",
+        "label_status": "exact_kernel_mapping",
+        "kernel_version": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:06 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6030",
+        "mapping_provenance": {
+          "source_tag": "xnu-12377.121.6",
+          "conversion_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/kern/kern_memorystatus_notify.c",
+          "conversion_spans": "1651-1679;1754-1768",
+          "constants_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/sys/event_private.h",
+          "constants_span": "276-278"
+        }
+      },
+      "swap": {
+        "total_bytes": 4294967296,
+        "available_bytes": 1207173120,
+        "used_bytes": 3087794176,
+        "page_size": 16384,
+        "encrypted": true,
+        "raw_sha256": "880bc64b638f2ba40b8553d24a1943a11e29d98582a2dbb0720ff2e8799681df"
+      },
+      "vm": {
+        "page_size": 16384,
+        "counters": {
+          "Pages free": 40661,
+          "Pages inactive": 407082,
+          "Pages purgeable": 8155,
+          "File-backed pages": 594510,
+          "Pages occupied by compressor": 87711,
+          "Swapins": 173324443,
+          "Swapouts": 231154449
+        }
+      },
+      "windows": [
+        {
+          "command": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.memorystatus_vm_pressure_level"
+          ],
+          "started": 207295.605847625,
+          "finished": 207295.608342333
+        },
+        {
+          "command": [
+            "/usr/sbin/sysctl",
+            "-b",
+            "vm.swapusage"
+          ],
+          "started": 207295.608431291,
+          "finished": 207295.610168958
+        },
+        {
+          "command": [
+            "/usr/bin/vm_stat"
+          ],
+          "started": 207295.610193291,
+          "finished": 207295.611873958
+        }
+      ],
+      "finished": 207295.612036083,
+      "atomic": false
+    },
+    "post_stop_telemetry": {
+      "kernel_pressure": {
+        "raw": 1,
+        "label": "normal",
+        "label_status": "exact_kernel_mapping",
+        "kernel_version": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:06 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6030",
+        "mapping_provenance": {
+          "source_tag": "xnu-12377.121.6",
+          "conversion_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/kern/kern_memorystatus_notify.c",
+          "conversion_spans": "1651-1679;1754-1768",
+          "constants_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/sys/event_private.h",
+          "constants_span": "276-278"
+        }
+      },
+      "swap": {
+        "total_bytes": 4294967296,
+        "available_bytes": 1207173120,
+        "used_bytes": 3087794176,
+        "page_size": 16384,
+        "encrypted": true,
+        "raw_sha256": "880bc64b638f2ba40b8553d24a1943a11e29d98582a2dbb0720ff2e8799681df"
+      },
+      "vm": {
+        "page_size": 16384,
+        "counters": {
+          "Pages free": 361023,
+          "Pages inactive": 302815,
+          "Pages purgeable": 7084,
+          "File-backed pages": 276846,
+          "Pages occupied by compressor": 86713,
+          "Swapins": 173324455,
+          "Swapouts": 231154449
+        }
+      },
+      "windows": [
+        {
+          "command": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.memorystatus_vm_pressure_level"
+          ],
+          "started": 207442.041517083,
+          "finished": 207442.045236083
+        },
+        {
+          "command": [
+            "/usr/sbin/sysctl",
+            "-b",
+            "vm.swapusage"
+          ],
+          "started": 207442.045264583,
+          "finished": 207442.047713
+        },
+        {
+          "command": [
+            "/usr/bin/vm_stat"
+          ],
+          "started": 207442.047743791,
+          "finished": 207442.050327125
+        }
+      ],
+      "finished": 207442.050382458,
+      "atomic": false
+    },
+    "post_stop_observation_status": "collected_after_confirmed_empty_group",
+    "admission_system_free_percent": 78,
+    "telemetry_sample_count": 72,
+    "maximum_positive_swap_used_delta_bytes": 0,
+    "failed_telemetry_samples": [],
+    "group_settlement": {
+      "owned_pgid": 70210,
+      "confirmed_empty": true,
+      "signals": [],
+      "operation_failures": [],
+      "observation_errors": [],
+      "resource_refusal": null,
+      "finished": 207442.041461625
+    },
+    "source_binding_status": "unchanged",
+    "observation_helper_path": "/Volumes/Semaprax/lane-prompts/final-focused258-039b15f6-20261016/drivers/semaprax_pressure_observation_v3.py",
+    "observation_helper_sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+    "phase_monitor_path": "/Volumes/Semaprax/lane-prompts/final-focused258-039b15f6-20261016/drivers/observed_phase.py",
+    "phase_monitor_sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+  },
+  "cargo_log_sha256": "ced05986540f9a16e48af745828b5696e4724c3b4c4daad3f6db4047079f5e64",
+  "cargo_jsonl_sha256": "6ee0feeeedccb5ea602a33fd6685c56598be6bcdaf58c3faf3aad9ba7bbcd0ce",
+  "memory_sha256": "2ac1475dfcfc20fc325ac43a3e5570e527ebfea05ab18f9374bce6c8e7f1012e"
+}

@@ -41,7 +41,7 @@ pub(super) const ROW_CLONE_CONTROLS: usize =
 
 pub(super) const CONTROLS: usize = 2 * std::mem::size_of::<Vec<Observations>>()
     + 2 * std::mem::size_of::<std::vec::IntoIter<Observations>>()
-    + 2 * std::mem::size_of::<std::iter::Enumerate<std::vec::IntoIter<Observations>>>>()
+    + 2 * std::mem::size_of::<std::iter::Enumerate<std::vec::IntoIter<Observations>>>()
     + 2 * std::mem::size_of::<std::slice::Iter<'static, ExprSkeletonPath>>()
     + std::mem::size_of::<Frame>()
     + 4 * std::mem::size_of::<Vec<ExprSkeletonPath>>()

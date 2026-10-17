@@ -1,0 +1,1245 @@
+[
+  {
+    "level": "error",
+    "message": "cannot find module or crate `physical_storage` in this scope",
+    "spans": [
+      {
+        "byte_end": 13953,
+        "byte_start": 13937,
+        "column_end": 57,
+        "column_start": 41,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+        "is_primary": true,
+        "label": "use of unresolved module or unlinked crate `physical_storage`",
+        "line_end": 231,
+        "line_start": 231,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 57,
+            "highlight_start": 41,
+            "text": "        + 2 * size_of::<&mut Option<Box<physical_storage::PhysicalReservation>>>()"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "cannot find module or crate `physical_storage` in this scope",
+    "spans": [
+      {
+        "byte_end": 14032,
+        "byte_start": 14016,
+        "column_end": 53,
+        "column_start": 37,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+        "is_primary": true,
+        "label": "use of unresolved module or unlinked crate `physical_storage`",
+        "line_end": 232,
+        "line_start": 232,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 53,
+            "highlight_start": 37,
+            "text": "        + 2 * size_of::<Option<&mut physical_storage::PhysicalReservation>>()"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "cannot find module or crate `physical_storage` in this scope",
+    "spans": [
+      {
+        "byte_end": 14103,
+        "byte_start": 14087,
+        "column_end": 46,
+        "column_start": 30,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+        "is_primary": true,
+        "label": "use of unresolved module or unlinked crate `physical_storage`",
+        "line_end": 233,
+        "line_start": 233,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 46,
+            "highlight_start": 30,
+            "text": "        + 2 * size_of::<&mut physical_storage::PhysicalReservation>()"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "cannot find module or crate `physical_storage` in this scope",
+    "spans": [
+      {
+        "byte_end": 14207,
+        "byte_start": 14191,
+        "column_end": 48,
+        "column_start": 32,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+        "is_primary": true,
+        "label": "use of unresolved module or unlinked crate `physical_storage`",
+        "line_end": 235,
+        "line_start": 235,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 48,
+            "highlight_start": 32,
+            "text": "        + 2 * size_of::<Option<physical_storage::PhysicalRefusal>>()"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "cannot find module or crate `physical_storage` in this scope",
+    "spans": [
+      {
+        "byte_end": 14265,
+        "byte_start": 14249,
+        "column_end": 37,
+        "column_start": 21,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+        "is_primary": true,
+        "label": "use of unresolved module or unlinked crate `physical_storage`",
+        "line_end": 236,
+        "line_start": 236,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 37,
+            "highlight_start": 21,
+            "text": "        + size_of::<physical_storage::PhysicalRefusal>()"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "cannot find module or crate `physical_storage` in this scope",
+    "spans": [
+      {
+        "byte_end": 14510,
+        "byte_start": 14494,
+        "column_end": 53,
+        "column_start": 37,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+        "is_primary": true,
+        "label": "use of unresolved module or unlinked crate `physical_storage`",
+        "line_end": 239,
+        "line_start": 239,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 53,
+            "highlight_start": 37,
+            "text": "        + 2 * size_of::<&Option<Box<physical_storage::PhysicalReservation>>>()"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "cannot find module or crate `physical_storage` in this scope",
+    "spans": [
+      {
+        "byte_end": 14585,
+        "byte_start": 14569,
+        "column_end": 49,
+        "column_start": 33,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+        "is_primary": true,
+        "label": "use of unresolved module or unlinked crate `physical_storage`",
+        "line_end": 240,
+        "line_start": 240,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 49,
+            "highlight_start": 33,
+            "text": "        + 2 * size_of::<Option<&physical_storage::PhysicalReservation>>()"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "cannot find module or crate `physical_storage` in this scope",
+    "spans": [
+      {
+        "byte_end": 14652,
+        "byte_start": 14636,
+        "column_end": 42,
+        "column_start": 26,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+        "is_primary": true,
+        "label": "use of unresolved module or unlinked crate `physical_storage`",
+        "line_end": 241,
+        "line_start": 241,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 42,
+            "highlight_start": 26,
+            "text": "        + 2 * size_of::<&physical_storage::PhysicalReservation>()"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "cannot find type `Rc` in this scope",
+    "spans": [
+      {
+        "byte_end": 12069,
+        "byte_start": 12067,
+        "column_end": 8,
+        "column_start": 6,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs",
+        "is_primary": true,
+        "label": "not found in this scope",
+        "line_end": 306,
+        "line_start": 306,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 8,
+            "highlight_start": 6,
+            "text": ") -> Rc<ObservationDag> {"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "warning",
+    "message": "unused import: `main_current::sequence_skeleton_paths`",
+    "spans": [
+      {
+        "byte_end": 386,
+        "byte_start": 349,
+        "column_end": 42,
+        "column_start": 5,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/sequence_prefix.rs",
+        "is_primary": true,
+        "label": null,
+        "line_end": 9,
+        "line_start": 9,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 42,
+            "highlight_start": 5,
+            "text": "use main_current::sequence_skeleton_paths;"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "warning",
+    "message": "unused imports: `ExprSkeletonPath` and `Observations`",
+    "spans": [
+      {
+        "byte_end": 115,
+        "byte_start": 99,
+        "column_end": 36,
+        "column_start": 20,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/owned_suffix/sequence_vector.rs",
+        "is_primary": true,
+        "label": null,
+        "line_end": 2,
+        "line_start": 2,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 36,
+            "highlight_start": 20,
+            "text": "use super::super::{ExprSkeletonPath, Observations};"
+          }
+        ]
+      },
+      {
+        "byte_end": 129,
+        "byte_start": 117,
+        "column_end": 50,
+        "column_start": 38,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/owned_suffix/sequence_vector.rs",
+        "is_primary": true,
+        "label": null,
+        "line_end": 2,
+        "line_start": 2,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 50,
+            "highlight_start": 38,
+            "text": "use super::super::{ExprSkeletonPath, Observations};"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "warning",
+    "message": "unused imports: `contains_or_false` and `contains`",
+    "spans": [
+      {
+        "byte_end": 20,
+        "byte_start": 12,
+        "column_end": 21,
+        "column_start": 13,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/lexical_cert/paid/chains_tests.rs",
+        "is_primary": true,
+        "label": null,
+        "line_end": 1,
+        "line_start": 1,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 21,
+            "highlight_start": 13,
+            "text": "use super::{contains, contains_or_false};"
+          }
+        ]
+      },
+      {
+        "byte_end": 39,
+        "byte_start": 22,
+        "column_end": 40,
+        "column_start": 23,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/lexical_cert/paid/chains_tests.rs",
+        "is_primary": true,
+        "label": null,
+        "line_end": 1,
+        "line_start": 1,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 40,
+            "highlight_start": 23,
+            "text": "use super::{contains, contains_or_false};"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "warning",
+    "message": "unused import: `lexical_skeleton`",
+    "spans": [
+      {
+        "byte_end": 159,
+        "byte_start": 143,
+        "column_end": 38,
+        "column_start": 22,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/sequence_prefix/main_c11/wrapper_context.rs",
+        "is_primary": true,
+        "label": null,
+        "line_end": 4,
+        "line_start": 4,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 38,
+            "highlight_start": 22,
+            "text": "    empty_expr_path, lexical_skeleton, note_skeleton_materialization, skeleton_materializations,"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "warning",
+    "message": "unused import: `lexical_skeleton`",
+    "spans": [
+      {
+        "byte_end": 159,
+        "byte_start": 143,
+        "column_end": 38,
+        "column_start": 22,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/sequence_prefix/main8a/wrapper_context.rs",
+        "is_primary": true,
+        "label": null,
+        "line_end": 4,
+        "line_start": 4,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 38,
+            "highlight_start": 22,
+            "text": "    empty_expr_path, lexical_skeleton, note_skeleton_materialization, skeleton_materializations,"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "warning",
+    "message": "unused import: `super::*`",
+    "spans": [
+      {
+        "byte_end": 12,
+        "byte_start": 4,
+        "column_end": 13,
+        "column_start": 5,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/sequence_vector/main_a3/path_array_source.rs",
+        "is_primary": true,
+        "label": null,
+        "line_end": 1,
+        "line_start": 1,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 13,
+            "highlight_start": 5,
+            "text": "use super::*;"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "warning",
+    "message": "unused import: `crate::workspace_graph::*`",
+    "spans": [
+      {
+        "byte_end": 115,
+        "byte_start": 90,
+        "column_end": 30,
+        "column_start": 5,
+        "expansion": null,
+        "file_name": "src/workspace_graph/source_schema/nominal_context/tests.rs",
+        "is_primary": true,
+        "label": null,
+        "line_end": 4,
+        "line_start": 4,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 30,
+            "highlight_start": 5,
+            "text": "use crate::workspace_graph::*;"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "missing field `direct_anchor` in initializer of `cleanup_plan::replay::physical_storage::PhysicalReservation`",
+    "spans": [
+      {
+        "byte_end": 474,
+        "byte_start": 455,
+        "column_end": 53,
+        "column_start": 34,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/physical_storage/zero_tests.rs",
+        "is_primary": true,
+        "label": "missing `direct_anchor`",
+        "line_end": 8,
+        "line_start": 8,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 53,
+            "highlight_start": 34,
+            "text": "                let mut physical=PhysicalReservation { remaining:3,charged:usize::MAX,refusal:refused };"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "field `dag_scratch` of struct `cleanup_plan::replay::skeleton_work::SkeletonWork` is private",
+    "spans": [
+      {
+        "byte_end": 3467,
+        "byte_start": 3456,
+        "column_end": 42,
+        "column_start": 31,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+        "is_primary": true,
+        "label": "private field",
+        "line_end": 89,
+        "line_start": 89,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 42,
+            "highlight_start": 31,
+            "text": "                    drop(work.dag_scratch.take());"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "field `ordinary_scratch` of struct `cleanup_plan::replay::skeleton_work::SkeletonWork` is private",
+    "spans": [
+      {
+        "byte_end": 3523,
+        "byte_start": 3507,
+        "column_end": 47,
+        "column_start": 31,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+        "is_primary": true,
+        "label": "private field",
+        "line_end": 90,
+        "line_start": 90,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 47,
+            "highlight_start": 31,
+            "text": "                    drop(work.ordinary_scratch.take());"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "field `dag_scratch` of struct `cleanup_plan::replay::skeleton_work::SkeletonWork` is private",
+    "spans": [
+      {
+        "byte_end": 5731,
+        "byte_start": 5720,
+        "column_end": 34,
+        "column_start": 23,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+        "is_primary": true,
+        "label": "private field",
+        "line_end": 139,
+        "line_start": 139,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 34,
+            "highlight_start": 23,
+            "text": "            drop(work.dag_scratch.take());"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "field `ordinary_scratch` of struct `cleanup_plan::replay::skeleton_work::SkeletonWork` is private",
+    "spans": [
+      {
+        "byte_end": 5779,
+        "byte_start": 5763,
+        "column_end": 39,
+        "column_start": 23,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+        "is_primary": true,
+        "label": "private field",
+        "line_end": 140,
+        "line_start": 140,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 39,
+            "highlight_start": 23,
+            "text": "            drop(work.ordinary_scratch.take());"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "field `dag_scratch` of struct `cleanup_plan::replay::skeleton_work::SkeletonWork` is private",
+    "spans": [
+      {
+        "byte_end": 9160,
+        "byte_start": 9149,
+        "column_end": 34,
+        "column_start": 23,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+        "is_primary": true,
+        "label": "private field",
+        "line_end": 214,
+        "line_start": 214,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 34,
+            "highlight_start": 23,
+            "text": "            drop(work.dag_scratch.take());"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "field `ordinary_scratch` of struct `cleanup_plan::replay::skeleton_work::SkeletonWork` is private",
+    "spans": [
+      {
+        "byte_end": 9208,
+        "byte_start": 9192,
+        "column_end": 39,
+        "column_start": 23,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+        "is_primary": true,
+        "label": "private field",
+        "line_end": 215,
+        "line_start": 215,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 39,
+            "highlight_start": 23,
+            "text": "            drop(work.ordinary_scratch.take());"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "cannot multiply `{integer}` by `fn() -> usize {size_of::<Enumerate<IntoIter<Observations>>>}`",
+    "spans": [
+      {
+        "byte_end": 1797,
+        "byte_start": 1796,
+        "column_end": 10,
+        "column_start": 9,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/owned_suffix.rs",
+        "is_primary": true,
+        "label": "no implementation for `{integer} * fn() -> usize {size_of::<Enumerate<IntoIter<Observations>>>}`",
+        "line_end": 44,
+        "line_start": 44,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 10,
+            "highlight_start": 9,
+            "text": "    + 2 * std::mem::size_of::<std::iter::Enumerate<std::vec::IntoIter<Observations>>>>()"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "cannot add `usize` to `()`",
+    "spans": [
+      {
+        "byte_end": 1876,
+        "byte_start": 1874,
+        "column_end": 89,
+        "column_start": 87,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/owned_suffix.rs",
+        "is_primary": false,
+        "label": "()",
+        "line_end": 44,
+        "line_start": 44,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 89,
+            "highlight_start": 87,
+            "text": "    + 2 * std::mem::size_of::<std::iter::Enumerate<std::vec::IntoIter<Observations>>>>()"
+          }
+        ]
+      },
+      {
+        "byte_end": 1953,
+        "byte_start": 1883,
+        "column_end": 77,
+        "column_start": 7,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/owned_suffix.rs",
+        "is_primary": false,
+        "label": "usize",
+        "line_end": 45,
+        "line_start": 45,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 77,
+            "highlight_start": 7,
+            "text": "    + 2 * std::mem::size_of::<std::slice::Iter<'static, ExprSkeletonPath>>()"
+          }
+        ]
+      },
+      {
+        "byte_end": 1882,
+        "byte_start": 1881,
+        "column_end": 6,
+        "column_start": 5,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/owned_suffix.rs",
+        "is_primary": true,
+        "label": null,
+        "line_end": 45,
+        "line_start": 45,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 6,
+            "highlight_start": 5,
+            "text": "    + 2 * std::mem::size_of::<std::slice::Iter<'static, ExprSkeletonPath>>()"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "mismatched types",
+    "spans": [
+      {
+        "byte_end": 2732,
+        "byte_start": 1677,
+        "column_end": 47,
+        "column_start": 36,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/owned_suffix.rs",
+        "is_primary": true,
+        "label": "expected `usize`, found `bool`",
+        "line_end": 59,
+        "line_start": 42,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 80,
+            "highlight_start": 36,
+            "text": "pub(super) const CONTROLS: usize = 2 * std::mem::size_of::<Vec<Observations>>()"
+          },
+          {
+            "highlight_end": 66,
+            "highlight_start": 1,
+            "text": "    + 2 * std::mem::size_of::<std::vec::IntoIter<Observations>>()"
+          },
+          {
+            "highlight_end": 89,
+            "highlight_start": 1,
+            "text": "    + 2 * std::mem::size_of::<std::iter::Enumerate<std::vec::IntoIter<Observations>>>>()"
+          },
+          {
+            "highlight_end": 77,
+            "highlight_start": 1,
+            "text": "    + 2 * std::mem::size_of::<std::slice::Iter<'static, ExprSkeletonPath>>()"
+          },
+          {
+            "highlight_end": 35,
+            "highlight_start": 1,
+            "text": "    + std::mem::size_of::<Frame>()"
+          },
+          {
+            "highlight_end": 55,
+            "highlight_start": 1,
+            "text": "    + 4 * std::mem::size_of::<Vec<ExprSkeletonPath>>()"
+          },
+          {
+            "highlight_end": 75,
+            "highlight_start": 1,
+            "text": "    + 2 * std::mem::size_of::<Result<Vec<ExprSkeletonPath>, Diagnostic>>()"
+          },
+          {
+            "highlight_end": 80,
+            "highlight_start": 1,
+            "text": "    + 2 * std::mem::size_of::<Result<Vec<(usize, Observations)>, Diagnostic>>()"
+          },
+          {
+            "highlight_end": 56,
+            "highlight_start": 1,
+            "text": "    + 4 * std::mem::size_of::<Result<(), Diagnostic>>()"
+          },
+          {
+            "highlight_end": 69,
+            "highlight_start": 1,
+            "text": "    + 6 * std::mem::size_of::<&mut SkeletonWork<'static, 'static>>()"
+          },
+          {
+            "highlight_end": 51,
+            "highlight_start": 1,
+            "text": "    + 6 * std::mem::size_of::<&ResolvedFunction>()"
+          },
+          {
+            "highlight_end": 38,
+            "highlight_start": 1,
+            "text": "    + 6 * std::mem::size_of::<&str>()"
+          },
+          {
+            "highlight_end": 40,
+            "highlight_start": 1,
+            "text": "    + 12 * std::mem::size_of::<usize>()"
+          },
+          {
+            "highlight_end": 39,
+            "highlight_start": 1,
+            "text": "    + 12 * std::mem::size_of::<bool>()"
+          },
+          {
+            "highlight_end": 60,
+            "highlight_start": 1,
+            "text": "    + 4 * std::mem::size_of::<Vec<(usize, Observations)>>()"
+          },
+          {
+            "highlight_end": 52,
+            "highlight_start": 1,
+            "text": "    + 4 * std::mem::size_of::<Vec<View<'static>>>()"
+          },
+          {
+            "highlight_end": 82,
+            "highlight_start": 1,
+            "text": "    + 4 * std::mem::size_of::<std::slice::Iter<'static, (usize, Observations)>>()"
+          },
+          {
+            "highlight_end": 47,
+            "highlight_start": 1,
+            "text": "    + 8 * std::mem::size_of::<View<'static>>();"
+          }
+        ]
+      },
+      {
+        "byte_end": 1674,
+        "byte_start": 1669,
+        "column_end": 33,
+        "column_start": 28,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/owned_suffix.rs",
+        "is_primary": false,
+        "label": "expected because of the type of the constant",
+        "line_end": 42,
+        "line_start": 42,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 33,
+            "highlight_start": 28,
+            "text": "pub(super) const CONTROLS: usize = 2 * std::mem::size_of::<Vec<Observations>>()"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "method `ordinary_union` is private",
+    "spans": [
+      {
+        "byte_end": 9179,
+        "byte_start": 9165,
+        "column_end": 36,
+        "column_start": 22,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/owned_suffix.rs",
+        "is_primary": true,
+        "label": "private method",
+        "line_end": 227,
+        "line_start": 227,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 36,
+            "highlight_start": 22,
+            "text": "                work.ordinary_union(members)?"
+          }
+        ]
+      },
+      {
+        "byte_end": 3345,
+        "byte_start": 3219,
+        "column_end": 42,
+        "column_start": 5,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/skeleton_work/ordinary_dag.rs",
+        "is_primary": false,
+        "label": "private method defined here",
+        "line_end": 99,
+        "line_start": 96,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 34,
+            "highlight_start": 5,
+            "text": "    pub(super) fn ordinary_union("
+          },
+          {
+            "highlight_end": 19,
+            "highlight_start": 1,
+            "text": "        &mut self,"
+          },
+          {
+            "highlight_end": 36,
+            "highlight_start": 1,
+            "text": "        members: Vec<Observations>,"
+          },
+          {
+            "highlight_end": 42,
+            "highlight_start": 1,
+            "text": "    ) -> Result<Observations, Diagnostic> {"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "warning",
+    "message": "taking a mutable reference to a `const` item",
+    "spans": [
+      {
+        "byte_end": 5067,
+        "byte_start": 5052,
+        "column_end": 32,
+        "column_start": 17,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/inventory_coverage/typed_tests.rs",
+        "is_primary": true,
+        "label": null,
+        "line_end": 132,
+        "line_start": 132,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 32,
+            "highlight_start": 17,
+            "text": "                &mut usize::MAX,"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "warning",
+    "message": "taking a mutable reference to a `const` item",
+    "spans": [
+      {
+        "byte_end": 7914,
+        "byte_start": 7899,
+        "column_end": 24,
+        "column_start": 9,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/inventory_coverage/typed_tests.rs",
+        "is_primary": true,
+        "label": null,
+        "line_end": 195,
+        "line_start": 195,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 24,
+            "highlight_start": 9,
+            "text": "        &mut usize::MAX,"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "warning",
+    "message": "taking a mutable reference to a `const` item",
+    "spans": [
+      {
+        "byte_end": 8090,
+        "byte_start": 8075,
+        "column_end": 24,
+        "column_start": 9,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/inventory_coverage/typed_tests.rs",
+        "is_primary": true,
+        "label": null,
+        "line_end": 203,
+        "line_start": 203,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 24,
+            "highlight_start": 9,
+            "text": "        &mut usize::MAX,"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "warning",
+    "message": "taking a mutable reference to a `const` item",
+    "spans": [
+      {
+        "byte_end": 9059,
+        "byte_start": 9044,
+        "column_end": 67,
+        "column_start": 52,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/inventory_coverage/typed_tests.rs",
+        "is_primary": true,
+        "label": null,
+        "line_end": 227,
+        "line_start": 227,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 67,
+            "highlight_start": 52,
+            "text": "            raw(&program, function, &mut physical, &mut usize::MAX, old)"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "cannot move out of `budget` because it is borrowed",
+    "spans": [
+      {
+        "byte_end": 18671,
+        "byte_start": 18665,
+        "column_end": 53,
+        "column_start": 47,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+        "is_primary": true,
+        "label": "move out of `budget` occurs here",
+        "line_end": 444,
+        "line_start": 444,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 53,
+            "highlight_start": 47,
+            "text": "                drop((result, suffixes, work, budget));"
+          }
+        ]
+      },
+      {
+        "byte_end": 18202,
+        "byte_start": 18191,
+        "column_end": 81,
+        "column_start": 70,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+        "is_primary": false,
+        "label": "borrow of `budget` occurs here",
+        "line_end": 435,
+        "line_start": 435,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 81,
+            "highlight_start": 70,
+            "text": "                let mut work = SkeletonWork::new(&program, function, &mut budget);"
+          }
+        ]
+      },
+      {
+        "byte_end": 18072,
+        "byte_start": 18062,
+        "column_end": 31,
+        "column_start": 21,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+        "is_primary": false,
+        "label": "binding `budget` declared here",
+        "line_end": 434,
+        "line_start": 434,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 31,
+            "highlight_start": 21,
+            "text": "                let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);"
+          }
+        ]
+      },
+      {
+        "byte_end": 18672,
+        "byte_start": 18640,
+        "column_end": 54,
+        "column_start": 22,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+        "is_primary": false,
+        "label": "borrow later used here",
+        "line_end": 444,
+        "line_start": 444,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 54,
+            "highlight_start": 22,
+            "text": "                drop((result, suffixes, work, budget));"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": "error",
+    "message": "cannot move out of `budget` because it is borrowed",
+    "spans": [
+      {
+        "byte_end": 20547,
+        "byte_start": 20541,
+        "column_end": 48,
+        "column_start": 42,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+        "is_primary": true,
+        "label": "move out of `budget` occurs here",
+        "line_end": 485,
+        "line_start": 485,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 48,
+            "highlight_start": 42,
+            "text": "            drop((paths, suffixes, work, budget));"
+          }
+        ]
+      },
+      {
+        "byte_end": 20075,
+        "byte_start": 20064,
+        "column_end": 77,
+        "column_start": 66,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+        "is_primary": false,
+        "label": "borrow of `budget` occurs here",
+        "line_end": 476,
+        "line_start": 476,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 77,
+            "highlight_start": 66,
+            "text": "            let mut work = SkeletonWork::new(&program, function, &mut budget);"
+          }
+        ]
+      },
+      {
+        "byte_end": 19927,
+        "byte_start": 19917,
+        "column_end": 27,
+        "column_start": 17,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+        "is_primary": false,
+        "label": "binding `budget` declared here",
+        "line_end": 475,
+        "line_start": 475,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 27,
+            "highlight_start": 17,
+            "text": "            let mut budget = ReplayBudget::with_skeleton_limit_oracle(usize::MAX, scope.lease());"
+          }
+        ]
+      },
+      {
+        "byte_end": 20548,
+        "byte_start": 20517,
+        "column_end": 49,
+        "column_start": 18,
+        "expansion": null,
+        "file_name": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+        "is_primary": false,
+        "label": "borrow later used here",
+        "line_end": 485,
+        "line_start": 485,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": [
+          {
+            "highlight_end": 49,
+            "highlight_start": 18,
+            "text": "            drop((paths, suffixes, work, budget));"
+          }
+        ]
+      }
+    ]
+  }
+]

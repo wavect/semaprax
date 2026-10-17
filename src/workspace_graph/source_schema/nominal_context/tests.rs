@@ -1,7 +1,6 @@
 use super::main8a::Types;
 use super::*;
 use crate::workspace_graph::source_schema::*;
-use crate::workspace_graph::*;
 
 fn fixture_source(name: &str) -> &'static str {
     let source = include_str!(concat!(

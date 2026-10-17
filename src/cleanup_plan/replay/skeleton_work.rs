@@ -194,6 +194,13 @@ pub(super) struct SkeletonWork<'a, 'b> {
 }
 
 impl<'a, 'b> SkeletonWork<'a, 'b> {
+    /// Release test-owned observation scratch in the original field order.
+    #[cfg(test)]
+    pub(super) fn release_observation_scratch_for_test(&mut self) {
+        drop(self.dag_scratch.take());
+        drop(self.ordinary_scratch.take());
+    }
+
     #[cfg(test)]
     pub(super) fn new(
         program: &'a dyn crate::cleanup::ReplayContext,

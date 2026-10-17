@@ -125,11 +125,12 @@ fn complete_raw_inventory_keeps_all_fields_original_work_and_reports_real_receiv
             )
             .unwrap();
             crate::cleanup::begin_typed_inventory_trace();
+            let mut actual_work = usize::MAX;
             let actual = crate::cleanup::build_typed_flat_record_inventory(
                 &program,
                 function,
                 &mut ReplayPhysicalReservation::new(usize::MAX),
-                &mut usize::MAX,
+                &mut actual_work,
             )
             .unwrap();
             let actual_trace = crate::cleanup::take_typed_inventory_trace();
@@ -188,19 +189,21 @@ fn raw_primitive_failures_keep_six_fields_sticky_ledger_and_attached_inventory_n
         declaration: DeclarationId::new("untrusted.missing.record"),
         arguments: Vec::new(),
     };
+    let mut a_work = usize::MAX;
     let a = raw(
         &program,
         &malformed,
         &mut ReplayPhysicalReservation::new(usize::MAX),
-        &mut usize::MAX,
+        &mut a_work,
         true,
     )
     .unwrap_err();
+    let mut b_work = usize::MAX;
     let b = raw(
         &program,
         &malformed,
         &mut ReplayPhysicalReservation::new(usize::MAX),
-        &mut usize::MAX,
+        &mut b_work,
         false,
     )
     .unwrap_err();
@@ -223,8 +226,9 @@ fn raw_primitive_failures_keep_six_fields_sticky_ledger_and_attached_inventory_n
         physical.reserve(1).unwrap();
         let first = physical.reserve(1).unwrap_err();
         let charged = physical.charged();
+        let mut refused_work = usize::MAX;
         assert_eq!(
-            raw(&program, function, &mut physical, &mut usize::MAX, old)
+            raw(&program, function, &mut physical, &mut refused_work, old)
                 .unwrap_err()
                 .code,
             "SPX-H006"

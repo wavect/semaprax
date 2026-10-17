@@ -86,8 +86,7 @@ fn owned_suffix_retains_original_owner_free_order_on_work_refusals() {
                         .map(|paths| paths.len())
                         .map_err(|e| e.clone());
                     drop(result);
-                    drop(work.dag_scratch.take());
-                    drop(work.ordinary_scratch.take());
+                    work.release_observation_scratch_for_test();
                     outcome
                 });
                 assert!(!report.invalid);
@@ -136,8 +135,7 @@ fn owned_suffix_all_physical_refusals_drop_prefix_carrier_before_original_suffix
                 "prefix before original suffix at physical={allowance}"
             );
             drop(result);
-            drop(work.dag_scratch.take());
-            drop(work.ordinary_scratch.take());
+            work.release_observation_scratch_for_test();
         });
         assert!(!metrics.invalid);
         assert_eq!(metrics.live, 0);
@@ -211,8 +209,7 @@ fn owned_suffix_reports_cumulative_backing_through_result_destruction() {
             }
             .unwrap();
             drop(result);
-            drop(work.dag_scratch.take());
-            drop(work.ordinary_scratch.take());
+            work.release_observation_scratch_for_test();
             work.budget.physical.as_ref().unwrap().charged() - baseline
         });
         assert!(!metrics.invalid);

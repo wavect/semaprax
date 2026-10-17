@@ -1,0 +1,36 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED_NOT_879_CLOSURE",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::production_capacity::tests::production_fused_probe_preserves_every_original_take_decision_and_bounds_copy_receivers",
+      "sourcepath": "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::production_capacity::tests::production_fused_enumerator_matches_the_complete_predecessor_paths_work_and_materializations",
+      "sourcepath": "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::production_capacity::tests::production_fused_clone_keeps_original_work_failures_and_actual_exact_short_floor_drop",
+      "sourcepath": "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::production_capacity::tests::production_fused_earlier_bank_and_original_take_frontiers_keep_six_fields_first_receipt_and_whole_drop",
+      "sourcepath": "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::tests::real_generic_probe_receiving_frontier_exact_short_zero_floor_is_sticky_and_drops_completely",
+      "sourcepath": "src/cleanup_plan/replay/branch_clone/tests.rs"
+    }
+  ],
+  "unresolved": "independent incoming directhelper funding and original width42 physical assertion"
+}

@@ -7122,11 +7122,16 @@ fn plan_skeleton_paths(
                             ));
                         }
                     };
+                    if let ReplayBudget { payer: AllocationPayer::ActiveBuilder, .. } = budget {
+                        budget.reserve_bytes(function, branch_clone::production_capacity::production_inline_controls::<std::rc::Rc<SkeletonObservation>>(),
+                            "branch clone receiving controls")?;
+                    } else {
                     budget.reserve_bytes(
                         function,
                         branch_clone::inline_controls::<std::rc::Rc<SkeletonObservation>>(),
                         "branch clone receiving controls",
                     )?;
+                    }
                     // The branch producer has no Result<Vec<_>, Diagnostic>
                     // receiver or owned observation forwarding argument. Its
                     // nested work/census/payment Results retain their charges.
@@ -7155,8 +7160,7 @@ fn plan_skeleton_paths(
                         // false probe paths; this is a bounded implementation
                         // detail of that materialization, not a CPU ledger.
                         if let ReplayBudget { payer: AllocationPayer::ActiveBuilder, .. } = budget {
-                            budget.reserve_bytes(function,
-                                branch_clone::TAKE_CALL_CONTROLS + branch_clone::production_capacity::ADDITIONAL_CONTROLS,
+                            budget.reserve_bytes(function, branch_clone::TAKE_CALL_CONTROLS,
                                 "plan final branch probe receiving")?;
                             branch_clone::production_capacity::produce!(budget, function, observations,
                                 observation, plan, edge, remaining_edges, edges, branch, queue);

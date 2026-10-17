@@ -1,0 +1,18 @@
+[
+  {
+    "old": "sha=lambda b:hashlib.sha256(b).hexdigest()\n",
+    "new": "sha=lambda b:hashlib.sha256(b).hexdigest()\nimport sys\nhelper_dir=Path(__file__).resolve().parent\nassert sha((helper_dir/'canonical870_stage.py').read_bytes())==\"1e85e09ad2eb5ec2189ce3915f389726d1219b09c85be997b39ae0feed6a0061\"\nsys.path.insert(0,str(helper_dir))\nfrom canonical870_stage import canonical_stage\n"
+  },
+  {
+    "old": "current_canonical=(S/I['canonical_db2']['path']).read_bytes();current_projection=",
+    "new": "raw_canonical=(S/I['canonical_db2']['path']).read_bytes();current_canonical=canonical_stage(R,raw_canonical);current_projection="
+  },
+  {
+    "old": "I['canonical_db2']['path']:sha(current_canonical)",
+    "new": "I['canonical_db2']['path']:sha(raw_canonical)"
+  },
+  {
+    "old": "if args.write:\n",
+    "new": "receipt['canonical870_raw_authentication']={'raw_sha256':sha(raw_canonical),'stage_sha256':sha(current_canonical),'stage_binding_sha256':sha((R/'docs/evidence/opt870-current-stage-custody-20261017/raw-to-stage.json').read_bytes()),'original_canonical_endpoint_is_staged51':True}\nif args.write:\n"
+  }
+]

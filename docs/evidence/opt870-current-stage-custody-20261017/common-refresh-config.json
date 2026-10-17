@@ -1,0 +1,18 @@
+{
+  "schema": "semaprax.common-refresh-staged-canonical870.v1",
+  "original_binder": "docs/evidence/final-ready-outer-joins-20261017/bind-new-endpoints.py",
+  "original_binder_sha256": "6fbd76d484acdb22893885e1e0ea2722243c9ede8d04fb9fb0bf304149a91f67",
+  "current_binder": "docs/evidence/opt870-current-stage-custody-20261017/bind-staged-endpoints.py",
+  "current_binder_sha256": "611607b00238e4e1addd0f998dde3898794a48f91f0fcb4ed1485ee6c0641f28",
+  "canonical_stage_helper": "docs/evidence/opt870-current-stage-custody-20261017/canonical870_stage.py",
+  "canonical_stage_helper_sha256": "1e85e09ad2eb5ec2189ce3915f389726d1219b09c85be997b39ae0feed6a0061",
+  "runtime_entry": "source_reflows_merge::final_ready_inputs::current344_input",
+  "raw_endpoint_sha256": "d2da17ff0d2a477bf625e9bd039380165e9f0cfbf5f2b144e0000659669e3c30",
+  "immutable_stage_sha256": "459b9a2d0f454f608a3e1997b46e76cc09c1ddc098d976b7513f92b16263a839",
+  "endpoint_domain": "canonical344",
+  "endpoint_row_current_must_be": "complete immutable51 stage, never raw870",
+  "source_race_binding_must_be": "actual raw870 bytes, never staged51",
+  "other_domains": "owner99 and projection344 retain unchanged original raw-source binding algorithm",
+  "original_guards": "all retained, exactly recoverable with binder-finite-edits.json",
+  "no_refresh_or_qualification_claim": true
+}

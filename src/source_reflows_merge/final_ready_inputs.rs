@@ -167,6 +167,13 @@ pub(crate) fn current344_input(source: &str, current: &str) -> String {
         "expected_projection::root_join" => Domain::Projection344,
         _ => return current.to_owned(),
     };
+    let stage;
+    let current = if matches!(domain, Domain::Canonical344) {
+        stage = canonical870_stage(current);
+        stage.as_str()
+    } else {
+        current
+    };
     project(&records(), domain, current)
 }
 pub(crate) fn controls() {
@@ -183,9 +190,10 @@ pub(crate) fn controls() {
         let projected = project(&rows, domain, current);
         let through_owner = match domain {
             Domain::Owner99 => source_owner("source-followups", domain.source(), current),
-            Domain::Canonical344 | Domain::Projection344 => {
-                current344_input(domain.source(), current)
-            }
+            Domain::Canonical344 => current344_input(domain.source(), include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared.rs"
+            ))),
+            Domain::Projection344 => current344_input(domain.source(), current),
         };
         assert_eq!(through_owner, projected);
         for wrong in [
@@ -204,4 +212,36 @@ pub(crate) fn controls() {
         source_owner("unlisted", "unlisted", "unchanged"),
         "unchanged"
     );
+}
+
+// Separate new raw endpoint; the immutable Canonical344 row remains staged51.
+// Old stage bytes are never an alternative live870 input.
+fn canonical870_stage(current: &str) -> String {
+    let data = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/opt870-current-stage-custody-20261017/raw-to-stage.json"));
+    assert_eq!(digest(data), "6523645c1445ceffafe43ff87118f3f2d6f94686a39b444ff6f87cedf7460bc0");
+    let row: serde_json::Value = serde_json::from_str(data).unwrap();
+    assert_eq!(row["schema"], "semaprax.canonical870-stage.v1");
+    assert_eq!(row["source"], Domain::Canonical344.source());
+    assert_eq!(current.len() as u64, row["raw_length"].as_u64().unwrap());
+    assert_eq!(digest(current), row["raw_sha256"], "complete live870 root");
+    let inverse = row["inverse"].as_array().unwrap();
+    assert!(!inverse.is_empty() && inverse.len() <= 64);
+    let stage = lines(current, &row["inverse"], "start", "end", "current", "previous");
+    assert_eq!(stage.len() as u64, row["stage_length"].as_u64().unwrap());
+    assert_eq!(digest(&stage), row["stage_sha256"], "complete immutable51 stage");
+    stage
+}
+
+#[test]
+fn canonical870_raw_endpoint_preserves_full51_stage_and_rejects_other_domains() {
+    let raw = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared.rs"));
+    let old = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/opt870-current-stage-custody-20261017/canonical51.stage.rs.txt"));
+    assert_eq!(canonical870_stage(raw), old);
+    let rows = records();
+    let row = rows.as_array().unwrap().iter().find(|row| row["domain"] == "canonical344").unwrap();
+    assert_eq!(row["current"], old, "binder must retain the immutable stage domain");
+    assert_eq!(current344_input(Domain::Canonical344.source(), raw), project(&rows, Domain::Canonical344, old));
+    for wrong in [String::new(), format!("{raw} "), format!("{raw}{raw}"), old.to_owned()] {
+        assert!(std::panic::catch_unwind(|| current344_input(Domain::Canonical344.source(), &wrong)).is_err());
+    }
 }

@@ -1,0 +1,65 @@
+pub(super) fn validate_typed_control_skeleton_with_index<'hir>(
+    program: &'hir dyn crate::cleanup::ReplayContext,
+    function: &'hir ResolvedFunction,
+    budget: &mut ReplayBudget,
+    helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'hir>>,
+    mut continuations: Option<&mut continuation_storage::Storage<'hir>>,
+) -> Result<(), Diagnostic> {
+    if function.cleanup_plan.lexical_control.is_none()
+        && factored::validate_with_index_storage(
+            program,
+            function,
+            budget,
+            helpers,
+            continuations.as_deref_mut(),
+        )?
+    {
+        return Ok(());
+    }
+    let mut expected =
+        hir_skeleton_paths_with_index_storage(program, function, budget, helpers, continuations)?;
+    // Match the existing received reference, with no new payer/tag/flag carrier.
+    if let ReplayBudget {
+            payer: AllocationPayer::ActiveBuilder,
+            ..
+        } = budget {
+            budget.reserve_bytes(
+                function,
+                ordinary_plan_history::SELECT_CALL_CONTROLS,
+                "ordinary plan history selector call receivers",
+            )?;
+            if ordinary_plan_history::select(function, budget)? {
+                budget.reserve_bytes(
+                    function,
+                    ordinary_plan_history::PRODUCE_CALL_CONTROLS,
+                    "ordinary plan history producer call receivers",
+                )?;
+                let actual = ordinary_plan_history::produce(function, budget)?;
+                expected.sort();
+                budget.reserve_bytes(
+                    function,
+                    ordinary_plan_history::COMPARE_CALL_CONTROLS,
+                    "ordinary plan history owned comparison call receivers",
+                )?;
+                return ordinary_plan_history::compare(function, budget, actual, &expected);
+            }
+    }
+    let mut actual = plan_skeleton_paths(function, budget)?;
+    expected.sort();
+    actual.sort();
+    if actual != expected {
+        if std::env::var_os("SPX_PROBE_SKELETON").is_some() {
+            for (index, path) in expected.iter().enumerate() {
+                eprintln!("EXP[{index}] {path:?}");
+            }
+            for (index, path) in actual.iter().enumerate() {
+                eprintln!("ACT[{index}] {path:?}");
+            }
+        }
+        return Err(replay_error(
+            function,
+            "cleanup CFG decision or ownership-event sequence disagrees with typed HIR",
+        ));
+    }
+    Ok(())
+}

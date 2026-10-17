@@ -771,3 +771,288 @@ fn oracle_entry_still_refuses_missing_and_same_id_foreign_invocation_without_act
         assert_eq!(paid, 0);
     }
 }
+
+// Numeric diagnostic observation only. These copies preserve every original
+// receiver statement; exact rename/hook inverses are retained in the packet.
+// No capture spends work/bytes, changes a result or selects a compiler route.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct ComparisonCheckpoint {
+    ordinary_remaining: usize,
+    skeleton_remaining: usize,
+    skeleton_spent: usize,
+    physical_remaining: usize,
+    heap: crate::test_allocation_observer::Metrics,
+}
+#[derive(Clone, Copy, Debug)]
+struct ComparisonBoundaryReport {
+    immutable_plan: bool,
+    before: ComparisonCheckpoint,
+    after: Option<ComparisonCheckpoint>,
+}
+thread_local! {
+    static COMPARISON_BOUNDARY_REPORT: std::cell::RefCell<Option<ComparisonBoundaryReport>> = const { std::cell::RefCell::new(None) };
+}
+fn comparison_checkpoint(budget: &ReplayBudget) -> ComparisonCheckpoint {
+    ComparisonCheckpoint {
+        ordinary_remaining: budget.remaining,
+        skeleton_remaining: budget.skeleton_remaining,
+        skeleton_spent: budget.skeleton_spent,
+        physical_remaining: crate::bounded_output::active_remaining().unwrap(),
+        heap: crate::test_allocation_observer::current_metrics(),
+    }
+}
+fn comparison_report_begin(budget: &ReplayBudget, immutable_plan: bool) {
+    let before = comparison_checkpoint(budget);
+    COMPARISON_BOUNDARY_REPORT.with(|slot| {
+        let mut slot = slot.borrow_mut();
+        assert!(slot.is_none(), "one complete comparison receiver per report");
+        *slot = Some(ComparisonBoundaryReport { immutable_plan, before, after: None });
+    });
+}
+fn comparison_report_end(budget: &ReplayBudget) {
+    let after = comparison_checkpoint(budget);
+    COMPARISON_BOUNDARY_REPORT.with(|slot| {
+        let mut slot = slot.borrow_mut();
+        let report = slot.as_mut().expect("real comparison entry observed");
+        assert!(report.after.is_none());
+        report.after = Some(after);
+    });
+}
+
+use crate::cleanup_plan::replay::*;
+fn comparison_report_old_receiver<'hir>(
+    program: &'hir dyn crate::cleanup::ReplayContext,
+    function: &'hir ResolvedFunction,
+    budget: &mut ReplayBudget,
+    helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'hir>>,
+    mut continuations: Option<&mut continuation_storage::Storage<'hir>>,
+) -> Result<(), Diagnostic> {
+    if function.cleanup_plan.lexical_control.is_none()
+        && factored::validate_with_index_storage(
+            program,
+            function,
+            budget,
+            helpers,
+            continuations.as_deref_mut(),
+        )?
+    {
+        return Ok(());
+    }
+    let mut expected =
+        hir_skeleton_paths_with_index_storage(program, function, budget, helpers, continuations)?;
+    // Match the existing received reference, with no new payer/tag/flag carrier.
+    if let ReplayBudget {
+            payer: AllocationPayer::ActiveBuilder,
+            ..
+        } = budget {
+            budget.reserve_bytes(
+                function,
+                ordinary_plan_history::SELECT_CALL_CONTROLS,
+                "ordinary plan history selector call receivers",
+            )?;
+            if ordinary_plan_history::select(function, budget)? {
+                budget.reserve_bytes(
+                    function,
+                    ordinary_plan_history::PRODUCE_CALL_CONTROLS,
+                    "ordinary plan history producer call receivers",
+                )?;
+                let actual = ordinary_plan_history::produce(function, budget)?;
+                comparison_report_begin(budget, true);
+                expected.sort();
+                budget.reserve_bytes(
+                    function,
+                    ordinary_plan_history::COMPARE_CALL_CONTROLS,
+                    "ordinary plan history owned comparison call receivers",
+                )?;
+                let observed_result = ordinary_plan_history::compare(function, budget, actual, &expected);
+                comparison_report_end(budget);
+                return observed_result;
+            }
+    }
+    let mut actual = plan_skeleton_paths(function, budget)?;
+    comparison_report_begin(budget, false);
+    expected.sort();
+    actual.sort();
+    if actual != expected {
+        if std::env::var_os("SPX_PROBE_SKELETON").is_some() {
+            for (index, path) in expected.iter().enumerate() {
+                eprintln!("EXP[{index}] {path:?}");
+            }
+            for (index, path) in actual.iter().enumerate() {
+                eprintln!("ACT[{index}] {path:?}");
+            }
+        }
+        comparison_report_end(budget);
+        return Err(replay_error(
+            function,
+            "cleanup CFG decision or ownership-event sequence disagrees with typed HIR",
+        ));
+    }
+    comparison_report_end(budget);
+    Ok(())
+}
+
+fn comparison_report_current_receiver<'hir>(
+    program: &'hir dyn crate::cleanup::ReplayContext,
+    function: &'hir ResolvedFunction,
+    budget: &mut ReplayBudget,
+    helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'hir>>,
+    mut continuations: Option<&mut continuation_storage::Storage<'hir>>,
+) -> Result<(), Diagnostic> { #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);
+    if function.cleanup_plan.lexical_control.is_none()
+        && factored::validate_with_index_storage(
+            program,
+            function,
+            budget,
+            helpers,
+            continuations.as_deref_mut(),
+        )?
+    {
+        return Ok(());
+    } #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);
+    let mut expected =
+        hir_skeleton_paths_with_index_storage(program, function, budget, helpers, continuations)?; #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);
+    // Match the existing received reference, with no new payer/tag/flag carrier.
+    if let ReplayBudget {
+        payer: AllocationPayer::ActiveBuilder,
+        ..
+    } = budget
+    {
+        budget.reserve_bytes(
+            function,
+            ordinary_plan_history::SELECT_CALL_CONTROLS,
+            "ordinary plan history selector call receivers",
+        )?;
+        if ordinary_plan_history::select(function, budget)? { #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::HistoryPLAN);
+            budget.reserve_bytes(
+                function,
+                ordinary_plan_history::PRODUCE_CALL_CONTROLS,
+                "ordinary plan history producer call receivers",
+            )?;
+            let actual = ordinary_plan_history::produce(function, budget)?;
+                comparison_report_begin(budget, true); #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);
+            budget.reserve_bytes(
+                function,
+                skeleton_work::enumerated_prefix::ENTRY_CALL,
+                "enumerated HIR sort entry receivers",
+            )?;
+            skeleton_work::enumerated_prefix::sort(&mut expected, function, budget)?;
+            budget.reserve_bytes(
+                function,
+                ordinary_plan_history::COMPARE_CALL_CONTROLS,
+                "ordinary plan history owned comparison call receivers",
+            )?;
+            let observed_result = ordinary_plan_history::compare(function, budget, actual, &expected);
+                comparison_report_end(budget);
+                return observed_result;
+        }
+    } #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);
+    let mut actual = plan_skeleton_paths(function, budget)?;
+    comparison_report_begin(budget, false); #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);
+    if match budget {
+        ReplayBudget {
+            payer: AllocationPayer::ActiveBuilder,
+            admission: AdmissionMode::Ordinary,
+            lent_skeleton: false,
+            ..
+        } => {
+            budget.reserve_bytes(
+                function,
+                2 * skeleton_work::enumerated_prefix::ENTRY_CALL,
+                "enumerated HIR sort and equality entry receivers",
+            )?;
+            skeleton_work::enumerated_prefix::sort(&mut expected, function, budget)?;
+            actual.sort();
+            !skeleton_work::enumerated_prefix::equal(&expected, &actual, function, budget)?
+        }
+        _ => {
+            expected.sort();
+            actual.sort();
+            actual != expected
+        }
+    } {
+        if std::env::var_os("SPX_PROBE_SKELETON").is_some() {
+            for (index, path) in expected.iter().enumerate() {
+                eprintln!("EXP[{index}] {path:?}");
+            }
+            for (index, path) in actual.iter().enumerate() {
+                eprintln!("ACT[{index}] {path:?}");
+            }
+        }
+        comparison_report_end(budget);
+        return Err(replay_error(
+            function,
+            "cleanup CFG decision or ownership-event sequence disagrees with typed HIR",
+        ));
+    }
+    comparison_report_end(budget);
+    Ok(())
+}
+
+#[test]
+fn complete_comparison_boundaries_report_real_old_current_work_paid_and_heap_after_drop() {
+    // Same existing three-branch fixture as ordinary_plan_history::tests;
+    // independent program storage is built for EVERY measured arm.
+    let source = "module history; @id(\"f\") fn f(a:bool,b:bool,c:bool)->i64 {let n=if a {1}else{2};let m=if b {n+1}else{n+2};if c {m+1}else{m+2}} @id(\"main\") fn main()->i64 {f(true,false,true)}";
+    let run = |ordinal: usize, old: bool, hooked: bool| {
+        let checked = crate::check(source, "history.spx").unwrap();
+        let canonical = crate::format::canonical(&checked);
+        let checked = crate::check(&canonical, "history.spx").unwrap();
+        assert_eq!(crate::format::canonical(&checked), canonical);
+        let program = crate::hir::resolve(&checked).unwrap();
+        let function = &program.functions[ordinal];
+        COMPARISON_BOUNDARY_REPORT.with(|slot| *slot.borrow_mut() = None);
+        let ((outcome, heap), refused, paid, receipt) = with_limit_usage_refusal(1 << 26, || {
+            measure(|| {
+                let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+                let result = if old {
+                    with_original(|| {
+                        if hooked { comparison_report_old_receiver(&program, function, &mut budget, None, None) }
+                        else { before::validate_typed_control_skeleton_with_index(&program, function, &mut budget, None, None) }
+                    })
+                } else if hooked {
+                    comparison_report_current_receiver(&program, function, &mut budget, None, None)
+                } else {
+                    validate_typed_control_skeleton_with_index(&program, function, &mut budget, None, None)
+                };
+                let remaining = (budget.remaining, budget.skeleton_remaining, budget.skeleton_spent);
+                drop(budget);
+                let status = result.map_err(DiagnosticFields::capture);
+                let after_drop = crate::test_allocation_observer::current_metrics();
+                let remaining_physical = crate::bounded_output::active_remaining().unwrap();
+                (status, remaining, after_drop, remaining_physical)
+            })
+        });
+        assert!(!refused && receipt.is_none());
+        assert!(outcome.0.is_ok());
+        assert!(!heap.invalid);
+        assert_eq!(heap.live, 0);
+        assert_eq!(heap.allocated, heap.freed);
+        let report = COMPARISON_BOUNDARY_REPORT.with(|slot| slot.borrow_mut().take());
+        (outcome, heap, paid, report)
+    };
+    let mut observed_routes = [false; 2];
+    for ordinal in 0..2 {
+        for old in [true, false] {
+            let (plain, _, plain_paid, no_report) = run(ordinal, old, false);
+            assert!(no_report.is_none());
+            let (hooked, outer_heap, hooked_paid, report) = run(ordinal, old, true);
+            // Captures add no compiler work, physical debit or status change.
+            assert_eq!(hooked.0, plain.0, "all six fields if a first Diagnostic exists");
+            assert_eq!(hooked.1, plain.1);
+            assert_eq!(hooked_paid, plain_paid);
+            let report = report.expect("fixture must reach a real comparison boundary");
+            observed_routes[usize::from(report.immutable_plan)] = true;
+            let end = report.after.unwrap();
+            let work = report.before.ordinary_remaining.checked_sub(end.ordinary_remaining).unwrap();
+            let skeleton = report.before.skeleton_remaining.checked_sub(end.skeleton_remaining).unwrap();
+            assert_eq!(end.skeleton_spent.checked_sub(report.before.skeleton_spent).unwrap(), skeleton);
+            let comparison_paid = report.before.physical_remaining.checked_sub(hooked.3).unwrap();
+            let allocated = hooked.2.allocated.checked_sub(report.before.heap.allocated).unwrap();
+            let freed = hooked.2.freed.checked_sub(report.before.heap.freed).unwrap();
+            assert_eq!(report.before.heap.live.checked_add(allocated).unwrap(), freed + hooked.2.live);
+            eprintln!("OPT877 comparison-boundary ordinal={ordinal} old={old} immutable_plan={} before={:?} after={end:?} ordinary_work={work} skeleton_work={skeleton} paid_through_drop={comparison_paid} allocated_through_drop={allocated} freed_through_drop={freed} live_after_drop={} outer_heap={outer_heap:?}; boundary includes sort/materialization/comparison and receiver Drop; setup excluded from deltas; outer highwater is not phase peak", report.immutable_plan, report.before, hooked.2.live);
+        }
+    }
+    assert!(observed_routes.into_iter().all(|seen| seen), "both real flat and immutable PLAN receiver boundaries required");
+}

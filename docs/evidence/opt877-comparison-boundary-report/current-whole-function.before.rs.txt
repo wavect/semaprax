@@ -1,0 +1,90 @@
+fn validate_typed_control_skeleton_with_index<'hir>(
+    program: &'hir dyn crate::cleanup::ReplayContext,
+    function: &'hir ResolvedFunction,
+    budget: &mut ReplayBudget,
+    helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'hir>>,
+    mut continuations: Option<&mut continuation_storage::Storage<'hir>>,
+) -> Result<(), Diagnostic> { #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);
+    if function.cleanup_plan.lexical_control.is_none()
+        && factored::validate_with_index_storage(
+            program,
+            function,
+            budget,
+            helpers,
+            continuations.as_deref_mut(),
+        )?
+    {
+        return Ok(());
+    } #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);
+    let mut expected =
+        hir_skeleton_paths_with_index_storage(program, function, budget, helpers, continuations)?; #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);
+    // Match the existing received reference, with no new payer/tag/flag carrier.
+    if let ReplayBudget {
+        payer: AllocationPayer::ActiveBuilder,
+        ..
+    } = budget
+    {
+        budget.reserve_bytes(
+            function,
+            ordinary_plan_history::SELECT_CALL_CONTROLS,
+            "ordinary plan history selector call receivers",
+        )?;
+        if ordinary_plan_history::select(function, budget)? { #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::HistoryPLAN);
+            budget.reserve_bytes(
+                function,
+                ordinary_plan_history::PRODUCE_CALL_CONTROLS,
+                "ordinary plan history producer call receivers",
+            )?;
+            let actual = ordinary_plan_history::produce(function, budget)?; #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);
+            budget.reserve_bytes(
+                function,
+                skeleton_work::enumerated_prefix::ENTRY_CALL,
+                "enumerated HIR sort entry receivers",
+            )?;
+            skeleton_work::enumerated_prefix::sort(&mut expected, function, budget)?;
+            budget.reserve_bytes(
+                function,
+                ordinary_plan_history::COMPARE_CALL_CONTROLS,
+                "ordinary plan history owned comparison call receivers",
+            )?;
+            return ordinary_plan_history::compare(function, budget, actual, &expected);
+        }
+    } #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);
+    let mut actual = plan_skeleton_paths(function, budget)?; #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);
+    if match budget {
+        ReplayBudget {
+            payer: AllocationPayer::ActiveBuilder,
+            admission: AdmissionMode::Ordinary,
+            lent_skeleton: false,
+            ..
+        } => {
+            budget.reserve_bytes(
+                function,
+                2 * skeleton_work::enumerated_prefix::ENTRY_CALL,
+                "enumerated HIR sort and equality entry receivers",
+            )?;
+            skeleton_work::enumerated_prefix::sort(&mut expected, function, budget)?;
+            actual.sort();
+            !skeleton_work::enumerated_prefix::equal(&expected, &actual, function, budget)?
+        }
+        _ => {
+            expected.sort();
+            actual.sort();
+            actual != expected
+        }
+    } {
+        if std::env::var_os("SPX_PROBE_SKELETON").is_some() {
+            for (index, path) in expected.iter().enumerate() {
+                eprintln!("EXP[{index}] {path:?}");
+            }
+            for (index, path) in actual.iter().enumerate() {
+                eprintln!("ACT[{index}] {path:?}");
+            }
+        }
+        return Err(replay_error(
+            function,
+            "cleanup CFG decision or ownership-event sequence disagrees with typed HIR",
+        ));
+    }
+    Ok(())
+}

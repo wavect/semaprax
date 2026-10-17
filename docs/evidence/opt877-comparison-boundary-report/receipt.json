@@ -1,0 +1,39 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED_REQUIRES_REVIEW",
+  "full_test_before_sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+  "full_test_current_sha256": "1d5f944822d4b1c425fb818015530b06230e1d1e38d1a298bcfd607d2ae3c36d",
+  "files": [
+    {
+      "path": "docs/evidence/opt877-comparison-boundary-report/README.md",
+      "bytes": 2279,
+      "sha256": "d22d42de2b501778a01e44b0af95fcfa30dcb94d4cfa822c9693e8fd34daa487"
+    },
+    {
+      "path": "docs/evidence/opt877-comparison-boundary-report/acquisition-inverse.json",
+      "bytes": 16966,
+      "sha256": "0df651c016b1cd7545f71f34ad953758e1d260a964c7fa81b88766ac4b05fda0"
+    },
+    {
+      "path": "docs/evidence/opt877-comparison-boundary-report/current-whole-function.before.rs.txt",
+      "bytes": 3986,
+      "sha256": "0d48c7d9b70d73497e6d82f8c5fe78d989c788600e3b0e52ef3896e27fed2a07"
+    },
+    {
+      "path": "docs/evidence/opt877-comparison-boundary-report/old-whole-function.before.rs.txt",
+      "bytes": 2536,
+      "sha256": "6f6fb45bc77a84477dad028a6f9094e3f0e6f8dae62625a2ec007404edda49cf"
+    },
+    {
+      "path": "docs/evidence/opt877-comparison-boundary-report/pending-selector.json",
+      "bytes": 475,
+      "sha256": "d8a9583c76f132517041c817b221028c3b51cf43926fde49f1d9bbf04edfc1b5"
+    },
+    {
+      "path": "docs/evidence/opt877-comparison-boundary-report/tests.before.rs.txt",
+      "bytes": 31873,
+      "sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3"
+    }
+  ],
+  "controls": "Full original test prefix and both complete functions inverse verified with Python; no Rust execution.",
+  "new_selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::complete_comparison_boundaries_report_real_old_current_work_paid_and_heap_after_drop"
+}

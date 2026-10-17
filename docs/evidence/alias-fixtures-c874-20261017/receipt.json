@@ -1,6 +1,6 @@
 {
   "status": "SOURCE_ONLY_NOT_COMPILED_NOT_EXECUTED",
-  "base": "809eee10c",
+  "base": "7d98508b2",
   "files": [
     {
       "path": "docs/evidence/alias-fixtures-c874-20261017/README.md",
@@ -40,12 +40,17 @@
     {
       "path": "docs/evidence/alias-fixtures-c874-20261017/full-source-inverses.json",
       "size": 31892,
-      "sha256": "d97ff0d6bafb705887e242c8a4df4b90069174cf87ee4b631bc22368d6b9dc4f"
+      "sha256": "e7e2bc9bd684434625c0466ab172273ec07e8e2325cd8b4f7d4b56e23df57ff1"
     },
     {
       "path": "docs/evidence/alias-fixtures-c874-20261017/pending-selectors.json",
       "size": 1113,
       "sha256": "9eae777b97ec9a671d76ee06520c500b793fdc28bedae44f6e22d00aa1064889"
+    },
+    {
+      "path": "docs/evidence/alias-fixtures-c874-20261017/receipt.json.7d-before.txt",
+      "size": 3576,
+      "sha256": "ec9f83dc9507a4faf8591970a7678e29ff0c506ef4bade08fce1b99bd1dcd9b7"
     },
     {
       "path": "docs/evidence/alias-fixtures-c874-20261017/run-common-corrected-fixtures.py",
@@ -80,7 +85,7 @@
     {
       "path": "src/source_reflows_merge/main67107_inputs.rs",
       "size": 28987,
-      "sha256": "28e8451120ed3de1fe88a0daa01b26c96ffb3cc50f7e8530e92cf24acbd8d83e"
+      "sha256": "28dcbe4cb21ba40576761a39df09527df0ab10d9b71f8dd40c2b733391a5de5b"
     }
   ],
   "companion_packet": "docs/evidence/ordinary-singleton-successors-20261017",

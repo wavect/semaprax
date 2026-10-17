@@ -1,0 +1,20 @@
+{
+  "status": "SOURCE_ONLY",
+  "base": "ef788f8237beeb16dcc1cfa9346fc1dbb6f69a4d",
+  "source": "src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs",
+  "before_sha256": "6d70cfe62b35c0ab8617b86aada00de55c3bd8aade98578d4ac994e8a1a9b86a",
+  "after_sha256": "f38734199734c035d4b6c0ffba0ee2de66820c4c5713526c6394e2a5340ae666",
+  "lines": 1064,
+  "complete_old_identity_module_retained": true,
+  "production_changes": 0,
+  "new_physical_owners": 0,
+  "whole_inverse_verified": true,
+  "rustfmt_parse": true,
+  "Cargo": false,
+  "runtime": "UNQUALIFIED",
+  "selectors": [
+    "cleanup_plan::replay::factored::canonical_shared::paid_many::tests::composed_frozen_actual_comparison_keeps_full_source_trace_and_diagnostic_order",
+    "cleanup_plan::replay::factored::canonical_shared::paid_many::tests::memo_identity_gate_rejects_nested_ledger_without_spending_or_poisoning_either_payer",
+    "cleanup_plan::replay::factored::canonical_shared::paid_many::tests::standalone_comparison_fixture_retains_unsupported_inventory_as_six_field_negative"
+  ]
+}

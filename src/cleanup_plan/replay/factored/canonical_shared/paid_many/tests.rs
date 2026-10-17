@@ -385,16 +385,21 @@ fn composed_frozen_actual_comparison_keeps_full_source_trace_and_diagnostic_orde
     use super::super::super::{compare_with_index_storage, lexical_plan_tests};
     use std::fmt::Write as _;
     for source in [lexical_plan_tests::WHILE, lexical_plan_tests::GENERATED] {
-        let (program, function) = lexical_plan_tests::fixture(source);
+        // The physical selected receiver needs the same complete authenticated
+        // current directory as production; detached HIR remains a negative below.
+        let fixture = crate::workspace_graph::SourceRecordReplayFixture::new(source);
+        fixture.with_prepared_context(|program| {
+        let functions = program.functions();
+        let function = functions.iter().find(|function| function.id.as_str() == "probe").unwrap();
         lexical_plan_tests::assert_plan_oracle(&function);
         let mut old = ReplayBudget::unobserved();
         let mut current = ReplayBudget::unobserved();
         let initial = old.remaining;
         let expected = before_paid_many::comparison::compare_with_index_storage(
-            &program, &function, &mut old, None, None,
+            program, &function, &mut old, None, None,
         );
         assert_eq!(
-            compare_with_index_storage(&program, &function, &mut current, None, None),
+            compare_with_index_storage(program, &function, &mut current, None, None),
             expected
         );
         assert_eq!(
@@ -416,14 +421,14 @@ fn composed_frozen_actual_comparison_keeps_full_source_trace_and_diagnostic_orde
                     };
                     let result = if old {
                         before_paid_many::comparison::compare_with_index_storage(
-                            &program,
+                            program,
                             &function,
                             &mut budget,
                             None,
                             None,
                         )
                     } else {
-                        compare_with_index_storage(&program, &function, &mut budget, None, None)
+                        compare_with_index_storage(program, &function, &mut budget, None, None)
                     };
                     let paid = budget.physical.as_ref().unwrap().charged();
                     assert!(
@@ -469,9 +474,9 @@ fn composed_frozen_actual_comparison_keeps_full_source_trace_and_diagnostic_orde
             old.remaining = remaining;
             current.remaining = remaining;
             assert_eq!(
-                compare_with_index_storage(&program, &function, &mut current, None, None),
+                compare_with_index_storage(program, &function, &mut current, None, None),
                 before_paid_many::comparison::compare_with_index_storage(
-                    &program, &function, &mut old, None, None
+                    program, &function, &mut old, None, None
                 )
             );
             assert_eq!(
@@ -479,6 +484,7 @@ fn composed_frozen_actual_comparison_keeps_full_source_trace_and_diagnostic_orde
                 (old.remaining, old.skeleton_remaining)
             );
         }
+        });
     }
 }
 
@@ -646,7 +652,9 @@ fn composed_promotion_work_refusal_keeps_six_fields_first_order_and_zero_allocat
 
 #[test]
 fn memo_identity_gate_rejects_nested_ledger_without_spending_or_poisoning_either_payer() {
-    use crate::bounded_output::{active_remaining, with_limit_usage_refusal, with_limit_usage_refusal_site};
+    use crate::bounded_output::{
+        active_remaining, with_limit_usage_refusal, with_limit_usage_refusal_site,
+    };
     let function = fixture();
     for old in [true, false] {
         for authenticate in [false, true] {
@@ -663,29 +671,53 @@ fn memo_identity_gate_rejects_nested_ledger_without_spending_or_poisoning_either
                                     assert_eq!(memo.state(&0), 1);
                                     let remaining = active_remaining();
                                     let work = (budget.remaining, budget.skeleton_remaining);
-                                    let allocated = current_metrics().allocated;
+                                    // Nested ledger construction is test setup, not a Memo
+                                    // call. Capture after its Rc backing exists; the outer
+                                    // measurement still accounts for and drops that backing.
+                                    let setup_started = current_metrics().allocated;
+                                    let mut allocated = 0;
                                     let ((), nested_refused, nested_paid, nested_first) =
                                         with_limit_usage_refusal(nested_limit, || {
                                             let nested_remaining = active_remaining();
+                                            allocated = current_metrics().allocated;
+                                            assert!(
+                                                allocated > setup_started,
+                                                "real foreign-ledger setup is observed separately"
+                                            );
                                             if authenticate {
-                                                assert_eq!(memo.authenticate(&function, &mut budget),
-                                                    Err(Diagnostic::io("SPX-H006", String::new())));
+                                                assert_eq!(
+                                                    memo.authenticate(&function, &mut budget),
+                                                    Err(Diagnostic::io("SPX-H006", String::new()))
+                                                );
                                             } else {
                                                 assert!(memo.preflight(&function, &budget));
                                                 assert!(memo.failed());
                                             }
-                                            assert_eq!(memo.state(&0), 0, "poisoned views stay unavailable");
-                                            assert_eq!(memo.authenticate(&function, &mut budget),
-                                                Err(Diagnostic::io("SPX-H006", String::new())));
+                                            assert_eq!(
+                                                memo.state(&0),
+                                                0,
+                                                "poisoned views stay unavailable"
+                                            );
+                                            assert_eq!(
+                                                memo.authenticate(&function, &mut budget),
+                                                Err(Diagnostic::io("SPX-H006", String::new()))
+                                            );
                                             assert_eq!(active_remaining(), nested_remaining);
+                                            assert_eq!(current_metrics().allocated, allocated);
                                         });
-                                    assert!(!nested_refused && nested_paid == 0 && nested_first.is_none());
+                                    assert!(
+                                        !nested_refused
+                                            && nested_paid == 0
+                                            && nested_first.is_none()
+                                    );
                                     assert_eq!(active_remaining(), remaining);
                                     assert_eq!((budget.remaining, budget.skeleton_remaining), work);
                                     assert_eq!(current_metrics().allocated, allocated);
                                     // Restoring the original invocation must not revive the Memo.
-                                    assert_eq!(memo.authenticate(&function, &mut budget),
-                                        Err(Diagnostic::io("SPX-H006", String::new())));
+                                    assert_eq!(
+                                        memo.authenticate(&function, &mut budget),
+                                        Err(Diagnostic::io("SPX-H006", String::new()))
+                                    );
                                     assert!(!memo.preflight(&function, &budget));
                                     assert_eq!(memo.state(&0), 0);
                                     assert_eq!(active_remaining(), remaining);
@@ -990,5 +1022,43 @@ impl std::fmt::Write for ComparisonFailureReport {
         self.bytes[self.len..end].copy_from_slice(text.as_bytes());
         self.len = end;
         Ok(())
+    }
+}
+
+#[test]
+fn standalone_comparison_fixture_retains_unsupported_inventory_as_six_field_negative() {
+    use super::super::super::{compare_with_index_storage, lexical_plan_tests};
+    let (program, function) = lexical_plan_tests::fixture(lexical_plan_tests::WHILE);
+    let expected = Diagnostic::io(
+        "SPX-H006",
+        "selected flat-record inventory has unauthenticated or unsupported fields".to_owned(),
+    );
+    for old in [true, false] {
+        let ((), metrics) = measure(|| {
+            let mut budget = ReplayBudget::with_physical(&function, 1 << 26).unwrap();
+            let result = if old {
+                before_paid_many::comparison::compare_with_index_storage(
+                    &program,
+                    &function,
+                    &mut budget,
+                    None,
+                    None,
+                )
+            } else {
+                compare_with_index_storage(&program, &function, &mut budget, None, None)
+            };
+            assert_eq!(
+                result.as_ref(),
+                Err(&expected),
+                "complete detached metadata refusal remains a negative"
+            );
+            assert!(
+                budget.physical.as_ref().unwrap().charged() > 0,
+                "the real whole-comparison route runs before inventory refusal"
+            );
+            drop(result);
+            drop(budget);
+        });
+        assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
     }
 }

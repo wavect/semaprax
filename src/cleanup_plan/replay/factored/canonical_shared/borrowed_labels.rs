@@ -209,3 +209,268 @@ fn joined_outer_headers_and_target_slots_use_actual_layouts() {
     assert!(size_of::<Option<paid_many::Targets>>() >= size_of::<paid_many::Targets>());
     assert!(receiving::<ordered_weights::OrderedWeights>() >= 2 * size_of::<ordered_weights::Iter<'_>>());
 }
+
+
+// The existing pays_allocations query is replaced by a borrowed payer tag.
+// No payload copy or wider authority-query frame is introduced.
+const _: () = assert!(size_of::<&AllocationPayer>() + size_of::<bool>()
+    <= size_of::<&ReplayBudget>() + size_of::<bool>());
+// The old Directory producer above remains an independent, unchanged receiver.
+// All actual arguments, branch/iterator slots and returned/received headers
+// below are paid by the actual caller before this function is entered.
+pub(super) fn ordinary_receiving() -> usize {
+    2 * size_of::<(&ResolvedFunction, &mut ReplayBudget, &Automaton, &ordered_weights::OrderedWeights, u64)>()
+        + 2 * size_of::<Result<Option<Successors>, Diagnostic>>()
+        + size_of::<Option<Successors>>()
+        + 2 * size_of::<ordered_weights::Iter<'static>>()
+        + size_of::<Option<(&usize, &u64)>>() + size_of::<(&usize, &u64)>()
+        + 2 * size_of::<&[(Label, usize)]>()
+        + size_of::<&(Label, usize)>() + size_of::<(&Label, &usize)>()
+        + 2 * size_of::<Vec<(Label, SharedWeighted)>>()
+        + 2 * size_of::<SharedWeighted>() + size_of::<(Label, SharedWeighted)>()
+        + 2 * size_of::<Option<u64>>() + 3 * size_of::<u64>()
+        + 3 * size_of::<usize>() + 2 * size_of::<bool>()
+        + 4 * size_of::<Result<(), Diagnostic>>()
+        + 4 * size_of::<(&ResolvedFunction, &mut ReplayBudget, usize, &str)>()
+}
+
+pub(super) fn ordinary_successors(
+    function: &ResolvedFunction, budget: &mut ReplayBudget, automaton: &Automaton,
+    closed: &ordered_weights::OrderedWeights, accepted: u64,
+) -> Result<Option<Successors>, Diagnostic> {
+    // These zero calls retain sticky/function/ledger authentication even for a
+    // singleton sink. A paid refusal is final and never selects the old route.
+    budget.reserve_bytes(function, 0, "factored direct singleton authentication")?;
+    budget.charge(function, 0, "factored direct singleton authentication")?;
+    budget.charge(function, 4, "factored direct singleton selection")?;
+    if closed.len() == 1 {
+        let (node, weight) = closed.iter().next().expect("singleton closed node");
+        let moves = automaton.nodes[*node].moves();
+        if moves.len() <= 1 {
+            // Replay the original requests in their original order. The old
+            // directory/search objects themselves are never formed or paid.
+            budget.charge(function, moves.len() + 1, "factored successor label census")?;
+            if !moves.is_empty() {
+                budget.charge(function, 1, "factored successor label census search")?;
+                budget.charge(function, 1, "factored successor label census shifts")?;
+            }
+            budget.charge(function, moves.len(), "factored successor target headers")?;
+            budget.charge(function, moves.len() + 1, "factored skeleton subset construction")?;
+            if !moves.is_empty() {
+                budget.charge(function, 2, "factored successor label search")?;
+            }
+            let mut result = Vec::new();
+            budget.reserve_vec(function, &mut result, moves.len(), "factored successor vector")?;
+            if let [(label, child)] = moves {
+                // Zero + the actual closure weight has the same non-overflow
+                // rule as Directory::add. No assumed unit weight is substituted.
+                let weight = 0_u64.checked_add(*weight).expect("zero plus u64 cannot overflow");
+                budget.reserve_bytes(function,
+                    2 * size_of::<SmallWeighted>() + size_of::<[(usize, u64); 1]>()
+                        + size_of::<Result<(), Diagnostic>>(),
+                    "factored inline weighted enum and array receiving")?;
+                budget.reserve_bytes(function, physical_clone::rc_backing_bytes::<SmallWeighted>(),
+                    "factored weighted shared header")?;
+                let state = Rc::new(SmallWeighted::One([(*child, weight)]));
+                result.push((label.clone(), state));
+            }
+            return Ok(Some((accepted, result)));
+        }
+    }
+    // Multi-node/multi-movement closures retain the complete old algorithm.
+    // Its additional call/receivers are acquired before forming that call.
+    budget.reserve_bytes(function, receiving::<ordered_weights::OrderedWeights>(),
+        "factored borrowed label fallback call receivers")?;
+    successors(function, budget, automaton, closed, accepted)
+}
+
+
+#[cfg(test)]
+fn direct_fixture(width: usize, nodes: usize, weight: u64) -> (ResolvedFunction, Automaton, ordered_weights::OrderedWeights) {
+    direct_fixture_label(width,nodes,weight,&Label::End(super::super::SkeletonTerminal::Success))
+}
+#[cfg(test)]
+fn direct_fixture_label(width: usize, nodes: usize, weight: u64, label: &Label) -> (ResolvedFunction, Automaton, ordered_weights::OrderedWeights) {
+    let function = super::super::lexical_plan_tests::fixture(super::super::lexical_plan_tests::WHILE).1;
+    let mut budget = ReplayBudget::unobserved();
+    let mut graph = Automaton::default();
+    let sink = graph.node(&function, &mut budget).unwrap();
+    let root = graph.node(&function, &mut budget).unwrap();
+    for _ in 0..width {
+        graph.movement(&function, &mut budget, root,
+            label.clone(), sink).unwrap();
+    }
+    let mut closed = ordered_weights::OrderedWeights::new();
+    closed.insert_prepaid(if width == 0 { sink } else { root }, weight);
+    if nodes > 1 {
+        closed.grow(&function, &mut budget).unwrap();
+        closed.insert_prepaid(if width == 0 { root } else { sink }, weight);
+    }
+    (function, graph, closed)
+}
+
+#[cfg(test)]
+fn same_successors(left: &Result<Option<Successors>, Diagnostic>, right: &Result<Option<Successors>, Diagnostic>) {
+    match (left, right) {
+        (Ok(Some((a, x))), Ok(Some((b, y)))) => {
+            assert_eq!(a,b);assert_eq!(x.len(),y.len());
+            for ((la,sa),(lb,sb)) in x.iter().zip(y) {
+                assert_eq!(la,lb);assert_eq!(sa.as_ref().as_slice(),sb.as_ref().as_slice());
+            }
+        }
+        (Ok(None),Ok(None)) => {}
+        (Err(a),Err(b)) => {
+            assert_eq!((&a.code,&a.severity,&a.message,&a.span,&a.path,&a.help),
+                (&b.code,&b.severity,&b.message,&b.span,&b.path,&b.help));
+        }
+        _ => panic!("complete successor result changed"),
+    }
+}
+
+#[test]
+fn direct_singleton_complete_weights_labels_work_cuts_and_fallback_keep_old_receiver() {
+    use crate::bounded_output::with_limit_usage_refusal;
+    for width in [0,1,2,4] {
+        for nodes in [1,2] {
+            for weight in [0,1,u64::MAX] {
+                let (function, graph, closed) = direct_fixture(width,nodes,weight);
+                let full = if nodes==1 && width<=1 { if width==0 {2} else {9} } else {128};
+                for work in 0..=full {
+                    let mut old = ReplayBudget::unobserved();old.remaining=work;
+                    let expected = successors(&function,&mut old,&graph,&closed,weight);
+                    with_limit_usage_refusal(1<<25, || {
+                        let mut budget=ReplayBudget::new();budget.remaining=work+4;
+                        budget.reserve_bytes(&function,ordinary_receiving(),"direct test actual caller receiving").unwrap();
+                        let actual=ordinary_successors(&function,&mut budget,&graph,&closed,weight);
+                        same_successors(&actual,&expected);
+                        assert_eq!(budget.remaining,old.remaining);
+                        if actual.is_err() {
+                            let remaining=budget.remaining;
+                            let bytes=crate::bounded_output::active_remaining();
+                            let retry=ordinary_successors(&function,&mut budget,&graph,&closed,weight);
+                            assert!(retry.is_err());assert_eq!(budget.remaining,remaining);
+                            assert_eq!(crate::bounded_output::active_remaining(),bytes);drop(retry);
+                        }
+                        drop(actual);
+                    });
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn direct_singleton_real_paid_allocated_peak_exact_short_zero_and_full_drop() {
+    use crate::bounded_output::with_limit_usage_refusal;
+    use crate::test_allocation_observer::measure;
+    for width in [0,1,2,4] {
+        for nodes in [1,2] {
+            let (function,graph,closed)=direct_fixture(width,nodes,7);
+            let mut old=ReplayBudget::unobserved();
+            let expected=successors(&function,&mut old,&graph,&closed,11);
+            let observe=|direct:bool, limit:usize| {
+                let ((success, allocation),refused,debit,_) = with_limit_usage_refusal(limit, || measure(|| {
+                    let mut budget=ReplayBudget::new();
+                    let result=(|| {
+                        budget.reserve_bytes(&function,if direct {ordinary_receiving()} else {receiving::<ordered_weights::OrderedWeights>()},"direct test actual caller receiving")?;
+                        if direct { ordinary_successors(&function,&mut budget,&graph,&closed,11) }
+                        else { successors(&function,&mut budget,&graph,&closed,11) }
+                    })();
+                    let success=result.is_ok();
+                    if success {same_successors(&result,&expected);}
+                    else {assert_eq!(result.as_ref().unwrap_err().code,"SPX-H006");}
+                    drop(result);drop(budget);success
+                }));
+                assert!(!allocation.invalid);assert_eq!(allocation.live,0);
+                assert_eq!(allocation.allocated,allocation.freed);
+                (success,refused,debit,allocation)
+            };
+            let before=observe(false,1<<25);let current=observe(true,1<<25);
+            assert!(before.0 && current.0 && !before.1 && !current.1);
+            assert!(before.3.allocated<=before.2 && current.3.allocated<=current.2);
+            assert!(before.3.highwater<=before.2 && current.3.highwater<=current.2);
+            if nodes==1 && width==1 {assert!(current.3.allocations<before.3.allocations);}
+            for limit in 0..=current.2 {
+                let result=observe(true,limit);assert_eq!(result.0,limit==current.2);
+                assert_eq!(result.1,limit!=current.2);
+            }
+            eprintln!("direct singleton nodes={nodes} moves={width} old/current={before:?}/{current:?}");
+        }
+    }
+}
+
+
+#[test]
+fn direct_singleton_zero_authentication_foreign_owner_and_sticky_refusal_are_final() {
+    let (function,graph,closed)=direct_fixture(1,1,3);
+    let mut foreign=function.clone();foreign.id=crate::hir::DeclarationId::new("direct.foreign");
+    let mut budget=ReplayBudget::with_physical(&function,1<<25).unwrap();
+    let remaining=budget.remaining;
+    let error=ordinary_successors(&foreign,&mut budget,&graph,&closed,5).unwrap_err();
+    assert_eq!(error.code,"SPX-H006");assert_eq!(budget.remaining,remaining);
+    let after=budget.physical.as_ref().unwrap().charged();
+    let error2=ordinary_successors(&function,&mut budget,&graph,&closed,5).unwrap_err();
+    assert_eq!(error2.code,"SPX-H006");assert_eq!(budget.remaining,remaining);
+    assert_eq!(budget.physical.as_ref().unwrap().charged(),after);
+}
+
+
+#[test]
+fn direct_singleton_actual_canonical_calls_keep_complete_ids_signatures_and_states() {
+    for width in [0,1,2,4] {
+        let (function,graph,closed)=direct_fixture(width,1,1);
+        let root=*closed.iter().next().unwrap().0;
+        for weight in [0,1,7,u64::MAX] {
+            let mut old=Canonicalizer::new(&graph,0);
+            let mut old_budget=ReplayBudget::unobserved();
+            let expected=old.id(&function,vec![(root,weight)],&mut old_budget);
+            crate::bounded_output::with_limit_usage_refusal(1<<26, || {
+                let mut current=Canonicalizer::new(&graph,0);
+                let mut budget=ReplayBudget::new();
+                let actual=current.id(&function,vec![(root,weight)],&mut budget);
+                assert_eq!(actual,expected);
+                assert!(current.ids.iter().eq(old.ids.iter()));
+                assert!(current.states.iter().eq(old.states.iter()));
+                drop(actual);drop(current);drop(budget);
+            });
+        }
+    }
+}
+
+
+#[test]
+fn direct_singleton_complete_directory_preimage_remains_byte_exact() {
+    let before=include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/ordinary-singleton-successors-20261017/before/src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs"));
+    let current=include_str!("borrowed_labels.rs");
+    assert!(current.starts_with(before));
+    assert_eq!(current.matches("pub(super) fn successors<C: Closed>").count(),1);
+    assert_eq!(current.matches("struct Directory<'a>").count(),1);
+}
+
+
+#[test]
+fn direct_singleton_every_terminal_and_immutable_observation_keep_complete_labels() {
+    let observation=Rc::new(super::super::SkeletonObservation::Boolean {
+        expression:crate::hir::ExpressionId::from_owned("direct.singleton.é".into()),value:true,
+    });
+    for label in [Label::End(super::super::SkeletonTerminal::Success),
+        Label::End(super::super::SkeletonTerminal::Failure),
+        Label::End(super::super::SkeletonTerminal::LoopLatch),Label::Observation(observation.clone())] {
+        for weight in [0,1,u64::MAX] {
+            let (function,graph,closed)=direct_fixture_label(1,1,weight,&label);
+            let mut old=ReplayBudget::unobserved();
+            let expected=successors(&function,&mut old,&graph,&closed,weight);
+            crate::bounded_output::with_limit_usage_refusal(1<<25, || {
+                let mut budget=ReplayBudget::new();
+                budget.reserve_bytes(&function,ordinary_receiving(),"direct test actual caller receiving").unwrap();
+                let actual=ordinary_successors(&function,&mut budget,&graph,&closed,weight);
+                same_successors(&actual,&expected);
+                if let Label::Observation(input)=&label {
+                    let Label::Observation(output)=&actual.as_ref().unwrap().as_ref().unwrap().1[0].0 else {panic!("label kind changed")};
+                    assert!(Rc::ptr_eq(input,output));
+                }
+                drop(actual);
+            });
+        }
+    }
+}

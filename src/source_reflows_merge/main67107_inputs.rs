@@ -25,6 +25,8 @@ fn restore(rows: &serde_json::Value, domain: &str, current: &str) -> String {
         _ => panic!("foreign MAIN source domain"),
     };
     assert_eq!(row["source"], source);
+    let singleton = singleton_successor_expected_input(source, row["current_sha256"].as_str().unwrap(), current);
+    let current = singleton.as_str();
     let acquired = compile35f_expected_input(source, row["current_sha256"].as_str().unwrap(), current);
     let current = acquired.as_str();
     assert_eq!(digest(current), row["current_sha256"]);
@@ -355,4 +357,48 @@ fn factored_core_relocation_preserves_complete_seven_source_domain_and_refuses_d
     assert_eq!(compile35f_input("foreign", "unchanged"), "unchanged");
     assert!(factored_core_body(&mut Cursor::new(b""), FACTORED_CORE_CAP+1, &digest("")).is_err());
     assert!(factored_core_body(&mut Cursor::new(b"wrong"), 5, &digest(FACTORED_CORE_RAW)).is_err());
+}
+
+
+// A new ordinary production receiver has its own closed current acquisition.
+// Immutable canonical870/MAIN rows continue to name their full c874 inputs.
+fn singleton_successor_expected_input(source: &str, expected: &str, current: &str) -> String {
+    if source != "src/cleanup_plan/replay/factored/canonical_shared.rs" { return current.to_owned(); }
+    let data = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/ordinary-singleton-successors-20261017/source-acquisition.json"));
+    assert!(data.len() <= 262_144);
+    assert_eq!(digest(data), "c59266c9839c024cd5839e825835ea06406a5748ddd7a67d16a21a93b22f3c7e");
+    let rows: serde_json::Value = serde_json::from_str(data).unwrap();
+    let row = &rows.as_array().unwrap()[0];
+    assert_eq!(rows.as_array().unwrap().len(), 2);
+    assert_eq!(row["source"],source);
+    // Do not change an older, already selected historical namespace.
+    if row["before_sha256"] != expected { return current.to_owned(); }
+    let physical = include_str!("../cleanup_plan/replay/factored/canonical_shared.rs");
+    assert_eq!(digest(physical),row["current_sha256"]);
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let before = std::fs::read_to_string(root.join(row["archive"].as_str().unwrap())).unwrap();
+    assert_eq!(digest(&before),row["before_sha256"]);
+    assert!(current == physical || current == before,"foreign singleton successor stage");
+    let mut restored = physical.to_owned();
+    for edit in row["inverse"].as_array().unwrap() {
+        let after=edit["after"].as_str().unwrap();assert_eq!(restored.matches(after).count(),1);
+        restored=restored.replacen(after,edit["before"].as_str().unwrap(),1);
+    }
+    assert_eq!(restored,before);before
+}
+
+
+#[test]
+fn singleton_successor_whole_c874_acquisition_is_scoped_and_refuses_foreign_stages() {
+    let source="src/cleanup_plan/replay/factored/canonical_shared.rs";
+    let raw=include_str!("../cleanup_plan/replay/factored/canonical_shared.rs");
+    let before=include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/ordinary-singleton-successors-20261017/before/src/cleanup_plan/replay/factored/canonical_shared.rs"));
+    let expected=digest(before);
+    assert_eq!(singleton_successor_expected_input(source,&expected,raw),before);
+    assert_eq!(singleton_successor_expected_input(source,&expected,before),before);
+    for bad in ["foreign".to_owned(),format!("{raw}\n"),raw[..raw.len()-1].to_owned()] {
+        assert!(std::panic::catch_unwind(||singleton_successor_expected_input(source,&expected,&bad)).is_err());
+    }
+    assert_eq!(singleton_successor_expected_input(source,"older historical domain","older staged input"),"older staged input");
+    assert_eq!(singleton_successor_expected_input("foreign",&expected,"unchanged"),"unchanged");
 }

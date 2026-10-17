@@ -2127,6 +2127,7 @@
         "tests/wasm/scalar_browser_ci_contract/actual_83ca.rs",
         "tests/wasm/scalar_browser_ci_contract/before_2600.rs",
         "tests/wasm/scalar_browser_ci_contract/before_524.rs",
+        "tests/wasm/scalar_browser_ci_contract/before_671.rs",
         "tests/wasm/scalar_browser_ci_contract/before_75b.rs",
         "tests/wasm/scalar_browser_ci_contract/before_c11.rs",
         "tests/wasm/scalar_browser_ci_contract/before_c451.rs",
@@ -2630,9 +2631,9 @@
         "src/source_verify/function_map.rs",
         "src/source_verify/funding.rs"
       ],
-      "full_manifest_sha256": "31608405aae4326a2cc8cdd580be09a5b755a8c384efcac91967650fc95793e8",
-      "full_raw_sha256": "578d8917946a59f7a4314f8dbb06517e62a17ab4783196b3e19d8c944005d2dc",
-      "full_authenticated_production_sha256": "9cdd28c3f98f22d5981829df690260b3780e5708b783eb7283b25786b99fc386"
+      "full_manifest_sha256": "a526f639b4fb52af52fb310b8c21534b6e08cf61dfdb3c04d8f2bc3320d2e169",
+      "full_raw_sha256": "19ce3c498ef5c5b7c82130a090051d39e7dbc51d1f11fcc463ab358e97c9264f",
+      "full_authenticated_production_sha256": "2f82bfa9c1349175f1238aa9eef9ae3b055433fab967ce84966b05b82d98b9ed"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -3617,9 +3618,9 @@
         "src/source_verify/declaration/identity.rs",
         "src/source_verify/declaration/record_shape.rs"
       ],
-      "full_manifest_sha256": "025c0e1cd82ad91306bedd0d44d580fc92d0cd868c79675271338e3b66ceba53",
-      "full_raw_sha256": "613efb577d59ad938b9dbd74b9a5ee2c45281af8b19e4ed4b5ea7464f073175a",
-      "full_authenticated_production_sha256": "4bfd34e3c093349f1e57be76b19aceba561b3d8ebdb560ca5b3fbc50d51b9832"
+      "full_manifest_sha256": "e8888da6943b1a8ef7be379da7fe8ccf8d663397d40ea75841cc15601e58202a",
+      "full_raw_sha256": "49474a2aadf71a95c485a8c72c0371702d6c90b36ade1e791440fe37657f444e",
+      "full_authenticated_production_sha256": "d6e6e52ae617a35d209bca22ed2c9b1158d8dd56def2cb4b7d59913bbc8098f9"
     }
   }
 }

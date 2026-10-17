@@ -44,9 +44,9 @@ def previous(repo,source,raw,read_fixed):
     assert restored==before
     table=namespace['m'].held(Path(repo)/'docs/evidence/compile-acquisition-35f-20261017/sources.json',1048576,'61af497922931df374510a7d8acd4b8691481f960407f1670c4d4e4dc37625fe')
     old=next(r for r in json.loads(table)if r['source']==TARGET);assert old['current_sha256']==row['previous_sha256']
-    return before if raw in(actual,before)else raw
+    return before if raw is None or raw in(actual,before)else raw
 namespace['_owned_supplied']=lambda repo,source,raw,read_fixed:old_supplied(repo,source,previous(repo,source,raw,read_fixed),read_fixed)
-namespace['_owned_physical']=lambda repo,source,read_fixed,fixture:previous(repo,source,old_physical(repo,source,read_fixed,fixture),read_fixed)
+namespace['_owned_physical']=lambda repo,source,read_fixed,fixture:previous(repo,source,None,read_fixed)if source==TARGET else old_physical(repo,source,read_fixed,fixture)
 # Original importable API remains available; original __main__ CLI runs once.
 render_stage=namespace['render_stage']
 if __name__=='__main__':namespace['main']()

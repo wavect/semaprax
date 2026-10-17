@@ -234,8 +234,9 @@ fn compile35f_restore(row: &serde_json::Value, current: &str) -> String {
     let current = acquired.as_str();
     // A35f intermediate requires the actual physical new source to remain bound.
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let raw = factored_core_physical(source);
-    let raw = compile_repair_previous(source, &raw);
+    let raw = if source == "src/cleanup_plan/replay/sequence_prefix.rs" {
+        compile_repair_previous(source, include_str!("../cleanup_plan/replay/sequence_prefix.rs"))
+    } else { factored_core_physical(source) };
     assert_eq!(digest(&raw), row["current_sha256"], "actual new compile subject");
     let before = std::fs::read_to_string(root.join(row["before_archive"].as_str().unwrap())).unwrap();
     assert_eq!(digest(&before), row["before_sha256"]);

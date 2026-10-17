@@ -170,8 +170,34 @@ fn complete_before_receiver_is_source_exact_with_only_test_wiring() {
     let production = before.split("// Invoked only after preflight").nth(1).unwrap()
         .split("\n#[cfg(test)]\nmod tests;").next().unwrap();
     let compiled = include_str!("../before_selected_labels.rs");
-    assert!(compiled.contains(&format!("// Invoked only after preflight{production}")));
+    let namespace = r##"//! Complete 67046 production receiver in an independent test namespace.
+//! Source-only: this new compilation unit has not been compiled or executed.
+use super::{
+    physical_clone, replay_error, AllocationPayer, Automaton, BTreeMap, Diagnostic,
+    Label, Rc, ReplayBudget, ResolvedFunction, Weighted, app_census, arena_tests,
+    borrowed_labels, closure_receiving, empty_closure, empty_memo, empty_signature,
+    intern_arena, lexical_child_scratch, ordered_alias, ordered_weights, paid_many, tests,
+};
+use super::inline_weighted::SmallWeighted;
+"##;
+    let adapters = r##"
+impl Canonicalizer<'_> {
+    pub(super) fn signatures(&self) -> &intern_arena::Arena<intern_arena::Signature> { &self.ids }
+    pub(super) fn states(&self) -> &intern_arena::Arena<SharedWeighted> { &self.states }
+}
+
+mod terminal_leaf;
+"##;
+    let restored = compiled.strip_prefix(namespace).unwrap().strip_suffix(adapters).unwrap();
+    assert_eq!(restored, format!("// Invoked only after preflight{production}"));
+    assert_eq!(include_str!("../before_selected_labels/terminal_leaf.rs"),
+        include_str!("../terminal_leaf.rs"));
     let current = include_str!("../../canonical_shared.rs");
+    let restored_current = current
+        .replacen("#[macro_use]\nmod selected_labels;\n#[cfg(test)]\nmod before_selected_labels;\n", "", 1)
+        .replacen("AllocationPayer::SelectedReservation => {\n                    return selected_labels_successors!(function, budget, self.automaton, closed, accepted, true);\n                }", "AllocationPayer::SelectedReservation => {}", 1)
+        .replacen("AllocationPayer::SelectedReservation => {\n                return selected_labels_successors!(function, budget, self.automaton, closed, accepted, false);\n            }", "AllocationPayer::SelectedReservation => {}", 1);
+    assert_eq!(restored_current, before, "complete parent inverse, no selection filter");
     assert_eq!(current.matches("return selected_labels_successors!").count(), 2);
     assert_eq!(current.matches("AllocationPayer::ActiveBuilder =>").count(), 2);
     let selected = include_str!("../selected_labels.rs");

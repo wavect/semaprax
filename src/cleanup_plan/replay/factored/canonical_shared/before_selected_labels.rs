@@ -1,5 +1,12 @@
-//! Complete 67046 production receiver, independently compiled.
-use super::*;
+//! Complete 67046 production receiver in an independent test namespace.
+//! Source-only: this new compilation unit has not been compiled or executed.
+use super::{
+    physical_clone, replay_error, AllocationPayer, Automaton, BTreeMap, Diagnostic,
+    Label, Rc, ReplayBudget, ResolvedFunction, Weighted, app_census, arena_tests,
+    borrowed_labels, closure_receiving, empty_closure, empty_memo, empty_signature,
+    intern_arena, lexical_child_scratch, ordered_alias, ordered_weights, paid_many, tests,
+};
+use super::inline_weighted::SmallWeighted;
 // Invoked only after preflight proved an unbound, nonfailed Memo. This is the
 // original cold activation body at its caller: no authenticate Result or
 // forwarded method arguments are constructed. Nested reservation Results,

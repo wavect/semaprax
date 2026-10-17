@@ -1,0 +1,13 @@
+{
+  "status": "SOURCE_ONLY_NEW_PAID_CANONICAL_INGRESS",
+  "new_test": "source_reflows_merge::main67107_inputs::paid_many_canonical_ingress_keeps_whole_import_and_selected_controls",
+  "old_import_table_unchanged": true,
+  "old_helpers_retained_whole": true,
+  "source_caps_unchanged": [
+    65536,
+    131072
+  ],
+  "seal_length": 2923,
+  "seal_sha256": "890336922097f28cddddbcfe85a3c267bf148acd9419289b198eb081fc8060be",
+  "runtime": "UNEXECUTED"
+}

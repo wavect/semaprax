@@ -15,8 +15,31 @@ def _held(path,length,digest):
     assert hashlib.sha256(raw).hexdigest()==digest;return raw
 _raw=_held(N/'acquire.py',1825,'0548bc742a3a2b25271717b23673657f17c2b815baea538fb57d20f086d5a10f')
 _m=types.ModuleType('canonical_import_acquisition');_m.__file__=str(N/'acquire.py')
-exec(compile(_raw,_m.__file__,'exec'),_m.__dict__)
-_canonical_import_input=_m.acquire
+
+_paid_data=_held(R/'docs/evidence/paid-many-canonical-ingress-20261017/seal.json',2923,'890336922097f28cddddbcfe85a3c267bf148acd9419289b198eb081fc8060be')
+_paid_seal=__import__('json').loads(_paid_data)
+def _paid_previous(repo,source,raw=None):
+    if source!=_paid_seal['source']:return raw
+    actual=_m.held(Path(repo)/source,_paid_seal['current_length'],_paid_seal['current_sha256'])
+    assert actual==_m.held(Path(repo)/_paid_seal['current_archive'],_paid_seal['current_length'],_paid_seal['current_sha256'])
+    previous=_m.held(Path(repo)/_paid_seal['previous_archive'],_paid_seal['previous_length'],_paid_seal['previous_sha256'])
+    restored=actual;last=len(restored)
+    for edit in _paid_seal['inverse']:
+        start=edit['start_byte'];after=edit['after'].encode();end=start+len(after)
+        assert end<=last and restored[start:end]==after
+        restored=restored[:start]+edit['before'].encode()+restored[end:];last=start
+    assert restored==previous
+    return previous if raw is None or raw in (actual,previous)else raw
+_m.__dict__['_paid_physical']=lambda repo,source,row:_paid_previous(repo,source)if source==_paid_seal['source']else _m.held(Path(repo)/source,row['current_length'],row['current_sha256'])
+_helper_text=_raw.decode()
+_old_acquisition="actual=read(source,'current');assert actual==read(row['current_archive'],'current')"
+_new_acquisition="actual=_paid_physical(repo,source,row);assert actual==read(row['current_archive'],'current')"
+assert _helper_text.count(_old_acquisition)==1
+_helper_text=_helper_text.replace(_old_acquisition,_new_acquisition,1)
+assert _helper_text.replace(_new_acquisition,_old_acquisition,1).encode()==_raw
+exec(compile(_helper_text,_m.__file__,'exec'),_m.__dict__)
+
+_canonical_import_input=lambda repo,source,raw:_m.acquire(repo,source,_paid_previous(repo,source,raw))
 _original=_held(N/'bind-selected-endpoints.before.py',1951,'05ad6ee46f9147227d0fece012c7ad118ec43c3e50aaa535d78025e4d46d4b49')
 _edits=[{'before': 'def selected_previous(repo,raw):\n', 'after': "def selected_previous(repo,raw):\n    raw=_canonical_import_input(repo,'src/cleanup_plan/replay/factored/canonical_shared.rs',raw)\n"}]
 _text=_original.decode()

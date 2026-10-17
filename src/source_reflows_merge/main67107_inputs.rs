@@ -694,6 +694,10 @@ pub(crate) fn canonical_import_input(source: &str, current: &str) -> String {
         "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs" => include_str!("../cleanup_plan/replay/factored/canonical_shared/arena_tests.rs"),
         _ => return current.to_owned(),
     };
+    let lexical_compiled = paid_many_canonical_previous(source, compiled);
+    let compiled = lexical_compiled.as_str();
+    let lexical_current = paid_many_canonical_previous(source, current);
+    let current = lexical_current.as_str();
     let data = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/canonical-import-acquisition-7827-20261017/sources.json"));
     assert!(data.len() <= 65_536);
     assert_eq!(digest(data), "c0ec361ae90245676b4804403a4fe7bf65a34df06347109b086dfd0762deb7e0");
@@ -704,6 +708,9 @@ pub(crate) fn canonical_import_input(source: &str, current: &str) -> String {
     let read = |archive: &str, length: &str, hash: &str| {
         let length = usize::try_from(row[length].as_u64().unwrap()).unwrap();
         assert!(length <= 131_072);
+        if archive == source && source == "src/cleanup_plan/replay/factored/canonical_shared.rs" {
+            return paid_many_canonical_previous(source, include_str!("../cleanup_plan/replay/factored/canonical_shared.rs"));
+        }
         factored_core_file(&root.join(archive), length, row[hash].as_str().unwrap()).unwrap()
     };
     let actual = read(source, "current_length", "current_sha256");
@@ -735,4 +742,53 @@ fn canonical_import_generation_authenticates_current_and_complete_selected_stage
         }
     }
     assert_eq!(canonical_import_input("foreign", "unchanged"), "unchanged");
+}
+
+// Complete PaidMany source -> frozen compile-import input, a separate namespace.
+fn paid_many_canonical_previous(source: &str, current: &str) -> String {
+    if source != "src/cleanup_plan/replay/factored/canonical_shared.rs" { return current.to_owned(); }
+    let data = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-many-canonical-ingress-20261017/seal.json"));
+    assert_eq!(data.len(), 2923);
+    assert_eq!(digest(data), "890336922097f28cddddbcfe85a3c267bf148acd9419289b198eb081fc8060be");
+    let seal: serde_json::Value = serde_json::from_str(data).unwrap();
+    assert_eq!(seal["schema"], "semaprax.paid-many-canonical-ingress.v1");
+    assert_eq!(seal["source"], source);
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let read = |path: &str, kind: &str| {
+        let length = seal[format!("{kind}_length")].as_u64().unwrap() as usize;
+        assert!(length <= 131_072);
+        factored_core_file(&root.join(path), length, seal[format!("{kind}_sha256")].as_str().unwrap()).unwrap()
+    };
+    let actual = read(source, "current");
+    assert_eq!(actual, include_str!("../cleanup_plan/replay/factored/canonical_shared.rs"));
+    assert_eq!(actual, read(seal["current_archive"].as_str().unwrap(), "current"));
+    let previous = read(seal["previous_archive"].as_str().unwrap(), "previous");
+    let mut restored = actual.clone();
+    let mut last = restored.len();
+    for edit in seal["inverse"].as_array().unwrap() {
+        let start = edit["start_byte"].as_u64().unwrap() as usize;
+        let after = edit["after"].as_str().unwrap();
+        let end = start.checked_add(after.len()).unwrap();
+        assert!(end <= last);
+        assert_eq!(restored.get(start..end), Some(after));
+        restored.replace_range(start..end, edit["before"].as_str().unwrap());
+        last = start;
+    }
+    assert_eq!(restored, previous);
+    if current == actual || current == previous { previous } else { current.to_owned() }
+}
+#[test]
+fn paid_many_canonical_ingress_keeps_whole_import_and_selected_controls() {
+    let source = "src/cleanup_plan/replay/factored/canonical_shared.rs";
+    let raw = include_str!("../cleanup_plan/replay/factored/canonical_shared.rs");
+    let previous = paid_many_canonical_previous(source, raw);
+    assert_ne!(previous, raw);
+    assert_eq!(paid_many_canonical_previous(source, &previous), previous);
+    let stage = canonical_import_input(source, raw);
+    assert_eq!(canonical_import_input(source, &previous), stage);
+    assert_eq!(canonical_import_input(source, &stage), stage);
+    for bad in [String::new(), "foreign".to_owned(), format!("{raw} "), raw[..raw.len()-1].to_owned(), format!("{previous} ")] {
+        assert!(std::panic::catch_unwind(|| canonical_import_input(source, &bad)).is_err());
+    }
+    assert_eq!(paid_many_canonical_previous("foreign", "unchanged"), "unchanged");
 }

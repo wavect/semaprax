@@ -51,6 +51,13 @@ impl SignatureQuery<'_> {
         + 2 * size_of::<std::slice::Iter<'static, (Label, SharedWeighted)>>()
         + 2 * size_of::<&Vec<(Label, SharedWeighted)>>()
         + size_of::<&[(Label, SharedWeighted)]>();
+    // Same complete exit inventory except the genuinely absent forwarding
+    // reserve_vec Result. Every nested Result/authentication/growth survives.
+    pub(super) const LEXICAL_EXIT_CONTROLS: usize = Self::CONTROLS
+        + 2 * size_of::<Result<(), super::Diagnostic>>()
+        + 2 * size_of::<std::slice::Iter<'static, (Label, SharedWeighted)>>()
+        + 2 * size_of::<&Vec<(Label, SharedWeighted)>>()
+        + size_of::<&[(Label, SharedWeighted)]>();
     // The owned successor iterator is the original label-move producer. Zip
     // adds its owned argument, the borrowed-ID iterator and its result owner;
     // borrowed child IDs replace the explicit index/increment operands.

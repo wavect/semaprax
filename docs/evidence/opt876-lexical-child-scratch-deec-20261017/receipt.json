@@ -1,0 +1,58 @@
+{
+  "status": "SOURCE_CANDIDATE_UNEXECUTED",
+  "base": "deec161142b2f3e882e50b4450338c69c137e586",
+  "modified": [
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "length": 64864,
+      "sha256": "518aa10d1939448814ec9143f2f6c22631832109187f864374bfaa99ac3d64fc"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs",
+      "length": 11574,
+      "sha256": "8f30eae09d94a3f5e530354feab4ce299951d0990164fff670514ad03f363ab8"
+    }
+  ],
+  "new_modules": [
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/lexical_child_scratch.rs",
+      "length": 2090,
+      "sha256": "02302e1ed5ffd06792da3300d2031518a5611b6f1e7d684419d93bd3fdb01639",
+      "lines": 41
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/lexical_child_scratch/before.rs",
+      "length": 15900,
+      "sha256": "a00d6f9d749ee85fedc8e3ee33e6ce9716a221ce7c0c04a7749dc1a796332961",
+      "lines": 336
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/lexical_child_scratch/tests.rs",
+      "length": 7595,
+      "sha256": "5e0bc4576a2abc8a5093d60946f1272c2e9a50c6517c2003c98790f4c38bb3bb",
+      "lines": 149
+    }
+  ],
+  "unchanged_controls": [
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "length": 68514,
+      "sha256": "48c1fe3778d050ffbb7fcde220f10ea47a209d1935135f46328b381d727aa2dd"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs",
+      "length": 56745,
+      "sha256": "5cbc8e4a92a6b2698a903374119445e14da1993cba33a368313217b4f82285f0"
+    },
+    {
+      "path": "src/cleanup_plan/replay/physical_budget.rs",
+      "length": 13378,
+      "sha256": "5ea16ac3902b45761e55635a694339537659ba0c33ad74b695648703c1905224"
+    }
+  ],
+  "qualification": "No Cargo, Rust typechecking or runtime tests. Parse-only rustfmt emit stdout. Strict arena owner remains unchanged.",
+  "selectors": [
+    "cleanup_plan::replay::factored::canonical_shared::lexical_child_scratch::tests::lexical_child_scratch_preserves_complete_deec_owner_work_backing_and_only_removes_outer_receipts",
+    "cleanup_plan::replay::factored::canonical_shared::lexical_child_scratch::tests::lexical_child_scratch_preserves_complete_state_signature_and_every_original_work_failure"
+  ]
+}

@@ -918,16 +918,14 @@ impl<'v, 'p> Resolver<'v, 'p> {
         Ok(ResolvedFunctionTemplate {
             id: function_id,
             name: {
-                // Prepay predicate borrows/results, chosen-name/length receivers
-                // and clone/field String carriers before forming them. No tuple
-                // value is constructed; size_of supplies a conservative bound.
-                const RECEIVING: usize = std::mem::size_of::<(&Option<crate::vec_ops::VecOp>, &Option<crate::box_ops::BoxOp>, [&str; 3], [usize; 3], [bool; 5], [String; 2], [Diagnostic; 2], [Result<ResolvedFunctionTemplate, Diagnostic>; 2])>();
+                // All generic templates retain canonical declaration metadata;
+                // name lookup still uses the independently indexed local binding.
+                // Pay name/length receivers and actual clone/field carriers.
+                const RECEIVING: usize = std::mem::size_of::<([&str; 3], [usize; 3], [String; 2], [Diagnostic; 2], [Result<ResolvedFunctionTemplate, Diagnostic>; 2])>();
                 if !crate::bounded_output::reserve_active(RECEIVING) {
                     return Err(super::hir_error_static("template name receiving exceeds the active builder budget"));
                 }
-                let name = if transparent_vec_wrapper.is_some() || transparent_box_wrapper.is_some() {
-                    function.declaration_name()
-                } else { function.name() };
+                let name = function.declaration_name();
                 if !crate::bounded_output::reserve_active(name.len()) {
                     return Err(super::hir_error_static("template name bytes exceed the active builder budget"));
                 }

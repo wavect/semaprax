@@ -151,6 +151,10 @@ fn borrowed_owned_mixed_and_synthetic_main_keep_zero_or_original_capacity_and_fu
     let mixed = caller
         .replace("as get;", "as read_value;")
         .replace("get<i64>", "read_value<i64>");
+    // Paired legal consumers of the SAME provider identity, with distinct
+    // local aliases. Duplicate IDs in one input remain source-rejected S102.
+    let mut same_provider_bindings = [false; 2];
+    let mut canonical_metadata = None;
     for (source, expected_owned, expected_capacity) in [
         (caller.as_str(), 0usize, 0usize),
         (owned.as_str(), 3usize, 3usize),
@@ -231,8 +235,62 @@ fn borrowed_owned_mixed_and_synthetic_main_keep_zero_or_original_capacity_and_fu
                     ),
                 };
                 assert_eq!(expected, actual);
+                // Genuine parsed renamed providers keep canonical metadata and
+                // local lookup independently, including the all/mixed cases.
+                for import in &programs[0].module_uses {
+                    let provider = programs[1].functions.iter()
+                        .find(|function| function.stable_id == import.persistent_id).unwrap();
+                    let id = actual.declarations.function_id(&import.alias).unwrap();
+                    assert_eq!(id.as_str(), import.persistent_id);
+                    assert_eq!(actual.declarations.declaration(id).unwrap().name, provider.name);
+                    assert_eq!(actual.function_templates.iter()
+                        .find(|template| template.id == *id).unwrap().name, provider.name);
+                    assert_eq!(actual.function_templates.iter()
+                        .filter(|template| template.id == *id).count(), 1);
+                    if id.as_str() == "std.collections.vec.with-capacity" {
+                        let metadata = (actual.declarations.declaration(id).unwrap().clone(),
+                            actual.function_templates.iter().find(|template| template.id == *id).unwrap().clone());
+                        if let Some(first) = &canonical_metadata { assert_eq!(first, &metadata); }
+                        else { canonical_metadata = Some(metadata); }
+                        if import.alias == "with_capacity" { same_provider_bindings[0] = true; }
+                        if import.alias == "make_vec" { same_provider_bindings[1] = true; }
+                    }
+                }
                 crate::hir::validate(&actual).unwrap();
             });
+        });
+        assert!(!overflowed && first.is_none());
+    }
+    assert_eq!(same_provider_bindings, [true, true]);
+    // This broader sealed presentation can hold ordinary generic AND
+    // monomorphic aliases; neither may inherit the opposite naming policy.
+    // Fixture construction is outside the paid resolver invocation.
+    {
+        use crate::ast::program_source::function_alias::{FunctionDirectory, FunctionEntry, FunctionView, TransientFunctions};
+        use crate::ast::program_source::generated_roots::GeneratedRoots;
+        let provider = crate::parse("module ordinary.provider; @id(\"ordinary.generic\") fn generic<T>(value:T)->T{value} @id(\"ordinary.plain\") fn plain(value:i64)->i64{value}", "ordinary-provider.spx").unwrap();
+        let caller = crate::parse("module ordinary.consumer; @id(\"ordinary.main\") fn main()->i64 {local_generic<i64>(7)+local_plain(8)}", "ordinary-consumer.spx").unwrap();
+        let directory = FunctionDirectory {
+            roots: GeneratedRoots::plain(Vec::new(), Vec::new()),
+            entries: vec![
+                FunctionEntry::Borrowed(FunctionView::checked(&provider, &provider.functions[0], "local_generic").unwrap()),
+                FunctionEntry::Borrowed(FunctionView::checked(&provider, &provider.functions[1], "local_plain").unwrap()),
+            ],
+        };
+        let input = TransientFunctions::new(&caller, directory);
+        let ((), overflowed, _, first) = with_limit_usage_refusal(LIMIT, || {
+            let resolved = crate::hir::identity_resolution::resolve_source_nominal(
+                &input, None, crate::workspace_graph::reserve_builder_structure).unwrap().0;
+            let generic = resolved.declarations.function_id("local_generic").unwrap();
+            let plain = resolved.declarations.function_id("local_plain").unwrap();
+            assert_eq!(generic.as_str(), "ordinary.generic");
+            assert_eq!(plain.as_str(), "ordinary.plain");
+            assert_eq!(resolved.declarations.declaration(generic).unwrap().name, "generic");
+            assert_eq!(resolved.function_templates.iter().find(|item| item.id == *generic).unwrap().name, "generic");
+            assert_eq!(resolved.declarations.declaration(plain).unwrap().name, "local_plain");
+            assert_eq!(resolved.functions.iter().find(|item| item.id == *plain).unwrap().name, "local_plain");
+            crate::hir::validate(&resolved).unwrap();
+            drop(resolved);
         });
         assert!(!overflowed && first.is_none());
     }

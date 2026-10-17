@@ -1076,9 +1076,13 @@ the complete declaration payload, including its reserved name, identity,
 signature and forwarding body; it reads the declaration name instead of the
 local binding name. Exact provider membership remains the checked producer's
 boundary, rather than a new classifier callback. Intrinsic HIR templates retain
-that declaration name. Template-name selection first reserves its receiving
-carriers, then the complete selected name's UTF-8 bytes before cloning. General
-nonintrinsic templates retain their local binding names. A pointer, alias or
+that declaration name. The source declaration index separately stores the
+canonical provider declaration name for every generic function and the local
+function lookup key; monomorphic metadata retains its effective local name.
+Each actual String is prepaid at its own complete UTF-8 length before formation.
+Template-name selection first reserves its receiving
+carriers, then the complete selected name's UTF-8 bytes before cloning. All generic templates use canonical declaration metadata while their source
+calls continue to resolve through the independent local binding index. A pointer, alias or
 origin label alone grants no authority. Its `FunctionDirectory` retains one `GeneratedRoots` owner
 for all generated types and fallback functions, including partial-construction
 teardown. `expected_projection/borrowed_imports/typed/alias.rs` owns the ordered

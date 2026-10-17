@@ -5,6 +5,7 @@ use super::{
     note_skeleton_materialization, Diagnostic, Observations, ReplayBudget, ResolvedFunction,
     SkeletonObservation,
 };
+#[cfg(test)]
 use main_current::sequence_skeleton_paths;
 
 fn receiving_bytes() -> usize {

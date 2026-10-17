@@ -411,7 +411,9 @@ fn lexical_vector_first_work_keeps_six_fields_before_selection_floor_and_real_li
                     // its final Drop inside the original allocation window.
                     drop(suffixes);
                     drop(work);
-                    drop(caller);
+                    // The assignment above already dropped the actual funded
+                    // budget here. Only its resource-free unobserved replacement
+                    // remains in caller, outside the observer and borrow.
                     (outcome, frontier, remaining, retry)
                 })
             });

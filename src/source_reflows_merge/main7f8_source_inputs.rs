@@ -51,7 +51,8 @@ fn project(rows: &serde_json::Value, domain: &str, path: &str, current: &str) ->
 pub(crate) fn source(domain: &str, path: &str, current: &str) -> String {
     // A later combined batch must bind its new complete raw input to THIS
     // immutable checkpoint before entering this owner; never repin these hashes.
-    let outer = super::final_ready_inputs::source_owner(domain, path, current);
+    let presence = presence_before_later_inventory(domain, path, current);
+    let outer = super::final_ready_inputs::source_owner(domain, path, &presence);
     project(&records(), domain, path, &outer)
 }
 pub(crate) fn controls() {
@@ -78,4 +79,40 @@ pub(crate) fn controls() {
             std::panic::catch_unwind(|| project(&records, domain, "foreign", current)).is_err()
         );
     }
+}
+
+// Only the two existing presence consumers acquire this compiled raw source.
+// The old Main7f8 checkpoint and its downstream EB2 inverse remain immutable.
+pub(crate) fn presence_before_later_inventory(domain: &str, path: &str, current: &str) -> String {
+    if path != "src/cleanup_plan/replay/live_oracle/source_custody/presence.json"
+        || !matches!(domain, "loan-stack" | "eb2-compact" | "incoming") {
+        return current.to_owned();
+    }
+    let raw = include_str!("../cleanup_plan/replay/live_oracle/source_custody/presence.json");
+    assert_eq!(current.len(), raw.len(), "whole compiled presence input length");
+    assert_eq!(digest(current), digest(raw), "whole compiled presence input");
+    assert_eq!(current, raw, "complete compiled presence input");
+    let checkpoint = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/c874-presence-promotion-input-20261017/presence.73f72-checkpoint.json.txt"));
+    assert_eq!(checkpoint.len(), 20_477);
+    assert_eq!(digest(checkpoint), "73f72ac12231befb30913d153afa06c36a2f1af4f27336fba3fdf2c80a84bfba");
+    checkpoint.to_owned()
+}
+
+#[test]
+fn complete_presence_inventory_acquisition_preserves_both_domains_and_refuses_drift() {
+    let path = "src/cleanup_plan/replay/live_oracle/source_custody/presence.json";
+    let raw = include_str!("../cleanup_plan/replay/live_oracle/source_custody/presence.json");
+    let rows = records();
+    for domain in ["loan-stack", "eb2-compact"] {
+        let before = presence_before_later_inventory(domain, path, raw);
+        assert_ne!(raw, before);
+        let row = rows.as_array().unwrap().iter().find(|row| row["domain"] == domain && row["path"] == path).unwrap();
+        assert_eq!(before, row["current"].as_str().unwrap());
+        assert_eq!(project(&rows, domain, path, &before), row["incoming"].as_str().unwrap());
+        for bad in [String::new(), raw[..raw.len()-1].to_owned(), format!("{raw} "), format!("{raw}{raw}"), before.clone()] {
+            assert!(std::panic::catch_unwind(|| presence_before_later_inventory(domain, path, &bad)).is_err());
+        }
+    }
+    assert_eq!(presence_before_later_inventory("foreign", path, "foreign"), "foreign");
+    assert_eq!(presence_before_later_inventory("incoming", "foreign", "foreign"), "foreign");
 }

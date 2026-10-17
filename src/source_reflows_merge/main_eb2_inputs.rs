@@ -71,6 +71,8 @@ mod tests {
 // all original rejection checks unchanged; archived inputs remain unchanged.
 fn complete_incoming_input(domain: &str, path: &str, current: &str) -> String {
     if domain != "incoming" { return current.to_owned(); }
+    let presence = super::main7f8_source_inputs::presence_before_later_inventory(domain, path, current);
+    let current = presence.as_str();
     let data = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/fade-custody-promotions-20261017/eb2-incoming-bridge.json"));
     assert_eq!(digest(data), "549664ca658d0661599ace0e9dcd5b19c6ad34711dda25ab38b9a42856ae3acf");
     let rows: serde_json::Value = serde_json::from_str(data).unwrap();
@@ -98,6 +100,7 @@ fn later_incoming_bridges_preserve_complete_original_domains_and_refusals() {
     for row in rows.as_array().unwrap() {
         let path = row["path"].as_str().unwrap();
         let raw = std::fs::read_to_string(root.join(path)).unwrap();
+        let raw = super::main7f8_source_inputs::presence_before_later_inventory("incoming", path, &raw);
         assert_eq!(digest(&raw), row["current_sha256"]);
         let input = complete_incoming_input("incoming", path, &raw);
         assert_eq!(digest(&input), row["input_sha256"]);

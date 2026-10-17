@@ -103,6 +103,10 @@
 - Reconcile Main8a finished-path capacity, arbitrary final-suffix transfer and borrowed nominal context with lexical paid receiving; preserve original work-before-optional-payment priority and complete Main controls. Qualification and net application cost remain pending.
 
 - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.
+- Emit bounded test-only public wire receipts in hosted CI so exact report digest failures carry complete bytes, while retaining all original hashes, fixtures, assertions and verdicts.
+
+- Hold paid status insertion search scratch across ordinary builder rows, preserving full-key comparisons, AVL links, validation work and the original independent search receivers.
+
 - Give the saved tail-move merger its own method name so it and the complete isolated-path reference compile together, preserving every original body and assertion.
 
 - Refresh browser graph pins from complete hosted 3e66c0116 captures, restoring every previous wire byte and retaining all earlier source and rejection controls.

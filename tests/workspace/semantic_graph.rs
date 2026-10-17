@@ -170,6 +170,7 @@ fn inventory(root: &Path) -> Vec<(String, &'static str, Vec<u8>)> {
 /// Optional evidence sink for the actual owning producers. Existing assertions
 /// still execute, and an existing evidence file is never replaced.
 fn capture_pin_candidate(name: &str, bytes: &[u8]) {
+    super::pin_capture::record(name, bytes);
     let Some(directory) = std::env::var_os("SEMAPRAX_PRELUDE_PIN_CAPTURE_DIR") else {
         return;
     };

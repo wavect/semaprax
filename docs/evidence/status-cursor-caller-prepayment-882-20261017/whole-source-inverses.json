@@ -1,0 +1,164 @@
+{
+  "status": "SOURCE_ONLY_WHOLE_CURRENT_TO_WHOLE_PRIOR_IMAGES",
+  "rows": [
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory.rs",
+      "current_archive": "71bddf2e91cd7b6768523035ce49c111e41686dc5104adbcdb8dd7165675e464.current.txt",
+      "current_length": 20833,
+      "current_sha256": "71bddf2e91cd7b6768523035ce49c111e41686dc5104adbcdb8dd7165675e464",
+      "whole_predecessors": {
+        "incoming_main": {
+          "head": "e177a4f4ec59ca53051b6e2322626eb50daeed43",
+          "archive": "173bf9541881824bff11fb095de81eea5d1fe3b3d9597423ac901480bd3cbc4d.before.txt",
+          "length": 20309,
+          "sha256": "173bf9541881824bff11fb095de81eea5d1fe3b3d9597423ac901480bd3cbc4d"
+        },
+        "complete_pre01527": {
+          "head": "99f1f06d361e16bd937f4a6eda19703e78f0e525",
+          "archive": "173bf9541881824bff11fb095de81eea5d1fe3b3d9597423ac901480bd3cbc4d.before.txt",
+          "length": 20309,
+          "sha256": "173bf9541881824bff11fb095de81eea5d1fe3b3d9597423ac901480bd3cbc4d"
+        },
+        "next_parent": {
+          "head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+          "archive": "77eaa20915336fa5076884d3f87ba267c47dec665c57de0d3919765f8380a0d8.before.txt",
+          "length": 20800,
+          "sha256": "77eaa20915336fa5076884d3f87ba267c47dec665c57de0d3919765f8380a0d8"
+        }
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+      "current_archive": "f0477415f73a2d9d0e02ad5411d28febdd0eb43e54fcde489b02e5202008ff7c.current.txt",
+      "current_length": 39548,
+      "current_sha256": "f0477415f73a2d9d0e02ad5411d28febdd0eb43e54fcde489b02e5202008ff7c",
+      "whole_predecessors": {
+        "incoming_main": {
+          "head": "e177a4f4ec59ca53051b6e2322626eb50daeed43",
+          "archive": "aff3b6e7d30470659a80db529b48a8acbb2931b02a7ea813c6d34844f474d20d.before.txt",
+          "length": 37900,
+          "sha256": "aff3b6e7d30470659a80db529b48a8acbb2931b02a7ea813c6d34844f474d20d"
+        },
+        "complete_pre01527": {
+          "head": "99f1f06d361e16bd937f4a6eda19703e78f0e525",
+          "archive": "6571dc04f1e1eea962bc1450af4c7237292eebba1b8bdbf1e934337579524f5a.before.txt",
+          "length": 37058,
+          "sha256": "6571dc04f1e1eea962bc1450af4c7237292eebba1b8bdbf1e934337579524f5a"
+        },
+        "next_parent": {
+          "head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+          "archive": "a3aec4ec0190ac665d563ec9c231e4120c073b0e30e1647ad760a92a35e2e44b.before.txt",
+          "length": 37266,
+          "sha256": "a3aec4ec0190ac665d563ec9c231e4120c073b0e30e1647ad760a92a35e2e44b"
+        }
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor.rs",
+      "current_archive": "76b701afa4678d67d51f11be249cbdbee219dd111ec53c9c10feff527d10dccf.current.txt",
+      "current_length": 25286,
+      "current_sha256": "76b701afa4678d67d51f11be249cbdbee219dd111ec53c9c10feff527d10dccf",
+      "whole_predecessors": {
+        "incoming_main": {
+          "head": "e177a4f4ec59ca53051b6e2322626eb50daeed43",
+          "archive": "236c10f6d574cdec8833f4fcb453f646f6026a192005c98f53faddc8926f65c0.before.txt",
+          "length": 12764,
+          "sha256": "236c10f6d574cdec8833f4fcb453f646f6026a192005c98f53faddc8926f65c0"
+        },
+        "complete_pre01527": {
+          "head": "99f1f06d361e16bd937f4a6eda19703e78f0e525",
+          "git_absence": true
+        },
+        "next_parent": {
+          "head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+          "git_absence": true
+        }
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor/tests.rs",
+      "current_archive": "3dbb49c1b65ebcb13baae9b9f6d1b4d37078a331f749d678b67a53da2b8353cb.current.txt",
+      "current_length": 7016,
+      "current_sha256": "3dbb49c1b65ebcb13baae9b9f6d1b4d37078a331f749d678b67a53da2b8353cb",
+      "whole_predecessors": {
+        "incoming_main": {
+          "head": "e177a4f4ec59ca53051b6e2322626eb50daeed43",
+          "archive": "3dbb49c1b65ebcb13baae9b9f6d1b4d37078a331f749d678b67a53da2b8353cb.before.txt",
+          "length": 7016,
+          "sha256": "3dbb49c1b65ebcb13baae9b9f6d1b4d37078a331f749d678b67a53da2b8353cb"
+        },
+        "complete_pre01527": {
+          "head": "99f1f06d361e16bd937f4a6eda19703e78f0e525",
+          "git_absence": true
+        },
+        "next_parent": {
+          "head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+          "git_absence": true
+        }
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor.rs",
+      "current_archive": "250e582f1fcb5fa762b65ea05bbed980bf34e233c51d7f0004c9e8e45460d87a.current.txt",
+      "current_length": 20342,
+      "current_sha256": "250e582f1fcb5fa762b65ea05bbed980bf34e233c51d7f0004c9e8e45460d87a",
+      "whole_predecessors": {
+        "incoming_main": {
+          "head": "e177a4f4ec59ca53051b6e2322626eb50daeed43",
+          "git_absence": true
+        },
+        "complete_pre01527": {
+          "head": "99f1f06d361e16bd937f4a6eda19703e78f0e525",
+          "git_absence": true
+        },
+        "next_parent": {
+          "head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+          "git_absence": true
+        }
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/status_prefix.rs",
+      "current_archive": "fa6b23476286d2f1fb42a657af88e20cacee2042464074b4cc88c6699570207f.current.txt",
+      "current_length": 37096,
+      "current_sha256": "fa6b23476286d2f1fb42a657af88e20cacee2042464074b4cc88c6699570207f",
+      "whole_predecessors": {
+        "incoming_main": {
+          "head": "e177a4f4ec59ca53051b6e2322626eb50daeed43",
+          "git_absence": true
+        },
+        "complete_pre01527": {
+          "head": "99f1f06d361e16bd937f4a6eda19703e78f0e525",
+          "git_absence": true
+        },
+        "next_parent": {
+          "head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+          "git_absence": true
+        }
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/qualification.rs",
+      "current_archive": "bc82df0e8da14f67e01ab86ce12d18ac4b08b6fc3b89b6577ddb67caa6baaade.current.txt",
+      "current_length": 11406,
+      "current_sha256": "bc82df0e8da14f67e01ab86ce12d18ac4b08b6fc3b89b6577ddb67caa6baaade",
+      "whole_predecessors": {
+        "incoming_main": {
+          "head": "e177a4f4ec59ca53051b6e2322626eb50daeed43",
+          "git_absence": true
+        },
+        "complete_pre01527": {
+          "head": "99f1f06d361e16bd937f4a6eda19703e78f0e525",
+          "git_absence": true
+        },
+        "next_parent": {
+          "head": "a55df7587c9701be51424b6b35d2f9e0463da843",
+          "git_absence": true
+        }
+      }
+    }
+  ],
+  "complete_pre01527_directory_exact_after_only_test_module_removal": true,
+  "complete_pre01527_prefix_exact_after_only_test_path_removal": true,
+  "incoming_reused_cursor_tests_byte_exact": true
+}

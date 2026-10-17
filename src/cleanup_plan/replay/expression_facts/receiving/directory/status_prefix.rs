@@ -1,7 +1,7 @@
 //! Status-only insertion over the exact held immutable key set. No lookup authority.
 use super::{
-    AllocationPayer, Diagnostic, Directory, NIL, Node, Ordering, Probe, ReplayBudget, ResolvedFunction,
-    StatusLane, StatusSourceId, VISIT_UNITS, overflow,
+    AllocationPayer, Diagnostic, Directory, NIL, Node, Ordering, Probe, ReplayBudget,
+    ResolvedFunction, StatusLane, StatusSourceId, VISIT_UNITS, overflow,
 };
 use crate::bounded_output::classifier_string::ClassifierLedger;
 use crate::cleanup_plan::replay::replay_error;
@@ -101,7 +101,9 @@ impl<'hir> Owner<'hir> {
         // before producing the successful receipt or entering the probe.
         budget.reserve_bytes(
             function,
-            size_of::<Result<(), Diagnostic>>() + 2 * size_of::<Result<bool, Diagnostic>>(),
+            size_of::<Result<(), Diagnostic>>()
+                + 2 * size_of::<Result<bool, Diagnostic>>()
+                + CURSOR_DISPATCH_FRAME_BYTES,
             directory.phase,
         )?;
         // One exact indexed current-row identity test; no textual ID parsing or
@@ -133,6 +135,24 @@ struct Comparison<'a> {
     end: usize,
     common: usize,
 }
+// New dispatch and payment frames are funded by the existing enclosing
+// acquisitions. The complete old producer has its own unchanged layouts/fees.
+const CURSOR_PAYMENT_FRAME_BYTES: usize =
+    2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + 2 * size_of::<Result<(), Diagnostic>>();
+const CURSOR_SETUP_FRAME_BYTES: usize = CURSOR_PAYMENT_FRAME_BYTES
+    + 2 * size_of::<&mut Option<StatusIndex>>()
+    + 2 * size_of::<Option<&mut StatusIndex>>()
+    + size_of::<&mut StatusIndex>()
+    + size_of::<Result<Box<IndexSearch>, Diagnostic>>()
+    + size_of::<Option<Box<IndexSearch>>>()
+    + size_of::<bool>();
+const CURSOR_DISPATCH_FRAME_BYTES: usize = CURSOR_PAYMENT_FRAME_BYTES
+    + 2 * size_of::<&Option<StatusIndex>>()
+    + 2 * size_of::<Option<&StatusIndex>>()
+    + size_of::<&StatusIndex>()
+    + 2 * size_of::<&Option<Box<IndexSearch>>>()
+    + 2 * size_of::<bool>();
 // Existing expression-fact prefix comparator's source-derived ten bookkeeping
 // operations and unchanged byte-pair/end rate. No prior local/header credit.
 const COMPARISON_UNITS: usize = 10;
@@ -356,13 +376,14 @@ impl<'hir> Directory<&'hir StatusSourceId> {
         budget.reserve_bytes(
             function,
             2 * size_of::<HeldPrefix<'_, '_>>()
-                + size_of::<Result<HeldPrefix<'_, '_>, Diagnostic>>(),
+                + size_of::<Result<HeldPrefix<'_, '_>, Diagnostic>>()
+                + CURSOR_SETUP_FRAME_BYTES,
             self.phase,
         )?;
         // Existing bindings plus the storage-index selector and empty header.
         budget.charge(function, 16, self.phase)?;
         let owner = Owner::new(function, self, budget)?;
-        Ok(HeldPrefix {
+        let mut held = HeldPrefix {
             directory: self,
             owner,
             prefix: 0,
@@ -373,7 +394,26 @@ impl<'hir> Directory<&'hir StatusSourceId> {
                 )
                 && function.cleanup_plan.status_sources.len() >= 256)
                 .then(StatusIndex::default),
-        })
+        };
+        // Payer selection, optional-index binding and cursor publication.
+        budget.charge(function, 3, held.directory.phase)?;
+        if matches!(budget.payer, AllocationPayer::ActiveBuilder) {
+            if let Some(index) = held.index.as_mut() {
+                // Pay the complete original receiver bank before creating the
+                // allocation call's actual/formal and returned carriers.
+                budget.reserve_bytes(
+                    function,
+                    reused_cursor::ALLOCATE_BYTES,
+                    held.directory.phase,
+                )?;
+                index.cursor = Some(reused_cursor::allocate_prepaid(
+                    function,
+                    budget,
+                    held.directory.phase,
+                )?);
+            }
+        }
+        Ok(held)
     }
 
     fn held_probe(
@@ -474,7 +514,13 @@ impl<'hir> HeldPrefix<'_, 'hir> {
             self.directory.authenticate(function, budget)?;
             budget.charge(function, 1, phase)?;
             budget.charge(function, 1, phase)?;
-            if self.index.is_some() {
+            if let Some(index) = self.index.as_ref() {
+                // as_ref/match receivers are already funded by authenticate.
+                budget.charge(function, 2, phase)?;
+                if index.cursor.is_some() {
+                    budget.reserve_bytes(function, reused_cursor::INSERT_BYTES, phase)?;
+                    return self.insert_reusing_cursor(function, key, budget);
+                }
                 return self.insert_indexed(function, key, budget);
             }
             if self.directory.nodes.is_empty() {
@@ -558,6 +604,7 @@ struct StatusIndex {
     nodes: Vec<IndexNode>,
     path: Vec<IndexStep>,
     root: Option<usize>,
+    cursor: Option<Box<IndexSearch>>,
 }
 struct IndexSearch {
     probe: Probe,
@@ -1023,3 +1070,5 @@ impl HeldPrefix<'_, '_> {
         Ok(())
     }
 }
+
+mod reused_cursor;

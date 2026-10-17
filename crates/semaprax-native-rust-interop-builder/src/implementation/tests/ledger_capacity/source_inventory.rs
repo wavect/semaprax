@@ -91,6 +91,8 @@ macro_rules! loan_cfg_source_inventory {
         include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor/tests.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained/status_before_prefix.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained/component_before_prefix.rs"),
             include_str!("../../../../../src/loan_plan/storage.rs"),

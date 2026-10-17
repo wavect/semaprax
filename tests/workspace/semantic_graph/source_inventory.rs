@@ -228,6 +228,8 @@ macro_rules! semantic_graph_private_layout_source_inventory {
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs"),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs"),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor.rs"),
+        include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor/tests.rs"),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/status_before_prefix.rs"),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/component_before_prefix.rs"),
 semantic_graph_private_layout_owned_source_inventory!(core),

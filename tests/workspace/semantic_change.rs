@@ -191,10 +191,11 @@ fn inventory(root: &Path) -> Vec<(String, &'static str, Vec<u8>)> {
 }
 
 fn raw_sha(source: &str) -> String {
-    format!(
+    let digest = format!(
         "sha256:{:x}",
         semaprax::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))
-    )
+    );
+    super::pin_capture::observe("change", source.as_bytes(), digest)
 }
 
 fn raw_sources(root: &Path) -> Vec<Vec<u8>> {

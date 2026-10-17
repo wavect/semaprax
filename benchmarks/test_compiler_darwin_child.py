@@ -179,6 +179,38 @@ class DarwinChildChecks(unittest.TestCase):
             self.assertRaises(AuthorityRefusal, child.observe_direct_exit, 'runner-owned', changed, b'', b'')
         self.assertRaises(AuthorityRefusal, child.observe_direct_exit, 'runner-owned', response, b'x'*513, b'')
 
+    def test_v2_named_loader_composes_with_exact_child_env_and_refuses_drift(self):
+        # Shared pure fixture has actual versioned loader shape, never real files,
+        # runtime source protection, a live grant or authority admission.
+        from test_compiler_effective_policy import fixture, description
+        from compiler_effective_policy import resolve_owned_config, validate_profile_description
+        from dataclasses import replace
+        plan, held, path, response = fixture()
+        d = description(plan)
+        def prepare(value):
+            return child.prepare_transition(value, tuple(d['argv']),
+                tuple(Path(p) for p in d['input_files']), Path(d['publication_directory']),
+                Path(d['sandbox_launcher']))
+        transition = prepare(plan)
+        self.assertEqual(dict(transition.environment)['CODEX_HOME'],
+                         str(Path(plan.command_env['HOME']) / '.codex'))
+        resolved = resolve_owned_config(plan, response, held, path, model='fixed', effort='medium')
+        validated = validate_profile_description(plan, resolved, d,
+                                                 profile_bytes=transition.profile.encode())
+        self.assertEqual(validated.contract_sha256, plan.contract_sha256)
+        for env in [dict(plan.command_env, CODEX_HOME='/foreign'),
+                    dict(plan.command_env, DYLD_INSERT_LIBRARIES='/foreign')]:
+            altered = replace(plan, server_env=MappingProxyType(env), command_env=MappingProxyType(env))
+            self.assertRaises(AuthorityRefusal, prepare, altered)
+        self.assertRaises(AuthorityRefusal, prepare, replace(plan, runtime_sha256='0' * 64))
+        with mock.patch('compiler_configuration_provisioning.preflight_user_home', return_value=plan) as acquire, \
+             mock.patch.object(child, '_exec_transition') as execute:
+            child.execute_child(Path('/protected/contract'), plan.contract_sha256,
+                tuple(d['argv']), tuple(Path(p) for p in d['input_files']),
+                Path(d['publication_directory']), Path(d['sandbox_launcher']))
+            acquire.assert_called_once_with(Path('/protected/contract'), plan.contract_sha256)
+            self.assertEqual(execute.call_args.args[0], transition)
+
     def test_closed_entry_does_not_accept_caller_authority_or_extra_fields(self):
         with mock.patch.object(child, 'execute_child') as execute:
             for args in [[], ['--qualified', 'true'], ['--contract', '/a', '--contract-sha256', '0'*64,

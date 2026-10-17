@@ -1,0 +1,22 @@
+{
+  "status": "DIAGNOSTIC_ONLY_SOURCE_CANDIDATE_UNEXECUTED",
+  "base": "ab869ceb2a5d4506334363d5d04ad2120578b2d3",
+  "path": "src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs",
+  "full_inverse_pass": true,
+  "all_original_assertions_and_tests_retained": true,
+  "production_unchanged": {
+    "src/cleanup_plan/replay/factored.rs": "343eda3712d0c3b224742d72c34838a327e0c69449c8a94fd7eb81dc5e0134a6",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_paid_many.rs": "499e2e20b836ab7adf9b095ae608e55482a411ae7e5d9bea34b3a560d77ccdf2",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_paid_many/compare.rs": "a2392b92b1a3c8539e3c48f8ff45d39d1670645a95c32818bfeddbeb8ebc9e76",
+    "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs": "59f15d0dc91103a34a15dcd5ea7f475634951747e28454edee8c890f917b32dc",
+    "src/bounded_output/classifier_string.rs": "817b457bf874ea2233f362def886e3d05b59e37a30a7fe75f85026cd0034d393"
+  },
+  "no_new_selector": true,
+  "files": {
+    "tests.before.txt": "2432c4f4b2bf65fda9445014ff276ddbceaa3344ea9485318d52abeb67ee8b6e",
+    "stage-map.json": "c0d958d12ef866aeb9753c66721c4a95244c4989cf9b7631931f1fa0ffaef95c",
+    "README.md": "3187cca853bf1b5ed3c7c956f55cd67bf0f8389a091fd3bc0ab52a829faf8a57",
+    "tests.after.txt": "6d70cfe62b35c0ab8617b86aada00de55c3bd8aade98578d4ac994e8a1a9b86a",
+    "finite-edits.json": "2c8078d40424af366a86e59ed80069188237a91e8a3225648b9b976b585fbafc"
+  }
+}

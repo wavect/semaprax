@@ -383,6 +383,7 @@ fn composed_flat_helpers_keep_sorted_sparse_multiplicity_overflow_and_prepublica
 #[test]
 fn composed_frozen_actual_comparison_keeps_full_source_trace_and_diagnostic_order() {
     use super::super::super::{compare_with_index_storage, lexical_plan_tests};
+    use std::fmt::Write as _;
     for source in [lexical_plan_tests::WHILE, lexical_plan_tests::GENERATED] {
         let (program, function) = lexical_plan_tests::fixture(source);
         lexical_plan_tests::assert_plan_oracle(&function);
@@ -403,10 +404,12 @@ fn composed_frozen_actual_comparison_keeps_full_source_trace_and_diagnostic_orde
         assert_eq!(expected, Ok(Some(true)));
         for old in [true, false] {
             let observe = |limit| {
-                measure(|| {
+                let mut failure = ComparisonFailureReport::new();
+                let measured = measure(|| {
                     let mut budget = match ReplayBudget::with_physical(&function, limit) {
                         Ok(budget) => budget,
                         Err(error) => {
+                            let _ = write!(failure, "stage=physical-setup immediate={old} limit={limit} diagnostic={error:?}");
                             assert_eq!(error.code, "SPX-H006");
                             return Err(());
                         }
@@ -434,12 +437,18 @@ fn composed_frozen_actual_comparison_keeps_full_source_trace_and_diagnostic_orde
                             paid
                         })
                         .map_err(|error| {
+                            let _ = write!(failure, "stage=full-comparison immediate={old} limit={limit} paid={paid} remaining={} skeleton_remaining={} skeleton_spent={} lent_skeleton={} refusal_spent={} diagnostic={error:?}", budget.remaining, budget.skeleton_remaining, budget.skeleton_spent, budget.lent_skeleton, budget.refusal_spent);
                             assert_eq!(error.code, "SPX-H006");
                         });
                     drop(budget);
                     assert_eq!(current_metrics().allocated, stopped);
                     result
-                })
+                });
+                // Failure text is emitted only after the original measured Drop window.
+                if measured.0.is_err() {
+                    eprintln!("OPT870 preserved original comparison failure report_complete={} {}", !failure.overflow, failure.as_str());
+                }
+                measured
             };
             let (result, metrics) = observe(1 << 26);
             let exact = result.unwrap();
@@ -950,4 +959,36 @@ impl<T> Memo<T> {
         Ok(())
     }
 }
+}
+
+
+// Test reporting only. Formatting never allocates or queries a compiler payer;
+// printing occurs after measure() ends. Overflow is explicit, never called full.
+struct ComparisonFailureReport {
+    bytes: [u8; 16_384],
+    len: usize,
+    overflow: bool,
+}
+impl ComparisonFailureReport {
+    fn new() -> Self {
+        Self { bytes: [0; 16_384], len: 0, overflow: false }
+    }
+    fn as_str(&self) -> &str {
+        std::str::from_utf8(&self.bytes[..self.len]).expect("whole formatter strings are UTF-8")
+    }
+}
+impl std::fmt::Write for ComparisonFailureReport {
+    fn write_str(&mut self, text: &str) -> std::fmt::Result {
+        let Some(end) = self.len.checked_add(text.len()) else {
+            self.overflow = true;
+            return Err(std::fmt::Error);
+        };
+        if end > self.bytes.len() {
+            self.overflow = true;
+            return Err(std::fmt::Error);
+        }
+        self.bytes[self.len..end].copy_from_slice(text.as_bytes());
+        self.len = end;
+        Ok(())
+    }
 }

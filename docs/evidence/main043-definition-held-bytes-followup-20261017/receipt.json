@@ -1,0 +1,75 @@
+{
+  "status": "SOURCE_ONLY_HELD_BYTES_AUTHENTICATION_FOLLOWUP",
+  "base": "7b7b380a319ef9847a159c51190968e99ff8fff7",
+  "Rust_changes": 0,
+  "files": [
+    {
+      "path": "docs/evidence/main043-definition-held-bytes-followup-20261017/README.md",
+      "length": 1441,
+      "sha256": "9accba157f57e3c2bc77c748b16f6775d33fc30ed3ec6bcaf0c081cebcbd740b"
+    },
+    {
+      "path": "docs/evidence/main043-definition-held-bytes-followup-20261017/bind-current.7b.py",
+      "length": 4177,
+      "sha256": "7b65d1e6224cdda1eb45638abe806ea7fc3b85d2e130724d253492507d995b6d"
+    },
+    {
+      "path": "docs/evidence/main043-definition-held-bytes-followup-20261017/definition_payload.7b.py",
+      "length": 3098,
+      "sha256": "c844897ef8211256cc17a51192c171512b1b0d9e0846ce5737eba82aae046265"
+    },
+    {
+      "path": "docs/evidence/main043-definition-held-bytes-followup-20261017/full-source-inverses.json",
+      "length": 7793,
+      "sha256": "9627275d5202d9b90c619d1ae971a0dc98df6927eb3bba16cbbd947dce4edc44"
+    },
+    {
+      "path": "docs/evidence/main043-definition-held-bytes-followup-20261017/guard-extension-recipe-edits.7b.json",
+      "length": 16510,
+      "sha256": "2da6adb0117598c3ad703b5ed5c9aa8f8929e2b595c4737bc3a127da0e914b46"
+    },
+    {
+      "path": "docs/evidence/main043-definition-held-bytes-followup-20261017/source-controls.json",
+      "length": 380,
+      "sha256": "f2623e0c0fb539e537660fa6517e13cfff3d982484ed02f8be489e4ea54a8295"
+    },
+    {
+      "path": "docs/evidence/main043-definition-held-bytes-followup-20261017/verify-or-refresh.7b.py",
+      "length": 1890,
+      "sha256": "d649251e0ea9c9e605d0dab15b77b59edbb431c911465076a66ff62c6c8ceabb"
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py",
+      "length": 1975,
+      "sha256": "63c94867f5cf88763e4100662fc875d82cb41231b077fa77c321a8b3a7afe5de"
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-recipe-edits.json",
+      "length": 20505,
+      "sha256": "334e9da921f8c20367ffb5d8fbaa08c87b20f71c2f313a1e9402aa7f6303d811"
+    },
+    {
+      "path": "docs/evidence/main043-newmain-acquisition-20261017/bind-current.py",
+      "length": 4177,
+      "sha256": "a6949122d4239e8304eeeabd43f77ad65c17353b37954caf27e688cc18e25513"
+    },
+    {
+      "path": "docs/evidence/main043-definition-generation-20261017/definition_payload.py",
+      "length": 3219,
+      "sha256": "77b7aa8b9259c898458d43314b1b97241230021afca30f4d37a25907e40c1c5e"
+    }
+  ],
+  "proof": {
+    "status": "MINIMAL_PURE_INVERSE_HASH_PASS",
+    "whole7b_preimages_and_inverses": 4,
+    "whole_recipe_reconstructed": true,
+    "helper_bytes_pinned_before_compile": true,
+    "no_path_loader_reopen": true,
+    "fd_and_postpath_identity_checks_present": true,
+    "old_verifier_and_definition_table_unchanged": true,
+    "python_ast_parse": 3,
+    "common_refresh_or_Rust_executed": false
+  },
+  "common_refresh_executed": false,
+  "tests_executed": false
+}

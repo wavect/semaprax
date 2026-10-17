@@ -1,0 +1,11 @@
+{
+  "status": "MINIMAL_PURE_INVERSE_HASH_PASS",
+  "whole7b_preimages_and_inverses": 4,
+  "whole_recipe_reconstructed": true,
+  "helper_bytes_pinned_before_compile": true,
+  "no_path_loader_reopen": true,
+  "fd_and_postpath_identity_checks_present": true,
+  "old_verifier_and_definition_table_unchanged": true,
+  "python_ast_parse": 3,
+  "common_refresh_or_Rust_executed": false
+}

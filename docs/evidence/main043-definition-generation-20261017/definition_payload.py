@@ -16,6 +16,8 @@ def bounded(path,length=None,digest=None,limit=LIMIT):
         after=os.fstat(stream.fileno())
         identity=lambda value:(value.st_dev,value.st_ino,value.st_size,value.st_mtime_ns,value.st_ctime_ns)
         assert identity(before)==identity(after)
+        physical=os.lstat(path);assert stat.S_ISREG(physical.st_mode)
+        assert identity(after)==identity(physical)
     if digest is not None:assert sha(raw)==digest
     raw.decode('utf8');return raw
 

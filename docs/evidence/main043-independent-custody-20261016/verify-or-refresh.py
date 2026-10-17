@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fixed one-definition generation ingress; full original verifier retained."""
 from pathlib import Path
-import hashlib,importlib.util,os,stat
+import hashlib,types,os,stat
 P=Path(__file__).resolve();R=P.parents[3]
 D=R/'docs/evidence/main043-definition-generation-20261017'
 sha=lambda raw:hashlib.sha256(raw).hexdigest()
@@ -16,14 +16,17 @@ def held(path,length):
         after=os.fstat(stream.fileno())
         identity=lambda value:(value.st_dev,value.st_ino,value.st_size,value.st_mtime_ns,value.st_ctime_ns)
         assert identity(before)==identity(after)
+        physical=os.lstat(path);assert stat.S_ISREG(physical.st_mode)
+        assert identity(after)==identity(physical)
     return raw
 original=held(D/'verify-or-refresh.before.py',9518)
 assert len(original)==9518 and sha(original)=='7c2eb0ca8ff31f89b3744d69089bb62c57c8114495ddc4ec78862c32f8b4392a'
 assert original.decode().count(SEMANTIC_HELPER_SHA)==1
-helper=D/'definition_payload.py';raw=held(helper,3098)
-assert len(raw)==3098 and sha(raw)=='c844897ef8211256cc17a51192c171512b1b0d9e0846ce5737eba82aae046265'
-spec=importlib.util.spec_from_file_location('fixed_main043_definition_payload',helper)
-m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+helper=D/'definition_payload.py';raw=held(helper,3219)
+assert len(raw)==3219 and sha(raw)=='77b7aa8b9259c898458d43314b1b97241230021afca30f4d37a25907e40c1c5e'
+m=types.ModuleType('fixed_main043_definition_payload')
+m.__file__=str(helper)
+exec(compile(raw,str(helper),'exec'),m.__dict__)
 old=" payload=read(row['path'])"
 new=" payload=_definition_payload(R,row,read)"
 source=original.decode();assert source.count(old)==1

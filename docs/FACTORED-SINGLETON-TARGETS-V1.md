@@ -87,3 +87,44 @@ limits, sticky foreign/restored owner denial, actual heap/paid/peak and full
 Drop against that immediate receiver. The original strict paid gate and wide/
 unique controls remain unchanged. No executable gain or application recovery is
 claimed before a fresh combined qualification.
+
+## Composed paid Many successor (OPT870, source only)
+
+The ordinary canonicalizer keeps the preceding first-child and repeated-child
+One bodies. A distinct second child on a paid invocation now constructs sorted
+flat Many backing in `canonical_shared/paid_many.rs`. Both actual unit-closed
+and general weighted successor callers first acquire the helper arguments,
+return/receiving enums, vectors, tuples, arithmetic Options and nested Results.
+The existing fallible `reserve_vec` owner authenticates before acquisition,
+charges the complete geometric capacity before allocation, and owns allocation
+failure and capacity mismatch. Spare slots are charged; no previous node bill
+or caller Result supplies a credit. Two tuple insertions and the key comparison
+are debited before their execution. Publication replaces One only on success.
+
+Later flat targets retain the incoming bounded binary search and sorted
+insertion algorithm. Search work and bounded callback receiving slots precede
+search; an absent key pays insertion and shifts before growth and insertion.
+A present key uses checked addition before mutation. Both caller families pay
+the real helper/Result/borrowed vector receiving before forming that borrow.
+Sorted finish moves the already paid vector through the unchanged immutable Rc
+owner and pays its actual receiving boundary before formation. This removes the
+intermediate target tree and tree-to-vector conversion only on the paid route.
+The unobserved legacy route retains complete tree promotion/insertion/finish,
+including its original work order. No ceiling or allowance changes.
+
+The paid route adds explicit search, insertion and helper receiving costs;
+promotion also keeps geometric spare capacity. Many/repeated cases can therefore
+have unfavorable work or charged-byte totals even when physical allocations
+fall. Actual measurements and application outcomes are pending, not predicted.
+The complete immediate51c1 Canonicalizer, terminal implementation and production
+comparison caller compile in `before_paid_many`, using the original Targets and
+source-bound unchanged helpers. All115 existing helper/test sources and both
+complete source preimages remain sealed. Controls compare the complete original,
+immediate and composed algorithms; actual old/current tuple and iterator layouts;
+unit/general promotion; sparse/repeated/overflow algebra; all promotion byte cuts;
+zero/exact/one-short complete-owner limits; full six-field diagnostics; sticky,
+foreign-function/budget/ledger ownership; and physical allocations through Drop.
+The actual HIR/plan comparison caller and full lexical trace fixtures remain
+separate controls from direct automaton coverage. CLI, ShiftSim and normalizer
+owning gates, scoped Clippy and these focused bodies require later coordinated
+qualification. Independent incoming flat tests alone establish no adoption.

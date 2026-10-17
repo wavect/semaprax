@@ -207,11 +207,17 @@ The complete immediate BTree receiver is retained in `before_ordered.rs`; full
 source inverses and allocation-free comparison adapters preserve older controls.
 This source-only draft's focused qualification is pending.
 
-`canonical_shared/successor_targets.rs` owns the ephemeral One/Many label-target
-representation. New outer value/control layouts and both promotion inserts are
-acquired before construction; existing checked accumulation stays in the
-canonical receiver. Its complete predecessor and owning controls are separate
-children, joined into all source inventories. Qualification remains pending.
+`canonical_shared/paid_many.rs` owns the composed ephemeral label targets:
+first/repeated One stays inline; a paid distinct-child promotion uses the
+existing fallible flat-vector physical owner, bounded search and sorted shifts.
+The unobserved route retains tree Many. Both actual successor families acquire
+new helper/return/iterator layouts before formation; sorted output retains the
+same immutable sharing, arenas, compact nodes and cold Memo. No budget ceiling
+changes. `successor_targets.rs` remains the complete old One/tree-Many type for
+independent controls. `before_paid_many.rs` and its terminal/comparison children
+retain the complete immediate receiver and actual production comparison caller;
+all old helpers/tests remain source-bound and all children join the three raw
+inventories. Focused executable and application qualification remain pending.
 
 `hir/resolve_program/initial_loan_plans.rs` owns the initial authored and
 instantiated loan-plan attachment. Active construction captures one existing

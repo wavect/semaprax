@@ -1,3 +1,8 @@
+- Compose paid flat multi-target successors with the retained inline singleton
+  path in both canonical receiving families (OPT870). Acquire real promotion,
+  search, shift, growth and sharing receivers; retain complete legacy and
+  immediate production controls. Source-only; focused qualification and actual
+  application cost comparisons remain pending, including unfavorable cases.
 - Split oversized joined custody metadata only at whole ordered rows, keeping
   the original sealed-reader cap and assertions. Fixed source dispatch opens one
   authenticated part; source controls preserve the complete logical table.

@@ -244,9 +244,26 @@ fn roots_backing_is_paid_once_exact_short_floor_sticky_and_drop_are_observed() {
 
 #[test]
 fn absent_explicit_zero_types_and_ordinary_fallback_keep_unfavorable_controls_visible() {
+    // Keep the original imports/declarations-free source as an exact parser refusal.
+    let diagnostic = crate::parse("module empty;", "empty.spx").unwrap_err();
+    assert_eq!(diagnostic.code, "SPX-P101");
+    assert_eq!(diagnostic.severity, crate::diagnostic::Severity::Error);
+    assert_eq!(
+        diagnostic.message,
+        "a module must declare at least one function"
+    );
+    assert_eq!(diagnostic.path.as_deref(), Some("empty.spx"));
+    assert_eq!(
+        diagnostic
+            .span
+            .as_ref()
+            .map(|span| (span.start, span.end, span.line, span.column)),
+        Some((13, 13, 1, 14))
+    );
+    assert_eq!(diagnostic.help, None);
     for source in [
         "module empty; @id(\"main\") fn main()->i64 {0}",
-        "module empty;",
+        "module empty; @id(\"empty.helper\") fn helper()->i64 {0}",
     ] {
         let programs = vec![crate::parse(source, "empty.spx").unwrap()];
         let authored = index_authored(&programs).unwrap();

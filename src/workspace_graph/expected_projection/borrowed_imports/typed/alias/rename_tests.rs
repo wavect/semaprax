@@ -115,13 +115,28 @@ fn renamed_vec_and_box_payloads_lend_provider_fields_through_actual_owner_and_hi
 #[test]
 fn provider_invariants_preselect_complete_owning_roots_before_any_borrowed_entry() {
     let mut programs = super::tests::sources(RENAMED);
-    let mut declaration = crate::parse(
-        "module marker; @id(\"marker.type\") record Marker { @id(\"marker.value\") value:i64, }",
-        "marker.spx",
-    )
-    .unwrap()
-    .types
-    .remove(0);
+    const MARKER: &str =
+        "module marker; @id(\"marker.type\") record Marker { @id(\"marker.value\") value:i64, }";
+    let diagnostic = crate::parse(MARKER, "marker.spx").unwrap_err();
+    assert_eq!(diagnostic.code, "SPX-P101");
+    assert_eq!(diagnostic.severity, crate::diagnostic::Severity::Error);
+    assert_eq!(
+        diagnostic.message,
+        "a module must declare at least one function"
+    );
+    assert_eq!(diagnostic.path.as_deref(), Some("marker.spx"));
+    assert_eq!(
+        diagnostic
+            .span
+            .as_ref()
+            .map(|span| (span.start, span.end, span.line, span.column)),
+        Some((82, 82, 1, 83))
+    );
+    assert_eq!(diagnostic.help, None);
+    // Only the complete original Marker declaration is extracted below. The
+    // persistent anchor makes parsing legal and never reaches either receiver.
+    let marker = format!("{MARKER} @id(\"marker.fixture-anchor\") fn fixture_anchor()->i64 {{0}}");
+    let mut declaration = crate::parse(&marker, "marker.spx").unwrap().types.remove(0);
     declaration.invariants = Some(Box::new(vec![programs[0].functions[0].body.clone()]));
     programs[1].types.push(declaration);
     let authored = index_authored(&programs).unwrap();

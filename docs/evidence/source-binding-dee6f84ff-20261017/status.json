@@ -1,0 +1,13 @@
+{
+  "status": "PARTIAL_SOURCE_BINDING_NOT_QUALIFIED",
+  "source_head": "dee6f84ffcc88e98fa5346225e1961d69b7ce337",
+  "prior_043_and_definition_refusals": "RESOLVED",
+  "common_refresh": "REFUSED_EXACT_NEW_GENERATED_PATHS_MISSING_FROM_ALLOWLIST",
+  "readonly_binders": "NOT_RUN_AFTER_REFUSAL",
+  "cargo_runtime_clippy": "NOT_RUN",
+  "files": {
+    "1-main-fronts.json": "9e08729fc5528e74ddd430abf7ef717178e6e9f293b6942b97e430c0292ed14a",
+    "2-composed-endpoints.json": "46edba54219c70632d1c4ad7ff57b38b16909f528d750b9d1cb2fbb07acdf2f9",
+    "3-common.log": "94f10d78b6411854fd897e082c7bdb4b49ef5dc28f0eff4c9a36a64a8f672568"
+  }
+}

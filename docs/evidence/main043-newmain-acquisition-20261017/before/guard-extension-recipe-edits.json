@@ -1,0 +1,46 @@
+[
+  {
+    "before": "import argparse, copy, hashlib, json, re, subprocess",
+    "after": "import argparse, copy, hashlib, json, re, subprocess, runpy"
+  },
+  {
+    "before": " original=git(A,path);new_lines=source.splitlines(True)\n for line in list(new_lines):\n  if line.startswith('include_str!(\"') and line not in original:new_lines.remove(line)\n assert ''.join(new_lines)==original,('original raw guard changed',path)",
+    "after": " original=git(A,path)\n extension=runpy.run_path(str(R/D/'guard-extensions.py'))\n extension['verify_guard'](path,source,original,a.write_endpoints)"
+  },
+  {
+    "before": "assert bindings['verification_script_sha256']==sha(Path(__file__).read_text()),'verifier source drift'",
+    "after": "extension=runpy.run_path(str(R/D/'guard-extensions.py'));extension['verify_recipe']()\nassert bindings['verification_script_sha256']==sha(read(D+'/guard-extension-original/verify-or-refresh.py')),'original verifier source drift'\nif a.write_endpoints:bindings['guard_extension_verifier_sha256']=sha(Path(__file__).read_text())\nelse:assert bindings['guard_extension_verifier_sha256']==sha(Path(__file__).read_text()),'extended verifier source drift'"
+  },
+  {
+    "before": "# Exact original guard text is retained by removing only new include lines.",
+    "after": "# Exact original guard text is retained after authenticated additive include fragments."
+  },
+  {
+    "before": "for path in ['.github/workflows/ci.yml','scripts/ci-low-stack-trace.py','scripts/tests/test_ci_low_stack_trace.py']:\n assert read(path)==git(M,path),('incoming CI bytes',path)",
+    "after": "for path in ['.github/workflows/ci.yml','scripts/ci-low-stack-trace.py','scripts/tests/test_ci_low_stack_trace.py']:\n assert read(path)==git('b4523cc7c46de19287a1675a3482416d860d4976',path),('reviewed latest-main CI bytes',path)"
+  },
+  {
+    "before": "assert read('src/source_reflows/semantic_receivers.rs')==git(A,'src/source_reflows/semantic_receivers.rs')",
+    "after": "# The raw receiver has legitimate followups; only this equality uses a closed historical view.\nassert sha(read(D+'/semantic-receiver-view.py'))=='add8ccc32ef06ee92ffe70dfea9210646b7bc7385a303f9dcc4f57e47ccd0d80','historical receiver view source drift'\nreceiver_view=runpy.run_path(str(R/D/'semantic-receiver-view.py'))\nassert receiver_view['historical'](R,read('src/source_reflows/semantic_receivers.rs'))==git(A,'src/source_reflows/semantic_receivers.rs')"
+  },
+  {
+    "before": "for path in ['.github/workflows/ci.yml','scripts/ci-low-stack-trace.py','scripts/tests/test_ci_low_stack_trace.py']:\n assert read(path)==git('b4523cc7c46de19287a1675a3482416d860d4976',path),('reviewed latest-main CI bytes',path)",
+    "after": "# Preserve the complete reviewed CI equality through a distinct closed historical view.\nassert sha(read(D+'/reviewed-ci-view.py'))=='65bebec36af234e9860777e986ad4563ca24db02ce7a6266403168a241df770f','reviewed CI view source drift'\nreviewed_ci=runpy.run_path(str(R/D/'reviewed-ci-view.py'))\nfor path in ['.github/workflows/ci.yml','scripts/ci-low-stack-trace.py','scripts/tests/test_ci_low_stack_trace.py']:\n assert reviewed_ci['historical'](R,path,read(path))==git('b4523cc7c46de19287a1675a3482416d860d4976',path),('reviewed latest-main CI bytes',path)"
+  },
+  {
+    "before": "reader=read('src/source_reflows_merge/runtime_json.rs');assert reader.startswith(git(A,'src/source_reflows_merge/runtime_json.rs'))",
+    "after": "assert sha(read(D+'/runtime-prefix-view.py'))=='526555fb178acc8632958104c9e989cf247869fead6b92635fdcc13b16106bfc','historical runtime prefix view source drift'\nruntime_prefix=runpy.run_path(str(R/D/'runtime-prefix-view.py'))\nreader=runtime_prefix['historical'](R,read('src/source_reflows_merge/runtime_json.rs'));assert reader.startswith(git(A,'src/source_reflows_merge/runtime_json.rs'))"
+  },
+  {
+    "before": "526555fb178acc8632958104c9e989cf247869fead6b92635fdcc13b16106bfc",
+    "after": "c74044bffcb310f3ae26ce6be49f38aa7d62f36ee694bd0f3703ef8e19471345"
+  },
+  {
+    "before": "reviewed_ci=runpy.run_path(str(R/D/'reviewed-ci-view.py'))",
+    "after": "assert sha(read(D+'/reviewed-ci-cc4596-view.py'))=='f57c07c79ba37d16f0063494971dbc3983908b53f10b135ff8da69effd237b95','cc4596 CI outer view source drift'\nreviewed_ci=runpy.run_path(str(R/D/'reviewed-ci-cc4596-view.py'))"
+  },
+  {
+    "before": "add8ccc32ef06ee92ffe70dfea9210646b7bc7385a303f9dcc4f57e47ccd0d80",
+    "after": "79b1f3f8fd8ed42ad8baa5552f468ad7b884be1e51272dcf8e5a94fc5e373823"
+  }
+]

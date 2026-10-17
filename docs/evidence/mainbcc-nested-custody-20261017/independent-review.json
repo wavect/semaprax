@@ -1,0 +1,19 @@
+{
+  "status": "ACCEPT_SOURCE_ONLY_NOT_RUNTIME",
+  "commit": "c8a7728ef7c419047d72b4c60cb4fc8d3085f8e7",
+  "receipt_sha256": "9f266e0601c2d462c6eeb35d182ba8003755cf846f9a716f5805f7769912af6b",
+  "whole_Git_preimages_and_reverse_order_inverses": 7,
+  "new_file_before_null_remove": 18,
+  "receipt_sources_authenticated": 25,
+  "closed_subjects": 8,
+  "whole_original_raw_carriers": 3,
+  "old043_exact_after_only_new_subject": true,
+  "source_review": [
+    "both independent complete MAIN and OURS bodies retained",
+    "old helper complete after six explicit ownership wiring changes",
+    "actual raw HIR/helper/reader authenticated before staged historical reads",
+    "HIR/helper wrappers filesystem-free",
+    "no obvious Rust privacy/type blocker found; no typecheck performed"
+  ],
+  "runtime": false
+}

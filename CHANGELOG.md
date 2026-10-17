@@ -84,6 +84,12 @@
 - Reconcile Main8a finished-path capacity, arbitrary final-suffix transfer and borrowed nominal context with lexical paid receiving; preserve original work-before-optional-payment priority and complete Main controls. Qualification and net application cost remain pending.
 
 - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.
+- Keep the complete nested traversal custody assertions in the test source-reader layer, preserving their original body and fail-closed inverses while keeping filesystem operations outside core HIR.
+
+- Pass the installed macOS SDK explicitly when compiling native authority test executables with a scrubbed environment, so real system headers remain available.
+
+- Use paid small continuation backing for standalone validation and the authenticated held status prefix for unobserved wide validation, retaining limits, complete original paths, and historical controls.
+
 - Reuse one fully funded comparison state during ordinary expression-fact lookup, retaining complete byte ordering, original work events, legacy/selected/oracle routes and historical controls.
 
 - Grow authenticated invocation-held continuation buffers as reached, funding complete replacements and retaining the original depth bound, fixed legacy constructor, work events and historical controls.

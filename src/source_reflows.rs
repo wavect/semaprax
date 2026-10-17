@@ -34,6 +34,15 @@ mod semantic_receivers_mainb80;
 #[path = "source_reflows/semantic_receivers_main7c6.rs"]
 mod semantic_receivers_main7c6;
 
+#[path = "source_reflows/nested_scope.rs"]
+mod nested_scope;
+pub(crate) use nested_scope::{
+    nested_scope_correction_retains_complete_original_hostile_and_loan_controls,
+    nested_source_incoming_current,
+    nested_source_keeps_full_live_union_and_both_complete_parent_custodies,
+    nested_source_refuses_foreign_truncated_drifted_predicates_and_partial_recipes,
+};
+
 fn records() -> &'static [serde_json::Value] {
     RECORDS
         .get_or_init(|| serde_json::from_str(REPAIRS).unwrap())

@@ -201,6 +201,30 @@ fn compile_c(root: &Path, name: &str, source: &str) -> PathBuf {
         "--ld-path={}",
         resolved_tool(OsStr::new("ld")).display()
     ));
+    #[cfg(target_os = "macos")]
+    {
+        let sdk = Command::new(resolved_tool(OsStr::new("xcrun")))
+            .args(["--sdk", "macosx", "--show-sdk-path"])
+            .env_clear()
+            .env("TMPDIR", root)
+            .output()
+            .expect("installed macOS SDK query");
+        assert!(
+            sdk.status.success(),
+            "{}",
+            String::from_utf8_lossy(&sdk.stderr)
+        );
+        let sdk = PathBuf::from(
+            std::str::from_utf8(&sdk.stdout)
+                .expect("UTF-8 SDK path")
+                .trim(),
+        );
+        assert!(
+            sdk.is_absolute() && sdk.is_dir(),
+            "installed macOS SDK directory"
+        );
+        command.arg("-isysroot").arg(sdk);
+    }
     let output = command
         .arg(&source_path)
         .arg("-o")

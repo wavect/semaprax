@@ -350,7 +350,7 @@ mod tests;
 
 // A current invocation-held receiver acquires only the backing it reaches.
 // Legacy and independent oracle receivers retain the complete fixed layout.
-fn fresh_receiving<'hir>(
+pub(super) fn fresh_receiving<'hir>(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Vec<Frame<'hir>>, Diagnostic> {

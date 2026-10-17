@@ -1,0 +1,28 @@
+{
+  "status": "ACCEPTED_SOURCE_ONLY_NOT_COMPILED",
+  "candidate": "6233f511ef60871575973302c6fb984001edfb83",
+  "rows": [
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified.rs",
+      "before_sha256": "4b2f52739e64c879cf312016a0ff48446a71929d39cd4eabd64eff6059760ad4",
+      "after_sha256": "f244ecc06a62858f94ed2723ac88beff4fb2c1ca176baf1bc5cfc6893fd03dc3",
+      "before_archive": "docs/evidence/mainbcc-integration-20261017/certified-unobserved/src__cleanup_plan__replay__expression_facts__receiving__retained__case_certified.rs.before.txt"
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs",
+      "before_sha256": "c431fdb72b09e045460ad85a9774c026fd941832536405128bd2913c9c3d19a6",
+      "after_sha256": "68c44c4e3b3d3e1298b8f95b46fcef12bff983bfbcab23e236767cff50d143cc",
+      "before_archive": "docs/evidence/mainbcc-integration-20261017/certified-unobserved/src__cleanup_plan__replay__expression_facts__receiving__retained__case_certified__counter_tests.rs.before.txt"
+    }
+  ],
+  "production_change": "Exactly one borrowed payer pattern alternative; existing fee/work/query unchanged; selected/oracle unchanged. Historical cfgtest receiver remains ours.",
+  "new_test": "Actual resolved HIR >3000 rows; certified ordinary budget vs complete old counter receiver; sorted complete rows, work ceiling, actual allocation Drop balance. Original test prefix retained unchanged.",
+  "test_selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_certified::counter_tests::certified_unobserved_wide_dispatch_keeps_complete_rows_and_original_work_ceiling",
+  "runtime_qualification": false,
+  "legacy_small_case_tradeoff": "LegacyUnobserved 0..2 rows now incurs the existing two selection work units after Directory formation; exact old Legacy work frontiers are not claimed. No original parity assertion is weakened.",
+  "retained_exact_controls": [
+    "cleanup_plan::replay::expression_facts::receiving::retained::case_certified::counter_tests::certified_while_counter_preserves_complete_before_fields_work_and_receiving_debit",
+    "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::each_receiver_has_derived_exact_short_and_zero_bytes_and_work",
+    "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::lexical_current_attempt_refusal_unwind_and_completed_reuse_are_affine"
+  ]
+}

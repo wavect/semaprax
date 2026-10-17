@@ -1,0 +1,84 @@
+{
+  "ours": "8fbb43ca4c29f92b4a892190de5be784d90d8114",
+  "main": "bccbe9696eca892045b0603ad663234062df15f4",
+  "rows": [
+    {
+      "path": "docs/evidence/compact-staged-observations-v1/inverse.json",
+      "ours_sha256": "ef2d603d1d9190002b8e6b0c44fe6e1fb2bfb940e9497bf14db3026d3bf133ae",
+      "mainbcc_sha256": "37cddb2d03d593330fc1064c99bbe8cdb129b713eacd71a054bde2b90de04a9c",
+      "ours_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__compact-staged-observations-v1__inverse.json.ours-before.txt",
+      "mainbcc_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__compact-staged-observations-v1__inverse.json.mainbcc.txt"
+    },
+    {
+      "path": "docs/evidence/held-continuation-growth-v1/sources.json",
+      "ours_sha256": "fc570428ed0d2c7eabbbb6226bab73b0e5c3fa4dc16fa5e72fc6143ad86f8673",
+      "mainbcc_sha256": "da763dd11aaeecf7690f776c2c2f8907f6b28d895322bb0d175c5ccb19dad1a0",
+      "ours_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__held-continuation-growth-v1__sources.json.ours-before.txt",
+      "mainbcc_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__held-continuation-growth-v1__sources.json.mainbcc.txt"
+    },
+    {
+      "path": "docs/evidence/held-continuation-growth-v1/views.json",
+      "ours_sha256": "4359c9896c3e1192b1173da1ff2c25954c0082cb61da341b0defd03992b9e8cf",
+      "mainbcc_sha256": "e9cb715aab8d6923f92036fa5c26f2e55feb0221a03148c57abbce2184ed61dc",
+      "ours_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__held-continuation-growth-v1__views.json.ours-before.txt",
+      "mainbcc_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__held-continuation-growth-v1__views.json.mainbcc.txt"
+    },
+    {
+      "path": "docs/evidence/held-status-prefix-v1/sources.json",
+      "ours_sha256": "20fd863fcb291ad9e4e09c4ccf79ca2be1bad9f206a7f87d88a201df890ab3de",
+      "mainbcc_sha256": "2eafc96401bf7edcaf630d4d8995c2f4134bea6a7f72aa59040eb9293aca7514",
+      "ours_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__held-status-prefix-v1__sources.json.ours-before.txt",
+      "mainbcc_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__held-status-prefix-v1__sources.json.mainbcc.txt"
+    },
+    {
+      "path": "docs/evidence/held-status-prefix-v1/views.json",
+      "ours_sha256": "5aa9115c6435babc0dd5c9bb41350974a90f4e5074ac7d24e868b9fc02b52df3",
+      "mainbcc_sha256": "f836db6f7f3c6e47bd40248372e2da9b4cc8c0de5d0ab47d0f8fba2b248813b7",
+      "ours_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__held-status-prefix-v1__views.json.ours-before.txt",
+      "mainbcc_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__held-status-prefix-v1__views.json.mainbcc.txt"
+    },
+    {
+      "path": "docs/evidence/moderate-factored-v1/sources.json",
+      "ours_sha256": "cd4a2d223a0d10598b534e2416e1eb9024903b75ac84bd238cc155204dfdc088",
+      "mainbcc_sha256": "a95fafa162a4796ed90f2012fb34022c9990731d6b8fea811dcb45bc0d4201ee",
+      "ours_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__moderate-factored-v1__sources.json.ours-before.txt",
+      "mainbcc_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__moderate-factored-v1__sources.json.mainbcc.txt"
+    },
+    {
+      "path": "docs/evidence/nested-byte-traversal-780/ci-scope-original.json",
+      "ours_sha256": "a7d118c200efe34e2ade1634ae42711535e472c69ce0f52480cdefb7c3697290",
+      "mainbcc_sha256": "57556ea376a8918f41bc0945107551f0878a2e537c5f753afa95ab8ff544d41a",
+      "ours_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__nested-byte-traversal-780__ci-scope-original.json.ours-before.txt",
+      "mainbcc_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__nested-byte-traversal-780__ci-scope-original.json.mainbcc.txt"
+    },
+    {
+      "path": "docs/evidence/ordinary-replay-setup-v1/sources.json",
+      "ours_sha256": "f38d4e426196d25959a5fd4d7319a30b8d4e456f77e686ddb6060d94aa9b7ee2",
+      "mainbcc_sha256": "0e5da7ff3b35cb202a221b791d612b3b9d88223aa4bac3eaf7b764ce16b4e7cf",
+      "ours_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__ordinary-replay-setup-v1__sources.json.ours-before.txt",
+      "mainbcc_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__ordinary-replay-setup-v1__sources.json.mainbcc.txt"
+    },
+    {
+      "path": "docs/evidence/paid-expression-lookup-state-v1/sources.json",
+      "ours_sha256": "812f4c176e8efecd3415907be8ec146be60c78d33a19dcccc3175d7d5eb7daef",
+      "mainbcc_sha256": "aceae0e6f0f36d0fb59872b85dba42ee470834a0b5cc225e3207963042522436",
+      "ours_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__paid-expression-lookup-state-v1__sources.json.ours-before.txt",
+      "mainbcc_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__paid-expression-lookup-state-v1__sources.json.mainbcc.txt"
+    },
+    {
+      "path": "docs/evidence/receiver-source-custody-v1/inverse.json",
+      "ours_sha256": "17758338cdb03f1a294fb75d923ccc515c814aa3d257521f41ef8593a7d9da1b",
+      "mainbcc_sha256": "bb71bca5ea67fdacaf644a81444220f8f387a947cae75399f65e6d100fb1a5e8",
+      "ours_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__receiver-source-custody-v1__inverse.json.ours-before.txt",
+      "mainbcc_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__receiver-source-custody-v1__inverse.json.mainbcc.txt"
+    },
+    {
+      "path": "docs/evidence/source-reader-followups-20261016/sources.json",
+      "ours_sha256": "08d9a996cbf1c0d2582d3ae1175398c46666e28ba47f65f8fd69fdebc3c05115",
+      "mainbcc_sha256": "8cb0eabddf7a8e64cac7818df0b482e4f6ae23ce45613cedca2c8fe92328b3e3",
+      "ours_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__source-reader-followups-20261016__sources.json.ours-before.txt",
+      "mainbcc_archive": "docs/evidence/mainbcc-integration-20261017/docs__evidence__source-reader-followups-20261016__sources.json.mainbcc.txt"
+    }
+  ],
+  "policy": "Root existing metadata stays byteexact OURS; independent complete incoming metadata archived separately. New-only MAIN tables remain incoming; no historical archive retargeting."
+}

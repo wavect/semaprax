@@ -4508,6 +4508,10 @@ the complete predecessor before the existing historical assertions run.
 Input drift, nonunique edits and predecessor drift fail closed. The source-lock
 coverage gate recognizes this reader exactly as it recognizes `include_str!`;
 ordinary authority and implementation audits continue to read current source.
+The nested byte-traversal custody assertion delegates its test-only file reads
+to `source_reflows/nested_scope.rs`; its complete original assertion body is
+byte-locked and executable there. Core HIR retains the test entry but owns no
+filesystem operations.
 
 The `cfg(test)` source-view helper `source_reflows_merge` delegates fixture transport
 to its private `runtime_json` loader, fixed inventory, and hostile-I/O tests. The

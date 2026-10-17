@@ -1,0 +1,12 @@
+{
+  "base": "deec161142b2f3e882e50b4450338c69c137e586",
+  "path": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+  "before_sha256": "3edb2464491fda85a208c95b4a2b62549a42fd1791b4bae1ef78087bd3430d3e",
+  "after_sha256": "fa6695fa3d741c3a96ee5e69f45dac1e5ad2a28080baf9b47f43bac2612f2977",
+  "inverse": {
+    "current": "            let mut work = SkeletonWork::new(&program, function, &mut budget);\n            // Pay the complete real constructor before exhausting the intended\n            // suffix-copy frontier; no constructor fee or allowance is bypassed.\n            if exhaust_bytes {\n                let charged = work.budget.physical.as_ref().unwrap().charged();\n                work.budget.physical.as_deref_mut().unwrap().reserve(limit - charged).unwrap();\n                assert_eq!(work.budget.physical.as_ref().unwrap().charged(), limit);\n            }",
+    "previous": "            if exhaust_bytes {\n                let charged = budget.physical.as_ref().unwrap().charged();\n                budget.physical.as_deref_mut().unwrap().reserve(limit - charged).unwrap();\n            }\n            let mut work = SkeletonWork::new(&program, function, &mut budget);"
+  },
+  "before_archive": "tests.before.rs.txt",
+  "after_archive": "tests.after.rs.txt"
+}

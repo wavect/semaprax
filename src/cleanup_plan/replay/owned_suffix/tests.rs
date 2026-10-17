@@ -238,11 +238,14 @@ fn owned_suffix_copy_refusal_precedes_exhausted_merge_work_in_both_whole_routes(
                 // owner before the deliberately exhausted physical frontier.
                 budget.reserve_bytes(function, CONTROLS + 7 * ROW_CLONE_CONTROLS, "mixed refusal row controls").unwrap();
             }
-            if exhaust_bytes {
-                let charged = budget.physical.as_ref().unwrap().charged();
-                budget.physical.as_deref_mut().unwrap().reserve(limit - charged).unwrap();
-            }
             let mut work = SkeletonWork::new(&program, function, &mut budget);
+            // Pay the complete real constructor before exhausting the intended
+            // suffix-copy frontier; no constructor fee or allowance is bypassed.
+            if exhaust_bytes {
+                let charged = work.budget.physical.as_ref().unwrap().charged();
+                work.budget.physical.as_deref_mut().unwrap().reserve(limit - charged).unwrap();
+                assert_eq!(work.budget.physical.as_ref().unwrap().charged(), limit);
+            }
             let suffixes = inputs(function, 7);
             let error = if old {
                 work.before_merged_suffixes(&suffixes).err().unwrap()

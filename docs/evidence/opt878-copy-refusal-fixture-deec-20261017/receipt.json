@@ -1,0 +1,16 @@
+{
+  "status": "SOURCE_FIX_UNEXECUTED",
+  "base": "deec161142b2f3e882e50b4450338c69c137e586",
+  "selector": "cleanup_plan::replay::owned_suffix::tests::owned_suffix_copy_refusal_precedes_exhausted_merge_work_in_both_whole_routes",
+  "actual_log": "/Volumes/Semaprax/lane-prompts/semantic-focused162-deec16114-20261017/owning-selected-28.log",
+  "actual_log_sha256": "d8c1b08b2cb470ffeb43ef0a2d01a3b03218d879c30b1f0ead61f899fe47fd30",
+  "whole_inverse_pass": true,
+  "original_assertions_producers_prices_caps_unchanged": true,
+  "new_selector": null,
+  "files": {
+    "whole-source-inverse.json": "921c2835bc4ec2799f1ae6c218eff4c5b7fa1f5b861172584278c12305d877e3",
+    "tests.before.rs.txt": "3edb2464491fda85a208c95b4a2b62549a42fd1791b4bae1ef78087bd3430d3e",
+    "README.md": "3d5919bd8fbba799388680d57b949ddfe586562368cb9b687f1c5ea292b47afa",
+    "tests.after.rs.txt": "fa6695fa3d741c3a96ee5e69f45dac1e5ad2a28080baf9b47f43bac2612f2977"
+  }
+}

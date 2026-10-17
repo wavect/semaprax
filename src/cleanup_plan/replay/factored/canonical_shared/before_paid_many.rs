@@ -1,5 +1,5 @@
 //! Complete immediate51c1 receiver; production body and old target type retained.
-use super::{physical_clone, replay_error, Automaton, BTreeMap, Diagnostic, Label, Rc,
+use super::{app_census, physical_clone, replay_error, Automaton, BTreeMap, Diagnostic, Label, Rc,
     ReplayBudget, ResolvedFunction, Weighted, SmallWeighted, closure_receiving,
     empty_closure, empty_memo, empty_signature, intern_arena, ordered_alias,
     ordered_weights, successor_targets, arena_tests, tests};

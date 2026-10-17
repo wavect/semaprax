@@ -604,7 +604,9 @@ mod targets {
 }
 
 mod successor_labels {
-    use super::super::{targets, borrowed_labels as labels, SharedWeighted};
+    use super::super::{targets, borrowed_labels as labels};
+    use crate::cleanup_plan::replay::SkeletonObservation;
+    use crate::hir::ExpressionId;
     use super::super::super::compact_nodes::{Node, Many};
     use super::*;
 
@@ -662,7 +664,7 @@ mod successor_labels {
         automaton: &Automaton,
         closed: &BTreeMap<usize, u64>,
         accepted: u64,
-    ) -> Result<Option<(u64, Vec<(Label, SharedWeighted)>)>, Diagnostic> {
+    ) -> Result<Option<(u64, Vec<(Label, Rc<Weighted>)>)>, Diagnostic> {
         let mut successors = BTreeMap::<Label, targets::Targets>::new();
         for (node, weight) in closed {
             let moves = automaton.nodes[*node].moves();
@@ -686,7 +688,7 @@ mod successor_labels {
                 }
             }
         }
-        budget.reserve_array::<(Label, SharedWeighted)>(
+        budget.reserve_array::<(Label, Rc<Weighted>)>(
             function,
             successors.len(),
             "factored successor vector",
@@ -706,11 +708,10 @@ mod successor_labels {
                 let (automaton, closed) = subject(width, overflow);
                 let mut old = ReplayBudget::new();
                 let mut new = ReplayBudget::new();
-                let expected = before_labels(&function, &mut old, &automaton, &closed, 57).unwrap();
-                let actual =
-                    labels::successors(&function, &mut new, &automaton, &closed, 57).unwrap();
-                assert_eq!(actual, expected);
-                if let Some((accepted, labels)) = actual {
+                let expected = before_labels(&function, &mut old, &automaton, &closed, 57);
+                let actual = labels::successors(&function, &mut new, &automaton, &closed, 57);
+                super::super::inline_weighted::assert_successors(&actual, &expected);
+                if let Some((accepted, labels)) = actual.unwrap() {
                     assert_eq!(accepted, 57);
                     assert_eq!(labels.len(), if width == 0 { 0 } else { width + 3 });
                     assert!(labels.windows(2).all(|pair| pair[0].0 < pair[1].0));
@@ -725,25 +726,30 @@ mod successor_labels {
     fn complete_paid_outer_storage_keeps_last_drop_and_physical_boundaries() {
         let function = function();
         let (automaton, closed) = subject(64, false);
+        fn inspect<T: std::ops::Deref<Target = [(usize, u64)]>>(
+            result: Result<Option<(u64, Vec<(Label, Rc<T>)>)>, Diagnostic>,
+        ) -> bool {
+            let success = result.is_ok();
+            if let Ok(Some((accepted, labels))) = &result {
+                assert_eq!(*accepted, 57);
+                assert_eq!(labels.len(), 67);
+                for (_, weights) in labels {
+                    assert_eq!(weights.iter().map(|(_, weight)| weight).sum::<u64>(), 10);
+                }
+            }
+            drop(result);
+            success
+        }
         let observe = |old, available, floor| {
             crate::bounded_output::with_limit_usage_refusal(available + floor, || {
                 assert!(crate::bounded_output::set_active_floor(floor));
                 crate::test_allocation_observer::measure(|| {
                     let mut budget = ReplayBudget::new();
-                    let result = if old {
-                        before_labels(&function, &mut budget, &automaton, &closed, 57)
+                    let success = if old {
+                        inspect(before_labels(&function, &mut budget, &automaton, &closed, 57))
                     } else {
-                        labels::successors(&function, &mut budget, &automaton, &closed, 57)
+                        inspect(labels::successors(&function, &mut budget, &automaton, &closed, 57))
                     };
-                    let success = result.is_ok();
-                    if let Ok(Some((accepted, labels))) = &result {
-                        assert_eq!(*accepted, 57);
-                        assert_eq!(labels.len(), 67);
-                        for (_, weights) in labels {
-                            assert_eq!(weights.iter().map(|(_, weight)| weight).sum::<u64>(), 10);
-                        }
-                    }
-                    drop(result);
                     if !success {
                         assert!(budget.reserve_bytes(&function, 0, "sticky labels").is_err());
                     }

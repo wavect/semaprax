@@ -38,8 +38,8 @@ const NEW_SPLIT: usize = size_of::<&mut std::slice::Iter<'_, ExprSkeletonPath>>(
     + size_of::<std::slice::Iter<'static, ExprSkeletonPath>>();
 // One FIRST-sibling gate only, never a repeated per-suffix amortization. Scalar
 // slots cover both allowance fields, length result and bound operands; borrowed
-// slots cover payer comparison, selected(), two Option headers and Vec headers.
-const PROBE: usize = 2 * size_of::<&allocation::AllocationPayer>()
+// slots cover one borrowed payer pattern, selected(), two Option headers and Vec headers.
+const PROBE: usize = size_of::<&allocation::AllocationPayer>()
     + size_of::<&ReplayBudget>()
     + 2 * size_of::<&Option<std::rc::Rc<ObservationDag>>>()
     + 2 * size_of::<&Vec<Observation>>()
@@ -53,8 +53,10 @@ pub(in crate::cleanup_plan::replay) const MINIMUM_ITEMS: usize =
 // already charged the first original clone work and the unchanged split frame.
 macro_rules! after_work {
     ($work:ident, $prefix:expr, $suffix:expr) => {{
-        if $work.budget.payer
-            == $crate::cleanup_plan::replay::allocation::AllocationPayer::ActiveBuilder
+        if matches!(
+            &$work.budget.payer,
+            &$crate::cleanup_plan::replay::allocation::AllocationPayer::ActiveBuilder
+        )
             && !$work.budget.selected()
             && $work.budget.skeleton_remaining >= 1
             && $work.budget.skeleton_spent < usize::MAX

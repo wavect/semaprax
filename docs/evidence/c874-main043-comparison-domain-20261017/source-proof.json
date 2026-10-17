@@ -1,0 +1,12 @@
+{
+  "state": "PASS_SOURCE_ONLY",
+  "archive_root": "live-source-audit-custody-v1",
+  "path": "src/hir/nominal_payload/legacy/source_tests.rs",
+  "actual_raw_sha256": "62e53ac5c31c6abcfe440d9cebd726b3d758846d2e7d0bcd4287cc0931a84b0f",
+  "whole_reviewed_afterimage_sha256": "f99d011bfc92c2952948c51a0a3c31f15c353d8665fe046ea570795a1218a30b",
+  "whole_archive_sha256": "62e53ac5c31c6abcfe440d9cebd726b3d758846d2e7d0bcd4287cc0931a84b0f",
+  "complete_old_tables_unchanged": true,
+  "whole_nonidentity": true,
+  "source_parse": "PASS",
+  "runtime": "UNEXECUTED"
+}

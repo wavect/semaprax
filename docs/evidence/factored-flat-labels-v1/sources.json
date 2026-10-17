@@ -68,7 +68,7 @@
   "new_files": [
     {
       "path": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
-      "sha256": "f4fd89c5c28b47d826968d935f51dac66a49e8fd859bfa519e98013913a3923a"
+      "sha256": "76fd94cd723677369a17540d5bf447e1b66fa08dffb14a754d53cf2c81180b32"
     }
   ]
 }

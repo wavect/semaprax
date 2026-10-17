@@ -1,0 +1,20 @@
+{
+  "status": "UNEXECUTED_SOURCE_CANDIDATE",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::sequence_and_cursor_real_byte_frontiers_preserve_six_field_diagnostics_and_full_drop"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::original_oracle_retains_full_old_accounts_without_entering_shared_storage"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::oracle_entry_still_refuses_missing_and_same_id_foreign_invocation_without_active_fallback"
+    }
+  ]
+}

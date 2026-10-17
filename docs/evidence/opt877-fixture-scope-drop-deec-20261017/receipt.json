@@ -1,0 +1,25 @@
+{
+  "status": "SOURCE_CANDIDATE_UNEXECUTED",
+  "base": "deec161142b2f3e882e50b4450338c69c137e586",
+  "rust_subject": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+  "whole_inverse_verified": true,
+  "all_original_assertion_start_lines_retained_in_order": true,
+  "production_prices_caps_oracle_authority_and_bodies_unchanged": true,
+  "no_new_Rust_module": true,
+  "actual_failure_logs": {
+    "/Volumes/Semaprax/lane-prompts/semantic-focused162-deec16114-20261017/owning-selected-08.log": "1d5aece9ce7f5d6defcfc24c0939d19011ed4bee3bb0c0279bda43cdcefd5c9d",
+    "/Volumes/Semaprax/lane-prompts/semantic-focused162-deec16114-20261017/owning-selected-14.log": "80e1dcfe85255f9026530017624431c7d3df661cd45c836053a97029b0414df8"
+  },
+  "checks_performed": [
+    "Exact old Git input and complete finite inverse",
+    "rustfmt --emit stdout parser only",
+    "git diff --check"
+  ],
+  "not_performed": [
+    "Cargo",
+    "Rust compilation",
+    "test execution",
+    "source refresh",
+    "ROOT writes"
+  ]
+}

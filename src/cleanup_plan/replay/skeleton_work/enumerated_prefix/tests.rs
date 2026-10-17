@@ -224,7 +224,10 @@ fn sequence_and_cursor_real_byte_frontiers_preserve_six_field_diagnostics_and_fu
                     }
                     Ok::<(), Diagnostic>(())
                 })();
-                result
+                // Keep the original budget-before-error Drop order. The full
+                // Diagnostic must be freed inside the allocation observer too.
+                drop(budget);
+                result.map_err(DiagnosticFields::capture)
             })
         })
     };
@@ -473,6 +476,7 @@ fn original_oracle_retains_full_old_accounts_without_entering_shared_storage() {
     with_limit_usage_refusal(usize::MAX, || {
         let run = |old| {
             let scope = allocation::OracleScope::open_with_work(usize::MAX, usize::MAX).unwrap();
+            let invocation = allocation::enter(&program, function, scope.lease()).unwrap();
             let mut budget = ReplayBudget::with_skeleton_limit_oracle(usize::MAX, scope.lease());
             let mut work = SkeletonWork::new(&program, function, &mut budget);
             let (prefixes, suffixes) = inputs(&mut work, 8192, 5).unwrap();
@@ -485,6 +489,7 @@ fn original_oracle_retains_full_old_accounts_without_entering_shared_storage() {
             assert!(paths.iter().all(|path| path.observations.prefix.is_none()));
             drop((paths, suffixes, work));
             drop(budget);
+            drop(invocation);
             let receipt = scope.receipt();
             drop(scope);
             receipt
@@ -685,4 +690,84 @@ fn whole_frozen_sequence_and_plan_comparator_run_independently_in_original_scope
             assert_eq!(new.skeleton_remaining, old.skeleton_remaining);
         }
     });
+}
+
+
+// Observation-only transport: keep every field byte, not an owning refusal
+// String beyond measure(). This fixture's prepaid refusal text is bounded by
+// its short function IDs plus the existing 512-byte refusal backing contract.
+// The reporting bound is checked, never truncated or used as compiler funding.
+#[derive(Debug, Eq, PartialEq)]
+struct DiagnosticText {
+    bytes: [u8; 1024],
+    len: usize,
+}
+impl DiagnosticText {
+    fn capture(value: &str) -> Self {
+        let mut bytes = [0; 1024];
+        assert!(value.len() <= bytes.len(), "complete fixture Diagnostic must fit reporting storage");
+        bytes[..value.len()].copy_from_slice(value.as_bytes());
+        Self { bytes, len: value.len() }
+    }
+}
+#[derive(Debug, Eq, PartialEq)]
+struct DiagnosticFields {
+    code: &'static str,
+    severity: crate::diagnostic::Severity,
+    message: DiagnosticText,
+    path: Option<DiagnosticText>,
+    span: Option<crate::ast::Span>,
+    help: Option<DiagnosticText>,
+}
+impl DiagnosticFields {
+    fn capture(error: Diagnostic) -> Self {
+        Self {
+            code: error.code,
+            severity: error.severity,
+            message: DiagnosticText::capture(&error.message),
+            path: error.path.as_deref().map(DiagnosticText::capture),
+            span: error.span,
+            help: error.help.as_deref().map(DiagnosticText::capture),
+        }
+        // The original owning Diagnostic drops here, before measure returns.
+    }
+}
+
+#[test]
+fn oracle_entry_still_refuses_missing_and_same_id_foreign_invocation_without_active_fallback() {
+    let program = program();
+    let function = &program.functions[0];
+    let foreign = function.clone();
+    assert_eq!(foreign.id, function.id);
+    for entered_foreign in [false, true] {
+        let ((), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {
+            let active = crate::bounded_output::active_remaining();
+            let scope = allocation::OracleScope::open_with_work(usize::MAX, usize::MAX).unwrap();
+            let invocation = if entered_foreign {
+                Some(allocation::enter(&program, &foreign, scope.lease()).unwrap())
+            } else {
+                None
+            };
+            let mut budget = ReplayBudget::with_skeleton_limit_oracle(usize::MAX, scope.lease());
+            let error = SkeletonWork::with_index(&program, function, &mut budget, None).err().unwrap();
+            assert_eq!(error, Diagnostic::io("SPX-H006", String::new()));
+            assert!(budget.refusal_spent);
+            assert_eq!((budget.remaining, budget.skeleton_remaining), (0, 0));
+            let selected = scope.receipt();
+            assert_eq!((selected.charged, selected.work), (0, 0));
+            assert!(selected.physical_failure.is_some());
+            let retry = budget.reserve_bytes(function, 0, "oracle invocation sticky retry").unwrap_err();
+            assert_eq!(retry, error);
+            let retried = scope.receipt();
+            assert_eq!((retried.charged, retried.work, retried.physical_failure),
+                (selected.charged, selected.work, selected.physical_failure));
+            assert_eq!(crate::bounded_output::active_remaining(), active);
+            drop((retry, error));
+            drop(budget);
+            drop(invocation);
+            drop(scope);
+        });
+        assert!(!refused && first.is_none());
+        assert_eq!(paid, 0);
+    }
 }

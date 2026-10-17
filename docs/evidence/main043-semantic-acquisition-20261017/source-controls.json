@@ -1,0 +1,11 @@
+{
+  "status": "PASS_TARGETED_SOURCE_ONLY",
+  "negative_controls": 15,
+  "whole_prior_stage": "457d115f41607edd272dbf214714a0df276dfa75fb8a86a2cb313586c5bc495c",
+  "whole_historical": "651d174d04fad97da5c08ad215a869fd395a7d691d4a78dc901a99e814fc8252",
+  "original_scripts_whole_byte_inverses": 3,
+  "all_existing_Rust_helper_bytes_preserved": true,
+  "Rust_tests": "UNEXECUTED",
+  "common_refresh_run": false,
+  "compiler_run": false
+}

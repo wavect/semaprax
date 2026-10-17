@@ -1,0 +1,52 @@
+{
+  "status": "PASS_SOURCE_ONLY_POSTBIND_REAUTHENTICATION",
+  "head": "f44e687aa7e37e2fec0a74803ccce3e315b69c41",
+  "dirty_paths": [
+    " M docs/evidence/accepted-final6-source-binding-20261017/check-source.py",
+    " M docs/evidence/accepted-strict-guard-generation-20261017/check-source.py",
+    " M docs/evidence/main-e177-final-source-binding-20261017/current-inputs.json",
+    " M docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py",
+    " M docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py",
+    " M src/source_reflows_merge/main67107_inputs.rs",
+    " M src/source_reflows_merge/main_e177_final_inputs.rs",
+    "?? docs/evidence/f44-forwarding-repair-20261017/before/docs__evidence__accepted-final6-source-binding-20261017__check-source.py.txt",
+    "?? docs/evidence/f44-forwarding-repair-20261017/before/docs__evidence__accepted-strict-guard-generation-20261017__check-source.py.txt",
+    "?? docs/evidence/f44-forwarding-repair-20261017/before/docs__evidence__main-e177-final-source-binding-20261017__current-inputs.json.txt",
+    "?? docs/evidence/f44-forwarding-repair-20261017/before/docs__evidence__main-e177-final-source-binding-20261017__guard_payload.py.txt",
+    "?? docs/evidence/f44-forwarding-repair-20261017/before/docs__evidence__main043-independent-custody-20261016__verify-or-refresh.py.txt",
+    "?? docs/evidence/f44-forwarding-repair-20261017/before/src__source_reflows_merge__main67107_inputs.rs.txt",
+    "?? docs/evidence/f44-forwarding-repair-20261017/before/src__source_reflows_merge__main_e177_final_inputs.rs.txt",
+    "?? docs/evidence/f44-forwarding-repair-20261017/check-postbind49.py",
+    "?? docs/evidence/f44-forwarding-repair-20261017/current-main67107.rs.txt",
+    "?? docs/evidence/f44-forwarding-repair-20261017/postbind-check.before.py.txt",
+    "?? docs/evidence/f44-forwarding-repair-20261017/strict.stderr.log",
+    "?? docs/evidence/f44-forwarding-repair-20261017/strict.stdout.log",
+    "?? docs/evidence/f44-forwarding-repair-20261017/whole-inverses.json"
+  ],
+  "current_rows": 49,
+  "incoming_namespace_current_rows": 471,
+  "whole_immutable_incoming_archives": 471,
+  "old_table_anchors": 2,
+  "new_raw_modules": 36,
+  "ordered_table_rows": 441,
+  "pins": {
+    "docs/evidence/main-e177-final-source-binding-20261017/current-inputs.json": [
+      33454,
+      "d4b25497258932ea1ac71315c1fc36c27d2f195abcd6de0825129ea9a374e334"
+    ],
+    "docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py": [
+      19974,
+      "c1069649be263d9d75a3393bc4d88ddf2f15d7fcf17af09851f2a5a7e5e629c2"
+    ],
+    "docs/evidence/main-e177-full-controller-acquisition-20261017/inputs.json": [
+      237694,
+      "89ce381aff378d3e66b660fcf44acde6c712a58bb9dfa194106cfa080005e82a"
+    ],
+    "src/source_reflows_merge/main_e177_final_inputs.rs": [
+      14776,
+      "0db38ae8756039b1e6242f838df0d11e630f1e76ca15c6939754b276005a54a3"
+    ]
+  },
+  "Cargo": false,
+  "Rust_executed": false
+}

@@ -1,0 +1,37 @@
+{
+  "status": "SOURCE_ONLY_COMPILE_ALIAS_REPAIR",
+  "base": "f44e687aa7e37e2fec0a74803ccce3e315b69c41",
+  "alias": "pub(crate) use before_future57::accepted_physical_compiled;",
+  "same_function_item_no_new_ABI": true,
+  "changed_Rust": [
+    "src/source_reflows_merge/main67107_inputs.rs",
+    "src/source_reflows_merge/main_e177_final_inputs.rs"
+  ],
+  "unchanged_lib_root_sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de",
+  "cfgtest_root_literal": "#[cfg(test)]\nmod source_reflows_merge;",
+  "production_Rust_bytes_unchanged": true,
+  "production_scope_proof": "Both changed Rust files are descendants of the unchanged cfg(test) source_reflows_merge root. Every other tracked Rust file equals f44 Git bytes.",
+  "source_rows": 49,
+  "immutable_previous48_packet_complete": true,
+  "old_afa54_and454_unchanged": true,
+  "incoming471_unchanged": true,
+  "physical174_unchanged": true,
+  "FINAL6_affected": "Exactly row2 source main67107; must bind after promoting this clean commit, then source-only75 qualifier and commit.",
+  "role_refresh": "Finite unchanged-role/edge hash successor only: external refresh-role-hashes.py; no parser.",
+  "strict58": {
+    "status": "PASS_SOURCE_ONLY_STRICT_AND_BOOTSTRAP",
+    "complete_current_carriers": 3,
+    "complete_original_guard_carriers": 3,
+    "old_maximums_unchanged": true,
+    "refusals": 58,
+    "original_verifier_executed": false,
+    "rust_executed": false
+  },
+  "static49_and471_auth": "PASS precommit-auth49.json with truthful dirty paths",
+  "Rust_executed": false,
+  "Cargo": false,
+  "actual_new_HEAD_Clippy": false,
+  "parent_actual_f44_Clippy": "May be inherited only through above byte/cfg(test) equivalence; never relabel as a new-head run.",
+  "postbind_tool": "/Volumes/Semaprax/provenance/f44-forwarding-repair-20261017/check-postbind49.py",
+  "postbind_tool_sha256": "d64894a4f2a33bce143f424f2196bbbd585b35254ca9dcd7390c0921742c0e85"
+}

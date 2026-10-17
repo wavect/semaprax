@@ -1,0 +1,17 @@
+{
+  "before": "refresh-role-hashes.before-review-fix.py.txt",
+  "before_sha256": "08d4d57ac96fa647b6d8cbce088e344e3b276e336d44b126b8ba5e2ef0132b76",
+  "after_sha256": "6a544a374b211764583e1cc9bd8a43c728f4dfad9cf9fb9edbdbd3531ffc9ffa",
+  "edits": [
+    {
+      "before": "for row in owners:b=held(row['source']);row.update(sha256=H(b),lines=len(b.splitlines()))",
+      "after": "for row in owners:\n b=held(row['source'])\n if (H(b),len(b.splitlines()))!=(row['sha256'],row['lines']):\n  assert row['source'] in {'src/source_reflows_merge/main67107_inputs.rs','src/source_reflows_merge/main_e177_final_inputs.rs','src/source_reflows_merge/ordinary_plan_inputs.rs'},('foreign changed owner',row['source'])\n row.update(sha256=H(b),lines=len(b.splitlines()))",
+      "count": 1
+    },
+    {
+      "before": " for path,raw in list(snap.items()):assert held(path,max(1,len(raw)))==raw\n for path,row in outputs.items():",
+      "after": " for path,raw in list(snap.items()):assert held(path,max(1,len(raw)))==raw\n assert git('rev-parse','HEAD').decode().strip()==a.expected_head and not git('status','--porcelain','--untracked-files=all').strip()\n for path,row in outputs.items():",
+      "count": 1
+    }
+  ]
+}

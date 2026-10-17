@@ -7,14 +7,14 @@ fn digest(bytes: &[u8]) -> String {
 }
 fn packet() -> serde_json::Value {
     let data = include_str!("../../docs/evidence/main-e177-final-source-binding-20261017/current-inputs.json");
-    assert_eq!(data.len(), 32765);
-    assert_eq!(digest(data.as_bytes()), "d641ad6bb30767dd172d73c67c32c3d2b1cecb1dca75f38b564156fe6fd3ed03");
+    assert_eq!(data.len(), 33454);
+    assert_eq!(digest(data.as_bytes()), "d4b25497258932ea1ac71315c1fc36c27d2f195abcd6de0825129ea9a374e334");
     let root=Path::new(env!("CARGO_MANIFEST_DIR"));
     let physical=held(&root.join("docs/evidence/main-e177-final-source-binding-20261017/current-inputs.json"),data.len(),&digest(data.as_bytes())).unwrap();
     assert_eq!(physical,data,"complete physical and compiled current manifest");
     let packet: serde_json::Value = serde_json::from_str(data).unwrap();
     assert_eq!(packet["schema"], "semaprax.main-e177-final-whole-inputs.v1");
-    assert_eq!(packet["rows"].as_array().unwrap().len(), 48);
+    assert_eq!(packet["rows"].as_array().unwrap().len(), 49);
     for anchor in packet["complete_old_table_anchors"].as_array().unwrap() {
         let path=anchor["path"].as_str().unwrap();
         let raw=held(&root.join(path),anchor["length"].as_u64().unwrap()as usize,anchor["sha256"].as_str().unwrap()).unwrap();
@@ -65,6 +65,7 @@ fn table_compiled(source: &str) -> Option<&'static str> {
 }
 fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/source_reflows_merge/main67107_inputs.rs" => Some(include_str!("../../src/source_reflows_merge/main67107_inputs.rs")),
         "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs" => Some(include_str!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs")),
         "src/cleanup_plan/replay.rs" => Some(include_str!("../../src/cleanup_plan/replay.rs")),
         "src/cleanup_plan/replay/branch_clone/direct.rs" => Some(include_str!("../../src/cleanup_plan/replay/branch_clone/direct.rs")),

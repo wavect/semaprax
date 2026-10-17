@@ -14,6 +14,13 @@ def unique(pairs):
  return d
 def load(b):return json.loads(b,object_pairs_hook=unique)
 def git(repo,*a):return subprocess.check_output(['git','-C',str(repo),*a])
+def queue_current(files,repo,current):
+ # Content addressing preserves each admitted endpoint; never overwrite an archive.
+ archive=REL/'current-inputs'/('meta-'+sha(current)+'.txt')
+ if (repo/archive).exists():assert (repo/archive).read_bytes()==current,('reused current archive differs',str(archive))
+ if archive in files:assert files[archive]==current
+ files[archive]=current
+ return archive
 def main():
  p=argparse.ArgumentParser();p.add_argument('--repo',type=Path,required=True);p.add_argument('--inputs',type=Path,required=True);p.add_argument('--production-overlay',type=Path);p.add_argument('--write',action='store_true');a=p.parse_args();R=a.repo.resolve();I=a.inputs.resolve();D=R/REL
  assert R.is_relative_to('/Volumes/Semaprax') and I.is_relative_to('/Volumes/Semaprax')
@@ -47,7 +54,10 @@ def main():
   if path in META:
    stem=path.replace('/','__');parent=Path('docs/evidence/main34d535-integration-20261017')
    main_archive=parent/(stem+'.main34d.json');current_archive=parent/(stem+'.ours-before.json')
-   assert (I/main_archive).read_bytes()==expected and (I/current_archive).read_bytes()==current
+   assert (I/main_archive).read_bytes()==expected
+   snapshot=(I/current_archive).read_bytes()
+   assert snapshot==git(R,'show',BASE+':'+path),('immutable merge snapshot changed',path)
+   if current!=snapshot:current_archive=queue_current(files,R,current)
   elif path.startswith('docs/evidence/') and current==expected:
    main_archive=current_archive=Path(path)
   else:
@@ -63,7 +73,9 @@ def main():
  data=(json.dumps(manifest,indent=2)+'\n').encode();assert len(data)<65536
  receipt={'status':'BOUND_SOURCE_ONLY_UNQUALIFIED_UNTIL_FINAL_REGISTERED_BUILD','inputs_observed_head':git(I,'rev-parse','HEAD').decode().strip(),'main_head':MAIN,'manifest_sha256':sha(data),'manifest_bytes':len(data),'unique_inputs':len(entries),'domain_counts':[(x[0],x[2],x[3])for x in DOMAINS],'archive_writes':len(files),'all_original_MAIN_tables_and_archive_hashes_verified':True,'original_domain_order_and_duplicate_source_rows_unchanged':True,'whole_source_inverse':'One closed whole-input replacement, with complete current/predecessor preimages and both full lengths/SHA256. No old table/assertion retargeting.','Rust_or_Cargo_or_authority_or_common_refresh':False}
  if a.write:
-  for path,b in files.items():(R/path).write_bytes(b)
+  for path,b in files.items():
+   if path.name.startswith('meta-') and (R/path).exists():assert (R/path).read_bytes()==b,('reused current archive differs',str(path))
+   (R/path).write_bytes(b)
   (D/'input-manifest.json').write_bytes(data);(D/'binding-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
   helper=R/'src/source_reflows/incoming67107_semantic_receivers.rs';text=helper.read_text()
   text,n=re.subn(r'const MAIN34D_MANIFEST_LEN: usize = [0-9]+;',f'const MAIN34D_MANIFEST_LEN: usize = {len(data)};',text);assert n==1

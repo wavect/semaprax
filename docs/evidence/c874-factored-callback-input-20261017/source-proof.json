@@ -1,0 +1,1 @@
+{"state": "PASS_SOURCE_ONLY", "all_actual_ours_predecessor_callback_chains": 3, "new_files": 0, "original_callback_rows_and_result_preserved": 3, "complete_ours_afterimages_reconstructed_both_directions": 3, "source_mutations": 21, "original_table_unchanged": true, "rust_runtime": "UNEXECUTED"}

@@ -1,0 +1,11 @@
+{
+  "status": "REVIEWED_FOR_EXACT_PUBLIC_APPLY",
+  "plan_sha256": "ee8a9e68356634097b9d2961e249bba531357b2f09746d913e6808b7ef23bfe4",
+  "capture_head": "36c6deb98720e243b0daaf81e813fbe3ec3b0a2d",
+  "all10_whole_prior_wires_restored": true,
+  "exact11_edits": "one observed builder reservation pin + ten captured document hashes",
+  "actual_builder_reservation": 973339,
+  "prior_committed_builder_reservation": 1114864,
+  "scope": "managed fixture only, not agent-token or application-fit gain",
+  "public_descriptor_sha256": "be6c466782fafe8508736f2cce77b50d7a28d0ac53070ce2b8c6c2c4db90c6f8"
+}

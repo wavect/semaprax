@@ -1,0 +1,62 @@
+[
+  {
+    "path": "src/workspace_graph/type_proof_tests.rs",
+    "current_sha256": "96f67d2f15a416adff470656f1eb697d87ab8ce05bbddbc349efce178d611309",
+    "before_sha256": "5634c4f37fac4556a6713c47a86864b86c7d2f444870abe2e9b5fa8fa5ebe106",
+    "whole_before": "docs/evidence/managed36-semantic-history-20261017/src__workspace_graph__type_proof_tests.rs.before.txt",
+    "edits": [
+      {
+        "before": "sha256:64d6c385141e02cb6d9c68c19a3569f76eebb6dfe018a183f5cc2b17e0acd9a6",
+        "after": "sha256:9422e5da863668e10ff0841e619c99fca67b72de1b6dbbe5da3a8eaa13ded746"
+      }
+    ]
+  },
+  {
+    "path": "tests/workspace/semantic_graph.rs",
+    "current_sha256": "d20db2e8839141a4a41fb40694203a6c7c899fe109eea61daa4dd00591a1a64e",
+    "before_sha256": "e5f13eccf60e7c68066c9fc3ee32f2f72b3ed8190a02a7c6b708ab32f4499128",
+    "whole_before": "docs/evidence/managed36-semantic-history-20261017/tests__workspace__semantic_graph.rs.before.txt",
+    "edits": [
+      {
+        "before": "sha256:64807a35fbe94bfa66201dd3db1468712b93f28b49d98ccc70eeb33460c1e2a0",
+        "after": "sha256:429213faf00ae672ac816d5e03c451d5bd222cd3722edc16b723b3a6dc834bb5"
+      },
+      {
+        "before": "sha256:93cd7596ab762e34654581f0530368afbe6896e0a395149609711fc9e2b89b3f",
+        "after": "sha256:5c020862f8125b587707938061997d05f3f020a4fcaf3d0823336f8e93bcbe5a"
+      },
+      {
+        "before": "sha256:720704c7baf6b69411b6357041512416c02ece3305fa0ff034d580ddc93a87a7",
+        "after": "sha256:776bb249a5462a22a1141dadcc31ca9349ae340f59b47dbce68d6b660600b73d"
+      },
+      {
+        "before": "sha256:d6e4f39c11c6c2d6ed7ec3e5138d787583961a3669a648daa9085236b3e3e7ee",
+        "after": "sha256:06206cc97d637223b08742e0587a9cad09b4a37bef2579c2d24723115172b338"
+      },
+      {
+        "before": "sha256:bb4991566a276f76d7970f49def1184a9047ecf4af0a166b9e642a5598583a73",
+        "after": "sha256:9110f699840c81dcc2dbc57dd8d71e259266cf1074e6454081d4b21850cfaefc"
+      },
+      {
+        "before": "sha256:3be3b04b2cbc5f8abef6c584deed7f854ec22189134a4b67db71cfd416d6dfb1",
+        "after": "sha256:72f41a826d0777b00ff4aea435600ab7194c78215b3d144647f67a99df930459"
+      },
+      {
+        "before": "sha256:7c7ae2cedc6ee83ba9814c28b1a6b0a96fb8b85cfb7bd65cca628fe9242222af",
+        "after": "sha256:436b022ba05819f4a1e6a2242e35e97638436d5cb8ffe4d821977c48fd3fac9c"
+      },
+      {
+        "before": "sha256:26c450e0185cbe5de20633e074f7d38455ed04ceb68651adbd2459e0e496b2a8",
+        "after": "sha256:78d03b6cb3dd6aeb53ae240e3a3902289f580d9e663105c945eb0783a350fe9c"
+      },
+      {
+        "before": "sha256:cda634c1cfeb7fd5a31be9f8332bc5cee0610310379be7510fee23cdc1e669c1",
+        "after": "sha256:646c457d51240593e29cabfc1e7849dcf4c90a565504c276d6937f0e324e14b6"
+      },
+      {
+        "before": "assert_eq!(graph.budget().used_builder_bytes(), 973_339);",
+        "after": "assert_eq!(graph.budget().used_builder_bytes(), 1_114_864);"
+      }
+    ]
+  }
+]
